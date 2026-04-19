@@ -10,7 +10,7 @@ export const opportunitiesTable = pgTable("opportunities", {
   clientId: uuid("client_id").references(() => clientsTable.id),
   stage: text("stage").notNull().default("lead"),
   value: numeric("value", { precision: 15, scale: 2 }),
-  currency: text("currency").default("XAF"),
+  currency: text("currency").default("XOF"),
   probability: integer("probability").default(0),
   assignedToId: uuid("assigned_to_id").references(() => usersTable.id),
   expectedCloseDate: text("expected_close_date"),

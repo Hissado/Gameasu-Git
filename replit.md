@@ -85,7 +85,14 @@ The frontend proxies `/api` requests to the API server on port 8080.
 
 ## Database
 
-PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema covering all modules. Soft deletes via `deletedAt` field. Currency default: XAF (Central African Franc).
+PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema covering all modules. Soft deletes via `deletedAt` field. Currency default: **XOF / FCFA** (West African Franc) — use `formatFCFA()` from `artifacts/edole-admin/src/lib/format.ts` for all monetary display.
+
+## Branding & Localization
+
+- **Identity**: Premium BTP/construction operations platform — orange (#F37021-class) accent on near-black sidebar, derived from the `édolé` logo (`src/assets/edole-logo.png`). Palette defined in `artifacts/edole-admin/src/index.css`.
+- **Language**: Entire UI is in professional French. No English strings in user-facing copy.
+- **Currency**: All amounts displayed in FCFA via `formatFCFA(value)`. DB stores currency as `XOF`.
+- **Auth wiring**: `src/main.tsx` calls `setAuthTokenGetter(() => localStorage.getItem("auth_token"))` so all generated hooks send the Bearer token. `src/lib/auth.tsx` exposes `user` from `useGetMe()` (`/api/auth/me`).
 
 ## Seeded Data
 

@@ -4,70 +4,89 @@ import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { formatFCFA, formatDate } from "@/lib/format";
+
+const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
+  planning: { label: "En planification", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  in_progress: { label: "En cours", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  on_hold: { label: "En pause", cls: "bg-muted text-muted-foreground border-border" },
+  completed: { label: "Terminé", cls: "bg-green-50 text-green-700 border-green-200" },
+  cancelled: { label: "Annulé", cls: "bg-red-50 text-red-700 border-red-200" },
+};
+
+const PHASE_LABEL: Record<string, string> = {
+  pending: "À démarrer",
+  in_progress: "En cours",
+  completed: "Terminée",
+  on_hold: "En pause",
+};
 
 export default function ProjectDetail() {
   const [, params] = useRoute("/projects/:id");
   const id = params?.id || "";
-  
+
   const { data: project, isLoading } = useGetProject(id, {
-    query: { enabled: !!id, queryKey: getGetProjectQueryKey(id) }
+    query: { enabled: !!id, queryKey: getGetProjectQueryKey(id) },
   });
 
   if (isLoading) {
-    return <div className="p-8 text-center animate-pulse">Loading project details...</div>;
+    return <div className="p-8 text-center animate-pulse text-muted-foreground">Chargement de la fiche chantier…</div>;
   }
 
   if (!project) {
-    return <div className="p-8 text-center text-muted-foreground">Project not found</div>;
+    return <div className="p-8 text-center text-muted-foreground">Chantier introuvable</div>;
   }
+
+  const status = STATUS_LABEL[project.status] || { label: project.status, cls: "" };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start gap-6">
         <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Chantier</p>
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          <p className="text-muted-foreground mt-1">Client: {project.clientName || "—"}</p>
+          <p className="text-muted-foreground mt-1">Client : <span className="font-medium text-foreground">{project.clientName || "—"}</span></p>
         </div>
-        <Badge variant="outline" className="capitalize px-3 py-1 text-sm">{project.status.replace("_", " ")}</Badge>
+        <Badge variant="outline" className={`px-3 py-1.5 text-sm font-semibold ${status.cls}`}>{status.label}</Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle>Vue d'ensemble</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between mb-2 text-sm">
-                <span className="font-medium">Progress</span>
-                <span className="text-muted-foreground">{project.progress || 0}%</span>
+                <span className="font-semibold">Avancement global</span>
+                <span className="text-muted-foreground font-medium">{project.progress || 0}%</span>
               </div>
               <Progress value={project.progress || 0} className="h-2" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-2">
               <div>
-                <div className="text-sm text-muted-foreground">Manager</div>
-                <div className="font-medium">{project.managerName || "Unassigned"}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">Responsable</div>
+                <div className="font-medium">{project.managerName || "Non assigné"}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Budget</div>
-                <div className="font-medium">${project.budget?.toLocaleString() || "0"}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">Budget alloué</div>
+                <div className="font-semibold text-primary">{formatFCFA(Number(project.budget) || 0)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Start Date</div>
-                <div className="font-medium">{project.startDate ? new Date(project.startDate).toLocaleDateString() : "—"}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">Date de démarrage</div>
+                <div className="font-medium">{formatDate(project.startDate)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">End Date</div>
-                <div className="font-medium">{project.endDate ? new Date(project.endDate).toLocaleDateString() : "—"}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">Date de livraison</div>
+                <div className="font-medium">{formatDate(project.endDate)}</div>
               </div>
             </div>
 
             {project.description && (
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-sm text-muted-foreground">{project.description}</p>
+              <div className="pt-4 border-t border-border">
+                <h3 className="font-semibold mb-2">Description du projet</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
               </div>
             )}
           </CardContent>
@@ -75,22 +94,24 @@ export default function ProjectDetail() {
 
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Phases</CardTitle>
+            <CardTitle>Phases du chantier</CardTitle>
           </CardHeader>
           <CardContent>
             {project.phases && project.phases.length > 0 ? (
-              <div className="space-y-4">
-                {project.phases.map((phase) => (
-                  <div key={phase.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
+              <div className="space-y-3">
+                {project.phases.map((phase: any) => (
+                  <div key={phase.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
                     <div>
                       <div className="font-medium text-sm">{phase.name}</div>
-                      <Badge variant="secondary" className="mt-1 text-[10px] uppercase">{phase.status}</Badge>
+                      <Badge variant="secondary" className="mt-1.5 text-[10px] uppercase tracking-wider">
+                        {PHASE_LABEL[phase.status] || phase.status}
+                      </Badge>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground text-center py-4">No phases defined</div>
+              <div className="text-sm text-muted-foreground text-center py-6">Aucune phase définie</div>
             )}
           </CardContent>
         </Card>

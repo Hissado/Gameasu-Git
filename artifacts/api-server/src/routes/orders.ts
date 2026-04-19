@@ -49,7 +49,7 @@ router.get("/orders/financial-summary", async (req, res) => {
     totalInvoicesValue: totalInvoiced,
     totalPaid,
     totalOutstanding: totalInvoiced - totalPaid,
-    currency: "XAF",
+    currency: "XOF",
   });
 });
 

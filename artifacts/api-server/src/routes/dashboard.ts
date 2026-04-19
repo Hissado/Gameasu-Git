@@ -33,7 +33,7 @@ router.get("/dashboard/kpis", async (req, res) => {
     activeRentals: rentals.filter(r => r.status === "active").length,
     equipmentAvailable: equipment.filter(e => e.status === "available").length,
     unreadMessages: 0,
-    currency: "XAF",
+    currency: "XOF",
   });
 });
 

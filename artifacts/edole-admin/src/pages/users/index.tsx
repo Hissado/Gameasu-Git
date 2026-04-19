@@ -6,6 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatDate } from "@/lib/format";
+
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "Super administrateur",
+  admin: "Administrateur",
+  manager: "Responsable",
+  commercial: "Commercial",
+  technicien: "Technicien",
+  comptable: "Comptable",
+  client: "Client",
+};
 
 export default function UsersList() {
   const { data, isLoading } = useListUsers();
@@ -14,38 +25,38 @@ export default function UsersList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">System Users</h1>
-          <p className="text-muted-foreground mt-1">Manage portal access and roles</p>
+          <h1 className="text-3xl font-bold tracking-tight">Utilisateurs de la plateforme</h1>
+          <p className="text-muted-foreground mt-1">Gestion des accès, profils et rôles internes</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <Plus className="w-4 h-4 mr-2" />
-          Add User
+          Nouvel utilisateur
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>Annuaire complet</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground animate-pulse">Loading users...</div>
+            <div className="p-8 text-center text-muted-foreground animate-pulse">Chargement des utilisateurs…</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <TableHead>Utilisateur</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Profil</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Inscription</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.data?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No users found.
+                      Aucun utilisateur enregistré.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -53,9 +64,11 @@ export default function UsersList() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
+                          <Avatar className="w-9 h-9">
                             <AvatarImage src={user.avatarUrl} />
-                            <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                              {user.firstName?.[0]}{user.lastName?.[0]}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
                             <div className="font-medium">{user.firstName} {user.lastName}</div>
@@ -64,25 +77,25 @@ export default function UsersList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {user.role}
+                        <Badge variant="outline" className="font-medium">
+                          {ROLE_LABEL[user.role] || user.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {user.isClient ? (
-                          <Badge className="bg-blue-100 text-blue-800 border-none">Client</Badge>
+                          <Badge className="bg-blue-50 text-blue-700 border border-blue-200">Compte client</Badge>
                         ) : (
-                          <Badge className="bg-purple-100 text-purple-800 border-none">Internal</Badge>
+                          <Badge className="bg-orange-50 text-orange-700 border border-orange-200">Interne</Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         {user.isActive ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-800">Active</Badge>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Actif</Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-gray-100 text-gray-800">Inactive</Badge>
+                          <Badge variant="outline" className="bg-muted text-muted-foreground">Désactivé</Badge>
                         )}
                       </TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
                     </TableRow>
                   ))
                 )}

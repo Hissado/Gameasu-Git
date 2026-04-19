@@ -6,74 +6,86 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PhoneCall, Plus } from "lucide-react";
 
+const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
+  active: { label: "En cours", cls: "bg-green-50 text-green-700 border-green-200" },
+  completed: { label: "Terminé", cls: "bg-muted text-muted-foreground border-border" },
+  missed: { label: "Manqué", cls: "bg-red-50 text-red-700 border-red-200" },
+  ringing: { label: "Sonnerie", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  audio: "Audio",
+  video: "Vidéo",
+  conference: "Conférence",
+};
+
+const formatDuration = (s?: number | null) => {
+  if (!s) return "—";
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}min ${r.toString().padStart(2, "0")}s`;
+};
+
 export default function CallsList() {
   const { data, isLoading } = useListCallSessions();
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active": return "bg-green-100 text-green-800";
-      case "completed": return "bg-gray-100 text-gray-800";
-      case "missed": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Call Sessions</h1>
-          <p className="text-muted-foreground mt-1">Log of all incoming and outgoing calls</p>
+          <h1 className="text-3xl font-bold tracking-tight">Historique des appels</h1>
+          <p className="text-muted-foreground mt-1">Journal des communications audio et vidéo internes</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <PhoneCall className="w-4 h-4 mr-2" />
-          Start Call
+          Démarrer un appel
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Call History</CardTitle>
+          <CardTitle>Sessions enregistrées</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground animate-pulse">Loading calls...</div>
+            <div className="p-8 text-center text-muted-foreground animate-pulse">Chargement des appels…</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Initiator</TableHead>
-                  <TableHead>Duration (s)</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Initiateur</TableHead>
+                  <TableHead>Durée</TableHead>
+                  <TableHead>Date et heure</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.data?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No call sessions found.
+                      Aucun appel enregistré pour le moment.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data?.data?.map((call) => (
-                    <TableRow key={call.id}>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {call.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={`capitalize ${getStatusColor(call.status)}`}>
-                          {call.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{call.initiatorName || "—"}</TableCell>
-                      <TableCell>{call.durationSeconds || "—"}</TableCell>
-                      <TableCell>{new Date(call.createdAt).toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))
+                  data?.data?.map((call: any) => {
+                    const st = STATUS_LABEL[call.status] || { label: call.status, cls: "bg-muted text-muted-foreground" };
+                    return (
+                      <TableRow key={call.id}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">{TYPE_LABEL[call.type] || call.type}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={st.cls}>{st.label}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{call.initiatorName || "—"}</TableCell>
+                        <TableCell className="text-sm">{formatDuration(call.durationSeconds)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(call.createdAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

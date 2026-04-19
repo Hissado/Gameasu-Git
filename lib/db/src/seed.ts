@@ -110,7 +110,7 @@ async function seed() {
       clientId: client1.id,
       stage: "proposal",
       value: "45000000",
-      currency: "XAF",
+      currency: "XOF",
       probability: 65,
       assignedToId: commercial?.id,
       expectedCloseDate: "2026-06-30",
@@ -122,7 +122,7 @@ async function seed() {
       clientId: client2?.id,
       stage: "qualified",
       value: "12500000",
-      currency: "XAF",
+      currency: "XOF",
       probability: 80,
       assignedToId: commercial?.id,
       expectedCloseDate: "2026-05-15",
@@ -133,7 +133,7 @@ async function seed() {
       clientId: client3?.id,
       stage: "lead",
       value: "28000000",
-      currency: "XAF",
+      currency: "XOF",
       probability: 30,
       assignedToId: commercial?.id,
       expectedCloseDate: "2026-08-31",
@@ -144,7 +144,7 @@ async function seed() {
       clientId: client4?.id,
       stage: "negotiation",
       value: "67500000",
-      currency: "XAF",
+      currency: "XOF",
       probability: 90,
       assignedToId: manager?.id,
       expectedCloseDate: "2026-04-30",
@@ -169,7 +169,7 @@ async function seed() {
     startDate: "2026-03-01",
     endDate: "2026-07-31",
     budget: "35000000",
-    currency: "XAF",
+    currency: "XOF",
     progress: 35,
   }).returning().catch(() => []);
 
@@ -182,7 +182,7 @@ async function seed() {
     startDate: "2026-04-01",
     endDate: "2026-06-30",
     budget: "8750000",
-    currency: "XAF",
+    currency: "XOF",
     progress: 20,
   }).returning().catch(() => []);
 
@@ -195,7 +195,7 @@ async function seed() {
     startDate: "2026-05-01",
     endDate: "2026-06-15",
     budget: "5500000",
-    currency: "XAF",
+    currency: "XOF",
     progress: 0,
   }).returning().catch(() => []);
 
@@ -281,7 +281,7 @@ async function seed() {
       startDate: "2026-04-01",
       endDate: "2026-05-31",
       totalCost: "51000000",
-      currency: "XAF",
+      currency: "XOF",
       notes: "Chantier route Libreville - Owendo. Livraison sur site incluse.",
     }).returning().catch(() => []);
 
@@ -322,7 +322,7 @@ async function seed() {
       clientId: client1.id,
       status: "confirmed",
       totalAmount: "45000000",
-      currency: "XAF",
+      currency: "XOF",
       notes: "Commande installation réseau électrique Projet Sogelec Phase 1",
     }).returning().catch(() => []);
 
@@ -333,7 +333,7 @@ async function seed() {
         clientId: client1.id,
         status: "accepted",
         totalAmount: "45000000",
-        currency: "XAF",
+        currency: "XOF",
         validUntil: "2026-05-31",
         notes: "Proforma acceptée par email le 20/03/2026",
       }).returning().catch(() => []);
@@ -346,7 +346,7 @@ async function seed() {
           status: "partial",
           totalAmount: "45000000",
           paidAmount: "22500000",
-          currency: "XAF",
+          currency: "XOF",
           dueDate: "2026-05-01",
           notes: "Facture acompte 50%",
         }).returning().catch(() => []);
@@ -355,7 +355,7 @@ async function seed() {
           await db.insert(paymentsTable).values({
             invoiceId: inv1[0].id,
             amount: "22500000",
-            currency: "XAF",
+            currency: "XOF",
             method: "bank_transfer",
             reference: "VIR-SGBC-20260402-7751",
             paidAt: new Date("2026-04-02"),
@@ -370,7 +370,7 @@ async function seed() {
       clientId: client4?.id,
       status: "pending",
       totalAmount: "67500000",
-      currency: "XAF",
+      currency: "XOF",
       notes: "Contrat logistique transport matériel lourd RDC",
     }).returning().catch(() => []);
   }
@@ -421,7 +421,7 @@ async function seed() {
     await db.insert(notificationsTable).values([
       { userId: admin.id, type: "task_assigned", title: "Nouvelle tâche assignée", message: "La tâche 'Présentation CA trimestrielle' vous a été assignée", entityType: "task", isRead: "false" },
       { userId: admin.id, type: "opportunity_update", title: "Opportunité mise à jour", message: "L'opportunité 'Contrat logistique MinesCorp' est en phase de négociation (90%)", entityType: "opportunity", isRead: "false" },
-      { userId: admin.id, type: "payment_received", title: "Paiement reçu", message: "Paiement de 22 500 000 XAF reçu de Sogelec Cameroun (INV-20260401-001)", entityType: "invoice", isRead: "false" },
+      { userId: admin.id, type: "payment_received", title: "Paiement reçu", message: "Paiement de 22 500 000 FCFA reçu de Sogelec Cameroun (INV-20260401-001)", entityType: "invoice", isRead: "false" },
       { userId: admin.id, type: "rental_expiring", title: "Location bientôt expirée", message: "La location RNT-20260401-001 (Grue Grove) expire dans 43 jours", entityType: "rental", isRead: "true" },
       { userId: admin.id, type: "project_milestone", title: "Jalon projet atteint", message: "Phase 'Étude préliminaire' du projet Sogelec Phase 1 complétée", entityType: "project", isRead: "true" },
     ]).catch(() => {});

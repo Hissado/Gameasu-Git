@@ -20,90 +20,107 @@ import {
   Bell,
   Search,
   UserCircle,
-  LogOut
+  LogOut,
+  HardHat
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import logo from "@/assets/edole-logo.png";
 
 const NAV_GROUPS = [
   {
-    title: "Dashboard",
+    title: "Pilotage",
     items: [
-      { name: "Overview", path: "/", icon: LayoutDashboard },
+      { name: "Tableau de bord", path: "/", icon: LayoutDashboard },
     ]
   },
   {
-    title: "Operations",
+    title: "Opérations",
     items: [
-      { name: "Projects", path: "/projects", icon: FolderKanban },
-      { name: "Tasks", path: "/tasks", icon: CheckSquare },
-      { name: "Equipment", path: "/equipment", icon: Wrench },
-      { name: "Rentals", path: "/rentals", icon: Truck },
+      { name: "Chantiers", path: "/projects", icon: FolderKanban },
+      { name: "Tâches", path: "/tasks", icon: CheckSquare },
+    ]
+  },
+  {
+    title: "Matériel",
+    items: [
+      { name: "Inventaire", path: "/equipment", icon: Wrench },
+      { name: "Locations", path: "/rentals", icon: Truck },
       { name: "Inspections", path: "/inspections", icon: ClipboardCheck },
-      { name: "Logistics", path: "/logistics", icon: Truck },
+      { name: "Logistique", path: "/logistics", icon: Truck },
     ]
   },
   {
-    title: "CRM & HR",
+    title: "Commercial & RH",
     items: [
-      { name: "CRM Home", path: "/crm", icon: Briefcase },
-      { name: "Collaborators", path: "/collaborators", icon: Users },
-      { name: "Users", path: "/users", icon: UserCircle },
+      { name: "Pipeline", path: "/crm", icon: Briefcase },
+      { name: "Collaborateurs", path: "/collaborators", icon: HardHat },
+      { name: "Utilisateurs", path: "/users", icon: UserCircle },
     ]
   },
   {
     title: "Finance",
     items: [
-      { name: "Orders", path: "/orders", icon: ShoppingCart },
-      { name: "Proformas", path: "/proformas", icon: FileText },
-      { name: "Invoices", path: "/invoices", icon: FileText },
-      { name: "Payments", path: "/payments", icon: CreditCard },
+      { name: "Bons de commande", path: "/orders", icon: ShoppingCart },
+      { name: "Devis", path: "/proformas", icon: FileText },
+      { name: "Factures", path: "/invoices", icon: FileText },
+      { name: "Encaissements", path: "/payments", icon: CreditCard },
     ]
   },
   {
     title: "Communication",
     items: [
-      { name: "Messaging", path: "/messaging", icon: MessageSquare },
-      { name: "Calls", path: "/calls", icon: PhoneCall },
+      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
+      { name: "Appels", path: "/calls", icon: PhoneCall },
     ]
   }
 ];
 
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "Super administrateur",
+  admin: "Administrateur",
+  manager: "Responsable",
+  commercial: "Commercial",
+  technicien: "Technicien",
+  comptable: "Comptable",
+  client: "Client",
+};
+
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const initials = ((user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")).toUpperCase() || "ED";
+  const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Utilisateur";
+  const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full">
-        <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
-          <div className="w-8 h-8 bg-sidebar-primary rounded flex items-center justify-center text-sidebar-primary-foreground font-bold">
-            E
-          </div>
-          <span className="font-bold tracking-wider text-sm">EDOLE ADMIN</span>
+      <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full shadow-xl z-10">
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-center bg-sidebar">
+          <img src={logo} alt="EDOLE Logo" className="h-10 object-contain" />
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto py-6 custom-scrollbar">
           {NAV_GROUPS.map((group, i) => (
             <div key={i} className="mb-6 px-4">
-              <h3 className="text-xs font-semibold text-sidebar-foreground/50 mb-2 uppercase tracking-wider px-2">
+              <h3 className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-widest px-3">
                 {group.title}
               </h3>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {group.items.map((item, j) => {
                   const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                   return (
                     <li key={j}>
                       <Link
                         href={item.path}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
+                        className={`flex items-center gap-3 px-3 py-2 rounded-sm transition-all duration-200 text-sm font-medium ${
                           active
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
-                        <item.icon className="w-4 h-4" />
+                        <item.icon className={`w-4 h-4 ${active ? "text-white" : "text-sidebar-foreground/50"}`} strokeWidth={active ? 2.5 : 2} />
                         {item.name}
                       </Link>
                     </li>
@@ -114,48 +131,64 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           ))}
         </div>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border bg-sidebar/50">
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            className="flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
-            <Settings className="w-4 h-4" />
-            Settings
+            <Settings className="w-4 h-4 text-sidebar-foreground/50" />
+            Configuration
           </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden bg-background">
         {/* Topbar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center text-muted-foreground bg-muted rounded-md px-3 py-1.5 w-64 focus-within:ring-2 focus-within:ring-ring transition-shadow">
-            <Search className="w-4 h-4 mr-2" />
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 shrink-0 shadow-sm z-0">
+          <div className="flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded px-3 py-2 w-80 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+            <Search className="w-4 h-4 mr-2 text-muted-foreground/70" />
             <input 
               type="text" 
-              placeholder="Search..." 
+              placeholder="Rechercher (Chantier, Matériel, Client)..." 
               className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <div className="flex items-center gap-6">
+            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-card"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
             </Link>
+
+            <div className="w-px h-6 bg-border"></div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center outline-none">
-                  <Avatar className="w-8 h-8 border border-border">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">AD</AvatarFallback>
+                <button className="flex items-center gap-3 outline-none hover:opacity-80 transition-opacity">
+                  <div className="text-right hidden md:block">
+                    <p className="text-sm font-medium leading-none text-foreground">{fullName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{roleLabel}</p>
+                  </div>
+                  <Avatar className="w-9 h-9 border border-border">
+                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="cursor-pointer" onClick={() => logout()}>
+              <DropdownMenuContent align="end" className="w-56 font-sans">
+                <DropdownMenuItem className="cursor-pointer py-2">
+                  <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Mon profil
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer py-2">
+                  <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
+                  Préférences
+                </DropdownMenuItem>
+                <div className="h-px bg-border my-1"></div>
+                <DropdownMenuItem className="cursor-pointer py-2 text-destructive focus:text-destructive" onClick={() => logout()}>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Log out
+                  Déconnexion
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -163,10 +196,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto bg-background p-6">
-          {children}
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </div>
       </main>
     </div>
   );
 };
+

@@ -1,9 +1,13 @@
 import React from "react";
 import { useGetRental, getGetRentalQueryKey } from "@workspace/api-client-react";
-import { useRoute } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRoute, Link } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, FileText, Calendar, Building, Printer, PlaySquare } from "lucide-react";
+import { formatFCFA, formatDate } from "@/lib/format";
 
 export default function RentalDetail() {
   const [, params] = useRoute("/rentals/:id");
@@ -13,78 +17,134 @@ export default function RentalDetail() {
     query: { enabled: !!id, queryKey: getGetRentalQueryKey(id) }
   });
 
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) return null;
+    switch (status) {
+      case "active": return <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1 text-sm">En cours</Badge>;
+      case "pending": return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 px-3 py-1 text-sm">En attente</Badge>;
+      case "confirmed": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 px-3 py-1 text-sm">Confirmé</Badge>;
+      case "returned": return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 px-3 py-1 text-sm">Retourné</Badge>;
+      case "cancelled": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 px-3 py-1 text-sm">Annulé</Badge>;
+      default: return <Badge variant="outline">Inconnu</Badge>;
+    }
+  };
+
   if (isLoading) {
-    return <div className="p-8 text-center animate-pulse">Loading rental details...</div>;
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <Skeleton className="h-10 w-1/3" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 md:col-span-2" />
+          <Skeleton className="h-64 col-span-1" />
+        </div>
+      </div>
+    );
   }
 
   if (!rental) {
-    return <div className="p-8 text-center text-muted-foreground">Rental not found</div>;
+    return (
+      <div className="text-center py-12">
+        <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-bold">Contrat introuvable</h2>
+        <Link href="/rentals"><Button className="mt-4"><ArrowLeft className="w-4 h-4 mr-2" /> Retour aux locations</Button></Link>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rental {rental.referenceNumber}</h1>
-          <p className="text-muted-foreground mt-1">Client: {rental.clientName || "—"}</p>
+        <div className="flex items-center gap-4">
+           <Link href="/rentals">
+            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+              Contrat <span className="text-primary font-mono bg-primary/10 px-2 py-0.5 rounded-md">{rental.referenceNumber}</span>
+            </h1>
+            <p className="text-muted-foreground mt-1 flex items-center gap-2">
+              <Building className="w-4 h-4" /> Client: <span className="font-bold text-foreground">{rental.clientName || "Non assigné"}</span>
+            </p>
+          </div>
         </div>
-        <Badge variant="outline" className="capitalize px-3 py-1 text-sm">{rental.status}</Badge>
+        <div className="flex flex-col items-end gap-2">
+          {getStatusBadge(rental.status)}
+          <div className="flex gap-2 mt-2">
+            <Button variant="outline" size="sm"><Printer className="w-4 h-4 mr-2"/> Imprimer</Button>
+            {rental.status === 'pending' && <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"><PlaySquare className="w-4 h-4 mr-2"/> Démarrer</Button>}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 md:col-span-2">
-          <CardHeader>
-            <CardTitle>Equipment Items</CardTitle>
+        <Card className="col-span-1 md:col-span-2 shadow-sm border-border">
+          <CardHeader className="bg-slate-50/50 border-b border-border/50 pb-4">
+            <CardTitle className="text-lg">Équipements Loués</CardTitle>
+            <CardDescription>Détail de la flotte engagée sur ce contrat</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {rental.items && rental.items.length > 0 ? (
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-slate-50/50">
                   <TableRow>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead className="text-right">Daily Rate</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead>
+                    <TableHead className="font-semibold text-slate-600">Désignation Matériel</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-600">Qté</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-600">Tarif Journalier</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-600">Sous-total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rental.items.map((item) => (
-                    <TableRow key={item.equipmentId}>
-                      <TableCell className="font-medium">{item.equipmentName}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">${item.dailyRate}</TableCell>
-                      <TableCell className="text-right font-medium">${item.subtotal}</TableCell>
+                    <TableRow key={item.equipmentId} className="hover:bg-slate-50/30">
+                      <TableCell className="font-bold text-slate-800">{item.equipmentName}</TableCell>
+                      <TableCell className="text-center font-medium bg-slate-50 border-x border-border/30">{item.quantity}</TableCell>
+                      <TableCell className="text-right text-slate-600">{formatFCFA(item.dailyRate)}</TableCell>
+                      <TableCell className="text-right font-bold text-primary bg-primary/5">{formatFCFA(item.subtotal)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-sm text-muted-foreground text-center py-4">No items associated with this rental.</div>
+              <div className="text-sm text-muted-foreground text-center py-12">Aucun équipement lié à ce contrat.</div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Rental Summary</CardTitle>
+        <Card className="col-span-1 shadow-sm border-border h-fit">
+          <CardHeader className="bg-slate-50/50 border-b border-border/50 pb-4">
+            <CardTitle className="text-lg">Synthèse Financière</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Start Date</div>
-              <div className="font-medium">{new Date(rental.startDate).toLocaleDateString()}</div>
+          <CardContent className="space-y-6 pt-6">
+            <div className="flex gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
+               <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
+               <div className="w-full">
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Début</span>
+                   <span className="font-bold text-sm">{formatDate(rental.startDate)}</span>
+                 </div>
+                 <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fin</span>
+                   <span className="font-bold text-sm">{formatDate(rental.endDate)}</span>
+                 </div>
+                 <div className="mt-2 text-right text-xs font-medium text-slate-500">
+                   Durée totale: <span className="text-slate-800 font-bold ml-1">
+                     {Math.max(1, Math.ceil((new Date(rental.endDate).getTime() - new Date(rental.startDate).getTime()) / (1000 * 60 * 60 * 24)))} jours
+                   </span>
+                 </div>
+               </div>
             </div>
-            <div>
-              <div className="text-sm text-muted-foreground">End Date</div>
-              <div className="font-medium">{new Date(rental.endDate).toLocaleDateString()}</div>
-            </div>
+            
             <div className="pt-4 border-t border-border">
-              <div className="text-sm text-muted-foreground">Total Cost</div>
-              <div className="text-2xl font-bold text-primary">${rental.totalCost?.toLocaleString() || "0"}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Coût Total Estimé</div>
+              <div className="text-3xl font-bold text-primary tracking-tight">{formatFCFA(rental.totalCost)}</div>
             </div>
+            
             {rental.notes && (
               <div className="pt-4 border-t border-border">
-                <div className="text-sm text-muted-foreground mb-1">Notes</div>
-                <div className="text-sm">{rental.notes}</div>
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Notes Opérationnelles</div>
+                <div className="text-sm text-slate-700 bg-yellow-50 p-3 rounded-lg border border-yellow-100 italic">{rental.notes}</div>
               </div>
             )}
           </CardContent>
