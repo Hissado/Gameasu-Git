@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq, ilike, sql } from "drizzle-orm";
+import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.get("/users", async (req, res) => {
   });
 });
 
-router.post("/users", async (req, res) => {
+router.post("/users", requireAdmin, async (req, res) => {
   const { email, password, firstName, lastName, role, phone, isClient } = req.body;
   const [user] = await db.insert(usersTable).values({
     email, password, firstName, lastName,
@@ -44,7 +45,7 @@ router.get("/users/:id", async (req, res) => {
   return res.json({ ...users[0], password: undefined });
 });
 
-router.put("/users/:id", async (req, res) => {
+router.put("/users/:id", requireAdmin, async (req, res) => {
   const { firstName, lastName, role, phone, isActive } = req.body;
   const [user] = await db.update(usersTable)
     .set({ firstName, lastName, role, phone, isActive })
@@ -54,7 +55,7 @@ router.put("/users/:id", async (req, res) => {
   return res.json({ ...user, password: undefined });
 });
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", requireAdmin, async (req, res) => {
   await db.update(usersTable).set({ isActive: false }).where(eq(usersTable.id, req.params.id));
   return res.status(204).send();
 });
