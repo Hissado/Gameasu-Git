@@ -38,6 +38,17 @@ import CallsList from "@/pages/calls/index";
 import UsersList from "@/pages/users/index";
 import NotificationsList from "@/pages/notifications/index";
 import Settings from "@/pages/settings/index";
+import AccountingDashboard from "@/pages/accounting/index";
+import AccountingChart from "@/pages/accounting/chart-of-accounts";
+import AccountingEntries from "@/pages/accounting/entries";
+import AccountingLedger from "@/pages/accounting/ledger";
+import AccountingBalance from "@/pages/accounting/balance";
+import AccountingIncome from "@/pages/accounting/income-statement";
+import AccountingBalanceSheet from "@/pages/accounting/balance-sheet";
+import AccountingCustomers from "@/pages/accounting/customers";
+import AccountingSuppliers from "@/pages/accounting/suppliers";
+import AccountingBanks from "@/pages/accounting/banks";
+import AccountingFixedAssets from "@/pages/accounting/fixed-assets";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,7 +105,19 @@ function AppRouter() {
               <Route path="/users" component={UsersList} />
               <Route path="/notifications" component={NotificationsList} />
               <Route path="/settings" component={Settings} />
-              
+
+              <Route path="/accounting" component={AccountingDashboard} />
+              <Route path="/accounting/chart-of-accounts" component={AccountingChart} />
+              <Route path="/accounting/entries" component={AccountingEntries} />
+              <Route path="/accounting/ledger" component={AccountingLedger} />
+              <Route path="/accounting/balance" component={AccountingBalance} />
+              <Route path="/accounting/income-statement" component={AccountingIncome} />
+              <Route path="/accounting/balance-sheet" component={AccountingBalanceSheet} />
+              <Route path="/accounting/customers" component={AccountingCustomers} />
+              <Route path="/accounting/suppliers" component={AccountingSuppliers} />
+              <Route path="/accounting/banks" component={AccountingBanks} />
+              <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
+
               <Route component={NotFound} />
             </Switch>
           </Layout>

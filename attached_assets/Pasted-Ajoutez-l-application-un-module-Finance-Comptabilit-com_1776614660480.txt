@@ -1,0 +1,58 @@
+Ajoutez à l’application un **module Finance / Comptabilité complet**, moderne, robuste et totalement intégré aux autres modules.
+
+Ce module doit fonctionner comme un **véritable système comptable ERP**, en respectant strictement les **codes comptables SYSCOHADA** et les bonnes pratiques de gestion financière. Il doit être conçu avec une expérience utilisateur moderne, fluide et professionnelle, en prenant **QuickBooks** et **Xero** comme références principales pour l’ergonomie, la structure fonctionnelle, les écrans, les dashboards et la lisibilité.
+
+### Le module Finance / Comptabilité doit inclure au minimum :
+
+- plan comptable SYSCOHADA
+- journaux comptables
+- écritures comptables
+- grand livre
+- balance générale
+- bilan
+- compte de résultat
+- gestion des tiers
+- comptes clients
+- comptes fournisseurs
+- facturation
+- règlements
+- encaissements
+- décaissements
+- rapprochements bancaires
+- trésorerie / banques / caisses
+- charges et produits
+- immobilisations et amortissements si pertinent
+- reportings financiers
+- dashboard financier
+
+### Intégration obligatoire avec le reste de l’application
+
+Faites en sorte que tout soit relié au module comptable, notamment :
+
+- contacts
+- clients
+- fournisseurs
+- projets
+- commandes
+- proformas
+- factures
+- paiements
+- locations
+- ressources
+- opérations métier pertinentes
+
+Je veux que les flux opérationnels de l’application puissent générer ou préparer automatiquement les impacts comptables correspondants, avec validation, contrôle, historisation et traçabilité.
+
+### Attendus
+
+Merci de :
+- concevoir la structure complète du module
+- définir les sous-modules
+- proposer les modèles de données et relations
+- détailler les workflows comptables
+- intégrer la logique SYSCOHADA
+- relier le module à tous les flux métier utiles
+- proposer une UX moderne inspirée de QuickBooks et Xero
+- rendre le tout cohérent avec l’architecture actuelle de l’application
+
+Le résultat attendu est un **module comptable moderne, intégré, intelligent, conforme SYSCOHADA et prêt à être développé comme une vraie colonne vertébrale financière de l’application**.

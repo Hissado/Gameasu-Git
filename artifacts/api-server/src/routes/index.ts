@@ -15,6 +15,7 @@ import dashboardRouter from "./dashboard";
 import uploadsRouter from "./uploads";
 import reportsRouter from "./reports";
 import equipmentMovementsRouter from "./equipment-movements";
+import accountingRouter from "./accounting";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -40,5 +41,6 @@ router.use(dashboardRouter);
 router.use(uploadsRouter);
 router.use(reportsRouter);
 router.use(equipmentMovementsRouter);
+router.use(accountingRouter);
 
 export default router;

@@ -24,7 +24,14 @@ import {
   HardHat,
   BarChart3,
   Map as MapIcon,
-  QrCode
+  QrCode,
+  Calculator,
+  BookOpen,
+  Scale,
+  TrendingUp,
+  Landmark,
+  Building2,
+  PiggyBank
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -71,6 +78,22 @@ const NAV_GROUPS = [
       { name: "Devis", path: "/proformas", icon: FileText },
       { name: "Factures", path: "/invoices", icon: FileText },
       { name: "Encaissements", path: "/payments", icon: CreditCard },
+    ]
+  },
+  {
+    title: "Comptabilité",
+    items: [
+      { name: "Tableau financier", path: "/accounting", icon: Calculator },
+      { name: "Plan comptable", path: "/accounting/chart-of-accounts", icon: BookOpen },
+      { name: "Écritures", path: "/accounting/entries", icon: FileText },
+      { name: "Grand livre", path: "/accounting/ledger", icon: BookOpen },
+      { name: "Balance", path: "/accounting/balance", icon: Scale },
+      { name: "Résultat", path: "/accounting/income-statement", icon: TrendingUp },
+      { name: "Bilan", path: "/accounting/balance-sheet", icon: Scale },
+      { name: "Comptes clients", path: "/accounting/customers", icon: Users },
+      { name: "Fournisseurs", path: "/accounting/suppliers", icon: Building2 },
+      { name: "Banques & caisses", path: "/accounting/banks", icon: Landmark },
+      { name: "Immobilisations", path: "/accounting/fixed-assets", icon: PiggyBank },
     ]
   },
   {

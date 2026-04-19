@@ -3,6 +3,8 @@ import { db } from "@workspace/db";
 import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
+import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -156,9 +158,27 @@ router.get("/invoices", async (req, res) => {
 });
 
 router.post("/invoices", requireManagerOrAbove, async (req, res) => {
-  const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
+  const { proformaId, clientId, status, totalAmount, currency, dueDate, notes, issuedAt } = req.body;
   const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
-  const [inv] = await db.insert(invoicesTable).values({ referenceNumber: refNum, proformaId, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, dueDate, notes }).returning();
+  const finalStatus = status || "pending";
+  const issued = issuedAt || new Date().toISOString().slice(0, 10);
+  const [inv] = await db.insert(invoicesTable).values({
+    referenceNumber: refNum, proformaId, clientId,
+    status: finalStatus, totalAmount: totalAmount?.toString(),
+    currency, dueDate, notes, issuedAt: issued,
+  }).returning();
+
+  // Comptabilisation automatique dès qu'une facture est émise (statut != draft).
+  // Une erreur ici doit faire échouer la requête pour éviter une divergence
+  // silencieuse entre l'opérationnel (facture créée) et la comptabilité.
+  if (finalStatus !== "draft") {
+    try {
+      await postCustomerInvoice(inv.id, req.authUser?.id);
+    } catch (e: any) {
+      logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture");
+      return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, invoiceId: inv.id });
+    }
+  }
   return res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
 });
 
@@ -172,8 +192,19 @@ router.get("/invoices/:id", async (req, res) => {
 
 router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
+  const before = (await db.select().from(invoicesTable).where(eq(invoicesTable.id, req.params.id)).limit(1))[0];
   const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(eq(invoicesTable.id, req.params.id)).returning();
   if (!inv) return res.status(404).json({ error: "Not found" });
+
+  // Si la facture sort du statut "draft", on génère l'écriture comptable.
+  if (before?.status === "draft" && status && status !== "draft") {
+    try {
+      await postCustomerInvoice(inv.id, req.authUser?.id);
+    } catch (e: any) {
+      logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture");
+      return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, invoiceId: inv.id });
+    }
+  }
   return res.json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
 });
 
@@ -193,15 +224,31 @@ router.get("/payments", async (req, res) => {
 });
 
 router.post("/payments", requireManagerOrAbove, async (req, res) => {
-  const { invoiceId, amount, currency, method, reference, paidAt, notes } = req.body;
+  const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId } = req.body;
   const [payment] = await db.insert(paymentsTable).values({
     invoiceId, amount: amount.toString(), currency, method, reference,
     paidAt: paidAt ? new Date(paidAt) : new Date(), notes,
   }).returning();
 
-  await db.update(invoicesTable)
-    .set({ paidAmount: amount.toString(), status: "paid" })
-    .where(eq(invoicesTable.id, invoiceId));
+  // Cumul atomique du paid_amount via SQL : empêche les écrasements concurrents
+  // (lost update) si plusieurs règlements arrivent simultanément.
+  const updated = await db.execute(sql`
+    UPDATE ${invoicesTable}
+       SET paid_amount = COALESCE(paid_amount, 0) + ${Number(amount)},
+           status = CASE
+             WHEN COALESCE(paid_amount, 0) + ${Number(amount)} >= COALESCE(total_amount, 0) THEN 'paid'
+             ELSE 'partially_paid'
+           END
+     WHERE id = ${invoiceId}
+  `);
+
+  // Comptabilisation automatique du règlement.
+  try {
+    await postCustomerPayment(payment.id, { bankAccountId, userId: req.authUser?.id });
+  } catch (e: any) {
+    logger.error({ err: e, paymentId: payment.id }, "Échec comptabilisation règlement");
+    return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, paymentId: payment.id });
+  }
 
   return res.status(201).json({ ...payment, amount: toNum(payment.amount) });
 });
