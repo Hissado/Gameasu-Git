@@ -3,20 +3,54 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: EDOLE AFRICA ADMIN - Unified operational management platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user management
+  - name: users
+    description: User management
+  - name: roles
+    description: Roles and permissions
+  - name: clients
+    description: Client and organization management
+  - name: crm
+    description: CRM - accounts, contacts, opportunities
+  - name: projects
+    description: Project management
+  - name: tasks
+    description: Task management
+  - name: collaborators
+    description: HR - Collaborator management
+  - name: equipment
+    description: Equipment and material management
+  - name: rentals
+    description: Rental management
+  - name: inspections
+    description: Inspection / état des lieux
+  - name: logistics
+    description: Logistics operations
+  - name: orders
+    description: Orders, proformas, invoices, payments
+  - name: messaging
+    description: Messaging and conversations
+  - name: calls
+    description: Audio/video call sessions
+  - name: dashboard
+    description: Dashboard KPIs and analytics
+  - name: notifications
+    description: Notification management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +58,1951 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ─────────────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Auth tokens and user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out successfully
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # ── USERS ─────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedUsers"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted
+
+  # ── CLIENTS ───────────────────────────────────────────────────────────────
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List all clients
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedClients"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a new client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientBody"
+      responses:
+        "201":
+          description: Created client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get client details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Client with contacts and summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetail"
+    put:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientBody"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete a client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /clients/{id}/contacts:
+    get:
+      operationId: listClientContacts
+      tags: [clients]
+      summary: List contacts for a client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientContact"
+    post:
+      operationId: createClientContact
+      tags: [clients]
+      summary: Create a contact for a client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientContactBody"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientContact"
+
+  # ── CRM ────────────────────────────────────────────────────────────────────
+  /crm/opportunities:
+    get:
+      operationId: listOpportunities
+      tags: [crm]
+      summary: List CRM opportunities
+      parameters:
+        - in: query
+          name: stage
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: assignedTo
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated opportunities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOpportunities"
+    post:
+      operationId: createOpportunity
+      tags: [crm]
+      summary: Create a new opportunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpportunityBody"
+      responses:
+        "201":
+          description: Created opportunity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+
+  /crm/opportunities/{id}:
+    get:
+      operationId: getOpportunity
+      tags: [crm]
+      summary: Get opportunity details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Opportunity details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+    put:
+      operationId: updateOpportunity
+      tags: [crm]
+      summary: Update an opportunity
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpportunityBody"
+      responses:
+        "200":
+          description: Updated opportunity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+    delete:
+      operationId: deleteOpportunity
+      tags: [crm]
+      summary: Delete an opportunity
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /crm/pipeline:
+    get:
+      operationId: getCrmPipeline
+      tags: [crm]
+      summary: Get pipeline grouped by stage with value totals
+      responses:
+        "200":
+          description: Pipeline stages with counts and values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrmPipeline"
+
+  /crm/activities:
+    get:
+      operationId: listActivities
+      tags: [crm]
+      summary: List CRM activities
+      parameters:
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: opportunityId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedActivities"
+    post:
+      operationId: createActivity
+      tags: [crm]
+      summary: Create a CRM activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityBody"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  # ── PROJECTS ───────────────────────────────────────────────────────────────
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated projects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedProjects"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project details with phases and assignments
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+    put:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/stats:
+    get:
+      operationId: getProjectStats
+      tags: [projects]
+      summary: Project statistics grouped by status
+      responses:
+        "200":
+          description: Project stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStats"
+
+  # ── TASKS ──────────────────────────────────────────────────────────────────
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+        - in: query
+          name: assignedTo
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: priority
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Paginated tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTasks"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get task details with comments and history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDetail"
+    put:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks/{id}/comments:
+    get:
+      operationId: listTaskComments
+      tags: [tasks]
+      summary: List comments for a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskComment"
+    post:
+      operationId: createTaskComment
+      tags: [tasks]
+      summary: Add a comment to a task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskCommentBody"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskComment"
+
+  # ── COLLABORATORS / HR ─────────────────────────────────────────────────────
+  /collaborators:
+    get:
+      operationId: listCollaborators
+      tags: [collaborators]
+      summary: List all collaborators
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: available
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated collaborators
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCollaborators"
+    post:
+      operationId: createCollaborator
+      tags: [collaborators]
+      summary: Create a collaborator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollaboratorBody"
+      responses:
+        "201":
+          description: Created collaborator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collaborator"
+
+  /collaborators/{id}:
+    get:
+      operationId: getCollaborator
+      tags: [collaborators]
+      summary: Get collaborator details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collaborator details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collaborator"
+    put:
+      operationId: updateCollaborator
+      tags: [collaborators]
+      summary: Update a collaborator
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollaboratorBody"
+      responses:
+        "200":
+          description: Updated collaborator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collaborator"
+    delete:
+      operationId: deleteCollaborator
+      tags: [collaborators]
+      summary: Delete a collaborator
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /collaborators/workload:
+    get:
+      operationId: getCollaboratorsWorkload
+      tags: [collaborators]
+      summary: Get workload summary per collaborator
+      responses:
+        "200":
+          description: Workload per collaborator
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollaboratorWorkload"
+
+  # ── EQUIPMENT ─────────────────────────────────────────────────────────────
+  /equipment:
+    get:
+      operationId: listEquipment
+      tags: [equipment]
+      summary: List all equipment
+      parameters:
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: available
+          schema:
+            type: boolean
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated equipment list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEquipment"
+    post:
+      operationId: createEquipment
+      tags: [equipment]
+      summary: Create equipment item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEquipmentBody"
+      responses:
+        "201":
+          description: Created equipment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipment"
+
+  /equipment/{id}:
+    get:
+      operationId: getEquipment
+      tags: [equipment]
+      summary: Get equipment details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Equipment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipment"
+    put:
+      operationId: updateEquipment
+      tags: [equipment]
+      summary: Update equipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEquipmentBody"
+      responses:
+        "200":
+          description: Updated equipment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipment"
+    delete:
+      operationId: deleteEquipment
+      tags: [equipment]
+      summary: Delete equipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /equipment/categories:
+    get:
+      operationId: listEquipmentCategories
+      tags: [equipment]
+      summary: List equipment categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EquipmentCategory"
+    post:
+      operationId: createEquipmentCategory
+      tags: [equipment]
+      summary: Create an equipment category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEquipmentCategoryBody"
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentCategory"
+
+  /equipment/availability:
+    get:
+      operationId: getEquipmentAvailability
+      tags: [equipment]
+      summary: Get equipment availability summary
+      responses:
+        "200":
+          description: Availability counts by status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentAvailability"
+
+  # ── RENTALS ───────────────────────────────────────────────────────────────
+  /rentals:
+    get:
+      operationId: listRentals
+      tags: [rentals]
+      summary: List rentals
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated rentals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRentals"
+    post:
+      operationId: createRental
+      tags: [rentals]
+      summary: Create a rental
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRentalBody"
+      responses:
+        "201":
+          description: Created rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+
+  /rentals/{id}:
+    get:
+      operationId: getRental
+      tags: [rentals]
+      summary: Get rental details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Rental details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalDetail"
+    put:
+      operationId: updateRental
+      tags: [rentals]
+      summary: Update a rental
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRentalBody"
+      responses:
+        "200":
+          description: Updated rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+
+  # ── INSPECTIONS ───────────────────────────────────────────────────────────
+  /inspections:
+    get:
+      operationId: listInspections
+      tags: [inspections]
+      summary: List inspection records
+      parameters:
+        - in: query
+          name: rentalId
+          schema:
+            type: string
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated inspections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInspections"
+    post:
+      operationId: createInspection
+      tags: [inspections]
+      summary: Create an inspection record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInspectionBody"
+      responses:
+        "201":
+          description: Created inspection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inspection"
+
+  /inspections/{id}:
+    get:
+      operationId: getInspection
+      tags: [inspections]
+      summary: Get inspection details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inspection details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inspection"
+    put:
+      operationId: updateInspection
+      tags: [inspections]
+      summary: Update an inspection
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInspectionBody"
+      responses:
+        "200":
+          description: Updated inspection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inspection"
+
+  # ── LOGISTICS ─────────────────────────────────────────────────────────────
+  /logistics:
+    get:
+      operationId: listLogisticsOperations
+      tags: [logistics]
+      summary: List logistics operations
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated logistics operations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedLogistics"
+    post:
+      operationId: createLogisticsOperation
+      tags: [logistics]
+      summary: Create a logistics operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLogisticsBody"
+      responses:
+        "201":
+          description: Created operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogisticsOperation"
+
+  /logistics/{id}:
+    put:
+      operationId: updateLogisticsOperation
+      tags: [logistics]
+      summary: Update a logistics operation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLogisticsBody"
+      responses:
+        "200":
+          description: Updated operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogisticsOperation"
+
+  # ── ORDERS / PROFORMAS / INVOICES ─────────────────────────────────────────
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List purchase orders
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOrders"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a purchase order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    put:
+      operationId: updateOrder
+      tags: [orders]
+      summary: Update an order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    delete:
+      operationId: deleteOrder
+      tags: [orders]
+      summary: Delete an order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /proformas:
+    get:
+      operationId: listProformas
+      tags: [orders]
+      summary: List proformas
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated proformas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedProformas"
+    post:
+      operationId: createProforma
+      tags: [orders]
+      summary: Create a proforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProformaBody"
+      responses:
+        "201":
+          description: Created proforma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proforma"
+
+  /proformas/{id}:
+    get:
+      operationId: getProforma
+      tags: [orders]
+      summary: Get proforma details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proforma details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proforma"
+    put:
+      operationId: updateProforma
+      tags: [orders]
+      summary: Update a proforma
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProformaBody"
+      responses:
+        "200":
+          description: Updated proforma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proforma"
+
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [orders]
+      summary: List invoices
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+    post:
+      operationId: createInvoice
+      tags: [orders]
+      summary: Create an invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [orders]
+      summary: Get invoice details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+    put:
+      operationId: updateInvoice
+      tags: [orders]
+      summary: Update an invoice
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [orders]
+      summary: List payments
+      parameters:
+        - in: query
+          name: invoiceId
+          schema:
+            type: string
+        - in: query
+          name: clientId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedPayments"
+    post:
+      operationId: createPayment
+      tags: [orders]
+      summary: Record a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "201":
+          description: Created payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /orders/financial-summary:
+    get:
+      operationId: getFinancialSummary
+      tags: [orders]
+      summary: Financial KPIs - orders, proformas, invoices, payments totals
+      responses:
+        "200":
+          description: Financial summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialSummary"
+
+  # ── MESSAGING ────────────────────────────────────────────────────────────
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [messaging]
+      summary: List conversations for current user
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated conversations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedConversations"
+    post:
+      operationId: createConversation
+      tags: [messaging]
+      summary: Create a conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [messaging]
+      summary: Get conversation details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [messaging]
+      summary: List messages in a conversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Paginated messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedMessages"
+    post:
+      operationId: sendMessage
+      tags: [messaging]
+      summary: Send a message
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  # ── CALLS ─────────────────────────────────────────────────────────────────
+  /calls:
+    get:
+      operationId: listCallSessions
+      tags: [calls]
+      summary: List call sessions
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated call sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCallSessions"
+    post:
+      operationId: createCallSession
+      tags: [calls]
+      summary: Start a call session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCallSessionBody"
+      responses:
+        "201":
+          description: Created call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+
+  /calls/{id}:
+    get:
+      operationId: getCallSession
+      tags: [calls]
+      summary: Get call session details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+    put:
+      operationId: updateCallSession
+      tags: [calls]
+      summary: Update call session (end, etc.)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCallSessionBody"
+      responses:
+        "200":
+          description: Updated call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSession"
+
+  # ── DASHBOARD ─────────────────────────────────────────────────────────────
+  /dashboard/kpis:
+    get:
+      operationId: getDashboardKpis
+      tags: [dashboard]
+      summary: Main dashboard KPIs overview
+      responses:
+        "200":
+          description: KPIs object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardKpis"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Recent activity feed across modules
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Activity feed items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityFeedItem"
+
+  /dashboard/charts:
+    get:
+      operationId: getDashboardCharts
+      tags: [dashboard]
+      summary: Chart data for revenue, projects, tasks over time
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardCharts"
+
+  # ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedNotifications"
+
+  /notifications/{id}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    put:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: All marked as read
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +2013,1984 @@ components:
       required:
         - status
 
+    # ── AUTH ─────────────────────────────────────────────────────────────────
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: string
+        isClient:
+          type: boolean
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - role
+        - isClient
+
+    # ── USER ─────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        avatarUrl:
+          type: string
+        isActive:
+          type: boolean
+        isClient:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - role
+        - isActive
+        - isClient
+        - createdAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        isClient:
+          type: boolean
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - role
+
+    UpdateUserBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        isActive:
+          type: boolean
+
+    PaginatedUsers:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── CLIENT ────────────────────────────────────────────────────────────────
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        address:
+          type: string
+        website:
+          type: string
+        logoUrl:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, prospect]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+
+    ClientDetail:
+      allOf:
+        - $ref: "#/components/schemas/Client"
+        - type: object
+          properties:
+            contacts:
+              type: array
+              items:
+                $ref: "#/components/schemas/ClientContact"
+            projectsCount:
+              type: integer
+            ordersCount:
+              type: integer
+            totalRevenue:
+              type: number
+
+    CreateClientBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        address:
+          type: string
+        website:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, prospect]
+      required:
+        - name
+
+    ClientContact:
+      type: object
+      properties:
+        id:
+          type: string
+        clientId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        isPrimary:
+          type: boolean
+      required:
+        - id
+        - clientId
+        - firstName
+        - lastName
+
+    CreateClientContactBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        isPrimary:
+          type: boolean
+      required:
+        - firstName
+        - lastName
+
+    PaginatedClients:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Client"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── CRM ──────────────────────────────────────────────────────────────────
+    Opportunity:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        clientId:
+          type: string
+        clientName:
+          type: string
+        stage:
+          type: string
+          enum: [lead, qualified, proposal, negotiation, won, lost]
+        value:
+          type: number
+        currency:
+          type: string
+        probability:
+          type: integer
+        assignedToId:
+          type: string
+        assignedToName:
+          type: string
+        expectedCloseDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - stage
+        - createdAt
+
+    CreateOpportunityBody:
+      type: object
+      properties:
+        title:
+          type: string
+        clientId:
+          type: string
+        stage:
+          type: string
+          enum: [lead, qualified, proposal, negotiation, won, lost]
+        value:
+          type: number
+        currency:
+          type: string
+        probability:
+          type: integer
+        assignedToId:
+          type: string
+        expectedCloseDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required:
+        - title
+        - stage
+
+    CrmPipeline:
+      type: object
+      properties:
+        stages:
+          type: array
+          items:
+            type: object
+            properties:
+              stage:
+                type: string
+              count:
+                type: integer
+              totalValue:
+                type: number
+            required:
+              - stage
+              - count
+              - totalValue
+        totalValue:
+          type: number
+        totalOpportunities:
+          type: integer
+      required:
+        - stages
+        - totalValue
+        - totalOpportunities
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [call, email, meeting, note, task]
+        subject:
+          type: string
+        description:
+          type: string
+        clientId:
+          type: string
+        opportunityId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - subject
+        - createdAt
+
+    CreateActivityBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [call, email, meeting, note, task]
+        subject:
+          type: string
+        description:
+          type: string
+        clientId:
+          type: string
+        opportunityId:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+      required:
+        - type
+        - subject
+
+    PaginatedOpportunities:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Opportunity"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    PaginatedActivities:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── PROJECT ───────────────────────────────────────────────────────────────
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [planning, active, on_hold, completed, cancelled]
+        clientId:
+          type: string
+        clientName:
+          type: string
+        managerId:
+          type: string
+        managerName:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        budget:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+
+    ProjectDetail:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          properties:
+            phases:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  status:
+                    type: string
+                  order:
+                    type: integer
+                required:
+                  - id
+                  - name
+                  - status
+                  - order
+            tasksCount:
+              type: integer
+            tasksCompleted:
+              type: integer
+            collaborators:
+              type: array
+              items:
+                $ref: "#/components/schemas/Collaborator"
+
+    CreateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [planning, active, on_hold, completed, cancelled]
+        clientId:
+          type: string
+        managerId:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        budget:
+          type: number
+      required:
+        - name
+        - status
+
+    ProjectStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+            required:
+              - status
+              - count
+        activeCount:
+          type: integer
+        completedCount:
+          type: integer
+      required:
+        - total
+        - byStatus
+        - activeCount
+        - completedCount
+
+    PaginatedProjects:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── TASK ─────────────────────────────────────────────────────────────────
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [todo, in_progress, review, done, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        projectId:
+          type: string
+        projectName:
+          type: string
+        assigneeId:
+          type: string
+        assigneeName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - priority
+        - createdAt
+
+    TaskDetail:
+      allOf:
+        - $ref: "#/components/schemas/Task"
+        - type: object
+          properties:
+            comments:
+              type: array
+              items:
+                $ref: "#/components/schemas/TaskComment"
+            subtasks:
+              type: array
+              items:
+                $ref: "#/components/schemas/Task"
+
+    CreateTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [todo, in_progress, review, done, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        projectId:
+          type: string
+        assigneeId:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        parentTaskId:
+          type: string
+      required:
+        - title
+        - status
+        - priority
+
+    TaskComment:
+      type: object
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        userAvatarUrl:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - taskId
+        - userId
+        - content
+        - createdAt
+
+    CreateTaskCommentBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    PaginatedTasks:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── COLLABORATOR ──────────────────────────────────────────────────────────
+    Collaborator:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        position:
+          type: string
+        department:
+          type: string
+        avatarUrl:
+          type: string
+        isAvailable:
+          type: boolean
+        currentProjectsCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - firstName
+        - lastName
+        - createdAt
+
+    CreateCollaboratorBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        position:
+          type: string
+        department:
+          type: string
+        isAvailable:
+          type: boolean
+      required:
+        - firstName
+        - lastName
+
+    CollaboratorWorkload:
+      type: object
+      properties:
+        collaboratorId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        avatarUrl:
+          type: string
+        activeTasks:
+          type: integer
+        activeProjects:
+          type: integer
+        workloadPercent:
+          type: integer
+      required:
+        - collaboratorId
+        - firstName
+        - lastName
+        - activeTasks
+        - activeProjects
+        - workloadPercent
+
+    PaginatedCollaborators:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Collaborator"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── EQUIPMENT ─────────────────────────────────────────────────────────────
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        categoryId:
+          type: string
+        categoryName:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [available, rented, maintenance, retired]
+        quantity:
+          type: integer
+        availableQuantity:
+          type: integer
+        dailyRate:
+          type: number
+        imageUrl:
+          type: string
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - quantity
+        - createdAt
+
+    CreateEquipmentBody:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        categoryId:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [available, rented, maintenance, retired]
+        quantity:
+          type: integer
+        dailyRate:
+          type: number
+        imageUrl:
+          type: string
+        location:
+          type: string
+      required:
+        - name
+        - status
+        - quantity
+
+    EquipmentCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        equipmentCount:
+          type: integer
+      required:
+        - id
+        - name
+
+    CreateEquipmentCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+
+    EquipmentAvailability:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+        available:
+          type: integer
+        rented:
+          type: integer
+        maintenance:
+          type: integer
+        retired:
+          type: integer
+      required:
+        - totalItems
+        - available
+        - rented
+        - maintenance
+        - retired
+
+    PaginatedEquipment:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Equipment"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── RENTAL ────────────────────────────────────────────────────────────────
+    Rental:
+      type: object
+      properties:
+        id:
+          type: string
+        referenceNumber:
+          type: string
+        clientId:
+          type: string
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, active, returned, cancelled]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalCost:
+          type: number
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - referenceNumber
+        - status
+        - startDate
+        - endDate
+        - createdAt
+
+    RentalDetail:
+      allOf:
+        - $ref: "#/components/schemas/Rental"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  equipmentId:
+                    type: string
+                  equipmentName:
+                    type: string
+                  quantity:
+                    type: integer
+                  dailyRate:
+                    type: number
+                  subtotal:
+                    type: number
+                required:
+                  - equipmentId
+                  - equipmentName
+                  - quantity
+                  - dailyRate
+                  - subtotal
+
+    CreateRentalBody:
+      type: object
+      properties:
+        clientId:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, active, returned, cancelled]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              equipmentId:
+                type: string
+              quantity:
+                type: integer
+            required:
+              - equipmentId
+              - quantity
+      required:
+        - startDate
+        - endDate
+        - items
+
+    PaginatedRentals:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rental"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── INSPECTION ────────────────────────────────────────────────────────────
+    Inspection:
+      type: object
+      properties:
+        id:
+          type: string
+        rentalId:
+          type: string
+        type:
+          type: string
+          enum: [departure, return]
+        conductedById:
+          type: string
+        conductedByName:
+          type: string
+        notes:
+          type: string
+        hasDispute:
+          type: boolean
+        disputeNotes:
+          type: string
+        retentionAmount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rentalId
+        - type
+        - createdAt
+
+    CreateInspectionBody:
+      type: object
+      properties:
+        rentalId:
+          type: string
+        type:
+          type: string
+          enum: [departure, return]
+        notes:
+          type: string
+        hasDispute:
+          type: boolean
+        disputeNotes:
+          type: string
+        retentionAmount:
+          type: number
+      required:
+        - rentalId
+        - type
+
+    PaginatedInspections:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Inspection"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── LOGISTICS ─────────────────────────────────────────────────────────────
+    LogisticsOperation:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [delivery, pickup]
+        status:
+          type: string
+          enum: [scheduled, in_transit, completed, cancelled]
+        rentalId:
+          type: string
+        responsibleId:
+          type: string
+        responsibleName:
+          type: string
+        address:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - createdAt
+
+    CreateLogisticsBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [delivery, pickup]
+        status:
+          type: string
+          enum: [scheduled, in_transit, completed, cancelled]
+        rentalId:
+          type: string
+        responsibleId:
+          type: string
+        address:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+      required:
+        - type
+        - status
+
+    PaginatedLogistics:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogisticsOperation"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── ORDERS / FINANCIAL ────────────────────────────────────────────────────
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        referenceNumber:
+          type: string
+        clientId:
+          type: string
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [draft, confirmed, delivered, cancelled]
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - referenceNumber
+        - status
+        - createdAt
+
+    CreateOrderBody:
+      type: object
+      properties:
+        clientId:
+          type: string
+        status:
+          type: string
+          enum: [draft, confirmed, delivered, cancelled]
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        notes:
+          type: string
+      required:
+        - status
+
+    Proforma:
+      type: object
+      properties:
+        id:
+          type: string
+        referenceNumber:
+          type: string
+        orderId:
+          type: string
+        clientId:
+          type: string
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, validated, rejected]
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        validUntil:
+          type: string
+          format: date
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - referenceNumber
+        - status
+        - createdAt
+
+    CreateProformaBody:
+      type: object
+      properties:
+        orderId:
+          type: string
+        clientId:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, validated, rejected]
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        validUntil:
+          type: string
+          format: date
+        notes:
+          type: string
+      required:
+        - status
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        referenceNumber:
+          type: string
+        proformaId:
+          type: string
+        clientId:
+          type: string
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        totalAmount:
+          type: number
+        paidAmount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        issuedAt:
+          type: string
+          format: date
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - referenceNumber
+        - status
+        - createdAt
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        proformaId:
+          type: string
+        clientId:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required:
+        - status
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        method:
+          type: string
+          enum: [bank_transfer, cash, mobile_money, check, other]
+        reference:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - invoiceId
+        - amount
+        - method
+        - createdAt
+
+    CreatePaymentBody:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        method:
+          type: string
+          enum: [bank_transfer, cash, mobile_money, check, other]
+        reference:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+      required:
+        - invoiceId
+        - amount
+        - method
+
+    FinancialSummary:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        totalOrdersValue:
+          type: number
+        totalProformas:
+          type: integer
+        totalProformasValue:
+          type: number
+        totalInvoices:
+          type: integer
+        totalInvoicesValue:
+          type: number
+        totalPaid:
+          type: number
+        totalOutstanding:
+          type: number
+        currency:
+          type: string
+      required:
+        - totalOrders
+        - totalOrdersValue
+        - totalProformas
+        - totalProformasValue
+        - totalInvoices
+        - totalInvoicesValue
+        - totalPaid
+        - totalOutstanding
+        - currency
+
+    PaginatedOrders:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    PaginatedProformas:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Proforma"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    PaginatedInvoices:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    PaginatedPayments:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── MESSAGING ─────────────────────────────────────────────────────────────
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum: [direct, group, project, client]
+        projectId:
+          type: string
+        clientId:
+          type: string
+        lastMessage:
+          type: string
+        lastMessageAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              name:
+                type: string
+              avatarUrl:
+                type: string
+            required:
+              - userId
+              - name
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - unreadCount
+        - createdAt
+
+    CreateConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+          enum: [direct, group, project, client]
+        participantIds:
+          type: array
+          items:
+            type: string
+        projectId:
+          type: string
+        clientId:
+          type: string
+      required:
+        - type
+        - participantIds
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        conversationId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        senderAvatarUrl:
+          type: string
+        content:
+          type: string
+        attachmentUrl:
+          type: string
+        readBy:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - senderId
+        - content
+        - createdAt
+
+    SendMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+        attachmentUrl:
+          type: string
+      required:
+        - content
+
+    PaginatedConversations:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conversation"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    PaginatedMessages:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── CALLS ─────────────────────────────────────────────────────────────────
+    CallSession:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [audio, video]
+        status:
+          type: string
+          enum: [scheduled, active, ended]
+        initiatorId:
+          type: string
+        initiatorName:
+          type: string
+        conversationId:
+          type: string
+        projectId:
+          type: string
+        roomUrl:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        durationSeconds:
+          type: integer
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              name:
+                type: string
+              joinedAt:
+                type: string
+                format: date-time
+              leftAt:
+                type: string
+                format: date-time
+            required:
+              - userId
+              - name
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - createdAt
+
+    CreateCallSessionBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [audio, video]
+        conversationId:
+          type: string
+        projectId:
+          type: string
+        participantIds:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+
+    UpdateCallSessionBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [scheduled, active, ended]
+        endedAt:
+          type: string
+          format: date-time
+
+    PaginatedCallSessions:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CallSession"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # ── DASHBOARD ─────────────────────────────────────────────────────────────
+    DashboardKpis:
+      type: object
+      properties:
+        activeProjects:
+          type: integer
+        totalClients:
+          type: integer
+        tasksTodo:
+          type: integer
+        tasksInProgress:
+          type: integer
+        tasksCompleted:
+          type: integer
+        openOpportunities:
+          type: integer
+        pipelineValue:
+          type: number
+        monthlyRevenue:
+          type: number
+        outstandingInvoices:
+          type: number
+        activeRentals:
+          type: integer
+        equipmentAvailable:
+          type: integer
+        unreadMessages:
+          type: integer
+        currency:
+          type: string
+      required:
+        - activeProjects
+        - totalClients
+        - tasksTodo
+        - tasksInProgress
+        - tasksCompleted
+        - openOpportunities
+        - pipelineValue
+        - monthlyRevenue
+        - outstandingInvoices
+        - activeRentals
+        - equipmentAvailable
+        - unreadMessages
+        - currency
+
+    ActivityFeedItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        userAvatarUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    DashboardCharts:
+      type: object
+      properties:
+        revenueByMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              revenue:
+                type: number
+              invoiced:
+                type: number
+            required:
+              - month
+              - revenue
+              - invoiced
+        projectsByStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+            required:
+              - status
+              - count
+        tasksByPriority:
+          type: array
+          items:
+            type: object
+            properties:
+              priority:
+                type: string
+              count:
+                type: integer
+            required:
+              - priority
+              - count
+      required:
+        - revenueByMonth
+        - projectsByStatus
+        - tasksByPriority
+
+    # ── NOTIFICATION ──────────────────────────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        type:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - title
+        - body
+        - type
+        - isRead
+        - createdAt
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
