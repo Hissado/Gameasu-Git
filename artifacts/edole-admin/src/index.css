@@ -187,3 +187,40 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* ── Mobile-first refinements ────────────────────────────────── */
+@layer base {
+  /* Prevent iOS text auto-zoom on focus by ensuring inputs are ≥16px */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+  /* Smooth momentum scrolling on iOS */
+  .page-scroll, .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Avoid horizontal page bleed from wide tables */
+  table { max-width: 100%; }
+}
+
+@layer utilities {
+  /* Wrap long tables: <div class="table-scroll"><table>…</table></div> */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Touch-friendly minimum tap target */
+  .tap-target { min-height: 44px; min-width: 44px; }
+}
+
+/* All raw <table> inside cards become horizontally scrollable on mobile */
+@media (max-width: 768px) {
+  .card-table-wrap, [data-slot="card-content"] > table,
+  .rounded-md > table, .rounded-lg > table, .rounded-xl > table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+}

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,82 +149,143 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Utilisateur";
   const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Ferme le drawer à chaque navigation
+  useEffect(() => { setMobileOpen(false); }, [location]);
+  // Empêche le scroll du body quand le drawer est ouvert
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const SidebarContent = (
+    <>
+      <div className="bg-white border-b border-sidebar-border flex items-center justify-between px-4 py-3 shrink-0">
+        <img src={logoFull} alt="édolé" className="h-12 w-auto object-contain select-none" draggable={false} />
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden p-2 -mr-2 rounded-md text-foreground/70 hover:bg-muted active:bg-muted/80"
+          aria-label="Fermer le menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-4 custom-scrollbar overscroll-contain">
+        {NAV_GROUPS.map((group, i) => (
+          <div key={i} className="mb-5 px-3">
+            <h3 className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-widest px-3">
+              {group.title}
+            </h3>
+            <ul className="space-y-0.5">
+              {group.items.map((item, j) => {
+                const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                return (
+                  <li key={j}>
+                    <Link
+                      href={item.path}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 text-sm font-medium min-h-[44px] ${
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground active:bg-sidebar-accent"
+                      }`}
+                    >
+                      <item.icon className={`w-4 h-4 shrink-0 ${active ? "text-white" : "text-sidebar-foreground/50"}`} strokeWidth={active ? 2.5 : 2} />
+                      <span className="truncate">{item.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 border-t border-sidebar-border bg-sidebar/60 shrink-0">
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground min-h-[44px]"
+        >
+          <Settings className="w-4 h-4 text-sidebar-foreground/50" />
+          Configuration
+        </Link>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full shadow-xl z-10">
-        <div className="bg-white border-b border-sidebar-border flex items-center justify-center px-5 py-4 shrink-0">
-          <img src={logoFull} alt="édolé — Le numérique au service du BTP" className="h-14 w-auto object-contain select-none" draggable={false} />
-        </div>
+    <div className="flex h-[100dvh] overflow-hidden bg-background font-sans">
+      {/* Sidebar — desktop */}
+      <aside className="hidden lg:flex w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0">
+        {SidebarContent}
+      </aside>
 
-        <div className="flex-1 overflow-y-auto py-6 custom-scrollbar">
-          {NAV_GROUPS.map((group, i) => (
-            <div key={i} className="mb-6 px-4">
-              <h3 className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-widest px-3">
-                {group.title}
-              </h3>
-              <ul className="space-y-0.5">
-                {group.items.map((item, j) => {
-                  const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                  return (
-                    <li key={j}>
-                      <Link
-                        href={item.path}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-sm transition-all duration-200 text-sm font-medium ${
-                          active
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        }`}
-                      >
-                        <item.icon className={`w-4 h-4 ${active ? "text-white" : "text-sidebar-foreground/50"}`} strokeWidth={active ? 2.5 : 2} />
-                        {item.name}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="p-4 border-t border-sidebar-border bg-sidebar/50">
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <Settings className="w-4 h-4 text-sidebar-foreground/50" />
-            Configuration
-          </Link>
-        </div>
+      {/* Sidebar — mobile drawer */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[82%] max-w-[320px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col shadow-2xl transition-transform duration-200 ease-out ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-hidden={!mobileOpen}
+      >
+        {SidebarContent}
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-background">
+      <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
         {/* Topbar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 shrink-0 shadow-sm z-0">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded px-3 py-2 w-72 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
-            <Search className="w-4 h-4 mr-2 text-muted-foreground/70" />
-            <input 
-              type="text" 
-              placeholder="Rechercher (Chantier, Matériel, Client, Collaborateur)..." 
-              className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
-            />
+        <header className="h-14 sm:h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 shadow-sm z-0 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            {/* Hamburger mobile */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden p-2 -ml-2 rounded-md text-foreground/70 hover:bg-muted active:bg-muted/80 shrink-0"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            {/* Logo mobile (au lieu de la sidebar) */}
+            <img src={logoFull} alt="édolé" className="lg:hidden h-8 w-auto object-contain shrink-0" draggable={false} />
+
+            {/* Recherche : icône seule en mobile, complète en desktop */}
+            <div className="hidden md:flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded-md px-3 py-2 w-72 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+              <Search className="w-4 h-4 mr-2 text-muted-foreground/70 shrink-0" />
+              <input
+                type="text"
+                placeholder="Rechercher (Chantier, Matériel, Client…)"
+                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
+              />
             </div>
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-md text-muted-foreground hover:bg-muted active:bg-muted/80 ml-auto"
+              aria-label="Rechercher"
+            >
+              <Search className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-6">
-            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted active:bg-muted/80">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
             </Link>
 
-            <div className="w-px h-6 bg-border"></div>
+            <div className="w-px h-6 bg-border hidden sm:block"></div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 outline-none hover:opacity-80 transition-opacity">
-                  <div className="text-right hidden md:block">
+                <button className="flex items-center gap-2 sm:gap-3 outline-none hover:opacity-80 transition-opacity rounded-full p-1 -mr-1 hover:bg-muted active:bg-muted/80">
+                  <div className="text-right hidden lg:block">
                     <p className="text-sm font-medium leading-none text-foreground">{fullName}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{roleLabel}</p>
                   </div>
@@ -233,17 +295,21 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 font-sans">
-                <DropdownMenuItem className="cursor-pointer py-2">
+              <DropdownMenuContent align="end" className="w-60 font-sans">
+                <div className="px-3 py-2 lg:hidden border-b border-border mb-1">
+                  <p className="text-sm font-medium leading-none text-foreground">{fullName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{roleLabel}</p>
+                </div>
+                <DropdownMenuItem className="cursor-pointer py-2.5">
                   <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />
                   Mon profil
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2">
+                <DropdownMenuItem className="cursor-pointer py-2.5">
                   <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
                   Préférences
                 </DropdownMenuItem>
                 <div className="h-px bg-border my-1"></div>
-                <DropdownMenuItem className="cursor-pointer py-2 text-destructive focus:text-destructive" onClick={() => logout()}>
+                <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive focus:text-destructive" onClick={() => logout()}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Déconnexion
                 </DropdownMenuItem>
@@ -253,8 +319,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-8 page-scroll">
+          <div className="max-w-7xl mx-auto w-full">
             {children}
           </div>
         </div>
