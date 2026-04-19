@@ -1,0 +1,58 @@
+[
+  {
+    "id": "c398ed06-8ef4-4920-8f76-4b5825f031b1",
+    "position": 1,
+    "filepath": "src/pages/slides/Cover.tsx",
+    "title": "Plateforme Chantier",
+    "description": "Slide d'ouverture EDOLE Africa avec stat strip",
+    "speakerNotes": ""
+  },
+  {
+    "id": "803ca179-aa10-4fd5-b924-d78d6ac895f3",
+    "position": 2,
+    "filepath": "src/pages/slides/Overview.tsx",
+    "title": "Une plateforme, chaque chantier",
+    "description": "Vue d'ensemble : Direction, Terrain, Conformité",
+    "speakerNotes": ""
+  },
+  {
+    "id": "09d4109e-7474-4bd8-94bc-389c16161251",
+    "position": 3,
+    "filepath": "src/pages/slides/Pilotage.tsx",
+    "title": "Pilotage et alertes",
+    "description": "Module 1 — Tableau de bord, Rapports, Alertes",
+    "speakerNotes": ""
+  },
+  {
+    "id": "e65c9b46-fb4a-4e26-9a57-8baa4b0075d8",
+    "position": 4,
+    "filepath": "src/pages/slides/Operations.tsx",
+    "title": "Opérations et Matériel",
+    "description": "Module 2 — Chantiers, Tâches, Inventaire, Locations",
+    "speakerNotes": ""
+  },
+  {
+    "id": "db68f735-4b4a-430b-995e-8b35995d6b1a",
+    "position": 5,
+    "filepath": "src/pages/slides/Commercial.tsx",
+    "title": "Commercial et Marketing",
+    "description": "Module 3 — Devis, Factures, Encaissements, Campagnes",
+    "speakerNotes": ""
+  },
+  {
+    "id": "7c73780d-d3bc-4ea5-a6f1-4f77b018bd0e",
+    "position": 6,
+    "filepath": "src/pages/slides/RhComptabilite.tsx",
+    "title": "RH et Comptabilité OHADA",
+    "description": "Module 4 — Effectifs, Contrats, Bilan, Résultat",
+    "speakerNotes": ""
+  },
+  {
+    "id": "5507f452-54d1-473e-a158-ab6e074d60bc",
+    "position": 7,
+    "filepath": "src/pages/slides/Closing.tsx",
+    "title": "Une plateforme, chaque chantier",
+    "description": "Slide de clôture avec strip des modules",
+    "speakerNotes": ""
+  }
+]

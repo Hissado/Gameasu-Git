@@ -1,0 +1,76 @@
+Please create a professional, client-facing presentation of the application based on its current tools, modules, features, and overall structure.
+
+The goal is to produce a clear and persuasive **app presentation document** that can be shared with a potential client to showcase:
+- the app’s design
+- the app’s structure
+- the purpose of each area/module
+- the main functionalities
+- the user flow and navigation
+- the value the app brings to the client
+
+### What I need
+Please provide a structured presentation of the application that includes:
+
+1. **App Overview**
+- a clear summary of what the application is
+- its main purpose
+- who it is designed for
+- the business problems it solves
+
+2. **App Structure**
+- explain how the app is organized
+- present the main sections/modules of the platform
+- show how the application is structured from a user perspective
+- describe how users move through the app
+
+3. **Description of Each Area of the App**
+For each main module or section, provide:
+- the name of the area
+- its purpose
+- what the user can do there
+- its key features
+- how it connects to other parts of the app
+
+Examples may include:
+- Dashboard
+- Projects
+- Tasks
+- Clients
+- Commercial
+- Accounting
+- HR
+- Equipment / Materials
+- Rentals
+- Documents
+- Messaging
+- Reports
+- Settings
+- Client Portal
+- any other relevant modules
+
+4. **Visual Presentation Guidance**
+- describe what type of image, screenshot, or mockup should be linked to each section
+- explain what each visual is supposed to show
+- make it easy to match each app area with the right image or screen
+- highlight the design style, layout, and user experience
+
+5. **Feature Presentation**
+- explain the key functionalities in a clear, client-friendly way
+- focus on value, usability, and business impact
+- present the features in a way that is easy for a non-technical client to understand
+
+6. **Presentation Style**
+- make the presentation professional, modern, and persuasive
+- use clear business language
+- make it suitable for a sales/demo presentation
+- structure it so it can easily be turned into slides, a brochure, or a presentation deck
+
+### Expected output
+I want a well-organized presentation-style description of the app that:
+- explains the app clearly
+- presents each section professionally
+- shows the app structure the way it is actually presented in the interface
+- helps a potential client quickly understand the design, navigation, and functionality
+- can be used as a support document for pitching or demonstrating the application
+
+Please make the result polished, client-ready, and easy to understand.

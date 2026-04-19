@@ -1,5 +1,10 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "5LTo_psVFN5bb95hN_IBy"
+uri = "file://artifacts/edole-deck/public/hero-construction.png"
+type = "image"
+title = "edole hero construction"
 
 [[outputs]]
 id = "FnB8a_SKcrZ6zdMDyhU8k"
