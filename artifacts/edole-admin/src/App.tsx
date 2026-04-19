@@ -55,6 +55,12 @@ import HrPositions from "@/pages/hr/positions";
 import HrContracts from "@/pages/hr/contracts";
 import HrDocuments from "@/pages/hr/documents";
 import HrAssignments from "@/pages/hr/assignments";
+import CommercialClients from "@/pages/commercial/clients";
+import CommercialServices from "@/pages/commercial/services";
+import MarketingDashboard from "@/pages/marketing/index";
+import MarketingProspects from "@/pages/marketing/prospects";
+import DocumentsPage from "@/pages/documents/index";
+import AlertsPage from "@/pages/alerts/index";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,6 +136,15 @@ function AppRouter() {
               <Route path="/hr/contracts" component={HrContracts} />
               <Route path="/hr/documents" component={HrDocuments} />
               <Route path="/hr/assignments" component={HrAssignments} />
+
+              <Route path="/commercial/clients" component={CommercialClients} />
+              <Route path="/commercial/services" component={CommercialServices} />
+
+              <Route path="/marketing" component={MarketingDashboard} />
+              <Route path="/marketing/prospects" component={MarketingProspects} />
+
+              <Route path="/documents" component={DocumentsPage} />
+              <Route path="/alerts" component={AlertsPage} />
 
               <Route component={NotFound} />
             </Switch>

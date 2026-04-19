@@ -10,3 +10,7 @@ export * from "./rentals";
 export * from "./orders";
 export * from "./messaging";
 export * from "./accounting";
+export * from "./services";
+export * from "./documents";
+export * from "./marketing";
+export * from "./alerts";

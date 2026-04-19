@@ -17,6 +17,10 @@ import reportsRouter from "./reports";
 import equipmentMovementsRouter from "./equipment-movements";
 import accountingRouter from "./accounting";
 import hrRouter from "./hr";
+import servicesRouter from "./services";
+import documentsRouter from "./documents";
+import marketingRouter from "./marketing";
+import alertsRouter, { runAlertsScan } from "./alerts";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -44,5 +48,13 @@ router.use(reportsRouter);
 router.use(equipmentMovementsRouter);
 router.use(accountingRouter);
 router.use(hrRouter);
+router.use(servicesRouter);
+router.use(documentsRouter);
+router.use(marketingRouter);
+router.use(alertsRouter);
+
+// Scan d'alertes au démarrage + toutes les 6h
+runAlertsScan().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));
+setInterval(() => { runAlertsScan().catch(() => {}); }, 6 * 60 * 60 * 1000);
 
 export default router;

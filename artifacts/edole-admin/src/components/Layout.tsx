@@ -36,7 +36,11 @@ import {
   GraduationCap,
   FileSignature,
   FolderArchive,
-  UsersRound
+  UsersRound,
+  Megaphone,
+  Target,
+  FolderOpen,
+  Bell as BellIcon
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,6 +53,8 @@ const NAV_GROUPS = [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard },
       { name: "Rapports", path: "/reports", icon: BarChart3 },
       { name: "Carte", path: "/map", icon: MapIcon },
+      { name: "Alertes", path: "/alerts", icon: BellIcon },
+      { name: "Documents", path: "/documents", icon: FolderOpen },
     ]
   },
   {
@@ -71,11 +77,20 @@ const NAV_GROUPS = [
   {
     title: "Commercial",
     items: [
+      { name: "Clients", path: "/commercial/clients", icon: Building2 },
+      { name: "Services", path: "/commercial/services", icon: Briefcase },
       { name: "Pipeline CRM", path: "/crm", icon: Briefcase },
       { name: "Bons de commande", path: "/orders", icon: ShoppingCart },
       { name: "Devis", path: "/proformas", icon: FileText },
       { name: "Factures", path: "/invoices", icon: FileText },
       { name: "Encaissements", path: "/payments", icon: CreditCard },
+    ]
+  },
+  {
+    title: "Marketing",
+    items: [
+      { name: "Campagnes", path: "/marketing", icon: Megaphone },
+      { name: "Prospects", path: "/marketing/prospects", icon: Target },
     ]
   },
   {
