@@ -1,75 +1,92 @@
+import { Suspense, lazy } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
 import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
-
+import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
-import ProjectsList from "@/pages/projects/index";
-import ProjectDetail from "@/pages/projects/detail";
-import TasksList from "@/pages/tasks/index";
-import TaskDetail from "@/pages/tasks/detail";
-import CrmHome from "@/pages/crm/index";
-import ClientsList from "@/pages/crm/clients/index";
-import ClientDetail from "@/pages/crm/clients/detail";
-import ActivitiesList from "@/pages/crm/activities/index";
-import EquipmentList from "@/pages/equipment/index";
-import EquipmentCategories from "@/pages/equipment/categories/index";
-import EquipmentQRCodes from "@/pages/equipment/qr";
-import ReportsPage from "@/pages/reports/index";
-import MapPage from "@/pages/map/index";
-import InspectionCompare from "@/pages/inspections/compare";
-import CollaboratorsList from "@/pages/collaborators/index";
-import CollaboratorDetail from "@/pages/collaborators/detail";
-import RentalsList from "@/pages/rentals/index";
-import RentalDetail from "@/pages/rentals/detail";
-import InspectionsList from "@/pages/inspections/index";
-import LogisticsList from "@/pages/logistics/index";
-import ProformasList from "@/pages/proformas/index";
-import OrdersList from "@/pages/orders/index";
-import InvoicesList from "@/pages/invoices/index";
-import PaymentsList from "@/pages/payments/index";
-import Messaging from "@/pages/messaging/index";
-import CallsList from "@/pages/calls/index";
-import UsersList from "@/pages/users/index";
-import NotificationsList from "@/pages/notifications/index";
-import Settings from "@/pages/settings/index";
-import AccountingDashboard from "@/pages/accounting/index";
-import AccountingChart from "@/pages/accounting/chart-of-accounts";
-import AccountingEntries from "@/pages/accounting/entries";
-import AccountingLedger from "@/pages/accounting/ledger";
-import AccountingBalance from "@/pages/accounting/balance";
-import AccountingIncome from "@/pages/accounting/income-statement";
-import AccountingBalanceSheet from "@/pages/accounting/balance-sheet";
-import AccountingCustomers from "@/pages/accounting/customers";
-import AccountingSuppliers from "@/pages/accounting/suppliers";
-import AccountingBanks from "@/pages/accounting/banks";
-import AccountingFixedAssets from "@/pages/accounting/fixed-assets";
-import HrDashboard from "@/pages/hr/index";
-import HrDepartments from "@/pages/hr/departments";
-import HrPositions from "@/pages/hr/positions";
-import HrContracts from "@/pages/hr/contracts";
-import HrDocuments from "@/pages/hr/documents";
-import HrAssignments from "@/pages/hr/assignments";
-import CommercialClients from "@/pages/commercial/clients";
-import CommercialServices from "@/pages/commercial/services";
-import MarketingDashboard from "@/pages/marketing/index";
-import MarketingProspects from "@/pages/marketing/prospects";
-import DocumentsPage from "@/pages/documents/index";
-import AlertsPage from "@/pages/alerts/index";
 
+// ── Lazy-loaded pages (un chunk par route → premier paint quasi-instantané) ──
+const ProjectsList = lazy(() => import("@/pages/projects/index"));
+const ProjectDetail = lazy(() => import("@/pages/projects/detail"));
+const TasksList = lazy(() => import("@/pages/tasks/index"));
+const TaskDetail = lazy(() => import("@/pages/tasks/detail"));
+const CrmHome = lazy(() => import("@/pages/crm/index"));
+const ClientsList = lazy(() => import("@/pages/crm/clients/index"));
+const ClientDetail = lazy(() => import("@/pages/crm/clients/detail"));
+const ActivitiesList = lazy(() => import("@/pages/crm/activities/index"));
+const EquipmentList = lazy(() => import("@/pages/equipment/index"));
+const EquipmentCategories = lazy(() => import("@/pages/equipment/categories/index"));
+const EquipmentQRCodes = lazy(() => import("@/pages/equipment/qr"));
+const ReportsPage = lazy(() => import("@/pages/reports/index"));
+const MapPage = lazy(() => import("@/pages/map/index"));
+const InspectionCompare = lazy(() => import("@/pages/inspections/compare"));
+const CollaboratorsList = lazy(() => import("@/pages/collaborators/index"));
+const CollaboratorDetail = lazy(() => import("@/pages/collaborators/detail"));
+const RentalsList = lazy(() => import("@/pages/rentals/index"));
+const RentalDetail = lazy(() => import("@/pages/rentals/detail"));
+const InspectionsList = lazy(() => import("@/pages/inspections/index"));
+const LogisticsList = lazy(() => import("@/pages/logistics/index"));
+const ProformasList = lazy(() => import("@/pages/proformas/index"));
+const OrdersList = lazy(() => import("@/pages/orders/index"));
+const InvoicesList = lazy(() => import("@/pages/invoices/index"));
+const PaymentsList = lazy(() => import("@/pages/payments/index"));
+const Messaging = lazy(() => import("@/pages/messaging/index"));
+const CallsList = lazy(() => import("@/pages/calls/index"));
+const UsersList = lazy(() => import("@/pages/users/index"));
+const NotificationsList = lazy(() => import("@/pages/notifications/index"));
+const Settings = lazy(() => import("@/pages/settings/index"));
+const AccountingDashboard = lazy(() => import("@/pages/accounting/index"));
+const AccountingChart = lazy(() => import("@/pages/accounting/chart-of-accounts"));
+const AccountingEntries = lazy(() => import("@/pages/accounting/entries"));
+const AccountingLedger = lazy(() => import("@/pages/accounting/ledger"));
+const AccountingBalance = lazy(() => import("@/pages/accounting/balance"));
+const AccountingIncome = lazy(() => import("@/pages/accounting/income-statement"));
+const AccountingBalanceSheet = lazy(() => import("@/pages/accounting/balance-sheet"));
+const AccountingCustomers = lazy(() => import("@/pages/accounting/customers"));
+const AccountingSuppliers = lazy(() => import("@/pages/accounting/suppliers"));
+const AccountingBanks = lazy(() => import("@/pages/accounting/banks"));
+const AccountingFixedAssets = lazy(() => import("@/pages/accounting/fixed-assets"));
+const HrDashboard = lazy(() => import("@/pages/hr/index"));
+const HrDepartments = lazy(() => import("@/pages/hr/departments"));
+const HrPositions = lazy(() => import("@/pages/hr/positions"));
+const HrContracts = lazy(() => import("@/pages/hr/contracts"));
+const HrDocuments = lazy(() => import("@/pages/hr/documents"));
+const HrAssignments = lazy(() => import("@/pages/hr/assignments"));
+const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
+const CommercialServices = lazy(() => import("@/pages/commercial/services"));
+const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
+const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
+const DocumentsPage = lazy(() => import("@/pages/documents/index"));
+const AlertsPage = lazy(() => import("@/pages/alerts/index"));
+
+// ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 30 * 1000,        // 30s : données considérées fraîches
+      gcTime: 5 * 60 * 1000,       // 5min : conservation cache mémoire
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function AppRouter() {
   return (
@@ -78,76 +95,78 @@ function AppRouter() {
       <Route>
         <ProtectedRoute>
           <Layout>
-            <Switch>
-              <Route path="/" component={Dashboard} />
-              
-              <Route path="/projects" component={ProjectsList} />
-              <Route path="/projects/:id" component={ProjectDetail} />
-              
-              <Route path="/tasks" component={TasksList} />
-              <Route path="/tasks/:id" component={TaskDetail} />
-              
-              <Route path="/crm" component={CrmHome} />
-              <Route path="/crm/clients" component={ClientsList} />
-              <Route path="/crm/clients/:id" component={ClientDetail} />
-              <Route path="/crm/activities" component={ActivitiesList} />
-              
-              <Route path="/equipment" component={EquipmentList} />
-              <Route path="/equipment/categories" component={EquipmentCategories} />
-              <Route path="/equipment/qr" component={EquipmentQRCodes} />
-              <Route path="/reports" component={ReportsPage} />
-              <Route path="/map" component={MapPage} />
-              <Route path="/inspections/compare/:rentalId" component={InspectionCompare} />
-              
-              <Route path="/collaborators" component={CollaboratorsList} />
-              <Route path="/collaborators/:id" component={CollaboratorDetail} />
-              
-              <Route path="/rentals" component={RentalsList} />
-              <Route path="/rentals/:id" component={RentalDetail} />
-              <Route path="/inspections" component={InspectionsList} />
-              <Route path="/logistics" component={LogisticsList} />
-              
-              <Route path="/orders" component={OrdersList} />
-              <Route path="/proformas" component={ProformasList} />
-              <Route path="/invoices" component={InvoicesList} />
-              <Route path="/payments" component={PaymentsList} />
-              
-              <Route path="/messaging" component={Messaging} />
-              <Route path="/calls" component={CallsList} />
-              <Route path="/users" component={UsersList} />
-              <Route path="/notifications" component={NotificationsList} />
-              <Route path="/settings" component={Settings} />
+            <Suspense fallback={<PageFallback />}>
+              <Switch>
+                <Route path="/" component={Dashboard} />
 
-              <Route path="/accounting" component={AccountingDashboard} />
-              <Route path="/accounting/chart-of-accounts" component={AccountingChart} />
-              <Route path="/accounting/entries" component={AccountingEntries} />
-              <Route path="/accounting/ledger" component={AccountingLedger} />
-              <Route path="/accounting/balance" component={AccountingBalance} />
-              <Route path="/accounting/income-statement" component={AccountingIncome} />
-              <Route path="/accounting/balance-sheet" component={AccountingBalanceSheet} />
-              <Route path="/accounting/customers" component={AccountingCustomers} />
-              <Route path="/accounting/suppliers" component={AccountingSuppliers} />
-              <Route path="/accounting/banks" component={AccountingBanks} />
-              <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
+                <Route path="/projects" component={ProjectsList} />
+                <Route path="/projects/:id" component={ProjectDetail} />
 
-              <Route path="/hr" component={HrDashboard} />
-              <Route path="/hr/departments" component={HrDepartments} />
-              <Route path="/hr/positions" component={HrPositions} />
-              <Route path="/hr/contracts" component={HrContracts} />
-              <Route path="/hr/documents" component={HrDocuments} />
-              <Route path="/hr/assignments" component={HrAssignments} />
+                <Route path="/tasks" component={TasksList} />
+                <Route path="/tasks/:id" component={TaskDetail} />
 
-              <Route path="/commercial/clients" component={CommercialClients} />
-              <Route path="/commercial/services" component={CommercialServices} />
+                <Route path="/crm" component={CrmHome} />
+                <Route path="/crm/clients" component={ClientsList} />
+                <Route path="/crm/clients/:id" component={ClientDetail} />
+                <Route path="/crm/activities" component={ActivitiesList} />
 
-              <Route path="/marketing" component={MarketingDashboard} />
-              <Route path="/marketing/prospects" component={MarketingProspects} />
+                <Route path="/equipment" component={EquipmentList} />
+                <Route path="/equipment/categories" component={EquipmentCategories} />
+                <Route path="/equipment/qr" component={EquipmentQRCodes} />
+                <Route path="/reports" component={ReportsPage} />
+                <Route path="/map" component={MapPage} />
+                <Route path="/inspections/compare/:rentalId" component={InspectionCompare} />
 
-              <Route path="/documents" component={DocumentsPage} />
-              <Route path="/alerts" component={AlertsPage} />
+                <Route path="/collaborators" component={CollaboratorsList} />
+                <Route path="/collaborators/:id" component={CollaboratorDetail} />
 
-              <Route component={NotFound} />
-            </Switch>
+                <Route path="/rentals" component={RentalsList} />
+                <Route path="/rentals/:id" component={RentalDetail} />
+                <Route path="/inspections" component={InspectionsList} />
+                <Route path="/logistics" component={LogisticsList} />
+
+                <Route path="/orders" component={OrdersList} />
+                <Route path="/proformas" component={ProformasList} />
+                <Route path="/invoices" component={InvoicesList} />
+                <Route path="/payments" component={PaymentsList} />
+
+                <Route path="/messaging" component={Messaging} />
+                <Route path="/calls" component={CallsList} />
+                <Route path="/users" component={UsersList} />
+                <Route path="/notifications" component={NotificationsList} />
+                <Route path="/settings" component={Settings} />
+
+                <Route path="/accounting" component={AccountingDashboard} />
+                <Route path="/accounting/chart-of-accounts" component={AccountingChart} />
+                <Route path="/accounting/entries" component={AccountingEntries} />
+                <Route path="/accounting/ledger" component={AccountingLedger} />
+                <Route path="/accounting/balance" component={AccountingBalance} />
+                <Route path="/accounting/income-statement" component={AccountingIncome} />
+                <Route path="/accounting/balance-sheet" component={AccountingBalanceSheet} />
+                <Route path="/accounting/customers" component={AccountingCustomers} />
+                <Route path="/accounting/suppliers" component={AccountingSuppliers} />
+                <Route path="/accounting/banks" component={AccountingBanks} />
+                <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
+
+                <Route path="/hr" component={HrDashboard} />
+                <Route path="/hr/departments" component={HrDepartments} />
+                <Route path="/hr/positions" component={HrPositions} />
+                <Route path="/hr/contracts" component={HrContracts} />
+                <Route path="/hr/documents" component={HrDocuments} />
+                <Route path="/hr/assignments" component={HrAssignments} />
+
+                <Route path="/commercial/clients" component={CommercialClients} />
+                <Route path="/commercial/services" component={CommercialServices} />
+
+                <Route path="/marketing" component={MarketingDashboard} />
+                <Route path="/marketing/prospects" component={MarketingProspects} />
+
+                <Route path="/documents" component={DocumentsPage} />
+                <Route path="/alerts" component={AlertsPage} />
+
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
           </Layout>
         </ProtectedRoute>
       </Route>

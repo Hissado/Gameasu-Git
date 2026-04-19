@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 
@@ -22,23 +22,41 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem("auth_token"));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
   const [_, setLocation] = useLocation();
 
+  // Garde la session "vivante" 5 minutes — évite un refetch /auth/me à chaque navigation.
   const { data: user } = useGetMe({
-    query: { enabled: !!token, retry: false, queryKey: ["auth-me", token] as const },
+    query: {
+      enabled: !!token,
+      retry: false,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      queryKey: ["auth-me"] as const,
+    },
   });
 
-  const login = (newToken: string) => {
+  const login = useCallback((newToken: string) => {
     localStorage.setItem("auth_token", newToken);
     setToken(newToken);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("auth_token");
     setToken(null);
     setLocation("/login");
-  };
+  }, [setLocation]);
+
+  // Déconnexion automatique si l'API renvoie 401.
+  useEffect(() => {
+    const handler = () => {
+      if (localStorage.getItem("auth_token")) logout();
+    };
+    window.addEventListener("auth:unauthorized", handler);
+    return () => window.removeEventListener("auth:unauthorized", handler);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ token, user: user as AuthUser | undefined, login, logout, isAuthenticated: !!token }}>

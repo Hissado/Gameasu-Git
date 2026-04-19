@@ -1,5 +1,18 @@
 // Helper fetch pour appeler l'API EDOLE avec authentification automatique.
-// Utilisé pour les endpoints non encore couverts par le client OpenAPI généré.
+// Émet un événement global "auth:unauthorized" sur 401 pour permettre la
+// déconnexion automatique depuis le contexte d'authentification.
+
+export class ApiError extends Error {
+  status: number;
+  body: any;
+  constructor(message: string, status: number, body: any = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 function getToken(): string | null {
   return localStorage.getItem("auth_token");
 }
@@ -18,12 +31,31 @@ export async function apiFetch<T = unknown>(
   if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
+  // Sérialise automatiquement les bodies JSON (plain objects).
+  let body: BodyInit | null | undefined = options.body as any;
+  if (
+    body &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob) &&
+    !(body instanceof ArrayBuffer) &&
+    typeof body !== "string"
+  ) {
+    body = JSON.stringify(body);
+  }
   const fullUrl = url.startsWith("/") ? url : `/api/${url}`;
-  const res = await fetch(fullUrl, { ...options, headers });
+  const res = await fetch(fullUrl, { ...options, headers, body });
   if (!res.ok) {
-    let body: any = null;
-    try { body = await res.json(); } catch {}
-    throw new Error(body?.error || body?.detail || `HTTP ${res.status}`);
+    let errBody: any = null;
+    try { errBody = await res.json(); } catch {}
+    if (res.status === 401) {
+      // Notifie le AuthProvider qui se chargera de la redirection.
+      window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+    }
+    throw new ApiError(
+      errBody?.error || errBody?.detail || `HTTP ${res.status}`,
+      res.status,
+      errBody,
+    );
   }
   if (res.status === 204) return null as T;
   const ct = res.headers.get("content-type") || "";
