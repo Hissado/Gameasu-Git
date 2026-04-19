@@ -268,6 +268,52 @@ router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => 
 });
 
 // ════════════════════════════════════════════════════════════════
+// AUTO-AFFECTATION : rattache les collaborateurs existants aux pôles
+// seedés en se basant sur l'ancien champ texte `department` ou
+// `position`. Idempotent — n'écrase pas une affectation déjà posée.
+// ════════════════════════════════════════════════════════════════
+router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, res) => {
+  try {
+    // Mapping mots-clés → code département seedé
+    const KEYWORD_MAP: Array<{ kw: RegExp; code: string }> = [
+      { kw: /(direction|pilotage|dg|directeur|général)/i, code: "DIR" },
+      { kw: /(opération|chantier|chef|conducteur|ouvrier|maçon|btp|travaux)/i, code: "OPS" },
+      { kw: /(matériel|parc|mécano|mécanicien|engin|logistique)/i, code: "MAT" },
+      { kw: /(commercial|vente|devis|facture|client)/i, code: "COM" },
+      { kw: /(rh|ressources humaines|paie|recrutement)/i, code: "RH" },
+      { kw: /(comptabilité|comptable|finance|trésorerie)/i, code: "CPT" },
+      { kw: /(communication|marketing|marcom)/i, code: "MKT" },
+    ];
+
+    const depts = await db.select().from(departmentsTable);
+    const byCode = new Map(depts.map((d) => [d.code, d.id]));
+
+    const allCollabs = await db.select().from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+    let updated = 0; const summary: Array<{ id: string; name: string; assigned: string }> = [];
+
+    for (const c of allCollabs) {
+      if (c.departmentId) continue; // déjà affecté
+      const haystack = `${c.department ?? ""} ${c.position ?? ""}`.trim();
+      let matched: string | null = null;
+      for (const { kw, code } of KEYWORD_MAP) {
+        if (kw.test(haystack)) { matched = code; break; }
+      }
+      if (!matched) matched = "OPS"; // défaut : Opérations (cœur métier BTP)
+      const deptId = byCode.get(matched);
+      if (!deptId) continue;
+      await db.update(collaboratorsTable).set({ departmentId: deptId })
+        .where(eq(collaboratorsTable.id, c.id));
+      updated++;
+      summary.push({ id: c.id, name: `${c.firstName} ${c.lastName}`, assigned: matched });
+    }
+
+    return res.json({ updated, total: allCollabs.length, summary });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // VUE 360° collaborateur — aggregat cross-modules
 // (projets, tâches, équipements responsable, contrats, documents)
 // ════════════════════════════════════════════════════════════════

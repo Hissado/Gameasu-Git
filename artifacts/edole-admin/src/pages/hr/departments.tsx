@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Network } from "lucide-react";
+import { Plus, Trash2, Network, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Dept = { id: string; code: string; name: string; description?: string; color?: string; collaboratorsCount: number };
@@ -39,11 +39,29 @@ export default function DepartmentsPage() {
     onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
   });
 
+  const autoAssignMut = useMutation({
+    mutationFn: () => apiFetch("/api/hr/auto-assign-departments", { method: "POST" }),
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["hr-departments"] });
+      qc.invalidateQueries({ queryKey: ["hr-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["collaborators-list"] });
+      toast({ title: "Auto-affectation terminée", description: `${r.updated} collaborateur(s) sur ${r.total} rattaché(s) à un pôle.` });
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
   return (
     <HrShell
       title="Départements / Pôles"
       subtitle="Structure organisationnelle de l'entreprise."
-      actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau département</Button>}
+      actions={
+        <>
+          <Button variant="outline" onClick={() => { if (confirm("Affecter automatiquement tous les collaborateurs sans pôle au département le plus pertinent (basé sur leur fonction) ?")) autoAssignMut.mutate(); }} disabled={autoAssignMut.isPending}>
+            <Wand2 className="w-4 h-4 mr-2" /> Auto-affecter les collaborateurs
+          </Button>
+          <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau département</Button>
+        </>
+      }
     >
       <Card>
         <CardContent className="p-0">
