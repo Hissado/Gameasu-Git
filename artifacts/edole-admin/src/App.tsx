@@ -49,6 +49,12 @@ import AccountingCustomers from "@/pages/accounting/customers";
 import AccountingSuppliers from "@/pages/accounting/suppliers";
 import AccountingBanks from "@/pages/accounting/banks";
 import AccountingFixedAssets from "@/pages/accounting/fixed-assets";
+import HrDashboard from "@/pages/hr/index";
+import HrDepartments from "@/pages/hr/departments";
+import HrPositions from "@/pages/hr/positions";
+import HrContracts from "@/pages/hr/contracts";
+import HrDocuments from "@/pages/hr/documents";
+import HrAssignments from "@/pages/hr/assignments";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +123,13 @@ function AppRouter() {
               <Route path="/accounting/suppliers" component={AccountingSuppliers} />
               <Route path="/accounting/banks" component={AccountingBanks} />
               <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
+
+              <Route path="/hr" component={HrDashboard} />
+              <Route path="/hr/departments" component={HrDepartments} />
+              <Route path="/hr/positions" component={HrPositions} />
+              <Route path="/hr/contracts" component={HrContracts} />
+              <Route path="/hr/documents" component={HrDocuments} />
+              <Route path="/hr/assignments" component={HrAssignments} />
 
               <Route component={NotFound} />
             </Switch>

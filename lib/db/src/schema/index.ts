@@ -4,6 +4,7 @@ export * from "./crm";
 export * from "./projects";
 export * from "./tasks";
 export * from "./collaborators";
+export * from "./hr";
 export * from "./equipment";
 export * from "./rentals";
 export * from "./orders";

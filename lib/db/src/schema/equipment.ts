@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid, integer, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { collaboratorsTable } from "./collaborators";
 
 export const equipmentCategoriesTable = pgTable("equipment_categories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -23,6 +24,8 @@ export const equipmentTable = pgTable("equipment", {
   photos: jsonb("photos").$type<string[]>().default([]),
   variant: text("variant"),
   location: text("location"),
+  // Collaborateur responsable de l'équipement (synchronisation Matériel ↔ RH).
+  responsibleCollaboratorId: uuid("responsible_collaborator_id").references(() => collaboratorsTable.id, { onDelete: "set null" }),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

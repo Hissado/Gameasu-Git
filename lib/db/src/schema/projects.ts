@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { usersTable } from "./users";
+import { collaboratorsTable } from "./collaborators";
 
 export const projectsTable = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -11,6 +12,8 @@ export const projectsTable = pgTable("projects", {
   status: text("status").notNull().default("planning"),
   clientId: uuid("client_id").references(() => clientsTable.id),
   managerId: uuid("manager_id").references(() => usersTable.id),
+  // Chef de projet côté RH (collaborateur), distinct du `managerId` (compte utilisateur).
+  leadCollaboratorId: uuid("lead_collaborator_id").references(() => collaboratorsTable.id, { onDelete: "set null" }),
   startDate: text("start_date"),
   endDate: text("end_date"),
   progress: integer("progress").default(0),

@@ -31,7 +31,12 @@ import {
   TrendingUp,
   Landmark,
   Building2,
-  PiggyBank
+  PiggyBank,
+  Network,
+  GraduationCap,
+  FileSignature,
+  FolderArchive,
+  UsersRound
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,20 +69,26 @@ const NAV_GROUPS = [
     ]
   },
   {
-    title: "Commercial & RH",
+    title: "Commercial",
     items: [
-      { name: "Pipeline", path: "/crm", icon: Briefcase },
-      { name: "Collaborateurs", path: "/collaborators", icon: HardHat },
-      { name: "Utilisateurs", path: "/users", icon: UserCircle },
-    ]
-  },
-  {
-    title: "Finance",
-    items: [
+      { name: "Pipeline CRM", path: "/crm", icon: Briefcase },
       { name: "Bons de commande", path: "/orders", icon: ShoppingCart },
       { name: "Devis", path: "/proformas", icon: FileText },
       { name: "Factures", path: "/invoices", icon: FileText },
       { name: "Encaissements", path: "/payments", icon: CreditCard },
+    ]
+  },
+  {
+    title: "Ressources Humaines",
+    items: [
+      { name: "Tableau RH", path: "/hr", icon: UsersRound },
+      { name: "Collaborateurs", path: "/collaborators", icon: HardHat },
+      { name: "Départements", path: "/hr/departments", icon: Network },
+      { name: "Postes", path: "/hr/positions", icon: GraduationCap },
+      { name: "Affectations", path: "/hr/assignments", icon: Briefcase },
+      { name: "Contrats", path: "/hr/contracts", icon: FileSignature },
+      { name: "Documents RH", path: "/hr/documents", icon: FolderArchive },
+      { name: "Utilisateurs", path: "/users", icon: UserCircle },
     ]
   },
   {
@@ -126,8 +137,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex h-screen overflow-hidden bg-background font-sans">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full shadow-xl z-10">
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-center bg-sidebar">
-          <img src={logo} alt="EDOLE Logo" className="h-10 object-contain" />
+        <div className="px-6 py-5 border-b border-sidebar-border flex items-center gap-3 bg-sidebar">
+          <div className="bg-white rounded-md p-1.5 shadow-md shrink-0">
+            <img src={logo} alt="EDOLE Logo" className="h-8 w-8 object-contain" />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-base font-bold tracking-tight text-sidebar-foreground">EDOLE</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-primary font-semibold">Africa Admin</span>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 custom-scrollbar">
@@ -175,13 +192,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
         {/* Topbar */}
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 shrink-0 shadow-sm z-0">
-          <div className="flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded px-3 py-2 w-80 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+          <div className="flex items-center gap-4">
+            <img src={logo} alt="EDOLE" className="h-7 object-contain opacity-90 hidden sm:block" />
+            <div className="flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded px-3 py-2 w-72 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
             <Search className="w-4 h-4 mr-2 text-muted-foreground/70" />
             <input 
               type="text" 
-              placeholder="Rechercher (Chantier, Matériel, Client)..." 
+              placeholder="Rechercher (Chantier, Matériel, Client, Collaborateur)..." 
               className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
             />
+            </div>
           </div>
 
           <div className="flex items-center gap-6">

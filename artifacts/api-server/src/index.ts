@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedSyscohada } from "./services/syscohada-seed";
+import { seedHr } from "./services/hr-seed";
 
 const rawPort = process.env["PORT"];
 
@@ -30,5 +31,11 @@ app.listen(port, async (err) => {
     await seedSyscohada();
   } catch (e) {
     logger.error({ err: e }, "SYSCOHADA seed failed");
+  }
+
+  try {
+    await seedHr();
+  } catch (e) {
+    logger.error({ err: e }, "HR seed failed");
   }
 });
