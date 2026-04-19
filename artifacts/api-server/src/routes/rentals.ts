@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { rentalsTable, rentalItemsTable, inspectionsTable, logisticsOperationsTable, clientsTable, equipmentTable, usersTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
+import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
 
@@ -28,7 +29,7 @@ router.get("/rentals", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/rentals", async (req, res) => {
+router.post("/rentals", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, startDate, endDate, notes, items } = req.body;
   const refNum = `RNT-${Date.now().toString(36).toUpperCase()}`;
   const [rental] = await db.insert(rentalsTable).values({
@@ -81,7 +82,7 @@ router.get("/rentals/:id", async (req, res) => {
   });
 });
 
-router.put("/rentals/:id", async (req, res) => {
+router.put("/rentals/:id", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, startDate, endDate, notes } = req.body;
   const [rental] = await db.update(rentalsTable)
     .set({ clientId, status, startDate, endDate, notes })
@@ -114,11 +115,11 @@ router.get("/inspections", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/inspections", async (req, res) => {
-  const { rentalId, type, notes, hasDispute, disputeNotes, retentionAmount } = req.body;
+router.post("/inspections", requireManagerOrAbove, async (req, res) => {
+  const { rentalId, type, notes, hasDispute, disputeNotes, retentionAmount, photos } = req.body;
   const [insp] = await db.insert(inspectionsTable).values({
     rentalId, type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes,
-    retentionAmount: retentionAmount?.toString(),
+    retentionAmount: retentionAmount?.toString(), conductedById: req.authUser?.id, photos: photos || [],
   }).returning();
   return res.status(201).json({ ...insp, hasDispute: insp.hasDispute === "true", retentionAmount: insp.retentionAmount ? Number(insp.retentionAmount) : null });
 });
@@ -129,13 +130,39 @@ router.get("/inspections/:id", async (req, res) => {
   return res.json({ ...rows[0], hasDispute: rows[0].hasDispute === "true", retentionAmount: rows[0].retentionAmount ? Number(rows[0].retentionAmount) : null });
 });
 
-router.put("/inspections/:id", async (req, res) => {
-  const { type, notes, hasDispute, disputeNotes, retentionAmount } = req.body;
+router.put("/inspections/:id", requireManagerOrAbove, async (req, res) => {
+  const { type, notes, hasDispute, disputeNotes, retentionAmount, photos } = req.body;
   const [insp] = await db.update(inspectionsTable)
-    .set({ type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes, retentionAmount: retentionAmount?.toString() })
+    .set({ type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes, retentionAmount: retentionAmount?.toString(), photos })
     .where(eq(inspectionsTable.id, req.params.id)).returning();
   if (!insp) return res.status(404).json({ error: "Not found" });
   return res.json({ ...insp, hasDispute: insp.hasDispute === "true", retentionAmount: insp.retentionAmount ? Number(insp.retentionAmount) : null });
+});
+
+// Endpoint dédié à la comparaison des deux états (départ vs retour) d'une location
+router.get("/rentals/:id/inspections", async (req, res) => {
+  const inspections = await db
+    .select({
+      i: inspectionsTable,
+      conductedByName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
+    })
+    .from(inspectionsTable)
+    .leftJoin(usersTable, eq(inspectionsTable.conductedById, usersTable.id))
+    .where(eq(inspectionsTable.rentalId, req.params.id));
+
+  const data = inspections.map((row) => ({
+    ...row.i,
+    conductedByName: row.conductedByName,
+    hasDispute: row.i.hasDispute === "true",
+    retentionAmount: row.i.retentionAmount ? Number(row.i.retentionAmount) : null,
+  }));
+
+  return res.json({
+    rentalId: req.params.id,
+    departure: data.find((d) => d.type === "departure") || null,
+    returnInspection: data.find((d) => d.type === "return") || null,
+    all: data,
+  });
 });
 
 // LOGISTICS
@@ -157,7 +184,7 @@ router.get("/logistics", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/logistics", async (req, res) => {
+router.post("/logistics", requireManagerOrAbove, async (req, res) => {
   const { type, status, rentalId, responsibleId, address, scheduledAt, notes } = req.body;
   const [op] = await db.insert(logisticsOperationsTable).values({
     type, status: status || "scheduled", rentalId, responsibleId, address,
@@ -166,7 +193,7 @@ router.post("/logistics", async (req, res) => {
   return res.status(201).json(op);
 });
 
-router.put("/logistics/:id", async (req, res) => {
+router.put("/logistics/:id", requireManagerOrAbove, async (req, res) => {
   const { type, status, rentalId, responsibleId, address, scheduledAt, notes } = req.body;
   const [op] = await db.update(logisticsOperationsTable)
     .set({ type, status, rentalId, responsibleId, address, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, notes })

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { projectsTable, projectPhasesTable, clientsTable, usersTable, tasksTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
@@ -33,11 +34,11 @@ router.get("/projects", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/projects", async (req, res) => {
-  const { name, description, status, clientId, managerId, startDate, endDate, budget } = req.body;
+router.post("/projects", requireManagerOrAbove, async (req, res) => {
+  const { name, description, status, clientId, managerId, startDate, endDate, budget, documentLinks } = req.body;
   const [proj] = await db.insert(projectsTable).values({
     name, description, status: status || "planning", clientId, managerId, startDate, endDate,
-    budget: budget?.toString(),
+    budget: budget?.toString(), documentLinks: documentLinks || [],
   }).returning();
   return res.status(201).json({ ...proj, budget: proj.budget ? Number(proj.budget) : null });
 });
@@ -81,16 +82,16 @@ router.get("/projects/:id", async (req, res) => {
   });
 });
 
-router.put("/projects/:id", async (req, res) => {
-  const { name, description, status, clientId, managerId, startDate, endDate, budget } = req.body;
+router.put("/projects/:id", requireManagerOrAbove, async (req, res) => {
+  const { name, description, status, clientId, managerId, startDate, endDate, budget, documentLinks } = req.body;
   const [proj] = await db.update(projectsTable)
-    .set({ name, description, status, clientId, managerId, startDate, endDate, budget: budget?.toString() })
+    .set({ name, description, status, clientId, managerId, startDate, endDate, budget: budget?.toString(), documentLinks })
     .where(eq(projectsTable.id, req.params.id)).returning();
   if (!proj) return res.status(404).json({ error: "Not found" });
   return res.json({ ...proj, budget: proj.budget ? Number(proj.budget) : null });
 });
 
-router.delete("/projects/:id", async (req, res) => {
+router.delete("/projects/:id", requireAdmin, async (req, res) => {
   await db.update(projectsTable).set({ deletedAt: new Date() }).where(eq(projectsTable.id, req.params.id));
   return res.status(204).send();
 });

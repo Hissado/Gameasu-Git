@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, ClipboardCheck, Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, Filter, ClipboardCheck, Plus, AlertTriangle, CheckCircle2, GitCompare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
+import { Link } from "wouter";
 
 export default function InspectionsList() {
   const { data, isLoading } = useListInspections();
@@ -53,12 +54,13 @@ export default function InspectionsList() {
                   <TableHead className="font-semibold text-slate-600">Inspecteur</TableHead>
                   <TableHead className="font-semibold text-slate-600">Date d'inspection</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center">Bilan Litige</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!data?.data || data.data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <ClipboardCheck className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-lg font-medium text-slate-600">Aucune inspection trouvée.</p>
@@ -90,6 +92,13 @@ export default function InspectionsList() {
                             <CheckCircle2 className="w-3 h-3" /> RAS
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/inspections/compare/${inspection.rentalId}`}>
+                          <Button variant="outline" size="sm" className="h-8 text-xs">
+                            <GitCompare className="w-3 h-3 mr-1.5" /> Comparer
+                          </Button>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))

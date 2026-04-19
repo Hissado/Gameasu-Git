@@ -19,6 +19,10 @@ import ClientDetail from "@/pages/crm/clients/detail";
 import ActivitiesList from "@/pages/crm/activities/index";
 import EquipmentList from "@/pages/equipment/index";
 import EquipmentCategories from "@/pages/equipment/categories/index";
+import EquipmentQRCodes from "@/pages/equipment/qr";
+import ReportsPage from "@/pages/reports/index";
+import MapPage from "@/pages/map/index";
+import InspectionCompare from "@/pages/inspections/compare";
 import CollaboratorsList from "@/pages/collaborators/index";
 import CollaboratorDetail from "@/pages/collaborators/detail";
 import RentalsList from "@/pages/rentals/index";
@@ -67,6 +71,10 @@ function AppRouter() {
               
               <Route path="/equipment" component={EquipmentList} />
               <Route path="/equipment/categories" component={EquipmentCategories} />
+              <Route path="/equipment/qr" component={EquipmentQRCodes} />
+              <Route path="/reports" component={ReportsPage} />
+              <Route path="/map" component={MapPage} />
+              <Route path="/inspections/compare/:rentalId" component={InspectionCompare} />
               
               <Route path="/collaborators" component={CollaboratorsList} />
               <Route path="/collaborators/:id" component={CollaboratorDetail} />

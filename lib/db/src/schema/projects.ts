@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
@@ -15,6 +15,7 @@ export const projectsTable = pgTable("projects", {
   endDate: text("end_date"),
   progress: integer("progress").default(0),
   budget: numeric("budget", { precision: 15, scale: 2 }),
+  documentLinks: jsonb("document_links").$type<Array<{ label: string; url: string }>>().default([]),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

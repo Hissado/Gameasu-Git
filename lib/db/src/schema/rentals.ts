@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
@@ -36,6 +36,7 @@ export const inspectionsTable = pgTable("inspections", {
   hasDispute: text("has_dispute").default("false"),
   disputeNotes: text("dispute_notes"),
   retentionAmount: numeric("retention_amount", { precision: 15, scale: 2 }),
+  photos: jsonb("photos").$type<string[]>().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

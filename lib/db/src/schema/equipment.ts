@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,11 +20,27 @@ export const equipmentTable = pgTable("equipment", {
   availableQuantity: integer("available_quantity").notNull().default(1),
   dailyRate: numeric("daily_rate", { precision: 15, scale: 2 }),
   imageUrl: text("image_url"),
+  photos: jsonb("photos").$type<string[]>().default([]),
+  variant: text("variant"),
   location: text("location"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
+
+export const equipmentMovementsTable = pgTable("equipment_movements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  equipmentId: uuid("equipment_id").notNull().references(() => equipmentTable.id),
+  type: text("type").notNull(),
+  fromLocation: text("from_location"),
+  toLocation: text("to_location"),
+  quantity: integer("quantity").notNull().default(1),
+  performedById: uuid("performed_by_id"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type EquipmentMovement = typeof equipmentMovementsTable.$inferSelect;
 
 export const insertEquipmentSchema = createInsertSchema(equipmentTable).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type InsertEquipment = z.infer<typeof insertEquipmentSchema>;

@@ -21,7 +21,10 @@ import {
   Search,
   UserCircle,
   LogOut,
-  HardHat
+  HardHat,
+  BarChart3,
+  Map as MapIcon,
+  QrCode
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +35,8 @@ const NAV_GROUPS = [
     title: "Pilotage",
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard },
+      { name: "Rapports", path: "/reports", icon: BarChart3 },
+      { name: "Carte", path: "/map", icon: MapIcon },
     ]
   },
   {
@@ -45,6 +50,7 @@ const NAV_GROUPS = [
     title: "Matériel",
     items: [
       { name: "Inventaire", path: "/equipment", icon: Wrench },
+      { name: "Étiquettes QR", path: "/equipment/qr", icon: QrCode },
       { name: "Locations", path: "/rentals", icon: Truck },
       { name: "Inspections", path: "/inspections", icon: ClipboardCheck },
       { name: "Logistique", path: "/logistics", icon: Truck },

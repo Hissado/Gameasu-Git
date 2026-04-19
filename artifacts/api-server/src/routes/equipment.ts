@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { equipmentTable, equipmentCategoriesTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
+import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.get("/equipment/categories", async (req, res) => {
   return res.json(withCount);
 });
 
-router.post("/equipment/categories", async (req, res) => {
+router.post("/equipment/categories", requireManagerOrAbove, async (req, res) => {
   const { name, description } = req.body;
   const [cat] = await db.insert(equipmentCategoriesTable).values({ name, description }).returning();
   return res.status(201).json({ ...cat, equipmentCount: 0 });
@@ -56,12 +57,12 @@ router.get("/equipment", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/equipment", async (req, res) => {
-  const { name, code, categoryId, description, status, quantity, dailyRate, imageUrl, location } = req.body;
+router.post("/equipment", requireManagerOrAbove, async (req, res) => {
+  const { name, code, categoryId, description, status, quantity, dailyRate, imageUrl, photos, variant, location } = req.body;
   const [equip] = await db.insert(equipmentTable).values({
     name, code, categoryId, description, status: status || "available",
     quantity: quantity || 1, availableQuantity: quantity || 1,
-    dailyRate: dailyRate?.toString(), imageUrl, location,
+    dailyRate: dailyRate?.toString(), imageUrl, photos: photos || [], variant, location,
   }).returning();
   return res.status(201).json({ ...equip, dailyRate: equip.dailyRate ? Number(equip.dailyRate) : null });
 });
@@ -77,16 +78,16 @@ router.get("/equipment/:id", async (req, res) => {
   return res.json({ ...rows[0].equip, categoryName: rows[0].categoryName, dailyRate: rows[0].equip.dailyRate ? Number(rows[0].equip.dailyRate) : null });
 });
 
-router.put("/equipment/:id", async (req, res) => {
-  const { name, code, categoryId, description, status, quantity, dailyRate, imageUrl, location } = req.body;
+router.put("/equipment/:id", requireManagerOrAbove, async (req, res) => {
+  const { name, code, categoryId, description, status, quantity, dailyRate, imageUrl, photos, variant, location } = req.body;
   const [equip] = await db.update(equipmentTable)
-    .set({ name, code, categoryId, description, status, quantity, dailyRate: dailyRate?.toString(), imageUrl, location })
+    .set({ name, code, categoryId, description, status, quantity, dailyRate: dailyRate?.toString(), imageUrl, photos, variant, location })
     .where(eq(equipmentTable.id, req.params.id)).returning();
   if (!equip) return res.status(404).json({ error: "Not found" });
   return res.json({ ...equip, dailyRate: equip.dailyRate ? Number(equip.dailyRate) : null });
 });
 
-router.delete("/equipment/:id", async (req, res) => {
+router.delete("/equipment/:id", requireAdmin, async (req, res) => {
   await db.update(equipmentTable).set({ deletedAt: new Date() }).where(eq(equipmentTable.id, req.params.id));
   return res.status(204).send();
 });

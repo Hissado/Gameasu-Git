@@ -1,5 +1,7 @@
 import React from "react";
 import { useGetCollaborator, getGetCollaboratorQueryKey } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,12 @@ export default function CollaboratorDetail() {
   const { data: collaborator, isLoading } = useGetCollaborator(id, {
     query: { enabled: !!id, queryKey: getGetCollaboratorQueryKey(id) }
   });
+
+  const { data: workload } = useQuery<Array<{ userId: string; activeTasks: number; activeProjects: number; load: number; totalTasks: number }>>({
+    queryKey: ["report", "workload"],
+    queryFn: () => apiFetch("/api/reports/workload"),
+  });
+  const myLoad = workload?.find((w) => w.userId === id);
 
   if (isLoading) {
     return (
@@ -107,20 +115,27 @@ export default function CollaboratorDetail() {
               <CardDescription>Bilan de l'activité opérationnelle</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center gap-4">
                   <div className="p-3 bg-blue-100 text-blue-600 rounded-lg"><Briefcase className="w-6 h-6"/></div>
                   <div>
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Chantiers Actifs</div>
-                    <div className="text-3xl font-bold text-slate-800">{collaborator.currentProjectsCount || 0}</div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Chantiers actifs</div>
+                    <div className="text-3xl font-bold text-slate-800">{myLoad?.activeProjects ?? collaborator.currentProjectsCount ?? 0}</div>
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-amber-100 text-amber-600 rounded-lg"><HardHat className="w-6 h-6"/></div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tâches en cours</div>
+                    <div className="text-3xl font-bold text-slate-800">{myLoad?.activeTasks ?? 0}</div>
                   </div>
                 </div>
                 <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-center">
                   <div className="flex justify-between items-end mb-2">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Taux d'occupation estimé</div>
-                    <div className="text-xl font-bold text-slate-800">{collaborator.isAvailable ? '0%' : '100%'}</div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Charge estimée</div>
+                    <div className="text-xl font-bold text-slate-800">{myLoad?.load ?? 0}%</div>
                   </div>
-                  <Progress value={collaborator.isAvailable ? 0 : 100} className={`h-2 ${collaborator.isAvailable ? '' : '[&>div]:bg-orange-500'}`} />
+                  <Progress value={myLoad?.load ?? 0} className={`h-2 ${(myLoad?.load ?? 0) > 80 ? "[&>div]:bg-red-500" : (myLoad?.load ?? 0) > 60 ? "[&>div]:bg-orange-500" : "[&>div]:bg-green-500"}`} />
                 </div>
               </div>
               

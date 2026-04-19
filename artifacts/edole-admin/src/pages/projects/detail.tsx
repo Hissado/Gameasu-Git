@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { formatFCFA, formatDate } from "@/lib/format";
+import { ExternalLink, FileText } from "lucide-react";
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   planning: { label: "En planification", cls: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -116,6 +117,36 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="shadow-sm border-border">
+        <CardHeader className="border-b border-border/50">
+          <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-primary" /> Documents du chantier</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5">
+          {(project as any).documentLinks && (project as any).documentLinks.length > 0 ? (
+            <ul className="space-y-2">
+              {(project as any).documentLinks.map((doc: any, i: number) => (
+                <li key={i} className="flex items-center justify-between border border-border rounded-md p-3 hover:bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-primary/10 text-primary rounded flex items-center justify-center"><FileText className="w-4 h-4" /></div>
+                    <div>
+                      <div className="font-medium text-sm">{doc.label || "Document"}</div>
+                      <div className="text-xs text-muted-foreground">{doc.url}</div>
+                    </div>
+                  </div>
+                  <a href={doc.url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs font-semibold flex items-center gap-1">
+                    Ouvrir <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-sm text-muted-foreground text-center py-6">
+              Aucun document lié — collez ici des liens Drive, Dropbox ou OneDrive depuis l'édition du chantier.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
+import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
 
@@ -24,10 +25,10 @@ router.get("/orders", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/orders", async (req, res) => {
-  const { clientId, status, totalAmount, currency, notes } = req.body;
+router.post("/orders", requireManagerOrAbove, async (req, res) => {
+  const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
   const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
-  const [order] = await db.insert(ordersTable).values({ referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes }).returning();
+  const [order] = await db.insert(ordersTable).values({ referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).returning();
   return res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
 
@@ -61,9 +62,9 @@ router.get("/orders/:id", async (req, res) => {
   return res.json({ ...rows[0].order, clientName: rows[0].clientName, totalAmount: toNum(rows[0].order.totalAmount) });
 });
 
-router.put("/orders/:id", async (req, res) => {
-  const { clientId, status, totalAmount, currency, notes } = req.body;
-  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes }).where(eq(ordersTable.id, req.params.id)).returning();
+router.put("/orders/:id", requireManagerOrAbove, async (req, res) => {
+  const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
+  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(eq(ordersTable.id, req.params.id)).returning();
   if (!order) return res.status(404).json({ error: "Not found" });
   return res.json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
@@ -88,11 +89,15 @@ router.get("/proformas", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/proformas", async (req, res) => {
-  const { orderId, clientId, status, totalAmount, currency, validUntil, notes } = req.body;
+router.post("/proformas", requireManagerOrAbove, async (req, res) => {
+  const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
   const refNum = `PRO-${Date.now().toString(36).toUpperCase()}`;
-  const [pro] = await db.insert(proformasTable).values({ referenceNumber: refNum, orderId, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, validUntil, notes }).returning();
-  return res.status(201).json({ ...pro, totalAmount: toNum(pro.totalAmount) });
+  const [pro] = await db.insert(proformasTable).values({
+    referenceNumber: refNum, orderId, clientId, status: status || "draft",
+    totalAmount: totalAmount?.toString(), currency, validUntil, notes,
+    caution: caution?.toString(), paymentTerms, durationDays,
+  }).returning();
+  return res.status(201).json({ ...pro, totalAmount: toNum(pro.totalAmount), caution: toNum(pro.caution) });
 });
 
 router.get("/proformas/:id", async (req, res) => {
@@ -103,11 +108,36 @@ router.get("/proformas/:id", async (req, res) => {
   return res.json({ ...rows[0].pro, clientName: rows[0].clientName, totalAmount: toNum(rows[0].pro.totalAmount) });
 });
 
-router.put("/proformas/:id", async (req, res) => {
-  const { orderId, clientId, status, totalAmount, currency, validUntil, notes } = req.body;
-  const [pro] = await db.update(proformasTable).set({ orderId, clientId, status, totalAmount: totalAmount?.toString(), currency, validUntil, notes }).where(eq(proformasTable.id, req.params.id)).returning();
-  if (!pro) return res.status(404).json({ error: "Not found" });
-  return res.json({ ...pro, totalAmount: toNum(pro.totalAmount) });
+router.put("/proformas/:id", requireManagerOrAbove, async (req, res) => {
+  const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
+  const before = (await db.select().from(proformasTable).where(eq(proformasTable.id, req.params.id)).limit(1))[0];
+  if (!before) return res.status(404).json({ error: "Not found" });
+
+  const [pro] = await db.update(proformasTable).set({
+    orderId, clientId, status, totalAmount: totalAmount?.toString(), currency, validUntil, notes,
+    caution: caution?.toString(), paymentTerms, durationDays,
+  }).where(eq(proformasTable.id, req.params.id)).returning();
+
+  // Workflow: validation proforma → génération automatique facture
+  let generatedInvoice = null;
+  if (status === "approved" && before.status !== "approved") {
+    const existingInvoice = await db.select().from(invoicesTable).where(eq(invoicesTable.proformaId, pro.id)).limit(1);
+    if (existingInvoice.length === 0) {
+      const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const [inv] = await db.insert(invoicesTable).values({
+        referenceNumber: refNum,
+        proformaId: pro.id,
+        clientId: pro.clientId,
+        status: "pending",
+        totalAmount: pro.totalAmount,
+        currency: pro.currency,
+        notes: `Facture générée automatiquement après validation de la proforma ${pro.referenceNumber}`,
+      }).returning();
+      generatedInvoice = { id: inv.id, referenceNumber: inv.referenceNumber };
+    }
+  }
+
+  return res.json({ ...pro, totalAmount: toNum(pro.totalAmount), caution: toNum(pro.caution), generatedInvoice });
 });
 
 // INVOICES
@@ -125,7 +155,7 @@ router.get("/invoices", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/invoices", async (req, res) => {
+router.post("/invoices", requireManagerOrAbove, async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
   const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
   const [inv] = await db.insert(invoicesTable).values({ referenceNumber: refNum, proformaId, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, dueDate, notes }).returning();
@@ -140,7 +170,7 @@ router.get("/invoices/:id", async (req, res) => {
   return res.json({ ...rows[0].inv, clientName: rows[0].clientName, totalAmount: toNum(rows[0].inv.totalAmount), paidAmount: toNum(rows[0].inv.paidAmount) });
 });
 
-router.put("/invoices/:id", async (req, res) => {
+router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
   const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(eq(invoicesTable.id, req.params.id)).returning();
   if (!inv) return res.status(404).json({ error: "Not found" });
@@ -162,7 +192,7 @@ router.get("/payments", async (req, res) => {
   });
 });
 
-router.post("/payments", async (req, res) => {
+router.post("/payments", requireManagerOrAbove, async (req, res) => {
   const { invoiceId, amount, currency, method, reference, paidAt, notes } = req.body;
   const [payment] = await db.insert(paymentsTable).values({
     invoiceId, amount: amount.toString(), currency, method, reference,
