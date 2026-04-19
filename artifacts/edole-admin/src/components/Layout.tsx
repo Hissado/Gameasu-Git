@@ -58,6 +58,13 @@ const NAV_GROUPS = [
     ]
   },
   {
+    title: "Communication",
+    items: [
+      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
+      { name: "Appels", path: "/calls", icon: PhoneCall },
+    ]
+  },
+  {
     title: "Opérations",
     items: [
       { name: "Chantiers", path: "/projects", icon: FolderKanban },
@@ -122,13 +129,6 @@ const NAV_GROUPS = [
       { name: "Immobilisations", path: "/accounting/fixed-assets", icon: PiggyBank },
     ]
   },
-  {
-    title: "Communication",
-    items: [
-      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
-      { name: "Appels", path: "/calls", icon: PhoneCall },
-    ]
-  }
 ];
 
 const ROLE_LABEL: Record<string, string> = {
