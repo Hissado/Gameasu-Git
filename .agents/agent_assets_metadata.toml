@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "FnB8a_SKcrZ6zdMDyhU8k"
+uri = "file://PRESENTATION_CLIENT.md"
+type = "text"
+title = "Présentation client EDOLE AFRICA ADMIN"
