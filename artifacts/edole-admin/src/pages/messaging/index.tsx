@@ -267,7 +267,8 @@ function AttachmentPreview({ a }: { a: Attachment }) {
     return <video src={src} controls className="rounded-lg max-w-[320px] max-h-[260px] border border-slate-200" />;
   }
   if (a.mime.startsWith("audio/")) {
-    return <VoicePlayer url={a.url} durationSeconds={a.durationSeconds} />;
+    // Les messages vocaux sont rendus uniquement comme texte transcrit (cf. bulle).
+    return null;
   }
   return (
     <a href={src} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg max-w-[280px] hover:bg-slate-50">
@@ -349,10 +350,15 @@ function MessageBubble({
                       <div>{translatedText}</div>
                     </div>
                   )}
-                  {transcript && msg.kind === "voice" && (
-                    <div className={cn("mt-2 pt-2 border-t text-xs italic", isMe ? "border-white/30" : "border-slate-200")}>
-                      🎙️ {transcript}
-                    </div>
+                  {msg.kind === "voice" && (
+                    transcript ? (
+                      <div className="whitespace-pre-wrap">{transcript}</div>
+                    ) : (
+                      <div className={cn("text-xs italic flex items-center gap-1.5", isMe ? "text-white/70" : "text-slate-500")}>
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                        Transcription en cours…
+                      </div>
+                    )
                   )}
                 </>
               )}
