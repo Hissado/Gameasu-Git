@@ -5,12 +5,13 @@ export default function Cover() {
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0F1115] via-[#13161c] to-[#0A0B0E]" />
-      <div className="absolute right-[-4vw] top-[9vh] w-[64vw] h-[78vh] rounded-[1.2vw] overflow-hidden ring-1 ring-white/15 shadow-[0_40px_100px_rgba(0,0,0,0.65)] rotate-[-2.5deg]">
+      <div className="absolute right-[-4vw] top-[9vh] w-[64vw] h-[78vh] rounded-[1.2vw] overflow-hidden ring-1 ring-white/15 shadow-[0_40px_100px_rgba(0,0,0,0.65)] rotate-[-2.5deg] bg-[#0F1115]">
         <img
           src={hero}
           crossOrigin="anonymous"
-          className="w-full h-full object-cover object-left-top"
-          alt="Tableau de bord EDOLE"
+          className="absolute h-auto w-[150%] max-w-none left-[-8%] top-[-12%]"
+          style={{ objectFit: "cover" }}
+          alt="Tableau de bord EDOLE — Indicateurs financiers et opérationnels"
         />
       </div>
 
