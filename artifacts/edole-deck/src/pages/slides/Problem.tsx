@@ -54,7 +54,7 @@ export default function Problem() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">ACL client-first</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Vue client unifiée · Contrôle d'accès granulaire</div>
           <div className="font-mono tracking-[0.2em]">04 / 15</div>
         </div>
       </div>

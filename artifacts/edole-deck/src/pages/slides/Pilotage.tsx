@@ -55,7 +55,7 @@ export default function Pilotage() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-white/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Prévisionnel · Scénarios · Marges</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Prévisions · Analyse de scénarios · Marges projet</div>
           <div className="font-mono tracking-[0.2em]">09 / 15</div>
         </div>
       </div>

@@ -66,7 +66,7 @@ export default function Differenciants() {
 
         <div className="flex items-center justify-between text-[0.85vw] text-white/40 mt-[2vh]">
           <div className="font-semibold uppercase tracking-[0.3em]">
-            Rapports · Carte · Mobilité · Export PDF
+            Reporting consolidé · Cartographie chantiers · Exports décisionnels
           </div>
           <div className="font-mono tracking-[0.2em]">13 / 15</div>
         </div>

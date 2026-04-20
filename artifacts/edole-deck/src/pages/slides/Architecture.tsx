@@ -144,7 +144,7 @@ export default function Architecture() {
 
       <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-[#0F1115]/50">
         <div className="font-semibold uppercase tracking-[0.3em]">
-          Client → Services → Projets → Exécution → Finance
+          Architecture client-first · Du compte client à la consolidation financière
         </div>
         <div className="font-mono tracking-[0.2em]">02 / 15</div>
       </div>

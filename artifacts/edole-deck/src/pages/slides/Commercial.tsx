@@ -60,7 +60,7 @@ export default function Commercial() {
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/45 mt-[2vh]">
           <div className="font-semibold uppercase tracking-[0.3em]">
-            CRM · Proformas · Commandes · Factures · Paiements
+            Cycle commercial intégré · Du prospect au paiement encaissé
           </div>
           <div className="font-mono tracking-[0.2em]">12 / 15</div>
         </div>

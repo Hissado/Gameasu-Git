@@ -55,7 +55,7 @@ export default function Comptabilite() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">SYSCOHADA · Multi-banques · FCFA</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Plan comptable SYSCOHADA · Trésorerie multi-banques</div>
           <div className="font-mono tracking-[0.2em]">10 / 15</div>
         </div>
       </div>

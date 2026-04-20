@@ -54,7 +54,7 @@ export default function Operations() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-white/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Kanban · Historique · Sous-tâches</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Affectations · Sous-tâches · Traçabilité complète</div>
           <div className="font-mono tracking-[0.2em]">07 / 15</div>
         </div>
       </div>

@@ -55,7 +55,7 @@ export default function Marketing() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Voix · Traduction · Temps réel</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Messagerie auditable · Traduction multilingue · Temps réel</div>
           <div className="font-mono tracking-[0.2em]">08 / 15</div>
         </div>
       </div>

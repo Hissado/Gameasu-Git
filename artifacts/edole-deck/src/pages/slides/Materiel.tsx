@@ -54,7 +54,7 @@ export default function Materiel() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">QR · Inspections · Locations</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Traçabilité QR · Inspections périodiques · Locations internes</div>
           <div className="font-mono tracking-[0.2em]">14 / 15</div>
         </div>
       </div>

@@ -54,7 +54,7 @@ export default function Rh() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-white/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Organigramme · Contrats · RBAC</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Organigramme · Contrats numérisés · Permissions granulaires</div>
           <div className="font-mono tracking-[0.2em]">11 / 15</div>
         </div>
       </div>

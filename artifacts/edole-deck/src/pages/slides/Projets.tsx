@@ -54,7 +54,7 @@ export default function Projets() {
         </div>
 
         <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Phases · Budget · Équipes</div>
+          <div className="font-semibold uppercase tracking-[0.3em]">Planification · Pilotage budgétaire · Coordination des équipes</div>
           <div className="font-mono tracking-[0.2em]">06 / 15</div>
         </div>
       </div>
