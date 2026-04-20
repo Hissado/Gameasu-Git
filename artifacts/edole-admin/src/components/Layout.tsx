@@ -194,10 +194,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4 custom-scrollbar overscroll-contain">
+      <div className="flex-1 overflow-y-auto py-5 custom-scrollbar overscroll-contain">
         {NAV_GROUPS.map((group, i) => (
-          <div key={i} className="mb-5 px-3">
-            <h3 className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-widest px-3">
+          <div key={i} className="mb-6 px-4">
+            <h3 className="text-[10px] font-semibold text-sidebar-foreground/35 mb-2.5 uppercase tracking-[0.14em] px-2.5">
               {group.title}
             </h3>
             <ul className="space-y-0.5">
@@ -207,13 +207,21 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <li key={j}>
                     <Link
                       href={item.path}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 text-sm font-medium min-h-[44px] ${
+                      className={`group relative flex items-center gap-3 pl-3 pr-3 py-2 rounded-lg transition-all duration-200 text-[13.5px] font-medium min-h-[40px] ${
                         active
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground active:bg-sidebar-accent"
+                          ? "bg-white/[0.06] text-white"
+                          : "text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white"
                       }`}
                     >
-                      <item.icon className={`w-4 h-4 shrink-0 ${active ? "text-white" : "text-sidebar-foreground/50"}`} strokeWidth={active ? 2.5 : 2} />
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-orange-400 to-orange-600 shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
+                      )}
+                      <item.icon
+                        className={`w-[17px] h-[17px] shrink-0 transition-colors ${
+                          active ? "text-orange-400" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
+                        }`}
+                        strokeWidth={1.75}
+                      />
                       <span className="truncate">{item.name}</span>
                     </Link>
                   </li>
@@ -224,12 +232,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         ))}
       </div>
 
-      <div className="p-3 border-t border-sidebar-border bg-sidebar/60 shrink-0">
+      <div className="px-4 py-3 border-t border-sidebar-border/60 shrink-0">
         <Link
           href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground min-h-[44px]"
+          className="group flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-[13.5px] font-medium text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white min-h-[40px]"
         >
-          <Settings className="w-4 h-4 text-sidebar-foreground/50" />
+          <Settings className="w-[17px] h-[17px] text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80" strokeWidth={1.75} />
           Configuration
         </Link>
       </div>
@@ -239,8 +247,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-background font-sans">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0">
-        {SidebarContent}
+      <aside className="hidden lg:flex w-[260px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0 relative">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+        <div className="relative flex flex-col h-full">{SidebarContent}</div>
       </aside>
 
       {/* Sidebar — mobile drawer */}
@@ -263,28 +273,31 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
         {/* Topbar */}
-        <header className="h-14 sm:h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 shadow-sm z-0 gap-2">
+        <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border/70 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-10 gap-2 sticky top-0">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             {/* Hamburger mobile */}
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-md text-foreground/70 hover:bg-muted active:bg-muted/80 shrink-0"
+              className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted active:bg-muted/80 shrink-0"
               aria-label="Ouvrir le menu"
             >
               <Menu className="w-6 h-6" />
             </button>
             {/* Logo mobile (au lieu de la sidebar) */}
-            <img src={logoFull} alt="édolé" className="lg:hidden h-10 w-auto object-contain shrink-0 drop-shadow-sm" draggable={false} />
+            <Link href="/" className="lg:hidden inline-flex">
+              <img src={logoFull} alt="édolé" className="h-9 w-auto object-contain shrink-0" draggable={false} />
+            </Link>
 
             {/* Recherche : icône seule en mobile, complète en desktop */}
-            <div className="hidden md:flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded-md px-3 py-2 w-72 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
-              <Search className="w-4 h-4 mr-2 text-muted-foreground/70 shrink-0" />
+            <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+              <Search className="w-4 h-4 mr-2.5 text-muted-foreground/70 shrink-0" />
               <input
                 type="text"
-                placeholder="Rechercher (Chantier, Matériel, Client…)"
-                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
+                placeholder="Rechercher clients, chantiers, factures…"
+                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/70"
               />
+              <kbd className="hidden lg:inline-flex ml-2 text-[10px] text-muted-foreground/70 font-mono bg-background border border-border rounded px-1.5 py-0.5">⌘K</kbd>
             </div>
             <button
               type="button"
@@ -295,24 +308,24 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted active:bg-muted/80">
-              <Bell className="w-5 h-5" />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted active:bg-muted/80">
+              <Bell className="w-5 h-5" strokeWidth={1.75} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
             </Link>
 
-            <div className="w-px h-6 bg-border hidden sm:block"></div>
+            <div className="w-px h-6 bg-border/70 hidden sm:block mx-1"></div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 sm:gap-3 outline-none hover:opacity-80 transition-opacity rounded-full p-1 -mr-1 hover:bg-muted active:bg-muted/80">
+                <button className="flex items-center gap-2 sm:gap-2.5 outline-none transition-all rounded-lg px-1.5 py-1 hover:bg-muted active:bg-muted/80">
                   <div className="text-right hidden lg:block">
-                    <p className="text-sm font-medium leading-none text-foreground">{fullName}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{roleLabel}</p>
+                    <p className="text-[13px] font-semibold leading-none text-foreground">{fullName}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{roleLabel}</p>
                   </div>
-                  <Avatar className="w-9 h-9 border border-border">
+                  <Avatar className="w-9 h-9 ring-2 ring-border">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-orange-600 text-white font-semibold text-sm">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>

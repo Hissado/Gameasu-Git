@@ -1,0 +1,55 @@
+Please redesign the entire application so it looks significantly more professional, premium, and enterprise-grade—comparable to the kind of platform used by a major global company.
+
+The goal is to elevate the product so it feels modern, sophisticated, high-end, visually refined, and executive-level in every part of the experience.
+
+I want the application to feel:
+
+- modern
+- sleek
+- sophisticated
+- premium
+- highly polished
+- visually cohesive
+- elegant
+- trustworthy
+- powerful
+- market-leading
+- ready for real enterprise use
+
+Please improve the design across the full application, including:
+
+- overall visual quality and polish
+- color palette, contrast, and visual harmony
+- layout structure, spacing, and alignment
+- typography, readability, and information hierarchy
+- buttons, cards, forms, tables, modals, and navigation
+- consistency of branding and UI components
+- iconography, states, hover effects, and transitions
+- dashboard presentation and executive feel
+- page-level composition and content balance
+- overall user experience and finishing details
+
+I want the result to feel like a world-class SaaS platform built for a multi-billion-dollar company, with:
+
+- a premium and distinctive visual identity
+- strong branding consistency
+- a clean and sophisticated interface
+- excellent visual hierarchy
+- refined interaction design
+- a polished, confident, high-value product experience
+
+Please do not make the app look generic, template-based, or amateur.
+
+Instead, redesign it so it feels:
+- custom-designed
+- strategic
+- corporate
+- premium
+- elegant
+- highly credible
+- visually mature
+- built to impress demanding clients, executives, and enterprise users
+
+Every screen should feel intentionally designed, professionally branded, and polished to a very high standard.
+
+The final result should look like a flagship enterprise platform with exceptional design quality, a strong visual presence, and a very refined finish throughout the product.
