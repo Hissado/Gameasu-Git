@@ -712,7 +712,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   // ─── Budget annuel + lignes mensuelles ───
   const [budget] = await db.insert(budgetsTable).values({
     name: `[DÉMO] Budget annuel ${period.name}`, kind: "budget", fiscalPeriodId: period.id,
-    scope: "company", versionNumber: 1, status: "approved",
+    scope: "company", versionNumber: 1, status: "active",
     notes: "Budget de référence pour la démo.", createdById: admin.id,
   } as any).returning();
   const budgetAccounts: { code: string; monthly: number }[] = [
@@ -742,7 +742,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
 
   const [forecast] = await db.insert(budgetsTable).values({
     name: `[DÉMO] Forecast révisé ${period.name}`, kind: "forecast", fiscalPeriodId: period.id,
-    scope: "company", versionNumber: 2, status: "approved", basedOnId: budget.id,
+    scope: "company", versionNumber: 2, status: "active", basedOnId: budget.id,
     notes: "Forecast Q2 reflétant les écarts.", createdById: admin.id,
   } as any).returning();
   await db.insert(budgetLinesTable).values(
