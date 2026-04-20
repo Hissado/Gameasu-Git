@@ -22,11 +22,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = /^(image\/(jpeg|jpg|png|webp|gif)|application\/pdf)$/;
+    const allowed = new RegExp(
+      "^(" +
+        "image/(jpeg|jpg|png|webp|gif)|" +
+        "application/(pdf|msword|vnd\\.openxmlformats-officedocument\\.(wordprocessingml|spreadsheetml|presentationml)\\.[a-z]+|vnd\\.ms-excel|vnd\\.ms-powerpoint|zip)|" +
+        "audio/(webm|ogg|mpeg|mp4|wav|x-wav|mp3)|" +
+        "video/(webm|mp4|quicktime)|" +
+        "text/(plain|csv)" +
+      ")$",
+    );
     if (allowed.test(file.mimetype)) cb(null, true);
-    else cb(new Error("Type de fichier non autorisé"));
+    else cb(new Error(`Type de fichier non autorisé: ${file.mimetype}`));
   },
 });
 

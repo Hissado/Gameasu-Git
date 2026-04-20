@@ -20,6 +20,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Build**: esbuild (CJS bundle)
 - **Charts**: Recharts
 - **Routing**: Wouter
+- **Realtime**: Socket.IO (server `socket.io`, client `socket.io-client`) sur `/api/realtime`
+- **AI (optionnel)**: OpenAI (intégration Replit AI proxy) pour auto-traduction et transcription vocale — variables `OPENAI_API_KEY` / `OPENAI_BASE_URL`. Si absent, les endpoints `/api/messages/:id/translate` et `/transcribe` renvoient 503 avec message explicatif.
 
 ## Architecture
 
@@ -27,6 +29,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 artifacts/
   api-server/          Express API server (port 8080)
     src/routes/        Route handlers (auth, users, clients, crm, projects, tasks, collaborators, equipment, rentals, orders, messaging, dashboard)
+    src/lib/realtime.ts Socket.IO server (auth, presence, conv rooms, typing, broadcasts)
+    src/lib/translate.ts OpenAI translate + transcribe wrappers (no-op si pas de clé)
   edole-admin/         React + Vite frontend (port 25655)
     src/pages/         Page components (dashboard, projects, tasks, crm, equipment, rentals, inspections, logistics, orders, proformas, invoices, payments, messaging, calls, collaborators, users, notifications, settings)
     src/components/    Layout + shadcn/ui components
@@ -54,7 +58,7 @@ lib/
 - **Proformas** (`/proformas`) — Proforma invoices
 - **Invoices** (`/invoices`) — Invoices + partial payment tracking
 - **Payments** (`/payments`) — Payment records
-- **Messaging** (`/messaging`) — Conversations + messages
+- **Messaging** (`/messaging`) — **Hub conversationnel complet** : DM/groupes, messages texte/image/vidéo/audio/fichier/localisation, recherche globale et locale, réactions emoji, réponses citées, édition/suppression, ✓✓ accusés de lecture, présence temps réel, indicateur "écrit…", épinglage/sourdine/archivage, pièces jointes multi (jusqu'à 25 Mo, audio/vidéo/Office/PDF), messages vocaux (MediaRecorder), partage de position GPS, auto-traduction (FR/EN/AR/PT/ES) et transcription vocale via OpenAI proxy. Realtime WebSocket via Socket.IO (`/api/realtime`). Endpoints : `/api/conversations`, `/api/conversations/:id/{read,participants}`, `/api/conversations/:id/messages`, `/api/messages/:id/{reactions,translate,transcribe}`, `/api/messages/search`, `/api/presence`. Schéma : tables `conversations`, `conversation_participants` (unread/archived/muted/pinned/lastReadAt), `messages` (kind/metadata/replyTo/translations/edited/deleted), `message_attachments`, `message_reads`, `message_reactions`, `message_mentions`, `user_presence`, `push_subscriptions`, `whatsapp_channels`.
 - **Calls** (`/calls`) — WebRTC call session logs
 - **Users** (`/users`) — User management
 - **Notifications** (`/notifications`) — Notification center

@@ -1,5 +1,7 @@
+import http from "node:http";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { initRealtime } from "./lib/realtime";
 import { seedSyscohada } from "./services/syscohada-seed";
 import { seedHr } from "./services/hr-seed";
 
@@ -17,16 +19,12 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, async (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+const httpServer = http.createServer(app);
+initRealtime(httpServer);
 
+httpServer.listen(port, async () => {
   logger.info({ port }, "Server listening");
 
-  // Initialise le plan comptable SYSCOHADA, journaux, exercice et trésorerie
-  // par défaut. Idempotent : aucune action si tout est déjà seedé.
   try {
     await seedSyscohada();
   } catch (e) {
