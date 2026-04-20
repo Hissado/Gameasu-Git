@@ -36,35 +36,7 @@ export default function Closing() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-[2vw] border-t border-white/10 pt-[3vh]">
-          <div>
-            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
-              Continuité
-            </div>
-            <div className="text-[1.15vw] leading-[1.5] text-white/85">
-              Client → Service → Projet → Facture — sans rupture de contexte.
-            </div>
-          </div>
-          <div>
-            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
-              Conformité
-            </div>
-            <div className="text-[1.15vw] leading-[1.5] text-white/85">
-              SYSCOHADA, FCFA, français, adaptée aux réalités du marché
-              africain francophone.
-            </div>
-          </div>
-          <div>
-            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
-              Contact
-            </div>
-            <div className="text-[1.15vw] leading-[1.5] text-white/85">
-              contact@edole.africa — démo personnalisée sur demande.
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between text-[0.85vw] text-white/40 -mt-[2vh]">
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40">
           <div className="font-semibold uppercase tracking-[0.3em]">Merci de votre attention</div>
           <div className="font-mono tracking-[0.2em]">15 / 15</div>
         </div>
