@@ -333,7 +333,7 @@ function MessageBubble({
           )}
         </div>
         {!isDeleted && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          <div className="opacity-40 group-hover:opacity-100 transition-opacity flex items-center gap-1">
             <Popover>
               <PopoverTrigger asChild>
                 <button className="text-slate-400 hover:text-primary p-1"><Smile className="w-4 h-4" /></button>
