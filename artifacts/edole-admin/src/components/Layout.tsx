@@ -181,7 +181,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const SidebarContent = (
     <>
       <div className="bg-white flex items-center justify-between px-5 py-5 shrink-0">
-        <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none" draggable={false} />
+        <Link href="/" onClick={() => setMobileOpen(false)} aria-label="Tableau de bord" className="inline-flex">
+          <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none cursor-pointer" draggable={false} />
+        </Link>
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
