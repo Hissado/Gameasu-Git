@@ -13,6 +13,10 @@ import Dashboard from "@/pages/dashboard";
 // ── Lazy-loaded pages (un chunk par route → premier paint quasi-instantané) ──
 const ProjectsList = lazy(() => import("@/pages/projects/index"));
 const ProjectDetail = lazy(() => import("@/pages/projects/detail"));
+const ServicesIndex = lazy(() => import("@/pages/services/index"));
+const ServiceDetail = lazy(() => import("@/pages/services/detail"));
+const ClientsWorkspace = lazy(() => import("@/pages/clients/index"));
+const ClientWorkspaceDetail = lazy(() => import("@/pages/clients/detail"));
 const TasksList = lazy(() => import("@/pages/tasks/index"));
 const TaskDetail = lazy(() => import("@/pages/tasks/detail"));
 const CrmHome = lazy(() => import("@/pages/crm/index"));
@@ -117,6 +121,12 @@ function AppRouter() {
             <Suspense fallback={<PageFallback />}>
               <Switch>
                 <Route path="/" component={Dashboard} />
+
+                <Route path="/clients" component={ClientsWorkspace} />
+                <Route path="/clients/:id" component={ClientWorkspaceDetail} />
+
+                <Route path="/services" component={ServicesIndex} />
+                <Route path="/services/:id" component={ServiceDetail} />
 
                 <Route path="/projects" component={ProjectsList} />
                 <Route path="/projects/:id" component={ProjectDetail} />

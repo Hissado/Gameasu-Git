@@ -50,28 +50,25 @@ import logoFull from "@/assets/edole-logo.png";
 
 const NAV_GROUPS = [
   {
-    title: "Pilotage",
+    title: "Espace de travail",
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard },
+      { name: "Clients", path: "/clients", icon: Building2 },
+      { name: "Services", path: "/services", icon: Briefcase },
+      { name: "Projets", path: "/projects", icon: FolderKanban },
+      { name: "Tâches", path: "/tasks", icon: CheckSquare },
+      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
+      { name: "Documents", path: "/documents", icon: FolderOpen },
+    ]
+  },
+  {
+    title: "Pilotage",
+    items: [
       { name: "Rapports", path: "/reports", icon: BarChart3 },
       { name: "Carte", path: "/map", icon: MapIcon },
       { name: "Alertes", path: "/alerts", icon: BellIcon },
-      { name: "Documents", path: "/documents", icon: FolderOpen },
       { name: "Support", path: "/tickets", icon: LifeBuoy },
-    ]
-  },
-  {
-    title: "Communication",
-    items: [
-      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
       { name: "Appels", path: "/calls", icon: PhoneCall },
-    ]
-  },
-  {
-    title: "Opérations",
-    items: [
-      { name: "Chantiers", path: "/projects", icon: FolderKanban },
-      { name: "Tâches", path: "/tasks", icon: CheckSquare },
     ]
   },
   {
@@ -87,8 +84,7 @@ const NAV_GROUPS = [
   {
     title: "Commercial",
     items: [
-      { name: "Clients", path: "/commercial/clients", icon: Building2 },
-      { name: "Services", path: "/commercial/services", icon: Briefcase },
+      { name: "Catalogue services", path: "/commercial/services", icon: Briefcase },
       { name: "Pipeline CRM", path: "/crm", icon: Briefcase },
       { name: "Bons de commande", path: "/orders", icon: ShoppingCart },
       { name: "Devis", path: "/proformas", icon: FileText },

@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   rolesTable, permissionsTable, rolePermissionsTable,
   userProjectAccessTable, auditLogsTable, usersTable,
-  departmentsTable, projectsTable,
+  departmentsTable, projectsTable, userClientAccessTable, clientsTable,
 } from "@workspace/db";
 import { and, eq, ilike, sql, desc, inArray } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -335,6 +335,45 @@ router.put("/admin/users/:id/project-access", requirePermission("users.assign_pr
   });
   invalidatePermissionsCache(req.params.id);
   await audit(req, "project_access_grant", { entityType: "user", entityId: req.params.id, payload: items });
+  return res.json({ success: true, count: items.length });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// ACCÈS CLIENT — gestion ACL client-first
+// ════════════════════════════════════════════════════════════════════
+router.get("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
+  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  const rows = await db.select({
+    id: userClientAccessTable.id,
+    clientId: userClientAccessTable.clientId,
+    accessLevel: userClientAccessTable.accessLevel,
+    grantedAt: userClientAccessTable.grantedAt,
+    clientName: clientsTable.name,
+  }).from(userClientAccessTable)
+    .leftJoin(clientsTable, eq(clientsTable.id, userClientAccessTable.clientId))
+    .where(eq(userClientAccessTable.userId, req.params.id));
+  return res.json({ data: rows });
+});
+
+router.put("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
+  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  const { items } = req.body || {};
+  if (!Array.isArray(items)) return res.status(400).json({ error: "items doit être un tableau" });
+  for (const it of items) {
+    if (!isUuid(it?.clientId)) return res.status(400).json({ error: "clientId UUID requis" });
+    if (!["viewer", "editor", "manager"].includes(it.accessLevel)) return res.status(400).json({ error: "accessLevel invalide" });
+  }
+  await db.transaction(async (tx) => {
+    await tx.delete(userClientAccessTable).where(eq(userClientAccessTable.userId, req.params.id));
+    if (items.length > 0) {
+      await tx.insert(userClientAccessTable).values(items.map((it: any) => ({
+        userId: req.params.id, clientId: it.clientId, accessLevel: it.accessLevel,
+        grantedById: req.authUser?.id ?? null,
+      })));
+    }
+  });
+  invalidatePermissionsCache(req.params.id);
+  await audit(req, "client_access_grant", { entityType: "user", entityId: req.params.id, payload: items });
   return res.json({ success: true, count: items.length });
 });
 

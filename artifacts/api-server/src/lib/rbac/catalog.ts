@@ -42,6 +42,15 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "tasks.read", label: "Voir les tâches", category: "Tâches" },
   { code: "tasks.manage", label: "Créer / modifier / supprimer des tâches", category: "Tâches" },
 
+  // ─── Clients (workspace racine) ────────────────────────────────
+  { code: "clients.read", label: "Voir les clients (filtré par accès)", category: "Clients" },
+  { code: "clients.read_all", label: "Voir TOUS les clients (bypass ACL)", category: "Clients" },
+  { code: "clients.manage", label: "Créer / modifier / supprimer des clients", category: "Clients" },
+
+  // ─── Services (engagements récurrents) ─────────────────────────
+  { code: "services.read", label: "Voir les engagements de service", category: "Services" },
+  { code: "services.manage", label: "Créer / modifier / supprimer des engagements", category: "Services" },
+
   // ─── Commercial ─────────────────────────────────────────────────
   { code: "commercial.read", label: "Voir le pipeline commercial", category: "Commercial" },
   { code: "commercial.manage", label: "Gérer clients, opportunités, devis, commandes", category: "Commercial" },
@@ -113,6 +122,8 @@ export const SYSTEM_ROLES: RoleSeed[] = [
     isSystem: true,
     permissions: [
       "users.read", "departments.read", "hr.read",
+      "clients.read", "clients.manage",
+      "services.read", "services.manage",
       "projects.read", "projects.create", "projects.update",
       "tasks.read", "tasks.manage",
       "commercial.read", "commercial.manage",
@@ -133,6 +144,8 @@ export const SYSTEM_ROLES: RoleSeed[] = [
     isSystem: true,
     permissions: [
       "users.read", "departments.read",
+      "clients.read", "clients.manage",
+      "services.read", "services.manage",
       "projects.read",
       "tasks.read",
       "commercial.read", "commercial.manage",
@@ -149,6 +162,8 @@ export const SYSTEM_ROLES: RoleSeed[] = [
     isSystem: true,
     permissions: [
       "users.read", "departments.read",
+      "clients.read",
+      "services.read",
       "projects.read",
       "tasks.read", "tasks.manage",
       "equipment.read",

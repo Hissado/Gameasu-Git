@@ -4,12 +4,12 @@ import { requirePermission } from "../middlewares/permissions";
 import { db } from "@workspace/db";
 import { projectsTable, projectPhasesTable, clientsTable, usersTable, tasksTable } from "@workspace/db";
 import { and, eq, sql, isNull, inArray } from "drizzle-orm";
-import { userAccessibleProjectIds, userHasProjectAccess } from "../lib/rbac/permissions";
+import { userAccessibleProjectIds, userHasProjectAccess, userHasClientAccess } from "../lib/rbac/permissions";
 
 const router = Router();
 
 router.get("/projects", requirePermission("projects.read"), async (req, res) => {
-  const { page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { page = "1", limit = "20", clientId } = req.query as Record<string, string>;
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
@@ -22,6 +22,12 @@ router.get("/projects", requirePermission("projects.read"), async (req, res) => 
       return res.json({ data: [], total: 0, page: pageNum, limit: limitNum });
     }
     conds.push(inArray(projectsTable.id, accessible));
+  }
+  if (clientId) {
+    if (req.authUser && !(await userHasClientAccess(req.authUser.id, clientId))) {
+      return res.json({ data: [], total: 0, page: pageNum, limit: limitNum });
+    }
+    conds.push(eq(projectsTable.clientId, clientId));
   }
   const where = and(...conds);
 
@@ -49,6 +55,9 @@ router.get("/projects", requirePermission("projects.read"), async (req, res) => 
 
 router.post("/projects", requireManagerOrAbove, async (req, res) => {
   const { name, description, status, clientId, managerId, startDate, endDate, budget, documentLinks } = req.body;
+  if (clientId && req.authUser && !(await userHasClientAccess(req.authUser.id, clientId))) {
+    return res.status(403).json({ error: "Accès refusé au client cible" });
+  }
   const [proj] = await db.insert(projectsTable).values({
     name, description, status: status || "planning", clientId, managerId, startDate, endDate,
     budget: budget?.toString(), documentLinks: documentLinks || [],

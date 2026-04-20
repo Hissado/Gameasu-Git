@@ -11,6 +11,8 @@ export const tasksTable = pgTable("tasks", {
   status: text("status").notNull().default("todo"),
   priority: text("priority").notNull().default("medium"),
   projectId: uuid("project_id").references(() => projectsTable.id),
+  serviceId: uuid("service_id"),
+  sectionId: uuid("section_id"),
   assigneeId: uuid("assignee_id").references(() => usersTable.id),
   parentTaskId: uuid("parent_task_id"),
   dueDate: text("due_date"),

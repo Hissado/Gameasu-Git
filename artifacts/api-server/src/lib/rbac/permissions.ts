@@ -2,8 +2,9 @@ import { db } from "@workspace/db";
 import {
   rolesTable, rolePermissionsTable, permissionsTable,
   userProjectAccessTable, collaboratorsTable, collaboratorAssignmentsTable, usersTable,
+  userClientAccessTable, projectsTable,
 } from "@workspace/db";
-import { eq, and, isNull, or } from "drizzle-orm";
+import { eq, and, isNull, or, inArray } from "drizzle-orm";
 
 /**
  * Service RBAC : résolution des permissions et des projets accessibles.
@@ -12,7 +13,7 @@ import { eq, and, isNull, or } from "drizzle-orm";
  * pour la production on basculera sur Redis ou un signal d'invalidation).
  */
 
-type CacheEntry = { perms: Set<string>; projectIds: Set<string> | null; expiresAt: number };
+type CacheEntry = { perms: Set<string>; projectIds: Set<string> | null; clientIds: Set<string> | null; expiresAt: number };
 const CACHE = new Map<string, CacheEntry>();
 const TTL_MS = 30_000;
 const cacheKey = (userId: string) => `u:${userId}`;
@@ -24,7 +25,7 @@ export function invalidatePermissionsCache(userId?: string) {
 
 async function loadEntry(userId: string): Promise<CacheEntry> {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user) return { perms: new Set(), projectIds: new Set(), expiresAt: Date.now() + TTL_MS };
+  if (!user) return { perms: new Set(), projectIds: new Set(), clientIds: new Set(), expiresAt: Date.now() + TTL_MS };
 
   // Permissions = celles du rôle de l'utilisateur (résolu par code).
   const [role] = await db.select().from(rolesTable).where(eq(rolesTable.code, user.role)).limit(1);
@@ -38,9 +39,20 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
     perms = new Set(rows.map((r) => r.code));
   }
 
+  // Clients accessibles : null si bypass (clients.read_all), sinon table user_client_access.
+  let clientIds: Set<string> | null = null;
+  if (!perms.has("clients.read_all") && !perms.has("projects.read_all")) {
+    const directClients = await db
+      .select({ cid: userClientAccessTable.clientId })
+      .from(userClientAccessTable)
+      .where(eq(userClientAccessTable.userId, userId));
+    clientIds = new Set(directClients.map((d) => d.cid));
+  }
+
   // Projets accessibles : si projects.read_all → null (= tous), sinon union :
-  //   - user_project_access.userId
-  //   - collaborator_assignments du collaborator lié à user
+  //   - user_project_access.userId (ACL projet directe)
+  //   - collaborator_assignments du collaborator lié à user (dimension RH)
+  //   - projects.clientId ∈ clientIds (héritage client → projets du client)
   let projectIds: Set<string> | null = null;
   if (!perms.has("projects.read_all")) {
     const direct = await db
@@ -56,10 +68,21 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
         isNull(collaboratorsTable.deletedAt),
         or(eq(collaboratorAssignmentsTable.status, "active"), isNull(collaboratorAssignmentsTable.status)),
       ));
-    projectIds = new Set([...direct.map((d) => d.pid), ...collab.map((d) => d.pid)]);
+    let inheritedFromClients: { pid: string }[] = [];
+    if (clientIds && clientIds.size > 0) {
+      inheritedFromClients = await db
+        .select({ pid: projectsTable.id })
+        .from(projectsTable)
+        .where(inArray(projectsTable.clientId, Array.from(clientIds)));
+    }
+    projectIds = new Set([
+      ...direct.map((d) => d.pid),
+      ...collab.map((d) => d.pid),
+      ...inheritedFromClients.map((d) => d.pid),
+    ]);
   }
 
-  return { perms, projectIds, expiresAt: Date.now() + TTL_MS };
+  return { perms, projectIds, clientIds, expiresAt: Date.now() + TTL_MS };
 }
 
 async function getEntry(userId: string): Promise<CacheEntry> {
@@ -97,4 +120,20 @@ export async function userHasProjectAccess(userId: string, projectId: string): P
   const ids = await userAccessibleProjectIds(userId);
   if (ids === null) return true;
   return ids.includes(projectId);
+}
+
+/**
+ * Renvoie la liste des clients accessibles à l'utilisateur.
+ * `null` = accès total (permission `clients.read_all` ou `projects.read_all`).
+ */
+export async function userAccessibleClientIds(userId: string): Promise<string[] | null> {
+  const e = await getEntry(userId);
+  return e.clientIds ? Array.from(e.clientIds) : null;
+}
+
+/** Vérifie l'accès à un client précis. */
+export async function userHasClientAccess(userId: string, clientId: string): Promise<boolean> {
+  const ids = await userAccessibleClientIds(userId);
+  if (ids === null) return true;
+  return ids.includes(clientId);
 }
