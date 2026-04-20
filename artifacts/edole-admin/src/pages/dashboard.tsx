@@ -6,17 +6,36 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { formatFCFA } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/lib/auth";
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bonjour";
+  if (h < 18) return "Bon après-midi";
+  return "Bonsoir";
+}
+
+function getDateLabel() {
+  return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
 
 export default function Dashboard() {
   const { data: kpis, isLoading: isLoadingKpis } = useGetDashboardKpis();
   const { data: charts, isLoading: isLoadingCharts } = useGetDashboardCharts();
+  const { user } = useAuth();
+  const firstName = user?.firstName || "";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Tableau de bord</h1>
-        </div>
+      {/* Bandeau d'accueil personnalisé */}
+      <div className="rounded-xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white px-6 py-7 md:px-8 md:py-8 shadow-md border border-slate-800">
+        <div className="text-xs uppercase tracking-[0.25em] text-primary/80 font-semibold">{getDateLabel()}</div>
+        <h1 className="font-display text-3xl md:text-4xl font-extrabold tracking-tight mt-2">
+          {getGreeting()}{firstName ? `, ${firstName}` : ""}.
+        </h1>
+        <p className="text-sm md:text-base text-slate-300 mt-2 max-w-2xl">
+          Voici l'activité de votre entreprise aujourd'hui — chantiers en cours, encaissements, alertes prioritaires.
+        </p>
       </div>
 
       {/* KPI Cards */}
