@@ -1,4 +1,5 @@
 import hero from "@assets/screenshots/01-dashboard.jpg";
+import logo from "@assets/image_1776704245067.png";
 
 export default function Cover() {
   return (
@@ -30,14 +31,7 @@ export default function Cover() {
       />
 
       <div className="relative h-full flex flex-col justify-between px-[6vw] py-[6.5vh]">
-        <div className="flex items-center gap-[1.2vw]">
-          <div className="w-[3.2vw] h-[3.2vw] rounded-[0.6vw] bg-[#FF6B00] flex items-center justify-center font-display font-black text-[1.6vw] text-[#0F1115]">
-            é
-          </div>
-          <div className="font-display font-bold tracking-[0.02em] text-[1.4vw]">
-            EDOLE AFRICA
-          </div>
-        </div>
+        <img src={logo} crossOrigin="anonymous" alt="EDOLE AFRICA" className="h-[5vh] w-auto object-contain self-start" />
 
         <div className="max-w-[60vw]">
           <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3.5vh]">
