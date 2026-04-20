@@ -40,6 +40,7 @@ async function listParticipantsForConv(conversationId: string) {
     name: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
     avatarUrl: usersTable.avatarUrl,
     role: usersTable.role,
+    phone: usersTable.phone,
     archived: conversationParticipantsTable.archived,
     muted: conversationParticipantsTable.muted,
     pinned: conversationParticipantsTable.pinned,

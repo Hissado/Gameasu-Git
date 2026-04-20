@@ -22,9 +22,16 @@ import { cn } from "@/lib/utils";
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Participant = {
   userId: string; name: string; avatarUrl?: string | null; role?: string;
+  phone?: string | null;
   archived?: boolean; muted?: boolean; pinned?: boolean; isAdmin?: boolean;
   presenceStatus?: "online" | "offline" | null; lastSeenAt?: string | null;
 };
+
+function whatsappUrl(phone?: string | null): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/[^\d]/g, "");
+  return digits ? `https://wa.me/${digits}` : null;
+}
 type Conv = {
   id: string; title?: string | null; type: string;
   projectId?: string | null; clientId?: string | null;
@@ -256,7 +263,7 @@ function AttachmentPreview({ a }: { a: Attachment }) {
 }
 
 function MessageBubble({
-  msg, isMe, otherPresent, onReact, onReply, onEdit, onDelete, onTranslate, onTranscribe, repliedMsg,
+  msg, isMe, otherPresent, onReact, onReply, onEdit, onDelete, onTranslate, onTranscribe, repliedMsg, autoTransLang,
 }: {
   msg: Msg; isMe: boolean; otherPresent: number;
   onReact: (emoji: string) => void; onReply: () => void;
@@ -264,8 +271,10 @@ function MessageBubble({
   onTranslate: (lang: string) => void;
   onTranscribe: () => void;
   repliedMsg?: Msg | null;
+  autoTransLang?: string | null;
 }) {
-  const [showTrans, setShowTrans] = useState<string | null>(null);
+  const [showTrans, setShowTrans] = useState<string | null>(autoTransLang || null);
+  React.useEffect(() => { if (autoTransLang) setShowTrans(autoTransLang); }, [autoTransLang]);
   const reactionMap = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of msg.reactions || []) m.set(r.emoji, (m.get(r.emoji) || 0) + 1);
@@ -486,6 +495,11 @@ export default function Messaging() {
 
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  const [autoTransLang, setAutoTransLang] = useState<string | null>(() => localStorage.getItem("msg_auto_trans_lang"));
+  useEffect(() => {
+    if (autoTransLang) localStorage.setItem("msg_auto_trans_lang", autoTransLang);
+    else localStorage.removeItem("msg_auto_trans_lang");
+  }, [autoTransLang]);
   const [editing, setEditing] = useState<Msg | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
@@ -714,6 +728,32 @@ export default function Messaging() {
     if (!confirm("Supprimer ce message ?")) return;
     await apiFetch(`/api/messages/${id}`, { method: "DELETE" });
   }
+
+  // Auto-traduction : dès qu'une langue cible est choisie, traduire en lot tous
+  // les messages texte qui ne possèdent pas encore cette traduction.
+  useEffect(() => {
+    if (!autoTransLang || !messages.length) return;
+    const todo = messages.filter(m =>
+      m.content && m.kind !== "location" && !m.deletedAt && !(m.translations || {})[autoTransLang!]
+    );
+    if (!todo.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const m of todo) {
+        if (cancelled) return;
+        try {
+          const r = await apiFetch<{ targetLang: string; text: string }>(`/api/messages/${m.id}/translate`, {
+            method: "POST", body: { targetLang: autoTransLang } as any,
+          });
+          if (cancelled) return;
+          setMessages(arr => arr.map(x => x.id === m.id
+            ? { ...x, translations: { ...(x.translations || {}), [r.targetLang]: r.text } }
+            : x));
+        } catch { /* on continue avec les suivants */ }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [autoTransLang, messages, setMessages]);
 
   async function translateMessage(id: string, lang: string) {
     try {
@@ -946,6 +986,56 @@ export default function Messaging() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  {/* Sélecteur de traduction automatique */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant={autoTransLang ? "default" : "ghost"} size="sm"
+                        className={cn("h-8 gap-1.5", autoTransLang ? "" : "text-slate-600 hover:text-primary")}
+                        title="Traduire automatiquement tous les messages"
+                      >
+                        <Languages className="w-4 h-4" />
+                        <span className="text-xs font-semibold uppercase">
+                          {autoTransLang || "Auto"}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <div className="px-2 py-1.5 text-xs text-slate-500 font-semibold uppercase tracking-wide">
+                        Traduire automatiquement
+                      </div>
+                      <DropdownMenuItem onClick={() => setAutoTransLang(null)}>
+                        <X className="w-4 h-4 mr-2" /> Désactiver
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {TARGET_LANGS.map(l => (
+                        <DropdownMenuItem
+                          key={l.code}
+                          onClick={() => setAutoTransLang(l.code)}
+                          className={autoTransLang === l.code ? "bg-primary/10 text-primary font-semibold" : ""}
+                        >
+                          <Languages className="w-4 h-4 mr-2" /> {l.label}
+                          {autoTransLang === l.code && <Check className="w-3 h-3 ml-auto" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Bouton WhatsApp si numéro disponible */}
+                  {(() => {
+                    const wa = whatsappUrl(otherInDirect?.phone);
+                    if (!wa) return null;
+                    return (
+                      <a
+                        href={wa} target="_blank" rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md bg-[#25D366] text-white text-xs font-semibold hover:bg-[#1DA851] transition-colors"
+                        title={`Ouvrir WhatsApp avec ${otherInDirect?.name}`}
+                      >
+                        <MessageCircle className="w-4 h-4" /> WhatsApp
+                      </a>
+                    );
+                  })()}
+
                   <Button variant="ghost" size="sm" onClick={() => startCall("audio")} className="text-slate-600 hover:text-primary">
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -976,6 +1066,7 @@ export default function Messaging() {
                     onTranslate={(lang) => translateMessage(m.id, lang)}
                     onTranscribe={() => transcribeMessage(m.id)}
                     repliedMsg={m.replyToMessageId ? repliedMap.get(m.replyToMessageId) : null}
+                    autoTransLang={autoTransLang}
                   />
                 ))}
                 {typingUsers.size > 0 && (
