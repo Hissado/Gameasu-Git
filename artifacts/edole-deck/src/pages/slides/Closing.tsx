@@ -1,4 +1,4 @@
-import logo from "@assets/image_1776704245067.png";
+import logo from "@assets/edole-logo-transparent.png";
 
 export default function Closing() {
   return (
@@ -19,7 +19,7 @@ export default function Closing() {
       />
 
       <div className="relative h-full flex flex-col justify-between px-[6vw] py-[7vh]">
-        <img src={logo} crossOrigin="anonymous" alt="EDOLE AFRICA" className="h-[5vh] w-auto object-contain self-start" />
+        <img src={logo} crossOrigin="anonymous" alt="édolé — Le numérique au service du BTP" className="h-[10vh] w-auto object-contain self-start" />
 
         <div className="max-w-[72vw]">
           <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3vh]">
