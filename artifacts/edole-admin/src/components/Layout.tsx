@@ -180,14 +180,31 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      <div className="bg-white flex items-center justify-between px-5 py-5 shrink-0">
-        <Link href="/" onClick={() => setMobileOpen(false)} aria-label="Tableau de bord" className="inline-flex">
-          <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none cursor-pointer" draggable={false} />
+      {/* Zone logo : fond ivoire chaleureux premium, harmonieux avec l'orange EDOLE */}
+      <div
+        className="relative flex items-center justify-between px-6 py-5 shrink-0 border-b border-black/[0.04]"
+        style={{
+          background: "linear-gradient(180deg, #f7f1e6 0%, #f2ebde 100%)",
+          boxShadow: "inset 0 -1px 0 rgba(0,0,0,0.02), 0 1px 0 rgba(0,0,0,0.04)",
+        }}
+      >
+        <Link
+          href="/"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Tableau de bord"
+          className="inline-flex items-center rounded-md transition-opacity hover:opacity-90"
+        >
+          <img
+            src={logoFull}
+            alt="édolé"
+            className="h-14 w-auto object-contain select-none cursor-pointer"
+            draggable={false}
+          />
         </Link>
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-2 -mr-2 rounded-md text-foreground/70 hover:bg-muted active:bg-muted/80"
+          className="lg:hidden p-2 -mr-2 rounded-md text-foreground/70 hover:bg-black/[0.05] active:bg-black/[0.08]"
           aria-label="Fermer le menu"
         >
           <X className="w-5 h-5" />
