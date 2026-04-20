@@ -1,66 +1,67 @@
-const base = import.meta.env.BASE_URL;
+import hero from "@assets/screenshots/01-dashboard.jpg";
 
 export default function Cover() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0F1115] font-body">
-      <img
-        src={`${base}hero-construction.png`}
-        crossOrigin="anonymous"
-        alt="Chantier"
-        className="absolute inset-0 w-full h-full object-cover opacity-25"
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0F1115] via-[#13161c] to-[#0A0B0E]" />
+      <div
+        className="absolute inset-0 opacity-80"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60vw 70vh at 80% 40%, rgba(255,107,0,0.28), transparent 60%)",
+        }}
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0F1115] via-[#0F1115]/85 to-[#0F1115]/40" />
 
-      <div className="absolute top-[6vh] left-[5vw] flex items-center gap-[1vw]">
-        <div className="w-[3.2vw] h-[3.2vw] rounded-[0.6vw] bg-[#FF6B00] flex items-center justify-center">
-          <span className="font-display text-white text-[1.8vw] font-extrabold leading-none">é</span>
-        </div>
-        <div className="leading-tight">
-          <div className="font-display text-white text-[1.4vw] font-extrabold tracking-wide">EDOLE</div>
-          <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase">Africa</div>
-        </div>
+      <div className="absolute right-[-4vw] top-[9vh] w-[64vw] h-[78vh] rounded-[1.2vw] overflow-hidden ring-1 ring-white/15 shadow-[0_40px_100px_rgba(0,0,0,0.65)] rotate-[-2.5deg]">
+        <img
+          src={hero}
+          crossOrigin="anonymous"
+          className="w-full h-full object-cover object-left-top"
+          alt="Tableau de bord EDOLE"
+        />
       </div>
 
-      <div className="absolute top-[20vh] left-[5vw] max-w-[55vw]">
-        <div className="font-body text-[#FF6B00] text-[0.95vw] tracking-[0.3em] uppercase font-semibold">
-          Plateforme Chantier — 2026
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(90deg, #0F1115 0%, rgba(15,17,21,0.92) 38%, rgba(15,17,21,0) 62%)",
+        }}
+      />
+
+      <div className="relative h-full flex flex-col justify-between px-[6vw] py-[6.5vh]">
+        <div className="flex items-center gap-[1.2vw]">
+          <div className="w-[3.2vw] h-[3.2vw] rounded-[0.6vw] bg-[#FF6B00] flex items-center justify-center font-display font-black text-[1.6vw] text-[#0F1115]">
+            é
+          </div>
+          <div className="font-display font-bold tracking-[0.02em] text-[1.4vw]">
+            EDOLE AFRICA
+          </div>
         </div>
-        <div className="w-[6vw] h-[2px] bg-[#FF6B00] mt-[1.2vh]" />
 
-        <h1 className="font-display text-white text-[6.2vw] font-extrabold leading-[0.95] tracking-tight mt-[3vh]">
-          Plateforme
-        </h1>
-        <h1 className="font-display text-[#FF6B00] text-[6.2vw] font-extrabold leading-[0.95] tracking-tight">
-          Chantier.
-        </h1>
+        <div className="max-w-[60vw]">
+          <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3.5vh]">
+            Plateforme intégrée · BTP Afrique francophone
+          </div>
+          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1.5vh]">
+            Une seule plateforme
+          </div>
+          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1.5vh]">
+            pour piloter
+          </div>
+          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] text-[#FF6B00] mb-[4.5vh]">
+            vos chantiers.
+          </div>
+          <p className="text-[1.45vw] leading-[1.55] text-white/75 max-w-[46vw]">
+            Clients, services, projets, finances et matériel — unifiés dans
+            un espace de travail pensé pour les entreprises du Bâtiment et
+            des Travaux Publics.
+          </p>
+        </div>
 
-        <p className="font-body text-[#C9C9D1] text-[1.5vw] leading-relaxed mt-[3vh] max-w-[42vw] font-normal">
-          Le système d'exploitation des entreprises de BTP en Afrique francophone — chantiers, matériel, équipes et finances dans une seule plateforme.
-        </p>
-      </div>
-
-      <div className="absolute bottom-0 left-0 right-0 bg-[#0A0B0E] border-t border-[#2A2C33]">
-        <div className="grid grid-cols-5 px-[5vw] py-[3.2vh]">
-          <div className="text-center border-r border-[#2A2C33]">
-            <div className="font-display text-[#FF6B00] text-[2.2vw] font-extrabold leading-none">8</div>
-            <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase mt-[0.8vh]">Univers</div>
-          </div>
-          <div className="text-center border-r border-[#2A2C33]">
-            <div className="font-display text-[#FF6B00] text-[2.2vw] font-extrabold leading-none">60+</div>
-            <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase mt-[0.8vh]">Modules</div>
-          </div>
-          <div className="text-center border-r border-[#2A2C33]">
-            <div className="font-display text-[#FF6B00] text-[2.2vw] font-extrabold leading-none">FR</div>
-            <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase mt-[0.8vh]">100% Français</div>
-          </div>
-          <div className="text-center border-r border-[#2A2C33]">
-            <div className="font-display text-[#FF6B00] text-[2.2vw] font-extrabold leading-none">FCFA</div>
-            <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase mt-[0.8vh]">Devise native</div>
-          </div>
-          <div className="text-center">
-            <div className="font-display text-[#FF6B00] text-[2.2vw] font-extrabold leading-none">OHADA</div>
-            <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase mt-[0.8vh]">Comptabilité</div>
-          </div>
+        <div className="flex items-end justify-between text-[1vw] text-white/45">
+          <div>Présentation produit — Avril 2026</div>
+          <div className="font-mono tracking-[0.2em] text-white/55">01 / 15</div>
         </div>
       </div>
     </div>

@@ -1,63 +1,74 @@
+import shotReports from "@assets/screenshots/12-reports.jpg";
+import shotMap from "@assets/screenshots/13-map.jpg";
+
 export default function Differenciants() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Pourquoi EDOLE
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            Six raisons <span className="text-[#FF6B00]">de choisir EDOLE.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            Pas un outil générique adapté. Un outil pensé pour le BTP en Afrique francophone.
-          </p>
-        </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
+      <div
+        className="absolute inset-0 opacity-70"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 55vw 60vh at 20% 100%, rgba(255,107,0,0.22), transparent 60%)",
+        }}
+      />
 
-      <div className="flex-1 px-[5vw] py-[5vh] grid grid-cols-3 gap-[1.8vw]">
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">01</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Conçu pour le BTP africain</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            Pas un outil généraliste adapté — un outil pensé pour ce métier dans cette région, avec ses contraintes propres.
-          </p>
+      <div className="relative h-full flex flex-col px-[5vw] py-[6vh]">
+        <div className="flex items-start justify-between mb-[3vh]">
+          <div>
+            <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[1.8vh]">
+              Module 13 · Reporting & terrain
+            </div>
+            <div className="font-display text-[4.2vw] leading-[1] font-extrabold tracking-[-0.03em]">
+              La donnée
+            </div>
+            <div className="font-display text-[4.2vw] leading-[1] font-extrabold tracking-[-0.03em] text-[#FF6B00]">
+              rendue lisible.
+            </div>
+          </div>
+          <div className="max-w-[32vw] pt-[2vh] text-[1.15vw] leading-[1.55] text-white/70">
+            Rapports exportables en PDF, cartographie des chantiers, plan de
+            charge des équipes. Pour comprendre l'activité en un regard et
+            partager avec les parties prenantes.
+          </div>
         </div>
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">02</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Tout-en-un véritable</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            Du chantier à la comptabilité OHADA, sans connecteurs fragiles entre cinq logiciels différents.
-          </p>
+
+        <div className="flex-1 grid grid-cols-2 gap-[1.6vw]">
+          <div className="flex flex-col">
+            <div className="rounded-[0.8vw] overflow-hidden ring-1 ring-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex-1">
+              <img src={shotReports} crossOrigin="anonymous" alt="Rapports" className="w-full h-full object-cover object-top" />
+            </div>
+            <div className="bg-white/[0.04] rounded-[0.6vw] px-[1.5vw] py-[1.8vh] mt-[1.2vh] ring-1 ring-white/10">
+              <div className="text-[0.8vw] uppercase tracking-[0.3em] font-bold text-[#FF6B00] mb-[0.6vh]">
+                Rapports · Exports
+              </div>
+              <div className="text-[1.05vw] leading-[1.5] text-white/80">
+                Plan de charge, performance projets, consommation matériel —
+                exportables en PDF signé.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <div className="rounded-[0.8vw] overflow-hidden ring-1 ring-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex-1">
+              <img src={shotMap} crossOrigin="anonymous" alt="Carte territoriale" className="w-full h-full object-cover object-top" />
+            </div>
+            <div className="bg-white/[0.04] rounded-[0.6vw] px-[1.5vw] py-[1.8vh] mt-[1.2vh] ring-1 ring-white/10">
+              <div className="text-[0.8vw] uppercase tracking-[0.3em] font-bold text-[#FF6B00] mb-[0.6vh]">
+                Carte · Mobilité
+              </div>
+              <div className="text-[1.05vw] leading-[1.5] text-white/80">
+                Chantiers géolocalisés, zones d'intervention, logistique
+                inter-sites en un coup d'œil.
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">03</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Mobilité réelle</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            Les équipes terrain l'utilisent depuis leur téléphone — pas seulement la direction depuis son bureau.
-          </p>
-        </div>
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">04</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Alertes intelligentes</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            L'application travaille pour vous en arrière-plan — locations, factures, contrats, maintenance.
-          </p>
-        </div>
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">05</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Performance et fluidité</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            Interface premium, navigation instantanée, expérience utilisateur soignée — niveau Notion ou Linear.
-          </p>
-        </div>
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <div className="font-display text-[#FF6B00] text-[3vw] font-extrabold leading-none">06</div>
-          <h3 className="font-display text-[#0F1115] text-[1.4vw] font-bold mt-[1.5vh] leading-tight">Français et FCFA partout</h3>
-          <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1.2vh] flex-1">
-            Aucune friction linguistique ou monétaire. La plateforme parle votre langue, dans votre devise.
-          </p>
+
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40 mt-[2vh]">
+          <div className="font-semibold uppercase tracking-[0.3em]">
+            Rapports · Carte · Mobilité · Export PDF
+          </div>
+          <div className="font-mono tracking-[0.2em]">13 / 15</div>
         </div>
       </div>
     </div>

@@ -1,94 +1,73 @@
+import shot from "@assets/screenshots/05-tasks.jpg";
+
 export default function Operations() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Univers 03 — Opérations
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            Le cœur du <span className="text-[#FF6B00]">métier.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            Chaque chantier est un dossier vivant. Chaque tâche, une action assignée, suivie, historisée.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white flex flex-row-reverse">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between relative">
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 07 · Tâches
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            L'exécution
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            au quotidien.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-white/70">
+            Attributions, priorités, échéances, sous-tâches, commentaires,
+            historique. La granularité dont une équipe terrain a besoin —
+            sans complexité superflue.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[5vh] grid grid-cols-2 gap-[3vw]">
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Chantiers
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Objectif
+            </div>
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              Chaque personne sait ce qu'elle doit faire, aujourd'hui.
+            </div>
           </div>
-          <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw]">
-            <h3 className="font-display text-[#0F1115] text-[1.6vw] font-bold leading-tight">Dossier vivant du projet</h3>
-            <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-              Chaque chantier regroupe l'équipe affectée, le matériel mobilisé, les tâches en cours, les bons de commande, les factures et les documents — plans, contrats, photos, liens Drive externes.
-            </p>
-            <div className="mt-[2.5vh] grid grid-cols-2 gap-[1vw] text-[1vw]">
-              <div className="flex items-center gap-[0.6vw]">
-                <span className="font-body text-[#FF6B00] font-bold">→</span>
-                <span className="font-body text-[#0F1115]">Statuts : actif, planifié, terminé</span>
-              </div>
-              <div className="flex items-center gap-[0.6vw]">
-                <span className="font-body text-[#FF6B00] font-bold">→</span>
-                <span className="font-body text-[#0F1115]">Lien chef de projet RH</span>
-              </div>
-              <div className="flex items-center gap-[0.6vw]">
-                <span className="font-body text-[#FF6B00] font-bold">→</span>
-                <span className="font-body text-[#0F1115]">Budget en FCFA suivi</span>
-              </div>
-              <div className="flex items-center gap-[0.6vw]">
-                <span className="font-body text-[#FF6B00] font-bold">→</span>
-                <span className="font-body text-[#0F1115]">Documents Drive joints</span>
-              </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Valeur utilisateur
+            </div>
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              Filtres multi-critères · vues Liste, Kanban, Calendrier ·
+              notifications temps réel.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Connecté à
+            </div>
+            <div className="text-[1.05vw] leading-[1.5] text-white/80">
+              <span className="text-[#FF6B00]">Services</span> ·{" "}
+              <span className="text-[#FF6B00]">Projets</span> ·{" "}
+              <span className="text-[#FF6B00]">Utilisateurs</span> ·{" "}
+              <span className="text-[#FF6B00]">Messagerie</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Tâches — trois vues, un moteur
-          </div>
-          <div className="grid grid-cols-3 gap-[1vw] mb-[1.5vh]">
-            <div className="bg-white rounded-[0.4vw] border-l-[3px] border-l-[#FF6B00] px-[1vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold">Liste</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.3vh]">Tableau filtrable</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[3px] border-l-[#2563EB] px-[1vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold">Kanban</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.3vh]">Glisser-déposer</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[3px] border-l-[#10B981] px-[1vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold">Calendrier</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.3vh]">Vue échéances</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#A855F7] p-[1.8vw]">
-            <h4 className="font-display text-[#0F1115] text-[1.3vw] font-bold leading-tight">Sous-tâches et historique</h4>
-            <p className="font-body text-[#5C5D67] text-[0.95vw] leading-relaxed mt-[1vh]">
-              Décomposition illimitée en sous-tâches. Chaque modification (statut, priorité, assignation, commentaire) horodatée et tracée — preuve d'audit complète.
-            </p>
-            <div className="mt-[1.5vh] flex items-center gap-[1.5vw] text-[0.95vw]">
-              <span className="font-display text-[#A855F7] font-bold">Priorités :</span>
-              <span className="text-[#0F1115]">Basse · Moyenne · Haute · Urgente</span>
-            </div>
-          </div>
-          <div className="mt-[2vh] bg-[#0F1115] rounded-[0.4vw] grid grid-cols-3 px-[1.5vw] py-[2vh]">
-            <div className="text-center border-r border-[#2A2C33]">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">3</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Vues</div>
-            </div>
-            <div className="text-center border-r border-[#2A2C33]">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">∞</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Sous-tâches</div>
-            </div>
-            <div className="text-center">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">100%</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Tracé</div>
-            </div>
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">Kanban · Historique · Sous-tâches</div>
+          <div className="font-mono tracking-[0.2em]">07 / 15</div>
+        </div>
+      </div>
+
+      <div className="flex-1 h-full bg-[#15181f] flex items-center justify-center px-[2vw] relative">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 50vw 50vh at 50% 50%, rgba(255,107,0,0.12), transparent 60%)",
+          }}
+        />
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <img src={shot} crossOrigin="anonymous" alt="Tâches opérationnelles" className="w-full h-auto block" />
         </div>
       </div>
     </div>

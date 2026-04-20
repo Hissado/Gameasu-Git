@@ -1,84 +1,66 @@
+import shot from "@assets/screenshots/02-clients.jpg";
+
 export default function Problem() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[6vh] pb-[5vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Le problème — La solution
-        </div>
-        <div className="flex items-end justify-between mt-[2vh]">
-          <h2 className="font-display text-white text-[3.6vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            Du chaos opérationnel <span className="text-[#FF6B00]">à la maîtrise.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.1vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            Six points de douleur quotidiens, six réponses concrètes intégrées à la même plateforme.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#F4F5F8] text-[#0F1115] flex">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between bg-white relative">
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 04 · Clients
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            Le client,
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            entité racine.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-[#0F1115]/70">
+            Chaque client dispose d'un espace de travail dédié : engagements,
+            projets, tâches, fichiers et conversations regroupés derrière un
+            contrôle d'accès unifié.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3.5vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[4vh] grid grid-cols-2 gap-[3vw]">
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Avant EDOLE
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Objectif
+            </div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Un dossier client 360° — plus de silos par service.
+            </div>
           </div>
-          <div className="space-y-[1.2vh]">
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Données éparpillées</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Excel, WhatsApp, papier — la vérité n'existe nulle part</div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Valeur utilisateur
             </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Matériel perdu ou loué deux fois</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Aucune visibilité sur le parc en temps réel</div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Contacts, adresse, statut, portefeuille projets et historique
+              accessibles en une recherche.
             </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Factures émises en retard</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Recouvrement opaque, trésorerie tendue</div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Connecté à
             </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Comptabilité reconstituée en fin d'exercice</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Bilan dans la douleur, conformité OHADA fragile</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Aucune visibilité commerciale</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Le pipeline existe dans la tête du commercial</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#9CA3AF] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Communication client dispersée</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Mails, SMS, appels — rien n'est consolidé</div>
+            <div className="text-[1.05vw] leading-[1.5] text-[#0F1115]/80">
+              <span className="text-[#FF6B00] font-semibold">Services</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Projets</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Factures</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Messagerie</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Avec EDOLE
-          </div>
-          <div className="space-y-[1.2vh]">
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Source unique de vérité</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Une plateforme, accessible en mobilité depuis n'importe où</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Inventaire QR temps réel</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Disponibilité instantanée, alertes anti-conflits</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Devis → facture → encaissement</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Pipeline automatisé, zéro double saisie</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Bilan OHADA en un clic</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Écritures continues, balance toujours à jour</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">KPI consolidés et alertes intelligentes</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Le dirigeant sait, en cinq secondes</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] px-[1.4vw] py-[1.4vh]">
-              <div className="font-display text-[#0F1115] text-[1.1vw] font-bold leading-tight">Messagerie et campagnes intégrées</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.3vh]">Toute la relation client dans le même espace</div>
-            </div>
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">ACL client-first</div>
+          <div className="font-mono tracking-[0.2em]">04 / 15</div>
+        </div>
+      </div>
+
+      <div className="flex-1 h-full bg-[#E8EAEF] flex items-center justify-center px-[2vw] relative">
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-black/10 shadow-[0_30px_70px_rgba(15,17,21,0.18)]">
+          <img src={shot} crossOrigin="anonymous" alt="Espace clients" className="w-full h-auto block" />
         </div>
       </div>
     </div>

@@ -1,58 +1,77 @@
 export default function Closing() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0F1115] font-body flex flex-col">
-      <div className="absolute top-[6vh] left-[5vw] flex items-center gap-[1vw]">
-        <div className="w-[3.2vw] h-[3.2vw] rounded-[0.6vw] bg-[#FF6B00] flex items-center justify-center">
-          <span className="font-display text-white text-[1.8vw] font-extrabold leading-none">é</span>
-        </div>
-        <div className="leading-tight">
-          <div className="font-display text-white text-[1.4vw] font-extrabold tracking-wide">EDOLE</div>
-          <div className="font-body text-[#94939E] text-[0.75vw] tracking-[0.25em] uppercase">Africa</div>
-        </div>
-      </div>
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
+      <div
+        className="absolute inset-0 opacity-80"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 70vw 80vh at 50% 60%, rgba(255,107,0,0.25), transparent 60%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #FF6B00 0 1px, transparent 1px 40px)",
+        }}
+      />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-[5vw]">
-        <div className="font-body text-[#FF6B00] text-[1vw] tracking-[0.4em] uppercase font-semibold">
-          La plateforme EDOLE
+      <div className="relative h-full flex flex-col justify-between px-[6vw] py-[7vh]">
+        <div className="flex items-center gap-[1.2vw]">
+          <div className="w-[3.2vw] h-[3.2vw] rounded-[0.6vw] bg-[#FF6B00] flex items-center justify-center font-display font-black text-[1.6vw] text-[#0F1115]">
+            é
+          </div>
+          <div className="font-display font-bold tracking-[0.02em] text-[1.4vw]">
+            EDOLE AFRICA
+          </div>
         </div>
-        <div className="w-[5vw] h-[2px] bg-[#FF6B00] mt-[1.5vh]" />
 
-        <h1 className="font-display text-white text-[6vw] font-extrabold leading-[0.95] tracking-tight mt-[4vh] text-center">
-          Une plateforme.
-        </h1>
-        <h1 className="font-display text-[#FF6B00] text-[6vw] font-extrabold leading-[0.95] tracking-tight text-center">
-          Chaque chantier.
-        </h1>
+        <div className="max-w-[72vw]">
+          <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3vh]">
+            En résumé
+          </div>
+          <div className="font-display text-[7.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1vh]">
+            Une plateforme.
+          </div>
+          <div className="font-display text-[7.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1vh]">
+            Chaque métier.
+          </div>
+          <div className="font-display text-[7.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] text-[#FF6B00]">
+            Chaque chantier.
+          </div>
+        </div>
 
-        <p className="font-body text-[#C9C9D1] text-[1.4vw] leading-relaxed mt-[4vh] max-w-[55vw] text-center font-normal">
-          Conçue pour les entreprises BTP qui exigent précision, mobilité et conformité OHADA dans chaque projet.
-        </p>
-      </div>
+        <div className="grid grid-cols-3 gap-[2vw] border-t border-white/10 pt-[3vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
+              Continuité
+            </div>
+            <div className="text-[1.15vw] leading-[1.5] text-white/85">
+              Client → Service → Projet → Facture — sans rupture de contexte.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
+              Conformité
+            </div>
+            <div className="text-[1.15vw] leading-[1.5] text-white/85">
+              SYSCOHADA, FCFA, français, adaptée aux réalités du marché
+              africain francophone.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/45 mb-[1vh]">
+              Contact
+            </div>
+            <div className="text-[1.15vw] leading-[1.5] text-white/85">
+              contact@edole.africa — démo personnalisée sur demande.
+            </div>
+          </div>
+        </div>
 
-      <div className="bg-[#0A0B0E] border-t border-[#2A2C33] px-[5vw] py-[3.2vh] grid grid-cols-6 gap-[1vw]">
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Pilotage</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 1</div>
-        </div>
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Opérations</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 2</div>
-        </div>
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Matériel</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 3</div>
-        </div>
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Commercial</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 4</div>
-        </div>
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Marketing & RH</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 5 — 6</div>
-        </div>
-        <div>
-          <div className="font-display text-white text-[1.05vw] font-bold">Comptabilité</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Module 7 — 8</div>
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40 -mt-[2vh]">
+          <div className="font-semibold uppercase tracking-[0.3em]">Merci de votre attention</div>
+          <div className="font-mono tracking-[0.2em]">15 / 15</div>
         </div>
       </div>
     </div>

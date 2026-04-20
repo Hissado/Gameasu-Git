@@ -1,102 +1,73 @@
+import shot from "@assets/screenshots/09-hr.jpg";
+
 export default function Rh() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Univers 07 — Ressources humaines
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            L'organisation, <span className="text-[#FF6B00]">structurée.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            De la fiche collaborateur au contrat, en passant par l'affectation chantier et la charge de travail.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white flex">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between relative">
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 11 · Ressources humaines
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            L'équipe,
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            structurée.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-white/70">
+            Collaborateurs, départements, rôles, contrats, affectations
+            projets. Un référentiel RH qui alimente directement les droits
+            d'accès et le plan de charge.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[4vh] grid grid-cols-3 gap-[1.8vw]">
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#FF6B00] p-[2vw] flex flex-col">
-          <h3 className="font-display text-[#0F1115] text-[1.5vw] font-bold leading-tight">Collaborateurs</h3>
-          <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-            Fiche complète avec photo, coordonnées, poste, département, contrat actif et historique d'affectations.
-          </p>
-          <div className="mt-auto pt-[2.5vh] space-y-[1vh]">
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#FF6B00] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Charge de travail</span>
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Objectif
             </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#FF6B00] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Tâches actives</span>
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              Savoir qui fait quoi, pour qui, jusqu'à quand.
             </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#FF6B00] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Projets en cours</span>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Valeur utilisateur
+            </div>
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              Arborescence organigramme · contrats numérisés · permissions
+              RBAC · plan de charge par collaborateur.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Connecté à
+            </div>
+            <div className="text-[1.05vw] leading-[1.5] text-white/80">
+              <span className="text-[#FF6B00]">Projets</span> ·{" "}
+              <span className="text-[#FF6B00]">Tâches</span> ·{" "}
+              <span className="text-[#FF6B00]">Sécurité</span> ·{" "}
+              <span className="text-[#FF6B00]">Rapports</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#2563EB] p-[2vw] flex flex-col">
-          <h3 className="font-display text-[#0F1115] text-[1.5vw] font-bold leading-tight">Départements et postes</h3>
-          <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-            Création des entités organisationnelles et postes types — direction, exploitation, atelier, commercial, comptabilité.
-          </p>
-          <div className="mt-auto pt-[2.5vh] space-y-[1vh]">
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#2563EB] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Organigramme</span>
-            </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#2563EB] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Affectations chantier</span>
-            </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#2563EB] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Anti-double affectation</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#10B981] p-[2vw] flex flex-col">
-          <h3 className="font-display text-[#0F1115] text-[1.5vw] font-bold leading-tight">Contrats et documents</h3>
-          <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-            CDI, CDD, mission, stage. Suivi des dates, salaires et bibliothèque RH classée par collaborateur.
-          </p>
-          <div className="mt-auto pt-[2.5vh] space-y-[1vh]">
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#10B981] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Alerte 30 jours avant fin</span>
-            </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#10B981] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Documents joints</span>
-            </div>
-            <div className="flex items-center gap-[0.6vw]">
-              <span className="font-body text-[#10B981] font-bold text-[1vw]">→</span>
-              <span className="font-body text-[#0F1115] text-[1vw]">Conformité juridique</span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">Organigramme · Contrats · RBAC</div>
+          <div className="font-mono tracking-[0.2em]">11 / 15</div>
         </div>
       </div>
 
-      <div className="bg-[#0F1115] px-[5vw] py-[2.6vh] grid grid-cols-4 gap-[2vw]">
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">Tableau RH</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Effectifs · répartition</div>
-        </div>
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">Affectations</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Qui travaille où</div>
-        </div>
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">Utilisateurs</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Comptes et accès</div>
-        </div>
-        <div className="text-center">
-          <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">5 rôles</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Permissions différenciées</div>
+      <div className="flex-1 h-full bg-[#15181f] flex items-center justify-center px-[2vw] relative">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 50vw 50vh at 60% 50%, rgba(255,107,0,0.12), transparent 60%)",
+          }}
+        />
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <img src={shot} crossOrigin="anonymous" alt="Ressources humaines" className="w-full h-auto block" />
         </div>
       </div>
     </div>

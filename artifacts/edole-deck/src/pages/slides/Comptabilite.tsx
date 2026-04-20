@@ -1,91 +1,66 @@
+import shot from "@assets/screenshots/08-accounting.jpg";
+
 export default function Comptabilite() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0F1115] font-body flex flex-col">
-      <div className="px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Univers 08 — Comptabilité OHADA
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            Votre bilan, <span className="text-[#FF6B00]">prêt en un clic.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            Référentiel SYSCOHADA pré-chargé. Écritures continues. États financiers générés à la demande.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#F4F5F8] text-[#0F1115] flex flex-row-reverse">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between bg-white relative">
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 10 · Comptabilité
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            Conforme
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            OHADA.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-[#0F1115]/70">
+            Plan comptable SYSCOHADA, trésorerie multi-banques, bilan et
+            compte de résultat générés automatiquement. Tout en FCFA, adapté
+            à la fiscalité d'Afrique francophone.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[3vh] grid grid-cols-2 gap-[3vw]">
-        <div>
-          <div className="font-body text-[#FF6B00] text-[0.8vw] tracking-[0.3em] uppercase font-semibold mb-[2vh]">
-            États financiers générés
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Objectif
+            </div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Être prêt pour l'audit, toute l'année.
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-[1vw]">
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[2vh] border-l-[3px] border-l-[#FF6B00]">
-              <div className="font-display text-white text-[1.4vw] font-bold">Bilan</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.5vh]">Actif et passif consolidés</div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Valeur utilisateur
             </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[2vh] border-l-[3px] border-l-[#FF6B00]">
-              <div className="font-display text-white text-[1.4vw] font-bold">Compte de résultat</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.5vh]">Produits, charges, résultat net</div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Trésorerie consolidée · historique 6 mois · écritures
+              auto-générées depuis factures et paiements.
             </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[2vh] border-l-[3px] border-l-[#FF6B00]">
-              <div className="font-display text-white text-[1.4vw] font-bold">Balance</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.5vh]">Générale et auxiliaire</div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Connecté à
             </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[2vh] border-l-[3px] border-l-[#FF6B00]">
-              <div className="font-display text-white text-[1.4vw] font-bold">Grand livre</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.5vh]">Mouvements détaillés par compte</div>
+            <div className="text-[1.05vw] leading-[1.5] text-[#0F1115]/80">
+              <span className="text-[#FF6B00] font-semibold">Factures</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Paiements</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Banques</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">FP&amp;A</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="font-body text-[#FF6B00] text-[0.8vw] tracking-[0.3em] uppercase font-semibold mb-[2vh]">
-            Outils auxiliaires
-          </div>
-          <div className="space-y-[1.2vh]">
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[1.6vh] border-l-[3px] border-l-[#2563EB]">
-              <div className="font-display text-white text-[1.15vw] font-bold leading-tight">Plan comptable SYSCOHADA</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.3vh]">Pré-chargé, modifiable, recherche par numéro</div>
-            </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[1.6vh] border-l-[3px] border-l-[#2563EB]">
-              <div className="font-display text-white text-[1.15vw] font-bold leading-tight">Écritures comptables</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.3vh]">Saisie débit/crédit, contrôle d'équilibre</div>
-            </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[1.6vh] border-l-[3px] border-l-[#10B981]">
-              <div className="font-display text-white text-[1.15vw] font-bold leading-tight">Comptes clients et fournisseurs</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.3vh]">Balance âgée, factures en attente, relances</div>
-            </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[1.6vh] border-l-[3px] border-l-[#10B981]">
-              <div className="font-display text-white text-[1.15vw] font-bold leading-tight">Banques et caisses</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.3vh]">Rapprochement bancaire assisté</div>
-            </div>
-            <div className="bg-[#1A1C22] rounded-[0.3vw] px-[1.4vw] py-[1.6vh] border-l-[3px] border-l-[#A855F7]">
-              <div className="font-display text-white text-[1.15vw] font-bold leading-tight">Immobilisations</div>
-              <div className="font-body text-[#94939E] text-[0.85vw] mt-[0.3vh]">Registre + dotations aux amortissements</div>
-            </div>
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">SYSCOHADA · Multi-banques · FCFA</div>
+          <div className="font-mono tracking-[0.2em]">10 / 15</div>
         </div>
       </div>
 
-      <div className="bg-[#0A0B0E] border-t border-[#2A2C33] px-[5vw] py-[2.8vh] grid grid-cols-4 gap-[2vw]">
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[2vw] font-extrabold leading-none">SYSCOHADA</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Référentiel natif</div>
-        </div>
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[2vw] font-extrabold leading-none">FCFA</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Devise par défaut</div>
-        </div>
-        <div className="text-center border-r border-[#2A2C33]">
-          <div className="font-display text-[#FF6B00] text-[2vw] font-extrabold leading-none">Auto</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Postings depuis ventes</div>
-        </div>
-        <div className="text-center">
-          <div className="font-display text-[#FF6B00] text-[2vw] font-extrabold leading-none">PDF</div>
-          <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.6vh]">Export commissaire</div>
+      <div className="flex-1 h-full bg-[#E8EAEF] flex items-center justify-center px-[2vw] relative">
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-black/10 shadow-[0_30px_70px_rgba(15,17,21,0.18)]">
+          <img src={shot} crossOrigin="anonymous" alt="Comptabilité OHADA" className="w-full h-auto block" />
         </div>
       </div>
     </div>

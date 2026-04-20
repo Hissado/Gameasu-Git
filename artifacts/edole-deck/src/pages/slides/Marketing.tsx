@@ -1,77 +1,66 @@
+import shot from "@assets/screenshots/06-messaging.jpg";
+
 export default function Marketing() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Univers 06 — Marketing
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            Acquérir <span className="text-[#FF6B00]">et fidéliser.</span>
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            Campagnes ciblées, base prospects qualifiée, conversion en un clic vers la fiche client.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#F4F5F8] text-[#0F1115] flex">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between bg-white relative">
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 08 · Messagerie
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            Communication
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            contextualisée.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-[#0F1115]/70">
+            Conversations internes, avec clients, autour d'un projet ou d'une
+            tâche. Messages vocaux, traduction automatique, pièces jointes et
+            recherche plein-texte intégrées.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[5vh] grid grid-cols-2 gap-[3vw]">
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Campagnes Email et SMS
-          </div>
-          <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#A855F7] p-[2vw] mb-[2vh]">
-            <h3 className="font-display text-[#0F1115] text-[1.5vw] font-bold leading-tight">Éditeur intégré</h3>
-            <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-              Segmentation des destinataires, édition du message, simulation d'envoi avec rapport de délivrabilité. Idéal pour annoncer une nouvelle agence ou relancer un prospect dormant.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-[1vw]">
-            <div className="bg-white rounded-[0.4vw] border-l-[3px] border-l-[#FF6B00] p-[1.4vw]">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">Email</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.8vh]">Modèles personnalisables, segmentation par catégorie</div>
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Objectif
             </div>
-            <div className="bg-white rounded-[0.4vw] border-l-[3px] border-l-[#2563EB] p-[1.4vw]">
-              <div className="font-display text-[#2563EB] text-[1.6vw] font-extrabold leading-none">SMS</div>
-              <div className="font-body text-[#5C5D67] text-[0.9vw] mt-[0.8vh]">Diffusion massive, rapport de délivrabilité</div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Remplacer les fils WhatsApp perdus par une trace organisée.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Valeur utilisateur
+            </div>
+            <div className="text-[1.1vw] leading-[1.5]">
+              Vocal, traduction FR ↔ anglais/wolof · badge non-lus · tri
+              chronologique · notifications.
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-[#0F1115]/40 mb-[0.8vh]">
+              Connecté à
+            </div>
+            <div className="text-[1.05vw] leading-[1.5] text-[#0F1115]/80">
+              <span className="text-[#FF6B00] font-semibold">Clients</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Projets</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Tâches</span> ·{" "}
+              <span className="text-[#FF6B00] font-semibold">Documents</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2.5vh]">
-            Base prospects
-          </div>
-          <div className="bg-white rounded-[0.4vw] border-l-[4px] border-l-[#10B981] p-[2vw] mb-[2vh]">
-            <h3 className="font-display text-[#0F1115] text-[1.5vw] font-bold leading-tight">Qualification et conversion</h3>
-            <p className="font-body text-[#5C5D67] text-[1vw] leading-relaxed mt-[1.2vh]">
-              Source d'acquisition, score, statut et historique d'interaction. Conversion en un clic vers une fiche client — le pipeline ne se vide jamais.
-            </p>
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-[#0F1115]/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">Voix · Traduction · Temps réel</div>
+          <div className="font-mono tracking-[0.2em]">08 / 15</div>
+        </div>
+      </div>
 
-          <div className="bg-[#0F1115] rounded-[0.4vw] p-[2vw]">
-            <div className="font-body text-[#FF6B00] text-[0.75vw] tracking-[0.3em] uppercase font-semibold mb-[1.5vh]">
-              Cycle de qualification
-            </div>
-            <div className="grid grid-cols-4 gap-[0.8vw]">
-              <div className="bg-[#1A1C22] rounded-[0.3vw] px-[0.8vw] py-[1.2vh] text-center">
-                <div className="font-display text-white text-[0.95vw] font-bold">Nouveau</div>
-              </div>
-              <div className="bg-[#1A1C22] rounded-[0.3vw] px-[0.8vw] py-[1.2vh] text-center">
-                <div className="font-display text-white text-[0.95vw] font-bold">Contacté</div>
-              </div>
-              <div className="bg-[#1A1C22] rounded-[0.3vw] px-[0.8vw] py-[1.2vh] text-center">
-                <div className="font-display text-white text-[0.95vw] font-bold">Qualifié</div>
-              </div>
-              <div className="bg-[#FF6B00] rounded-[0.3vw] px-[0.8vw] py-[1.2vh] text-center">
-                <div className="font-display text-white text-[0.95vw] font-bold">Converti</div>
-              </div>
-            </div>
-            <p className="font-body text-[#94939E] text-[0.85vw] leading-relaxed mt-[2vh]">
-              Chaque étape déclenche les bonnes actions et alimente automatiquement les statistiques d'acquisition consolidées dans le tableau de bord.
-            </p>
-          </div>
+      <div className="flex-1 h-full bg-[#E8EAEF] flex items-center justify-center px-[2vw] relative">
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-black/10 shadow-[0_30px_70px_rgba(15,17,21,0.18)]">
+          <img src={shot} crossOrigin="anonymous" alt="Messagerie" className="w-full h-auto block" />
         </div>
       </div>
     </div>

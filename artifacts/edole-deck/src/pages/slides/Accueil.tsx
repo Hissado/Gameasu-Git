@@ -1,114 +1,77 @@
+import shot from "@assets/screenshots/01-dashboard.jpg";
+
 export default function Accueil() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F8] font-body flex flex-col">
-      <div className="bg-[#0F1115] px-[5vw] pt-[5vh] pb-[4vh]">
-        <div className="font-body text-[#FF6B00] text-[0.85vw] tracking-[0.3em] uppercase font-semibold">
-          Univers 01 — Accueil personnalisé
-        </div>
-        <div className="flex items-end justify-between mt-[1.5vh]">
-          <h2 className="font-display text-white text-[3.4vw] font-extrabold leading-[1.05] tracking-tight max-w-[55vw]">
-            « Bonjour, <span className="text-[#FF6B00]">Issa.</span> »
-          </h2>
-          <p className="font-body text-[#94939E] text-[1.05vw] leading-relaxed max-w-[28vw] text-right pb-[1vh]">
-            L'utilisateur ouvre l'app et l'app le reconnaît. Salutation, date, priorités du jour — tout est déjà là.
+    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white flex">
+      <div className="w-[38%] h-full px-[4vw] py-[7vh] flex flex-col justify-between relative">
+        <div
+          className="absolute left-0 top-0 w-[2px] h-full"
+          style={{ background: "linear-gradient(180deg, transparent, #FF6B00 30%, #FF6B00 70%, transparent)" }}
+        />
+        <div>
+          <div className="text-[0.9vw] tracking-[0.38em] uppercase font-semibold text-[#FF6B00] mb-[2.5vh]">
+            Module 03 · Tableau de bord
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
+            Tout l'exécutif,
+          </div>
+          <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
+            d'un coup d'œil.
+          </div>
+          <p className="text-[1.25vw] leading-[1.6] text-white/70">
+            Encaissements, pipeline, créances, chantiers actifs. Le tableau
+            de bord agrège en temps réel les métriques qui comptent pour un
+            dirigeant BTP.
           </p>
         </div>
-        <div className="w-full h-[2px] bg-[#FF6B00] mt-[3vh]" />
-      </div>
 
-      <div className="flex-1 px-[5vw] py-[4vh] grid grid-cols-[1.1fr_1fr] gap-[3vw]">
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2vh]">
-            Maquette à l'ouverture
-          </div>
-
-          <div className="bg-gradient-to-br from-[#0F1115] via-[#1A1D24] to-[#0F1115] rounded-[0.5vw] px-[2vw] py-[2.4vh] mb-[1.5vh] border border-[#2A2C33]">
-            <div className="font-body text-[#FF6B00] text-[0.65vw] tracking-[0.25em] uppercase font-semibold">
-              Lundi 20 avril 2026
+        <div className="space-y-[2.2vh]">
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Objectif
             </div>
-            <div className="font-display text-white text-[2.2vw] font-extrabold leading-tight mt-[0.6vh]">
-              Bonjour, Issa.
-            </div>
-            <div className="font-body text-[#94939E] text-[0.9vw] mt-[0.6vh]">
-              Voici l'activité de votre entreprise aujourd'hui — chantiers en cours, encaissements, alertes prioritaires.
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              Décider sur faits, pas sur intuition.
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-[1vw]">
-            <div className="bg-white rounded-[0.4vw] border-t-[3px] border-t-[#FF6B00] px-[1.2vw] py-[1.6vh]">
-              <div className="font-display text-[#0F1115] text-[1.8vw] font-extrabold leading-none">4</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.6vh]">Chantiers actifs</div>
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Valeur utilisateur
             </div>
-            <div className="bg-white rounded-[0.4vw] border-t-[3px] border-t-[#10B981] px-[1.2vw] py-[1.6vh]">
-              <div className="font-display text-[#0F1115] text-[1.8vw] font-extrabold leading-none">7</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.6vh]">Tâches terminées</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-t-[3px] border-t-[#D4A53A] px-[1.2vw] py-[1.6vh]">
-              <div className="font-display text-[#0F1115] text-[1.8vw] font-extrabold leading-none">7</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.6vh]">En cours</div>
-            </div>
-            <div className="bg-white rounded-[0.4vw] border-t-[3px] border-t-[#DC2626] px-[1.2vw] py-[1.6vh]">
-              <div className="font-display text-[#0F1115] text-[1.8vw] font-extrabold leading-none">1</div>
-              <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.6vh]">En retard</div>
+            <div className="text-[1.1vw] leading-[1.5] text-white/90">
+              KPI financiers + activité opérationnelle + évolution du chiffre
+              d'affaires sur une seule page.
             </div>
           </div>
-
-          <div className="mt-[2vh] bg-white rounded-[0.4vw] border-l-[4px] border-l-[#2563EB] px-[1.5vw] py-[1.8vh]">
-            <div className="font-display text-[#0F1115] text-[1.1vw] font-bold">Évolution des encaissements</div>
-            <div className="font-body text-[#5C5D67] text-[0.85vw] mt-[0.4vh]">Courbe consolidée FCFA sur l'année</div>
-            <div className="mt-[1.2vh] h-[6vh] flex items-end gap-[0.4vw]">
-              <div className="flex-1 bg-[#FF6B00]/20 rounded-t-[2px]" style={{ height: "30%" }} />
-              <div className="flex-1 bg-[#FF6B00]/30 rounded-t-[2px]" style={{ height: "55%" }} />
-              <div className="flex-1 bg-[#FF6B00]/40 rounded-t-[2px]" style={{ height: "45%" }} />
-              <div className="flex-1 bg-[#FF6B00]/55 rounded-t-[2px]" style={{ height: "70%" }} />
-              <div className="flex-1 bg-[#FF6B00]/70 rounded-t-[2px]" style={{ height: "85%" }} />
-              <div className="flex-1 bg-[#FF6B00] rounded-t-[2px]" style={{ height: "100%" }} />
+          <div>
+            <div className="text-[0.8vw] tracking-[0.3em] uppercase font-bold text-white/40 mb-[0.8vh]">
+              Connecté à
+            </div>
+            <div className="text-[1.05vw] leading-[1.5] text-white/80">
+              <span className="text-[#FF6B00]">Comptabilité</span> ·{" "}
+              <span className="text-[#FF6B00]">CRM</span> ·{" "}
+              <span className="text-[#FF6B00]">Projets</span> ·{" "}
+              <span className="text-[#FF6B00]">Engagements</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="font-body text-[#5C5D67] text-[0.85vw] tracking-[0.25em] uppercase font-semibold mb-[2vh]">
-            Pourquoi cet accueil
-          </div>
+        <div className="flex items-center justify-between text-[0.85vw] text-white/40">
+          <div className="font-semibold uppercase tracking-[0.3em]">Greeting personnalisé · FCFA</div>
+          <div className="font-mono tracking-[0.2em]">03 / 15</div>
+        </div>
+      </div>
 
-          <div className="space-y-[1.8vh]">
-            <div className="bg-white rounded-[0.4vw] px-[1.5vw] py-[1.8vh] border-l-[4px] border-l-[#FF6B00]">
-              <div className="font-display text-[#0F1115] text-[1.3vw] font-bold leading-tight">Reconnaissance immédiate</div>
-              <div className="font-body text-[#5C5D67] text-[1vw] mt-[0.6vh] leading-relaxed">
-                Salutation contextuelle (matin, midi, soir) avec le prénom du collaborateur connecté. L'outil s'adresse à une personne, pas à un poste.
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[0.4vw] px-[1.5vw] py-[1.8vh] border-l-[4px] border-l-[#2563EB]">
-              <div className="font-display text-[#0F1115] text-[1.3vw] font-bold leading-tight">Orientation en un coup d'œil</div>
-              <div className="font-body text-[#5C5D67] text-[1vw] mt-[0.6vh] leading-relaxed">
-                Quatre indicateurs clés (actifs, terminés, en cours, en retard) — l'utilisateur sait quoi faire avant de cliquer où que ce soit.
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[0.4vw] px-[1.5vw] py-[1.8vh] border-l-[4px] border-l-[#10B981]">
-              <div className="font-display text-[#0F1115] text-[1.3vw] font-bold leading-tight">Personnalisation par rôle</div>
-              <div className="font-body text-[#5C5D67] text-[1vw] mt-[0.6vh] leading-relaxed">
-                Le contenu affiché s'adapte au rôle (Direction, Manager, Commercial, Technicien) et à la matrice de permissions.
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-[2.5vh] bg-[#0F1115] rounded-[0.4vw] grid grid-cols-3 px-[1.5vw] py-[2vh]">
-            <div className="text-center border-r border-[#2A2C33]">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">1ère</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Vue après login</div>
-            </div>
-            <div className="text-center border-r border-[#2A2C33]">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">5s</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Pour décider</div>
-            </div>
-            <div className="text-center">
-              <div className="font-display text-[#FF6B00] text-[1.6vw] font-extrabold leading-none">5</div>
-              <div className="font-body text-[#94939E] text-[0.7vw] tracking-[0.2em] uppercase mt-[0.5vh]">Rôles distincts</div>
-            </div>
-          </div>
+      <div className="flex-1 h-full bg-[#15181f] flex items-center justify-center px-[2vw] relative">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 50vw 50vh at 60% 50%, rgba(255,107,0,0.12), transparent 60%)",
+          }}
+        />
+        <div className="relative w-[96%] rounded-[0.8vw] overflow-hidden ring-1 ring-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <img src={shot} crossOrigin="anonymous" alt="Dashboard exécutif" className="w-full h-auto block" />
         </div>
       </div>
     </div>
