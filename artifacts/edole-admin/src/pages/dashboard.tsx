@@ -306,15 +306,8 @@ export default function Dashboard() {
               <div className="text-[10px] uppercase tracking-[0.32em] text-primary/90 font-bold">
                 Tableau de bord exécutif · {fullDateFr()}
               </div>
-              <h1 className="font-display mt-2 text-[30px] md:text-[40px] leading-[1.1] font-medium tracking-[-0.02em] text-white">
-                {getGreeting()}
-                {firstName && (
-                  <>
-                    ,{" "}
-                    <span className="italic font-normal text-primary">{firstName}</span>
-                  </>
-                )}
-                <span className="text-white/40">.</span>
+              <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-white">
+                {getGreeting()}{firstName ? `, ${firstName}` : ""}
               </h1>
             </div>
             <div className="flex items-center gap-6 text-right">
