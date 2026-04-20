@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Search, Send, MessageSquare, Paperclip, Smile, MapPin, Mic, MicOff, Phone, Video,
-  CheckCheck, Check, MoreVertical, Reply, Pencil, Trash2, Languages, Pin, BellOff, Bell, Archive,
+  CheckCheck, Check, MoreVertical, Reply, Pencil, Trash2, Languages, Pin, BellOff, Bell, Archive, MessageCircle,
   Plus, X, Loader2, Image as ImageIcon, FileText, Filter,
 } from "lucide-react";
 import { apiFetch, uploadFile } from "@/lib/api";
@@ -352,6 +352,12 @@ function MessageBubble({
                 <DropdownMenuItem onClick={onReply}><Reply className="w-4 h-4 mr-2" /> Répondre</DropdownMenuItem>
                 {msg.content && (
                   <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(msg.content!)}`, "_blank", "noopener,noreferrer")}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2 text-[#25D366]" /> Partager via WhatsApp
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {TARGET_LANGS.map((l) => (
                       <DropdownMenuItem key={l.code} onClick={() => { onTranslate(l.code); setShowTrans(l.code); }}>

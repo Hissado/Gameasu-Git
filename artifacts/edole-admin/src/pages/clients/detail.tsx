@@ -9,8 +9,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Building2, Briefcase, FolderKanban, CheckSquare, FolderOpen,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Mail, Phone, Globe,
-  Repeat, Calendar, ChevronDown,
+  Repeat, Calendar, ChevronDown, MessageCircle,
 } from "lucide-react";
+
+function waLink(phone?: string, text?: string) {
+  if (!phone) return null;
+  const digits = phone.replace(/[^\d]/g, "");
+  if (!digits) return null;
+  const url = `https://wa.me/${digits}`;
+  return text ? `${url}?text=${encodeURIComponent(text)}` : url;
+}
 
 type Client = { id: string; name: string; email?: string; phone?: string; website?: string; industry?: string; address?: string; status: string };
 type Engagement = { id: string; name: string; isRecurring: boolean; status: string; recurrencePattern?: any; clientName?: string };
@@ -56,6 +64,16 @@ export default function ClientDetailWorkspace() {
             </div>
           </div>
         </div>
+        {client.phone && waLink(client.phone) && (
+          <a
+            href={waLink(client.phone)!}
+            target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[#25D366] text-white text-sm font-medium hover:bg-[#1DA851] transition-colors shrink-0"
+            title="Ouvrir une conversation WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4" /> WhatsApp
+          </a>
+        )}
       </div>
 
       {/* Stats */}
