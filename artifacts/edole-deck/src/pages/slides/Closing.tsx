@@ -22,9 +22,6 @@ export default function Closing() {
         <img src={logo} crossOrigin="anonymous" alt="édolé — Le numérique au service du BTP" className="h-[10vh] w-auto object-contain self-start" />
 
         <div className="max-w-[72vw]">
-          <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3vh]">
-            En résumé
-          </div>
           <div className="font-display text-[7.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1vh]">
             Une plateforme.
           </div>
@@ -36,8 +33,7 @@ export default function Closing() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[0.85vw] text-white/40">
-          <div className="font-semibold uppercase tracking-[0.3em]">Merci de votre attention</div>
+        <div className="flex items-center justify-end text-[0.85vw] text-white/40">
           <div className="font-mono tracking-[0.2em]">15 / 15</div>
         </div>
       </div>
