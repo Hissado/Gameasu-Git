@@ -651,7 +651,7 @@ export default function Messaging() {
         const file = new File([blob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
         try {
           const up = await uploadFile(file) as any;
-          await apiFetch(`/api/conversations/${selectedConvId}/messages`, {
+          const created = await apiFetch<{ id: string }>(`/api/conversations/${selectedConvId}/messages`, {
             method: "POST",
             body: {
               content: "", kind: "voice", attachmentUrl: up.url,
@@ -659,6 +659,12 @@ export default function Messaging() {
               metadata: { durationSeconds: duration },
             } as any,
           });
+          // Auto-transcription en tâche de fond — la transcription apparaîtra
+          // sous le lecteur audio dès qu'elle est prête (via socket.io).
+          if (created?.id) {
+            apiFetch(`/api/messages/${created.id}/transcribe`, { method: "POST" })
+              .catch(() => { /* silencieux : l'utilisateur peut relancer manuellement */ });
+          }
         } catch (e: any) {
           alert(e?.message || "Erreur upload audio");
         }
