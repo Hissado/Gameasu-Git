@@ -187,25 +187,27 @@ function VoicePlayer({ url, durationSeconds }: { url: string; durationSeconds?: 
   const src = url ? `${url}${url.includes("?") ? "&" : "?"}token=${token || ""}` : "";
   return (
     <div className="flex items-center gap-3 min-w-[220px]">
-      <button
-        type="button"
-        disabled={!src || !!error}
-        onClick={async () => {
-          const a = audioRef.current;
-          if (!a) return;
-          if (playing) { a.pause(); setPlaying(false); return; }
-          try {
-            await a.play();
-            setPlaying(true);
-          } catch (err: any) {
-            setError(err?.message || "Lecture impossible");
-            setPlaying(false);
-          }
-        }}
-        className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50"
-      >
-        {playing ? <span className="w-3 h-3 bg-white rounded-sm" /> : <span className="ml-0.5 border-l-[10px] border-l-white border-y-[7px] border-y-transparent" />}
-      </button>
+      {!error && (
+        <button
+          type="button"
+          disabled={!src}
+          onClick={async () => {
+            const a = audioRef.current;
+            if (!a) return;
+            if (playing) { a.pause(); setPlaying(false); return; }
+            try {
+              await a.play();
+              setPlaying(true);
+            } catch (err: any) {
+              setError(err?.message || "Lecture impossible");
+              setPlaying(false);
+            }
+          }}
+          className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50"
+        >
+          {playing ? <span className="w-3 h-3 bg-white rounded-sm" /> : <span className="ml-0.5 border-l-[10px] border-l-white border-y-[7px] border-y-transparent" />}
+        </button>
+      )}
       <div className="flex-1">
         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
