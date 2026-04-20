@@ -1,8 +1,27 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { db, documentsTable } from "@workspace/db";
-import { and, eq, isNull, sql, desc, ilike, or } from "drizzle-orm";
+import { and, eq, isNull, sql, desc, ilike, or, inArray, ne } from "drizzle-orm";
+import { userAccessibleProjectIds } from "../lib/rbac/permissions";
 
 const router = Router();
+
+/**
+ * ACL documents : on restreint les documents rattachés à un projet (entityType=project)
+ * aux projets accessibles. Les documents non liés à un projet (clients, équipement,
+ * collaborateurs, autres) restent visibles selon les permissions de leur module.
+ */
+async function buildProjectAclCond(req: Request) {
+  if (!req.authUser) return undefined;
+  const accessible = await userAccessibleProjectIds(req.authUser.id);
+  if (accessible === null) return undefined; // bypass admin
+  if (accessible.length === 0) {
+    return ne(documentsTable.entityType, "project");
+  }
+  return or(
+    ne(documentsTable.entityType, "project"),
+    and(eq(documentsTable.entityType, "project"), inArray(documentsTable.entityId, accessible)),
+  );
+}
 
 router.get("/documents", async (req, res) => {
   const { entityType, entityId, category, search = "", limit = "50" } = req.query as Record<string, string>;
@@ -11,20 +30,27 @@ router.get("/documents", async (req, res) => {
   if (entityId) conds.push(eq(documentsTable.entityId, entityId));
   if (category) conds.push(eq(documentsTable.category, category));
   if (search) conds.push(or(ilike(documentsTable.name, `%${search}%`), ilike(documentsTable.description, `%${search}%`)));
+  const acl = await buildProjectAclCond(req);
+  if (acl) conds.push(acl);
   const data = await db.select().from(documentsTable).where(and(...conds)).orderBy(desc(documentsTable.createdAt)).limit(Number(limit));
   return res.json({ data });
 });
 
-router.get("/documents/stats", async (_req, res) => {
+router.get("/documents/stats", async (req, res) => {
+  // ACL : restreindre les stats aux documents accessibles à l'utilisateur.
+  const acl = await buildProjectAclCond(req);
+  const baseConds = [isNull(documentsTable.deletedAt)];
+  if (acl) baseConds.push(acl);
+  const where = and(...baseConds);
   const byEntity = await db.select({
     entityType: documentsTable.entityType,
     count: sql<number>`count(*)`,
-  }).from(documentsTable).where(isNull(documentsTable.deletedAt)).groupBy(documentsTable.entityType);
+  }).from(documentsTable).where(where).groupBy(documentsTable.entityType);
   const byCategory = await db.select({
     category: documentsTable.category,
     count: sql<number>`count(*)`,
-  }).from(documentsTable).where(isNull(documentsTable.deletedAt)).groupBy(documentsTable.category);
-  const total = await db.select({ c: sql<number>`count(*)` }).from(documentsTable).where(isNull(documentsTable.deletedAt));
+  }).from(documentsTable).where(where).groupBy(documentsTable.category);
+  const total = await db.select({ c: sql<number>`count(*)` }).from(documentsTable).where(where);
   return res.json({
     total: Number(total[0].c),
     byEntity: byEntity.map((r) => ({ entityType: r.entityType || "non_classé", count: Number(r.count) })),

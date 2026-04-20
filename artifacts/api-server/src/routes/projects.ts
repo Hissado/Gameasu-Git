@@ -1,16 +1,29 @@
 import { Router } from "express";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import { db } from "@workspace/db";
 import { projectsTable, projectPhasesTable, clientsTable, usersTable, tasksTable } from "@workspace/db";
-import { eq, sql, isNull } from "drizzle-orm";
+import { and, eq, sql, isNull, inArray } from "drizzle-orm";
+import { userAccessibleProjectIds, userHasProjectAccess } from "../lib/rbac/permissions";
 
 const router = Router();
 
-router.get("/projects", async (req, res) => {
-  const { status, clientId, search, page = "1", limit = "20" } = req.query as Record<string, string>;
+router.get("/projects", requirePermission("projects.read"), async (req, res) => {
+  const { page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
+
+  // ACL : restreindre aux projets accessibles (sauf si projects.read_all).
+  const accessible = req.authUser ? await userAccessibleProjectIds(req.authUser.id) : [];
+  const conds: any[] = [isNull(projectsTable.deletedAt)];
+  if (accessible !== null) {
+    if (accessible.length === 0) {
+      return res.json({ data: [], total: 0, page: pageNum, limit: limitNum });
+    }
+    conds.push(inArray(projectsTable.id, accessible));
+  }
+  const where = and(...conds);
 
   const rows = await db.select({
     proj: projectsTable,
@@ -20,7 +33,7 @@ router.get("/projects", async (req, res) => {
     .from(projectsTable)
     .leftJoin(clientsTable, eq(projectsTable.clientId, clientsTable.id))
     .leftJoin(usersTable, eq(projectsTable.managerId, usersTable.id))
-    .where(isNull(projectsTable.deletedAt))
+    .where(where)
     .limit(limitNum).offset(offset);
 
   const data = rows.map(row => ({
@@ -30,7 +43,7 @@ router.get("/projects", async (req, res) => {
     budget: row.proj.budget ? Number(row.proj.budget) : null,
   }));
 
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(projectsTable).where(isNull(projectsTable.deletedAt));
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(projectsTable).where(where);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
@@ -43,7 +56,17 @@ router.post("/projects", requireManagerOrAbove, async (req, res) => {
   return res.status(201).json({ ...proj, budget: proj.budget ? Number(proj.budget) : null });
 });
 
-router.get("/projects/stats", async (req, res) => {
+router.get("/projects/stats", requirePermission("projects.read"), async (req, res) => {
+  // ACL : limiter les stats aux projets accessibles (sauf bypass).
+  const accessible = req.authUser ? await userAccessibleProjectIds(req.authUser.id) : null;
+  if (accessible !== null) {
+    const projects = accessible.length === 0 ? [] : await db.select().from(projectsTable).where(and(isNull(projectsTable.deletedAt), inArray(projectsTable.id, accessible)));
+    return res.json({
+      totalCount: projects.length,
+      activeCount: projects.filter(p => p.status === "active").length,
+      completedCount: projects.filter(p => p.status === "completed").length,
+    });
+  }
   const allProjects = await db.select().from(projectsTable).where(isNull(projectsTable.deletedAt));
   const statuses = ["planning", "active", "on_hold", "completed", "cancelled"];
   const byStatus = statuses.map(s => ({ status: s, count: allProjects.filter(p => p.status === s).length }));
@@ -56,6 +79,9 @@ router.get("/projects/stats", async (req, res) => {
 });
 
 router.get("/projects/:id", async (req, res) => {
+  if (req.authUser && !(await userHasProjectAccess(req.authUser.id, req.params.id))) {
+    return res.status(403).json({ error: "Accès refusé à ce projet" });
+  }
   const rows = await db.select({
     proj: projectsTable,
     clientName: clientsTable.name,

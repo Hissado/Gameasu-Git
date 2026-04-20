@@ -51,6 +51,15 @@ export async function apiFetch<T = unknown>(
       // Notifie le AuthProvider qui se chargera de la redirection.
       window.dispatchEvent(new CustomEvent("auth:unauthorized"));
     }
+    if (res.status === 423) {
+      // L'utilisateur doit changer son mot de passe avant toute autre action.
+      if (typeof window !== "undefined" && !window.location.pathname.endsWith("/change-password")) {
+        window.dispatchEvent(new CustomEvent("auth:password-change-required"));
+      }
+    }
+    if (res.status === 403) {
+      window.dispatchEvent(new CustomEvent("auth:forbidden", { detail: errBody }));
+    }
     throw new ApiError(
       errBody?.error || errBody?.detail || `HTTP ${res.status}`,
       res.status,

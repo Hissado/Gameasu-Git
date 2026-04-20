@@ -70,6 +70,15 @@ const FpaBudgetDetail = lazy(() => import("@/pages/fpa/budget-detail"));
 const FpaVariance = lazy(() => import("@/pages/fpa/variance"));
 const FpaForecast = lazy(() => import("@/pages/fpa/forecast"));
 const FpaReports = lazy(() => import("@/pages/fpa/reports"));
+const AdminHub = lazy(() => import("@/pages/admin/index"));
+const AdminRoles = lazy(() => import("@/pages/admin/roles"));
+const AdminPermissions = lazy(() => import("@/pages/admin/permissions"));
+const AdminDepartments = lazy(() => import("@/pages/admin/departments"));
+const AdminUsers = lazy(() => import("@/pages/admin/users"));
+const AdminInvitations = lazy(() => import("@/pages/admin/invitations"));
+const AdminAudit = lazy(() => import("@/pages/admin/audit"));
+const ChangePassword = lazy(() => import("@/pages/change-password"));
+const AcceptInvitation = lazy(() => import("@/pages/accept-invitation"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -99,6 +108,9 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/accept-invitation">
+        <Suspense fallback={<PageFallback />}><AcceptInvitation /></Suspense>
+      </Route>
       <Route>
         <ProtectedRoute>
           <Layout>
@@ -178,6 +190,15 @@ function AppRouter() {
                 <Route path="/documents" component={DocumentsPage} />
                 <Route path="/alerts" component={AlertsPage} />
                 <Route path="/tickets" component={TicketsPage} />
+
+                <Route path="/admin" component={AdminHub} />
+                <Route path="/admin/roles" component={AdminRoles} />
+                <Route path="/admin/permissions" component={AdminPermissions} />
+                <Route path="/admin/departments" component={AdminDepartments} />
+                <Route path="/admin/users" component={AdminUsers} />
+                <Route path="/admin/invitations" component={AdminInvitations} />
+                <Route path="/admin/audit" component={AdminAudit} />
+                <Route path="/change-password" component={ChangePassword} />
 
                 <Route component={NotFound} />
               </Switch>

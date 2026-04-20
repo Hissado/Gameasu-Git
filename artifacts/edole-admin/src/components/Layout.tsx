@@ -142,6 +142,17 @@ const NAV_GROUPS = [
       { name: "Reporting & exports", path: "/fpa/reports", icon: FileText },
     ]
   },
+  {
+    title: "Administration",
+    items: [
+      { name: "Console admin", path: "/admin", icon: Settings },
+      { name: "Utilisateurs", path: "/admin/users", icon: UserCircle },
+      { name: "Invitations", path: "/admin/invitations", icon: UsersRound },
+      { name: "Rôles & droits", path: "/admin/roles", icon: Briefcase },
+      { name: "Départements", path: "/admin/departments", icon: Network },
+      { name: "Journal d'audit", path: "/admin/audit", icon: ClipboardCheck },
+    ]
+  },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

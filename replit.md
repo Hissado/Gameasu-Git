@@ -113,6 +113,21 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes — avril 2026
 
+### Chantier marathon « Gouvernance & Sécurité » (T01–T10) — avril 2026
+- **RBAC dynamique** : 37 permissions (catalog par catégorie : Utilisateurs, Projets, Tâches, Documents, Comptabilité, FP&A, RH, Marketing, etc.) et 5 rôles système (`super_admin`, `admin`, `manager`, `commercial`, `collaborator`) seedés au boot. Helpers `hasPermission`, `userAccessibleProjectIds` (cache 30s).
+- **Middlewares** : `requirePermission(code)`, `requireAnyPermission(...)`, `requireProjectAccess(idParam)`, `enforcePasswordChange` (renvoie 423 si `mustChangePassword`).
+- **ACL projet** appliquée sur listings et détails : `/projects`, `/projects/:id`, `/projects/stats`, `/tasks`, `/tasks/:id`, `/tasks/:id/comments`, `/documents`, `/documents/stats`. Bypass via `projects.read_all`.
+- **Onboarding** : `/auth/accept-invitation` (token 7j), `/auth/change-password`, `/auth/forgot-password`, `/auth/reset-password`. Login horodaté + audit + flag `mustChangePassword`.
+- **Invitations email** : lib `email.ts` avec providers SendGrid/Resend (auto-détection), fallback `preview` (in-memory inbox accessible via `/admin/invitations`). Templates orange/noir.
+- **Audit logs** : table `audit_logs` (qui, quoi, sur quoi, quand, IP, payload). Tracé : login, login_failed, invite, role_change, activate/deactivate, password_change, password_reset_*, permission_change. Endpoint paginé `/admin/audit?action=&entityType=&q=`.
+- **Garde-fous critiques** sur `PUT/DELETE /users/:id` :
+  - Refus auto-désactivation (`isActive=false` sur soi-même).
+  - Refus auto-changement de rôle.
+  - Protection « dernier admin actif » (`ensureNotLastAdmin`).
+  - Suppression de rôle bloquée si utilisateurs encore assignés.
+- **Frontend admin** : pages `/admin` (hub), `/admin/{users,invitations,roles,permissions,departments,audit}`, `/change-password`, `/accept-invitation`. Composant `ConfirmDialog` (avec type-to-confirm pour les actions destructives), hook `usePermissions`, redirection globale `mustChangePassword` (handler 423 dans `lib/api.ts` + garde dans `ProtectedRoute`). Section « Administration » dans la sidebar.
+- **Schéma DB** : nouvelles tables `roles`, `permissions`, `role_permissions`, `user_project_access`, `audit_logs`. Champs `users` étendus : `mustChangePassword`, `passwordResetToken(+ExpiresAt)`, `invitedById`, `invitedAt`, `acceptedAt`, `lastLoginAt`, `departmentId`.
+
 ### Itération Hissado v2 (durcissement)
 - **Tickets RBAC** : `PUT /tickets/:id` exige manager+/admin pour status/priority/category/assignee ; les owners peuvent éditer subject/description de leurs tickets uniquement.
 - **Schéma** : `equipment.qrCode`, `inspections.beforePhotos`/`afterPhotos`, table `daily_stock_reports`.

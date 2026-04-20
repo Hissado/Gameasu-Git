@@ -23,7 +23,10 @@ import marketingRouter from "./marketing";
 import alertsRouter, { runAlertsScan } from "./alerts";
 import ticketsRouter from "./tickets";
 import fpaRouter from "./fpa";
+import adminRouter from "./admin";
 import { requireAuth } from "../middlewares/auth";
+import { enforcePasswordChange } from "../middlewares/permissions";
+import { seedRbac } from "../lib/rbac/seed";
 
 const router: IRouter = Router();
 
@@ -31,8 +34,11 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(authRouter);
 
-// Toutes les autres routes nécessitent une authentification
+// Toutes les autres routes nécessitent une authentification + une vérification
+// "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
+// et /auth/change-password (renvoie 423 → le frontend redirige).
 router.use(requireAuth);
+router.use(enforcePasswordChange);
 
 router.use(usersRouter);
 router.use(clientsRouter);
@@ -56,6 +62,12 @@ router.use(marketingRouter);
 router.use(alertsRouter);
 router.use(ticketsRouter);
 router.use(fpaRouter);
+router.use(adminRouter);
+
+// Seed RBAC au démarrage (idempotent).
+seedRbac()
+  .then((s) => console.log(`[rbac] seed OK : ${s.permissions} permissions, ${s.roles} rôles système`))
+  .catch((e) => console.warn("[rbac] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h
 runAlertsScan().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));

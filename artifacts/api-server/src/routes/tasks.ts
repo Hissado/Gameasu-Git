@@ -1,16 +1,42 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { tasksTable, taskCommentsTable, taskHistoryTable, projectsTable, usersTable } from "@workspace/db";
-import { eq, sql, isNull } from "drizzle-orm";
+import { and, eq, or, sql, isNull, inArray } from "drizzle-orm";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
+import { userAccessibleProjectIds, userHasProjectAccess } from "../lib/rbac/permissions";
 
 const router = Router();
 
-router.get("/tasks", async (req, res) => {
-  const { projectId, assignedTo, status, priority, search, page = "1", limit = "50" } = req.query as Record<string, string>;
+/** Vérifie que l'utilisateur a accès au projet de la tâche (ou est l'assigné). */
+async function ensureTaskAccess(req: any, taskId: string, allowAssignee = true) {
+  const [t] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId)).limit(1);
+  if (!t) return { allowed: false, status: 404, body: { error: "Tâche introuvable" } };
+  if (!req.authUser) return { allowed: true, task: t };
+  if (allowAssignee && t.assigneeId === req.authUser.id) return { allowed: true, task: t };
+  if (t.projectId && (await userHasProjectAccess(req.authUser.id, t.projectId))) return { allowed: true, task: t };
+  return { allowed: false, status: 403, body: { error: "Accès refusé à cette tâche" } };
+}
+
+router.get("/tasks", requirePermission("tasks.read"), async (req, res) => {
+  const { page = "1", limit = "50" } = req.query as Record<string, string>;
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
+
+  // ACL : restreindre les tâches aux projets accessibles à l'utilisateur.
+  const accessible = req.authUser ? await userAccessibleProjectIds(req.authUser.id) : [];
+  const conds: any[] = [isNull(tasksTable.deletedAt)];
+  if (accessible !== null) {
+    if (accessible.length === 0) {
+      // Sans projet : on autorise les tâches assignées personnellement (pas d'orphelin ailleurs).
+      if (req.authUser) conds.push(eq(tasksTable.assigneeId, req.authUser.id));
+      else return res.json({ data: [], total: 0, page: pageNum, limit: limitNum });
+    } else {
+      conds.push(or(inArray(tasksTable.projectId, accessible), eq(tasksTable.assigneeId, req.authUser!.id)));
+    }
+  }
+  const where = and(...conds);
 
   const rows = await db.select({
     task: tasksTable,
@@ -20,11 +46,11 @@ router.get("/tasks", async (req, res) => {
     .from(tasksTable)
     .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
     .leftJoin(usersTable, eq(tasksTable.assigneeId, usersTable.id))
-    .where(isNull(tasksTable.deletedAt))
+    .where(where)
     .limit(limitNum).offset(offset);
 
   const data = rows.map(row => ({ ...row.task, projectName: row.projectName, assigneeName: row.assigneeName }));
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(tasksTable).where(isNull(tasksTable.deletedAt));
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(tasksTable).where(where);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
@@ -40,7 +66,9 @@ router.post("/tasks", requireManagerOrAbove, async (req, res) => {
   return res.status(201).json(task);
 });
 
-router.get("/tasks/:id", async (req, res) => {
+router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res) => {
+  const acl = await ensureTaskAccess(req, req.params.id);
+  if (!acl.allowed) return res.status(acl.status!).json(acl.body);
   const rows = await db.select({
     task: tasksTable,
     projectName: projectsTable.name,
@@ -120,7 +148,9 @@ router.delete("/tasks/:id", requireAdmin, async (req, res) => {
   return res.status(204).send();
 });
 
-router.get("/tasks/:id/comments", async (req, res) => {
+router.get("/tasks/:id/comments", requirePermission("tasks.read"), async (req, res) => {
+  const acl = await ensureTaskAccess(req, req.params.id);
+  if (!acl.allowed) return res.status(acl.status!).json(acl.body);
   const comments = await db.select({
     comment: taskCommentsTable,
     userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
@@ -130,7 +160,9 @@ router.get("/tasks/:id/comments", async (req, res) => {
   return res.json(comments.map(c => ({ ...c.comment, userName: c.userName })));
 });
 
-router.post("/tasks/:id/comments", async (req, res) => {
+router.post("/tasks/:id/comments", requirePermission("tasks.read"), async (req, res) => {
+  const acl = await ensureTaskAccess(req, req.params.id);
+  if (!acl.allowed) return res.status(acl.status!).json(acl.body);
   const { content } = req.body;
   if (!content) return res.status(400).json({ error: "Content required" });
   const userId = req.authUser?.id;
