@@ -48,7 +48,7 @@ export default function AdminRolesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Rôles & permissions</h1>
-          <p className="text-muted-foreground mt-1">Configurez précisément ce que chaque rôle peut faire.</p>
+          <p className="text-muted-foreground mt-1">Permissions par rôle</p>
         </div>
         <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" /> Nouveau rôle

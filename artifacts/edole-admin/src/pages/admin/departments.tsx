@@ -46,7 +46,7 @@ export default function AdminDepartmentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Départements</h1>
-          <p className="text-muted-foreground mt-1">Pôles et unités organisationnelles.</p>
+          <p className="text-muted-foreground mt-1">Pôles et unités organisationnelles</p>
         </div>
         <Button onClick={() => setOpen(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Nouveau département</Button>
       </div>

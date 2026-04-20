@@ -21,7 +21,7 @@ export default function EquipmentCategories() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Catégories Matériel</h1>
-            <p className="text-sm text-muted-foreground mt-1">Classification de la flotte d'équipements</p>
+            <p className="text-sm text-muted-foreground mt-1">Classification de la flotte</p>
           </div>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">

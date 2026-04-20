@@ -39,7 +39,7 @@ export default function AdminInvitationsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Invitations</h1>
-        <p className="text-muted-foreground mt-1">Suivi des invitations envoyées et boîte d'aperçu (mode développement).</p>
+        <p className="text-muted-foreground mt-1">Invitations envoyées</p>
       </div>
 
       <Card>

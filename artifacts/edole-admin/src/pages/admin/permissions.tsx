@@ -27,7 +27,7 @@ export default function PermissionsCatalog() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Catalogue de permissions</h1>
-        <p className="text-muted-foreground mt-1">Référentiel des droits qu'un rôle peut accorder.</p>
+        <p className="text-muted-foreground mt-1">Référentiel des droits</p>
       </div>
 
       <div className="relative max-w-md">

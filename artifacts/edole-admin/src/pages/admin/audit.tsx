@@ -46,7 +46,7 @@ export default function AdminAuditPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Journal d'audit</h1>
-        <p className="text-muted-foreground mt-1">Trace des actions sensibles effectuées sur la plateforme.</p>
+        <p className="text-muted-foreground mt-1">Traçabilité des actions sensibles</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

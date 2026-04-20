@@ -29,7 +29,7 @@ export default function RentalsList() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Locations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Suivi des locations d'équipements clients</p>
+          <p className="text-sm text-muted-foreground mt-1">Contrats de location d'équipements</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />

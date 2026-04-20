@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Utilisateurs</h1>
-          <p className="text-muted-foreground mt-1">Invitez, gérez les rôles et accès projets.</p>
+          <p className="text-muted-foreground mt-1">Invitations · Rôles · Accès projets</p>
         </div>
         <Button onClick={() => setInviteOpen(true)} className="bg-primary hover:bg-primary/90"><UserPlus className="w-4 h-4 mr-2" />Inviter</Button>
       </div>

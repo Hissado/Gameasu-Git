@@ -840,9 +840,6 @@ export default function Messaging() {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Messagerie</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Communications internes, projets et clients · auto-traduction · vocal · présence temps réel
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>

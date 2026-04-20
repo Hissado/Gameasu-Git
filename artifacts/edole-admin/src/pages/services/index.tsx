@@ -105,9 +105,7 @@ export default function ServicesIndex() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Briefcase className="w-7 h-7 text-primary" /> Services
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Engagements récurrents et missions par client : sections, tâches, échéances et collaboration.
-          </p>
+          <p className="text-muted-foreground mt-1">Engagements et missions par client</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input placeholder="Rechercher un engagement ou un client…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-72" />

@@ -17,7 +17,7 @@ export default function EquipmentQRCodes() {
       <div className="flex items-start justify-between no-print">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Étiquettes QR — Équipements</h1>
-          <p className="text-sm text-muted-foreground mt-1">Génération et impression des codes QR pour étiquetage du parc matériel.</p>
+          <p className="text-sm text-muted-foreground mt-1">Étiquetage du parc matériel</p>
         </div>
         <Button onClick={print} className="bg-primary hover:bg-primary/90">
           <Printer className="w-4 h-4 mr-2" /> Imprimer

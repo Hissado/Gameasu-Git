@@ -28,7 +28,7 @@ export default function InvoicesList() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Factures</h1>
-          <p className="text-sm text-muted-foreground mt-1">Émission et suivi de la facturation client</p>
+          <p className="text-sm text-muted-foreground mt-1">Facturation client</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />

@@ -65,7 +65,7 @@ export default function MapPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Carte des opérations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Localisation géographique du matériel sur les chantiers actifs.</p>
+          <p className="text-sm text-muted-foreground mt-1">Localisation du matériel sur les chantiers actifs</p>
         </div>
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-primary" /> Équipement</span>

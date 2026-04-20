@@ -34,7 +34,6 @@ export default function CallsList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Historique des appels</h1>
-          <p className="text-muted-foreground mt-1">Journal des communications audio et vidéo internes</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <PhoneCall className="w-4 h-4 mr-2" />

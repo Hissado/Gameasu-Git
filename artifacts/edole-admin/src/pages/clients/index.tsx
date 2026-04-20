@@ -42,9 +42,7 @@ export default function ClientsWorkspace() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Building2 className="w-7 h-7 text-primary" /> Clients
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Espace racine de la plateforme. Chaque client possède son workspace : engagements, projets, tâches, fichiers et conversations.
-          </p>
+          <p className="text-muted-foreground mt-1">Portefeuille clients</p>
         </div>
         <div className="flex gap-2">
           <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
