@@ -182,17 +182,27 @@ function VoicePlayer({ url, durationSeconds }: { url: string; durationSeconds?: 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const token = localStorage.getItem("auth_token");
-  const src = `${url}${url.includes("?") ? "&" : "?"}token=${token}`;
+  const src = url ? `${url}${url.includes("?") ? "&" : "?"}token=${token || ""}` : "";
   return (
     <div className="flex items-center gap-3 min-w-[220px]">
       <button
-        onClick={() => {
+        type="button"
+        disabled={!src || !!error}
+        onClick={async () => {
           const a = audioRef.current;
           if (!a) return;
-          if (playing) { a.pause(); setPlaying(false); } else { a.play(); setPlaying(true); }
+          if (playing) { a.pause(); setPlaying(false); return; }
+          try {
+            await a.play();
+            setPlaying(true);
+          } catch (err: any) {
+            setError(err?.message || "Lecture impossible");
+            setPlaying(false);
+          }
         }}
-        className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0"
+        className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50"
       >
         {playing ? <span className="w-3 h-3 bg-white rounded-sm" /> : <span className="ml-0.5 border-l-[10px] border-l-white border-y-[7px] border-y-transparent" />}
       </button>
@@ -200,17 +210,23 @@ function VoicePlayer({ url, durationSeconds }: { url: string; durationSeconds?: 
         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <div className="text-[10px] text-slate-500 mt-1">{formatDuration(durationSeconds)}</div>
+        <div className="text-[10px] text-slate-500 mt-1">
+          {error ? <span className="text-rose-600">Audio indisponible</span> : formatDuration(durationSeconds)}
+        </div>
       </div>
-      <audio
-        ref={audioRef}
-        src={src}
-        onEnded={() => { setPlaying(false); setProgress(0); }}
-        onTimeUpdate={(e) => {
-          const a = e.currentTarget;
-          if (a.duration) setProgress((a.currentTime / a.duration) * 100);
-        }}
-      />
+      {src && (
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="metadata"
+          onEnded={() => { setPlaying(false); setProgress(0); }}
+          onError={() => { setError("source"); setPlaying(false); }}
+          onTimeUpdate={(e) => {
+            const a = e.currentTarget;
+            if (a.duration) setProgress((a.currentTime / a.duration) * 100);
+          }}
+        />
+      )}
     </div>
   );
 }
