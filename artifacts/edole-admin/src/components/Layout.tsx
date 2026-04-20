@@ -180,14 +180,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* Zone logo : fond ivoire chaleureux premium, harmonieux avec l'orange EDOLE */}
-      <div
-        className="relative flex items-center justify-between px-6 py-5 shrink-0 border-b border-black/[0.04]"
-        style={{
-          background: "linear-gradient(180deg, #f7f1e6 0%, #f2ebde 100%)",
-          boxShadow: "inset 0 -1px 0 rgba(0,0,0,0.02), 0 1px 0 rgba(0,0,0,0.04)",
-        }}
-      >
+      {/* Zone logo : bandeau aligné sur la topbar (bg-card / border-border) */}
+      <div className="relative flex items-center justify-between px-6 h-16 shrink-0 bg-card border-b border-border/70">
         <Link
           href="/"
           onClick={() => setMobileOpen(false)}
@@ -197,7 +191,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <img
             src={logoFull}
             alt="édolé"
-            className="h-14 w-auto object-contain select-none cursor-pointer"
+            className="h-10 w-auto object-contain select-none cursor-pointer"
             draggable={false}
           />
         </Link>
