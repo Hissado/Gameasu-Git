@@ -105,3 +105,16 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 - 2 orders, 1 proforma, 1 invoice, 1 payment
 - 2 conversations with messages
 - 5 notifications
+
+## Recent Changes — avril 2026
+
+### Itération Hissado v2 (durcissement)
+- **Tickets RBAC** : `PUT /tickets/:id` exige manager+/admin pour status/priority/category/assignee ; les owners peuvent éditer subject/description de leurs tickets uniquement.
+- **Schéma** : `equipment.qrCode`, `inspections.beforePhotos`/`afterPhotos`, table `daily_stock_reports`.
+- **QR codes matériel** : `GET /equipment/:id/qrcode` (PNG 320×320) + `POST /equipment/:id/qrcode` (régénère + persiste data URL, manager+).
+- **Comparateur inspections** : `GET /rentals/:id/inspections/compare` retourne {departure, return, diff} pour gestion litige caution.
+- **Snapshots stock** : `POST /reports/stock-daily/snapshot` (manager+) + `GET /reports/stock-daily/history` (30 derniers).
+- Détails : `AUDIT_HISSADO_VS_EDOLE.md` §5bis.
+
+### Itération Hissado v1
+- Module Tickets (table + API + page `/tickets`), changement mot de passe (PUT /auth/password + onglet Sécurité), matrice rôles dans Settings, PWA manifest.

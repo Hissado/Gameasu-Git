@@ -165,6 +165,36 @@ router.get("/rentals/:id/inspections", async (req, res) => {
   });
 });
 
+// Comparateur entrée/sortie avec diff exploitable (litige éventuel)
+router.get("/rentals/:id/inspections/compare", async (req, res) => {
+  const inspections = await db
+    .select()
+    .from(inspectionsTable)
+    .where(eq(inspectionsTable.rentalId, req.params.id));
+  const departure = inspections.find((i) => i.type === "departure") || null;
+  const returnInsp = inspections.find((i) => i.type === "return") || null;
+
+  const beforeCount = (departure?.beforePhotos?.length || 0) + (departure?.photos?.length || 0);
+  const afterCount = (returnInsp?.afterPhotos?.length || 0) + (returnInsp?.photos?.length || 0);
+  const hasDispute = returnInsp?.hasDispute === "true";
+  const retention = returnInsp?.retentionAmount ? Number(returnInsp.retentionAmount) : 0;
+
+  return res.json({
+    rentalId: req.params.id,
+    departure,
+    return: returnInsp,
+    diff: {
+      beforePhotosCount: beforeCount,
+      afterPhotosCount: afterCount,
+      photoDelta: afterCount - beforeCount,
+      hasDispute,
+      retentionAmount: retention,
+      disputeNotes: returnInsp?.disputeNotes || null,
+      ready: !!departure && !!returnInsp,
+    },
+  });
+});
+
 // LOGISTICS
 router.get("/logistics", async (req, res) => {
   const { type, status, page = "1", limit = "20" } = req.query as Record<string, string>;

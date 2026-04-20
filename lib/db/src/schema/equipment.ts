@@ -22,6 +22,7 @@ export const equipmentTable = pgTable("equipment", {
   dailyRate: numeric("daily_rate", { precision: 15, scale: 2 }),
   imageUrl: text("image_url"),
   photos: jsonb("photos").$type<string[]>().default([]),
+  qrCode: text("qr_code"),
   variant: text("variant"),
   location: text("location"),
   // Collaborateur responsable de l'équipement (synchronisation Matériel ↔ RH).

@@ -41,6 +41,7 @@ import {
   Megaphone,
   Target,
   FolderOpen,
+  LifeBuoy,
   Bell as BellIcon
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -56,6 +57,7 @@ const NAV_GROUPS = [
       { name: "Carte", path: "/map", icon: MapIcon },
       { name: "Alertes", path: "/alerts", icon: BellIcon },
       { name: "Documents", path: "/documents", icon: FolderOpen },
+      { name: "Support", path: "/tickets", icon: LifeBuoy },
     ]
   },
   {

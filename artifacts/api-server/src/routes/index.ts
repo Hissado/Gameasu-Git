@@ -21,6 +21,7 @@ import servicesRouter from "./services";
 import documentsRouter from "./documents";
 import marketingRouter from "./marketing";
 import alertsRouter, { runAlertsScan } from "./alerts";
+import ticketsRouter from "./tickets";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -52,6 +53,7 @@ router.use(servicesRouter);
 router.use(documentsRouter);
 router.use(marketingRouter);
 router.use(alertsRouter);
+router.use(ticketsRouter);
 
 // Scan d'alertes au démarrage + toutes les 6h
 runAlertsScan().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));

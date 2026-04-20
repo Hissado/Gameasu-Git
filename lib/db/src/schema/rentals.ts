@@ -37,6 +37,8 @@ export const inspectionsTable = pgTable("inspections", {
   disputeNotes: text("dispute_notes"),
   retentionAmount: numeric("retention_amount", { precision: 15, scale: 2 }),
   photos: jsonb("photos").$type<string[]>().default([]),
+  beforePhotos: jsonb("before_photos").$type<string[]>().default([]),
+  afterPhotos: jsonb("after_photos").$type<string[]>().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

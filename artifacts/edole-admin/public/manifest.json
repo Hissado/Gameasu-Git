@@ -1,0 +1,20 @@
+{
+  "name": "EDOLE AFRICA ADMIN",
+  "short_name": "EDOLE",
+  "description": "Plateforme BTP — Pilotage, Matériel, Commercial, Comptabilité OHADA",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F1115",
+  "theme_color": "#FF6B00",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -14,3 +14,5 @@ export * from "./services";
 export * from "./documents";
 export * from "./marketing";
 export * from "./alerts";
+export * from "./tickets";
+export * from "./reports";

@@ -63,6 +63,7 @@ const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const DocumentsPage = lazy(() => import("@/pages/documents/index"));
 const AlertsPage = lazy(() => import("@/pages/alerts/index"));
+const TicketsPage = lazy(() => import("@/pages/tickets/index"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -163,6 +164,7 @@ function AppRouter() {
 
                 <Route path="/documents" component={DocumentsPage} />
                 <Route path="/alerts" component={AlertsPage} />
+                <Route path="/tickets" component={TicketsPage} />
 
                 <Route component={NotFound} />
               </Switch>

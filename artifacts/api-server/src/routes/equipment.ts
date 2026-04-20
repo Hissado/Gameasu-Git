@@ -1,10 +1,39 @@
 import { Router } from "express";
+import QRCode from "qrcode";
 import { db } from "@workspace/db";
 import { equipmentTable, equipmentCategoriesTable } from "@workspace/db";
 import { eq, sql, isNull } from "drizzle-orm";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 
 const router = Router();
+
+// QR code (PNG image) pour identifier physiquement un équipement
+router.get("/equipment/:id/qrcode", async (req, res) => {
+  const [eq1] = await db.select().from(equipmentTable).where(eq(equipmentTable.id, req.params.id)).limit(1);
+  if (!eq1) {
+    res.status(404).json({ error: "Équipement introuvable" });
+    return;
+  }
+  const payload = JSON.stringify({ id: eq1.id, code: eq1.code, name: eq1.name });
+  const png = await QRCode.toBuffer(payload, { type: "png", width: 320, margin: 2 });
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(png);
+});
+
+// Régénère et persiste le payload QR sur l'équipement
+router.post("/equipment/:id/qrcode", requireManagerOrAbove, async (req, res) => {
+  const [eq1] = await db.select().from(equipmentTable).where(eq(equipmentTable.id, req.params.id)).limit(1);
+  if (!eq1) {
+    res.status(404).json({ error: "Équipement introuvable" });
+    return;
+  }
+  const payload = JSON.stringify({ id: eq1.id, code: eq1.code, name: eq1.name });
+  const dataUrl = await QRCode.toDataURL(payload, { width: 320, margin: 2 });
+  const [updated] = await db.update(equipmentTable).set({ qrCode: dataUrl }).where(eq(equipmentTable.id, req.params.id)).returning();
+  res.json({ id: updated.id, qrCode: updated.qrCode });
+});
+
 
 router.get("/equipment/categories", async (req, res) => {
   const cats = await db.select().from(equipmentCategoriesTable);
