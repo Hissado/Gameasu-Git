@@ -5,14 +5,6 @@ export default function Cover() {
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0F1115] via-[#13161c] to-[#0A0B0E]" />
-      <div
-        className="absolute inset-0 opacity-80"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 60vw 70vh at 80% 40%, rgba(255,107,0,0.28), transparent 60%)",
-        }}
-      />
-
       <div className="absolute right-[-4vw] top-[9vh] w-[64vw] h-[78vh] rounded-[1.2vw] overflow-hidden ring-1 ring-white/15 shadow-[0_40px_100px_rgba(0,0,0,0.65)] rotate-[-2.5deg]">
         <img
           src={hero}
@@ -23,10 +15,18 @@ export default function Cover() {
       </div>
 
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(90deg, #0F1115 0%, rgba(15,17,21,0.92) 38%, rgba(15,17,21,0) 62%)",
+            "linear-gradient(90deg, #0F1115 0%, rgba(15,17,21,0.94) 34%, rgba(15,17,21,0.35) 52%, rgba(15,17,21,0) 64%)",
+        }}
+      />
+
+      <div
+        className="absolute inset-0 pointer-events-none mix-blend-screen"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 50vw 55vh at 88% 18%, rgba(255,107,0,0.18), transparent 70%)",
         }}
       />
 
