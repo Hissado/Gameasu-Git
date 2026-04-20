@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import logoFull from "@/assets/edole-logo.png";
+import logoFull from "@/assets/edole-logo-transparent.png";
 
 const NAV_GROUPS = [
   {
