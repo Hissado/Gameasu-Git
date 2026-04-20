@@ -107,15 +107,6 @@ export default function MarketingDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="bg-amber-50 border-amber-200">
-        <CardContent className="p-4 text-sm flex gap-3">
-          <Users className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-          <div>
-            <strong>Mode simulation</strong> — les campagnes enregistrent les destinataires et marquent les messages comme « envoyés » sans appel à un service externe. Branchez SendGrid (email) ou Twilio (SMS) dans les intégrations pour la diffusion réelle.
-          </div>
-        </CardContent>
-      </Card>
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Nouvelle campagne</DialogTitle></DialogHeader>
