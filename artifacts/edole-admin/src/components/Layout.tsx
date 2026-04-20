@@ -180,8 +180,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      <div className="bg-white border-b border-sidebar-border flex items-center justify-between px-4 py-3 shrink-0">
-        <img src={logoFull} alt="édolé" className="h-12 w-auto object-contain select-none" draggable={false} />
+      <div className="bg-white border-b border-sidebar-border flex items-center justify-between px-5 py-5 shrink-0 shadow-sm">
+        <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none drop-shadow-sm" draggable={false} />
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
@@ -273,7 +273,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <Menu className="w-6 h-6" />
             </button>
             {/* Logo mobile (au lieu de la sidebar) */}
-            <img src={logoFull} alt="édolé" className="lg:hidden h-8 w-auto object-contain shrink-0" draggable={false} />
+            <img src={logoFull} alt="édolé" className="lg:hidden h-10 w-auto object-contain shrink-0 drop-shadow-sm" draggable={false} />
 
             {/* Recherche : icône seule en mobile, complète en desktop */}
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/50 border border-border/50 rounded-md px-3 py-2 w-72 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
