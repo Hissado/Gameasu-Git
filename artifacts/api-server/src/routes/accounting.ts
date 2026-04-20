@@ -18,7 +18,7 @@ import {
   clientsTable,
   projectsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, gte, lte, sql, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 import {
   postEntry,
@@ -739,17 +739,20 @@ router.get("/accounting/dashboard", async (_req, res) => {
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  // Trésorerie totale (somme des soldes calculés)
+  // Trésorerie totale (une seule requête agrégée par accountId, au lieu d'un query par banque)
   const banks = await db.select().from(bankAccountsTable).where(eq(bankAccountsTable.isActive, true));
-  let cashTotal = 0;
-  for (const b of banks) {
-    const sums = (await db.select({
+  const bankAccountIds = banks.map((b) => b.accountId).filter(Boolean);
+  let cashTotal = banks.reduce((s, b) => s + toNum(b.openingBalance), 0);
+  if (bankAccountIds.length > 0) {
+    const bankSums = await db.select({
+      accountId: journalEntryLinesTable.accountId,
       d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
       c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
     }).from(journalEntryLinesTable)
       .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .where(and(eq(journalEntryLinesTable.accountId, b.accountId), eq(journalEntriesTable.status, "posted"))))[0];
-    cashTotal += toNum(b.openingBalance) + toNum(sums.d) - toNum(sums.c);
+      .where(and(inArray(journalEntryLinesTable.accountId, bankAccountIds), eq(journalEntriesTable.status, "posted")))
+      .groupBy(journalEntryLinesTable.accountId);
+    for (const s of bankSums) cashTotal += toNum(s.d) - toNum(s.c);
   }
 
   // Créances clients (soldes débiteurs 411)
@@ -795,35 +798,40 @@ router.get("/accounting/dashboard", async (_req, res) => {
     if (r.classNum === 6) chargesMois += toNum(r.d) - toNum(r.c);
   }
 
-  // 6 derniers mois — produits/charges
-  const monthly: Array<{ month: string; revenus: number; charges: number }> = [];
+  // 6 derniers mois — produits/charges (une seule requête, group by mois + classe)
+  const firstMonthDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+  const firstMonthStr = firstMonthDate.toISOString().slice(0, 10);
+  const monthlyAgg = await db
+    .select({
+      month: sql<string>`to_char(${journalEntriesTable.entryDate}::date, 'YYYY-MM')`,
+      classNum: chartOfAccountsTable.classNum,
+      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
+      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
+    })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+    .where(and(
+      eq(journalEntriesTable.status, "posted"),
+      gte(journalEntriesTable.entryDate, firstMonthStr),
+      sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
+    ))
+    .groupBy(sql`1`, chartOfAccountsTable.classNum);
+
+  const monthKeys: string[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const sm = d.toISOString().slice(0, 10);
-    const em = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const r = await db
-      .select({
-        classNum: chartOfAccountsTable.classNum,
-        d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-        c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-      })
-      .from(journalEntryLinesTable)
-      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-      .where(and(
-        eq(journalEntriesTable.status, "posted"),
-        gte(journalEntriesTable.entryDate, sm),
-        lte(journalEntriesTable.entryDate, em),
-        sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
-      ))
-      .groupBy(chartOfAccountsTable.classNum);
+    monthKeys.push(d.toISOString().slice(0, 7));
+  }
+  const monthly = monthKeys.map((m) => {
+    const rows = monthlyAgg.filter((r) => r.month === m);
     let rv = 0; let ch = 0;
-    for (const x of r) {
+    for (const x of rows) {
       if (x.classNum === 7) rv += toNum(x.c) - toNum(x.d);
       if (x.classNum === 6) ch += toNum(x.d) - toNum(x.c);
     }
-    monthly.push({ month: sm.slice(0, 7), revenus: rv, charges: ch });
-  }
+    return { month: m, revenus: rv, charges: ch };
+  });
 
   // Top 5 dettes & créances (depuis factures opérationnelles)
   const topCreances = await db.select({ inv: invoicesTable, clientName: clientsTable.name })

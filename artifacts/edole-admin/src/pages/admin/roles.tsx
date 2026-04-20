@@ -112,7 +112,7 @@ export default function AdminRolesPage() {
         destructive
         requireTypeToConfirm={confirmDel?.code}
         confirmLabel="Supprimer définitivement"
-        onConfirm={() => confirmDel && remove.mutate(confirmDel.id)}
+        onConfirm={() => { if (confirmDel) remove.mutate(confirmDel.id); }}
       />
     </div>
   );

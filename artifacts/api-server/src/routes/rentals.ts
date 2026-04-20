@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { rentalsTable, rentalItemsTable, inspectionsTable, logisticsOperationsTable, clientsTable, equipmentTable, usersTable } from "@workspace/db";
-import { eq, sql, isNull } from "drizzle-orm";
+import { eq, sql, isNull, inArray } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -37,16 +37,17 @@ router.post("/rentals", requireManagerOrAbove, async (req, res) => {
   }).returning();
 
   if (items && items.length > 0) {
-    for (const item of items) {
-      const equip = await db.select().from(equipmentTable).where(eq(equipmentTable.id, item.equipmentId)).limit(1);
-      const dailyRate = equip[0]?.dailyRate ? Number(equip[0].dailyRate) : 0;
-      await db.insert(rentalItemsTable).values({
-        rentalId: rental.id,
-        equipmentId: item.equipmentId,
-        quantity: item.quantity,
-        dailyRate: dailyRate.toString(),
-      });
-    }
+    // Récupère tous les équipements en une seule requête, puis insère toutes les lignes en batch.
+    const ids = items.map((i: any) => i.equipmentId);
+    const equipments = await db.select({ id: equipmentTable.id, dailyRate: equipmentTable.dailyRate })
+      .from(equipmentTable).where(inArray(equipmentTable.id, ids));
+    const rateById = new Map(equipments.map((e) => [e.id, e.dailyRate ? Number(e.dailyRate) : 0]));
+    await db.insert(rentalItemsTable).values(items.map((item: any) => ({
+      rentalId: rental.id,
+      equipmentId: item.equipmentId,
+      quantity: item.quantity,
+      dailyRate: (rateById.get(item.equipmentId) ?? 0).toString(),
+    })));
   }
 
   return res.status(201).json({ ...rental, totalCost: rental.totalCost ? Number(rental.totalCost) : null });

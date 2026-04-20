@@ -113,8 +113,14 @@ export default function Settings() {
   const [pwdLoading, setPwdLoading] = useState(false);
 
   const submitPwd = async () => {
-    if (pwd.next.length < 8) return toast({ variant: "destructive", title: "Mot de passe trop court", description: "Minimum 8 caractères." });
-    if (pwd.next !== pwd.confirm) return toast({ variant: "destructive", title: "Confirmation différente", description: "Les deux mots de passe ne correspondent pas." });
+    if (pwd.next.length < 8) {
+      toast({ variant: "destructive", title: "Mot de passe trop court", description: "Minimum 8 caractères." });
+      return;
+    }
+    if (pwd.next !== pwd.confirm) {
+      toast({ variant: "destructive", title: "Confirmation différente", description: "Les deux mots de passe ne correspondent pas." });
+      return;
+    }
     setPwdLoading(true);
     try {
       await apiFetch("/api/auth/password", { method: "PUT", body: { currentPassword: pwd.current, newPassword: pwd.next } });

@@ -99,7 +99,7 @@ export default function AdminDepartmentsPage() {
         title={`Supprimer le département « ${del?.name} » ?`}
         description={<>Les utilisateurs rattachés ({del?.usersCount ?? 0}) seront détachés (non supprimés).</>}
         destructive requireTypeToConfirm={del?.code}
-        onConfirm={() => del && remove.mutate(del.id)}
+        onConfirm={() => { if (del) remove.mutate(del.id); }}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,7 +15,10 @@ export const clientsTable = pgTable("clients", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  clientsDeletedAtIdx: index("clients_deleted_at_idx").on(t.deletedAt),
+  clientsStatusIdx: index("clients_status_idx").on(t.status),
+}));
 
 export const clientContactsTable = pgTable("client_contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -27,7 +30,9 @@ export const clientContactsTable = pgTable("client_contacts", {
   role: text("role"),
   isPrimary: text("is_primary").default("false"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  clientContactsClientIdx: index("client_contacts_client_idx").on(t.clientId),
+}));
 
 export const insertClientSchema = createInsertSchema(clientsTable).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type InsertClient = z.infer<typeof insertClientSchema>;

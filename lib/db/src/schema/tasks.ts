@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
@@ -20,7 +20,14 @@ export const tasksTable = pgTable("tasks", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  tasksAssigneeIdx: index("tasks_assignee_idx").on(t.assigneeId),
+  tasksProjectIdx: index("tasks_project_idx").on(t.projectId),
+  tasksServiceIdx: index("tasks_service_idx").on(t.serviceId),
+  tasksSectionIdx: index("tasks_section_idx").on(t.sectionId),
+  tasksStatusIdx: index("tasks_status_idx").on(t.status),
+  tasksDeletedAtIdx: index("tasks_deleted_at_idx").on(t.deletedAt),
+}));
 
 export const taskCommentsTable = pgTable("task_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -28,7 +35,9 @@ export const taskCommentsTable = pgTable("task_comments", {
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  taskCommentsTaskIdx: index("task_comments_task_idx").on(t.taskId),
+}));
 
 export const taskHistoryTable = pgTable("task_history", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -39,7 +48,9 @@ export const taskHistoryTable = pgTable("task_history", {
   oldValue: text("old_value"),
   newValue: text("new_value"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  taskHistoryTaskIdx: index("task_history_task_idx").on(t.taskId),
+}));
 
 export type TaskHistory = typeof taskHistoryTable.$inferSelect;
 

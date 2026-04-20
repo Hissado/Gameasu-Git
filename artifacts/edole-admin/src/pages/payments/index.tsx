@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, CreditCard, Calendar, Building, Landmark, Smartphone } from "lucide-react";
+import { Plus, Search, Filter, CreditCard, Calendar, Building, Landmark, Smartphone, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA, formatDate } from "@/lib/format";

@@ -175,26 +175,47 @@ router.post("/reports/stock-daily/snapshot", requireAuth, requireManagerOrAbove,
 });
 
 router.get("/reports/workload", requireAuth, async (_req, res) => {
+  // Agrégation en 2 requêtes agrégées (au lieu de 3N+1) :
+  //   1) compteur tâches + tâches actives par assigneeId
+  //   2) compteur projets distincts par assigneeId
   const users = await db.select().from(usersTable).where(eq(usersTable.isActive, true));
-  const result = [];
-  for (const u of users) {
-    const tasks = await db.select({ count: sql<number>`count(*)` }).from(tasksTable)
-      .where(and(eq(tasksTable.assigneeId, u.id), isNull(tasksTable.deletedAt)));
-    const activeTasks = await db.select({ count: sql<number>`count(*)` }).from(tasksTable)
-      .where(and(eq(tasksTable.assigneeId, u.id), isNull(tasksTable.deletedAt), sql`${tasksTable.status} != 'done'`));
-    const projects = await db.selectDistinct({ id: projectsTable.id }).from(projectsTable)
-      .innerJoin(tasksTable, eq(tasksTable.projectId, projectsTable.id))
-      .where(and(eq(tasksTable.assigneeId, u.id), isNull(projectsTable.deletedAt)));
-    result.push({
+
+  const taskAgg = await db
+    .select({
+      assigneeId: tasksTable.assigneeId,
+      total: sql<number>`count(*)`,
+      active: sql<number>`count(*) filter (where ${tasksTable.status} != 'done')`,
+    })
+    .from(tasksTable)
+    .where(isNull(tasksTable.deletedAt))
+    .groupBy(tasksTable.assigneeId);
+
+  const projectAgg = await db
+    .select({
+      assigneeId: tasksTable.assigneeId,
+      projects: sql<number>`count(distinct ${projectsTable.id})`,
+    })
+    .from(tasksTable)
+    .innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
+    .where(and(isNull(tasksTable.deletedAt), isNull(projectsTable.deletedAt)))
+    .groupBy(tasksTable.assigneeId);
+
+  const taskMap = new Map(taskAgg.map((r) => [r.assigneeId, r]));
+  const projMap = new Map(projectAgg.map((r) => [r.assigneeId, Number(r.projects)]));
+
+  const result = users.map((u) => {
+    const t = taskMap.get(u.id);
+    const active = Number(t?.active || 0);
+    return {
       userId: u.id,
       name: `${u.firstName} ${u.lastName}`,
       role: u.role,
-      totalTasks: Number(tasks[0]?.count || 0),
-      activeTasks: Number(activeTasks[0]?.count || 0),
-      activeProjects: projects.length,
-      load: Math.min(100, Math.round((Number(activeTasks[0]?.count || 0) / 10) * 100)),
-    });
-  }
+      totalTasks: Number(t?.total || 0),
+      activeTasks: active,
+      activeProjects: projMap.get(u.id) || 0,
+      load: Math.min(100, Math.round((active / 10) * 100)),
+    };
+  });
   res.json(result);
 });
 

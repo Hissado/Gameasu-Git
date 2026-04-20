@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
         description={confirm?.action === "deactivate" ? "L'utilisateur ne pourra plus se connecter. Vous pourrez le réactiver à tout moment." : "L'utilisateur pourra à nouveau se connecter."}
         destructive={confirm?.action === "deactivate"}
         confirmLabel={confirm?.action === "deactivate" ? "Désactiver" : "Réactiver"}
-        onConfirm={() => confirm && toggle.mutate({ id: confirm.user.id, active: confirm.action === "activate" })}
+        onConfirm={() => { if (confirm) toggle.mutate({ id: confirm.user.id, active: confirm.action === "activate" }); }}
       />
     </div>
   );

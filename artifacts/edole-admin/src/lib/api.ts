@@ -17,9 +17,12 @@ function getToken(): string | null {
   return localStorage.getItem("auth_token");
 }
 
+// `body` élargi pour accepter des objets JSON (sérialisés automatiquement).
+type ApiFetchOptions = Omit<RequestInit, "body"> & { body?: RequestInit["body"] | Record<string, any> | any[] };
+
 export async function apiFetch<T = unknown>(
   url: string,
-  options: RequestInit = {},
+  options: ApiFetchOptions = {},
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
