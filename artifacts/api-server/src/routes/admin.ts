@@ -11,6 +11,7 @@ import { requirePermission } from "../middlewares/permissions";
 import { invalidatePermissionsCache } from "../lib/rbac/permissions";
 import { audit } from "../lib/audit";
 import { sendEmail, buildInvitationEmail, buildPasswordResetEmail, getPreviewInbox } from "../lib/email";
+import { seedDemo } from "../services/demo-seed";
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -391,6 +392,21 @@ router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => 
   const where = conds.length ? and(...conds) : undefined;
   const rows = await db.select().from(auditLogsTable).where(where as any).orderBy(desc(auditLogsTable.createdAt)).limit(lim);
   return res.json({ data: rows });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// SEED DEMO — peuplement de données de démonstration cross-modules
+// ════════════════════════════════════════════════════════════════════
+router.post("/admin/seed-demo", requirePermission("users.assign_projects"), async (req, res) => {
+  try {
+    const force = req.query.force === "true" || req.body?.force === true;
+    const result = await seedDemo({ force });
+    await audit(req as any, force ? "update" : "create", { entityType: "demo_seed", payload: { force, ...result } });
+    return res.json(result);
+  } catch (e: any) {
+    console.error("[seed-demo]", e);
+    return res.status(500).json({ error: e?.message ?? "Erreur lors de la génération des données de démo" });
+  }
 });
 
 export default router;
