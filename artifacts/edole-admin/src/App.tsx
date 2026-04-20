@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
+import { CallCenterProvider } from "@/components/CallCenter";
+import { GlobalNotifications } from "@/components/GlobalNotifications";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -117,6 +119,8 @@ function AppRouter() {
       </Route>
       <Route>
         <ProtectedRoute>
+          <CallCenterProvider>
+          <GlobalNotifications />
           <Layout>
             <Suspense fallback={<PageFallback />}>
               <Switch>
@@ -214,6 +218,7 @@ function AppRouter() {
               </Switch>
             </Suspense>
           </Layout>
+          </CallCenterProvider>
         </ProtectedRoute>
       </Route>
     </Switch>

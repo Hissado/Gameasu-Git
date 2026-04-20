@@ -600,13 +600,14 @@ router.get("/calls", async (req, res) => {
   const rows = await db.select({
     call: callSessionsTable,
     initiatorName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
+    initiatorAvatarUrl: usersTable.avatarUrl,
   }).from(callSessionsTable)
     .leftJoin(usersTable, eq(callSessionsTable.initiatorId, usersTable.id))
     .where(filter)
     .orderBy(desc(callSessionsTable.createdAt))
     .limit(limitNum).offset(offset);
 
-  const data = rows.map((r) => ({ ...r.call, initiatorName: r.initiatorName, participants: [] }));
+  const data = rows.map((r) => ({ ...r.call, initiatorName: r.initiatorName, initiatorAvatarUrl: r.initiatorAvatarUrl, participants: [] }));
   return res.json({ data, total: data.length, page: pageNum, limit: limitNum });
 });
 
@@ -618,17 +619,46 @@ router.post("/calls", async (req, res) => {
     if (!part) return res.status(403).json({ error: "Non autorisé" });
   }
   const [call] = await db.insert(callSessionsTable).values({
-    type: type || "video", status: "active", initiatorId: userId,
+    type: type || "video", status: "ringing", initiatorId: userId,
     conversationId: conversationId || null, projectId: projectId || null,
     roomUrl: `https://meet.edole.africa/room/${Date.now()}`,
-    startedAt: new Date(),
+    startedAt: null,
   }).returning();
+
+  // Emit call:incoming to all conversation participants except initiator
   if (conversationId) {
-    emitToConversation(conversationId, "call:started", call);
+    const me = req.authUser!;
+    const parts = await db.select().from(conversationParticipantsTable)
+      .where(eq(conversationParticipantsTable.conversationId, conversationId));
+    const payload = {
+      callId: call.id,
+      type: call.type,
+      conversationId,
+      roomUrl: call.roomUrl,
+      initiatorId: userId,
+      initiatorName: `${me.firstName} ${me.lastName}`,
+      initiatorAvatarUrl: (me as any).avatarUrl || null,
+      startedAt: call.startedAt,
+    };
+    for (const p of parts) {
+      if (p.userId === userId) continue;
+      emitToUser(p.userId, "call:incoming", payload);
+    }
+    emitToUser(userId, "call:outgoing", payload);
+    // Auto-timeout: mark missed if not accepted within 35s
+    setTimeout(async () => {
+      try {
+        const fresh = (await db.select().from(callSessionsTable).where(eq(callSessionsTable.id, call.id)).limit(1))[0];
+        if (fresh && fresh.status === "ringing") {
+          await db.update(callSessionsTable).set({ status: "missed", endedAt: new Date() }).where(eq(callSessionsTable.id, call.id));
+          for (const p of parts) emitToUser(p.userId, "call:ended", { callId: call.id, conversationId, reason: "missed" });
+        }
+      } catch {/* ignore */}
+    }, 35_000);
   }
-  const me = req.authUser!;
+  const me2 = req.authUser!;
   return res.status(201).json({
-    ...call, initiatorName: `${me.firstName} ${me.lastName}`, participants: [],
+    ...call, initiatorName: `${me2.firstName} ${me2.lastName}`, participants: [],
   });
 });
 
@@ -659,19 +689,39 @@ router.get("/calls/:id", async (req, res) => {
 router.put("/calls/:id", async (req, res) => {
   const userId = req.authUser!.id;
   const { status, endedAt } = req.body || {};
-  const ended = endedAt ? new Date(endedAt) : (status === "ended" ? new Date() : undefined);
+  const isTerminal = status === "ended" || status === "completed" || status === "missed" || status === "declined";
+  const ended = endedAt ? new Date(endedAt) : (isTerminal ? new Date() : undefined);
   const existing = (await db.select().from(callSessionsTable).where(eq(callSessionsTable.id, req.params.id)).limit(1))[0];
   if (!existing) return res.status(404).json({ error: "Introuvable" });
   if (!(await userCanAccessCall(existing, userId))) {
     return res.status(403).json({ error: "Non autorisé" });
   }
-  const duration = ended && existing.startedAt
-    ? Math.max(0, Math.floor((ended.getTime() - existing.startedAt.getTime()) / 1000))
+  const becomesActive = status === "active" && existing.status !== "active";
+  const startedAt = becomesActive ? new Date() : existing.startedAt;
+  const duration = ended && startedAt
+    ? Math.max(0, Math.floor((ended.getTime() - startedAt.getTime()) / 1000))
     : undefined;
+  const updateValues: any = { status, endedAt: ended, durationSeconds: duration };
+  if (becomesActive) updateValues.startedAt = startedAt;
   const [call] = await db.update(callSessionsTable)
-    .set({ status, endedAt: ended, durationSeconds: duration })
+    .set(updateValues)
     .where(eq(callSessionsTable.id, req.params.id)).returning();
-  if (call.conversationId) emitToConversation(call.conversationId, "call:ended", call);
+
+  // Notify all parties (single emission per user to avoid duplicates)
+  if (call.conversationId) {
+    const parts = await db.select().from(conversationParticipantsTable)
+      .where(eq(conversationParticipantsTable.conversationId, call.conversationId));
+    if (status === "active") {
+      const payload = { callId: call.id, conversationId: call.conversationId, roomUrl: call.roomUrl, acceptedBy: userId };
+      for (const p of parts) emitToUser(p.userId, "call:accepted", payload);
+    } else if (status === "declined") {
+      const payload = { callId: call.id, conversationId: call.conversationId, declinedBy: userId };
+      for (const p of parts) emitToUser(p.userId, "call:declined", payload);
+    } else if (isTerminal) {
+      const payload = { callId: call.id, conversationId: call.conversationId, reason: status, durationSeconds: duration };
+      for (const p of parts) emitToUser(p.userId, "call:ended", payload);
+    }
+  }
   return res.json({ ...call, participants: [] });
 });
 

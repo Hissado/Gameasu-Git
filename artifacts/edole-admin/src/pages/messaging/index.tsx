@@ -17,6 +17,7 @@ import {
 import { apiFetch, uploadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { getSocket, useRealtime, useConversationRoom, emitTyping } from "@/lib/realtime";
+import { useCallCenter } from "@/components/CallCenter";
 import { cn } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -509,6 +510,7 @@ function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) 
 export default function Messaging() {
   const me = useAuth().user;
   const meId = me?.id || "";
+  const callCenter = useCallCenter();
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
@@ -817,13 +819,11 @@ export default function Messaging() {
   }
 
   async function startCall(type: "audio" | "video") {
-    if (!selectedConvId) return;
-    try {
-      const c = await apiFetch<{ roomUrl: string }>(`/api/calls`, {
-        method: "POST", body: { type, conversationId: selectedConvId } as any,
-      });
-      window.open(c.roomUrl, "_blank");
-    } catch (e: any) { alert(e?.message || "Erreur d'appel"); }
+    if (!selectedConvId || !selectedConv) return;
+    const other = selectedConv.type === "direct" ? getOther(selectedConv, meId) : null;
+    const peerName = other?.name || selectedConv.title || "Conversation";
+    const peerAvatarUrl = other?.avatarUrl || null;
+    await callCenter.startCall({ conversationId: selectedConvId, type, peerName, peerAvatarUrl });
   }
 
   async function runGlobalSearch(q: string) {
