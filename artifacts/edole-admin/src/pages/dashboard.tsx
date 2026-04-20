@@ -174,28 +174,26 @@ function MetricCard({
   const inner = (
     <Card className={cn("border-l-4 shadow-sm hover:shadow-md transition-all group", accentClasses[a])}>
       <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 truncate">{label}</div>
-            {loading ? (
-              <Skeleton className="h-8 w-28 mt-2" />
-            ) : (
-              <div className="font-display text-[clamp(1.1rem,2.2vw,1.6rem)] font-extrabold text-slate-900 tracking-tight mt-1 leading-tight whitespace-nowrap">
-                {value}
-              </div>
-            )}
-            {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
-            {trend && (
-              <div className={cn("inline-flex items-center gap-1 text-[11px] font-semibold mt-2", trendColor)}>
-                <TrendIcon className="w-3 h-3" />
-                <span>{trend.value > 0 ? `+${trend.value}` : trend.value}{trend.label ? ` ${trend.label}` : "%"}</span>
-              </div>
-            )}
-          </div>
-          <div className={cn("p-2.5 rounded-lg shrink-0", iconBg[a])}>
-            <Icon className="w-5 h-5" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 truncate">{label}</div>
+          <div className={cn("p-2 rounded-lg shrink-0", iconBg[a])}>
+            <Icon className="w-4 h-4" />
           </div>
         </div>
+        {loading ? (
+          <Skeleton className="h-8 w-28 mt-3" />
+        ) : (
+          <div className="font-display text-[clamp(1.1rem,2.1vw,1.55rem)] font-extrabold text-slate-900 tracking-tight mt-2 leading-tight whitespace-nowrap">
+            {value}
+          </div>
+        )}
+        {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+        {trend && (
+          <div className={cn("inline-flex items-center gap-1 text-[11px] font-semibold mt-2", trendColor)}>
+            <TrendIcon className="w-3 h-3" />
+            <span>{trend.value > 0 ? `+${trend.value}` : trend.value}{trend.label ? ` ${trend.label}` : "%"}</span>
+          </div>
+        )}
         {href && (
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-primary transition-colors">
             <span>Consulter</span>
