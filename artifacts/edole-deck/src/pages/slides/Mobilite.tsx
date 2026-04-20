@@ -27,7 +27,8 @@ export default function Mobilite() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Industrialiser le récurrent, garantir aucun oubli.
+              Industrialiser les prestations récurrentes et sécuriser le
+              respect des engagements contractuels.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Mobilite() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Sections personnalisables · tâches récurrentes · propriétaire
-              par engagement · prochaine échéance visible.
+              Sections paramétrables, récurrence configurable, responsable
+              désigné et suivi des prochaines échéances.
             </div>
           </div>
           <div>

@@ -27,7 +27,8 @@ export default function Materiel() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Aucun engin perdu, aucune maintenance oubliée.
+              Tracer chaque actif, optimiser son taux d'utilisation et
+              sécuriser les opérations de maintenance.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Materiel() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Étiquettes QR générables, inspections périodiques, locations
-              internes, alertes maintenance.
+              Étiquettes QR générées à la demande, inspections périodiques,
+              locations inter-chantiers et alertes de maintenance préventive.
             </div>
           </div>
           <div>

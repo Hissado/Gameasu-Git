@@ -31,7 +31,8 @@ export default function Accueil() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Décider sur faits, pas sur intuition.
+              Donner à la direction une vision financière et opérationnelle
+              actualisée en continu.
             </div>
           </div>
           <div>
@@ -39,8 +40,8 @@ export default function Accueil() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              KPI financiers + activité opérationnelle + évolution du chiffre
-              d'affaires sur une seule page.
+              Indicateurs financiers, activité opérationnelle et évolution du
+              chiffre d'affaires consolidés sur une page unique.
             </div>
           </div>
           <div>

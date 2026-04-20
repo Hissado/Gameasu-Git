@@ -27,7 +27,8 @@ export default function Problem() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Un dossier client 360° — plus de silos par service.
+              Disposer d'un dossier client 360° unifié, partagé entre toutes
+              les fonctions de l'entreprise.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Problem() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Contacts, adresse, statut, portefeuille projets et historique
-              accessibles en une recherche.
+              Contacts, coordonnées, portefeuille projets, encours financier
+              et historique d'interactions accessibles instantanément.
             </div>
           </div>
           <div>

@@ -27,7 +27,8 @@ export default function Operations() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Chaque personne sait ce qu'elle doit faire, aujourd'hui.
+              Aligner les équipes terrain et bureau autour d'un référentiel
+              unique de tâches et de responsabilités.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Operations() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Filtres multi-critères · vues Liste, Kanban, Calendrier ·
-              notifications temps réel.
+              Filtres multi-critères, vues Liste, Kanban et Calendrier,
+              notifications temps réel et journal d'activité complet.
             </div>
           </div>
           <div>

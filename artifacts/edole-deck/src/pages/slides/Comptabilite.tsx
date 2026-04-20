@@ -27,7 +27,8 @@ export default function Comptabilite() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Être prêt pour l'audit, toute l'année.
+              Garantir la conformité comptable et fiscale en continu, et
+              accélérer les clôtures périodiques.
             </div>
           </div>
           <div>
@@ -35,8 +36,9 @@ export default function Comptabilite() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Trésorerie consolidée · historique 6 mois · écritures
-              auto-générées depuis factures et paiements.
+              Trésorerie consolidée multi-banques, écritures générées
+              automatiquement à partir des factures et paiements, historique
+              comptable complet.
             </div>
           </div>
           <div>

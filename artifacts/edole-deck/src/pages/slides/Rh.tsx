@@ -27,7 +27,8 @@ export default function Rh() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Savoir qui fait quoi, pour qui, jusqu'à quand.
+              Structurer les ressources humaines et sécuriser l'attribution
+              des accès aux données sensibles.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Rh() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Arborescence organigramme · contrats numérisés · permissions
-              RBAC · plan de charge par collaborateur.
+              Organigramme dynamique, contrats numérisés, permissions
+              granulaires (RBAC) et plan de charge par collaborateur.
             </div>
           </div>
           <div>

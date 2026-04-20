@@ -27,7 +27,8 @@ export default function Pilotage() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Anticiper, pas constater.
+              Passer d'un pilotage rétrospectif à une démarche prospective
+              fondée sur la donnée.
             </div>
           </div>
           <div>
@@ -35,8 +36,9 @@ export default function Pilotage() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5] text-white/90">
-              Prévisions trésorerie · analyse de marges par projet · scénarios
-              optimiste / pessimiste · export direction.
+              Prévisions de trésorerie, analyse de marge par projet,
+              scénarios multiples et synthèses prêtes pour le comité de
+              direction.
             </div>
           </div>
           <div>

@@ -27,7 +27,8 @@ export default function Projets() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Livrer dans les temps et dans le budget.
+              Maîtriser les délais, les coûts et la qualité de chaque
+              chantier, du démarrage à la réception.
             </div>
           </div>
           <div>
@@ -35,8 +36,8 @@ export default function Projets() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Vues Liste, Kanban, Calendrier · avancement par phase ·
-              alertes dérive budget.
+              Vues Liste, Kanban et Calendrier, avancement par phase et
+              alertes automatiques en cas de dérive budgétaire.
             </div>
           </div>
           <div>
