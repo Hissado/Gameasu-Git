@@ -13,15 +13,15 @@ export default function Accueil() {
             Module 03 · Tableau de bord
           </div>
           <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] mb-[2vh]">
-            Tout l'exécutif,
+            La direction,
           </div>
           <div className="font-display text-[4vw] leading-[1.02] font-extrabold tracking-[-0.03em] text-[#FF6B00] mb-[3vh]">
-            d'un coup d'œil.
+            en une vue.
           </div>
           <p className="text-[1.25vw] leading-[1.6] text-white/70">
-            Encaissements, pipeline, créances, chantiers actifs. Le tableau
-            de bord agrège en temps réel les métriques qui comptent pour un
-            dirigeant BTP.
+            Encaissements, pipeline commercial, créances et activité des
+            chantiers. Le tableau de bord consolide en temps réel les
+            indicateurs critiques d'un dirigeant du BTP.
           </p>
         </div>
 

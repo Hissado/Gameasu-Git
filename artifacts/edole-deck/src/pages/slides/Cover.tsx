@@ -51,7 +51,7 @@ export default function Cover() {
         </div>
 
         <div className="flex items-end justify-between text-[1vw] text-white/45">
-          <div>Présentation produit — Avril 2026</div>
+          <div className="uppercase tracking-[0.3em] text-[0.85vw] font-semibold">Présentation produit · Édition Avril 2026</div>
           <div className="font-mono tracking-[0.2em] text-white/55">01 / 15</div>
         </div>
       </div>

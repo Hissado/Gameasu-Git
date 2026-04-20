@@ -18,8 +18,8 @@ export default function Architecture() {
           </div>
           <div className="max-w-[32vw] text-[1.15vw] leading-[1.6] text-white/70 pt-[2vh]">
             EDOLE s'organise autour du <span className="text-[#FF6B00] font-semibold">Client</span>,
-            entité racine de la plateforme. Chaque module dialogue avec les
-            autres — aucun silo, aucun export manuel.
+            entité racine de la plateforme. Chaque module communique
+            nativement avec les autres — sans silos ni ressaisies manuelles.
           </div>
         </div>
       </div>

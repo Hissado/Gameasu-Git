@@ -20,9 +20,9 @@ export default function Commercial() {
             </div>
           </div>
           <div className="max-w-[32vw] pt-[2vh] text-[1.15vw] leading-[1.55] text-[#0F1115]/70">
-            Un seul cycle : opportunité dans le CRM → devis → bon de commande
-            → facture → paiement. Chaque étape génère automatiquement la
-            suivante.
+            Un cycle commercial unifié : opportunité, devis, bon de commande,
+            facture et paiement. Chaque étape alimente automatiquement la
+            suivante, sans rupture documentaire.
           </div>
         </div>
 
@@ -36,8 +36,8 @@ export default function Commercial() {
                 CRM · Pipeline
               </div>
               <div className="text-[1.05vw] leading-[1.5] text-[#0F1115]/80">
-                Opportunités qualifiées, probabilités, montants estimés,
-                historique d'interactions.
+                Opportunités qualifiées, probabilités de conversion,
+                montants estimés et historique complet d'interactions.
               </div>
             </div>
           </div>
@@ -51,8 +51,8 @@ export default function Commercial() {
                 Factures · Encaissements
               </div>
               <div className="text-[1.05vw] leading-[1.5] text-[#0F1115]/80">
-                Émission en FCFA, relances automatiques, rapprochement
-                bancaire, suivi créances en temps réel.
+                Émission en FCFA, relances automatisées, rapprochement
+                bancaire et suivi des créances en temps réel.
               </div>
             </div>
           </div>

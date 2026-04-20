@@ -26,9 +26,9 @@ export default function Differenciants() {
             </div>
           </div>
           <div className="max-w-[32vw] pt-[2vh] text-[1.15vw] leading-[1.55] text-white/70">
-            Rapports exportables en PDF, cartographie des chantiers, plan de
-            charge des équipes. Pour comprendre l'activité en un regard et
-            partager avec les parties prenantes.
+            Rapports exportables en PDF, cartographie des chantiers et plan
+            de charge des équipes. Une lecture synthétique de l'activité,
+            partageable avec l'ensemble des parties prenantes.
           </div>
         </div>
 
@@ -42,8 +42,8 @@ export default function Differenciants() {
                 Rapports · Exports
               </div>
               <div className="text-[1.05vw] leading-[1.5] text-white/80">
-                Plan de charge, performance projets, consommation matériel —
-                exportables en PDF signé.
+                Plan de charge, performance des projets et consommation
+                matériel, exportables en PDF prêt à diffuser.
               </div>
             </div>
           </div>
@@ -57,8 +57,8 @@ export default function Differenciants() {
                 Carte · Mobilité
               </div>
               <div className="text-[1.05vw] leading-[1.5] text-white/80">
-                Chantiers géolocalisés, zones d'intervention, logistique
-                inter-sites en un coup d'œil.
+                Chantiers géolocalisés, zones d'intervention et logistique
+                inter-sites visualisés sur une cartographie dynamique.
               </div>
             </div>
           </div>

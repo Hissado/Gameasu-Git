@@ -15,9 +15,9 @@ export default function Operations() {
             au quotidien.
           </div>
           <p className="text-[1.25vw] leading-[1.6] text-white/70">
-            Attributions, priorités, échéances, sous-tâches, commentaires,
-            historique. La granularité dont une équipe terrain a besoin —
-            sans complexité superflue.
+            Attributions, priorités, échéances, sous-tâches, commentaires
+            et historique d'activité. Une granularité adaptée aux
+            contraintes du terrain, sans surcharge fonctionnelle.
           </p>
         </div>
 

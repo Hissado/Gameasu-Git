@@ -15,9 +15,10 @@ export default function Materiel() {
             traçable.
           </div>
           <p className="text-[1.25vw] leading-[1.6] text-[#0F1115]/70">
-            Engins, équipements, outillage, consommables : chaque actif
-            porte un code QR, une affectation et un historique d'inspection.
-            Les locations inter-chantiers deviennent triviales.
+            Engins, équipements, outillage et consommables : chaque actif
+            dispose d'un code QR, d'une affectation et d'un historique
+            d'inspection. Les locations inter-chantiers sont rationalisées
+            et tracées.
           </p>
         </div>
 
