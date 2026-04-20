@@ -53,11 +53,12 @@ const NAV_GROUPS = [
     title: "Espace de travail",
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard },
+      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
+      { name: "Appels", path: "/calls", icon: PhoneCall },
       { name: "Clients", path: "/clients", icon: Building2 },
       { name: "Services", path: "/services", icon: Briefcase },
       { name: "Projets", path: "/projects", icon: FolderKanban },
       { name: "Tâches", path: "/tasks", icon: CheckSquare },
-      { name: "Messagerie", path: "/messaging", icon: MessageSquare },
       { name: "Documents", path: "/documents", icon: FolderOpen },
     ]
   },
@@ -68,7 +69,6 @@ const NAV_GROUPS = [
       { name: "Carte", path: "/map", icon: MapIcon },
       { name: "Alertes", path: "/alerts", icon: BellIcon },
       { name: "Support", path: "/tickets", icon: LifeBuoy },
-      { name: "Appels", path: "/calls", icon: PhoneCall },
     ]
   },
   {
