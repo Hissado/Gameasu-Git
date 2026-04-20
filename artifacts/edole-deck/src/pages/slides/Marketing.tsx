@@ -27,7 +27,8 @@ export default function Marketing() {
               Objectif
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Remplacer les fils WhatsApp perdus par une trace organisée.
+              Centraliser les échanges projet dans une trace auditable et
+              partagée — un canal officiel par client et par chantier.
             </div>
           </div>
           <div>
@@ -35,8 +36,9 @@ export default function Marketing() {
               Valeur utilisateur
             </div>
             <div className="text-[1.1vw] leading-[1.5]">
-              Vocal, traduction FR ↔ anglais/wolof · badge non-lus · tri
-              chronologique · notifications.
+              Messages vocaux transcrits, traduction multilingue,
+              notifications temps réel et recherche plein-texte sur
+              l'historique complet.
             </div>
           </div>
           <div>
