@@ -309,9 +309,6 @@ export default function Dashboard() {
               <h1 className="font-display text-3xl md:text-[34px] font-extrabold tracking-tight mt-2">
                 {getGreeting()}{firstName ? `, ${firstName}` : ""}.
               </h1>
-              <p className="text-sm text-slate-300 mt-2 max-w-2xl">
-                Vue consolidée de la performance opérationnelle et financière du groupe.
-              </p>
             </div>
             <div className="flex items-center gap-6 text-right">
               <div>

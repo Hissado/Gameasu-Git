@@ -40,7 +40,7 @@ export default function PositionsPage() {
   return (
     <HrShell
       title="Postes / Fonctions"
-      subtitle="Catalogue des postes rattachés à chaque département."
+      subtitle="Postes par département"
       actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau poste</Button>}
     >
       <Card>

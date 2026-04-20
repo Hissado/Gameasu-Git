@@ -131,7 +131,7 @@ export default function Settings() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
-        <p className="text-muted-foreground mt-1">Gérez votre profil, votre sécurité, vos préférences et la gouvernance des accès</p>
+        <p className="text-muted-foreground mt-1">Profil · Sécurité · Préférences · Gouvernance des accès</p>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">

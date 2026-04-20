@@ -54,7 +54,7 @@ export default function ServicesPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><Briefcase className="w-7 h-7 text-primary" /> Catalogue de services</h1>
-          <p className="text-muted-foreground mt-1">Prestations vendues aux clients (BTP, location, conseil…). Réutilisable dans devis, commandes et factures.</p>
+          <p className="text-muted-foreground mt-1">Catalogue des prestations facturables</p>
         </div>
         <Button onClick={() => { setEdit(null); setForm({ code: "", name: "", category: "", unit: "forfait", unitPrice: 0, description: "", isActive: true }); setOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nouveau service

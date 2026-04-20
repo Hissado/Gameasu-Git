@@ -57,7 +57,7 @@ export default function HrDocumentsPage() {
   return (
     <HrShell
       title="Documents RH"
-      subtitle="Pièces administratives et certifications des collaborateurs."
+      subtitle="Pièces administratives et certifications"
       actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Ajouter un document</Button>}
     >
       <div className="mb-4">

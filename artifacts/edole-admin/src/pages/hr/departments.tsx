@@ -53,7 +53,7 @@ export default function DepartmentsPage() {
   return (
     <HrShell
       title="Départements / Pôles"
-      subtitle="Structure organisationnelle de l'entreprise."
+      subtitle="Structure organisationnelle"
       actions={
         <>
           <Button variant="outline" onClick={() => { if (confirm("Affecter automatiquement tous les collaborateurs sans pôle au département le plus pertinent (basé sur leur fonction) ?")) autoAssignMut.mutate(); }} disabled={autoAssignMut.isPending}>

@@ -54,7 +54,7 @@ export default function AssignmentsPage() {
   return (
     <HrShell
       title="Affectations sur chantiers"
-      subtitle="Synchronisation Ressources Humaines ↔ Opérations : qui travaille où, à quel taux, dans quel rôle."
+      subtitle="Affectations RH ↔ Opérations"
       actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouvelle affectation</Button>}
     >
       <Card>

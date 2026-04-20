@@ -41,7 +41,7 @@ export default function AccountingDashboard() {
   });
 
   return (
-    <AccountingShell title="Comptabilité — Tableau financier" subtitle="Vue d'ensemble de votre santé financière (SYSCOHADA)">
+    <AccountingShell title="Comptabilité — Tableau financier" subtitle="Performance financière consolidée · Référentiel SYSCOHADA">
       {isLoading || !data ? (
         <div className="text-muted-foreground">Chargement…</div>
       ) : (

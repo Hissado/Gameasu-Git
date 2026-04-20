@@ -84,7 +84,7 @@ export default function DocumentsPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><FolderOpen className="w-7 h-7 text-primary" /> Documents</h1>
-          <p className="text-muted-foreground mt-1">Gestion documentaire centralisée — rattachez vos fichiers à n'importe quelle entité métier.</p>
+          <p className="text-muted-foreground mt-1">Gestion documentaire centralisée</p>
         </div>
         <Button onClick={() => { setForm(empty); setOpen(true); }}><Upload className="w-4 h-4 mr-2" /> Ajouter un document</Button>
       </div>

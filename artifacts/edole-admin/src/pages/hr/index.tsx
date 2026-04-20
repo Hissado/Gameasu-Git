@@ -32,7 +32,7 @@ export default function HrDashboard() {
   const { data, isLoading } = useQuery<Dashboard>({ queryKey: ["hr-dashboard"], queryFn: () => apiFetch("/api/hr/dashboard") });
 
   return (
-    <HrShell title="Ressources Humaines" subtitle="Vue consolidée des collaborateurs, départements, contrats et affectations.">
+    <HrShell title="Ressources Humaines" subtitle="Collaborateurs · Départements · Contrats · Affectations">
       {isLoading || !data ? (
         <div className="text-sm text-muted-foreground">Chargement…</div>
       ) : (

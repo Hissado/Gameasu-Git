@@ -52,7 +52,7 @@ export default function ContractsPage() {
   return (
     <HrShell
       title="Contrats"
-      subtitle="Contrats de travail (CDI, CDD, prestations, missions, stages)."
+      subtitle="Contrats de travail · CDI, CDD, missions, stages"
       actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau contrat</Button>}
     >
       <Card>

@@ -66,7 +66,7 @@ export default function MarketingDashboard() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><Megaphone className="w-7 h-7 text-primary" /> Marketing</h1>
-          <p className="text-muted-foreground mt-1">Campagnes email & SMS, segmentation multi-audiences (clients, prospects, collaborateurs).</p>
+          <p className="text-muted-foreground mt-1">Campagnes email & SMS · Segmentation multi-audiences</p>
         </div>
         <div className="flex gap-2">
           <Link href="/marketing/prospects"><Button variant="outline"><Target className="w-4 h-4 mr-2" /> Prospects</Button></Link>

@@ -66,7 +66,7 @@ export default function AlertsPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><Bell className="w-7 h-7 text-primary" /> Alertes automatiques</h1>
-          <p className="text-muted-foreground mt-1">Surveillance continue des locations, factures, contrats et équipements.</p>
+          <p className="text-muted-foreground mt-1">Locations · Factures · Contrats · Équipements</p>
         </div>
         <Button variant="outline" onClick={() => run.mutate()} disabled={run.isPending}><RefreshCw className={`w-4 h-4 mr-2 ${run.isPending ? "animate-spin" : ""}`} /> Lancer un scan</Button>
       </div>

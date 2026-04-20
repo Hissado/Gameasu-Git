@@ -26,7 +26,7 @@ export default function UsersList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Utilisateurs de la plateforme</h1>
-          <p className="text-muted-foreground mt-1">Gestion des accès, profils et rôles internes</p>
+          <p className="text-muted-foreground mt-1">Accès · Profils · Rôles internes</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <Plus className="w-4 h-4 mr-2" />

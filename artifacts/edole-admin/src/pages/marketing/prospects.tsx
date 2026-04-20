@@ -72,7 +72,7 @@ export default function ProspectsPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><Target className="w-7 h-7 text-primary" /> Prospects</h1>
-          <p className="text-muted-foreground mt-1">Pipeline de prospection externe — convertibles en clients en un clic.</p>
+          <p className="text-muted-foreground mt-1">Pipeline de prospection externe</p>
         </div>
         <div className="flex gap-2">
           <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-56" />
