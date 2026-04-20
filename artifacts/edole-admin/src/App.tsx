@@ -64,6 +64,12 @@ const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const DocumentsPage = lazy(() => import("@/pages/documents/index"));
 const AlertsPage = lazy(() => import("@/pages/alerts/index"));
 const TicketsPage = lazy(() => import("@/pages/tickets/index"));
+const FpaDashboard = lazy(() => import("@/pages/fpa/index"));
+const FpaBudgets = lazy(() => import("@/pages/fpa/budgets"));
+const FpaBudgetDetail = lazy(() => import("@/pages/fpa/budget-detail"));
+const FpaVariance = lazy(() => import("@/pages/fpa/variance"));
+const FpaForecast = lazy(() => import("@/pages/fpa/forecast"));
+const FpaReports = lazy(() => import("@/pages/fpa/reports"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -136,6 +142,13 @@ function AppRouter() {
                 <Route path="/users" component={UsersList} />
                 <Route path="/notifications" component={NotificationsList} />
                 <Route path="/settings" component={Settings} />
+
+                <Route path="/fpa" component={FpaDashboard} />
+                <Route path="/fpa/budgets" component={FpaBudgets} />
+                <Route path="/fpa/budgets/:id" component={FpaBudgetDetail} />
+                <Route path="/fpa/variance" component={FpaVariance} />
+                <Route path="/fpa/forecast" component={FpaForecast} />
+                <Route path="/fpa/reports" component={FpaReports} />
 
                 <Route path="/accounting" component={AccountingDashboard} />
                 <Route path="/accounting/chart-of-accounts" component={AccountingChart} />

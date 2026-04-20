@@ -132,6 +132,16 @@ const NAV_GROUPS = [
       { name: "Immobilisations", path: "/accounting/fixed-assets", icon: PiggyBank },
     ]
   },
+  {
+    title: "Pilotage financier",
+    items: [
+      { name: "Tableau de bord", path: "/fpa", icon: Target },
+      { name: "Budgets & versions", path: "/fpa/budgets", icon: BookOpen },
+      { name: "Analyse de variance", path: "/fpa/variance", icon: TrendingUp },
+      { name: "Forecast & projection", path: "/fpa/forecast", icon: BarChart3 },
+      { name: "Reporting & exports", path: "/fpa/reports", icon: FileText },
+    ]
+  },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
