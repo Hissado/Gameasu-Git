@@ -34,9 +34,6 @@ export default function Cover() {
         <img src={logo} crossOrigin="anonymous" alt="édolé — Le numérique au service du BTP" className="h-[10vh] w-auto object-contain self-start" />
 
         <div className="max-w-[60vw]">
-          <div className="text-[0.95vw] tracking-[0.42em] uppercase font-semibold text-[#FF6B00] mb-[3.5vh]">
-            Plateforme intégrée · BTP Afrique francophone
-          </div>
           <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1.5vh]">
             Une seule plateforme
           </div>
