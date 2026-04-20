@@ -180,8 +180,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      <div className="bg-white border-b border-sidebar-border flex items-center justify-between px-5 py-5 shrink-0 shadow-sm">
-        <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none drop-shadow-sm" draggable={false} />
+      <div className="flex items-center justify-between px-5 pt-6 pb-4 shrink-0">
+        <img src={logoFull} alt="édolé" className="h-16 w-auto object-contain select-none" draggable={false} />
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
