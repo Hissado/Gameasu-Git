@@ -43,6 +43,7 @@ import pipelineIntelligenceRouter from "./pipelineIntelligence";
 import approvalsQueueRouter from "./approvalsQueue";
 import anomalyDetectionRouter from "./anomalyDetection";
 import superAdminCockpitRouter from "./superAdminCockpit";
+import superAdminStructuresRouter, { publicOnboardingRouter } from "./superAdminStructures";
 import orgTunerRouter from "./orgTuner";
 import operationsRouter from "./operations";
 import inventoryRouter from "./inventory";
@@ -59,6 +60,7 @@ const router: IRouter = Router();
 // Routes publiques (login, health)
 router.use(healthRouter);
 router.use(authRouter);
+router.use(publicOnboardingRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -78,6 +80,7 @@ router.use(pipelineIntelligenceRouter);
 router.use(approvalsQueueRouter);
 router.use(anomalyDetectionRouter);
 router.use(superAdminCockpitRouter);
+router.use(superAdminStructuresRouter);
 router.use(orgTunerRouter);
 router.use(operationsRouter);
 router.use(inventoryRouter);

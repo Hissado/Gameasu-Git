@@ -194,6 +194,32 @@ export const workspaceInvitationsTable = pgTable("workspace_invitations", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
+// INVITATIONS STRUCTURE — onboarding d'une nouvelle organisation
+// (lien envoyé par le super-admin, l'invité finalise lui-même org+plan)
+// ─────────────────────────────────────────────────────────────────
+export const structureInvitationsTable = pgTable("structure_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").notNull(),
+  contactEmail: text("contact_email"),
+  contactName: text("contact_name"),
+  suggestedPlanCode: text("suggested_plan_code"),
+  suggestedOrgName: text("suggested_org_name"),
+  notes: text("notes"),
+  // pending | accepted | revoked | expired
+  status: text("status").notNull().default("pending"),
+  invitedById: uuid("invited_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tokenUidx: uniqueIndex("structure_invitations_token_uidx").on(t.token),
+  statusIdx: index("structure_invitations_status_idx").on(t.status),
+}));
+
+export type StructureInvitation = typeof structureInvitationsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
 // ─────────────────────────────────────────────────────────────────
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
