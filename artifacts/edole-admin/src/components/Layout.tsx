@@ -156,7 +156,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           aria-label={BRANDING.appName}
           className="relative inline-flex flex-1 min-w-0 items-center justify-center"
         >
-          <div className="w-full max-w-[200px]" style={{ aspectRatio: "1672 / 820" }}>
+          <div className="w-full max-w-[260px]" style={{ aspectRatio: "1672 / 820" }}>
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
