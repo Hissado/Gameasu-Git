@@ -137,26 +137,52 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* Bandeau logo Gaméasù — fond clair pour respecter fidèlement
-          les touches or du « G » et les accents é/ù du logo original. */}
-      <div className="relative flex items-center justify-between gap-2 px-3 py-3 shrink-0 border-b border-sidebar-border/60"
-           style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
-        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
-          {/* Logo intégral (G + améasù + filet + slogan). On agrandit
-              le contenu via scale pour absorber la marge blanche autour
-              de l'image source et améliorer la lisibilité. */}
-          <div className="w-full max-w-[260px] overflow-hidden" style={{ aspectRatio: "1672 / 820" }}>
+      {/* Bandeau logo Gaméasù — intégration premium sur fond sombre :
+          logo monochrome (silhouette claire) posé directement sur la sidebar,
+          halo subtil + filet or pour la finition haut de gamme. */}
+      <div className="relative flex items-center justify-between gap-2 px-5 pt-6 pb-5 shrink-0">
+        {/* Halo doré subtil pour donner de la profondeur au logo */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(60% 80% at 50% 45%, rgba(200,162,75,0.10) 0%, rgba(200,162,75,0.04) 40%, transparent 75%)",
+          }}
+        />
+        <Link
+          href="/"
+          onClick={() => setMobileOpen(false)}
+          aria-label={BRANDING.appName}
+          className="relative inline-flex flex-1 min-w-0 items-center justify-center"
+        >
+          <div className="w-full max-w-[200px]" style={{ aspectRatio: "1672 / 820" }}>
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-full h-auto object-contain select-none block scale-[1.18] origin-center"
+              className="w-full h-auto object-contain select-none block"
+              style={{ filter: "brightness(0) invert(1)", opacity: 0.96 }}
             />
           </div>
         </Link>
-        <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-[#0F1A3A]/70 hover:bg-black/[0.04]" aria-label="Fermer le menu">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="relative lg:hidden p-2 -mr-2 rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white"
+          aria-label="Fermer le menu"
+        >
           <X className="w-5 h-5" />
         </button>
+        {/* Filet or — séparateur premium aligné sur l'accent de marque */}
+        <div
+          aria-hidden
+          className="absolute left-5 right-5 bottom-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(200,162,75,0.45) 25%, rgba(200,162,75,0.55) 50%, rgba(200,162,75,0.45) 75%, transparent 100%)",
+          }}
+        />
       </div>
 
       {/* Carte workspace + plan */}
