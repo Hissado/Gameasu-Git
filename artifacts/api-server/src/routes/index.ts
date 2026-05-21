@@ -33,6 +33,12 @@ import attendanceRouter from "./attendance";
 import client360Router from "./client360";
 import projectIntelligenceRouter from "./projectIntelligence";
 import documentsIntelligenceRouter from "./documentsIntelligence";
+import financeIntelligenceRouter from "./financeIntelligence";
+import hrIntelligenceRouter from "./hrIntelligence";
+import notificationsIntelligenceRouter from "./notificationsIntelligence";
+import universalSearchRouter from "./universalSearch";
+import assistantRouter from "./assistant";
+import dailyBriefingRouter from "./dailyBriefing";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { requireAuth } from "../middlewares/auth";
@@ -53,6 +59,12 @@ router.use(enforcePasswordChange);
 
 router.use(projectIntelligenceRouter); // monté avant tasksRouter pour que /tasks/priority ne soit pas capté par /tasks/:id
 router.use(documentsIntelligenceRouter); // monté avant documentsRouter
+router.use(financeIntelligenceRouter);
+router.use(hrIntelligenceRouter);
+router.use(notificationsIntelligenceRouter); // monté avant /notifications
+router.use(universalSearchRouter);
+router.use(assistantRouter);
+router.use(dailyBriefingRouter);
 router.use(usersRouter);
 router.use(clientsRouter);
 router.use(crmRouter);

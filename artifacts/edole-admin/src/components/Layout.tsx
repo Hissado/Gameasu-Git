@@ -9,7 +9,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
   Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles,
+  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +29,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard, moduleKey: "dashboard" },
       { name: "Centre d'intelligence", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
+      { name: "Digest notifications", path: "/notifications/digest", icon: BellRing, moduleKey: "dashboard" },
+      { name: "Recherche universelle", path: "/search", icon: Search, moduleKey: "dashboard" },
+      { name: "Assistant Nexora", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
+      { name: "Briefing du jour", path: "/briefing", icon: Sun, moduleKey: "dashboard" },
       { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "dashboard" },
       { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
       { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
@@ -48,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Encaissements", path: "/payments", icon: CreditCard, moduleKey: "sales_crm" },
       { name: "Comptabilité", path: "/accounting", icon: Calculator, moduleKey: "accounting" },
       { name: "Planification financière", path: "/fpa", icon: TrendingUp, moduleKey: "financial_planning" },
+      { name: "Finance IA", path: "/finance/intelligence", icon: Sparkles, moduleKey: "accounting" },
       { name: "Opérations", path: "/logistics", icon: Truck, moduleKey: "operations" },
       { name: "Parc & équipements", path: "/equipment", icon: Wrench, moduleKey: "inventory_assets" },
       { name: "Locations", path: "/rentals", icon: Truck, moduleKey: "rentals" },
@@ -55,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Documents", path: "/documents", icon: FolderOpen, moduleKey: "documents" },
       { name: "Documents IA", path: "/documents/intelligence", icon: Sparkles, moduleKey: "documents" },
       { name: "Équipe & RH", path: "/hr", icon: UsersRound, moduleKey: "team_hr" },
+      { name: "RH IA", path: "/hr/intelligence", icon: Sparkles, moduleKey: "team_hr" },
       { name: "Présences & Pointage", path: "/attendance", icon: Clock, moduleKey: "team_hr" },
       { name: "Collaborateurs", path: "/collaborators", icon: GraduationCap, moduleKey: "team_hr" },
       { name: "Communications", path: "/messaging", icon: MessageSquare, moduleKey: "communications" },

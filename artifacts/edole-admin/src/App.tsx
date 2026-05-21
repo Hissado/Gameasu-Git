@@ -69,6 +69,12 @@ const CommercialServices = lazy(() => import("@/pages/commercial/services"));
 const SalesScoring = lazy(() => import("@/pages/sales/scoring"));
 const TasksFocus = lazy(() => import("@/pages/tasks/Focus"));
 const DocumentsIntelligence = lazy(() => import("@/pages/documents/intelligence"));
+const FinanceIntelligence = lazy(() => import("@/pages/finance/intelligence"));
+const HrIntelligence = lazy(() => import("@/pages/hr/intelligence"));
+const NotificationsDigest = lazy(() => import("@/pages/notifications/digest"));
+const UniversalSearch = lazy(() => import("@/pages/search/index"));
+const AssistantPage = lazy(() => import("@/pages/assistant/index"));
+const BriefingPage = lazy(() => import("@/pages/briefing/index"));
 const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/campaigns"));
@@ -222,6 +228,12 @@ function AppRouter() {
                 <Route path="/sales/scoring" component={SalesScoring} />
                 <Route path="/tasks/focus" component={TasksFocus} />
                 <Route path="/documents/intelligence" component={DocumentsIntelligence} />
+                <Route path="/finance/intelligence" component={FinanceIntelligence} />
+                <Route path="/hr/intelligence" component={HrIntelligence} />
+                <Route path="/notifications/digest" component={NotificationsDigest} />
+                <Route path="/search" component={UniversalSearch} />
+                <Route path="/assistant" component={AssistantPage} />
+                <Route path="/briefing" component={BriefingPage} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
                 <Route path="/marketing/campaigns" component={MarketingCampaigns} />

@@ -202,6 +202,7 @@ export const ROUTE_MODULE_MAP: Array<{ test: (path: string) => boolean; moduleKe
   { test: (p) => p.startsWith("/crm") || p.startsWith("/orders") || p.startsWith("/proformas") || p.startsWith("/invoices") || p.startsWith("/payments"), moduleKey: "sales_crm" },
   { test: (p) => p.startsWith("/accounting"), moduleKey: "accounting" },
   { test: (p) => p.startsWith("/fpa"), moduleKey: "financial_planning" },
+  { test: (p) => p.startsWith("/finance"), moduleKey: "accounting" },
   { test: (p) => p.startsWith("/logistics"), moduleKey: "operations" },
   { test: (p) => p.startsWith("/equipment"), moduleKey: "inventory_assets" },
   { test: (p) => p.startsWith("/rentals") || p.startsWith("/inspections"), moduleKey: "rentals" },
