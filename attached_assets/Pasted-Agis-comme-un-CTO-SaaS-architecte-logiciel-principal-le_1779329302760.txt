@@ -1,0 +1,742 @@
+Agis comme un **CTO SaaS**, **architecte logiciel principal**, **lead full-stack engineer**, **product builder B2B**, **brand integrator**, et **exécutant direct dans Replit**.
+
+Ta mission est de **modifier directement l’application existante** pour la transformer en une **plateforme SaaS multi-tenant, multi-secteurs, premium et commercialisable**, sans repartir de zéro, tout en **rebrandant entièrement le produit sous la marque Nexora**.
+
+Je ne veux pas une analyse.
+Je ne veux pas des recommandations théoriques.
+Je veux une **exécution concrète dans le code**, avec une logique proche d’un **ordre de migration + build script humain**.
+
+Tu dois :
+- modifier la base de données
+- créer les nouvelles tables SaaS
+- créer les migrations
+- modifier le backend
+- modifier le frontend
+- restructurer le sidebar
+- changer les routes
+- créer les nouvelles pages
+- ajouter la logique de packages SaaS
+- ajouter la logique de multi-tenant
+- ajouter la logique de billing/subscription
+- afficher le plan actif dans l’UI
+- rendre l’application plus générique, plus vendable et plus SaaS
+- renommer et rebrander toute l’application en **Nexora**
+- centraliser le branding dans des fichiers de config
+- mettre à jour les emails, metadata, assets et documentation
+- adapter le wording au **marché togolais et à la sous-région francophone**
+
+==================================================
+IDENTITÉ PRODUIT À APPLIQUER
+==================================================
+
+Nom produit : **Nexora**  
+Slogan FR : **Le pilotage d’entreprise nouvelle génération**  
+Slogan EN : **The operating system for modern organizations**
+
+Positionnement :
+- plateforme SaaS B2B premium
+- multi-secteurs
+- multi-tenant
+- modulaire
+- adaptée aux PME, cabinets, entreprises de services, commerce, BTP, logistique, ONG, etc.
+- conçue pour être vendue au **Togo** et dans la **sous-région francophone d’Afrique de l’Ouest**
+
+==================================================
+ORIENTATION MARCHÉ ET WORDING OBLIGATOIRE
+==================================================
+
+L’application vise prioritairement :
+- le marché togolais
+- la sous-région francophone
+- les organisations d’Afrique de l’Ouest francophone
+
+Le wording, les libellés, les écrans, les emails, les notifications et le ton global doivent refléter cela.
+
+Le français utilisé doit être :
+- professionnel
+- naturel
+- fluide
+- crédible
+- adapté à des dirigeants, managers, responsables administratifs, commerciaux, comptables, RH et opérationnels du Togo et de la sous-région
+
+Évite :
+- les formulations trop américaines
+- les traductions littérales maladroites
+- les textes amateurs
+- les textes trop génériques de template
+- les tournures trop locales ou familières
+
+Le ton doit être :
+- premium
+- corporate
+- sobre
+- business
+- moderne
+- facile à comprendre
+- commercialement crédible
+
+Utilise en priorité des libellés tels que :
+- Tableau de bord
+- Clients
+- Services
+- Projets
+- Tâches
+- Ventes & Relation client
+- Comptabilité
+- Planification financière
+- Opérations
+- Parc & équipements
+- Locations
+- Documents
+- Équipe & RH
+- Communications
+- Rapports
+- Portail client
+- Marketing
+- Administration
+- Abonnement & facturation
+- Paramètres de l’espace de travail
+
+Devise par défaut :
+- **XOF / FCFA**
+
+==================================================
+OBJECTIF PRODUIT
+==================================================
+
+Transformer l’application actuelle en une **plateforme SaaS généraliste de gestion et de pilotage d’entreprise**, adaptée à plusieurs secteurs :
+- BTP
+- retail / commerce
+- restauration
+- cabinets d’avocats
+- cabinets de conseil
+- logistique
+- PME
+- ONG
+- services professionnels
+- distribution
+- toute structure ayant besoin de :
+  - gestion clients
+  - services
+  - projets
+  - tâches
+  - RH
+  - opérations
+  - comptabilité
+  - planification financière
+  - reporting
+  - documents
+  - collaboration
+  - CRM
+  - portail client
+  - marketing
+
+L’application ne doit plus paraître conçue pour une seule structure.
+Elle doit devenir un **vrai produit SaaS B2B vendable à plusieurs organisations**.
+
+==================================================
+STACK À RESPECTER
+==================================================
+
+Travaille avec la stack déjà en place dans l’application.
+Si la stack est déjà définie, adapte l’existant proprement.
+Ne reconstruis pas inutilement.
+
+Structure cible si nécessaire :
+- Frontend : React + TypeScript
+- Backend : Node.js / NestJS
+- Database : PostgreSQL / Supabase
+- Auth : Supabase Auth + JWT
+- UI : Tailwind + composants modulaires
+- Deploy : Vercel
+- Repo : GitHub
+- Dev : Replit
+
+==================================================
+RÈGLE ABSOLUE
+==================================================
+
+Tu dois exécuter les changements dans l’ordre exact ci-dessous.
+
+Pour chaque étape :
+- crée les fichiers exacts demandés
+- modifie les fichiers existants nécessaires
+- garde l’app stable
+- réutilise l’existant autant que possible
+- applique des noms exacts et cohérents
+- ne reste pas vague
+- ne demande pas confirmation
+- avance comme un builder en production
+
+À la fin, donne :
+- les fichiers créés
+- les fichiers modifiés
+- les tables créées
+- les routes créées
+- les composants créés
+- les pages créées
+- les variables d’environnement ajoutées
+- les migrations ajoutées
+- les points à vérifier
+
+==================================================
+PÉRIMÈTRE FONCTIONNEL À CONSERVER / STRUCTURER
+==================================================
+
+Le produit final doit conserver et structurer proprement les pôles suivants :
+
+### Noyau métier
+- Tableau de bord
+- Clients
+- Services
+- Projets
+- Tâches
+- Documents
+- Équipe & RH
+- Rapports
+
+### Modules business
+- Ventes & Relation client (CRM)
+- Comptabilité
+- Planification financière
+- Opérations
+- Parc & équipements
+- Locations
+- Communications
+- Portail client
+- Marketing
+
+### Administration
+- Utilisateurs
+- Rôles & permissions
+- Départements
+- Abonnement & facturation
+- Paramètres de l’espace de travail
+- Activation des modules
+- Logs / audit si pertinent
+
+==================================================
+EXIGENCES FONCTIONNELLES IMPORTANTES
+==================================================
+
+L’application doit intégrer ou préserver les logiques suivantes :
+
+### 1. Multi-tenant / workspace / organization
+- chaque entreprise = un workspace / tenant
+- isolation des données par organization_id
+- rôles, permissions, paramètres et abonnements gérés par tenant
+
+### 2. Packages SaaS
+Créer des plans du type :
+- Starter
+- Growth
+- Professional
+- Enterprise
+
+La logique de pricing doit inclure :
+- frais fixes d’installation / onboarding
+- abonnement mensuel ou annuel
+- prix selon nombre d’utilisateurs
+- modules activés selon le package
+- logique d’upgrade
+
+### 3. Accès et permissions
+- accès contrôlé par tenant + rôle + package + affectation
+- les utilisateurs ne voient que ce qu’ils sont autorisés à voir
+- admin et managers autorisés gèrent utilisateurs, départements, rôles, permissions, projets, fichiers, chats, etc.
+- onboarding sécurisé
+- invitation email
+- mot de passe à changer à la première connexion
+- contrôle d’accès aux projets, fichiers, chats et membres selon affectation
+
+### 4. Messagerie / communications
+Le module Communications doit être moderne et inclure ou préparer :
+- chat interne
+- chat projet / équipe / client
+- notifications temps réel
+- bouton WhatsApp dans la messagerie redirigeant vers le numéro WhatsApp du contact
+- traduction automatique avec sélecteur direct de langue
+- voice-to-text si disponible
+- pièces jointes
+- partage de localisation si déjà prévu
+- expérience calling / notifications plus fluide et professionnelle
+
+### 5. Comptabilité
+Le module Comptabilité doit être moderne, inspiré de QuickBooks / Xero, mais aligné avec les réalités régionales.
+Prévoir :
+- plan comptable
+- journaux
+- écritures
+- grand livre
+- balance
+- factures
+- paiements
+- clients / fournisseurs
+- trésorerie
+- reporting financier
+- lien fort avec commercial, services, projets, paiements, locations, etc.
+
+### 6. Planification financière
+Le module Planification financière doit permettre :
+- budget entreprise
+- budget par projet / service / département
+- actual vs budget
+- variance analysis
+- forecast / prévisions
+- export Excel des rapports
+
+### 7. RH
+Le module Équipe & RH doit permettre :
+- collaborateurs
+- équipes / départements
+- postes / fonctions
+- affectations
+- documents RH
+- rôle organisationnel
+- synchronisation avec projets, tâches, opérations, matériel
+
+### 8. Marketing
+Le module Marketing doit permettre :
+- campagnes email
+- campagnes SMS
+- ciblage clients / prospects / fournisseurs / collaborateurs
+- alertes automatiques par email sur échéances, locations, paiements, retours, etc.
+
+### 9. Gestion documentaire
+Le module Documents doit permettre :
+- organisation par client
+- fournisseur
+- projet
+- service
+- module
+- location
+- facture
+- commande
+- collaborateur
+- recherche simple
+- rattachement transversal aux entités métier
+
+==================================================
+BUILD ORDER À EXÉCUTER
+==================================================
+
+# PHASE 1 — AUDIT ET PRÉPARATION
+1. Audit la structure actuelle du projet
+2. Repère les dossiers backend, frontend, database, auth, sidebar, routing et settings
+3. Repère toutes les entités métier existantes
+4. Repère les rôles et permissions existants
+5. Repère où injecter la logique organization_id / tenant_id
+6. Repère comment brancher la logique de subscription et de plans sans casser l’existant
+7. Repère toutes les occurrences de l’ancien nom du produit et de l’ancien branding
+8. Prépare une stratégie de migration incrémentale
+
+--------------------------------------------------
+# PHASE 2 — BASE DE DONNÉES
+Crée ou adapte les tables suivantes :
+- organizations
+- organization_members
+- subscription_plans
+- subscription_plan_features
+- organization_subscriptions
+- organization_modules
+- billing_events
+- workspace_invitations
+- module_catalog
+- role_permissions
+
+Ajoute `organization_id` aux tables métier pertinentes :
+- clients
+- services
+- projects
+- tasks
+- documents
+- invoices
+- payments
+- purchase_orders
+- proformas
+- conversations
+- messages
+- departments
+- roles
+- reports
+- notifications
+- equipment
+- rentals
+- employees / collaborators
+- settings liées au tenant
+
+Ajoute les index nécessaires.
+
+Crée exactement cette migration :
+- `infra/supabase/migrations/20260601_multitenant_billing_refactor.sql`
+
+Seed obligatoire :
+Plans :
+- STARTER
+- GROWTH
+- PROFESSIONAL
+- ENTERPRISE
+
+Modules :
+- dashboard
+- clients
+- services
+- projects
+- tasks
+- sales_crm
+- accounting
+- financial_planning
+- operations
+- inventory_assets
+- rentals
+- documents
+- team_hr
+- communications
+- reports
+- client_portal
+- marketing
+- administration
+- billing_subscription
+- workspace_settings
+
+--------------------------------------------------
+# PHASE 3 — BACKEND
+Crée ou adapte les modules/fichiers suivants :
+- organizations
+- organization-members
+- subscription-plans
+- subscriptions
+- organization-modules
+- billing
+- workspace-settings
+
+Crée ou adapte exactement :
+- `apps/backend/src/config/branding.ts`
+- `apps/backend/src/common/guards/tenant-access.guard.ts`
+- `apps/backend/src/common/decorators/current-organization.decorator.ts`
+- `apps/backend/src/common/interceptors/organization-context.interceptor.ts`
+- `apps/backend/src/common/services/feature-access.service.ts`
+- `apps/backend/src/common/services/plan-access.service.ts`
+- `apps/backend/src/common/services/module-access.service.ts`
+
+Routes backend à implémenter :
+- GET `/organizations/current`
+- PATCH `/organizations/current`
+- GET `/organizations/:id`
+- POST `/organizations`
+- GET `/organizations`
+- GET `/organization-members`
+- POST `/organization-members/invite`
+- PATCH `/organization-members/:id`
+- DELETE `/organization-members/:id`
+- GET `/subscription-plans`
+- GET `/subscription-plans/:code`
+- GET `/subscriptions/current`
+- PATCH `/subscriptions/current`
+- POST `/subscriptions/change-plan`
+- POST `/subscriptions/change-billing-cycle`
+- GET `/organization-modules`
+- PATCH `/organization-modules/:moduleKey/toggle`
+- GET `/billing/summary`
+- GET `/billing/events`
+- GET `/billing/usage`
+- GET `/workspace-settings`
+- PATCH `/workspace-settings/general`
+- PATCH `/workspace-settings/branding`
+- PATCH `/workspace-settings/preferences`
+
+Toutes les routes doivent être :
+- auth-protected
+- tenant-aware
+- role-aware
+- plan-aware
+
+--------------------------------------------------
+# PHASE 4 — FRONTEND
+Crée ou adapte les pages suivantes :
+- `/dashboard`
+- `/clients`
+- `/services`
+- `/projects`
+- `/tasks`
+- `/sales`
+- `/accounting`
+- `/financial-planning`
+- `/operations`
+- `/inventory`
+- `/rentals`
+- `/documents`
+- `/team`
+- `/communications`
+- `/reports`
+- `/client-portal`
+- `/marketing`
+- `/admin/users`
+- `/admin/roles`
+- `/admin/departments`
+- `/billing`
+- `/workspace-settings`
+- `/upgrade-required`
+- `/login`
+
+Crée ou adapte exactement les composants suivants :
+- `apps/frontend/src/components/navigation/app-sidebar.tsx`
+- `apps/frontend/src/components/navigation/sidebar-group.tsx`
+- `apps/frontend/src/components/navigation/sidebar-item.tsx`
+- `apps/frontend/src/components/navigation/plan-badge.tsx`
+- `apps/frontend/src/components/billing/current-plan-card.tsx`
+- `apps/frontend/src/components/billing/plan-comparison-table.tsx`
+- `apps/frontend/src/components/billing/subscription-summary-card.tsx`
+- `apps/frontend/src/components/billing/usage-seats-card.tsx`
+- `apps/frontend/src/components/billing/upgrade-cta-card.tsx`
+- `apps/frontend/src/components/workspace/general-settings-form.tsx`
+- `apps/frontend/src/components/workspace/branding-settings-form.tsx`
+- `apps/frontend/src/components/workspace/module-access-list.tsx`
+- `apps/frontend/src/components/workspace/workspace-summary-card.tsx`
+- `apps/frontend/src/components/access/feature-gate.tsx`
+- `apps/frontend/src/components/access/module-lock-card.tsx`
+- `apps/frontend/src/components/dashboard/workspace-overview-card.tsx`
+- `apps/frontend/src/components/dashboard/active-plan-widget.tsx`
+- `apps/frontend/src/components/dashboard/module-usage-widget.tsx`
+- `apps/frontend/src/components/dashboard/upgrade-opportunities-widget.tsx`
+- `apps/frontend/src/components/branding/app-logo.tsx`
+- `apps/frontend/src/components/branding/app-wordmark.tsx`
+- `apps/frontend/src/components/branding/app-tagline.tsx`
+
+Crée ou adapte :
+- `apps/frontend/src/config/branding.ts`
+- `apps/frontend/src/lib/plan-access.ts`
+- `apps/frontend/src/lib/module-access.ts`
+
+--------------------------------------------------
+# PHASE 5 — SIDEBAR
+Réorganise le sidebar exactement dans cet ordre :
+
+## Main
+- Tableau de bord
+- Clients
+- Services
+- Projets
+- Tâches
+
+## Business
+- Ventes & Relation client
+- Comptabilité
+- Planification financière
+- Opérations
+- Parc & équipements
+- Locations
+- Documents
+- Équipe & RH
+- Communications
+- Rapports
+- Portail client
+- Marketing
+
+## Admin
+- Utilisateurs
+- Rôles
+- Départements
+- Abonnement & facturation
+- Paramètres de l’espace de travail
+
+Règles :
+- masquer selon plan
+- masquer selon rôle
+- afficher le plan actif
+- afficher le badge du plan dans le sidebar
+- intégrer le branding Nexora
+- design premium et SaaS
+
+--------------------------------------------------
+# PHASE 6 — FEATURE GATING
+Implémente la logique suivante :
+- si module non inclus dans le plan : masquer dans le sidebar
+- si URL appelée manuellement : bloquer
+- afficher `/upgrade-required` côté frontend
+- renvoyer 403 côté backend
+
+--------------------------------------------------
+# PHASE 7 — PAGE ABONNEMENT & FACTURATION
+Créer une vraie page Billing avec sections :
+- Formule active
+- Cycle de facturation
+- Utilisation des licences
+- Modules inclus
+- Options d’évolution
+- Historique de facturation
+- Récapitulatif des frais d’installation
+
+Actions :
+- Upgrade Plan
+- Switch to Annual
+- Switch to Monthly
+- Contact Sales
+- View Billing Events
+
+--------------------------------------------------
+# PHASE 8 — PARAMÈTRES DE L’ESPACE DE TRAVAIL
+Créer une vraie page Workspace Settings avec sections :
+- Général
+- Identité visuelle
+- Modules actifs
+- Résumé de l’abonnement
+- Sécurité & accès
+
+Champs minimum :
+- Nom de l’organisation
+- Slug
+- Secteur d’activité
+- Pays
+- Devise
+- Fuseau horaire
+- Logo URL/upload
+- Couleur principale
+- Couleur secondaire
+
+--------------------------------------------------
+# PHASE 9 — REBRANDING NEXORA
+Remplace tout ancien nom du produit par **Nexora** dans :
+- sidebar
+- login
+- dashboard
+- settings
+- billing
+- workspace settings
+- emails système
+- notifications
+- metadata
+- manifest
+- README
+- package.json
+- .env.example
+- branding config
+
+Créer ou adapter :
+- `apps/backend/src/config/branding.ts`
+- `apps/frontend/src/config/branding.ts`
+
+Le branding centralisé doit contenir :
+- appName = "Nexora"
+- appShortName = "Nexora"
+- appTaglineFr = "Le pilotage d’entreprise nouvelle génération"
+- appTaglineEn = "The operating system for modern organizations"
+
+Prépare les assets :
+- `apps/frontend/public/branding/nexora-logo.svg`
+- `apps/frontend/public/branding/nexora-mark.svg`
+- `apps/frontend/public/favicon.ico`
+
+--------------------------------------------------
+# PHASE 10 — LOGIN + METADATA
+La page login doit afficher :
+- logo Nexora
+- nom Nexora
+- slogan FR ou EN
+- rendu premium
+
+Mets à jour :
+- `apps/frontend/index.html`
+- `apps/frontend/public/manifest.json`
+- title
+- meta title
+- meta description
+- short_name
+- name
+
+--------------------------------------------------
+# PHASE 11 — VARIABLES D’ENVIRONNEMENT
+Ajoute dans `.env.example` :
+- APP_NAME=Nexora
+- APP_ENV=
+- APP_URL=
+- APP_TAGLINE_FR=Le pilotage d’entreprise nouvelle génération
+- APP_TAGLINE_EN=The operating system for modern organizations
+- SUPABASE_URL=
+- SUPABASE_ANON_KEY=
+- SUPABASE_SERVICE_ROLE_KEY=
+- JWT_SECRET=
+- JWT_EXPIRES_IN=
+- DEFAULT_PLAN_CODE=STARTER
+- BILLING_CURRENCY=XOF
+- DEFAULT_BILLING_CYCLE=monthly
+- DEFAULT_SETUP_FEE=0
+- VITE_APP_NAME=Nexora
+- VITE_APP_TAGLINE_FR=Le pilotage d’entreprise nouvelle génération
+- VITE_APP_TAGLINE_EN=The operating system for modern organizations
+- VITE_SUPABASE_URL=
+- VITE_SUPABASE_ANON_KEY=
+- VITE_DEFAULT_PLAN_CODE=STARTER
+
+--------------------------------------------------
+# PHASE 12 — WORDING PRODUIT
+Remplace les libellés internes ou trop spécifiques selon cette logique :
+- Finance → Comptabilité
+- Pilotage financier → Planification financière
+- Commercial → Ventes & Relation client
+- Matériel → Parc & équipements
+- Messagerie → Communications
+- Paramètres société → Paramètres de l’espace de travail
+- Abonnement → Abonnement & facturation
+
+Supprime les textes amateurs.
+Utilise un ton :
+- premium
+- corporate
+- B2B SaaS
+- naturel pour le Togo et l’Afrique francophone
+
+--------------------------------------------------
+# PHASE 13 — DASHBOARD
+Le dashboard doit afficher :
+- nom de l’organisation
+- formule active
+- licences utilisées / incluses
+- résumé des modules activés
+- KPI clés
+- activité récente
+- nombre de clients
+- nombre de services
+- nombre de projets
+- nombre de tâches
+- résumé facturation
+- modules premium verrouillés si pertinent
+
+--------------------------------------------------
+# PHASE 14 — DOCUMENTATION
+Met à jour `README.md` pour refléter :
+- Nexora
+- plateforme SaaS premium multi-tenant
+- logique plans / billing
+- logique workspace / organization
+- stack technique
+- branding Nexora
+- positionnement marché togolais et sous-régional francophone
+
+==================================================
+SORTIE FINALE OBLIGATOIRE
+==================================================
+
+À la fin, fournis :
+1. liste des fichiers créés
+2. liste des fichiers modifiés
+3. liste des tables créées
+4. liste des colonnes ajoutées
+5. liste des routes backend créées
+6. liste des routes frontend créées
+7. liste des composants créés
+8. liste des variables d’environnement ajoutées
+9. résumé plan → modules
+10. résumé sidebar final
+11. résumé billing final
+12. résumé workspace settings final
+13. liste des anciennes occurrences branding remplacées
+14. résumé metadata mises à jour
+15. résumé emails système mis à jour
+16. points de contrôle pour tester le multi-tenant
+17. points de contrôle pour tester le rebranding Nexora
+
+Règle finale :
+n’explique pas seulement.
+**Exécute les changements directement dans l’application.**
+Le résultat final doit ressembler à un vrai **SaaS multi-tenant premium nommé Nexora**, prêt à être vendu sur le marché togolais et la sous-région francophone.
