@@ -163,9 +163,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
           <p className="text-[10px] font-semibold text-sidebar-foreground/45 uppercase tracking-wider">Espace de travail</p>
           <p className="text-[13.5px] font-semibold text-white truncate mt-0.5">{org?.name ?? "Chargement…"}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <PlanBadge code={subData?.plan.code} name={subData?.plan.name} compact />
-          </div>
         </div>
       </div>
 
