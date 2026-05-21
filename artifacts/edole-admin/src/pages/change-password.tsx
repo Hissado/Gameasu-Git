@@ -60,8 +60,8 @@ export default function ChangePasswordPage() {
         </CardHeader>
         <CardContent>
           {forced && (
-            <Alert className="mb-4 border-orange-200 bg-orange-50 text-orange-900">
-              <ShieldAlert className="h-4 w-4 text-orange-600" />
+            <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-900">
+              <ShieldAlert className="h-4 w-4 text-amber-700" />
               <AlertDescription>Tant que ce changement n'est pas effectué, l'accès est restreint.</AlertDescription>
             </Alert>
           )}

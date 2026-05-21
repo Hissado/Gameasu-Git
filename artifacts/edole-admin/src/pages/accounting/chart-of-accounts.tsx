@@ -61,7 +61,7 @@ export default function ChartOfAccounts() {
           {Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b)).map(([cls, accs]) => (
             <Card key={cls}>
               <CardContent className="p-0">
-                <div className="px-5 py-3 bg-orange-50 border-b border-border flex items-center justify-between">
+                <div className="px-5 py-3 bg-amber-50 border-b border-border flex items-center justify-between">
                   <div className="font-bold">Classe {cls} — {CLASS_LABELS[Number(cls)]}</div>
                   <Badge variant="secondary">{accs.length} comptes</Badge>
                 </div>

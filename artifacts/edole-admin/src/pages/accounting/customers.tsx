@@ -17,9 +17,9 @@ const BUCKET_LABELS: Record<string, string> = {
 };
 const BUCKET_COLORS: Record<string, string> = {
   current: "bg-emerald-100 text-emerald-800",
-  d1_30: "bg-amber-100 text-amber-800",
-  d31_60: "bg-orange-100 text-orange-800",
-  d61_90: "bg-red-100 text-red-800",
+  d1_30: "bg-yellow-100 text-yellow-800",
+  d31_60: "bg-amber-100 text-amber-900",
+  d61_90: "bg-orange-100 text-orange-900",
   d90_plus: "bg-red-200 text-red-900",
 };
 

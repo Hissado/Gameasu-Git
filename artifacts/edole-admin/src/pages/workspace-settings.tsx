@@ -38,7 +38,7 @@ export default function WorkspaceSettingsPage() {
     <div className="space-y-8">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{BRANDING.appName}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">{BRANDING.appName}</p>
           <h1 className="text-3xl font-bold tracking-tight">Paramètres de l'espace de travail</h1>
           <p className="text-muted-foreground mt-1">Configurez l'identité, les préférences et les modules de {organization.name}.</p>
         </div>
@@ -53,7 +53,7 @@ export default function WorkspaceSettingsPage() {
       {/* Général */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Building2 className="w-4 h-4 text-orange-600" /> Général</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><Building2 className="w-4 h-4 text-amber-700" /> Général</CardTitle>
           <CardDescription>Identité juridique et coordonnées de votre organisation.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -76,12 +76,12 @@ export default function WorkspaceSettingsPage() {
       {/* Identité visuelle */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Palette className="w-4 h-4 text-orange-600" /> Identité visuelle</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><Palette className="w-4 h-4 text-amber-700" /> Identité visuelle</CardTitle>
           <CardDescription>Logo et couleurs de votre espace de travail.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Field label="URL du logo" value={branding.logoUrl} onChange={(v) => setBranding((s) => ({ ...s, logoUrl: v }))} placeholder="https://…" />
-          <Field label="Couleur principale" value={branding.primaryColor} onChange={(v) => setBranding((s) => ({ ...s, primaryColor: v }))} placeholder="#FF6B00" />
+          <Field label="Couleur principale" value={branding.primaryColor} onChange={(v) => setBranding((s) => ({ ...s, primaryColor: v }))} placeholder="#C8A24B" />
           <Field label="Couleur secondaire" value={branding.secondaryColor} onChange={(v) => setBranding((s) => ({ ...s, secondaryColor: v }))} placeholder="#0F172A" />
           <div className="md:col-span-3 flex justify-end">
             <Button onClick={() => updateBranding.mutate(branding, { onSuccess: () => toast({ title: "Identité mise à jour" }) })} disabled={updateBranding.isPending}>
@@ -94,7 +94,7 @@ export default function WorkspaceSettingsPage() {
       {/* Préférences */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Globe2 className="w-4 h-4 text-orange-600" /> Préférences régionales</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><Globe2 className="w-4 h-4 text-amber-700" /> Préférences régionales</CardTitle>
           <CardDescription>Devise, fuseau horaire et langue par défaut.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -112,7 +112,7 @@ export default function WorkspaceSettingsPage() {
       {/* Modules */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Layers className="w-4 h-4 text-orange-600" /> Modules actifs</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><Layers className="w-4 h-4 text-amber-700" /> Modules actifs</CardTitle>
           <CardDescription>Activez ou désactivez les modules disponibles dans votre formule.</CardDescription>
         </CardHeader>
         <CardContent className="divide-y divide-border/60">
@@ -144,11 +144,11 @@ export default function WorkspaceSettingsPage() {
       {/* Sécurité (placeholder) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="w-4 h-4 text-orange-600" /> Sécurité & accès</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="w-4 h-4 text-amber-700" /> Sécurité & accès</CardTitle>
           <CardDescription>Politique d'accès et de mots de passe.</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          La gestion fine des rôles et permissions est disponible depuis la <Link href="/admin/roles" className="text-orange-600 hover:underline">Console d'administration</Link>.
+          La gestion fine des rôles et permissions est disponible depuis la <Link href="/admin/roles" className="text-amber-700 hover:underline">Console d'administration</Link>.
         </CardContent>
       </Card>
     </div>

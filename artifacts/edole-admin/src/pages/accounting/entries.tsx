@@ -94,7 +94,7 @@ export default function EntriesPage() {
     <AccountingShell
       title="Écritures comptables"
       subtitle="Journal de toutes les opérations enregistrées en partie double"
-      actions={<Button onClick={() => setOpen(true)} className="bg-orange-600 hover:bg-orange-700"><Plus className="w-4 h-4 mr-2" />Saisir une écriture</Button>}
+      actions={<Button onClick={() => setOpen(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-4 h-4 mr-2" />Saisir une écriture</Button>}
     >
       <Card className="mb-4">
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
@@ -254,7 +254,7 @@ export default function EntriesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={() => create.mutate()} disabled={!balanced || create.isPending} className="bg-orange-600 hover:bg-orange-700">Enregistrer</Button>
+            <Button onClick={() => create.mutate()} disabled={!balanced || create.isPending} className="bg-amber-600 hover:bg-amber-700">Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

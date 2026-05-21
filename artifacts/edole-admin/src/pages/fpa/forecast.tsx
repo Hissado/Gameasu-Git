@@ -93,7 +93,7 @@ export default function ForecastPage() {
               <Mini label="Forecast" value={formatFCFA(forecastReport.totals.budget)} />
               <Mini label="Réalisé" value={formatFCFA(forecastReport.totals.actual)} />
               <Mini label="Écart" value={formatFCFA(forecastReport.totals.variance)}
-                color={forecastReport.totals.variance > 0 ? "text-amber-600" : "text-emerald-600"} />
+                color={forecastReport.totals.variance > 0 ? "text-amber-700" : "text-emerald-600"} />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

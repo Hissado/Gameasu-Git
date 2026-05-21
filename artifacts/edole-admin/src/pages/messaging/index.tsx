@@ -1111,9 +1111,9 @@ export default function Messaging() {
                 )}
                 {editing && (
                   <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border-l-2 border-amber-500">
-                    <Pencil className="w-4 h-4 text-amber-600" />
+                    <Pencil className="w-4 h-4 text-amber-700" />
                     <div className="flex-1 text-xs text-amber-800">Modification du message…</div>
-                    <button onClick={() => { setEditing(null); setDraft(""); }} className="text-amber-600 hover:text-amber-800"><X className="w-4 h-4" /></button>
+                    <button onClick={() => { setEditing(null); setDraft(""); }} className="text-amber-700 hover:text-amber-800"><X className="w-4 h-4" /></button>
                   </div>
                 )}
                 {pendingFiles.length > 0 && (

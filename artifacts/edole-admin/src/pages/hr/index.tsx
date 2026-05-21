@@ -98,7 +98,7 @@ export default function HrDashboard() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-600" /> Contrats arrivant à échéance</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-700" /> Contrats arrivant à échéance</CardTitle></CardHeader>
             <CardContent>
               {data.contractsExpiringSoon.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucun contrat n'arrive à échéance dans les 30 prochains jours.</p>

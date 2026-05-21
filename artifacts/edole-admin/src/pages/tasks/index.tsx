@@ -22,7 +22,7 @@ const STATUS_COLUMNS: Array<{ key: string; label: string; cls: string }> = [
 const PRIORITY_DOT: Record<string, string> = {
   low: "bg-slate-400",
   medium: "bg-blue-500",
-  high: "bg-orange-500",
+  high: "bg-amber-500",
   urgent: "bg-red-500",
 };
 
@@ -45,7 +45,7 @@ export default function TasksList() {
     switch (priority) {
       case "low": return <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded">Basse</span>;
       case "medium": return <span className="text-blue-600 text-xs font-medium px-2 py-1 bg-blue-50 rounded">Moyenne</span>;
-      case "high": return <span className="text-orange-600 text-xs font-medium px-2 py-1 bg-orange-50 rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Haute</span>;
+      case "high": return <span className="text-amber-700 text-xs font-medium px-2 py-1 bg-amber-50 rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Haute</span>;
       case "urgent": return <span className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded border border-red-200 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgente</span>;
       default: return <span className="text-slate-500 text-xs font-medium">Normale</span>;
     }

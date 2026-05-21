@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { NexoraMark } from "@/components/branding/NexoraMark";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -44,15 +45,11 @@ export default function LoginPage() {
   };
 
   const NexoraLogo = (
-    <div className="inline-flex items-center gap-3">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30">
-        <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 18 V6 L18 18 V6" />
-        </svg>
-      </div>
+    <div className="inline-flex items-center gap-3.5">
+      <NexoraMark className="w-12 h-12 rounded-xl" variant="dark" />
       <div>
-        <p className="text-2xl font-bold tracking-tight text-white">{BRANDING.appName}</p>
-        <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80 font-semibold">Operations OS</p>
+        <p className="font-display text-[26px] font-bold tracking-[-0.03em] text-white leading-none">{BRANDING.appName}</p>
+        <p className="text-[10.5px] uppercase tracking-[0.32em] text-[#C8A24B] font-semibold mt-1.5">Enterprise OS</p>
       </div>
     </div>
   );
@@ -63,14 +60,17 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-sidebar text-sidebar-foreground p-12 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #FF8A1F 0, transparent 40%), radial-gradient(circle at 80% 80%, #FF5A00 0, transparent 35%)" }}
+          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B33 0, transparent 45%), radial-gradient(circle at 80% 80%, #1B2A4E66 0, transparent 40%)" }}
         />
         <div className="relative">{NexoraLogo}</div>
 
         <div className="relative space-y-8 max-w-md">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-orange-400 font-bold mb-3">{BRANDING.marketBaseline}</p>
-            <h2 className="text-4xl font-bold leading-tight">{BRANDING.appTaglineFr}</h2>
+            <div className="inline-flex items-center gap-3 mb-4">
+              <span className="h-px w-8 bg-[#C8A24B]" />
+              <p className="text-[10.5px] uppercase tracking-[0.32em] text-[#C8A24B] font-semibold">Gérer aujourd'hui. Construire demain.</p>
+            </div>
+            <h2 className="font-display text-[40px] font-bold leading-[1.05] tracking-[-0.03em]">{BRANDING.appTaglineFr}</h2>
             <p className="text-sm text-sidebar-foreground/60 mt-4 leading-relaxed">
               Une seule plateforme SaaS pour piloter clients, projets, comptabilité, RH, opérations
               et facturation — pensée pour les organisations du Togo et de la sous-région.
@@ -85,8 +85,8 @@ export default function LoginPage() {
               { icon: Sparkles, label: "Onboarding accompagné — démarrage en moins de 7 jours" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-3 text-sm text-sidebar-foreground/85">
-                <div className="w-9 h-9 rounded-md bg-sidebar-accent border border-sidebar-border flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-orange-400" />
+                <div className="w-9 h-9 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-[#C8A24B]" />
                 </div>
                 {label}
               </div>
@@ -104,14 +104,10 @@ export default function LoginPage() {
         <Card className="w-full max-w-md shadow-xl border-border/60">
           <CardHeader className="space-y-2 pb-6">
             <div className="flex lg:hidden justify-center mb-2">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 18 V6 L18 18 V6" />
-                </svg>
-              </div>
+              <NexoraMark className="w-11 h-11 rounded-xl" variant="dark" />
             </div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{BRANDING.appName}</p>
-            <CardTitle className="text-2xl font-bold tracking-tight">Espace professionnel</CardTitle>
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.28em] text-[#7A5E1F]">{BRANDING.appName} · Enterprise OS</p>
+            <CardTitle className="font-display text-[26px] font-bold tracking-[-0.03em]">Espace professionnel</CardTitle>
             <CardDescription>
               Connectez-vous à votre espace de travail {BRANDING.appName}.
             </CardDescription>

@@ -163,7 +163,7 @@ function MetricCard({
     primary: "bg-primary/10 text-primary",
     dark: "bg-slate-900 text-white",
     success: "bg-emerald-500/10 text-emerald-600",
-    warning: "bg-amber-500/10 text-amber-600",
+    warning: "bg-amber-500/10 text-amber-700",
     danger: "bg-rose-500/10 text-rose-600",
     neutral: "bg-slate-100 text-slate-600",
   };
@@ -580,7 +580,7 @@ export default function Dashboard() {
                       <div className="text-right shrink-0">
                         <div className={cn(
                           "text-xs font-bold",
-                          overdue ? "text-rose-600" : today ? "text-amber-600" : "text-slate-700",
+                          overdue ? "text-rose-600" : today ? "text-amber-700" : "text-slate-700",
                         )}>
                           {shortDateFr(t._due)}
                         </div>
@@ -601,7 +601,7 @@ export default function Dashboard() {
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
               <CardTitle className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600" /> Alertes prioritaires
+                <AlertTriangle className="w-5 h-5 text-amber-700" /> Alertes prioritaires
               </CardTitle>
               <p className="text-xs text-slate-500 mt-1">Points d'attention immédiate</p>
             </div>
@@ -612,7 +612,7 @@ export default function Dashboard() {
           <CardContent className="space-y-3 pt-2">
             {outstanding > 0 && (
               <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50">
-                <Receipt className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <Receipt className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-slate-900">Créances ouvertes</div>
                   <div className="text-xs text-slate-600 mt-0.5">

@@ -57,7 +57,7 @@ export default function LedgerPage() {
       ) : data ? (
         <Card>
           <CardContent className="p-0">
-            <div className="px-5 py-4 border-b bg-orange-50 flex items-center justify-between">
+            <div className="px-5 py-4 border-b bg-amber-50 flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase text-muted-foreground font-semibold">Compte</div>
                 <div className="text-lg font-bold">{data.account.code} — {data.account.label}</div>

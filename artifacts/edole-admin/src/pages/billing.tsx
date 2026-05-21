@@ -23,7 +23,7 @@ export default function BillingPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{BRANDING.appName}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">{BRANDING.appName}</p>
         <h1 className="text-3xl font-bold tracking-tight">Abonnement & facturation</h1>
         <p className="text-muted-foreground mt-1">
           Gérez votre formule, votre cycle de facturation et consultez l'historique de votre espace de travail.
@@ -32,17 +32,17 @@ export default function BillingPage() {
 
       {/* Résumé actuel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Card className="lg:col-span-2 border-orange-200/60 bg-gradient-to-br from-orange-50/50 to-white">
+        <Card className="lg:col-span-2 border-amber-200/60 bg-gradient-to-br from-amber-50/50 to-white">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-orange-700/80">Formule active</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/80">Formule active</p>
               <div className="flex items-center gap-3 mt-1">
                 <CardTitle className="text-2xl">{current?.plan.name ?? "—"}</CardTitle>
                 <PlanBadge code={current?.plan.code} name={current?.plan.name} light />
               </div>
               <p className="text-muted-foreground text-sm mt-2 max-w-xl">{current?.plan.description}</p>
             </div>
-            <Crown className="w-8 h-8 text-orange-500/80" />
+            <Crown className="w-8 h-8 text-amber-500/80" />
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
             <Stat icon={Users} label="Licences" value={`${usage?.seatsUsed ?? 0} / ${current?.subscription.seats ?? 0}`} />
@@ -118,9 +118,9 @@ export default function BillingPage() {
             const price = cycle === "annual" ? p.annualPricePerSeat : p.monthlyPricePerSeat;
             const isCurrent = p.code === currentPlanCode;
             return (
-              <Card key={p.id} className={`relative ${p.isFeatured ? "border-orange-400 shadow-lg" : ""}`}>
+              <Card key={p.id} className={`relative ${p.isFeatured ? "border-amber-400 shadow-lg" : ""}`}>
                 {p.isFeatured && (
-                  <span className="absolute -top-2 right-4 text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full px-2.5 py-0.5">
+                  <span className="absolute -top-2 right-4 text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full px-2.5 py-0.5">
                     Le plus choisi
                   </span>
                 )}

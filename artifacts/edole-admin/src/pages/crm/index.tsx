@@ -28,7 +28,7 @@ export default function CrmHome() {
       case "lead": return "bg-slate-200 border-slate-300 text-slate-700";
       case "qualified": return "bg-blue-100 border-blue-200 text-blue-700";
       case "proposal": return "bg-indigo-100 border-indigo-200 text-indigo-700";
-      case "negotiation": return "bg-orange-100 border-orange-200 text-orange-700";
+      case "negotiation": return "bg-amber-100 border-amber-200 text-amber-700";
       case "won": return "bg-green-100 border-green-200 text-green-700";
       case "lost": return "bg-red-100 border-red-200 text-red-700";
       default: return "bg-slate-100 border-slate-200 text-slate-700";

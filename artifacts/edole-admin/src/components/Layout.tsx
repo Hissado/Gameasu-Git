@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
+import { NexoraMark } from "@/components/branding/NexoraMark";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Users, Briefcase, Wrench, Truck,
@@ -113,14 +114,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Bandeau logo Nexora */}
       <div className="relative flex items-center justify-between px-5 h-16 shrink-0 bg-sidebar-accent/30 border-b border-sidebar-border/60">
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 18 V6 L18 18 V6" />
-            </svg>
-          </div>
+          <NexoraMark className="w-9 h-9" variant="dark" />
           <div className="leading-tight">
-            <p className="text-white font-bold text-[15px] tracking-tight">{BRANDING.appName}</p>
-            <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">Operations OS</p>
+            <p className="font-display text-white font-bold text-[16px] tracking-tight">{BRANDING.appName}</p>
+            <p className="text-[9.5px] text-[#C8A24B]/80 uppercase tracking-[0.22em] font-semibold">Enterprise OS</p>
           </div>
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
@@ -135,7 +132,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <p className="text-[13.5px] font-semibold text-white truncate mt-0.5">{org?.name ?? "Chargement…"}</p>
           <div className="mt-2 flex items-center justify-between gap-2">
             <PlanBadge code={subData?.plan.code} name={subData?.plan.name} compact />
-            <Link href="/billing" className="text-[10.5px] text-orange-300/90 hover:text-orange-200 font-semibold uppercase tracking-wider">
+            <Link href="/billing" className="text-[10.5px] text-[#C8A24B] hover:text-[#E0BE6E] font-semibold uppercase tracking-wider transition-colors">
               Gérer
             </Link>
           </div>
@@ -164,11 +161,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       }`}
                     >
                       {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-orange-400 to-orange-600 shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-[#C8A24B] shadow-[0_0_10px_rgba(200,162,75,0.45)]" />
                       )}
                       <item.icon
                         className={`w-[16px] h-[16px] shrink-0 transition-colors ${
-                          active ? "text-orange-400" : locked ? "text-sidebar-foreground/25" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
+                          active ? "text-[#D9B86A]" : locked ? "text-sidebar-foreground/25" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
                         }`}
                         strokeWidth={1.75}
                       />
@@ -217,12 +214,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/" className="lg:hidden inline-flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 18 V6 L18 18 V6" />
-                </svg>
-              </div>
-              <span className="font-bold tracking-tight">{BRANDING.appName}</span>
+              <NexoraMark className="w-8 h-8" variant="dark" />
+              <span className="font-display font-bold tracking-tight text-[15px]">{BRANDING.appName}</span>
             </Link>
 
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
@@ -256,7 +249,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </div>
                   <Avatar className="w-9 h-9 ring-2 ring-border">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold text-sm">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-[#0F1A3A] text-[#C8A24B] font-semibold text-sm">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>

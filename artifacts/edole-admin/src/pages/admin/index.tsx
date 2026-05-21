@@ -52,7 +52,7 @@ export default function AdminHub() {
       {!isAdmin && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="flex items-center gap-3 py-4">
-            <Lock className="w-5 h-5 text-amber-600" />
+            <Lock className="w-5 h-5 text-amber-700" />
             <div className="text-sm text-amber-900">L'accès complet à l'administration nécessite un rôle administrateur.</div>
           </CardContent>
         </Card>

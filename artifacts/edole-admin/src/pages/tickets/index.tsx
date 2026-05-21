@@ -33,7 +33,7 @@ const STATUSES = [
 const PRIORITIES = [
   { v: "low", l: "Faible", c: "bg-slate-100 text-slate-700" },
   { v: "medium", l: "Moyenne", c: "bg-blue-100 text-blue-800" },
-  { v: "high", l: "Haute", c: "bg-orange-100 text-orange-800" },
+  { v: "high", l: "Haute", c: "bg-amber-100 text-amber-800" },
   { v: "urgent", l: "Urgente", c: "bg-red-100 text-red-800" },
 ];
 const CATEGORIES = [

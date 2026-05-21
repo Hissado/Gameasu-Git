@@ -85,7 +85,7 @@ export default function ReportsPage() {
             <div className="grid lg:grid-cols-2 gap-4 mb-4">
               <div className="grid grid-cols-2 gap-3">
                 <Mini label="Budget total" value={formatFCFA(byProject.totals.annualBudget)} />
-                <Mini label="Charges totales" value={formatFCFA(byProject.totals.expenses)} color="text-amber-600" />
+                <Mini label="Charges totales" value={formatFCFA(byProject.totals.expenses)} color="text-amber-700" />
                 <Mini label="Produits" value={formatFCFA(byProject.totals.revenues)} color="text-emerald-600" />
                 <Mini label="Marge" value={formatFCFA(byProject.totals.margin)}
                   color={byProject.totals.margin >= 0 ? "text-emerald-600" : "text-red-600"} />

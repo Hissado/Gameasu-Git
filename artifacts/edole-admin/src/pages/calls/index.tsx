@@ -13,7 +13,7 @@ import { useCallCenter } from "@/components/CallCenter";
 
 const STATUS_META: Record<string, { label: string; cls: string; Icon: any }> = {
   active:    { label: "En cours",  cls: "text-emerald-600 bg-emerald-50 border-emerald-200", Icon: PhoneCall },
-  ringing:   { label: "Sonnerie",  cls: "text-amber-600 bg-amber-50 border-amber-200",       Icon: PhoneCall },
+  ringing:   { label: "Sonnerie",  cls: "text-amber-700 bg-amber-50 border-amber-200",       Icon: PhoneCall },
   completed: { label: "Terminé",   cls: "text-slate-600 bg-slate-50 border-slate-200",       Icon: PhoneCall },
   missed:    { label: "Manqué",    cls: "text-red-600 bg-red-50 border-red-200",             Icon: PhoneMissed },
   declined:  { label: "Refusé",    cls: "text-red-600 bg-red-50 border-red-200",             Icon: PhoneMissed },

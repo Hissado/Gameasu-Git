@@ -149,7 +149,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Progress value={u.load} className={`h-2 flex-1 ${u.load > 80 ? "[&>div]:bg-red-500" : u.load > 60 ? "[&>div]:bg-orange-500" : "[&>div]:bg-green-500"}`} />
+                    <Progress value={u.load} className={`h-2 flex-1 ${u.load > 80 ? "[&>div]:bg-red-500" : u.load > 60 ? "[&>div]:bg-amber-500" : "[&>div]:bg-green-500"}`} />
                     <span className="text-xs font-bold w-10 text-right">{u.load}%</span>
                   </div>
                 </div>

@@ -64,8 +64,8 @@ export default function AdminDepartmentsPage() {
                   <TableRow key={d.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: d.color || "#FF6B0022" }}>
-                          <Building2 className="w-4 h-4" style={{ color: d.color || "#FF6B00" }} />
+                        <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: d.color || "#C8A24B22" }}>
+                          <Building2 className="w-4 h-4" style={{ color: d.color || "#C8A24B" }} />
                         </div>
                         <span className="font-medium">{d.name}</span>
                       </div>
@@ -109,7 +109,7 @@ function DeptDialog({ initial, onClose, onSubmit, pending }: { initial?: Partial
   const [code, setCode] = useState(initial?.code || "");
   const [name, setName] = useState(initial?.name || "");
   const [description, setDescription] = useState(initial?.description || "");
-  const [color, setColor] = useState(initial?.color || "#FF6B00");
+  const [color, setColor] = useState(initial?.color || "#C8A24B");
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>

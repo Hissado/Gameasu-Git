@@ -122,11 +122,11 @@ export default function VariancePage() {
             <KpiBlock label="Réalisé total" value={formatFCFA(report.totals.actual)} color="text-emerald-600" />
             <KpiBlock label="Écart total"
               value={formatFCFA(report.totals.variance)}
-              color={report.totals.variance > 0 ? "text-amber-600" : "text-emerald-600"}
+              color={report.totals.variance > 0 ? "text-amber-700" : "text-emerald-600"}
             />
             <KpiBlock label="% écart"
               value={report.totals.budget !== 0 ? `${((report.totals.variance / Math.abs(report.totals.budget)) * 100).toFixed(1)} %` : "-"}
-              color={report.totals.variance > 0 ? "text-amber-600" : "text-emerald-600"}
+              color={report.totals.variance > 0 ? "text-amber-700" : "text-emerald-600"}
             />
           </div>
 
@@ -201,7 +201,7 @@ export default function VariancePage() {
           {Math.abs(report.totals.variance) > Math.abs(report.totals.budget) * 0.1 && (
             <Card className="p-4 border-amber-200 bg-amber-50">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold text-amber-900">Écart significatif détecté</p>
                   <p className="text-amber-800">L'écart global dépasse 10 % du budget. Une analyse approfondie est recommandée.</p>

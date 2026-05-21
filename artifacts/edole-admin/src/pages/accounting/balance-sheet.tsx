@@ -65,7 +65,7 @@ export default function BalanceSheetPage() {
         </Card>
       </div>
       {data && (
-        <p className={`text-sm mt-4 text-center font-semibold ${Math.abs(data.totalActif - data.totalPassif) < 0.01 ? "text-emerald-600" : "text-orange-600"}`}>
+        <p className={`text-sm mt-4 text-center font-semibold ${Math.abs(data.totalActif - data.totalPassif) < 0.01 ? "text-emerald-600" : "text-amber-700"}`}>
           {Math.abs(data.totalActif - data.totalPassif) < 0.01
             ? "✓ Bilan équilibré"
             : `Écart Actif/Passif : ${formatFCFA(Math.abs(data.totalActif - data.totalPassif))}`}

@@ -72,7 +72,7 @@ export default function CollaboratorDetail() {
   }
 
   const wl = overview?.workload;
-  const loadColor = (wl?.totalAllocationPct ?? 0) > 100 ? "[&>div]:bg-red-500" : (wl?.totalAllocationPct ?? 0) > 80 ? "[&>div]:bg-orange-500" : "[&>div]:bg-emerald-500";
+  const loadColor = (wl?.totalAllocationPct ?? 0) > 100 ? "[&>div]:bg-red-500" : (wl?.totalAllocationPct ?? 0) > 80 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -112,7 +112,7 @@ export default function CollaboratorDetail() {
           {collaborator.isAvailable ? (
             <Badge className="bg-green-100 text-green-800 border-green-200 text-sm px-4 py-1">Disponible pour affectation</Badge>
           ) : (
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-sm px-4 py-1">Actuellement Affecté</Badge>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-sm px-4 py-1">Actuellement Affecté</Badge>
           )}
           {(collaborator as any).employeeNumber && <Badge variant="outline" className="font-mono text-xs">Matricule {(collaborator as any).employeeNumber}</Badge>}
         </div>
@@ -183,7 +183,7 @@ export default function CollaboratorDetail() {
                   <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Affectations</div><div className="text-2xl font-bold">{wl?.activeAssignments ?? 0}</div></div>
                 </div>
                 <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">
-                  <div className="p-2 bg-amber-100 text-amber-600 rounded-md"><ListTodo className="w-5 h-5" /></div>
+                  <div className="p-2 bg-amber-100 text-amber-700 rounded-md"><ListTodo className="w-5 h-5" /></div>
                   <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Tâches actives</div><div className="text-2xl font-bold">{wl?.activeTasks ?? 0}</div></div>
                 </div>
                 <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">

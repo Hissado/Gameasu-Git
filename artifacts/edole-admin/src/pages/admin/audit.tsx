@@ -18,7 +18,7 @@ const ACTION_COLORS: Record<string, string> = {
   update: "bg-blue-100 text-blue-700",
   delete: "bg-red-100 text-red-700",
   login: "bg-slate-100 text-slate-700",
-  login_failed: "bg-orange-100 text-orange-700",
+  login_failed: "bg-amber-100 text-amber-700",
   invite: "bg-purple-100 text-purple-700",
   role_change: "bg-amber-100 text-amber-800",
   permission_change: "bg-amber-100 text-amber-800",

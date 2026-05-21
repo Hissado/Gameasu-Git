@@ -25,8 +25,8 @@ function KPI({ icon: Icon, label, value, accent }: { icon: any; label: string; v
             <div className="text-xs uppercase font-semibold text-muted-foreground tracking-wide">{label}</div>
             <div className={`text-2xl font-bold mt-1 ${accent ?? ""}`}>{value}</div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-orange-600" />
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+            <Icon className="w-5 h-5 text-amber-700" />
           </div>
         </div>
       </CardContent>
@@ -119,7 +119,7 @@ export default function AccountingDashboard() {
                   </tbody>
                 </table>
                 <div className="p-3 border-t text-right">
-                  <Link href="/accounting/customers" className="text-xs text-orange-600 font-semibold hover:underline">Voir balance âgée →</Link>
+                  <Link href="/accounting/customers" className="text-xs text-amber-700 font-semibold hover:underline">Voir balance âgée →</Link>
                 </div>
               </CardContent>
             </Card>
@@ -146,7 +146,7 @@ export default function AccountingDashboard() {
                   </tbody>
                 </table>
                 <div className="p-3 border-t text-right">
-                  <Link href="/accounting/suppliers" className="text-xs text-orange-600 font-semibold hover:underline">Voir fournisseurs →</Link>
+                  <Link href="/accounting/suppliers" className="text-xs text-amber-700 font-semibold hover:underline">Voir fournisseurs →</Link>
                 </div>
               </CardContent>
             </Card>

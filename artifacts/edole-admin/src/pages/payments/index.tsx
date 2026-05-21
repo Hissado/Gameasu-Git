@@ -16,7 +16,7 @@ export default function PaymentsList() {
     switch (method) {
       case "bank_transfer": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><Landmark className="w-4 h-4 text-slate-400" /> Virement Bancaire</span>;
       case "cash": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><CreditCard className="w-4 h-4 text-slate-400" /> Espèces</span>;
-      case "mobile_money": return <span className="flex items-center gap-1.5 text-orange-600 text-sm font-bold"><Smartphone className="w-4 h-4 text-orange-400" /> Mobile Money</span>;
+      case "mobile_money": return <span className="flex items-center gap-1.5 text-amber-700 text-sm font-bold"><Smartphone className="w-4 h-4 text-amber-400" /> Mobile Money</span>;
       case "check": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><FileText className="w-4 h-4 text-slate-400" /> Chèque</span>;
       default: return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium">Autre</span>;
     }

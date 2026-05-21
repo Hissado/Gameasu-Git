@@ -129,7 +129,7 @@ export default function FpaDashboardPage() {
       <div className="rounded-xl border bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-6 sm:p-7 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-orange-300/90 text-xs font-medium uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-amber-300/90 text-xs font-medium uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
               Pilotage financier
             </div>
@@ -140,7 +140,7 @@ export default function FpaDashboardPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-              <CalendarRange className="w-4 h-4 text-orange-300" />
+              <CalendarRange className="w-4 h-4 text-amber-300" />
               <Select value={periodId} onValueChange={setPeriodId}>
                 <SelectTrigger className="w-44 bg-transparent border-0 text-white hover:bg-white/5 h-7 px-2">
                   <SelectValue placeholder="Période" />
@@ -165,7 +165,7 @@ export default function FpaDashboardPage() {
               </Button>
             </Link>
             <Link href="/fpa/reports">
-              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-0">
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0">
                 <FileSpreadsheet className="w-4 h-4 mr-1.5" />Exports
               </Button>
             </Link>
@@ -219,18 +219,18 @@ export default function FpaDashboardPage() {
 
       {loading && (
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           Chargement des indicateurs…
         </div>
       )}
 
       {!loading && summary && !summary.companyBudget && (
-        <Card className="p-6 border-orange-200 bg-orange-50">
+        <Card className="p-6 border-amber-200 bg-amber-50">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
             <div>
-              <h3 className="font-semibold text-orange-900">Aucun budget entreprise actif</h3>
-              <p className="text-sm text-orange-800 mt-1">
+              <h3 className="font-semibold text-amber-900">Aucun budget entreprise actif</h3>
+              <p className="text-sm text-amber-800 mt-1">
                 Créez un budget annuel d'entreprise pour activer le pilotage et les analyses.
               </p>
               <Link href="/fpa/budgets">
@@ -299,7 +299,7 @@ export default function FpaDashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
-                    <LineIcon className="w-4 h-4 text-orange-500" />
+                    <LineIcon className="w-4 h-4 text-amber-500" />
                     Évolution mensuelle
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Budget vs Réalisé · cumul annuel</p>
@@ -339,7 +339,7 @@ export default function FpaDashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
-                    <PieIcon className="w-4 h-4 text-orange-500" />
+                    <PieIcon className="w-4 h-4 text-amber-500" />
                     Performance
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Produits & charges YTD</p>
@@ -407,7 +407,7 @@ export default function FpaDashboardPage() {
                             <span className="text-xs font-mono text-muted-foreground shrink-0">{v.accountCode}</span>
                             <span className="text-sm truncate">{v.accountLabel}</span>
                           </div>
-                          <span className={`text-sm font-semibold tabular-nums ${positive ? "text-amber-600" : "text-emerald-600"}`}>
+                          <span className={`text-sm font-semibold tabular-nums ${positive ? "text-amber-700" : "text-emerald-600"}`}>
                             {positive ? "+" : ""}{fmtCompact(v.variance)}
                           </span>
                         </div>
@@ -428,7 +428,7 @@ export default function FpaDashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
-                    <FolderKanban className="w-4 h-4 text-orange-500" />
+                    <FolderKanban className="w-4 h-4 text-amber-500" />
                     Performance par projet
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Top 5 par volume d'activité</p>
@@ -443,10 +443,10 @@ export default function FpaDashboardPage() {
                     const profitable = margin >= 0;
                     return (
                       <Link key={p.projectId} href={`/projects/${p.projectId}`}>
-                        <div className="p-3 rounded-lg border hover:border-orange-300 hover:bg-orange-50/30 cursor-pointer transition group">
+                        <div className="p-3 rounded-lg border hover:border-amber-300 hover:bg-amber-50/30 cursor-pointer transition group">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate group-hover:text-orange-700">
+                              <p className="text-sm font-medium truncate group-hover:text-amber-700">
                                 {p.projectName}
                               </p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -478,7 +478,7 @@ export default function FpaDashboardPage() {
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
-                    <Target className="w-4 h-4 text-orange-500" />
+                    <Target className="w-4 h-4 text-amber-500" />
                     Projection fin d'exercice
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -556,9 +556,9 @@ function PerfRow({ label, value, total, color, textColor }: { label: string; val
 
 function ProjStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`rounded-lg p-3 ${highlight ? "bg-orange-50 border border-orange-200" : "bg-white border"}`}>
+    <div className={`rounded-lg p-3 ${highlight ? "bg-amber-50 border border-amber-200" : "bg-white border"}`}>
       <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</p>
-      <p className={`text-base font-bold mt-1 truncate ${highlight ? "text-orange-700" : ""}`}>{value}</p>
+      <p className={`text-base font-bold mt-1 truncate ${highlight ? "text-amber-700" : ""}`}>{value}</p>
     </div>
   );
 }
