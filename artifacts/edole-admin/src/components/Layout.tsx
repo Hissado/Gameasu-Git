@@ -158,10 +158,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               draggable={false}
               className="w-full h-auto object-cover object-top select-none block"
               style={{
-                /* Halo blanc très léger pour rendre le texte navy lisible sur fond sombre,
-                   sans altérer les couleurs (or du G conservé). */
-                filter:
-                  "drop-shadow(0 0 3px rgba(255,255,255,0.28)) drop-shadow(0 0 1px rgba(255,255,255,0.18))",
+                filter: "brightness(0) invert(1)",
+                opacity: 0.95,
               }}
             />
           </div>
