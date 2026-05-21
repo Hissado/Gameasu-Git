@@ -1,0 +1,51 @@
+Pouvez-vous revoir entièrement la **structure des onglets et de la navigation** de l’application afin de la rendre beaucoup plus **professionnelle, logique, chronologique et user-friendly** ?
+
+Actuellement :
+- il y a **trop d’onglets**
+- certains onglets sont **redondants**
+- certains devraient être transformés en **sous-onglets**
+- la hiérarchie actuelle n’est pas assez claire
+- la navigation n’est pas aussi fluide qu’elle devrait l’être pour un produit SaaS premium
+
+### Objectif
+Je veux une navigation :
+- plus claire
+- plus intuitive
+- plus structurée
+- plus cohérente
+- plus facile à utiliser
+- plus facile à comprendre pour un nouvel utilisateur
+- plus adaptée à une application professionnelle multi-modules
+
+### Ce qu’il faut faire
+Merci de :
+
+- auditer tous les onglets existants
+- identifier les doublons, répétitions et incohérences
+- regrouper intelligemment les sections proches
+- transformer certains onglets secondaires en **sous-onglets**
+- réorganiser l’ordre des onglets selon une logique plus naturelle, plus métier et plus chronologique
+- améliorer la hiérarchie globale de navigation
+
+### Point important
+Les fonctionnalités ou onglets **AI** ne doivent pas toujours exister comme onglets séparés si cela crée de la duplication.
+
+Par exemple :
+- il ne devrait pas y avoir **Document** et **Document AI** comme deux onglets complètement séparés si la partie AI peut être intégrée comme une fonction ou un sous-onglet du module principal **Documents**
+- appliquer cette même logique à tous les autres modules similaires
+
+### Marketing
+Le module **Marketing** ne doit pas être placé en dernière position si cela n’a pas de sens dans la logique produit.
+Merci de revoir aussi son emplacement dans la navigation pour qu’il soit positionné de manière plus stratégique et cohérente.
+
+### Résultat attendu
+Je veux une navigation finale :
+- plus propre
+- moins chargée
+- sans répétition inutile
+- plus élégante
+- mieux structurée
+- plus facile à parcourir
+- plus digne d’une vraie plateforme SaaS professionnelle
+
+L’objectif final est que l’utilisateur puisse naviguer dans l’application de manière simple, fluide et logique, avec une architecture d’onglets beaucoup plus aboutie.

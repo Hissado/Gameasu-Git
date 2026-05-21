@@ -41,7 +41,7 @@ export default function QuickActions() {
   const digest = useQuery<any>({ queryKey: ["qa-digest"], queryFn: () => apiFetch("/api/notifications/digest") });
 
   const session = today.data?.session;
-  const isCheckedIn = session?.status === "open" && session?.clockIn && !session?.clockOut;
+  const isCheckedIn = session?.status === "open" && session?.clockInAt && !session?.clockOutAt;
 
   const onClock = async (type: "clock-in" | "clock-out") => {
     try {
@@ -77,13 +77,13 @@ export default function QuickActions() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
-              disabled={clock.isPending || isCheckedIn}
+              disabled={clock.isPending || !!isCheckedIn}
               onClick={() => onClock("clock-in")}
               className="rounded-lg border-2 border-primary bg-primary text-primary-foreground px-3 py-3 font-bold text-sm disabled:opacity-50 active:scale-[0.97]">
               <MapPin className="w-4 h-4 inline mr-1" />Arrivée
             </button>
             <button
-              disabled={clock.isPending || !isCheckedIn}
+              disabled={clock.isPending || !isCheckedIn || !session}
               onClick={() => onClock("clock-out")}
               className="rounded-lg border-2 border-slate-700 bg-slate-700 text-white px-3 py-3 font-bold text-sm disabled:opacity-50 active:scale-[0.97]">
               Départ

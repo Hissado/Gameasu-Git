@@ -20,9 +20,9 @@ const ServicesIndex = lazy(() => import("@/pages/services/index"));
 const ServiceDetail = lazy(() => import("@/pages/services/detail"));
 const ClientsWorkspace = lazy(() => import("@/pages/clients/index"));
 const ClientWorkspaceDetail = lazy(() => import("@/pages/clients/detail"));
-const TasksList = lazy(() => import("@/pages/tasks/index"));
+const TasksHub = lazy(() => import("@/pages/tasks/_wrapper"));
 const TaskDetail = lazy(() => import("@/pages/tasks/detail"));
-const CrmHome = lazy(() => import("@/pages/crm/index"));
+const CrmHub = lazy(() => import("@/pages/crm/_wrapper"));
 const ClientsList = lazy(() => import("@/pages/crm/clients/index"));
 const ClientDetail = lazy(() => import("@/pages/crm/clients/detail"));
 const ActivitiesList = lazy(() => import("@/pages/crm/activities/index"));
@@ -66,16 +66,13 @@ const HrDocuments = lazy(() => import("@/pages/hr/documents"));
 const HrAssignments = lazy(() => import("@/pages/hr/assignments"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
 const CommercialServices = lazy(() => import("@/pages/commercial/services"));
-const SalesScoring = lazy(() => import("@/pages/sales/scoring"));
-const TasksFocus = lazy(() => import("@/pages/tasks/Focus"));
-const DocumentsIntelligence = lazy(() => import("@/pages/documents/intelligence"));
+const DocumentsHub = lazy(() => import("@/pages/documents/_wrapper"));
 const FinanceIntelligence = lazy(() => import("@/pages/finance/intelligence"));
 const HrIntelligence = lazy(() => import("@/pages/hr/intelligence"));
 const NotificationsDigest = lazy(() => import("@/pages/notifications/digest"));
 const UniversalSearch = lazy(() => import("@/pages/search/index"));
 const AssistantPage = lazy(() => import("@/pages/assistant/index"));
 const BriefingPage = lazy(() => import("@/pages/briefing/index"));
-const PipelineIntelligence = lazy(() => import("@/pages/pipeline/intelligence"));
 const ApprovalsQueue = lazy(() => import("@/pages/approvals/index"));
 const AnomalyCenter = lazy(() => import("@/pages/anomalies/index"));
 const SuperAdminCockpit = lazy(() => import("@/pages/super-admin/index"));
@@ -95,7 +92,6 @@ const MarketingAnalytics = lazy(() => import("@/pages/marketing/analytics"));
 const MarketingConsent = lazy(() => import("@/pages/marketing/consent"));
 const MarketingChannels = lazy(() => import("@/pages/marketing/channels"));
 const MarketingForms = lazy(() => import("@/pages/marketing/forms"));
-const DocumentsPage = lazy(() => import("@/pages/documents/index"));
 const AlertsPage = lazy(() => import("@/pages/alerts/index"));
 const TicketsPage = lazy(() => import("@/pages/tickets/index"));
 const FpaDashboard = lazy(() => import("@/pages/fpa/index"));
@@ -170,10 +166,11 @@ function AppRouter() {
                 <Route path="/projects" component={ProjectsList} />
                 <Route path="/projects/:id" component={ProjectDetail} />
 
-                <Route path="/tasks" component={TasksList} />
+                <Route path="/tasks/focus" component={TasksHub} />
                 <Route path="/tasks/:id" component={TaskDetail} />
+                <Route path="/tasks" component={TasksHub} />
 
-                <Route path="/crm" component={CrmHome} />
+                <Route path="/crm" component={CrmHub} />
                 <Route path="/crm/clients" component={ClientsList} />
                 <Route path="/crm/clients/:id" component={ClientDetail} />
                 <Route path="/crm/activities" component={ActivitiesList} />
@@ -232,16 +229,15 @@ function AppRouter() {
 
                 <Route path="/commercial/clients" component={CommercialClients} />
                 <Route path="/commercial/services" component={CommercialServices} />
-                <Route path="/sales/scoring" component={SalesScoring} />
-                <Route path="/tasks/focus" component={TasksFocus} />
-                <Route path="/documents/intelligence" component={DocumentsIntelligence} />
+                <Route path="/sales/scoring" component={CrmHub} />
+                <Route path="/documents/intelligence" component={DocumentsHub} />
                 <Route path="/finance/intelligence" component={FinanceIntelligence} />
                 <Route path="/hr/intelligence" component={HrIntelligence} />
                 <Route path="/notifications/digest" component={NotificationsDigest} />
                 <Route path="/search" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />
                 <Route path="/briefing" component={BriefingPage} />
-                <Route path="/pipeline/intelligence" component={PipelineIntelligence} />
+                <Route path="/pipeline/intelligence" component={CrmHub} />
                 <Route path="/approvals" component={ApprovalsQueue} />
                 <Route path="/anomalies" component={AnomalyCenter} />
                 <Route path="/super-admin" component={SuperAdminCockpit} />
@@ -264,7 +260,7 @@ function AppRouter() {
                 <Route path="/marketing/forms" component={MarketingForms} />
                 <Route path="/marketing/prospects" component={MarketingProspects} />
 
-                <Route path="/documents" component={DocumentsPage} />
+                <Route path="/documents" component={DocumentsHub} />
                 <Route path="/alerts" component={AlertsPage} />
                 <Route path="/tickets" component={TicketsPage} />
                 <Route path="/intelligence" component={IntelligenceCenter} />

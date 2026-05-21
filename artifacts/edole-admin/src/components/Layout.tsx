@@ -23,71 +23,77 @@ type NavItem = {
 };
 type NavGroup = { title: string; items: NavItem[] };
 
+// ─── Architecture d'information Nexora ─────────────────────────────
+// Hiérarchie 6 sections × ~5 items, classée selon le parcours métier :
+// 1. Pilotage  → où je commence ma journée (cockpit, briefing, IA, approbations)
+// 2. Commercial → cycle de vente complet (clients → pipeline → devis → factures → marketing)
+// 3. Projets & Opérations → exécution (projets, tâches, opérations, parc, documents)
+// 4. Finance → comptabilité et planification
+// 5. Équipe → RH, présences, collaboration interne
+// 6. Administration → paramétrage SaaS et gouvernance
+//
+// Les variantes IA sont repliées comme onglets dans la page parente
+// (ex. /documents → onglets « Bibliothèque » + « IA & insights »).
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Espace de travail",
+    title: "Pilotage",
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard, moduleKey: "dashboard" },
-      { name: "Centre d'intelligence", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
-      { name: "Digest notifications", path: "/notifications/digest", icon: BellRing, moduleKey: "dashboard" },
-      { name: "Recherche universelle", path: "/search", icon: Search, moduleKey: "dashboard" },
-      { name: "Assistant Nexora", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
       { name: "Briefing du jour", path: "/briefing", icon: Sun, moduleKey: "dashboard" },
-      { name: "Pipeline IA", path: "/pipeline/intelligence", icon: TrendingUp, moduleKey: "sales_crm" },
-      { name: "Documents IA", path: "/documents/intelligence", icon: FolderArchive, moduleKey: "documents" },
+      { name: "Cockpit IA", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
       { name: "Approbations", path: "/approvals", icon: CheckSquare, moduleKey: "dashboard" },
-      { name: "Anomalies", path: "/anomalies", icon: Activity, moduleKey: "dashboard" },
-      { name: "Accès rapide", path: "/quick", icon: Zap, moduleKey: "dashboard" },
-      { name: "Org tuner", path: "/org-tuner", icon: Gauge, moduleKey: "dashboard" },
-      { name: "Cockpit plateforme", path: "/super-admin", icon: Crown, moduleKey: "dashboard" },
-      { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "dashboard" },
-      { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
-      { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
-      { name: "Projets", path: "/projects", icon: FolderKanban, moduleKey: "projects" },
-      { name: "Tâches", path: "/tasks", icon: CheckSquare, moduleKey: "tasks" },
+      { name: "Assistant Nexora", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
     ],
   },
   {
-    title: "Business",
+    title: "Commercial",
     items: [
-      { name: "Ventes & Relation client", path: "/crm", icon: Target, moduleKey: "sales_crm" },
-      { name: "Scoring commercial", path: "/sales/scoring", icon: Flame, moduleKey: "sales_crm" },
-      { name: "Focus tâches", path: "/tasks/focus", icon: Flame, moduleKey: "tasks" },
-      { name: "Devis", path: "/proformas", icon: FileText, moduleKey: "sales_crm" },
-      { name: "Bons de commande", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
+      { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
+      { name: "Pipeline & opportunités", path: "/crm", icon: Target, moduleKey: "sales_crm" },
+      { name: "Devis", path: "/proformas", icon: FileSignature, moduleKey: "sales_crm" },
+      { name: "Commandes", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
       { name: "Factures", path: "/invoices", icon: FileText, moduleKey: "sales_crm" },
       { name: "Encaissements", path: "/payments", icon: CreditCard, moduleKey: "sales_crm" },
-      { name: "Comptabilité", path: "/accounting", icon: Calculator, moduleKey: "accounting" },
-      { name: "Planification financière", path: "/fpa", icon: TrendingUp, moduleKey: "financial_planning" },
-      { name: "Finance IA", path: "/finance/intelligence", icon: Sparkles, moduleKey: "accounting" },
+      { name: "Marketing", path: "/marketing", icon: Megaphone, moduleKey: "marketing" },
+    ],
+  },
+  {
+    title: "Projets & Opérations",
+    items: [
+      { name: "Projets", path: "/projects", icon: FolderKanban, moduleKey: "projects" },
+      { name: "Tâches", path: "/tasks", icon: CheckSquare, moduleKey: "tasks" },
+      { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
       { name: "Opérations & Logistique", path: "/operations", icon: Truck, moduleKey: "operations" },
       { name: "Parc & équipements", path: "/equipment", icon: Wrench, moduleKey: "inventory_assets" },
-      { name: "Locations", path: "/rentals", icon: Truck, moduleKey: "rentals" },
-      { name: "Inspections", path: "/inspections", icon: ClipboardCheck, moduleKey: "rentals" },
+      { name: "Locations & inspections", path: "/rentals", icon: ClipboardCheck, moduleKey: "rentals" },
       { name: "Documents", path: "/documents", icon: FolderOpen, moduleKey: "documents" },
-      { name: "Documents IA", path: "/documents/intelligence", icon: Sparkles, moduleKey: "documents" },
+    ],
+  },
+  {
+    title: "Finance",
+    items: [
+      { name: "Comptabilité", path: "/accounting", icon: Calculator, moduleKey: "accounting" },
+      { name: "Planification financière", path: "/fpa", icon: TrendingUp, moduleKey: "financial_planning" },
+      { name: "Rapports & analytique", path: "/reports", icon: BarChart3, moduleKey: "reports" },
+    ],
+  },
+  {
+    title: "Équipe & Communication",
+    items: [
       { name: "Équipe & RH", path: "/hr", icon: UsersRound, moduleKey: "team_hr" },
-      { name: "RH IA", path: "/hr/intelligence", icon: Sparkles, moduleKey: "team_hr" },
-      { name: "Présences & Pointage", path: "/attendance", icon: Clock, moduleKey: "team_hr" },
       { name: "Collaborateurs", path: "/collaborators", icon: GraduationCap, moduleKey: "team_hr" },
-      { name: "Communications", path: "/messaging", icon: MessageSquare, moduleKey: "communications" },
+      { name: "Présences & pointage", path: "/attendance", icon: Clock, moduleKey: "team_hr" },
+      { name: "Messagerie", path: "/messaging", icon: MessageSquare, moduleKey: "communications" },
       { name: "Appels", path: "/calls", icon: PhoneCall, moduleKey: "communications" },
-      { name: "Rapports", path: "/reports", icon: BarChart3, moduleKey: "reports" },
-      { name: "Carte", path: "/map", icon: MapIcon, moduleKey: "reports" },
-      { name: "Marketing", path: "/marketing", icon: Megaphone, moduleKey: "marketing" },
     ],
   },
   {
     title: "Administration",
     items: [
       { name: "Console admin", path: "/admin", icon: Shield, moduleKey: "administration" },
-      { name: "Utilisateurs", path: "/admin/users", icon: UserCircle, moduleKey: "administration" },
-      { name: "Rôles & droits", path: "/admin/roles", icon: Briefcase, moduleKey: "administration" },
-      { name: "Départements", path: "/admin/departments", icon: Network, moduleKey: "administration" },
-      { name: "Invitations", path: "/admin/invitations", icon: UsersRound, moduleKey: "administration" },
-      { name: "Journal d'audit", path: "/admin/audit", icon: ClipboardCheck, moduleKey: "administration" },
+      { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "administration" },
       { name: "Abonnement & facturation", path: "/billing", icon: CreditCard, moduleKey: "billing_subscription" },
-      { name: "Paramètres de l'espace de travail", path: "/workspace-settings", icon: Settings, moduleKey: "workspace_settings" },
+      { name: "Paramètres de l'espace", path: "/workspace-settings", icon: Settings, moduleKey: "workspace_settings" },
       { name: "Support", path: "/tickets", icon: LifeBuoy },
     ],
   },
