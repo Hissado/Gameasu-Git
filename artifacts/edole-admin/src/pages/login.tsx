@@ -45,22 +45,23 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex">
-      {/* Panneau marque — logo plein cadre */}
-      <div className="hidden lg:flex flex-col w-1/2 bg-sidebar text-sidebar-foreground relative overflow-hidden">
+      {/* Panneau marque — logo plein cadre, fond clair pour respecter
+          fidèlement le navy + or du logo et la finesse des accents é/ù. */}
+      <div className="hidden lg:flex flex-col w-1/2 relative overflow-hidden border-r border-[#0F1A3A]/10"
+           style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
         <div
-          className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B33 0, transparent 45%), radial-gradient(circle at 80% 80%, #1B2A4E66 0, transparent 40%)" }}
+          className="absolute inset-0 opacity-[0.10] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B66 0, transparent 50%), radial-gradient(circle at 80% 80%, #0F1A3A22 0, transparent 45%)" }}
         />
-        <div className="relative flex-1 flex items-center justify-center p-8">
+        <div className="relative flex-1 flex items-center justify-center px-6">
           <img
             src={BRANDING.logoFullTransparent}
             alt={BRANDING.appName}
             draggable={false}
-            style={{ filter: "brightness(0) invert(1)", opacity: 0.75 }}
-            className="w-full h-auto max-h-[90vh] object-contain select-none"
+            className="w-full h-auto max-h-[88vh] object-contain select-none"
           />
         </div>
-        <div className="relative px-12 pb-6 text-xs text-sidebar-foreground/40">
+        <div className="relative px-12 pb-6 text-xs text-[#0F1A3A]/55">
           © {new Date().getFullYear()} {BRANDING.legalName} — Tous droits réservés.
         </div>
       </div>
