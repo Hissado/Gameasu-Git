@@ -139,14 +139,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {/* Bandeau logo Gaméasù — fond clair pour respecter fidèlement
           les touches or du « G » et les accents é/ù du logo original. */}
-      <div className="relative flex items-center justify-between px-3 py-3 shrink-0 border-b border-sidebar-border/60"
+      <div className="relative flex items-center justify-between px-2 h-16 shrink-0 overflow-hidden border-b border-sidebar-border/60"
            style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
           <img
             src={BRANDING.logoFullTransparent}
             alt={BRANDING.appName}
             draggable={false}
-            className="w-full max-w-[240px] h-auto object-contain select-none"
+            className="w-full max-w-[260px] h-auto object-contain select-none scale-[1.55] origin-center"
           />
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
