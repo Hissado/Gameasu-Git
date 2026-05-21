@@ -137,10 +137,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* Bandeau logo Gaméasù — plein cadre */}
-      <div className="relative flex items-center justify-between px-5 h-24 shrink-0 bg-sidebar-accent/30 border-b border-sidebar-border/60">
-        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center">
-          <GaméasùLockup size="md" variant="dark" className="max-w-full" />
+      {/* Bandeau logo Gaméasù — fond clair pour respecter fidèlement
+          les touches or du « G » et les accents é/ù du logo original. */}
+      <div className="relative flex items-center justify-between px-5 h-24 shrink-0 border-b border-sidebar-border/60"
+           style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
+        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
+          <img
+            src={BRANDING.logoFullTransparent}
+            alt={BRANDING.appName}
+            draggable={false}
+            className="h-20 w-auto max-w-full object-contain select-none"
+          />
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
           <X className="w-5 h-5" />
