@@ -298,7 +298,7 @@ router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, r
       for (const { kw, code } of KEYWORD_MAP) {
         if (kw.test(haystack)) { matched = code; break; }
       }
-      if (!matched) matched = "OPS"; // défaut : Opérations (cœur métier BTP)
+      if (!matched) matched = "OPS"; // défaut : Opérations (cœur métier terrain)
       const deptId = byCode.get(matched);
       if (!deptId) continue;
       await db.update(collaboratorsTable).set({ departmentId: deptId })

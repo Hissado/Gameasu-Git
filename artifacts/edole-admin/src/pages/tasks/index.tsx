@@ -117,7 +117,7 @@ export default function TasksList() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Intitulé</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Chantier</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Projet</TableHead>
                   <TableHead className="font-semibold text-slate-600">Affecté à</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
                   <TableHead className="font-semibold text-slate-600">Priorité</TableHead>
@@ -170,7 +170,7 @@ export default function TasksList() {
                               <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${PRIORITY_DOT[t.priority] || "bg-slate-300"}`} />
                               <div className="font-semibold text-sm flex-1 leading-snug">{t.title}</div>
                             </div>
-                            <div className="text-xs text-muted-foreground ml-4">{t.projectName || "Sans chantier"}</div>
+                            <div className="text-xs text-muted-foreground ml-4">{t.projectName || "Sans projet"}</div>
                             {t.dueDate && (
                               <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1 ml-4">
                                 <Clock className="w-3 h-3" /> {formatDate(t.dueDate)}

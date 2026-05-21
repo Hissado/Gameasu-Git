@@ -65,18 +65,18 @@ export default function MapPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Carte des opérations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Localisation du matériel sur les chantiers actifs</p>
+          <p className="text-sm text-muted-foreground mt-1">Localisation du matériel sur les projets actifs</p>
         </div>
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-primary" /> Équipement</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500" /> Chantier</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500" /> Projet</span>
         </div>
       </div>
 
       <Card className="shadow-sm border-border overflow-hidden">
         <CardHeader className="border-b border-border/50">
           <CardTitle className="flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Vue géographique</CardTitle>
-          <CardDescription>{equipmentMarkers.length} équipement(s) localisé(s) — {projectMarkers.length} chantier(s) cartographié(s)</CardDescription>
+          <CardDescription>{equipmentMarkers.length} équipement(s) localisé(s) — {projectMarkers.length} projet(s) cartographié(s)</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div style={{ height: "560px" }}>
@@ -90,7 +90,7 @@ export default function MapPage() {
                   <Popup>
                     <div className="space-y-1">
                       <div className="font-bold">{p.name}</div>
-                      <div className="text-xs text-slate-600">Chantier — {p.clientName || "Client interne"}</div>
+                      <div className="text-xs text-slate-600">Projet — {p.clientName || "Client interne"}</div>
                       <Badge variant="outline" className="text-[10px]">{p.status}</Badge>
                     </div>
                   </Popup>
@@ -122,7 +122,7 @@ export default function MapPage() {
         <Card className="shadow-sm border-border">
           <CardContent className="py-12 text-center">
             <MapPin className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <p className="text-sm text-muted-foreground">Aucun équipement ni chantier n'a de localisation reconnaissable.</p>
+            <p className="text-sm text-muted-foreground">Aucun équipement ni projet n'a de localisation reconnaissable.</p>
             <p className="text-xs text-muted-foreground mt-1">Renseignez le champ « Localisation » avec une ville ivoirienne (Abidjan, Bouaké, Yamoussoukro…).</p>
           </CardContent>
         </Card>

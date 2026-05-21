@@ -69,7 +69,7 @@ export default function LogisticsList() {
                   <TableHead className="font-semibold text-slate-600">Type de Transport</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
                   <TableHead className="font-semibold text-slate-600">Responsable / Chauffeur</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Adresse / Chantier</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Adresse / Projet</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-right">Date Prévue</TableHead>
                 </TableRow>
               </TableHeader>

@@ -95,7 +95,7 @@ export default function ServicesPage() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs font-medium">Code *</label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="SVC-001" /></div>
-              <div><label className="text-xs font-medium">Catégorie</label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Construction, Location…" /></div>
+              <div><label className="text-xs font-medium">Catégorie</label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Prestation, Abonnement, Produit…" /></div>
             </div>
             <div><label className="text-xs font-medium">Nom *</label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">

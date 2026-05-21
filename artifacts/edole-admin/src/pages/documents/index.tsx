@@ -14,7 +14,7 @@ const ENTITY_TYPES = [
   { v: "", l: "Tous types" },
   { v: "client", l: "Clients" },
   { v: "supplier", l: "Fournisseurs" },
-  { v: "project", l: "Chantiers" },
+  { v: "project", l: "Projets" },
   { v: "service", l: "Services" },
   { v: "rental", l: "Locations" },
   { v: "invoice", l: "Factures" },

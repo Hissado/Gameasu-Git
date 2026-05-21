@@ -26,7 +26,7 @@ import {
   ChevronRight,
   ClipboardList,
   FileText,
-  HardHat,
+  FolderKanban,
   LineChart as LineChartIcon,
   Receipt,
   Shield,
@@ -377,10 +377,10 @@ export default function Dashboard() {
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            label="Chantiers actifs"
+            label="Projets actifs"
             value={kpis?.activeProjects || 0}
             sub={`sur ${totalProjects} projets`}
-            icon={HardHat} accent="primary" loading={loadingKpis} href="/projects"
+            icon={FolderKanban} accent="primary" loading={loadingKpis} href="/projects"
           />
           <MetricCard
             label="Clients"
@@ -653,9 +653,9 @@ export default function Dashboard() {
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
               <CardTitle className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
-                <HardHat className="w-5 h-5 text-primary" /> Projets stratégiques
+                <FolderKanban className="w-5 h-5 text-primary" /> Projets stratégiques
               </CardTitle>
-              <p className="text-xs text-slate-500 mt-1">Chantiers actifs à plus forte valeur</p>
+              <p className="text-xs text-slate-500 mt-1">Projets actifs à plus forte valeur</p>
             </div>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/projects">Tous les projets <ChevronRight className="w-4 h-4 ml-1" /></Link>

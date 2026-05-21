@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Mail, Phone, Calendar, HardHat, Briefcase, FileSignature, Wrench, FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Calendar, FolderKanban, Briefcase, FileSignature, Wrench, FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink } from "lucide-react";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { Progress } from "@/components/ui/progress";
 
@@ -210,7 +210,7 @@ export default function CollaboratorDetail() {
           {/* AFFECTATIONS */}
           <Card className="shadow-sm border-border">
             <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-              <CardTitle className="text-base flex items-center gap-2"><GitBranch className="w-4 h-4" /> Affectations sur chantiers</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2"><GitBranch className="w-4 h-4" /> Affectations sur projets</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               {overviewLoading ? <Skeleton className="h-20" /> : (overview?.assignments.length ?? 0) === 0 ? (
@@ -218,7 +218,7 @@ export default function CollaboratorDetail() {
               ) : (
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs uppercase text-muted-foreground border-b">
-                    <tr><th className="py-2">Chantier</th><th>Rôle</th><th className="text-right">Charge</th><th>Période</th><th>Statut</th></tr>
+                    <tr><th className="py-2">Projet</th><th>Rôle</th><th className="text-right">Charge</th><th>Période</th><th>Statut</th></tr>
                   </thead>
                   <tbody>
                     {overview!.assignments.map((a) => (
@@ -313,7 +313,7 @@ export default function CollaboratorDetail() {
       {(overview?.ledProjects.length ?? 0) > 0 && (
         <Card className="shadow-sm border-border">
           <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-            <CardTitle className="text-base flex items-center gap-2"><HardHat className="w-4 h-4" /> Chantiers dirigés (chef de projet)</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><FolderKanban className="w-4 h-4" /> Projets dirigés (chef de projet)</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

@@ -11,7 +11,7 @@ import { logger } from "../lib/logger";
 /**
  * Plan comptable SYSCOHADA — comptes essentiels (MVP).
  * On distingue les "noeuds" (isPostable: false) des comptes imputables.
- * Cette liste couvre les besoins courants d'une PME BTP en Côte d'Ivoire.
+ * Cette liste couvre les besoins courants d'une PME multi-secteurs en zone OHADA.
  */
 type Acc = {
   code: string;

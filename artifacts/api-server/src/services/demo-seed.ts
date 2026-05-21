@@ -430,8 +430,8 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     { code: "ETUDE-FAISA", name: "Étude de faisabilité", category: "Études", unit: "forfait", unitPrice: "2500000" },
     { code: "CONST-GO", name: "Construction gros œuvre", category: "Construction", unit: "m²", unitPrice: "180000" },
     { code: "MAIN-PRV", name: "Maintenance préventive", category: "Maintenance", unit: "mois", unitPrice: "850000" },
-    { code: "LOC-MAT", name: "Location de matériel BTP", category: "Location", unit: "jour", unitPrice: "120000" },
-    { code: "SUIV-CHA", name: "Suivi de chantier", category: "Conseil", unit: "jour", unitPrice: "180000" },
+    { code: "LOC-MAT", name: "Location de matériel", category: "Location", unit: "jour", unitPrice: "120000" },
+    { code: "SUIV-CHA", name: "Suivi de projet", category: "Conseil", unit: "jour", unitPrice: "180000" },
     { code: "AUDIT-TEC", name: "Audit technique d'ouvrage", category: "Audit", unit: "forfait", unitPrice: "1800000" },
   ];
   const catalogIds: string[] = [];
@@ -449,7 +449,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     { clientIdx: 1, catalogIdx: 2, name: "Maintenance HVAC — Hôtel Atlantique", isRecurring: true },
     { clientIdx: 2, catalogIdx: 3, name: "Location flotte engins — SMS", isRecurring: true },
     { clientIdx: 3, catalogIdx: 1, name: "Entrepôt logistique Dakar", isRecurring: false },
-    { clientIdx: 4, catalogIdx: 4, name: "Suivi chantier extension Cimenterie", isRecurring: false },
+    { clientIdx: 4, catalogIdx: 4, name: "Suivi projet extension Cimenterie", isRecurring: false },
     { clientIdx: 5, catalogIdx: 2, name: "Maintenance sites télécoms — Téléco CI", isRecurring: true },
     { clientIdx: 6, catalogIdx: 5, name: "Audit annuel agences — BRO", isRecurring: true },
   ];
@@ -501,7 +501,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   // ─── Affectations collaborateurs / projets ───
   for (let i = 0; i < projectIds.length; i++) {
     await db.insert(collaboratorAssignmentsTable).values({
-      collaboratorId: collabIds[3], projectId: projectIds[i], role: "Chef de chantier", allocationPct: 60, status: "active",
+      collaboratorId: collabIds[3], projectId: projectIds[i], role: "Chef de projet", allocationPct: 60, status: "active",
     } as any);
     await db.insert(collaboratorAssignmentsTable).values({
       collaboratorId: collabIds[4], projectId: projectIds[i], role: "Conducteur de travaux", allocationPct: 50, status: "active",
@@ -587,7 +587,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       clientId: clientIds[i + 1], status: pick(["active", "returned", "active"], i),
       startDate: ymd(addDays(new Date(), -30 + i * 5)), endDate: ymd(addDays(new Date(), 30 + i * 5)),
       totalCost: String(2_500_000 + i * 800_000),
-      notes: "Location matériel pour chantier de démo.",
+      notes: "Location matériel pour projet de démo.",
     } as any).returning();
     await db.insert(rentalItemsTable).values([
       { rentalId: rental.id, equipmentId: equipIds[i], quantity: 1, dailyRate: equipSpecs[i].dailyRate, subtotal: String(Number(equipSpecs[i].dailyRate) * 30) },
@@ -795,7 +795,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   await db.insert(marketingCampaignsTable).values([
     {
       name: "[DÉMO] Newsletter trimestrielle Q2", channel: "email",
-      subject: "Nos chantiers en cours", body: "Découvrez les réalisations EDOLE du trimestre.",
+      subject: "Nos projets en cours", body: "Découvrez les réalisations du trimestre.",
       segment: { audiences: ["clients", "prospects"] } as any,
       status: "sent", sentAt: addDays(new Date(), -10),
       recipientsCount: 142, sentCount: 138, failedCount: 4, createdBy: users["commercial@edole.africa"],
@@ -882,7 +882,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     await db.insert(ticketsTable).values({
       subject: pick([
         "Demande d'accès SIG", "Anomalie facture FAC-2026-003",
-        "Demande devis maintenance", "Réclamation qualité chantier",
+        "Demande devis maintenance", "Réclamation qualité prestation",
       ], i),
       description: "Ticket de démo pour test du module support.",
       category: pick(["support", "billing", "sales", "complaint"], i),

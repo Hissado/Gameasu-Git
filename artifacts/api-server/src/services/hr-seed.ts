@@ -9,7 +9,7 @@ import { logger } from "../lib/logger";
  */
 const DEFAULT_DEPARTMENTS = [
   { code: "DIR", name: "Pilotage", description: "Direction générale et pilotage stratégique", color: "#0F172A" },
-  { code: "OPS", name: "Opérations", description: "Conduite de chantiers et exécution travaux", color: "#FF3C00" },
+  { code: "OPS", name: "Opérations", description: "Pilotage opérationnel et exécution terrain", color: "#FF3C00" },
   { code: "MAT", name: "Matériel", description: "Parc matériel, locations et logistique", color: "#0EA5E9" },
   { code: "COM", name: "Commercial", description: "Commercial, devis, factures et relation client", color: "#F59E0B" },
   { code: "RH",  name: "Ressources Humaines", description: "Gestion du personnel et administration RH", color: "#10B981" },
@@ -20,9 +20,9 @@ const DEFAULT_DEPARTMENTS = [
 const DEFAULT_POSITIONS = [
   { code: "DG",        title: "Directeur·rice général·e",     deptCode: "DIR", level: 5 },
   { code: "DAF",       title: "Directeur·rice administratif et financier", deptCode: "DIR", level: 5 },
-  { code: "CHEF-CHA",  title: "Chef de chantier",             deptCode: "OPS", level: 3 },
+  { code: "CHEF-CHA",  title: "Chef de projet",               deptCode: "OPS", level: 3 },
   { code: "COND-TVX",  title: "Conducteur de travaux",        deptCode: "OPS", level: 4 },
-  { code: "OUVRIER",   title: "Ouvrier qualifié BTP",         deptCode: "OPS", level: 1 },
+  { code: "OUVRIER",   title: "Intervenant terrain qualifié", deptCode: "OPS", level: 1 },
   { code: "RESP-MAT",  title: "Responsable parc matériel",    deptCode: "MAT", level: 4 },
   { code: "MECANO",    title: "Mécanicien",                   deptCode: "MAT", level: 2 },
   { code: "COMMERCIAL",title: "Commercial·e",                 deptCode: "COM", level: 2 },

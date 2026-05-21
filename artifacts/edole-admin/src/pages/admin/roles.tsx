@@ -128,8 +128,8 @@ function CreateRoleDialog({ open, onOpenChange, onSubmit, pending }: { open: boo
       <DialogContent>
         <DialogHeader><DialogTitle>Créer un rôle</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Code (technique)</Label><Input value={code} onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="ex: chef_chantier" /></div>
-          <div><Label>Nom</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Chef de chantier" /></div>
+          <div><Label>Code (technique)</Label><Input value={code} onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="ex: chef_projet" /></div>
+          <div><Label>Nom</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Chef de projet" /></div>
           <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
           <div><Label>Niveau hiérarchique (1-99)</Label><Input type="number" min={1} max={99} value={level} onChange={(e) => setLevel(Number(e.target.value))} /></div>
         </div>

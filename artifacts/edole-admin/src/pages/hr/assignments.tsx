@@ -53,7 +53,7 @@ export default function AssignmentsPage() {
 
   return (
     <HrShell
-      title="Affectations sur chantiers"
+      title="Affectations sur projets"
       subtitle="Affectations RH ↔ Opérations"
       actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouvelle affectation</Button>}
     >
@@ -63,7 +63,7 @@ export default function AssignmentsPage() {
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground border-b">
               <tr>
                 <th className="px-4 py-3">Collaborateur</th>
-                <th className="px-4 py-3">Chantier</th>
+                <th className="px-4 py-3">Projet</th>
                 <th className="px-4 py-3">Rôle</th>
                 <th className="px-4 py-3 text-right">Charge</th>
                 <th className="px-4 py-3">Période</th>
@@ -73,7 +73,7 @@ export default function AssignmentsPage() {
             </thead>
             <tbody>
               {(!data?.data || data.data.length === 0) && (
-                <tr><td colSpan={7} className="text-center py-10 text-muted-foreground"><GitBranch className="w-8 h-8 mx-auto mb-2 opacity-30" />Aucune affectation. Créez-en une pour relier un collaborateur à un chantier.</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-muted-foreground"><GitBranch className="w-8 h-8 mx-auto mb-2 opacity-30" />Aucune affectation. Créez-en une pour relier un collaborateur à un projet.</td></tr>
               )}
               {data?.data.map((a) => (
                 <tr key={a.id} className="border-b last:border-0 hover:bg-muted/20">
@@ -115,13 +115,13 @@ export default function AssignmentsPage() {
                 <SelectContent>{collabs?.data.map((c) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><label className="text-sm font-medium">Chantier</label>
+            <div><label className="text-sm font-medium">Projet</label>
               <Select value={form.projectId} onValueChange={(v) => setForm({ ...form, projectId: v })}>
                 <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>{projects?.data.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><label className="text-sm font-medium">Rôle sur le chantier</label><Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Chef d'équipe, Maçon, Conducteur…" /></div>
+            <div><label className="text-sm font-medium">Rôle sur le projet</label><Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Référent, Lead, Membre…" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-sm font-medium">Charge (%)</label><Input type="number" min="0" max="100" value={form.allocationPct} onChange={(e) => setForm({ ...form, allocationPct: e.target.value })} /></div>
               <div><label className="text-sm font-medium">Statut</label>

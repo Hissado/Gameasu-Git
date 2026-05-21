@@ -129,7 +129,7 @@ export default function ReportsPage() {
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" /> Charge de travail des collaborateurs
           </CardTitle>
-          <CardDescription>Indicateur du nombre de tâches actives et chantiers attribués par utilisateur.</CardDescription>
+          <CardDescription>Indicateur du nombre de tâches actives et projets attribués par utilisateur.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {loadingWl ? (
@@ -145,7 +145,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-slate-600">Tâches actives <strong>{u.activeTasks}</strong></span>
-                      <span className="text-slate-600">Chantiers <strong>{u.activeProjects}</strong></span>
+                      <span className="text-slate-600">Projets <strong>{u.activeProjects}</strong></span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

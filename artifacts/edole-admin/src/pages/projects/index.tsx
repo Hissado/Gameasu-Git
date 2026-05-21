@@ -29,23 +29,23 @@ export default function ProjectsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Chantiers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Portefeuille de chantiers</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Projets</h1>
+          <p className="text-sm text-muted-foreground mt-1">Portefeuille de projets</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Nouveau Chantier
+          Nouveau Projet
         </Button>
       </div>
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle className="text-lg">Liste des Chantiers</CardTitle>
+            <CardTitle className="text-lg">Liste des Projets</CardTitle>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Rechercher un chantier..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
+                <Input type="search" placeholder="Rechercher un projet..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
               </div>
               <Button variant="outline" size="sm" className="h-9">
                 <Filter className="w-4 h-4 mr-2" />
@@ -66,7 +66,7 @@ export default function ProjectsList() {
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Nom du Chantier</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Nom du Projet</TableHead>
                   <TableHead className="font-semibold text-slate-600">Client / Institution</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
                   <TableHead className="font-semibold text-slate-600">Progression</TableHead>
@@ -81,10 +81,10 @@ export default function ProjectsList() {
                     <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <FolderKanban className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">Aucun chantier trouvé</p>
-                        <p className="text-sm">Commencez par créer un nouveau chantier.</p>
+                        <p className="text-lg font-medium text-slate-600">Aucun projet trouvé</p>
+                        <p className="text-sm">Commencez par créer un nouveau projet.</p>
                         <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5">
-                          <Plus className="w-4 h-4 mr-2" /> Créer un chantier
+                          <Plus className="w-4 h-4 mr-2" /> Créer un projet
                         </Button>
                       </div>
                     </TableCell>

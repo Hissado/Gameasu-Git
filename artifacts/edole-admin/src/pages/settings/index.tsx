@@ -12,7 +12,7 @@ import { Check, X, Lock, ShieldCheck } from "lucide-react";
 
 const PERMISSIONS = [
   { module: "Tableau de bord", actions: ["Consulter"] },
-  { module: "Chantiers", actions: ["Consulter", "Créer", "Modifier", "Supprimer"] },
+  { module: "Projets", actions: ["Consulter", "Créer", "Modifier", "Supprimer"] },
   { module: "Tâches", actions: ["Consulter", "Créer", "Modifier", "Assigner"] },
   { module: "Matériel & QR", actions: ["Consulter", "Créer", "Modifier", "Supprimer"] },
   { module: "Locations", actions: ["Consulter", "Créer", "Inspecter"] },
@@ -36,7 +36,7 @@ const ROLES = [
 const RIGHTS: Record<string, Record<string, string[]>> = {
   super_admin: {
     "Tableau de bord": ["Consulter"],
-    "Chantiers": ["Consulter", "Créer", "Modifier", "Supprimer"],
+    "Projets": ["Consulter", "Créer", "Modifier", "Supprimer"],
     "Tâches": ["Consulter", "Créer", "Modifier", "Assigner"],
     "Matériel & QR": ["Consulter", "Créer", "Modifier", "Supprimer"],
     "Locations": ["Consulter", "Créer", "Inspecter"],
@@ -50,7 +50,7 @@ const RIGHTS: Record<string, Record<string, string[]>> = {
   },
   admin: {
     "Tableau de bord": ["Consulter"],
-    "Chantiers": ["Consulter", "Créer", "Modifier", "Supprimer"],
+    "Projets": ["Consulter", "Créer", "Modifier", "Supprimer"],
     "Tâches": ["Consulter", "Créer", "Modifier", "Assigner"],
     "Matériel & QR": ["Consulter", "Créer", "Modifier", "Supprimer"],
     "Locations": ["Consulter", "Créer", "Inspecter"],
@@ -64,7 +64,7 @@ const RIGHTS: Record<string, Record<string, string[]>> = {
   },
   manager: {
     "Tableau de bord": ["Consulter"],
-    "Chantiers": ["Consulter", "Créer", "Modifier"],
+    "Projets": ["Consulter", "Créer", "Modifier"],
     "Tâches": ["Consulter", "Créer", "Modifier", "Assigner"],
     "Matériel & QR": ["Consulter", "Modifier"],
     "Locations": ["Consulter", "Créer", "Inspecter"],
@@ -78,7 +78,7 @@ const RIGHTS: Record<string, Record<string, string[]>> = {
   },
   commercial: {
     "Tableau de bord": ["Consulter"],
-    "Chantiers": ["Consulter"],
+    "Projets": ["Consulter"],
     "Tâches": ["Consulter", "Créer"],
     "Matériel & QR": ["Consulter"],
     "Locations": ["Consulter"],
@@ -92,7 +92,7 @@ const RIGHTS: Record<string, Record<string, string[]>> = {
   },
   technicien: {
     "Tableau de bord": ["Consulter"],
-    "Chantiers": ["Consulter"],
+    "Projets": ["Consulter"],
     "Tâches": ["Consulter", "Modifier"],
     "Matériel & QR": ["Consulter"],
     "Locations": ["Consulter", "Inspecter"],

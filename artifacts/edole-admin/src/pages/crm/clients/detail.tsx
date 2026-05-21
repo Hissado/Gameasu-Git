@@ -115,7 +115,7 @@ export default function ClientDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                   <div className="flex items-center gap-2 text-sm text-slate-500 font-bold uppercase tracking-wider mb-2">
-                    <Briefcase className="w-4 h-4" /> Chantiers
+                    <Briefcase className="w-4 h-4" /> Projets
                   </div>
                   <div className="text-2xl font-bold text-slate-800">{client.projectsCount || 0}</div>
                 </div>

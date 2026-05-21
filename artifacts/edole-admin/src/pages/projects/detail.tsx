@@ -31,11 +31,11 @@ export default function ProjectDetail() {
   });
 
   if (isLoading) {
-    return <div className="p-8 text-center animate-pulse text-muted-foreground">Chargement de la fiche chantier…</div>;
+    return <div className="p-8 text-center animate-pulse text-muted-foreground">Chargement de la fiche projet…</div>;
   }
 
   if (!project) {
-    return <div className="p-8 text-center text-muted-foreground">Chantier introuvable</div>;
+    return <div className="p-8 text-center text-muted-foreground">Projet introuvable</div>;
   }
 
   const status = STATUS_LABEL[project.status] || { label: project.status, cls: "" };
@@ -44,7 +44,7 @@ export default function ProjectDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-start gap-6">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Chantier</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Projet</p>
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
           <p className="text-muted-foreground mt-1">Client : <span className="font-medium text-foreground">{project.clientName || "—"}</span></p>
         </div>
@@ -95,7 +95,7 @@ export default function ProjectDetail() {
 
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Phases du chantier</CardTitle>
+            <CardTitle>Phases du projet</CardTitle>
           </CardHeader>
           <CardContent>
             {project.phases && project.phases.length > 0 ? (
@@ -120,7 +120,7 @@ export default function ProjectDetail() {
 
       <Card className="shadow-sm border-border">
         <CardHeader className="border-b border-border/50">
-          <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-primary" /> Documents du chantier</CardTitle>
+          <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-primary" /> Documents du projet</CardTitle>
         </CardHeader>
         <CardContent className="pt-5">
           {(project as any).documentLinks && (project as any).documentLinks.length > 0 ? (
@@ -142,7 +142,7 @@ export default function ProjectDetail() {
             </ul>
           ) : (
             <div className="text-sm text-muted-foreground text-center py-6">
-              Aucun document lié — collez ici des liens Drive, Dropbox ou OneDrive depuis l'édition du chantier.
+              Aucun document lié — collez ici des liens Drive, Dropbox ou OneDrive depuis l'édition du projet.
             </div>
           )}
         </CardContent>

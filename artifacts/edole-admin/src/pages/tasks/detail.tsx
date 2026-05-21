@@ -63,7 +63,7 @@ export default function TaskDetail() {
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Tâche</p>
           <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
-          <p className="text-muted-foreground mt-1">Chantier : <span className="font-medium text-foreground">{task.projectName || "—"}</span></p>
+          <p className="text-muted-foreground mt-1">Projet : <span className="font-medium text-foreground">{task.projectName || "—"}</span></p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={`px-3 py-1.5 text-sm ${priority.cls}`}>Priorité : {priority.label}</Badge>

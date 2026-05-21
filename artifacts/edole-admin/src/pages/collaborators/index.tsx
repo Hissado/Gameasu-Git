@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, HardHat, Eye, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Filter, UsersRound, Eye, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -54,7 +54,7 @@ export default function CollaboratorsList() {
                   <TableHead className="font-semibold text-slate-600">Fonction</TableHead>
                   <TableHead className="font-semibold text-slate-600">Département</TableHead>
                   <TableHead className="font-semibold text-slate-600">Disponibilité</TableHead>
-                  <TableHead className="text-center font-semibold text-slate-600">Chantiers Actifs</TableHead>
+                  <TableHead className="text-center font-semibold text-slate-600">Projets Actifs</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -63,7 +63,7 @@ export default function CollaboratorsList() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
-                        <HardHat className="w-12 h-12 text-slate-300 mb-4" />
+                        <UsersRound className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-lg font-medium text-slate-600">Aucun collaborateur trouvé</p>
                       </div>
                     </TableCell>

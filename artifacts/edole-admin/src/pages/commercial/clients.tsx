@@ -101,7 +101,7 @@ export default function ClientsCommercial() {
               <div><label className="text-xs font-medium">Téléphone</label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs font-medium">Secteur</label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="BTP, Industrie…" /></div>
+              <div><label className="text-xs font-medium">Secteur</label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="Services, Distribution, Industrie…" /></div>
               <div><label className="text-xs font-medium">Site web</label><Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://…" /></div>
             </div>
             <div><label className="text-xs font-medium">Adresse</label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>

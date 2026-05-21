@@ -65,7 +65,7 @@ export default function EquipmentList() {
         </Card>
         <Card className="shadow-sm border-l-4 border-l-blue-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sur Chantiers</CardTitle>
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sur Projets</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (

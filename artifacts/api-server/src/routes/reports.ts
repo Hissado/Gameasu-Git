@@ -89,7 +89,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
   doc.pipe(res);
 
   doc.fontSize(20).fillColor("#F26B1F").text("EDOLE AFRICA", { align: "left" });
-  doc.fontSize(10).fillColor("#666").text("Le numérique au service du BTP");
+  doc.fontSize(10).fillColor("#666").text("Le pilotage d'entreprise nouvelle génération");
   doc.moveDown();
 
   doc.fontSize(16).fillColor("#000").text("Rapport journalier du stock", { align: "center" });
