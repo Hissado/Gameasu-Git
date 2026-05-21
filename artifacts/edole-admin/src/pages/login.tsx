@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { NexoraMark } from "@/components/branding/NexoraMark";
+import { NexoraLockup } from "@/components/branding/NexoraLockup";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -44,15 +44,7 @@ export default function LoginPage() {
     );
   };
 
-  const NexoraLogo = (
-    <div className="inline-flex items-center gap-3.5">
-      <NexoraMark className="w-12 h-12 rounded-xl" variant="dark" />
-      <div>
-        <p className="font-display text-[26px] font-bold tracking-[-0.03em] text-white leading-none">{BRANDING.appName}</p>
-        <p className="text-[10.5px] uppercase tracking-[0.32em] text-[#C8A24B] font-semibold mt-1.5">Enterprise OS</p>
-      </div>
-    </div>
-  );
+  const NexoraLogo = <NexoraLockup size="xl" variant="dark" />;
 
   return (
     <div className="min-h-screen w-full flex">
@@ -66,10 +58,6 @@ export default function LoginPage() {
 
         <div className="relative space-y-8 max-w-md">
           <div>
-            <div className="inline-flex items-center gap-3 mb-4">
-              <span className="h-px w-8 bg-[#C8A24B]" />
-              <p className="text-[10.5px] uppercase tracking-[0.32em] text-[#C8A24B] font-semibold">Gérer aujourd'hui. Construire demain.</p>
-            </div>
             <h2 className="font-display text-[40px] font-bold leading-[1.05] tracking-[-0.03em]">{BRANDING.appTaglineFr}</h2>
             <p className="text-sm text-sidebar-foreground/60 mt-4 leading-relaxed">
               Une seule plateforme SaaS pour piloter clients, projets, comptabilité, RH, opérations
@@ -103,10 +91,9 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <Card className="w-full max-w-md shadow-xl border-border/60">
           <CardHeader className="space-y-2 pb-6">
-            <div className="flex lg:hidden justify-center mb-2">
-              <NexoraMark className="w-11 h-11 rounded-xl" variant="dark" />
+            <div className="flex lg:hidden justify-center mb-3">
+              <NexoraLockup size="lg" variant="light" />
             </div>
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.28em] text-[#7A5E1F]">{BRANDING.appName} · Enterprise OS</p>
             <CardTitle className="font-display text-[26px] font-bold tracking-[-0.03em]">Espace professionnel</CardTitle>
             <CardDescription>
               Connectez-vous à votre espace de travail {BRANDING.appName}.

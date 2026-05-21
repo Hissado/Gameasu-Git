@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
-import { NexoraMark } from "@/components/branding/NexoraMark";
+import { NexoraLockup } from "@/components/branding/NexoraLockup";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Users, Briefcase, Wrench, Truck,
@@ -113,12 +113,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {/* Bandeau logo Nexora */}
       <div className="relative flex items-center justify-between px-5 h-16 shrink-0 bg-sidebar-accent/30 border-b border-sidebar-border/60">
-        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex items-center gap-2.5">
-          <NexoraMark className="w-9 h-9" variant="dark" />
-          <div className="leading-tight">
-            <p className="font-display text-white font-bold text-[16px] tracking-tight">{BRANDING.appName}</p>
-            <p className="text-[9.5px] text-[#C8A24B]/80 uppercase tracking-[0.22em] font-semibold">Enterprise OS</p>
-          </div>
+        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex">
+          <NexoraLockup size="md" variant="dark" />
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
           <X className="w-5 h-5" />
@@ -213,9 +209,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             <button type="button" onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted" aria-label="Ouvrir le menu">
               <Menu className="w-6 h-6" />
             </button>
-            <Link href="/" className="lg:hidden inline-flex items-center gap-2">
-              <NexoraMark className="w-8 h-8" variant="dark" />
-              <span className="font-display font-bold tracking-tight text-[15px]">{BRANDING.appName}</span>
+            <Link href="/" className="lg:hidden inline-flex">
+              <NexoraLockup size="sm" variant="light" showSlogan={false} />
             </Link>
 
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
