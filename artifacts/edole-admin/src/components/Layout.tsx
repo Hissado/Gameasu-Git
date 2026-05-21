@@ -145,12 +145,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           {/* Logo intégral (G + améasù + filet + slogan). On agrandit
               le contenu via scale pour absorber la marge blanche autour
               de l'image source et améliorer la lisibilité. */}
-          <div className="w-full max-w-[260px] overflow-hidden" style={{ aspectRatio: "1672 / 720" }}>
+          <div className="w-full max-w-[260px] overflow-hidden" style={{ aspectRatio: "1672 / 820" }}>
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-full h-auto object-contain select-none block scale-[1.45] origin-center"
+              className="w-full h-auto object-contain select-none block scale-[1.18] origin-center"
             />
           </div>
         </Link>
