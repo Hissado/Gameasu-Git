@@ -139,17 +139,28 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {/* Bandeau logo Gaméasù — fond clair pour respecter fidèlement
           les touches or du « G » et les accents é/ù du logo original. */}
-      <div className="relative flex items-center justify-between px-2 h-16 shrink-0 overflow-hidden border-b border-sidebar-border/60"
+      <div className="relative flex items-start justify-between gap-2 px-3 pt-3 pb-2 shrink-0 border-b border-sidebar-border/60"
            style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
-        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
-          <img
-            src={BRANDING.logoFullTransparent}
-            alt={BRANDING.appName}
-            draggable={false}
-            className="w-full max-w-[220px] h-auto object-contain select-none"
-          />
+        <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 flex-col items-center">
+          {/* On rogne le slogan natif de l'image pour le ré-afficher en HTML
+              juste dessous à une taille pilotable. */}
+          <div className="w-full max-w-[220px] overflow-hidden" style={{ aspectRatio: "1024 / 460" }}>
+            <img
+              src={BRANDING.logoFullTransparent}
+              alt={BRANDING.appName}
+              draggable={false}
+              className="w-full h-auto object-contain select-none"
+            />
+          </div>
+          <div className="flex items-center gap-2 mt-1 w-full max-w-[220px] justify-center">
+            <span className="h-px w-4 bg-[#C8A24B]" aria-hidden="true" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#0F1A3A]/80 whitespace-nowrap">
+              Gérer aujourd'hui. Construire demain.
+            </p>
+            <span className="h-px w-4 bg-[#C8A24B]" aria-hidden="true" />
+          </div>
         </Link>
-        <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
+        <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-[#0F1A3A]/70 hover:bg-black/[0.04]" aria-label="Fermer le menu">
           <X className="w-5 h-5" />
         </button>
       </div>
