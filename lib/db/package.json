@@ -9,7 +9,8 @@
     "./seed-saas": "./src/seed-saas.ts",
     "./seed-intelligence": "./src/seed-intelligence.ts",
     "./seed-operations": "./src/seed-operations.ts",
-    "./seed-inventory": "./src/seed-inventory.ts"
+    "./seed-inventory": "./src/seed-inventory.ts",
+    "./seed-rich": "./src/seed-rich.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
