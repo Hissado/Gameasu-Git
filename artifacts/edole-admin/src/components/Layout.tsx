@@ -142,14 +142,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <div className="relative flex items-center justify-between gap-2 px-3 py-3 shrink-0 border-b border-sidebar-border/60"
            style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
-          {/* On masque le slogan baked-in (bas de l'image) en n'affichant
-              que la partie haute G + améasù + filet or. */}
-          <div className="w-full max-w-[240px] overflow-hidden" style={{ aspectRatio: "1672 / 600" }}>
+          {/* Logo intégral (G + améasù + filet + slogan). On agrandit
+              le contenu via scale pour absorber la marge blanche autour
+              de l'image source et améliorer la lisibilité. */}
+          <div className="w-full max-w-[260px] overflow-hidden" style={{ aspectRatio: "1672 / 720" }}>
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-full h-auto object-contain select-none block"
+              className="w-full h-auto object-contain select-none block scale-[1.45] origin-center"
             />
           </div>
         </Link>
