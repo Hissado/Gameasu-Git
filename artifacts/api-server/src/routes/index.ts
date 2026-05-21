@@ -30,6 +30,7 @@ import subscriptionsRouter from "./subscriptions";
 import intelligenceRouter from "./intelligence";
 import automationRouter from "./automation";
 import attendanceRouter from "./attendance";
+import client360Router from "./client360";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { requireAuth } from "../middlewares/auth";
@@ -77,6 +78,7 @@ router.use(subscriptionsRouter);
 router.use(intelligenceRouter);
 router.use(automationRouter);
 router.use(attendanceRouter);
+router.use(client360Router);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

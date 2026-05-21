@@ -113,6 +113,12 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes — mai 2026
 
+### Phases 5 & 6 — Clients 360° + Scoring commercial — mai 2026
+- **Phase 5 — Vue 360° client** : nouvel endpoint agrégateur `GET /api/clients/:id/360` (`artifacts/api-server/src/routes/client360.ts`) qui retourne en une requête : fiche client + contacts, score santé (lu depuis `smart_scores` ou recalculé heuristiquement à la volée — facteurs paiement/activité/projets/risques pondérés 35/20/20/25), risques ouverts (`risk_flags`), recommandations actives, insights, dernier résumé IA persisté (`assistant_summaries`) + synthèse heuristique de secours, KPI financiers (CA facturé/payé/encours/retard + nombre/délai max factures en retard, pipeline commercial valorisé), KPI opérations (projets, tâches ouvertes/retard, commandes, proformas, opportunités), et listes récentes (factures, projets, opportunités, activités). ACL `clients.read` + `userHasClientAccess` + isolation tenant stricte (organizationId).
+- **Frontend** : nouveau composant `pages/clients/Client360Tab.tsx` (cartes synthèse + score avec facteurs détaillés, 8 KPI colorés selon état, panneau risques/recommandations avec mutations `apply`/`dismiss`/`resolve`, dernières factures, activités récentes). Onglet « Vue 360° » ajouté en première position dans `pages/clients/detail.tsx`.
+- **Phase 6 — Scoring commercial** : endpoint `GET /api/sales/opportunities-scoring` (même fichier) qui priorise toutes les opportunités ouvertes en combinant stade pipeline (35 %), montant log-scaled (25 %), urgence d'échéance (20 %) et probabilité saisie (20 %). Tri décroissant + tier (`critical`→`excellent`). Permission `commercial.read`.
+- **Frontend** : page `/sales/scoring` (`pages/sales/scoring.tsx`) avec 4 KPI (opps actives, pipeline total, pipeline « chaud », revenu pondéré attendu) et liste classée affichant pour chaque opportunité le score global, les 4 facteurs en barres de progression, le client lié, le stade et la date de clôture. Sidebar : nouvelle entrée « Scoring commercial » (icône `Flame`, groupe Business, module `sales_crm`).
+
 ### Phase 18 — Présences & Pointage géolocalisé — mai 2026
 - **Schéma** (`lib/db/src/schema/attendance.ts`) : 3 tables tenant-scoped (`organizationId NOT NULL`) :
   - `attendance_sessions` (collaborator, date, status open/closed/abandoned, clockIn/Out, totalMinutes, breakMinutes, effectiveMinutes, isLate, isEarlyLeave, projectId).

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import Client360Tab from "./Client360Tab";
 import {
   Building2, Briefcase, FolderKanban, CheckSquare, FolderOpen,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Mail, Phone, Globe,
@@ -85,13 +86,18 @@ export default function ClientDetailWorkspace() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="tree" className="w-full">
+      <Tabs defaultValue="360" className="w-full">
         <TabsList>
+          <TabsTrigger value="360">Vue 360°</TabsTrigger>
           <TabsTrigger value="tree">Arborescence</TabsTrigger>
           <TabsTrigger value="engagements">Services</TabsTrigger>
           <TabsTrigger value="projects">Projets</TabsTrigger>
           <TabsTrigger value="messaging">Messagerie</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="360" className="mt-4">
+          <Client360Tab clientId={client.id} />
+        </TabsContent>
 
         <TabsContent value="tree" className="mt-4">
           <Card><CardContent className="p-4">
