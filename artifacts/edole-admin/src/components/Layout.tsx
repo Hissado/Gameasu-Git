@@ -142,12 +142,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <div className="relative flex items-center justify-between gap-2 px-3 py-3 shrink-0 border-b border-sidebar-border/60"
            style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 items-center justify-center">
-          <img
-            src={BRANDING.logoFullTransparent}
-            alt={BRANDING.appName}
-            draggable={false}
-            className="w-full max-w-[240px] h-auto object-contain select-none block"
-          />
+          {/* On masque le slogan baked-in (bas de l'image) en n'affichant
+              que la partie haute G + améasù + filet or. */}
+          <div className="w-full max-w-[240px] overflow-hidden" style={{ aspectRatio: "1672 / 600" }}>
+            <img
+              src={BRANDING.logoFullTransparent}
+              alt={BRANDING.appName}
+              draggable={false}
+              className="w-full h-auto object-contain select-none block"
+            />
+          </div>
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-[#0F1A3A]/70 hover:bg-black/[0.04]" aria-label="Fermer le menu">
           <X className="w-5 h-5" />
