@@ -146,7 +146,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             src={BRANDING.logoFullTransparent}
             alt={BRANDING.appName}
             draggable={false}
-            className="w-full max-w-[260px] h-auto object-contain select-none scale-[1.15] origin-center"
+            className="w-full max-w-[220px] h-auto object-contain select-none"
           />
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
