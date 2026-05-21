@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
-import { GaméasùLockup } from "@/components/branding/GameasuLockup";
+import { SidebarLogo } from "@/components/branding/SidebarLogo";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Users, Briefcase, Wrench, Truck,
@@ -137,33 +137,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* En-tête logo — couleurs d'origine, sans slogan, left-aligné */}
+      {/* En-tête logo */}
       <div className="relative flex items-center justify-between gap-2 px-4 pt-5 pb-4 shrink-0">
-        <Link
-          href="/"
-          onClick={() => setMobileOpen(false)}
-          aria-label={BRANDING.appName}
-          className="relative inline-flex items-center shrink-0"
-        >
-          {/* Conteneur recadré : aspect-ratio = 1672/678 ≈ crop à 72 % de la hauteur,
-              ce qui masque le filet or + slogan tout en gardant le G et « améasù ».
-              object-cover + object-top fait déborder l'image vers le bas (hors clip). */}
-          <div
-            className="overflow-hidden"
-            style={{ width: "180px", aspectRatio: "1672 / 678" }}
-          >
-            <img
-              src={BRANDING.logoFullTransparent}
-              alt={BRANDING.appName}
-              draggable={false}
-              className="w-full h-auto object-cover object-top select-none block"
-              style={{
-                filter: "brightness(0) invert(1)",
-                opacity: 0.95,
-              }}
-            />
-          </div>
-        </Link>
+        <SidebarLogo onNavigate={() => setMobileOpen(false)} />
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
@@ -294,9 +270,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             <button type="button" onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted" aria-label="Ouvrir le menu">
               <Menu className="w-6 h-6" />
             </button>
-            <Link href="/" className="lg:hidden inline-flex">
-              <GaméasùLockup size="sm" variant="light" showSlogan={false} />
-            </Link>
+            <span className="lg:hidden inline-flex">
+              <SidebarLogo />
+            </span>
 
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
               <Search className="w-4 h-4 mr-2.5 text-muted-foreground/70 shrink-0" />
