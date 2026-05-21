@@ -1,9 +1,11 @@
 import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { organizationsTable } from "./saas";
 
 export const clientsTable = pgTable("clients", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
@@ -22,6 +24,7 @@ export const clientsTable = pgTable("clients", {
 
 export const clientContactsTable = pgTable("client_contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clientsTable.id),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),

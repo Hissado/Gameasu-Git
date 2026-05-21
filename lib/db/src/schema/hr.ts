@@ -5,6 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { collaboratorsTable } from "./collaborators";
 import { projectsTable } from "./projects";
+import { organizationsTable } from "./saas";
 
 /**
  * Module RH (Ressources Humaines).
@@ -26,6 +27,7 @@ import { projectsTable } from "./projects";
 // ────────────────────────────────────────────────────────────────
 export const departmentsTable = pgTable("departments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),
   name: text("name").notNull(),
   description: text("description"),
@@ -37,7 +39,7 @@ export const departmentsTable = pgTable("departments", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
-  codeIdx: uniqueIndex("departments_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("departments_org_code_uidx").on(t.organizationId, t.code),
 }));
 
 // ────────────────────────────────────────────────────────────────
@@ -45,6 +47,7 @@ export const departmentsTable = pgTable("departments", {
 // ────────────────────────────────────────────────────────────────
 export const positionsTable = pgTable("positions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),
   title: text("title").notNull(),
   departmentId: uuid("department_id").references(() => departmentsTable.id),
@@ -54,7 +57,7 @@ export const positionsTable = pgTable("positions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
-  codeIdx: uniqueIndex("positions_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("positions_org_code_uidx").on(t.organizationId, t.code),
   deptIdx: index("positions_department_idx").on(t.departmentId),
 }));
 
@@ -63,6 +66,7 @@ export const positionsTable = pgTable("positions", {
 // ────────────────────────────────────────────────────────────────
 export const contractsTable = pgTable("contracts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   // CDI | CDD | stage | prestation | mission | apprentissage
   type: text("type").notNull(),
@@ -91,6 +95,7 @@ export const contractsTable = pgTable("contracts", {
 // ────────────────────────────────────────────────────────────────
 export const hrDocumentsTable = pgTable("hr_documents", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   // identity | diploma | contract | medical | certification | other
   type: text("type").notNull(),
@@ -109,6 +114,7 @@ export const hrDocumentsTable = pgTable("hr_documents", {
 // ────────────────────────────────────────────────────────────────
 export const collaboratorAssignmentsTable = pgTable("collaborator_assignments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
   // chef_chantier | conducteur | technicien | ouvrier | superviseur | autre

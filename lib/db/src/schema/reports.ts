@@ -1,8 +1,10 @@
 import { pgTable, text, timestamp, uuid, integer, jsonb } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const dailyStockReportsTable = pgTable("daily_stock_reports", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   reportDate: text("report_date").notNull(),
   totalEquipment: integer("total_equipment").notNull().default(0),
   available: integer("available").notNull().default(0),

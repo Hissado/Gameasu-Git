@@ -14,7 +14,10 @@ router.get("/clients", requirePermission("clients.read"), async (req, res) => {
   const offset = (pageNum - 1) * limitNum;
 
   const accessible = req.authUser ? await userAccessibleClientIds(req.authUser.id) : [];
-  const conds: any[] = [isNull(clientsTable.deletedAt)];
+  const conds: any[] = [
+    eq(clientsTable.organizationId, req.authUser!.organizationId),
+    isNull(clientsTable.deletedAt),
+  ];
   if (accessible !== null) {
     if (accessible.length === 0) {
       return res.json({ data: [], total: 0, page: pageNum, limit: limitNum });
@@ -31,7 +34,8 @@ router.get("/clients", requirePermission("clients.read"), async (req, res) => {
 
 router.post("/clients", requirePermission("clients.manage"), async (req, res) => {
   const { name, email, phone, industry, address, website, status } = req.body;
-  const [client] = await db.insert(clientsTable).values({ name, email, phone, industry, address, website, status: status || "prospect" }).returning();
+  const [client] = await db.insert(clientsTable).values({
+      organizationId: req.authUser!.organizationId, name, email, phone, industry, address, website, status: status || "prospect" }).returning();
   return res.status(201).json(client);
 });
 
@@ -39,9 +43,15 @@ router.get("/clients/:id", requirePermission("clients.read"), async (req, res) =
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
     return res.status(403).json({ error: "Accès refusé à ce client" });
   }
-  const clients = await db.select().from(clientsTable).where(eq(clientsTable.id, req.params.id)).limit(1);
+  const clients = await db.select().from(clientsTable).where(and(
+    eq(clientsTable.organizationId, req.authUser!.organizationId),
+    eq(clientsTable.id, req.params.id),
+  )).limit(1);
   if (!clients[0]) return res.status(404).json({ error: "Not found" });
-  const contacts = await db.select().from(clientContactsTable).where(eq(clientContactsTable.clientId, req.params.id));
+  const contacts = await db.select().from(clientContactsTable).where(and(
+    eq(clientContactsTable.organizationId, req.authUser!.organizationId),
+    eq(clientContactsTable.clientId, req.params.id),
+  ));
   return res.json({ ...clients[0], contacts, projectsCount: 0, ordersCount: 0, totalRevenue: 0 });
 });
 
@@ -50,7 +60,10 @@ router.put("/clients/:id", requirePermission("clients.manage"), async (req, res)
     return res.status(403).json({ error: "Accès refusé à ce client" });
   }
   const { name, email, phone, industry, address, website, status } = req.body;
-  const [client] = await db.update(clientsTable).set({ name, email, phone, industry, address, website, status }).where(eq(clientsTable.id, req.params.id)).returning();
+  const [client] = await db.update(clientsTable).set({ name, email, phone, industry, address, website, status }).where(and(
+    eq(clientsTable.organizationId, req.authUser!.organizationId),
+    eq(clientsTable.id, req.params.id),
+  )).returning();
   if (!client) return res.status(404).json({ error: "Not found" });
   return res.json(client);
 });
@@ -59,7 +72,10 @@ router.delete("/clients/:id", requirePermission("clients.manage"), async (req, r
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
     return res.status(403).json({ error: "Accès refusé à ce client" });
   }
-  await db.update(clientsTable).set({ deletedAt: new Date() }).where(eq(clientsTable.id, req.params.id));
+  await db.update(clientsTable).set({ deletedAt: new Date() }).where(and(
+    eq(clientsTable.organizationId, req.authUser!.organizationId),
+    eq(clientsTable.id, req.params.id),
+  ));
   return res.status(204).send();
 });
 
@@ -67,7 +83,10 @@ router.get("/clients/:id/contacts", requirePermission("clients.read"), async (re
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
     return res.status(403).json({ error: "Accès refusé à ce client" });
   }
-  const contacts = await db.select().from(clientContactsTable).where(eq(clientContactsTable.clientId, req.params.id));
+  const contacts = await db.select().from(clientContactsTable).where(and(
+    eq(clientContactsTable.organizationId, req.authUser!.organizationId),
+    eq(clientContactsTable.clientId, req.params.id),
+  ));
   return res.json(contacts);
 });
 
@@ -77,6 +96,7 @@ router.post("/clients/:id/contacts", requirePermission("clients.manage"), async 
   }
   const { firstName, lastName, email, phone, role, isPrimary } = req.body;
   const [contact] = await db.insert(clientContactsTable).values({
+      organizationId: req.authUser!.organizationId,
     clientId: req.params.id, firstName, lastName, email, phone, role,
     isPrimary: isPrimary ? "true" : "false",
   }).returning();

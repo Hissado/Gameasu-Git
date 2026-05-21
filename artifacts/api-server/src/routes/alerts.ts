@@ -9,13 +9,15 @@ const router = Router();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function upsertAlert(a: {
+async function upsertAlert(orgId: string, a: {
   kind: string; entityType: string; entityId: string; title: string;
   message: string; severity: string; dueAt?: Date | null;
 }) {
-  const dedupKey = `${a.kind}:${a.entityId}`;
+  // dedupKey inclut l'org pour éviter les collisions cross-tenant
+  const dedupKey = `${orgId}:${a.kind}:${a.entityId}`;
   try {
     await db.insert(alertsTable).values({
+      organizationId: orgId,
       kind: a.kind, entityType: a.entityType, entityId: a.entityId,
       title: a.title, message: a.message, severity: a.severity,
       dueAt: a.dueAt ?? null, dedupKey,
@@ -26,7 +28,7 @@ async function upsertAlert(a: {
   }
 }
 
-export async function runAlertsScan() {
+export async function runAlertsScan(orgId: string) {
   const now = new Date();
   const in3days = new Date(now.getTime() + 3 * DAY_MS);
   const in30days = new Date(now.getTime() + 30 * DAY_MS);
@@ -36,13 +38,14 @@ export async function runAlertsScan() {
   try {
     const rentals = await db.select().from(rentalsTable)
       .where(and(
+        eq(rentalsTable.organizationId, orgId),
         isNull((rentalsTable as any).deletedAt ?? sql`false`),
         eq(rentalsTable.status, "active"),
         lte(rentalsTable.endDate as any, in3days),
         gte(rentalsTable.endDate as any, now),
       ));
     for (const r of rentals) {
-      const ok = await upsertAlert({
+      const ok = await upsertAlert(orgId, {
         kind: "rental_return_soon",
         entityType: "rental", entityId: r.id,
         title: `Retour de location proche`,
@@ -58,12 +61,13 @@ export async function runAlertsScan() {
   try {
     const invs = await db.select().from(invoicesTable)
       .where(and(
+        eq(invoicesTable.organizationId, orgId),
         ne(invoicesTable.status, "paid"),
         ne(invoicesTable.status, "cancelled"),
         lte(invoicesTable.dueDate as any, now),
       ));
     for (const i of invs) {
-      const ok = await upsertAlert({
+      const ok = await upsertAlert(orgId, {
         kind: "invoice_overdue",
         entityType: "invoice", entityId: i.id,
         title: `Facture impayée`,
@@ -79,12 +83,13 @@ export async function runAlertsScan() {
   try {
     const ctrs = await db.select().from(contractsTable)
       .where(and(
+        eq(contractsTable.organizationId, orgId),
         eq(contractsTable.status, "active"),
         lte(contractsTable.endDate as any, in30days),
         gte(contractsTable.endDate as any, now),
       ));
     for (const c of ctrs) {
-      const ok = await upsertAlert({
+      const ok = await upsertAlert(orgId, {
         kind: "contract_expiring",
         entityType: "contract", entityId: c.id,
         title: `Contrat à renouveler`,
@@ -100,11 +105,12 @@ export async function runAlertsScan() {
   try {
     const eqs = await db.select().from(equipmentTable)
       .where(and(
+        eq(equipmentTable.organizationId, orgId),
         isNull(equipmentTable.deletedAt),
         eq(equipmentTable.status, "maintenance"),
       ));
     for (const e of eqs) {
-      const ok = await upsertAlert({
+      const ok = await upsertAlert(orgId, {
         kind: "equipment_maintenance",
         entityType: "equipment", entityId: e.id,
         title: `Équipement en maintenance`,
@@ -120,25 +126,26 @@ export async function runAlertsScan() {
 
 router.get("/alerts", async (req, res) => {
   const { acknowledged, severity, kind, limit = "100" } = req.query as Record<string, string>;
-  const conds: any[] = [];
+  const conds: any[] = [eq(alertsTable.organizationId, req.authUser!.organizationId)];
   if (acknowledged === "true") conds.push(eq(alertsTable.acknowledged, true));
   else if (acknowledged === "false") conds.push(eq(alertsTable.acknowledged, false));
   if (severity) conds.push(eq(alertsTable.severity, severity));
   if (kind) conds.push(eq(alertsTable.kind, kind));
   const data = await db.select().from(alertsTable)
-    .where(conds.length ? and(...conds) : undefined as any)
+    .where(and(...conds))
     .orderBy(desc(alertsTable.createdAt))
     .limit(Number(limit));
   return res.json({ data });
 });
 
-router.get("/alerts/summary", async (_req, res) => {
+router.get("/alerts/summary", async (req, res) => {
+  const orgFilter = and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.acknowledged, false));
   const [{ total }] = await db.select({ total: sql<number>`count(*)` })
-    .from(alertsTable).where(eq(alertsTable.acknowledged, false));
+    .from(alertsTable).where(orgFilter);
   const bySeverity = await db.select({ severity: alertsTable.severity, count: sql<number>`count(*)` })
-    .from(alertsTable).where(eq(alertsTable.acknowledged, false)).groupBy(alertsTable.severity);
+    .from(alertsTable).where(orgFilter).groupBy(alertsTable.severity);
   const byKind = await db.select({ kind: alertsTable.kind, count: sql<number>`count(*)` })
-    .from(alertsTable).where(eq(alertsTable.acknowledged, false)).groupBy(alertsTable.kind);
+    .from(alertsTable).where(orgFilter).groupBy(alertsTable.kind);
   return res.json({
     openCount: Number(total),
     bySeverity: bySeverity.map((r) => ({ severity: r.severity, count: Number(r.count) })),
@@ -146,21 +153,21 @@ router.get("/alerts/summary", async (_req, res) => {
   });
 });
 
-router.post("/alerts/run", requireManagerOrAbove, async (_req, res) => {
-  const r = await runAlertsScan();
+router.post("/alerts/run", requireManagerOrAbove, async (req, res) => {
+  const r = await runAlertsScan(req.authUser!.organizationId);
   return res.json(r);
 });
 
 router.post("/alerts/:id/ack", async (req, res) => {
   const [a] = await db.update(alertsTable)
     .set({ acknowledged: true, acknowledgedAt: new Date() })
-    .where(eq(alertsTable.id, req.params.id)).returning();
+    .where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, req.params.id))).returning();
   if (!a) return res.status(404).json({ error: "Not found" });
   return res.json(a);
 });
 
 router.delete("/alerts/:id", async (req, res) => {
-  await db.delete(alertsTable).where(eq(alertsTable.id, req.params.id));
+  await db.delete(alertsTable).where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, req.params.id)));
   return res.status(204).send();
 });
 

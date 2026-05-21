@@ -4,9 +4,11 @@ import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { usersTable } from "./users";
 import { collaboratorsTable } from "./collaborators";
+import { organizationsTable } from "./saas";
 
 export const projectsTable = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").notNull().default("planning"),
@@ -30,6 +32,7 @@ export const projectsTable = pgTable("projects", {
 
 export const projectPhasesTable = pgTable("project_phases", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id),
   name: text("name").notNull(),
   status: text("status").notNull().default("pending"),

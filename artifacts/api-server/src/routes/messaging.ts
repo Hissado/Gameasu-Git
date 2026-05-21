@@ -187,6 +187,7 @@ router.post("/conversations", async (req, res) => {
   }
 
   const [convo] = await db.insert(conversationsTable).values({
+      organizationId: req.authUser!.organizationId,
     title: title || null,
     type: type || "direct",
     projectId: projectId || null,
@@ -352,6 +353,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   }
 
   const [msg] = await db.insert(messagesTable).values({
+      organizationId: req.authUser!.organizationId,
     conversationId: req.params.id,
     senderId: userId,
     content: content || "",
@@ -467,7 +469,8 @@ router.post("/messages/:id/reactions", async (req, res) => {
   if (!msg) return res.status(404).json({ error: "Introuvable" });
   const part = await ensureParticipant(msg.conversationId, userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
-  await db.insert(messageReactionsTable).values({ messageId: msg.id, userId, emoji }).onConflictDoNothing();
+  await db.insert(messageReactionsTable).values({
+      organizationId: req.authUser!.organizationId, messageId: msg.id, userId, emoji }).onConflictDoNothing();
   emitToConversation(msg.conversationId, "reaction:added", { messageId: msg.id, userId, emoji });
   return res.status(201).json({ success: true });
 });

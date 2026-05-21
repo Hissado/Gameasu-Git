@@ -1,8 +1,10 @@
 import { pgTable, text, timestamp, uuid, jsonb, integer, index, numeric } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const documentsTable = pgTable("documents", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   fileUrl: text("file_url").notNull(),
   mimeType: text("mime_type"),

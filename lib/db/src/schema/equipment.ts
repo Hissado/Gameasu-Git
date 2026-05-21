@@ -2,9 +2,11 @@ import { pgTable, text, timestamp, uuid, integer, numeric, jsonb } from "drizzle
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { collaboratorsTable } from "./collaborators";
+import { organizationsTable } from "./saas";
 
 export const equipmentCategoriesTable = pgTable("equipment_categories", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -12,6 +14,7 @@ export const equipmentCategoriesTable = pgTable("equipment_categories", {
 
 export const equipmentTable = pgTable("equipment", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   code: text("code"),
   categoryId: uuid("category_id").references(() => equipmentCategoriesTable.id),
@@ -34,6 +37,7 @@ export const equipmentTable = pgTable("equipment", {
 
 export const equipmentMovementsTable = pgTable("equipment_movements", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   equipmentId: uuid("equipment_id").notNull().references(() => equipmentTable.id),
   type: text("type").notNull(),
   fromLocation: text("from_location"),

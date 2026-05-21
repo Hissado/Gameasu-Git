@@ -1,7 +1,9 @@
 import { pgTable, text, timestamp, uuid, boolean, index, unique } from "drizzle-orm/pg-core";
+import { organizationsTable } from "./saas";
 
 export const alertsTable = pgTable("alerts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   kind: text("kind").notNull(),
   entityType: text("entity_type"),
   entityId: uuid("entity_id"),

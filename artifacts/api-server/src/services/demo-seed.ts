@@ -291,7 +291,10 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   const counts: Record<string, number> = {};
 
   // ─── Pré-requis : période fiscale, comptes, journaux, banques ───
-  const period = await getCurrentFiscalPeriod();
+  const demoOrg = (await db.select({ id: (await import("@workspace/db")).organizationsTable.id }).from((await import("@workspace/db")).organizationsTable).limit(1))[0];
+  if (!demoOrg) throw new Error("Aucune organisation : lancez d'abord seedSaas().");
+  const organizationId = demoOrg.id;
+  const period = await getCurrentFiscalPeriod(organizationId);
   if (!period) throw new Error("Aucune période fiscale ouverte. Lancez d'abord seedSyscohada().");
 
   const accountByCode = new Map<string, string>();
@@ -419,10 +422,10 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
 
   // ─── ACL clients ───
   await db.insert(userClientAccessTable).values(
-    clientIds.map(cid => ({ userId: users["commercial@edole.africa"], clientId: cid, accessLevel: "manager", grantedById: admin.id }))
+    clientIds.map(cid => ({ organizationId, userId: users["commercial@edole.africa"], clientId: cid, accessLevel: "manager", grantedById: admin.id }))
   );
   await db.insert(userClientAccessTable).values(
-    clientIds.slice(0, 4).map(cid => ({ userId: users["chefchantier@edole.africa"], clientId: cid, accessLevel: "viewer", grantedById: admin.id }))
+    clientIds.slice(0, 4).map(cid => ({ organizationId, userId: users["chefchantier@edole.africa"], clientId: cid, accessLevel: "viewer", grantedById: admin.id }))
   );
 
   // ─── Catalogue de services ───
@@ -467,7 +470,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     engagementIds.push(created.id);
     const sectionNames = ["Préparation", "Exécution", "Livraison & contrôle"];
     const secs = await db.insert(serviceSectionsTable).values(
-      sectionNames.map((n, i) => ({ clientServiceId: created.id, name: n, position: i }))
+      sectionNames.map((n, i) => ({ organizationId, clientServiceId: created.id, name: n, position: i }))
     ).returning();
     sectionIdsByEng[created.id] = secs.map(s => s.id);
   }
@@ -493,7 +496,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     projectIds.push(created.id);
     const phases = ["Études", "Approvisionnement", "Exécution", "Réception"];
     await db.insert(projectPhasesTable).values(
-      phases.map((n, i) => ({ projectId: created.id, name: n, status: i < Math.floor(p.progress / 25) ? "completed" : "pending", order: i }))
+      phases.map((n, i) => ({ organizationId, projectId: created.id, name: n, status: i < Math.floor(p.progress / 25) ? "completed" : "pending", order: i }))
     );
   }
   counts.projects = projectIds.length;
@@ -638,14 +641,14 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       totalAmount: String(450_000 + i * 220_000), currency: "XOF",
       expenseAccountId: acc(expense), notes: "Facture fournisseur de démo.",
     } as any).returning();
-    await postSupplierInvoice(sInv.id, admin.id);
+    await postSupplierInvoice(organizationId, sInv.id, admin.id);
     if (i < 4) {
       const [sp] = await db.insert(supplierPaymentsTable).values({
         supplierInvoiceId: sInv.id, bankAccountId: bankAccount.id,
         amount: sInv.totalAmount as any, currency: "XOF", method: "bank_transfer",
         reference: `VIR-${1000 + i}`, paidAt: addDays(dt, 20),
       } as any).returning();
-      await postSupplierPayment(sp.id, admin.id);
+      await postSupplierPayment(organizationId, sp.id, admin.id);
     }
   }
   counts.supplierInvoices = 6;
@@ -676,7 +679,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       totalAmount: String(amount), paidAmount: i < 5 ? String(amount) : "0",
       currency: "XOF", dueDate: ymd(addDays(dt, 30)), issuedAt: ymd(dt),
     } as any).returning();
-    await postCustomerInvoice(inv.id, admin.id);
+    await postCustomerInvoice(organizationId, inv.id, admin.id);
     invoiceCount++;
 
     if (i < 5) {
@@ -685,7 +688,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
         method: pick(["bank_transfer", "mobile_money", "cheque"], i),
         reference: `RGL-${2000 + i}`, paidAt: addDays(dt, 15),
       } as any).returning();
-      await postCustomerPayment(pay.id, { bankAccountId: bankAccount.id, userId: admin.id });
+      await postCustomerPayment(organizationId, pay.id, { bankAccountId: bankAccount.id, userId: admin.id });
     }
   }
   counts.invoices = invoiceCount;
@@ -837,7 +840,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     convIds.push(conv.id);
     const participants = [admin.id, users["chefchantier@edole.africa"], users["commercial@edole.africa"]];
     await db.insert(conversationParticipantsTable).values(
-      participants.map(uid => ({ conversationId: conv.id, userId: uid, isAdmin: uid === admin.id }))
+      participants.map(uid => ({ organizationId, conversationId: conv.id, userId: uid, isAdmin: uid === admin.id }))
     );
     const msgs = [
       "Bonjour, où en est-on sur la phase étude ?",

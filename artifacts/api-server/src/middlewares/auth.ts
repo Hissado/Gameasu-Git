@@ -9,6 +9,8 @@ export type AuthUser = {
   role: string;
   firstName: string;
   lastName: string;
+  /** Organisation tenant de l'utilisateur. Toujours définie (partitionnement strict). */
+  organizationId: string;
 };
 
 declare global {
@@ -42,12 +44,17 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
       res.status(401).json({ error: "Utilisateur introuvable ou désactivé" });
       return;
     }
+    if (!user.organizationId) {
+      res.status(403).json({ error: "Aucune organisation associée à ce compte" });
+      return;
+    }
     req.authUser = {
       id: user.id,
       email: user.email,
       role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
+      organizationId: user.organizationId,
     };
     next();
   } catch {

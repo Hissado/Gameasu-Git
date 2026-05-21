@@ -1,11 +1,12 @@
 import { db } from "@workspace/db";
-import { departmentsTable, positionsTable } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { departmentsTable, positionsTable, organizationsTable } from "@workspace/db";
+import { and, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 /**
- * Seed des 7 pôles EDOLE et de quelques postes de référence.
- * Idempotent : ON CONFLICT DO NOTHING sur le code.
+ * Seed des départements et postes par défaut pour une organisation donnée.
+ * Tenant-scoped : un même code (DIR, OPS…) peut exister dans plusieurs orgs.
+ * Idempotent : check d'existence avant insertion.
  */
 const DEFAULT_DEPARTMENTS = [
   { code: "DIR", name: "Pilotage", description: "Direction générale et pilotage stratégique", color: "#0F172A" },
@@ -31,30 +32,38 @@ const DEFAULT_POSITIONS = [
   { code: "COMM",      title: "Chargé·e de communication",    deptCode: "MKT", level: 2 },
 ];
 
-export async function seedHr() {
-  // 1) Départements (UPSERT par code)
+export async function seedHrForOrg(organizationId: string): Promise<void> {
+  // 1) Départements (idempotent par (orgId, code))
   for (const d of DEFAULT_DEPARTMENTS) {
     await db.execute(sql`
-      INSERT INTO ${departmentsTable} (code, name, description, color)
-      VALUES (${d.code}, ${d.name}, ${d.description}, ${d.color})
-      ON CONFLICT (code) DO NOTHING
+      INSERT INTO ${departmentsTable} (organization_id, code, name, description, color)
+      VALUES (${organizationId}, ${d.code}, ${d.name}, ${d.description}, ${d.color})
+      ON CONFLICT (organization_id, code) DO NOTHING
     `);
   }
 
-  // Récupère les IDs pour mapper les postes
-  const depts = await db.select().from(departmentsTable);
+  const depts = await db.select().from(departmentsTable).where(eq(departmentsTable.organizationId, organizationId));
   const byCode = new Map(depts.map((d) => [d.code, d.id]));
 
-  // 2) Postes (UPSERT par code)
+  // 2) Postes (idempotent par (orgId, code))
   for (const p of DEFAULT_POSITIONS) {
     const deptId = byCode.get(p.deptCode);
     if (!deptId) continue;
     await db.execute(sql`
-      INSERT INTO ${positionsTable} (code, title, department_id, level)
-      VALUES (${p.code}, ${p.title}, ${deptId}, ${p.level})
-      ON CONFLICT (code) DO NOTHING
+      INSERT INTO ${positionsTable} (organization_id, code, title, department_id, level)
+      VALUES (${organizationId}, ${p.code}, ${p.title}, ${deptId}, ${p.level})
+      ON CONFLICT (organization_id, code) DO NOTHING
     `);
   }
+}
 
-  logger.info({ departments: DEFAULT_DEPARTMENTS.length, positions: DEFAULT_POSITIONS.length }, "HR: seed terminé");
+/**
+ * Seed HR pour toutes les organisations existantes (utilisé au boot).
+ */
+export async function seedHr(): Promise<void> {
+  const orgs = await db.select({ id: organizationsTable.id, slug: organizationsTable.slug }).from(organizationsTable);
+  for (const o of orgs) {
+    await seedHrForOrg(o.id);
+  }
+  logger.info({ orgs: orgs.length, departments: DEFAULT_DEPARTMENTS.length, positions: DEFAULT_POSITIONS.length }, "HR: seed terminé");
 }

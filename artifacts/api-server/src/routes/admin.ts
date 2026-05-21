@@ -167,7 +167,8 @@ router.post("/departments", requirePermission("departments.manage"), async (req,
   const { code, name, description, parentId, headCollaboratorId, color } = req.body || {};
   if (!code || !name) return res.status(400).json({ error: "code et name requis" });
   try {
-    const [d] = await db.insert(departmentsTable).values({ code, name, description, parentId, headCollaboratorId, color }).returning();
+    const [d] = await db.insert(departmentsTable).values({
+      organizationId: req.authUser!.organizationId, code, name, description, parentId, headCollaboratorId, color }).returning();
     await audit(req, "create", { entityType: "department", entityId: d.id, payload: d });
     return res.status(201).json(d);
   } catch (e: any) {

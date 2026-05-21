@@ -25,7 +25,10 @@ async function buildProjectAclCond(req: Request) {
 
 router.get("/documents", async (req, res) => {
   const { entityType, entityId, category, search = "", limit = "50" } = req.query as Record<string, string>;
-  const conds: any[] = [isNull(documentsTable.deletedAt)];
+  const conds: any[] = [
+    eq(documentsTable.organizationId, req.authUser!.organizationId),
+    isNull(documentsTable.deletedAt),
+  ];
   if (entityType) conds.push(eq(documentsTable.entityType, entityType));
   if (entityId) conds.push(eq(documentsTable.entityId, entityId));
   if (category) conds.push(eq(documentsTable.category, category));
@@ -39,7 +42,10 @@ router.get("/documents", async (req, res) => {
 router.get("/documents/stats", async (req, res) => {
   // ACL : restreindre les stats aux documents accessibles à l'utilisateur.
   const acl = await buildProjectAclCond(req);
-  const baseConds = [isNull(documentsTable.deletedAt)];
+  const baseConds: any[] = [
+    eq(documentsTable.organizationId, req.authUser!.organizationId),
+    isNull(documentsTable.deletedAt),
+  ];
   if (acl) baseConds.push(acl);
   const where = and(...baseConds);
   const byEntity = await db.select({
@@ -63,6 +69,7 @@ router.post("/documents", async (req: any, res) => {
     const { name, fileUrl, mimeType, size, category, entityType, entityId, description, tags } = req.body;
     if (!name || !fileUrl) return res.status(400).json({ error: "name et fileUrl requis" });
     const [d] = await db.insert(documentsTable).values({
+      organizationId: req.authUser!.organizationId,
       name, fileUrl, mimeType, size: size ? Number(size) : null,
       category: category || "other",
       entityType, entityId, description,
@@ -80,13 +87,13 @@ router.put("/documents/:id", async (req, res) => {
   const [d] = await db.update(documentsTable).set({
     name, category, entityType, entityId, description,
     ...(tags ? { tags } : {}),
-  }).where(eq(documentsTable.id, req.params.id)).returning();
+  }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, req.params.id))).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   return res.json(d);
 });
 
 router.delete("/documents/:id", async (req, res) => {
-  await db.update(documentsTable).set({ deletedAt: new Date() }).where(eq(documentsTable.id, req.params.id));
+  await db.update(documentsTable).set({ deletedAt: new Date() }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, req.params.id)));
   return res.status(204).send();
 });
 

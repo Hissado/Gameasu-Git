@@ -21,14 +21,15 @@ router.use(requireAuth);
 // ════════════════════════════════════════════════════════════════
 // DÉPARTEMENTS / PÔLES
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/departments", async (_req, res) => {
-  const rows = await db.select().from(departmentsTable).orderBy(departmentsTable.name);
+router.get("/hr/departments", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const rows = await db.select().from(departmentsTable).where(eq(departmentsTable.organizationId, orgId)).orderBy(departmentsTable.name);
   // Compte les collaborateurs et postes par département.
   const counts = await db.select({
     departmentId: collaboratorsTable.departmentId,
     n: sql<number>`COUNT(*)`,
   }).from(collaboratorsTable)
-    .where(isNull(collaboratorsTable.deletedAt))
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
     .groupBy(collaboratorsTable.departmentId);
   const byDept = new Map(counts.map(c => [c.departmentId, Number(c.n)]));
   return res.json({ data: rows.map(d => ({ ...d, collaboratorsCount: byDept.get(d.id) ?? 0 })) });
@@ -38,7 +39,8 @@ router.post("/hr/departments", requireManagerOrAbove, async (req, res) => {
   const { code, name, description, parentId, headCollaboratorId, color } = req.body;
   if (!code || !name) return res.status(400).json({ error: "code et name requis" });
   try {
-    const [d] = await db.insert(departmentsTable).values({ code, name, description, parentId, headCollaboratorId, color }).returning();
+    const [d] = await db.insert(departmentsTable).values({
+      organizationId: req.authUser!.organizationId, code, name, description, parentId, headCollaboratorId, color }).returning();
     return res.status(201).json(d);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -49,13 +51,13 @@ router.put("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
   const { code, name, description, parentId, headCollaboratorId, color } = req.body;
   const [d] = await db.update(departmentsTable)
     .set({ code, name, description, parentId, headCollaboratorId, color })
-    .where(eq(departmentsTable.id, req.params.id)).returning();
+    .where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, req.params.id))).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   return res.json(d);
 });
 
 router.delete("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(departmentsTable).where(eq(departmentsTable.id, req.params.id));
+  await db.delete(departmentsTable).where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -64,13 +66,14 @@ router.delete("/hr/departments/:id", requireManagerOrAbove, async (req, res) => 
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/positions", async (req, res) => {
   const { departmentId } = req.query as Record<string, string>;
-  const where = departmentId ? eq(positionsTable.departmentId, departmentId) : undefined;
+  const conds: any[] = [eq(positionsTable.organizationId, req.authUser!.organizationId)];
+  if (departmentId) conds.push(eq(positionsTable.departmentId, departmentId));
   const rows = await db.select({
     pos: positionsTable,
     deptName: departmentsTable.name,
   }).from(positionsTable)
     .leftJoin(departmentsTable, eq(positionsTable.departmentId, departmentsTable.id))
-    .where(where as any)
+    .where(and(...conds))
     .orderBy(positionsTable.title);
   return res.json({ data: rows.map(r => ({ ...r.pos, departmentName: r.deptName })) });
 });
@@ -79,7 +82,8 @@ router.post("/hr/positions", requireManagerOrAbove, async (req, res) => {
   const { code, title, departmentId, description, level } = req.body;
   if (!code || !title) return res.status(400).json({ error: "code et title requis" });
   try {
-    const [p] = await db.insert(positionsTable).values({ code, title, departmentId, description, level }).returning();
+    const [p] = await db.insert(positionsTable).values({
+      organizationId: req.authUser!.organizationId, code, title, departmentId, description, level }).returning();
     return res.status(201).json(p);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -90,13 +94,13 @@ router.put("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
   const { code, title, departmentId, description, level } = req.body;
   const [p] = await db.update(positionsTable)
     .set({ code, title, departmentId, description, level })
-    .where(eq(positionsTable.id, req.params.id)).returning();
+    .where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, req.params.id))).returning();
   if (!p) return res.status(404).json({ error: "Not found" });
   return res.json(p);
 });
 
 router.delete("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(positionsTable).where(eq(positionsTable.id, req.params.id));
+  await db.delete(positionsTable).where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -105,7 +109,7 @@ router.delete("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/contracts", async (req, res) => {
   const { collaboratorId, status } = req.query as Record<string, string>;
-  const wheres = [];
+  const wheres: any[] = [eq(contractsTable.organizationId, req.authUser!.organizationId)];
   if (collaboratorId) wheres.push(eq(contractsTable.collaboratorId, collaboratorId));
   if (status) wheres.push(eq(contractsTable.status, status));
   const rows = await db.select({
@@ -114,7 +118,7 @@ router.get("/hr/contracts", async (req, res) => {
     collabLast: collaboratorsTable.lastName,
   }).from(contractsTable)
     .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
-    .where(wheres.length ? and(...wheres) : (undefined as any))
+    .where(and(...wheres))
     .orderBy(desc(contractsTable.startDate));
   return res.json({ data: rows.map(r => ({
     ...r.c,
@@ -127,6 +131,7 @@ router.post("/hr/contracts", requireManagerOrAbove, async (req, res) => {
   const { collaboratorId, type, status, startDate, endDate, monthlySalary, currency, jobTitle, workLocation, weeklyHours, terms, signedAt, fileUrl } = req.body;
   if (!collaboratorId || !type || !startDate) return res.status(400).json({ error: "collaboratorId, type, startDate requis" });
   const [c] = await db.insert(contractsTable).values({
+      organizationId: req.authUser!.organizationId,
     collaboratorId, type, status: status || "active",
     startDate, endDate, monthlySalary: monthlySalary?.toString(), currency,
     jobTitle, workLocation, weeklyHours: weeklyHours?.toString(),
@@ -141,13 +146,13 @@ router.put("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
     type, status, startDate, endDate, monthlySalary: monthlySalary?.toString(), currency,
     jobTitle, workLocation, weeklyHours: weeklyHours?.toString(),
     terms, signedAt: signedAt ? new Date(signedAt) : null, fileUrl,
-  }).where(eq(contractsTable.id, req.params.id)).returning();
+  }).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, req.params.id))).returning();
   if (!c) return res.status(404).json({ error: "Not found" });
   return res.json(c);
 });
 
 router.delete("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(contractsTable).where(eq(contractsTable.id, req.params.id));
+  await db.delete(contractsTable).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -156,20 +161,22 @@ router.delete("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/documents", async (req, res) => {
   const { collaboratorId } = req.query as Record<string, string>;
-  const where = collaboratorId ? eq(hrDocumentsTable.collaboratorId, collaboratorId) : undefined;
-  const rows = await db.select().from(hrDocumentsTable).where(where as any).orderBy(desc(hrDocumentsTable.uploadedAt));
+  const conds: any[] = [eq(hrDocumentsTable.organizationId, req.authUser!.organizationId)];
+  if (collaboratorId) conds.push(eq(hrDocumentsTable.collaboratorId, collaboratorId));
+  const rows = await db.select().from(hrDocumentsTable).where(and(...conds)).orderBy(desc(hrDocumentsTable.uploadedAt));
   return res.json({ data: rows });
 });
 
 router.post("/hr/documents", requireManagerOrAbove, async (req, res) => {
   const { collaboratorId, type, name, fileUrl, expiresAt, notes } = req.body;
   if (!collaboratorId || !type || !name || !fileUrl) return res.status(400).json({ error: "Champs requis manquants" });
-  const [d] = await db.insert(hrDocumentsTable).values({ collaboratorId, type, name, fileUrl, expiresAt, notes }).returning();
+  const [d] = await db.insert(hrDocumentsTable).values({
+      organizationId: req.authUser!.organizationId, collaboratorId, type, name, fileUrl, expiresAt, notes }).returning();
   return res.status(201).json(d);
 });
 
 router.delete("/hr/documents/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(hrDocumentsTable).where(eq(hrDocumentsTable.id, req.params.id));
+  await db.delete(hrDocumentsTable).where(and(eq(hrDocumentsTable.organizationId, req.authUser!.organizationId), eq(hrDocumentsTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -178,7 +185,7 @@ router.delete("/hr/documents/:id", requireManagerOrAbove, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/assignments", async (req, res) => {
   const { collaboratorId, projectId, status } = req.query as Record<string, string>;
-  const wheres: any[] = [];
+  const wheres: any[] = [eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId)];
   if (collaboratorId) wheres.push(eq(collaboratorAssignmentsTable.collaboratorId, collaboratorId));
   if (projectId) wheres.push(eq(collaboratorAssignmentsTable.projectId, projectId));
   if (status) wheres.push(eq(collaboratorAssignmentsTable.status, status));
@@ -191,7 +198,7 @@ router.get("/hr/assignments", async (req, res) => {
   }).from(collaboratorAssignmentsTable)
     .leftJoin(collaboratorsTable, eq(collaboratorAssignmentsTable.collaboratorId, collaboratorsTable.id))
     .leftJoin(projectsTable, eq(collaboratorAssignmentsTable.projectId, projectsTable.id))
-    .where(wheres.length ? and(...wheres) : (undefined as any))
+    .where(and(...wheres))
     .orderBy(desc(collaboratorAssignmentsTable.createdAt));
   return res.json({ data: rows.map(r => ({
     ...r.a,
@@ -212,6 +219,7 @@ router.post("/hr/assignments", requireManagerOrAbove, async (req, res) => {
     // Atomicité : insert + recalcul du compteur dans la même transaction.
     const a = await db.transaction(async (tx) => {
       const [inserted] = await tx.insert(collaboratorAssignmentsTable).values({
+      organizationId: req.authUser!.organizationId,
         collaboratorId, projectId, role,
         allocationPct: alloc,
         startDate, endDate, status: status || "active", notes,
@@ -241,7 +249,7 @@ router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
     const a = await db.transaction(async (tx) => {
       const [updated] = await tx.update(collaboratorAssignmentsTable).set({
         role, allocationPct, startDate, endDate, status, notes,
-      }).where(eq(collaboratorAssignmentsTable.id, req.params.id)).returning();
+      }).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, req.params.id))).returning();
       if (!updated) return null;
       if (status) {
         await tx.execute(sql`
@@ -263,7 +271,7 @@ router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(collaboratorAssignmentsTable).where(eq(collaboratorAssignmentsTable.id, req.params.id));
+  await db.delete(collaboratorAssignmentsTable).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, req.params.id)));
   return res.status(204).send();
 });
 

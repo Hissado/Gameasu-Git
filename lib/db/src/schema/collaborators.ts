@@ -2,6 +2,7 @@ import { pgTable, text, boolean, timestamp, uuid, integer, date, jsonb, numeric,
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 /**
  * Collaborateurs / employés EDOLE.
@@ -15,6 +16,7 @@ import { usersTable } from "./users";
  */
 export const collaboratorsTable = pgTable("collaborators", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   // Identification
   employeeNumber: text("employee_number"),
   firstName: text("first_name").notNull(),

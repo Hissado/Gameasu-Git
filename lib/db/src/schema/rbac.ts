@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { projectsTable } from "./projects";
+import { organizationsTable } from "./saas";
 
 /**
  * Système RBAC dynamique :
@@ -82,6 +83,7 @@ export const userProjectAccessTable = pgTable("user_project_access", {
 // ─────────────────────────────────────────────────────────────────
 export const auditLogsTable = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").references(() => usersTable.id, { onDelete: "set null" }),
   userEmail: text("user_email"),              // dénormalisé pour conserver la trace si user supprimé
   // create | update | delete | login | logout | invite | role_change | permission_change | password_change | …

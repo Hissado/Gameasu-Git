@@ -38,7 +38,7 @@ const toNum = (v: string | number | null | undefined): number => (v == null ? 0 
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/chart-of-accounts", async (req, res) => {
   const { search, classNum } = req.query as Record<string, string>;
-  const conds = [eq(chartOfAccountsTable.isActive, true)];
+  const conds = [eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.isActive, true)];
   if (classNum) conds.push(eq(chartOfAccountsTable.classNum, parseInt(classNum)));
   if (search) {
     conds.push(or(
@@ -53,6 +53,7 @@ router.get("/accounting/chart-of-accounts", async (req, res) => {
 router.post("/accounting/chart-of-accounts", requireAdmin, async (req, res) => {
   const { code, label, classNum, type, normalBalance, parentId, isPostable } = req.body;
   const [acc] = await db.insert(chartOfAccountsTable).values({
+      organizationId: req.authUser!.organizationId,
     code, label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
   }).returning();
   return res.status(201).json(acc);
@@ -62,7 +63,7 @@ router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) =
   const { label, isActive, isPostable, normalBalance, type } = req.body;
   const [acc] = await db.update(chartOfAccountsTable)
     .set({ label, isActive, isPostable, normalBalance, type })
-    .where(eq(chartOfAccountsTable.id, req.params.id)).returning();
+    .where(and(eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.id, req.params.id))).returning();
   if (!acc) return res.status(404).json({ error: "Compte introuvable" });
   return res.json(acc);
 });
@@ -70,21 +71,22 @@ router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) =
 // ════════════════════════════════════════════════════════════════
 // EXERCICES FISCAUX
 // ════════════════════════════════════════════════════════════════
-router.get("/accounting/fiscal-periods", async (_req, res) => {
-  const rows = await db.select().from(fiscalPeriodsTable).orderBy(desc(fiscalPeriodsTable.startDate));
+router.get("/accounting/fiscal-periods", async (req, res) => {
+  const rows = await db.select().from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId)).orderBy(desc(fiscalPeriodsTable.startDate));
   return res.json({ data: rows });
 });
 
 router.post("/accounting/fiscal-periods", requireAdmin, async (req, res) => {
   const { name, startDate, endDate } = req.body;
-  const [p] = await db.insert(fiscalPeriodsTable).values({ name, startDate, endDate, status: "open" }).returning();
+  const [p] = await db.insert(fiscalPeriodsTable).values({
+      organizationId: req.authUser!.organizationId, name, startDate, endDate, status: "open" }).returning();
   return res.status(201).json(p);
 });
 
 router.post("/accounting/fiscal-periods/:id/close", requireAdmin, async (req, res) => {
   const [p] = await db.update(fiscalPeriodsTable)
     .set({ status: "closed", closedAt: new Date(), closedById: req.authUser?.id })
-    .where(eq(fiscalPeriodsTable.id, req.params.id)).returning();
+    .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id))).returning();
   if (!p) return res.status(404).json({ error: "Exercice introuvable" });
   return res.json(p);
 });
@@ -92,8 +94,8 @@ router.post("/accounting/fiscal-periods/:id/close", requireAdmin, async (req, re
 // ════════════════════════════════════════════════════════════════
 // JOURNAUX
 // ════════════════════════════════════════════════════════════════
-router.get("/accounting/journals", async (_req, res) => {
-  const rows = await db.select().from(journalsTable).where(eq(journalsTable.isActive, true)).orderBy(asc(journalsTable.code));
+router.get("/accounting/journals", async (req, res) => {
+  const rows = await db.select().from(journalsTable).where(and(eq(journalsTable.organizationId, req.authUser!.organizationId), eq(journalsTable.isActive, true))).orderBy(asc(journalsTable.code));
   return res.json({ data: rows });
 });
 
@@ -102,7 +104,7 @@ router.get("/accounting/journals", async (_req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/entries", async (req, res) => {
   const { journalId, from, to, status, sourceType, page = "1", limit = "50" } = req.query as Record<string, string>;
-  const conds = [];
+  const conds: any[] = [eq(journalEntriesTable.organizationId, req.authUser!.organizationId)];
   if (journalId) conds.push(eq(journalEntriesTable.journalId, journalId));
   if (status) conds.push(eq(journalEntriesTable.status, status));
   if (sourceType) conds.push(eq(journalEntriesTable.sourceType, sourceType));
@@ -117,11 +119,11 @@ router.get("/accounting/entries", async (req, res) => {
     .select({ entry: journalEntriesTable, journalCode: journalsTable.code, journalLabel: journalsTable.label })
     .from(journalEntriesTable)
     .leftJoin(journalsTable, eq(journalEntriesTable.journalId, journalsTable.id))
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(journalEntriesTable.entryDate), desc(journalEntriesTable.entryNumber))
     .limit(limitNum).offset(offset);
 
-  const totalRows = await db.select({ n: sql<string>`COUNT(*)` }).from(journalEntriesTable).where(conds.length ? and(...conds) : undefined);
+  const totalRows = await db.select({ n: sql<string>`COUNT(*)` }).from(journalEntriesTable).where(and(...conds));
 
   return res.json({
     data: rows.map((r) => ({
@@ -137,7 +139,7 @@ router.get("/accounting/entries", async (req, res) => {
 });
 
 router.get("/accounting/entries/:id", async (req, res) => {
-  const e = (await db.select().from(journalEntriesTable).where(eq(journalEntriesTable.id, req.params.id)).limit(1))[0];
+  const e = (await db.select().from(journalEntriesTable).where(and(eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.id, req.params.id))).limit(1))[0];
   if (!e) return res.status(404).json({ error: "Écriture introuvable" });
   const lines = await db
     .select({ line: journalEntryLinesTable, accountCode: chartOfAccountsTable.code, accountLabel: chartOfAccountsTable.label })
@@ -165,6 +167,7 @@ router.post("/accounting/entries", requireManagerOrAbove, async (req, res) => {
   try {
     const { journalCode, entryDate, reference, description, lines } = req.body;
     const entry = await postEntry({
+      organizationId: req.authUser!.organizationId,
       journalCode,
       entryDate,
       reference,
@@ -181,7 +184,7 @@ router.post("/accounting/entries", requireManagerOrAbove, async (req, res) => {
 
 router.post("/accounting/entries/:id/reverse", requireManagerOrAbove, async (req, res) => {
   try {
-    const reversal = await reverseEntry(req.params.id, req.authUser?.id);
+    const reversal = await reverseEntry(req.authUser!.organizationId, req.params.id, req.authUser?.id);
     return res.status(201).json(reversal);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -194,13 +197,17 @@ router.post("/accounting/entries/:id/reverse", requireManagerOrAbove, async (req
 router.get("/accounting/ledger", async (req, res) => {
   const { accountId, accountCode, from, to } = req.query as Record<string, string>;
   let resolvedAccountId = accountId;
+  const orgId = req.authUser!.organizationId;
   if (!resolvedAccountId && accountCode) {
-    const acc = (await db.select().from(chartOfAccountsTable).where(eq(chartOfAccountsTable.code, accountCode)).limit(1))[0];
+    const acc = (await db.select().from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, accountCode))).limit(1))[0];
     if (acc) resolvedAccountId = acc.id;
   }
   if (!resolvedAccountId) return res.status(400).json({ error: "accountId ou accountCode requis" });
+  // vérifie que le compte appartient bien à l'org pour les accès directs par accountId
+  const accCheck = (await db.select().from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, resolvedAccountId))).limit(1))[0];
+  if (!accCheck) return res.status(404).json({ error: "Compte introuvable" });
 
-  const conds = [eq(journalEntryLinesTable.accountId, resolvedAccountId), eq(journalEntriesTable.status, "posted")];
+  const conds = [eq(journalEntriesTable.organizationId, orgId), eq(journalEntryLinesTable.accountId, resolvedAccountId), eq(journalEntriesTable.status, "posted")];
   if (from) conds.push(gte(journalEntriesTable.entryDate, from));
   if (to) conds.push(lte(journalEntriesTable.entryDate, to));
 
@@ -216,7 +223,7 @@ router.get("/accounting/ledger", async (req, res) => {
     .where(and(...conds))
     .orderBy(asc(journalEntriesTable.entryDate), asc(journalEntriesTable.entryNumber));
 
-  const account = (await db.select().from(chartOfAccountsTable).where(eq(chartOfAccountsTable.id, resolvedAccountId)).limit(1))[0];
+  const account = accCheck;
 
   let runningBalance = 0;
   const data = rows.map((r) => {
@@ -246,7 +253,7 @@ router.get("/accounting/ledger", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/balance", async (req, res) => {
   const { from, to } = req.query as Record<string, string>;
-  const conds = [eq(journalEntriesTable.status, "posted")];
+  const conds = [eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.status, "posted")];
   if (from) conds.push(gte(journalEntriesTable.entryDate, from));
   if (to) conds.push(lte(journalEntriesTable.entryDate, to));
 
@@ -286,7 +293,7 @@ router.get("/accounting/balance", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/income-statement", async (req, res) => {
   const { from, to } = req.query as Record<string, string>;
-  const conds = [eq(journalEntriesTable.status, "posted")];
+  const conds = [eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.status, "posted")];
   if (from) conds.push(gte(journalEntriesTable.entryDate, from));
   if (to) conds.push(lte(journalEntriesTable.entryDate, to));
 
@@ -329,7 +336,7 @@ router.get("/accounting/income-statement", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/balance-sheet", async (req, res) => {
   const { asOf } = req.query as Record<string, string>;
-  const conds = [eq(journalEntriesTable.status, "posted")];
+  const conds = [eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.status, "posted")];
   if (asOf) conds.push(lte(journalEntriesTable.entryDate, asOf));
 
   const rows = await db
@@ -399,7 +406,7 @@ router.get("/accounting/balance-sheet", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/suppliers", async (req, res) => {
   const { search } = req.query as Record<string, string>;
-  const conds = [isNull(suppliersTable.deletedAt)];
+  const conds: any[] = [eq(suppliersTable.organizationId, req.authUser!.organizationId), isNull(suppliersTable.deletedAt)];
   if (search) conds.push(like(suppliersTable.name, `%${search}%`));
   const rows = await db.select().from(suppliersTable).where(and(...conds)).orderBy(asc(suppliersTable.name));
   return res.json({ data: rows });
@@ -407,9 +414,10 @@ router.get("/accounting/suppliers", async (req, res) => {
 
 router.post("/accounting/suppliers", requireManagerOrAbove, async (req, res) => {
   const { name, email, phone, address, taxId, paymentTerms, code } = req.body;
-  const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(suppliersTable);
+  const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(suppliersTable).where(eq(suppliersTable.organizationId, req.authUser!.organizationId));
   const generatedCode = code || `F${String(Number(cnt[0].n) + 1).padStart(4, "0")}`;
   const [s] = await db.insert(suppliersTable).values({
+      organizationId: req.authUser!.organizationId,
     code: generatedCode, name, email, phone, address, taxId, paymentTerms,
   }).returning();
   return res.status(201).json(s);
@@ -418,13 +426,13 @@ router.post("/accounting/suppliers", requireManagerOrAbove, async (req, res) => 
 router.put("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
   const { name, email, phone, address, taxId, paymentTerms, isActive } = req.body;
   const [s] = await db.update(suppliersTable).set({ name, email, phone, address, taxId, paymentTerms, isActive })
-    .where(eq(suppliersTable.id, req.params.id)).returning();
+    .where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id))).returning();
   if (!s) return res.status(404).json({ error: "Fournisseur introuvable" });
   return res.json(s);
 });
 
 router.delete("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(suppliersTable).set({ deletedAt: new Date() }).where(eq(suppliersTable.id, req.params.id));
+  await db.update(suppliersTable).set({ deletedAt: new Date() }).where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -433,14 +441,14 @@ router.delete("/accounting/suppliers/:id", requireManagerOrAbove, async (req, re
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/supplier-invoices", async (req, res) => {
   const { status, supplierId } = req.query as Record<string, string>;
-  const conds = [];
+  const conds: any[] = [eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId)];
   if (status) conds.push(eq(supplierInvoicesTable.status, status));
   if (supplierId) conds.push(eq(supplierInvoicesTable.supplierId, supplierId));
   const rows = await db.select({
     inv: supplierInvoicesTable, supplierName: suppliersTable.name,
   }).from(supplierInvoicesTable)
     .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(supplierInvoicesTable.invoiceDate));
   return res.json({
     data: rows.map((r) => ({
@@ -453,9 +461,10 @@ router.get("/accounting/supplier-invoices", async (req, res) => {
 router.post("/accounting/supplier-invoices", requireManagerOrAbove, async (req, res) => {
   try {
     const { supplierId, projectId, invoiceDate, dueDate, totalAmount, taxAmount, currency, expenseAccountId, notes, attachmentUrl, status } = req.body;
-    const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(supplierInvoicesTable);
+    const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(supplierInvoicesTable).where(eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId));
     const refNum = `FF-${new Date().getFullYear()}-${String(Number(cnt[0].n) + 1).padStart(4, "0")}`;
     const [inv] = await db.insert(supplierInvoicesTable).values({
+      organizationId: req.authUser!.organizationId,
       referenceNumber: refNum, supplierId, projectId,
       invoiceDate, dueDate,
       totalAmount: String(totalAmount), taxAmount: String(taxAmount ?? 0),
@@ -465,7 +474,7 @@ router.post("/accounting/supplier-invoices", requireManagerOrAbove, async (req, 
     }).returning();
 
     // Comptabilisation automatique
-    const entry = await postSupplierInvoice(inv.id, req.authUser?.id);
+    const entry = await postSupplierInvoice(req.authUser!.organizationId, inv.id, req.authUser?.id);
     return res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), journalEntry: entry });
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -474,8 +483,23 @@ router.post("/accounting/supplier-invoices", requireManagerOrAbove, async (req, 
 
 router.post("/accounting/supplier-payments", requireManagerOrAbove, async (req, res) => {
   try {
+    const orgId = req.authUser!.organizationId;
     const { supplierInvoiceId, bankAccountId, amount, method, reference, notes, paidAt } = req.body;
+    // S'assurer que la facture fournisseur appartient à l'org avant d'enregistrer le paiement
+    const sInvCheck = (await db.select({ id: supplierInvoicesTable.id }).from(supplierInvoicesTable).where(and(
+      eq(supplierInvoicesTable.organizationId, orgId),
+      eq(supplierInvoicesTable.id, supplierInvoiceId),
+    )).limit(1))[0];
+    if (!sInvCheck) return res.status(404).json({ error: "Facture fournisseur introuvable" });
+    if (bankAccountId) {
+      const bankCheck = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
+        eq(bankAccountsTable.organizationId, orgId),
+        eq(bankAccountsTable.id, bankAccountId),
+      )).limit(1))[0];
+      if (!bankCheck) return res.status(404).json({ error: "Compte bancaire introuvable" });
+    }
     const [pay] = await db.insert(supplierPaymentsTable).values({
+      organizationId: orgId,
       supplierInvoiceId, bankAccountId,
       amount: String(amount), method, reference, notes,
       paidAt: paidAt ? new Date(paidAt) : new Date(),
@@ -489,10 +513,10 @@ router.post("/accounting/supplier-payments", requireManagerOrAbove, async (req, 
                WHEN COALESCE(paid_amount, 0) + ${Number(amount)} >= COALESCE(total_amount, 0) THEN 'paid'
                ELSE 'pending'
              END
-       WHERE id = ${supplierInvoiceId}
+       WHERE id = ${supplierInvoiceId} AND organization_id = ${orgId}
     `);
 
-    const entry = await postSupplierPayment(pay.id, req.authUser?.id);
+    const entry = await postSupplierPayment(req.authUser!.organizationId, pay.id, req.authUser?.id);
     return res.status(201).json({ ...pay, amount: toNum(pay.amount), journalEntry: entry });
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -513,12 +537,12 @@ function bucketAge(dueDateStr: string | null | undefined): string {
   return "d90_plus";
 }
 
-router.get("/accounting/aging/customers", async (_req, res) => {
+router.get("/accounting/aging/customers", async (req, res) => {
   const rows = await db
     .select({ inv: invoicesTable, clientName: clientsTable.name })
     .from(invoicesTable)
     .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .where(sql`${invoicesTable.status} != 'paid'`);
+    .where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), sql`${invoicesTable.status} != 'paid'`));
   const buckets: Record<string, any[]> = { current: [], d1_30: [], d31_60: [], d61_90: [], d90_plus: [] };
   for (const r of rows) {
     const remaining = toNum(r.inv.totalAmount) - toNum(r.inv.paidAmount);
@@ -537,12 +561,12 @@ router.get("/accounting/aging/customers", async (_req, res) => {
   return res.json({ buckets, totals, total: Object.values(totals).reduce((a, b) => a + b, 0) });
 });
 
-router.get("/accounting/aging/suppliers", async (_req, res) => {
+router.get("/accounting/aging/suppliers", async (req, res) => {
   const rows = await db
     .select({ inv: supplierInvoicesTable, supplierName: suppliersTable.name })
     .from(supplierInvoicesTable)
     .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
-    .where(sql`${supplierInvoicesTable.status} != 'paid'`);
+    .where(and(eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId), sql`${supplierInvoicesTable.status} != 'paid'`));
   const buckets: Record<string, any[]> = { current: [], d1_30: [], d31_60: [], d61_90: [], d90_plus: [] };
   for (const r of rows) {
     const remaining = toNum(r.inv.totalAmount) - toNum(r.inv.paidAmount);
@@ -564,12 +588,12 @@ router.get("/accounting/aging/suppliers", async (_req, res) => {
 // ════════════════════════════════════════════════════════════════
 // BANQUES / CAISSES
 // ════════════════════════════════════════════════════════════════
-router.get("/accounting/bank-accounts", async (_req, res) => {
+router.get("/accounting/bank-accounts", async (req, res) => {
   const rows = await db
     .select({ b: bankAccountsTable, accountCode: chartOfAccountsTable.code, accountLabel: chartOfAccountsTable.label })
     .from(bankAccountsTable)
     .leftJoin(chartOfAccountsTable, eq(bankAccountsTable.accountId, chartOfAccountsTable.id))
-    .where(eq(bankAccountsTable.isActive, true))
+    .where(and(eq(bankAccountsTable.organizationId, req.authUser!.organizationId), eq(bankAccountsTable.isActive, true)))
     .orderBy(asc(bankAccountsTable.name));
 
   // Solde calculé = openingBalance + somme(débits) - somme(crédits) sur le compte rattaché
@@ -581,7 +605,11 @@ router.get("/accounting/bank-accounts", async (_req, res) => {
       })
       .from(journalEntryLinesTable)
       .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .where(and(eq(journalEntryLinesTable.accountId, r.b.accountId), eq(journalEntriesTable.status, "posted"))))[0];
+      .where(and(
+        eq(journalEntriesTable.organizationId, req.authUser!.organizationId),
+        eq(journalEntryLinesTable.accountId, r.b.accountId),
+        eq(journalEntriesTable.status, "posted"),
+      )))[0];
     const computed = toNum(r.b.openingBalance) + toNum(sums.d) - toNum(sums.c);
     return { ...r.b, openingBalance: toNum(r.b.openingBalance), accountCode: r.accountCode, accountLabel: r.accountLabel, computedBalance: computed };
   }));
@@ -591,6 +619,7 @@ router.get("/accounting/bank-accounts", async (_req, res) => {
 router.post("/accounting/bank-accounts", requireAdmin, async (req, res) => {
   const { name, type, bankName, accountNumber, iban, accountId, currency, openingBalance } = req.body;
   const [b] = await db.insert(bankAccountsTable).values({
+    organizationId: req.authUser!.organizationId,
     name, type: type ?? "bank", bankName, accountNumber, iban,
     accountId, currency: currency ?? "XOF",
     openingBalance: openingBalance != null ? String(openingBalance) : "0",
@@ -599,6 +628,12 @@ router.post("/accounting/bank-accounts", requireAdmin, async (req, res) => {
 });
 
 router.get("/accounting/bank-accounts/:id/transactions", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const bank = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
+    eq(bankAccountsTable.organizationId, orgId),
+    eq(bankAccountsTable.id, req.params.id),
+  )).limit(1))[0];
+  if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
   const txs = await db.select().from(bankTransactionsTable)
     .where(eq(bankTransactionsTable.bankAccountId, req.params.id))
     .orderBy(desc(bankTransactionsTable.transactionDate));
@@ -606,8 +641,15 @@ router.get("/accounting/bank-accounts/:id/transactions", async (req, res) => {
 });
 
 router.post("/accounting/bank-accounts/:id/transactions", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const bank = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
+    eq(bankAccountsTable.organizationId, orgId),
+    eq(bankAccountsTable.id, req.params.id),
+  )).limit(1))[0];
+  if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
   const { transactionDate, label, amount, reference } = req.body;
   const [tx] = await db.insert(bankTransactionsTable).values({
+    organizationId: orgId,
     bankAccountId: req.params.id, transactionDate, label,
     amount: String(amount), reference,
   }).returning();
@@ -616,7 +658,7 @@ router.post("/accounting/bank-accounts/:id/transactions", requireManagerOrAbove,
 
 // Rapprochement bancaire : suggestions automatiques
 router.get("/accounting/bank-accounts/:id/reconciliation", async (req, res) => {
-  const bank = (await db.select().from(bankAccountsTable).where(eq(bankAccountsTable.id, req.params.id)).limit(1))[0];
+  const bank = (await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, req.authUser!.organizationId), eq(bankAccountsTable.id, req.params.id))).limit(1))[0];
   if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
 
   const txs = await db.select().from(bankTransactionsTable)
@@ -627,7 +669,12 @@ router.get("/accounting/bank-accounts/:id/reconciliation", async (req, res) => {
     .select({ line: journalEntryLinesTable, entry: journalEntriesTable })
     .from(journalEntryLinesTable)
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .where(and(eq(journalEntryLinesTable.accountId, bank.accountId), isNull(journalEntryLinesTable.reconciledAt), eq(journalEntriesTable.status, "posted")));
+    .where(and(
+      eq(journalEntriesTable.organizationId, req.authUser!.organizationId),
+      eq(journalEntryLinesTable.accountId, bank.accountId),
+      isNull(journalEntryLinesTable.reconciledAt),
+      eq(journalEntriesTable.status, "posted"),
+    ));
 
   return res.json({
     bank: { ...bank, openingBalance: toNum(bank.openingBalance) },
@@ -641,10 +688,25 @@ router.get("/accounting/bank-accounts/:id/reconciliation", async (req, res) => {
 });
 
 router.post("/accounting/reconciliation/match", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const { transactionId, lineId } = req.body;
+  // Vérifier que la transaction et la ligne appartiennent à l'org via leurs entités parents
+  const tx = (await db.select({ id: bankTransactionsTable.id }).from(bankTransactionsTable).where(and(
+    eq(bankTransactionsTable.organizationId, orgId),
+    eq(bankTransactionsTable.id, transactionId),
+  )).limit(1))[0];
+  if (!tx) return res.status(404).json({ error: "Transaction introuvable" });
+  const line = (await db.select({ id: journalEntryLinesTable.id })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
+      eq(journalEntryLinesTable.id, lineId),
+    )).limit(1))[0];
+  if (!line) return res.status(404).json({ error: "Ligne d'écriture introuvable" });
   await db.update(bankTransactionsTable)
     .set({ isReconciled: true, reconciledLineId: lineId })
-    .where(eq(bankTransactionsTable.id, transactionId));
+    .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, transactionId)));
   await db.update(journalEntryLinesTable)
     .set({ reconciledAt: new Date(), bankTransactionId: transactionId })
     .where(eq(journalEntryLinesTable.id, lineId));
@@ -654,8 +716,8 @@ router.post("/accounting/reconciliation/match", requireManagerOrAbove, async (re
 // ════════════════════════════════════════════════════════════════
 // IMMOBILISATIONS & AMORTISSEMENTS
 // ════════════════════════════════════════════════════════════════
-router.get("/accounting/fixed-assets", async (_req, res) => {
-  const rows = await db.select().from(fixedAssetsTable).orderBy(desc(fixedAssetsTable.acquisitionDate));
+router.get("/accounting/fixed-assets", async (req, res) => {
+  const rows = await db.select().from(fixedAssetsTable).where(eq(fixedAssetsTable.organizationId, req.authUser!.organizationId)).orderBy(desc(fixedAssetsTable.acquisitionDate));
   // Calcule cumul amortissements par immobilisation
   const data = await Promise.all(rows.map(async (a) => {
     const sums = (await db.select({
@@ -677,6 +739,7 @@ router.get("/accounting/fixed-assets", async (_req, res) => {
 router.post("/accounting/fixed-assets", requireManagerOrAbove, async (req, res) => {
   const { code, label, category, accountId, depreciationAccountId, expenseAccountId, acquisitionDate, acquisitionCost, residualValue, depreciationMethod, usefulLifeYears, notes } = req.body;
   const [a] = await db.insert(fixedAssetsTable).values({
+      organizationId: req.authUser!.organizationId,
     code, label, category, accountId, depreciationAccountId, expenseAccountId,
     acquisitionDate, acquisitionCost: String(acquisitionCost),
     residualValue: residualValue != null ? String(residualValue) : "0",
@@ -689,12 +752,12 @@ router.post("/accounting/fixed-assets", requireManagerOrAbove, async (req, res) 
 
 router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, async (req, res) => {
   try {
-    const asset = (await db.select().from(fixedAssetsTable).where(eq(fixedAssetsTable.id, req.params.id)).limit(1))[0];
+    const asset = (await db.select().from(fixedAssetsTable).where(and(eq(fixedAssetsTable.organizationId, req.authUser!.organizationId), eq(fixedAssetsTable.id, req.params.id))).limit(1))[0];
     if (!asset) return res.status(404).json({ error: "Immobilisation introuvable" });
     if (!asset.depreciationAccountId || !asset.expenseAccountId) {
       return res.status(400).json({ error: "Comptes d'amortissement et de charge requis sur l'immobilisation" });
     }
-    const period = await getCurrentFiscalPeriod();
+    const period = await getCurrentFiscalPeriod(req.authUser!.organizationId);
     if (!period) return res.status(400).json({ error: "Aucun exercice ouvert" });
 
     const cost = toNum(asset.acquisitionCost) - toNum(asset.residualValue);
@@ -706,6 +769,7 @@ router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, as
     const accumulated = toNum(sums.total) + annual;
 
     const entry = await postAmortization({
+      organizationId: req.authUser!.organizationId,
       fiscalPeriodId: period.id,
       fixedAssetCode: asset.code,
       description: `Dotation amortissement ${asset.label}`,
@@ -717,6 +781,7 @@ router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, as
     });
 
     const [am] = await db.insert(amortizationsTable).values({
+      organizationId: req.authUser!.organizationId,
       fixedAssetId: asset.id,
       fiscalPeriodId: period.id,
       periodAmount: annual.toFixed(2),
@@ -734,13 +799,14 @@ router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, as
 // ════════════════════════════════════════════════════════════════
 // DASHBOARD FINANCIER
 // ════════════════════════════════════════════════════════════════
-router.get("/accounting/dashboard", async (_req, res) => {
+router.get("/accounting/dashboard", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
 
   // Trésorerie totale (une seule requête agrégée par accountId, au lieu d'un query par banque)
-  const banks = await db.select().from(bankAccountsTable).where(eq(bankAccountsTable.isActive, true));
+  const banks = await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.isActive, true)));
   const bankAccountIds = banks.map((b) => b.accountId).filter(Boolean);
   let cashTotal = banks.reduce((s, b) => s + toNum(b.openingBalance), 0);
   if (bankAccountIds.length > 0) {
@@ -750,7 +816,7 @@ router.get("/accounting/dashboard", async (_req, res) => {
       c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
     }).from(journalEntryLinesTable)
       .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .where(and(inArray(journalEntryLinesTable.accountId, bankAccountIds), eq(journalEntriesTable.status, "posted")))
+      .where(and(eq(journalEntriesTable.organizationId, orgId), inArray(journalEntryLinesTable.accountId, bankAccountIds), eq(journalEntriesTable.status, "posted")))
       .groupBy(journalEntryLinesTable.accountId);
     for (const s of bankSums) cashTotal += toNum(s.d) - toNum(s.c);
   }
@@ -762,7 +828,7 @@ router.get("/accounting/dashboard", async (_req, res) => {
   }).from(journalEntryLinesTable)
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(chartOfAccountsTable.code, "411"), eq(journalEntriesTable.status, "posted")));
+    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "411"), eq(journalEntriesTable.status, "posted")));
   const creances = toNum(ar[0]?.d) - toNum(ar[0]?.c);
 
   // Dettes fournisseurs (soldes créditeurs 401)
@@ -772,7 +838,7 @@ router.get("/accounting/dashboard", async (_req, res) => {
   }).from(journalEntryLinesTable)
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(chartOfAccountsTable.code, "401"), eq(journalEntriesTable.status, "posted")));
+    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "401"), eq(journalEntriesTable.status, "posted")));
   const dettes = toNum(ap[0]?.c) - toNum(ap[0]?.d);
 
   // P&L mois courant
@@ -786,6 +852,7 @@ router.get("/accounting/dashboard", async (_req, res) => {
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
     .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
       eq(journalEntriesTable.status, "posted"),
       gte(journalEntriesTable.entryDate, startOfMonth),
       lte(journalEntriesTable.entryDate, endOfMonth),
@@ -812,6 +879,7 @@ router.get("/accounting/dashboard", async (_req, res) => {
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
     .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
       eq(journalEntriesTable.status, "posted"),
       gte(journalEntriesTable.entryDate, firstMonthStr),
       sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
@@ -836,12 +904,12 @@ router.get("/accounting/dashboard", async (_req, res) => {
   // Top 5 dettes & créances (depuis factures opérationnelles)
   const topCreances = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
     .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .where(sql`${invoicesTable.status} != 'paid'`)
+    .where(and(eq(invoicesTable.organizationId, orgId), sql`${invoicesTable.status} != 'paid'`))
     .orderBy(desc(invoicesTable.totalAmount)).limit(5);
 
   const topDettes = await db.select({ inv: supplierInvoicesTable, supplierName: suppliersTable.name })
     .from(supplierInvoicesTable).leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
-    .where(sql`${supplierInvoicesTable.status} != 'paid'`)
+    .where(and(eq(supplierInvoicesTable.organizationId, orgId), sql`${supplierInvoicesTable.status} != 'paid'`))
     .orderBy(desc(supplierInvoicesTable.totalAmount)).limit(5);
 
   return res.json({

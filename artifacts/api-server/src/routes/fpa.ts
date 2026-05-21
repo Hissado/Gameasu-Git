@@ -35,15 +35,15 @@ function monthOfDate(iso: string): string {
   return iso.slice(0, 7);
 }
 
-async function loadBudgetWithLines(budgetId: string) {
-  const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, budgetId)).limit(1);
+async function loadBudgetWithLines(orgId: string, budgetId: string) {
+  const [budget] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, budgetId))).limit(1);
   if (!budget) return null;
   const lines = await db.select().from(budgetLinesTable).where(eq(budgetLinesTable.budgetId, budgetId));
   return { budget, lines };
 }
 
-async function loadFiscalPeriod(id: string) {
-  const [fp] = await db.select().from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.id, id)).limit(1);
+async function loadFiscalPeriod(orgId: string, id: string) {
+  const [fp] = await db.select().from(fiscalPeriodsTable).where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, id))).limit(1);
   return fp || null;
 }
 
@@ -55,6 +55,7 @@ async function loadFiscalPeriod(id: string) {
  * - applique le sens normal du compte : expense→ debit−credit, revenue→ credit−debit
  */
 async function computeActuals(opts: {
+  organizationId: string;
   fiscalStart: string;
   fiscalEnd: string;
   accountIds: string[];
@@ -65,6 +66,7 @@ async function computeActuals(opts: {
   if (opts.accountIds.length === 0) return map;
 
   const conds = [
+    eq(journalEntriesTable.organizationId, opts.organizationId),
     eq(journalEntriesTable.status, "posted"),
     gte(journalEntriesTable.entryDate, opts.fiscalStart),
     lte(journalEntriesTable.entryDate, opts.fiscalEnd),
@@ -116,7 +118,7 @@ router.use("/fpa", requireManagerOrAbove);
 
 router.get("/fpa/budgets", async (req, res) => {
   const { fiscalPeriodId, scope, scopeId, kind, status } = req.query as Record<string, string>;
-  const conds = [] as any[];
+  const conds: any[] = [eq(budgetsTable.organizationId, req.authUser!.organizationId)];
   if (fiscalPeriodId) conds.push(eq(budgetsTable.fiscalPeriodId, fiscalPeriodId));
   if (scope) conds.push(eq(budgetsTable.scope, scope));
   if (scopeId) conds.push(eq(budgetsTable.scopeId, scopeId));
@@ -133,7 +135,7 @@ router.get("/fpa/budgets", async (req, res) => {
     .from(budgetsTable)
     .leftJoin(fiscalPeriodsTable, eq(budgetsTable.fiscalPeriodId, fiscalPeriodsTable.id))
     .leftJoin(usersTable, eq(budgetsTable.createdById, usersTable.id))
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(budgetsTable.createdAt));
   return res.json({
     data: rows.map((r) => ({
@@ -146,7 +148,7 @@ router.get("/fpa/budgets", async (req, res) => {
 });
 
 router.get("/fpa/budgets/:id", async (req, res) => {
-  const data = await loadBudgetWithLines(req.params.id);
+  const data = await loadBudgetWithLines(req.authUser!.organizationId, req.params.id);
   if (!data) return res.status(404).json({ error: "Budget introuvable" });
   return res.json({
     ...data.budget,
@@ -159,7 +161,7 @@ router.get("/fpa/budgets/:id", async (req, res) => {
  * En concurrence, deux POST simultanés peuvent calculer le même `nextVersion` ;
  * la contrainte unique `budgets_version_uidx` lèvera et on retry (max 5 fois).
  */
-async function insertBudgetWithVersion(payload: {
+async function insertBudgetWithVersion(orgId: string, payload: {
   name: string; kind: string; fiscalPeriodId: string;
   scope: string; scopeId: string | null; projectIds: string[];
   notes?: string | null; basedOnId?: string | null; status: string;
@@ -169,6 +171,7 @@ async function insertBudgetWithVersion(payload: {
     try {
       return await db.transaction(async (tx) => {
         const existing = await tx.select({ v: budgetsTable.versionNumber }).from(budgetsTable).where(and(
+          eq(budgetsTable.organizationId, orgId),
           eq(budgetsTable.fiscalPeriodId, payload.fiscalPeriodId),
           eq(budgetsTable.scope, payload.scope),
           eq(budgetsTable.kind, payload.kind),
@@ -176,6 +179,7 @@ async function insertBudgetWithVersion(payload: {
         ));
         const nextVersion = (existing.reduce((m, r) => Math.max(m, r.v), 0) || 0) + 1;
         const [b] = await tx.insert(budgetsTable).values({
+          organizationId: orgId,
           ...payload, versionNumber: nextVersion,
         }).returning();
         return b;
@@ -211,12 +215,13 @@ router.post("/fpa/budgets", async (req, res) => {
   const cleanProjectIds = Array.isArray(projectIds) ? projectIds.filter(isUuid) : [];
 
   // Vérifie l'existence des références
+  const orgId = req.authUser!.organizationId;
   const [fp] = await db.select({ id: fiscalPeriodsTable.id }).from(fiscalPeriodsTable)
-    .where(eq(fiscalPeriodsTable.id, fiscalPeriodId)).limit(1);
+    .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, fiscalPeriodId))).limit(1);
   if (!fp) return res.status(404).json({ error: "Période fiscale introuvable" });
 
   try {
-    const budget = await insertBudgetWithVersion({
+    const budget = await insertBudgetWithVersion(orgId, {
       name: name.trim(), kind, fiscalPeriodId,
       scope, scopeId: scope === "company" ? null : scopeId,
       projectIds: cleanProjectIds,
@@ -224,6 +229,8 @@ router.post("/fpa/budgets", async (req, res) => {
       status: "draft", createdById: userId,
     });
     if (basedOnId) {
+      const [srcBudget] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, basedOnId))).limit(1);
+      if (!srcBudget) return res.status(404).json({ error: "Budget source introuvable" });
       const srcLines = await db.select().from(budgetLinesTable).where(eq(budgetLinesTable.budgetId, basedOnId));
       if (srcLines.length > 0) {
         await db.insert(budgetLinesTable).values(srcLines.map((l) => ({
@@ -254,29 +261,31 @@ router.put("/fpa/budgets/:id", async (req, res) => {
     if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: "status invalide" });
     upd.status = status;
   }
-  const [b] = await db.update(budgetsTable).set(upd).where(eq(budgetsTable.id, req.params.id)).returning();
+  const [b] = await db.update(budgetsTable).set(upd).where(and(eq(budgetsTable.organizationId, req.authUser!.organizationId), eq(budgetsTable.id, req.params.id))).returning();
   if (!b) return res.status(404).json({ error: "Introuvable" });
   return res.json(b);
 });
 
 router.delete("/fpa/budgets/:id", requireAdmin, async (req, res) => {
-  const [b] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, req.params.id)).limit(1);
+  const orgId = req.authUser!.organizationId;
+  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
   if (!b) return res.status(404).json({ error: "Introuvable" });
   if (b.status === "active") return res.status(400).json({ error: "Archivez d'abord cette version active" });
-  await db.delete(budgetsTable).where(eq(budgetsTable.id, req.params.id));
+  await db.delete(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id)));
   return res.status(204).send();
 });
 
 router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
   const userId = req.authUser!.id;
-  const src = await loadBudgetWithLines(req.params.id);
+  const orgId = req.authUser!.organizationId;
+  const src = await loadBudgetWithLines(orgId, req.params.id);
   if (!src) return res.status(404).json({ error: "Source introuvable" });
   const { name, kind } = req.body || {};
   const newKind = kind || src.budget.kind;
   if (!VALID_KINDS.includes(newKind)) return res.status(400).json({ error: "kind invalide" });
   try {
-    const b = await insertBudgetWithVersion({
+    const b = await insertBudgetWithVersion(orgId, {
       name: (typeof name === "string" && name.trim()) ? name.trim() : `${src.budget.name} (copie)`,
       kind: newKind,
       fiscalPeriodId: src.budget.fiscalPeriodId,
@@ -302,11 +311,13 @@ router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
  */
 router.post("/fpa/budgets/:id/activate", async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  const orgId = req.authUser!.organizationId;
   try {
     const updated = await db.transaction(async (tx) => {
-      const [b] = await tx.select().from(budgetsTable).where(eq(budgetsTable.id, req.params.id)).limit(1);
+      const [b] = await tx.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
       if (!b) throw Object.assign(new Error("Introuvable"), { httpStatus: 404 });
       await tx.update(budgetsTable).set({ status: "archived" }).where(and(
+        eq(budgetsTable.organizationId, orgId),
         eq(budgetsTable.fiscalPeriodId, b.fiscalPeriodId),
         eq(budgetsTable.scope, b.scope),
         eq(budgetsTable.kind, b.kind),
@@ -314,7 +325,7 @@ router.post("/fpa/budgets/:id/activate", async (req, res) => {
         b.scopeId ? eq(budgetsTable.scopeId, b.scopeId) : isNull(budgetsTable.scopeId),
       ));
       const [u] = await tx.update(budgetsTable).set({ status: "active" })
-        .where(eq(budgetsTable.id, req.params.id)).returning();
+        .where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).returning();
       return u;
     });
     return res.json(updated);
@@ -327,11 +338,12 @@ router.post("/fpa/budgets/:id/activate", async (req, res) => {
 
 router.put("/fpa/budgets/:id/lines", async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  const orgId = req.authUser!.organizationId;
   const { lines } = req.body || {};
   if (!Array.isArray(lines)) return res.status(400).json({ error: "lines doit être un tableau" });
-  const [b] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, req.params.id)).limit(1);
+  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
   if (!b) return res.status(404).json({ error: "Introuvable" });
-  const fp = await loadFiscalPeriod(b.fiscalPeriodId);
+  const fp = await loadFiscalPeriod(orgId, b.fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période fiscale introuvable" });
   const validMonths = new Set(listMonths(fp.startDate, fp.endDate));
 
@@ -351,7 +363,7 @@ router.put("/fpa/budgets/:id/lines", async (req, res) => {
   }
   if (distinctAccountIds.size > 0) {
     const present = await db.select({ id: chartOfAccountsTable.id })
-      .from(chartOfAccountsTable).where(inArray(chartOfAccountsTable.id, Array.from(distinctAccountIds)));
+      .from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), inArray(chartOfAccountsTable.id, Array.from(distinctAccountIds))));
     if (present.length !== distinctAccountIds.size) {
       return res.status(400).json({ error: "Au moins un compte référencé n'existe pas" });
     }
@@ -378,16 +390,16 @@ router.put("/fpa/budgets/:id/lines", async (req, res) => {
 // VARIANCE — actual vs budget par compte × mois
 // ════════════════════════════════════════════════════════════════════════════
 
-async function buildVarianceReport(budgetId: string) {
-  const data = await loadBudgetWithLines(budgetId);
+async function buildVarianceReport(orgId: string, budgetId: string) {
+  const data = await loadBudgetWithLines(orgId, budgetId);
   if (!data) return null;
-  const fp = await loadFiscalPeriod(data.budget.fiscalPeriodId);
+  const fp = await loadFiscalPeriod(orgId, data.budget.fiscalPeriodId);
   if (!fp) return null;
   const months = listMonths(fp.startDate, fp.endDate);
 
   const accountIds = Array.from(new Set(data.lines.map((l) => l.accountId)));
   const accounts = accountIds.length > 0
-    ? await db.select().from(chartOfAccountsTable).where(inArray(chartOfAccountsTable.id, accountIds))
+    ? await db.select().from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), inArray(chartOfAccountsTable.id, accountIds)))
     : [];
   const accById = new Map(accounts.map((a) => [a.id, a]));
 
@@ -398,6 +410,7 @@ async function buildVarianceReport(budgetId: string) {
       : (data.budget.projectIds || []);
 
   const actuals = await computeActuals({
+    organizationId: orgId,
     fiscalStart: fp.startDate, fiscalEnd: fp.endDate,
     accountIds, projectIds,
   });
@@ -456,7 +469,7 @@ async function buildVarianceReport(budgetId: string) {
 router.get("/fpa/variance", async (req, res) => {
   const { budgetId } = req.query as Record<string, string>;
   if (!budgetId) return res.status(400).json({ error: "budgetId requis" });
-  const report = await buildVarianceReport(budgetId);
+  const report = await buildVarianceReport(req.authUser!.organizationId, budgetId);
   if (!report) return res.status(404).json({ error: "Budget ou période introuvable" });
   return res.json(report);
 });
@@ -467,7 +480,7 @@ router.get("/fpa/variance", async (req, res) => {
 router.get("/fpa/actual-vs-forecast", async (req, res) => {
   const { forecastId } = req.query as Record<string, string>;
   if (!forecastId) return res.status(400).json({ error: "forecastId requis" });
-  const report = await buildVarianceReport(forecastId);
+  const report = await buildVarianceReport(req.authUser!.organizationId, forecastId);
   if (!report) return res.status(404).json({ error: "Forecast introuvable" });
   if (report.budget.kind !== "forecast") {
     return res.status(400).json({ error: "Le budget fourni n'est pas un forecast" });
@@ -482,7 +495,7 @@ router.get("/fpa/actual-vs-forecast", async (req, res) => {
 router.get("/fpa/year-end-projection", async (req, res) => {
   const { budgetId, asOfDate } = req.query as Record<string, string>;
   if (!budgetId) return res.status(400).json({ error: "budgetId requis" });
-  const v = await buildVarianceReport(budgetId);
+  const v = await buildVarianceReport(req.authUser!.organizationId, budgetId);
   if (!v) return res.status(404).json({ error: "Budget introuvable" });
   const today = asOfDate || new Date().toISOString().slice(0, 10);
   const currentMonth = today.slice(0, 7);
@@ -535,10 +548,12 @@ router.get("/fpa/year-end-projection", async (req, res) => {
 router.get("/fpa/by-project", async (req, res) => {
   const { fiscalPeriodId } = req.query as Record<string, string>;
   if (!fiscalPeriodId) return res.status(400).json({ error: "fiscalPeriodId requis" });
-  const fp = await loadFiscalPeriod(fiscalPeriodId);
+  const orgId = req.authUser!.organizationId;
+  const fp = await loadFiscalPeriod(orgId, fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
   const budgets = await db.select().from(budgetsTable).where(and(
+    eq(budgetsTable.organizationId, orgId),
     eq(budgetsTable.fiscalPeriodId, fiscalPeriodId),
     eq(budgetsTable.scope, "project"),
     eq(budgetsTable.kind, "budget"),
@@ -570,6 +585,7 @@ router.get("/fpa/by-project", async (req, res) => {
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
     .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
       eq(journalEntriesTable.status, "posted"),
       gte(journalEntriesTable.entryDate, fp.startDate),
       lte(journalEntriesTable.entryDate, fp.endDate),
@@ -597,7 +613,7 @@ router.get("/fpa/by-project", async (req, res) => {
   revenuesByProject.forEach((_v, k) => allProjectIds.add(k));
 
   const projects = allProjectIds.size > 0
-    ? await db.select().from(projectsTable).where(inArray(projectsTable.id, Array.from(allProjectIds)))
+    ? await db.select().from(projectsTable).where(and(eq(projectsTable.organizationId, orgId), inArray(projectsTable.id, Array.from(allProjectIds))))
     : [];
 
   const rows = projects.map((p) => {
@@ -634,11 +650,13 @@ router.get("/fpa/by-project", async (req, res) => {
 router.get("/fpa/by-department", async (req, res) => {
   const { fiscalPeriodId } = req.query as Record<string, string>;
   if (!fiscalPeriodId) return res.status(400).json({ error: "fiscalPeriodId requis" });
-  const fp = await loadFiscalPeriod(fiscalPeriodId);
+  const orgId = req.authUser!.organizationId;
+  const fp = await loadFiscalPeriod(orgId, fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
-  const departments = await db.select().from(departmentsTable);
+  const departments = await db.select().from(departmentsTable).where(eq(departmentsTable.organizationId, orgId));
   const budgets = await db.select().from(budgetsTable).where(and(
+    eq(budgetsTable.organizationId, orgId),
     eq(budgetsTable.fiscalPeriodId, fiscalPeriodId),
     eq(budgetsTable.scope, "department"),
     eq(budgetsTable.kind, "budget"),
@@ -669,6 +687,7 @@ router.get("/fpa/by-department", async (req, res) => {
         .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
         .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
         .where(and(
+          eq(journalEntriesTable.organizationId, orgId),
           eq(journalEntriesTable.status, "posted"),
           gte(journalEntriesTable.entryDate, fp.startDate),
           lte(journalEntriesTable.entryDate, fp.endDate),
@@ -700,11 +719,13 @@ router.get("/fpa/by-department", async (req, res) => {
 router.get("/fpa/summary", async (req, res) => {
   const { fiscalPeriodId } = req.query as Record<string, string>;
   if (!fiscalPeriodId) return res.status(400).json({ error: "fiscalPeriodId requis" });
-  const fp = await loadFiscalPeriod(fiscalPeriodId);
+  const orgId = req.authUser!.organizationId;
+  const fp = await loadFiscalPeriod(orgId, fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
   // Budget entreprise actif
   const [companyBudget] = await db.select().from(budgetsTable).where(and(
+    eq(budgetsTable.organizationId, orgId),
     eq(budgetsTable.fiscalPeriodId, fiscalPeriodId),
     eq(budgetsTable.scope, "company"),
     eq(budgetsTable.kind, "budget"),
@@ -715,7 +736,7 @@ router.get("/fpa/summary", async (req, res) => {
   let topVariances: Array<{ accountCode: string; accountLabel: string; variance: number; variancePct: number }> = [];
   let monthly: Array<{ period: string; budget: number; actual: number }> = [];
   if (companyBudget) {
-    const v = await buildVarianceReport(companyBudget.id);
+    const v = await buildVarianceReport(orgId, companyBudget.id);
     if (v) {
       totalBudget = v.totals.budget;
       totalActual = v.totals.actual;
@@ -737,7 +758,7 @@ router.get("/fpa/summary", async (req, res) => {
     scope: budgetsTable.scope,
     kind: budgetsTable.kind,
     count: sql<string>`count(*)`,
-  }).from(budgetsTable).where(eq(budgetsTable.fiscalPeriodId, fiscalPeriodId))
+  }).from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.fiscalPeriodId, fiscalPeriodId)))
     .groupBy(budgetsTable.scope, budgetsTable.kind);
 
   return res.json({
@@ -793,14 +814,15 @@ async function sendWorkbook(res: any, wb: ExcelJS.Workbook, filename: string) {
 
 // EXPORT — Budget détail (matrice account × mois)
 router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
-  const data = await loadBudgetWithLines(req.params.id);
+  const orgId = req.authUser!.organizationId;
+  const data = await loadBudgetWithLines(orgId, req.params.id);
   if (!data) return res.status(404).json({ error: "Introuvable" });
-  const fp = await loadFiscalPeriod(data.budget.fiscalPeriodId);
+  const fp = await loadFiscalPeriod(orgId, data.budget.fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
   const months = listMonths(fp.startDate, fp.endDate);
   const accountIds = Array.from(new Set(data.lines.map((l) => l.accountId)));
   const accounts = accountIds.length > 0
-    ? await db.select().from(chartOfAccountsTable).where(inArray(chartOfAccountsTable.id, accountIds))
+    ? await db.select().from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), inArray(chartOfAccountsTable.id, accountIds)))
     : [];
   const accById = new Map(accounts.map((a) => [a.id, a]));
   const cellMap = new Map<string, number>();
@@ -848,7 +870,7 @@ router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
 
 // EXPORT — Rapport de variance (actual vs budget)
 router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.params.budgetId);
+  const v = await buildVarianceReport(req.authUser!.organizationId, req.params.budgetId);
   if (!v) return res.status(404).json({ error: "Introuvable" });
 
   const wb = new ExcelJS.Workbook();
@@ -905,7 +927,7 @@ router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
 
 // EXPORT — Forecast vs réalisé
 router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.params.forecastId);
+  const v = await buildVarianceReport(req.authUser!.organizationId, req.params.forecastId);
   if (!v) return res.status(404).json({ error: "Introuvable" });
   const wb = new ExcelJS.Workbook();
   wb.creator = "Gaméasù — FP&A";
@@ -938,12 +960,13 @@ router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
 router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
   // On récupère la même donnée que l'endpoint JSON
   req.query.fiscalPeriodId = req.params.fiscalPeriodId;
-  const fp = await loadFiscalPeriod(req.params.fiscalPeriodId);
+  const orgId = req.authUser!.organizationId;
+  const fp = await loadFiscalPeriod(orgId, req.params.fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
   // Réutilise la logique en dupliquant : appel direct à la fonction n'est pas pratique
   // → on reproduit ici la requête synthèse simplifiée.
-  const projectsAll = await db.select().from(projectsTable);
+  const projectsAll = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, orgId));
   const exp = await db.select({
     projectId: journalEntryLinesTable.projectId,
     debit: sql<string>`sum(${journalEntryLinesTable.debit})`,
@@ -952,6 +975,7 @@ router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
     .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
       eq(journalEntriesTable.status, "posted"),
       gte(journalEntriesTable.entryDate, fp.startDate),
       lte(journalEntriesTable.entryDate, fp.endDate),
@@ -966,6 +990,7 @@ router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
     .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
     .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
     .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
       eq(journalEntriesTable.status, "posted"),
       gte(journalEntriesTable.entryDate, fp.startDate),
       lte(journalEntriesTable.entryDate, fp.endDate),
@@ -977,6 +1002,7 @@ router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
   const revMap = new Map(rev.map((r) => [r.projectId!, toNum(r.credit) - toNum(r.debit)]));
 
   const budgets = await db.select().from(budgetsTable).where(and(
+    eq(budgetsTable.organizationId, orgId),
     eq(budgetsTable.fiscalPeriodId, fp.id),
     eq(budgetsTable.scope, "project"),
     eq(budgetsTable.status, "active"),

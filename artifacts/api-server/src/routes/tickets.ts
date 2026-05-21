@@ -11,7 +11,7 @@ const TICKET_CATEGORIES = ["bug", "request", "incident", "question", "other"] as
 
 router.get("/tickets", async (req, res) => {
   const { search = "", status = "", priority = "", assigneeId = "", mine = "" } = req.query as Record<string, string>;
-  const conds: any[] = [];
+  const conds: any[] = [eq(ticketsTable.organizationId, req.authUser!.organizationId)];
   if (search) conds.push(or(ilike(ticketsTable.subject, `%${search}%`), ilike(ticketsTable.description, `%${search}%`)));
   if (status) conds.push(eq(ticketsTable.status, status));
   if (priority) conds.push(eq(ticketsTable.priority, priority));
@@ -25,7 +25,7 @@ router.get("/tickets", async (req, res) => {
     })
     .from(ticketsTable)
     .leftJoin(usersTable, eq(usersTable.id, ticketsTable.createdById))
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(ticketsTable.createdAt))
     .limit(200);
 
@@ -33,10 +33,11 @@ router.get("/tickets", async (req, res) => {
   return res.json({ data });
 });
 
-router.get("/tickets/stats", async (_req, res) => {
+router.get("/tickets/stats", async (req, res) => {
   const rows = await db
     .select({ status: ticketsTable.status, count: sql<number>`count(*)::int` })
     .from(ticketsTable)
+    .where(eq(ticketsTable.organizationId, req.authUser!.organizationId))
     .groupBy(ticketsTable.status);
   const byStatus = Object.fromEntries(rows.map((r) => [r.status, r.count]));
   const total = rows.reduce((s, r) => s + r.count, 0);
@@ -44,7 +45,7 @@ router.get("/tickets/stats", async (_req, res) => {
 });
 
 router.get("/tickets/:id", async (req, res) => {
-  const [t] = await db.select().from(ticketsTable).where(eq(ticketsTable.id, req.params.id)).limit(1);
+  const [t] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).limit(1);
   if (!t) return res.status(404).json({ error: "Ticket introuvable" });
   return res.json(t);
 });
@@ -58,6 +59,7 @@ router.post("/tickets", async (req, res) => {
     const [t] = await db
       .insert(ticketsTable)
       .values({
+        organizationId: req.authUser!.organizationId,
         subject: subject.trim(),
         description: description?.trim() || null,
         category: cat,
@@ -77,7 +79,7 @@ router.post("/tickets", async (req, res) => {
 router.put("/tickets/:id", async (req, res) => {
   try {
     const { subject, description, category, priority, status, assigneeId } = req.body;
-    const [existing] = await db.select().from(ticketsTable).where(eq(ticketsTable.id, req.params.id)).limit(1);
+    const [existing] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).limit(1);
     if (!existing) return res.status(404).json({ error: "Ticket introuvable" });
 
     const role = req.authUser?.role;
@@ -117,7 +119,7 @@ router.put("/tickets/:id", async (req, res) => {
     if (assigneeId !== undefined) patch.assigneeId = assigneeId || null;
     if (Object.keys(patch).length === 0) return res.json(existing);
 
-    const [t] = await db.update(ticketsTable).set(patch).where(eq(ticketsTable.id, req.params.id)).returning();
+    const [t] = await db.update(ticketsTable).set(patch).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).returning();
     return res.json(t);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -125,7 +127,7 @@ router.put("/tickets/:id", async (req, res) => {
 });
 
 router.delete("/tickets/:id", requireAdmin, async (req, res) => {
-  await db.delete(ticketsTable).where(eq(ticketsTable.id, req.params.id));
+  await db.delete(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id)));
   return res.status(204).send();
 });
 

@@ -15,7 +15,7 @@ const isUuid = (v: any) => typeof v === "string" && UUID_RE.test(v);
 
 async function ensureEngagementAccess(req: any, engagementId: string): Promise<{ ok: boolean; engagement?: any; status?: number; error?: string }> {
   if (!isUuid(engagementId)) return { ok: false, status: 400, error: "id invalide" };
-  const [eng] = await db.select().from(clientServicesTable).where(eq(clientServicesTable.id, engagementId)).limit(1);
+  const [eng] = await db.select().from(clientServicesTable).where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, engagementId))).limit(1);
   if (!eng || eng.deletedAt) return { ok: false, status: 404, error: "Engagement introuvable" };
   const allowed = await userHasClientAccess(req.authUser.id, eng.clientId);
   if (!allowed) return { ok: false, status: 403, error: "Accès refusé à cet engagement" };
@@ -26,7 +26,7 @@ async function ensureEngagementAccess(req: any, engagementId: string): Promise<{
 router.get("/engagements", requirePermission("services.read"), async (req, res) => {
   const { clientId, isRecurring } = req.query as Record<string, string>;
   const accessible = await userAccessibleClientIds(req.authUser!.id);
-  const conds: any[] = [isNull(clientServicesTable.deletedAt)];
+  const conds: any[] = [eq(clientServicesTable.organizationId, req.authUser!.organizationId), isNull(clientServicesTable.deletedAt)];
   if (accessible !== null) {
     if (accessible.length === 0) return res.json({ data: [] });
     conds.push(inArray(clientServicesTable.clientId, accessible));
@@ -57,6 +57,7 @@ router.post("/engagements", requirePermission("services.manage"), async (req, re
   const allowed = await userHasClientAccess(req.authUser!.id, clientId);
   if (!allowed) return res.status(403).json({ error: "Accès refusé à ce client" });
   const [created] = await db.insert(clientServicesTable).values({
+      organizationId: req.authUser!.organizationId,
     clientId, name, description: description || null,
     isRecurring: !!isRecurring,
     recurrencePattern: recurrencePattern || null,
@@ -98,7 +99,7 @@ router.put("/engagements/:id", requirePermission("services.manage"), async (req,
   if (endDate !== undefined) patch.endDate = endDate;
   if (status !== undefined) patch.status = status;
   const [updated] = await db.update(clientServicesTable).set(patch)
-    .where(eq(clientServicesTable.id, req.params.id)).returning();
+    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, req.params.id))).returning();
   await audit(req, "update", { entityType: "engagement", entityId: req.params.id, payload: patch });
   return res.json(updated);
 });
@@ -107,7 +108,7 @@ router.delete("/engagements/:id", requirePermission("services.manage"), async (r
   const check = await ensureEngagementAccess(req, req.params.id);
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   await db.update(clientServicesTable).set({ deletedAt: new Date() })
-    .where(eq(clientServicesTable.id, req.params.id));
+    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, req.params.id)));
   await audit(req, "delete", { entityType: "engagement", entityId: req.params.id });
   return res.status(204).send();
 });
@@ -119,6 +120,7 @@ router.post("/engagements/:id/sections", requirePermission("services.manage"), a
   const { name, position } = req.body || {};
   if (!name) return res.status(400).json({ error: "name requis" });
   const [created] = await db.insert(serviceSectionsTable).values({
+      organizationId: req.authUser!.organizationId,
     clientServiceId: req.params.id, name,
     position: typeof position === "number" ? position : 0,
   }).returning();
@@ -127,7 +129,7 @@ router.post("/engagements/:id/sections", requirePermission("services.manage"), a
 
 router.put("/sections/:id", requirePermission("services.manage"), async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [section] = await db.select().from(serviceSectionsTable).where(eq(serviceSectionsTable.id, req.params.id)).limit(1);
+  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, req.params.id))).limit(1);
   if (!section) return res.status(404).json({ error: "Introuvable" });
   const check = await ensureEngagementAccess(req, section.clientServiceId);
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
@@ -141,7 +143,7 @@ router.put("/sections/:id", requirePermission("services.manage"), async (req, re
 
 router.delete("/sections/:id", requirePermission("services.manage"), async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [section] = await db.select().from(serviceSectionsTable).where(eq(serviceSectionsTable.id, req.params.id)).limit(1);
+  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, req.params.id))).limit(1);
   if (!section) return res.status(404).json({ error: "Introuvable" });
   const check = await ensureEngagementAccess(req, section.clientServiceId);
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
@@ -178,6 +180,7 @@ router.post("/engagements/:id/tasks", requirePermission("services.manage"), asyn
   }
 
   const [created] = await db.insert(tasksTable).values({
+      organizationId: req.authUser!.organizationId,
     title, description: description || null,
     status: status || "todo",
     priority: priority || "medium",

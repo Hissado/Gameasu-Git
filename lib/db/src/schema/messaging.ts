@@ -2,9 +2,11 @@ import { pgTable, text, timestamp, uuid, integer, boolean, jsonb, real, uniqueIn
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const conversationsTable = pgTable("conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   title: text("title"),
   type: text("type").notNull().default("direct"),
   projectId: uuid("project_id"),
@@ -20,6 +22,7 @@ export const conversationsTable = pgTable("conversations", {
 
 export const conversationParticipantsTable = pgTable("conversation_participants", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   conversationId: uuid("conversation_id").notNull().references(() => conversationsTable.id),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   unreadCount: integer("unread_count").default(0),
@@ -35,6 +38,7 @@ export const conversationParticipantsTable = pgTable("conversation_participants"
 
 export const messagesTable = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   conversationId: uuid("conversation_id").notNull().references(() => conversationsTable.id),
   senderId: uuid("sender_id").notNull().references(() => usersTable.id),
   content: text("content").notNull(),
@@ -52,6 +56,7 @@ export const messagesTable = pgTable("messages", {
 
 export const messageAttachmentsTable = pgTable("message_attachments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   messageId: uuid("message_id").notNull().references(() => messagesTable.id, { onDelete: "cascade" }),
   url: text("url").notNull(),
   mime: text("mime").notNull(),
@@ -67,6 +72,7 @@ export const messageAttachmentsTable = pgTable("message_attachments", {
 
 export const messageReadsTable = pgTable("message_reads", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   messageId: uuid("message_id").notNull().references(() => messagesTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
@@ -76,6 +82,7 @@ export const messageReadsTable = pgTable("message_reads", {
 
 export const messageReactionsTable = pgTable("message_reactions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   messageId: uuid("message_id").notNull().references(() => messagesTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   emoji: text("emoji").notNull(),
@@ -86,6 +93,7 @@ export const messageReactionsTable = pgTable("message_reactions", {
 
 export const messageMentionsTable = pgTable("message_mentions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   messageId: uuid("message_id").notNull().references(() => messagesTable.id, { onDelete: "cascade" }),
   mentionedUserId: uuid("mentioned_user_id").notNull().references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -100,6 +108,7 @@ export const userPresenceTable = pgTable("user_presence", {
 
 export const pushSubscriptionsTable = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
@@ -110,6 +119,7 @@ export const pushSubscriptionsTable = pgTable("push_subscriptions", {
 
 export const whatsappChannelsTable = pgTable("whatsapp_channels", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   phoneNumberId: text("phone_number_id").notNull().unique(),
   displayName: text("display_name").notNull(),
   encryptedAccessToken: text("encrypted_access_token").notNull(),
@@ -121,6 +131,7 @@ export const whatsappChannelsTable = pgTable("whatsapp_channels", {
 
 export const callSessionsTable = pgTable("call_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   type: text("type").notNull().default("video"),
   status: text("status").notNull().default("scheduled"),
   initiatorId: uuid("initiator_id").references(() => usersTable.id),
@@ -136,6 +147,7 @@ export const callSessionsTable = pgTable("call_sessions", {
 
 export const notificationsTable = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   title: text("title").notNull(),
   body: text("body").notNull(),

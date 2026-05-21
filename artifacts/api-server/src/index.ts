@@ -25,15 +25,17 @@ initRealtime(httpServer);
 httpServer.listen(port, async () => {
   logger.info({ port }, "Server listening");
 
-  try {
-    await seedSyscohada();
-  } catch (e) {
-    logger.error({ err: e }, "SYSCOHADA seed failed");
-  }
-
+  // L'ordre importe : seedSaas (créé ailleurs) crée les organisations, puis
+  // les seeds tenant-scoped (HR, SYSCOHADA) bouclent sur ces orgs.
   try {
     await seedHr();
   } catch (e) {
     logger.error({ err: e }, "HR seed failed");
+  }
+
+  try {
+    await seedSyscohada();
+  } catch (e) {
+    logger.error({ err: e }, "SYSCOHADA seed failed");
   }
 });

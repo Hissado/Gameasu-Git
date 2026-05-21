@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { projectsTable } from "./projects";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 // ────────────────────────────────────────────────────────────────
 // PLAN COMPTABLE SYSCOHADA (Système Comptable Ouest-Africain)
@@ -12,6 +13,7 @@ import { usersTable } from "./users";
 // ────────────────────────────────────────────────────────────────
 export const chartOfAccountsTable = pgTable("chart_of_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),                 // ex: "411000"
   label: text("label").notNull(),               // ex: "Clients"
   classNum: integer("class_num").notNull(),     // 1..9
@@ -25,7 +27,7 @@ export const chartOfAccountsTable = pgTable("chart_of_accounts", {
   isPostable: boolean("is_postable").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  codeIdx: uniqueIndex("chart_accounts_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("chart_accounts_org_code_uidx").on(t.organizationId, t.code),
   classIdx: index("chart_accounts_class_idx").on(t.classNum),
 }));
 
@@ -34,6 +36,7 @@ export const chartOfAccountsTable = pgTable("chart_of_accounts", {
 // ────────────────────────────────────────────────────────────────
 export const fiscalPeriodsTable = pgTable("fiscal_periods", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),                 // ex: "Exercice 2026"
   startDate: text("start_date").notNull(),      // ISO date
   endDate: text("end_date").notNull(),
@@ -49,6 +52,7 @@ export const fiscalPeriodsTable = pgTable("fiscal_periods", {
 // ────────────────────────────────────────────────────────────────
 export const journalsTable = pgTable("journals", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),                 // VTE, ACH, BNQ, CAI, OD
   label: text("label").notNull(),
   // sales | purchase | bank | cash | misc
@@ -58,7 +62,7 @@ export const journalsTable = pgTable("journals", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  codeIdx: uniqueIndex("journals_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("journals_org_code_uidx").on(t.organizationId, t.code),
 }));
 
 // ────────────────────────────────────────────────────────────────
@@ -67,6 +71,7 @@ export const journalsTable = pgTable("journals", {
 // ────────────────────────────────────────────────────────────────
 export const journalEntriesTable = pgTable("journal_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   journalId: uuid("journal_id").notNull().references(() => journalsTable.id),
   fiscalPeriodId: uuid("fiscal_period_id").notNull().references(() => fiscalPeriodsTable.id),
   entryNumber: text("entry_number").notNull(),  // ex: "VTE-2026-0001"
@@ -85,7 +90,7 @@ export const journalEntriesTable = pgTable("journal_entries", {
   reversedById: uuid("reversed_by_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  numberIdx: uniqueIndex("journal_entries_number_uidx").on(t.entryNumber),
+  numberIdx: uniqueIndex("journal_entries_org_number_uidx").on(t.organizationId, t.entryNumber),
   sourceIdx: index("journal_entries_source_idx").on(t.sourceType, t.sourceId),
   // Idempotence stricte : une opération métier (sourceType+sourceId) ne peut
   // produire qu'une seule écriture comptable. Empêche les doubles
@@ -101,6 +106,7 @@ export const journalEntriesTable = pgTable("journal_entries", {
 // ────────────────────────────────────────────────────────────────
 export const journalEntryLinesTable = pgTable("journal_entry_lines", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   entryId: uuid("entry_id").notNull().references(() => journalEntriesTable.id, { onDelete: "cascade" }),
   accountId: uuid("account_id").notNull().references(() => chartOfAccountsTable.id),
   debit: numeric("debit", { precision: 18, scale: 2 }).notNull().default("0"),
@@ -125,6 +131,7 @@ export const journalEntryLinesTable = pgTable("journal_entry_lines", {
 // ────────────────────────────────────────────────────────────────
 export const suppliersTable = pgTable("suppliers", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),                 // ex: "F0001"
   name: text("name").notNull(),
   email: text("email"),
@@ -139,7 +146,7 @@ export const suppliersTable = pgTable("suppliers", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
-  codeIdx: uniqueIndex("suppliers_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("suppliers_org_code_uidx").on(t.organizationId, t.code),
 }));
 
 // ────────────────────────────────────────────────────────────────
@@ -147,6 +154,7 @@ export const suppliersTable = pgTable("suppliers", {
 // ────────────────────────────────────────────────────────────────
 export const supplierInvoicesTable = pgTable("supplier_invoices", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   referenceNumber: text("reference_number").notNull(),
   supplierId: uuid("supplier_id").notNull().references(() => suppliersTable.id),
   projectId: uuid("project_id").references(() => projectsTable.id),
@@ -170,6 +178,7 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
 // ────────────────────────────────────────────────────────────────
 export const bankAccountsTable = pgTable("bank_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),                 // ex: "BICICI compte courant"
   // bank | cash
   type: text("type").notNull().default("bank"),
@@ -189,6 +198,7 @@ export const bankAccountsTable = pgTable("bank_accounts", {
 // ────────────────────────────────────────────────────────────────
 export const bankTransactionsTable = pgTable("bank_transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   bankAccountId: uuid("bank_account_id").notNull().references(() => bankAccountsTable.id),
   transactionDate: text("transaction_date").notNull(),
   label: text("label").notNull(),
@@ -208,6 +218,7 @@ export const bankTransactionsTable = pgTable("bank_transactions", {
 // ────────────────────────────────────────────────────────────────
 export const fixedAssetsTable = pgTable("fixed_assets", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   code: text("code").notNull(),
   label: text("label").notNull(),
   category: text("category"),                   // matériel, mobilier, véhicule...
@@ -227,11 +238,12 @@ export const fixedAssetsTable = pgTable("fixed_assets", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
-  codeIdx: uniqueIndex("fixed_assets_code_uidx").on(t.code),
+  codeIdx: uniqueIndex("fixed_assets_org_code_uidx").on(t.organizationId, t.code),
 }));
 
 export const amortizationsTable = pgTable("amortizations", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   fixedAssetId: uuid("fixed_asset_id").notNull().references(() => fixedAssetsTable.id, { onDelete: "cascade" }),
   fiscalPeriodId: uuid("fiscal_period_id").notNull().references(() => fiscalPeriodsTable.id),
   periodAmount: numeric("period_amount", { precision: 18, scale: 2 }).notNull(),
@@ -246,6 +258,7 @@ export const amortizationsTable = pgTable("amortizations", {
 // ────────────────────────────────────────────────────────────────
 export const supplierPaymentsTable = pgTable("supplier_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   supplierInvoiceId: uuid("supplier_invoice_id").notNull().references(() => supplierInvoicesTable.id),
   bankAccountId: uuid("bank_account_id").references(() => bankAccountsTable.id),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),

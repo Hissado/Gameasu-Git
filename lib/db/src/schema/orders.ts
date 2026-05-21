@@ -2,9 +2,11 @@ import { pgTable, text, timestamp, uuid, numeric, integer } from "drizzle-orm/pg
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
+import { organizationsTable } from "./saas";
 
 export const ordersTable = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   referenceNumber: text("reference_number").notNull(),
   clientId: uuid("client_id").references(() => clientsTable.id),
   status: text("status").notNull().default("draft"),
@@ -19,6 +21,7 @@ export const ordersTable = pgTable("orders", {
 
 export const proformasTable = pgTable("proformas", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   referenceNumber: text("reference_number").notNull(),
   orderId: uuid("order_id").references(() => ordersTable.id),
   clientId: uuid("client_id").references(() => clientsTable.id),
@@ -36,6 +39,7 @@ export const proformasTable = pgTable("proformas", {
 
 export const invoicesTable = pgTable("invoices", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   referenceNumber: text("reference_number").notNull(),
   proformaId: uuid("proforma_id").references(() => proformasTable.id),
   clientId: uuid("client_id").references(() => clientsTable.id),
@@ -52,6 +56,7 @@ export const invoicesTable = pgTable("invoices", {
 
 export const paymentsTable = pgTable("payments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   invoiceId: uuid("invoice_id").notNull().references(() => invoicesTable.id),
   amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
   currency: text("currency").default("XOF"),

@@ -2,9 +2,11 @@ import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const ticketsTable = pgTable("tickets", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   subject: text("subject").notNull(),
   description: text("description"),
   category: text("category").notNull().default("other"),

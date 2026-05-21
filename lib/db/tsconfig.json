@@ -9,5 +9,5 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["src/seed.ts", "src/seed-saas.ts"]
+  "exclude": ["src/seed.ts", "src/seed-saas.ts", "src/seed-rich.ts", "src/seed-intelligence.ts", "src/seed-operations.ts", "src/seed-inventory.ts", "src/migrate-multi-tenant.ts", "src/migrate-tenant-uniques.ts"]
 }

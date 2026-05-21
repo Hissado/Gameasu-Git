@@ -10,7 +10,7 @@ const router = Router();
 
 /** Vérifie que l'utilisateur a accès au projet de la tâche (ou est l'assigné). */
 async function ensureTaskAccess(req: any, taskId: string, allowAssignee = true) {
-  const [t] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId)).limit(1);
+  const [t] = await db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, taskId))).limit(1);
   if (!t) return { allowed: false, status: 404, body: { error: "Tâche introuvable" } };
   if (!req.authUser) return { allowed: true, task: t };
   if (allowAssignee && t.assigneeId === req.authUser.id) return { allowed: true, task: t };
@@ -26,7 +26,10 @@ router.get("/tasks", requirePermission("tasks.read"), async (req, res) => {
 
   // ACL : restreindre les tâches aux projets accessibles à l'utilisateur.
   const accessible = req.authUser ? await userAccessibleProjectIds(req.authUser.id) : [];
-  const conds: any[] = [isNull(tasksTable.deletedAt)];
+  const conds: any[] = [
+    eq(tasksTable.organizationId, req.authUser!.organizationId),
+    isNull(tasksTable.deletedAt),
+  ];
   if (accessible !== null) {
     if (accessible.length === 0) {
       // Sans projet : on autorise les tâches assignées personnellement (pas d'orphelin ailleurs).
@@ -57,10 +60,12 @@ router.get("/tasks", requirePermission("tasks.read"), async (req, res) => {
 router.post("/tasks", requireManagerOrAbove, async (req, res) => {
   const { title, description, status, priority, projectId, assigneeId, dueDate, parentTaskId } = req.body;
   const [task] = await db.insert(tasksTable).values({
+      organizationId: req.authUser!.organizationId,
     title, description, status: status || "todo", priority: priority || "medium",
     projectId, assigneeId, dueDate, parentTaskId,
   }).returning();
   await db.insert(taskHistoryTable).values({
+      organizationId: req.authUser!.organizationId,
     taskId: task.id, userId: req.authUser?.id, action: "created", newValue: title,
   });
   return res.status(201).json(task);
@@ -77,7 +82,7 @@ router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res) => {
     .from(tasksTable)
     .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
     .leftJoin(usersTable, eq(tasksTable.assigneeId, usersTable.id))
-    .where(eq(tasksTable.id, req.params.id)).limit(1);
+    .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).limit(1);
 
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   const comments = await db.select({
@@ -85,16 +90,16 @@ router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res) => {
     userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(taskCommentsTable)
     .leftJoin(usersTable, eq(taskCommentsTable.userId, usersTable.id))
-    .where(eq(taskCommentsTable.taskId, req.params.id));
+    .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, req.params.id)));
 
-  const subtasks = await db.select().from(tasksTable).where(eq(tasksTable.parentTaskId, req.params.id));
+  const subtasks = await db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.parentTaskId, req.params.id)));
 
   const history = await db.select({
     h: taskHistoryTable,
     userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(taskHistoryTable)
     .leftJoin(usersTable, eq(taskHistoryTable.userId, usersTable.id))
-    .where(eq(taskHistoryTable.taskId, req.params.id))
+    .where(and(eq(taskHistoryTable.organizationId, req.authUser!.organizationId), eq(taskHistoryTable.taskId, req.params.id)))
     .orderBy(sql`${taskHistoryTable.createdAt} DESC`).limit(50);
 
   return res.json({
@@ -109,7 +114,7 @@ router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res) => {
 
 router.put("/tasks/:id", requireManagerOrAbove, async (req, res) => {
   const { title, description, status, priority, projectId, assigneeId, dueDate } = req.body;
-  const before = (await db.select().from(tasksTable).where(eq(tasksTable.id, req.params.id)).limit(1))[0];
+  const before = (await db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).limit(1))[0];
   if (!before) return res.status(404).json({ error: "Not found" });
 
   // Restriction collaborateur: ne peut modifier que ses propres tâches
@@ -124,7 +129,7 @@ router.put("/tasks/:id", requireManagerOrAbove, async (req, res) => {
 
   const [task] = await db.update(tasksTable)
     .set({ title, description, status, priority, projectId, assigneeId, dueDate })
-    .where(eq(tasksTable.id, req.params.id)).returning();
+    .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).returning();
 
   // Historique des changements
   const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
@@ -134,6 +139,7 @@ router.put("/tasks/:id", requireManagerOrAbove, async (req, res) => {
   if (before.title !== title && title) changes.push({ field: "title", oldValue: before.title, newValue: title });
   for (const c of changes) {
     await db.insert(taskHistoryTable).values({
+      organizationId: req.authUser!.organizationId,
       taskId: task.id, userId: req.authUser?.id, action: "updated", field: c.field, oldValue: c.oldValue, newValue: c.newValue,
     });
   }
@@ -141,8 +147,9 @@ router.put("/tasks/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/tasks/:id", requireAdmin, async (req, res) => {
-  await db.update(tasksTable).set({ deletedAt: new Date() }).where(eq(tasksTable.id, req.params.id));
+  await db.update(tasksTable).set({ deletedAt: new Date() }).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id)));
   await db.insert(taskHistoryTable).values({
+      organizationId: req.authUser!.organizationId,
     taskId: req.params.id, userId: req.authUser?.id, action: "deleted",
   });
   return res.status(204).send();
@@ -156,7 +163,7 @@ router.get("/tasks/:id/comments", requirePermission("tasks.read"), async (req, r
     userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(taskCommentsTable)
     .leftJoin(usersTable, eq(taskCommentsTable.userId, usersTable.id))
-    .where(eq(taskCommentsTable.taskId, req.params.id));
+    .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, req.params.id)));
   return res.json(comments.map(c => ({ ...c.comment, userName: c.userName })));
 });
 
@@ -169,9 +176,11 @@ router.post("/tasks/:id/comments", requirePermission("tasks.read"), async (req, 
   if (!userId) return res.status(401).json({ error: "Authentification requise" });
 
   const [comment] = await db.insert(taskCommentsTable).values({
+      organizationId: req.authUser!.organizationId,
     taskId: req.params.id, userId, content,
   }).returning();
   await db.insert(taskHistoryTable).values({
+      organizationId: req.authUser!.organizationId,
     taskId: req.params.id, userId, action: "commented", newValue: content.slice(0, 100),
   });
   const userName = `${req.authUser?.firstName || ""} ${req.authUser?.lastName || ""}`.trim();

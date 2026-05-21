@@ -3,9 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const tasksTable = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
   status: text("status").notNull().default("todo"),
@@ -31,6 +33,7 @@ export const tasksTable = pgTable("tasks", {
 
 export const taskCommentsTable = pgTable("task_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   taskId: uuid("task_id").notNull().references(() => tasksTable.id),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   content: text("content").notNull(),
@@ -41,6 +44,7 @@ export const taskCommentsTable = pgTable("task_comments", {
 
 export const taskHistoryTable = pgTable("task_history", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   taskId: uuid("task_id").notNull().references(() => tasksTable.id),
   userId: uuid("user_id").references(() => usersTable.id),
   action: text("action").notNull(),

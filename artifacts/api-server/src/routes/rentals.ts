@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { rentalsTable, rentalItemsTable, inspectionsTable, logisticsOperationsTable, clientsTable, equipmentTable, usersTable } from "@workspace/db";
-import { eq, sql, isNull, inArray } from "drizzle-orm";
+import { eq, sql, isNull, inArray, and } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -13,11 +13,13 @@ router.get("/rentals", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = eq(rentalsTable.organizationId, req.authUser!.organizationId);
   const rows = await db.select({
     rental: rentalsTable,
     clientName: clientsTable.name,
   }).from(rentalsTable)
     .leftJoin(clientsTable, eq(rentalsTable.clientId, clientsTable.id))
+    .where(orgFilter)
     .limit(limitNum).offset(offset);
 
   const data = rows.map(row => ({
@@ -25,14 +27,16 @@ router.get("/rentals", async (req, res) => {
     clientName: row.clientName,
     totalCost: row.rental.totalCost ? Number(row.rental.totalCost) : null,
   }));
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(rentalsTable);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(rentalsTable).where(orgFilter);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
 router.post("/rentals", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, startDate, endDate, notes, items } = req.body;
   const refNum = `RNT-${Date.now().toString(36).toUpperCase()}`;
+  const orgId = req.authUser!.organizationId;
   const [rental] = await db.insert(rentalsTable).values({
+    organizationId: orgId,
     referenceNumber: refNum, clientId, status: status || "pending", startDate, endDate, notes,
   }).returning();
 
@@ -40,9 +44,10 @@ router.post("/rentals", requireManagerOrAbove, async (req, res) => {
     // Récupère tous les équipements en une seule requête, puis insère toutes les lignes en batch.
     const ids = items.map((i: any) => i.equipmentId);
     const equipments = await db.select({ id: equipmentTable.id, dailyRate: equipmentTable.dailyRate })
-      .from(equipmentTable).where(inArray(equipmentTable.id, ids));
+      .from(equipmentTable).where(and(eq(equipmentTable.organizationId, orgId), inArray(equipmentTable.id, ids)));
     const rateById = new Map(equipments.map((e) => [e.id, e.dailyRate ? Number(e.dailyRate) : 0]));
     await db.insert(rentalItemsTable).values(items.map((item: any) => ({
+      organizationId: orgId,
       rentalId: rental.id,
       equipmentId: item.equipmentId,
       quantity: item.quantity,
@@ -54,12 +59,13 @@ router.post("/rentals", requireManagerOrAbove, async (req, res) => {
 });
 
 router.get("/rentals/:id", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const rows = await db.select({
     rental: rentalsTable,
     clientName: clientsTable.name,
   }).from(rentalsTable)
     .leftJoin(clientsTable, eq(rentalsTable.clientId, clientsTable.id))
-    .where(eq(rentalsTable.id, req.params.id)).limit(1);
+    .where(and(eq(rentalsTable.organizationId, orgId), eq(rentalsTable.id, req.params.id))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
 
   const items = await db.select({
@@ -67,7 +73,7 @@ router.get("/rentals/:id", async (req, res) => {
     equipmentName: equipmentTable.name,
   }).from(rentalItemsTable)
     .leftJoin(equipmentTable, eq(rentalItemsTable.equipmentId, equipmentTable.id))
-    .where(eq(rentalItemsTable.rentalId, req.params.id));
+    .where(and(eq(rentalItemsTable.organizationId, orgId), eq(rentalItemsTable.rentalId, req.params.id)));
 
   return res.json({
     ...rows[0].rental,
@@ -87,7 +93,7 @@ router.put("/rentals/:id", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, startDate, endDate, notes } = req.body;
   const [rental] = await db.update(rentalsTable)
     .set({ clientId, status, startDate, endDate, notes })
-    .where(eq(rentalsTable.id, req.params.id)).returning();
+    .where(and(eq(rentalsTable.organizationId, req.authUser!.organizationId), eq(rentalsTable.id, req.params.id))).returning();
   if (!rental) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rental, totalCost: rental.totalCost ? Number(rental.totalCost) : null });
 });
@@ -99,11 +105,13 @@ router.get("/inspections", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = eq(inspectionsTable.organizationId, req.authUser!.organizationId);
   const rows = await db.select({
     inspection: inspectionsTable,
     conductedByName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(inspectionsTable)
     .leftJoin(usersTable, eq(inspectionsTable.conductedById, usersTable.id))
+    .where(orgFilter)
     .limit(limitNum).offset(offset);
 
   const data = rows.map(row => ({
@@ -112,13 +120,19 @@ router.get("/inspections", async (req, res) => {
     hasDispute: row.inspection.hasDispute === "true",
     retentionAmount: row.inspection.retentionAmount ? Number(row.inspection.retentionAmount) : null,
   }));
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(inspectionsTable);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(inspectionsTable).where(orgFilter);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
 router.post("/inspections", requireManagerOrAbove, async (req, res) => {
   const { rentalId, type, notes, hasDispute, disputeNotes, retentionAmount, photos } = req.body;
+  const orgId = req.authUser!.organizationId;
+  // Vérifie que la location appartient bien au même tenant
+  const [parent] = await db.select({ id: rentalsTable.id }).from(rentalsTable)
+    .where(and(eq(rentalsTable.organizationId, orgId), eq(rentalsTable.id, rentalId))).limit(1);
+  if (!parent) return res.status(404).json({ error: "Location introuvable" });
   const [insp] = await db.insert(inspectionsTable).values({
+    organizationId: orgId,
     rentalId, type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes,
     retentionAmount: retentionAmount?.toString(), conductedById: req.authUser?.id, photos: photos || [],
   }).returning();
@@ -126,7 +140,7 @@ router.post("/inspections", requireManagerOrAbove, async (req, res) => {
 });
 
 router.get("/inspections/:id", async (req, res) => {
-  const rows = await db.select().from(inspectionsTable).where(eq(inspectionsTable.id, req.params.id)).limit(1);
+  const rows = await db.select().from(inspectionsTable).where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, req.params.id))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0], hasDispute: rows[0].hasDispute === "true", retentionAmount: rows[0].retentionAmount ? Number(rows[0].retentionAmount) : null });
 });
@@ -135,7 +149,7 @@ router.put("/inspections/:id", requireManagerOrAbove, async (req, res) => {
   const { type, notes, hasDispute, disputeNotes, retentionAmount, photos } = req.body;
   const [insp] = await db.update(inspectionsTable)
     .set({ type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes, retentionAmount: retentionAmount?.toString(), photos })
-    .where(eq(inspectionsTable.id, req.params.id)).returning();
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, req.params.id))).returning();
   if (!insp) return res.status(404).json({ error: "Not found" });
   return res.json({ ...insp, hasDispute: insp.hasDispute === "true", retentionAmount: insp.retentionAmount ? Number(insp.retentionAmount) : null });
 });
@@ -149,7 +163,7 @@ router.get("/rentals/:id/inspections", async (req, res) => {
     })
     .from(inspectionsTable)
     .leftJoin(usersTable, eq(inspectionsTable.conductedById, usersTable.id))
-    .where(eq(inspectionsTable.rentalId, req.params.id));
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, req.params.id)));
 
   const data = inspections.map((row) => ({
     ...row.i,
@@ -171,7 +185,7 @@ router.get("/rentals/:id/inspections/compare", async (req, res) => {
   const inspections = await db
     .select()
     .from(inspectionsTable)
-    .where(eq(inspectionsTable.rentalId, req.params.id));
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, req.params.id)));
   const departure = inspections.find((i) => i.type === "departure") || null;
   const returnInsp = inspections.find((i) => i.type === "return") || null;
 
@@ -203,21 +217,30 @@ router.get("/logistics", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = eq(logisticsOperationsTable.organizationId, req.authUser!.organizationId);
   const rows = await db.select({
     op: logisticsOperationsTable,
     responsibleName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(logisticsOperationsTable)
     .leftJoin(usersTable, eq(logisticsOperationsTable.responsibleId, usersTable.id))
+    .where(orgFilter)
     .limit(limitNum).offset(offset);
 
   const data = rows.map(row => ({ ...row.op, responsibleName: row.responsibleName }));
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(logisticsOperationsTable);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(logisticsOperationsTable).where(orgFilter);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
 router.post("/logistics", requireManagerOrAbove, async (req, res) => {
   const { type, status, rentalId, responsibleId, address, scheduledAt, notes } = req.body;
+  const orgId = req.authUser!.organizationId;
+  if (rentalId) {
+    const [parent] = await db.select({ id: rentalsTable.id }).from(rentalsTable)
+      .where(and(eq(rentalsTable.organizationId, orgId), eq(rentalsTable.id, rentalId))).limit(1);
+    if (!parent) return res.status(404).json({ error: "Location introuvable" });
+  }
   const [op] = await db.insert(logisticsOperationsTable).values({
+    organizationId: orgId,
     type, status: status || "scheduled", rentalId, responsibleId, address,
     scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, notes,
   }).returning();
@@ -228,7 +251,7 @@ router.put("/logistics/:id", requireManagerOrAbove, async (req, res) => {
   const { type, status, rentalId, responsibleId, address, scheduledAt, notes } = req.body;
   const [op] = await db.update(logisticsOperationsTable)
     .set({ type, status, rentalId, responsibleId, address, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, notes })
-    .where(eq(logisticsOperationsTable.id, req.params.id)).returning();
+    .where(and(eq(logisticsOperationsTable.organizationId, req.authUser!.organizationId), eq(logisticsOperationsTable.id, req.params.id))).returning();
   if (!op) return res.status(404).json({ error: "Not found" });
   return res.json(op);
 });

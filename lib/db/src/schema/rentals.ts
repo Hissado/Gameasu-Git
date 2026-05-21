@@ -4,9 +4,11 @@ import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { equipmentTable } from "./equipment";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const rentalsTable = pgTable("rentals", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   referenceNumber: text("reference_number").notNull(),
   clientId: uuid("client_id").references(() => clientsTable.id),
   status: text("status").notNull().default("pending"),
@@ -20,6 +22,7 @@ export const rentalsTable = pgTable("rentals", {
 
 export const rentalItemsTable = pgTable("rental_items", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   rentalId: uuid("rental_id").notNull().references(() => rentalsTable.id),
   equipmentId: uuid("equipment_id").notNull().references(() => equipmentTable.id),
   quantity: integer("quantity").notNull().default(1),
@@ -29,6 +32,7 @@ export const rentalItemsTable = pgTable("rental_items", {
 
 export const inspectionsTable = pgTable("inspections", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   rentalId: uuid("rental_id").notNull().references(() => rentalsTable.id),
   type: text("type").notNull(),
   conductedById: uuid("conducted_by_id").references(() => usersTable.id),
@@ -45,6 +49,7 @@ export const inspectionsTable = pgTable("inspections", {
 
 export const logisticsOperationsTable = pgTable("logistics_operations", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
   status: text("status").notNull().default("scheduled"),
   rentalId: uuid("rental_id").references(() => rentalsTable.id),

@@ -4,9 +4,11 @@ import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { usersTable } from "./users";
 import { servicesTable } from "./services";
+import { organizationsTable } from "./saas";
 
 export const clientServicesTable = pgTable("client_services", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clientsTable.id),
   catalogId: uuid("catalog_id").references(() => servicesTable.id),
   name: text("name").notNull(),
@@ -33,6 +35,7 @@ export const clientServicesTable = pgTable("client_services", {
 
 export const serviceSectionsTable = pgTable("service_sections", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   clientServiceId: uuid("client_service_id").notNull().references(() => clientServicesTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   position: integer("position").notNull().default(0),
@@ -43,6 +46,7 @@ export const serviceSectionsTable = pgTable("service_sections", {
 
 export const userClientAccessTable = pgTable("user_client_access", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
   accessLevel: text("access_level").notNull().default("viewer"),

@@ -1,9 +1,11 @@
 import { pgTable, text, timestamp, uuid, jsonb, integer, index, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { clientsTable } from "./clients";
+import { organizationsTable } from "./saas";
 
 export const prospectsTable = pgTable("prospects", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   firstName: text("first_name"),
   lastName: text("last_name"),
   email: text("email"),
@@ -23,6 +25,7 @@ export const prospectsTable = pgTable("prospects", {
 // Audience statique (liste figée) ou dynamique (filtres rejoués à l'envoi).
 export const marketingAudiencesTable = pgTable("marketing_audiences", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   type: text("type").notNull().default("dynamic"), // "static" | "dynamic"
@@ -52,6 +55,7 @@ export const marketingAudiencesTable = pgTable("marketing_audiences", {
 // ─── TEMPLATES ──────────────────────────────────────────────────
 export const marketingTemplatesTable = pgTable("marketing_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   channel: text("channel").notNull(), // email | sms | whatsapp
   category: text("category").notNull().default("campagne"), // relance, campagne, rappel, fidelisation, onboarding, support, institutionnel, transactionnel
@@ -68,6 +72,7 @@ export const marketingTemplatesTable = pgTable("marketing_templates", {
 // ─── CAMPAIGNS ──────────────────────────────────────────────────
 export const marketingCampaignsTable = pgTable("marketing_campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   channel: text("channel").notNull(), // email | sms | whatsapp | multi
   subject: text("subject"),
@@ -92,6 +97,7 @@ export const marketingCampaignsTable = pgTable("marketing_campaigns", {
 
 export const campaignRecipientsTable = pgTable("campaign_recipients", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   campaignId: uuid("campaign_id").notNull().references(() => marketingCampaignsTable.id, { onDelete: "cascade" }),
   audienceType: text("audience_type").notNull(),
   refId: uuid("ref_id"),
@@ -110,6 +116,7 @@ export const campaignRecipientsTable = pgTable("campaign_recipients", {
 // Workflow déclaratif : un déclencheur + une liste d'actions séquentielles.
 export const marketingAutomationsTable = pgTable("marketing_automations", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   trigger: text("trigger").notNull(),
@@ -140,6 +147,7 @@ export const marketingAutomationsTable = pgTable("marketing_automations", {
 
 export const marketingAutomationLogsTable = pgTable("marketing_automation_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   automationId: uuid("automation_id").notNull().references(() => marketingAutomationsTable.id, { onDelete: "cascade" }),
   triggeredAt: timestamp("triggered_at", { withTimezone: true }).notNull().defaultNow(),
   status: text("status").notNull(), // success | partial | failed
@@ -155,6 +163,7 @@ export const marketingAutomationLogsTable = pgTable("marketing_automation_logs",
 // ─── ALERT RULES (rappels métier) ───────────────────────────────
 export const marketingAlertRulesTable = pgTable("marketing_alert_rules", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   source: text("source").notNull(),
@@ -180,6 +189,7 @@ export const marketingAlertRulesTable = pgTable("marketing_alert_rules", {
 
 export const marketingAlertLogsTable = pgTable("marketing_alert_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   ruleId: uuid("rule_id").notNull().references(() => marketingAlertRulesTable.id, { onDelete: "cascade" }),
   entityType: text("entity_type"),
   entityId: uuid("entity_id"),
@@ -195,6 +205,7 @@ export const marketingAlertLogsTable = pgTable("marketing_alert_logs", {
 // ─── CONSENT (opt-in / opt-out) ─────────────────────────────────
 export const marketingConsentTable = pgTable("marketing_consent", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   contactType: text("contact_type").notNull(), // client | prospect | collaborator | user
   contactId: uuid("contact_id").notNull(),
   channel: text("channel").notNull(), // email | sms | whatsapp
@@ -211,6 +222,7 @@ export const marketingConsentTable = pgTable("marketing_consent", {
 // ─── CHANNEL CONNECTIONS (providers) ────────────────────────────
 export const marketingChannelConnectionsTable = pgTable("marketing_channel_connections", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   channel: text("channel").notNull(), // email | sms | whatsapp
   provider: text("provider").notNull(), // sendgrid | resend | twilio | wa_business | preview
   displayName: text("display_name"),

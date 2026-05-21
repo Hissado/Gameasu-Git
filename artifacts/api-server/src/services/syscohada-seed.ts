@@ -4,8 +4,9 @@ import {
   journalsTable,
   fiscalPeriodsTable,
   bankAccountsTable,
+  organizationsTable,
 } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 /**
@@ -100,14 +101,17 @@ const JOURNALS = [
   { code: "OD",  label: "Opérations diverses",      type: "misc",     defaultAccountCode: null   },
 ];
 
-export async function seedSyscohada(): Promise<void> {
-  // 1. Plan comptable (idempotent par code)
-  const existing = await db.select({ code: chartOfAccountsTable.code }).from(chartOfAccountsTable);
+export async function seedSyscohadaForOrg(organizationId: string): Promise<void> {
+  // 1. Plan comptable (idempotent par (orgId, code))
+  const existing = await db.select({ code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable)
+    .where(eq(chartOfAccountsTable.organizationId, organizationId));
   const existingCodes = new Set(existing.map((r) => r.code));
   const toInsert = ACCOUNTS.filter((a) => !existingCodes.has(a.code));
   if (toInsert.length > 0) {
     await db.insert(chartOfAccountsTable).values(
       toInsert.map((a) => ({
+        organizationId,
         code: a.code,
         label: a.label,
         classNum: a.classNum,
@@ -116,18 +120,20 @@ export async function seedSyscohada(): Promise<void> {
         isPostable: a.isPostable ?? true,
       })),
     );
-    logger.info({ count: toInsert.length }, "SYSCOHADA: comptes seedés");
   }
 
   // 2. Journaux
-  const allAccounts = await db.select().from(chartOfAccountsTable);
+  const allAccounts = await db.select().from(chartOfAccountsTable)
+    .where(eq(chartOfAccountsTable.organizationId, organizationId));
   const accByCode = new Map(allAccounts.map((a) => [a.code, a.id]));
-  const existingJournals = await db.select({ code: journalsTable.code }).from(journalsTable);
+  const existingJournals = await db.select({ code: journalsTable.code }).from(journalsTable)
+    .where(eq(journalsTable.organizationId, organizationId));
   const existingJournalCodes = new Set(existingJournals.map((r) => r.code));
 
   for (const j of JOURNALS) {
     if (existingJournalCodes.has(j.code)) continue;
     await db.insert(journalsTable).values({
+      organizationId,
       code: j.code,
       label: j.label,
       type: j.type,
@@ -136,25 +142,28 @@ export async function seedSyscohada(): Promise<void> {
   }
 
   // 3. Exercice fiscal en cours
-  const periods = await db.select().from(fiscalPeriodsTable);
+  const periods = await db.select().from(fiscalPeriodsTable)
+    .where(eq(fiscalPeriodsTable.organizationId, organizationId));
   if (periods.length === 0) {
     const year = new Date().getFullYear();
     await db.insert(fiscalPeriodsTable).values({
+      organizationId,
       name: `Exercice ${year}`,
       startDate: `${year}-01-01`,
       endDate: `${year}-12-31`,
       status: "open",
     });
-    logger.info({ year }, "SYSCOHADA: exercice fiscal créé");
   }
 
   // 4. Compte bancaire/caisse par défaut si aucun n'existe
-  const banks = await db.select().from(bankAccountsTable);
+  const banks = await db.select().from(bankAccountsTable)
+    .where(eq(bankAccountsTable.organizationId, organizationId));
   if (banks.length === 0) {
     const banque521 = accByCode.get("521");
     const caisse571 = accByCode.get("571");
     if (banque521) {
       await db.insert(bankAccountsTable).values({
+        organizationId,
         name: "Banque principale",
         type: "bank",
         accountId: banque521,
@@ -164,6 +173,7 @@ export async function seedSyscohada(): Promise<void> {
     }
     if (caisse571) {
       await db.insert(bankAccountsTable).values({
+        organizationId,
         name: "Caisse principale",
         type: "cash",
         accountId: caisse571,
@@ -171,8 +181,15 @@ export async function seedSyscohada(): Promise<void> {
         openingBalance: "0",
       });
     }
-    logger.info("SYSCOHADA: comptes trésorerie par défaut créés");
   }
+}
+
+export async function seedSyscohada(): Promise<void> {
+  const orgs = await db.select({ id: organizationsTable.id }).from(organizationsTable);
+  for (const o of orgs) {
+    await seedSyscohadaForOrg(o.id);
+  }
+  logger.info({ orgs: orgs.length }, "SYSCOHADA: seed terminé");
 }
 
 /**
@@ -180,11 +197,14 @@ export async function seedSyscohada(): Promise<void> {
  * Utiliser la date de l'écriture est essentiel : une opération antidatée doit
  * être rattachée à l'exercice de sa date, pas de la saisie.
  */
-export async function getCurrentFiscalPeriod(forDate?: string) {
+export async function getCurrentFiscalPeriod(organizationId: string, forDate?: string) {
   const target = forDate ?? new Date().toISOString().slice(0, 10);
   const periods = await db
     .select()
     .from(fiscalPeriodsTable)
-    .where(sql`${fiscalPeriodsTable.startDate} <= ${target} AND ${fiscalPeriodsTable.endDate} >= ${target}`);
+    .where(and(
+      eq(fiscalPeriodsTable.organizationId, organizationId),
+      sql`${fiscalPeriodsTable.startDate} <= ${target} AND ${fiscalPeriodsTable.endDate} >= ${target}`,
+    ));
   return periods[0] ?? null;
 }

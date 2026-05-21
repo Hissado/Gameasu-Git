@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { collaboratorsTable, tasksTable } from "@workspace/db";
-import { eq, sql, isNull } from "drizzle-orm";
+import { eq, sql, isNull, and } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -12,8 +12,9 @@ router.get("/collaborators", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
-  const data = await db.select().from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt)).limit(limitNum).offset(offset);
-  const countResult = await db.select({ count: sql<number>`count(*)` }).from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+  const orgFilter = and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), isNull(collaboratorsTable.deletedAt));
+  const data = await db.select().from(collaboratorsTable).where(orgFilter).limit(limitNum).offset(offset);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(collaboratorsTable).where(orgFilter);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
@@ -22,6 +23,7 @@ router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
   if (!firstName || !lastName) return res.status(400).json({ error: "firstName et lastName requis" });
   try {
     const [collab] = await db.insert(collaboratorsTable).values({
+      organizationId: req.authUser!.organizationId,
       firstName, lastName, email, phone, position, department,
       isAvailable: isAvailable !== false,
       departmentId: departmentId || null,
@@ -36,8 +38,8 @@ router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.get("/collaborators/workload", async (_req, res) => {
-  const collabs = await db.select().from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+router.get("/collaborators/workload", async (req, res) => {
+  const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), isNull(collaboratorsTable.deletedAt)));
   const workload = collabs.map(c => ({
     collaboratorId: c.id,
     firstName: c.firstName,
@@ -51,7 +53,7 @@ router.get("/collaborators/workload", async (_req, res) => {
 });
 
 router.get("/collaborators/:id", async (req, res) => {
-  const collabs = await db.select().from(collaboratorsTable).where(eq(collaboratorsTable.id, req.params.id)).limit(1);
+  const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id))).limit(1);
   if (!collabs[0]) return res.status(404).json({ error: "Not found" });
   return res.json(collabs[0]);
 });
@@ -69,7 +71,7 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
         managerCollaboratorId: managerCollaboratorId === "" ? null : managerCollaboratorId,
         employmentStatus,
       })
-      .where(eq(collaboratorsTable.id, req.params.id)).returning();
+      .where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id))).returning();
     if (!collab) return res.status(404).json({ error: "Not found" });
     return res.json(collab);
   } catch (e: any) {
@@ -78,7 +80,7 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(eq(collaboratorsTable.id, req.params.id));
+  await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id)));
   return res.status(204).send();
 });
 

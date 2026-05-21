@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { fiscalPeriodsTable, chartOfAccountsTable } from "./accounting";
+import { organizationsTable } from "./saas";
 
 // ────────────────────────────────────────────────────────────────
 // FP&A — Reporting & Planning Financier
@@ -14,6 +15,7 @@ import { fiscalPeriodsTable, chartOfAccountsTable } from "./accounting";
 
 export const budgetsTable = pgTable("budgets", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   // budget | forecast
   kind: text("kind").notNull().default("budget"),
@@ -50,6 +52,7 @@ export const budgetsTable = pgTable("budgets", {
 
 export const budgetLinesTable = pgTable("budget_lines", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   budgetId: uuid("budget_id").notNull().references(() => budgetsTable.id, { onDelete: "cascade" }),
   accountId: uuid("account_id").notNull().references(() => chartOfAccountsTable.id),
   // période mensuelle au format "YYYY-MM"

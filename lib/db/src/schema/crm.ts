@@ -3,9 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 export const opportunitiesTable = pgTable("opportunities", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   clientId: uuid("client_id").references(() => clientsTable.id),
   stage: text("stage").notNull().default("lead"),
@@ -22,6 +24,7 @@ export const opportunitiesTable = pgTable("opportunities", {
 
 export const activitiesTable = pgTable("crm_activities", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
   subject: text("subject").notNull(),
   description: text("description"),

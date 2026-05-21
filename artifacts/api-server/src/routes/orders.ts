@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
-import { eq, sql, isNull } from "drizzle-orm";
+import { eq, sql, isNull, and } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
 import { logger } from "../lib/logger";
@@ -17,28 +17,30 @@ router.get("/orders", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = and(eq(ordersTable.organizationId, req.authUser!.organizationId), isNull(ordersTable.deletedAt));
   const rows = await db.select({ order: ordersTable, clientName: clientsTable.name })
     .from(ordersTable)
     .leftJoin(clientsTable, eq(ordersTable.clientId, clientsTable.id))
-    .where(isNull(ordersTable.deletedAt)).limit(limitNum).offset(offset);
+    .where(orgFilter).limit(limitNum).offset(offset);
 
   const data = rows.map(r => ({ ...r.order, clientName: r.clientName, totalAmount: toNum(r.order.totalAmount) }));
-  const count = await db.select({ count: sql<number>`count(*)` }).from(ordersTable).where(isNull(ordersTable.deletedAt));
+  const count = await db.select({ count: sql<number>`count(*)` }).from(ordersTable).where(orgFilter);
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
 router.post("/orders", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
   const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
-  const [order] = await db.insert(ordersTable).values({ referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).returning();
+  const [order] = await db.insert(ordersTable).values({ organizationId: req.authUser!.organizationId, referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).returning();
   return res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
 
 router.get("/orders/financial-summary", async (req, res) => {
-  const orders = await db.select().from(ordersTable).where(isNull(ordersTable.deletedAt));
-  const proformas = await db.select().from(proformasTable);
-  const invoices = await db.select().from(invoicesTable);
-  const payments = await db.select().from(paymentsTable);
+  const orgId = req.authUser!.organizationId;
+  const orders = await db.select().from(ordersTable).where(and(eq(ordersTable.organizationId, orgId), isNull(ordersTable.deletedAt)));
+  const proformas = await db.select().from(proformasTable).where(eq(proformasTable.organizationId, orgId));
+  const invoices = await db.select().from(invoicesTable).where(eq(invoicesTable.organizationId, orgId));
+  const payments = await db.select().from(paymentsTable).where(eq(paymentsTable.organizationId, orgId));
 
   const totalPaid = payments.reduce((s, p) => s + (p.amount ? Number(p.amount) : 0), 0);
   const totalInvoiced = invoices.reduce((s, i) => s + (i.totalAmount ? Number(i.totalAmount) : 0), 0);
@@ -59,20 +61,20 @@ router.get("/orders/financial-summary", async (req, res) => {
 router.get("/orders/:id", async (req, res) => {
   const rows = await db.select({ order: ordersTable, clientName: clientsTable.name })
     .from(ordersTable).leftJoin(clientsTable, eq(ordersTable.clientId, clientsTable.id))
-    .where(eq(ordersTable.id, req.params.id)).limit(1);
+    .where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].order, clientName: rows[0].clientName, totalAmount: toNum(rows[0].order.totalAmount) });
 });
 
 router.put("/orders/:id", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
-  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(eq(ordersTable.id, req.params.id)).returning();
+  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id))).returning();
   if (!order) return res.status(404).json({ error: "Not found" });
   return res.json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
 
 router.delete("/orders/:id", async (req, res) => {
-  await db.update(ordersTable).set({ deletedAt: new Date() }).where(eq(ordersTable.id, req.params.id));
+  await db.update(ordersTable).set({ deletedAt: new Date() }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id)));
   return res.status(204).send();
 });
 
@@ -83,11 +85,12 @@ router.get("/proformas", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = eq(proformasTable.organizationId, req.authUser!.organizationId);
   const rows = await db.select({ pro: proformasTable, clientName: clientsTable.name })
     .from(proformasTable).leftJoin(clientsTable, eq(proformasTable.clientId, clientsTable.id))
-    .limit(limitNum).offset(offset);
+    .where(orgFilter).limit(limitNum).offset(offset);
   const data = rows.map(r => ({ ...r.pro, clientName: r.clientName, totalAmount: toNum(r.pro.totalAmount) }));
-  const count = await db.select({ count: sql<number>`count(*)` }).from(proformasTable);
+  const count = await db.select({ count: sql<number>`count(*)` }).from(proformasTable).where(orgFilter);
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
@@ -95,6 +98,7 @@ router.post("/proformas", requireManagerOrAbove, async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
   const refNum = `PRO-${Date.now().toString(36).toUpperCase()}`;
   const [pro] = await db.insert(proformasTable).values({
+    organizationId: req.authUser!.organizationId,
     referenceNumber: refNum, orderId, clientId, status: status || "draft",
     totalAmount: totalAmount?.toString(), currency, validUntil, notes,
     caution: caution?.toString(), paymentTerms, durationDays,
@@ -105,28 +109,29 @@ router.post("/proformas", requireManagerOrAbove, async (req, res) => {
 router.get("/proformas/:id", async (req, res) => {
   const rows = await db.select({ pro: proformasTable, clientName: clientsTable.name })
     .from(proformasTable).leftJoin(clientsTable, eq(proformasTable.clientId, clientsTable.id))
-    .where(eq(proformasTable.id, req.params.id)).limit(1);
+    .where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].pro, clientName: rows[0].clientName, totalAmount: toNum(rows[0].pro.totalAmount) });
 });
 
 router.put("/proformas/:id", requireManagerOrAbove, async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
-  const before = (await db.select().from(proformasTable).where(eq(proformasTable.id, req.params.id)).limit(1))[0];
+  const before = (await db.select().from(proformasTable).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).limit(1))[0];
   if (!before) return res.status(404).json({ error: "Not found" });
 
   const [pro] = await db.update(proformasTable).set({
     orderId, clientId, status, totalAmount: totalAmount?.toString(), currency, validUntil, notes,
     caution: caution?.toString(), paymentTerms, durationDays,
-  }).where(eq(proformasTable.id, req.params.id)).returning();
+  }).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).returning();
 
   // Workflow: validation proforma → génération automatique facture
   let generatedInvoice = null;
   if (status === "approved" && before.status !== "approved") {
-    const existingInvoice = await db.select().from(invoicesTable).where(eq(invoicesTable.proformaId, pro.id)).limit(1);
+    const existingInvoice = await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.proformaId, pro.id))).limit(1);
     if (existingInvoice.length === 0) {
       const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
       const [inv] = await db.insert(invoicesTable).values({
+        organizationId: req.authUser!.organizationId,
         referenceNumber: refNum,
         proformaId: pro.id,
         clientId: pro.clientId,
@@ -149,11 +154,12 @@ router.get("/invoices", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
+  const orgFilter = eq(invoicesTable.organizationId, req.authUser!.organizationId);
   const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
     .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .limit(limitNum).offset(offset);
+    .where(orgFilter).limit(limitNum).offset(offset);
   const data = rows.map(r => ({ ...r.inv, clientName: r.clientName, totalAmount: toNum(r.inv.totalAmount), paidAmount: toNum(r.inv.paidAmount) }));
-  const count = await db.select({ count: sql<number>`count(*)` }).from(invoicesTable);
+  const count = await db.select({ count: sql<number>`count(*)` }).from(invoicesTable).where(orgFilter);
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
@@ -163,6 +169,7 @@ router.post("/invoices", requireManagerOrAbove, async (req, res) => {
   const finalStatus = status || "pending";
   const issued = issuedAt || new Date().toISOString().slice(0, 10);
   const [inv] = await db.insert(invoicesTable).values({
+    organizationId: req.authUser!.organizationId,
     referenceNumber: refNum, proformaId, clientId,
     status: finalStatus, totalAmount: totalAmount?.toString(),
     currency, dueDate, notes, issuedAt: issued,
@@ -173,7 +180,7 @@ router.post("/invoices", requireManagerOrAbove, async (req, res) => {
   // silencieuse entre l'opérationnel (facture créée) et la comptabilité.
   if (finalStatus !== "draft") {
     try {
-      await postCustomerInvoice(inv.id, req.authUser?.id);
+      await postCustomerInvoice(req.authUser!.organizationId, inv.id, req.authUser?.id);
     } catch (e: any) {
       logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture");
       return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, invoiceId: inv.id });
@@ -185,21 +192,21 @@ router.post("/invoices", requireManagerOrAbove, async (req, res) => {
 router.get("/invoices/:id", async (req, res) => {
   const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
     .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .where(eq(invoicesTable.id, req.params.id)).limit(1);
+    .where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].inv, clientName: rows[0].clientName, totalAmount: toNum(rows[0].inv.totalAmount), paidAmount: toNum(rows[0].inv.paidAmount) });
 });
 
 router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
-  const before = (await db.select().from(invoicesTable).where(eq(invoicesTable.id, req.params.id)).limit(1))[0];
-  const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(eq(invoicesTable.id, req.params.id)).returning();
+  const before = (await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).limit(1))[0];
+  const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).returning();
   if (!inv) return res.status(404).json({ error: "Not found" });
 
   // Si la facture sort du statut "draft", on génère l'écriture comptable.
   if (before?.status === "draft" && status && status !== "draft") {
     try {
-      await postCustomerInvoice(inv.id, req.authUser?.id);
+      await postCustomerInvoice(req.authUser!.organizationId, inv.id, req.authUser?.id);
     } catch (e: any) {
       logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture");
       return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, invoiceId: inv.id });
@@ -215,8 +222,9 @@ router.get("/payments", async (req, res) => {
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
-  const data = await db.select().from(paymentsTable).limit(limitNum).offset(offset);
-  const count = await db.select({ count: sql<number>`count(*)` }).from(paymentsTable);
+  const orgFilter = eq(paymentsTable.organizationId, req.authUser!.organizationId);
+  const data = await db.select().from(paymentsTable).where(orgFilter).limit(limitNum).offset(offset);
+  const count = await db.select({ count: sql<number>`count(*)` }).from(paymentsTable).where(orgFilter);
   return res.json({
     data: data.map(p => ({ ...p, amount: toNum(p.amount) })),
     total: Number(count[0].count), page: pageNum, limit: limitNum,
@@ -226,6 +234,7 @@ router.get("/payments", async (req, res) => {
 router.post("/payments", requireManagerOrAbove, async (req, res) => {
   const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId } = req.body;
   const [payment] = await db.insert(paymentsTable).values({
+    organizationId: req.authUser!.organizationId,
     invoiceId, amount: amount.toString(), currency, method, reference,
     paidAt: paidAt ? new Date(paidAt) : new Date(), notes,
   }).returning();
@@ -240,11 +249,12 @@ router.post("/payments", requireManagerOrAbove, async (req, res) => {
              ELSE 'partially_paid'
            END
      WHERE id = ${invoiceId}
+       AND organization_id = ${req.authUser!.organizationId}
   `);
 
   // Comptabilisation automatique du règlement.
   try {
-    await postCustomerPayment(payment.id, { bankAccountId, userId: req.authUser?.id });
+    await postCustomerPayment(req.authUser!.organizationId, payment.id, { bankAccountId, userId: req.authUser?.id });
   } catch (e: any) {
     logger.error({ err: e, paymentId: payment.id }, "Échec comptabilisation règlement");
     return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, paymentId: payment.id });
