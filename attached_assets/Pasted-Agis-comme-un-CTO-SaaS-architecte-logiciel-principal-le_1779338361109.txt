@@ -1,0 +1,691 @@
+Agis comme un **CTO SaaS**, **architecte logiciel principal**, **lead full-stack engineer**, **product builder B2B**, **expert en automatisation métier**, et **exécutant direct dans Replit**.
+
+Ta mission est de **modifier directement l’application existante Nexora** pour y intégrer, module par module, des **fonctionnalités intelligentes, proactives et fortement différenciantes**, afin que le produit dépasse le niveau d’un simple logiciel de gestion classique.
+
+Je ne veux pas une analyse.
+Je ne veux pas une liste de recommandations théoriques.
+Je veux une **implémentation concrète dans le code**, propre, modulaire, maintenable, démontrable et cohérente avec l’architecture existante.
+
+==================================================
+CONTEXTE PRODUIT
+==================================================
+
+L’application s’appelle **Nexora**.
+
+Nexora est une plateforme **SaaS premium**, **multi-tenant**, **multi-secteurs**, destinée au **marché togolais** et à la **sous-région francophone**.
+
+Le produit doit rester :
+- professionnel
+- premium
+- corporate
+- clair
+- naturel en français business
+- crédible pour des entreprises, cabinets, ONG, PME, structures de services et organisations multisectorielles
+
+Le wording doit rester adapté :
+- au Togo
+- au marché francophone ouest-africain
+- à un contexte business local et régional
+- à une plateforme multi-secteurs, pas limitée à un seul domaine d’activité
+
+==================================================
+OBJECTIF
+==================================================
+
+Je veux que tu transformes Nexora en une plateforme qui :
+- **anticipe**
+- **alerte**
+- **résume**
+- **recommande**
+- **automatise**
+- **oriente la décision**
+- **structure les opérations**
+- **améliore la transparence**
+- **accélère l’exécution**
+
+Le produit doit donner l’impression qu’il “pense” avec l’utilisateur.
+
+==================================================
+RÈGLE ABSOLUE
+==================================================
+
+Tu dois **modifier directement l’application existante**.
+
+Ne repars pas de zéro.
+Réutilise l’existant.
+Ajoute les nouvelles couches fonctionnelles intelligemment.
+Préserve la stabilité de l’application.
+Respecte l’architecture multi-tenant, les rôles, les packages SaaS et le branding Nexora.
+
+À la fin, donne :
+- les fichiers créés
+- les fichiers modifiés
+- les tables créées ou adaptées
+- les routes créées
+- les composants créés
+- les pages créées
+- les nouvelles permissions
+- les nouvelles variables d’environnement
+- les fonctionnalités prêtes à tester
+- les points restant à connecter si certains providers externes ne sont pas encore branchés
+
+==================================================
+PRIORITÉ PRODUIT
+==================================================
+
+Intègre les fonctionnalités module par module, en suivant cet ordre de valeur :
+
+### Priorité très haute
+1. Tableau de bord
+2. Communications
+3. Clients
+4. Ventes & Relation client
+5. Projets
+6. Tâches
+7. Documents
+8. Planification financière
+9. Portail client
+10. Automatisations transversales
+
+### Priorité haute
+11. Comptabilité
+12. Services
+13. Opérations
+14. Parc & équipements
+15. Locations
+16. Équipe & RH
+17. Marketing
+18. Rapports
+
+### Priorité moyenne
+19. Administration avancée
+20. Paramètres de l’espace de travail
+21. Abonnement & facturation SaaS
+
+==================================================
+BUILD ORDER À EXÉCUTER
+==================================================
+
+# PHASE 1 — AUDIT RAPIDE
+- audite la structure actuelle
+- repère les modules existants
+- repère les tables et routes déjà présentes
+- repère les composants de dashboard, communications, CRM, projets, documents, finance, RH et portail client
+- repère les rôles et permissions existants
+- repère les providers externes déjà connectés ou à préparer
+- prépare une stratégie d’intégration incrémentale
+
+# PHASE 2 — COUCHE COMMUNE D’INTELLIGENCE / AUTOMATION
+Ajoute une couche transversale réutilisable pour :
+- recommandations
+- scoring
+- résumés automatiques
+- alertes intelligentes
+- déclencheurs métier
+- journaux d’insights
+- notifications proactives
+
+Créer ou adapter une structure du type :
+- insights
+- recommendations
+- automation_rules
+- automation_logs
+- assistant_summaries
+- risk_flags
+- smart_scores
+
+Créer les tables / modèles / services nécessaires pour permettre :
+- détection de risque
+- résumé d’activité
+- suggestion de prochaine action
+- calcul de score
+- exécution de règles automatiques
+
+# PHASE 3 — TABLEAU DE BORD INTELLIGENT
+Améliore le dashboard pour qu’il devienne un vrai cockpit exécutif.
+
+Ajouter :
+- copilote exécutif IA
+- résumé intelligent du jour / semaine / mois
+- détection d’anomalies
+- alertes prioritaires
+- opportunités détectées
+- risques détectés
+- recommandations d’actions
+- vues selon le rôle (direction, manager, finance, commercial, RH, opérations)
+
+Créer ou adapter :
+- cartes d’insights
+- widget anomalies
+- widget recommandations
+- widget risques
+- widget prévisions
+- widget opportunités
+- résumé automatique workspace
+
+# PHASE 4 — COMMUNICATIONS INTELLIGENTES
+Renforcer le module Communications.
+
+Ajouter :
+- traduction instantanée
+- sélecteur direct de langue
+- bouton WhatsApp direct par contact
+- voice-to-text
+- éventuellement text-to-speech ou message vocal préparé
+- résumé automatique de conversation
+- extraction automatique des actions à suivre
+- chat contextuel lié aux clients, projets, services, factures et locations
+- notifications plus fiables
+- expérience d’appel entrant/sortant plus professionnelle
+
+Créer ou adapter :
+- conversation_summary
+- conversation_actions
+- language_preferences
+- whatsapp_contact_linking
+- message_translation_records
+
+Prévoir les hooks/services pour :
+- translation provider
+- speech-to-text provider
+- WhatsApp linking
+- real-time notifications
+
+# PHASE 5 — CLIENTS 360° + SCORE CLIENT
+Créer une vraie fiche client 360°.
+
+Ajouter :
+- vue unifiée client
+- projets liés
+- services liés
+- factures liées
+- paiements liés
+- documents liés
+- échanges liés
+- alertes liées
+- campagnes liées
+- score de santé client
+- résumé intelligent client
+- prochaine meilleure action recommandée
+- indicateur de risque / potentiel / rentabilité
+
+Créer ou adapter :
+- client_health_score
+- client_summary
+- client_recommendations
+- client_activity_timeline
+
+# PHASE 6 — VENTES & RELATION CLIENT
+Renforcer Sales / CRM.
+
+Ajouter :
+- score d’opportunité
+- probabilité de conversion
+- prochaine action commerciale suggérée
+- génération assistée de devis / proforma
+- suggestions d’upsell / cross-sell
+- vue commerciale connectée à l’exécution, à la facturation et aux paiements
+
+Créer ou adapter :
+- opportunity_score
+- sales_recommendations
+- proposal_generation_helper
+- commercial_next_actions
+
+# PHASE 7 — PROJETS INTELLIGENTS
+Renforcer Projets.
+
+Ajouter :
+- prédiction de retard
+- assistant de création projet
+- modèles de projet
+- génération automatique de phases et tâches
+- carte de risque projet
+- résumé automatique de projet
+- arbitrage ressource multi-projets
+- indicateur de santé projet
+
+Créer ou adapter :
+- project_health_score
+- project_risk_flags
+- project_summary
+- project_template_engine
+- project_delay_prediction
+
+# PHASE 8 — TÂCHES INTELLIGENTES
+Renforcer Tâches.
+
+Ajouter :
+- création de tâche par voix
+- priorisation intelligente
+- détection de blocages
+- dépendances plus visibles
+- résumé automatique d’avancement
+- prochaine meilleure action
+- suggestions de réaffectation si surcharge
+
+Créer ou adapter :
+- task_priority_score
+- task_blockers
+- task_summary
+- recommended_tasks
+- voice_task_input_pipeline
+
+# PHASE 9 — DOCUMENTS INTELLIGENTS
+Renforcer Documents.
+
+Ajouter :
+- classement automatique intelligent
+- suggestions d’association à client/projet/service/facture/location
+- recherche sémantique
+- résumé automatique de document
+- détection de pièces manquantes
+- checklist documentaire intelligente
+- niveau de complétude d’un dossier
+
+Créer ou adapter :
+- document_summary
+- document_tags_auto
+- document_missing_flags
+- document_context_links
+- semantic_search_index si possible
+
+# PHASE 10 — PLANIFICATION FINANCIÈRE
+Renforcer Planification financière.
+
+Ajouter :
+- budget intelligent
+- variance analysis commentée automatiquement
+- forecast glissant
+- scénarios dynamiques
+- résumé managérial des écarts
+- projections actualisées
+- suggestions d’actions financières
+
+Créer ou adapter :
+- budget_versions
+- forecast_runs
+- variance_comments_generated
+- financial_recommendations
+- scenario_models
+
+# PHASE 11 — PORTAIL CLIENT INTELLIGENT
+Renforcer Portail client.
+
+Ajouter :
+- résumé intelligent client
+- ce qui avance / ce qui est en attente / ce qui attend validation
+- validation en ligne
+- alertes ciblées intelligentes
+- notifications utiles uniquement
+- transparence sur statuts, documents, factures, projets et services
+
+Créer ou adapter :
+- client_portal_summary
+- pending_validations
+- smart_client_notifications
+
+# PHASE 12 — AUTOMATISATIONS TRANSVERSALES
+Créer une couche d’automatisations transversales.
+
+Déclencheurs à prévoir :
+- facture émise
+- facture échue
+- paiement reçu
+- proforma non validée
+- service à renouveler
+- location proche de l’échéance
+- document manquant
+- projet à risque
+- client inactif
+- prospect chaud
+- tâche critique non traitée
+
+Actions :
+- envoyer email
+- envoyer SMS
+- envoyer WhatsApp
+- créer tâche
+- notifier manager
+- notifier client
+- changer statut
+- ajouter tag
+- générer résumé
+- générer recommandation
+
+# PHASE 13 — COMPTABILITÉ INTELLIGENTE
+Renforcer Comptabilité.
+
+Ajouter :
+- comptabilisation semi-automatique
+- suggestion de compte
+- anomalies comptables
+- doublons / incohérences détectés
+- alertes sur créances
+- synthèse dirigeant en langage clair
+- vue finance + opérationnel liée
+
+Créer ou adapter :
+- accounting_suggestions
+- accounting_anomalies
+- accounting_summary
+- reconciliation_flags
+
+# PHASE 14 — SERVICES RÉCURRENTS
+Renforcer Services.
+
+Ajouter :
+- moteur de services récurrents
+- génération automatique des tâches
+- renouvellement intelligent
+- alertes de service
+- rentabilité par service
+- engagements SLA / respect délai
+
+Créer ou adapter :
+- service_cycles
+- service_renewal_recommendations
+- service_health
+- service_margin_metrics
+
+# PHASE 15 — OPÉRATIONS
+Renforcer Opérations.
+
+Ajouter :
+- centre de commande opérationnel
+- affectation intelligente des équipes et ressources
+- détection de goulets d’étranglement
+- playbooks opérationnels
+- résumé journalier des opérations
+
+Créer ou adapter :
+- operations_command_center
+- resource_assignment_recommendations
+- bottleneck_flags
+- operational_playbooks
+
+# PHASE 16 — PARC & ÉQUIPEMENTS
+Renforcer Parc & équipements.
+
+Ajouter :
+- passeport digital d’équipement
+- QR code / scan rapide
+- maintenance prédictive simple
+- historique enrichi
+- localisation logique intelligente
+- coût total de possession simplifié
+
+Créer ou adapter :
+- equipment_passport
+- maintenance_recommendations
+- equipment_location_map
+- equipment_risk_flags
+
+# PHASE 17 — LOCATIONS
+Renforcer Locations.
+
+Ajouter :
+- moteur de disponibilité intelligent
+- alternatives suggérées
+- tarification dynamique
+- relances automatiques
+- renouvellement assisté
+- comparaison état départ / retour
+
+Créer ou adapter :
+- rental_availability_engine
+- rental_pricing_rules
+- rental_alerts
+- rental_return_flags
+
+# PHASE 18 — ÉQUIPE & RH + POINTAGE GÉOLOCALISÉ
+Renforcer Équipe & RH.
+
+Ajouter :
+- profil enrichi collaborateur
+- compétences
+- charge réelle
+- surcharge / sous-charge
+- affectation intelligente
+- synthèse RH
+- vue contribution
+
+### Ajouter un système complet de pointage des collaborateurs
+Le module RH doit désormais inclure une fonctionnalité complète de **gestion des présences et pointages**, avec :
+
+#### Types de pointage à gérer
+- pointage à l’arrivée
+- pointage au départ
+- pointage au début de la pause
+- pointage à la reprise après pause
+
+#### Données à enregistrer pour chaque pointage
+- collaborateur_id
+- organization_id
+- date
+- heure
+- type_pointage
+- latitude
+- longitude
+- adresse ou libellé de localisation si disponible
+- source_device si possible
+- commentaire éventuel
+- statut / validation si pertinent
+
+#### Fonctionnalités attendues
+- capture automatique de la date et de l’heure
+- récupération de la localisation GPS au moment du pointage
+- historique complet des pointages
+- calcul du temps de présence effectif
+- calcul du temps de pause
+- détection des oublis de pointage
+- détection des retards
+- détection des anomalies
+- vue par collaborateur
+- vue du jour
+- vue par équipe / département
+- filtres par date / collaborateur / service / projet / équipe
+
+#### Intégration attendue
+Le pointage doit être relié si pertinent à :
+- projets
+- services
+- opérations
+- équipes / départements
+- reporting RH
+
+#### Tables / modèles à créer ou adapter
+Créer ou adapter par exemple :
+- attendance_records
+- attendance_sessions
+- attendance_breaks
+- attendance_flags
+- attendance_locations
+- attendance_daily_summary
+
+#### Routes / services à créer
+Créer une logique backend et frontend permettant :
+- clock-in
+- clock-out
+- break-start
+- break-end
+- fetch today attendance
+- fetch employee attendance history
+- fetch attendance anomalies
+- fetch attendance dashboard summary
+
+#### Écrans / composants à prévoir
+- écran de pointage rapide
+- historique des pointages
+- tableau RH des présences
+- carte ou vue de localisation si pertinent
+- résumé journalier
+- alertes RH sur anomalies de présence
+
+Créer ou adapter :
+- employee_capacity_score
+- employee_skill_matrix
+- workload_balance_engine
+- hr_summary
+- attendance services
+- attendance UI
+- attendance analytics
+
+# PHASE 19 — MARKETING INTELLIGENT
+Renforcer Marketing.
+
+Ajouter :
+- campagnes multicanales
+- segmentation intelligente
+- automatisations métier
+- scoring prospect
+- lien campagne → opportunité → revenu
+- alertes marketing automatiques
+- recommandation de réengagement
+
+Créer ou adapter :
+- marketing_scores
+- campaign_recommendations
+- engagement_segments
+- automated_reactivation_flows
+
+# PHASE 20 — RAPPORTS INTELLIGENTS
+Renforcer Rapports.
+
+Ajouter :
+- générateur de résumé narratif
+- rapports selon rôle
+- rapport board-ready
+- commentaires automatiques sur KPI
+- exports plus intelligents
+
+Créer ou adapter :
+- report_narratives
+- role_based_reports
+- board_export_profiles
+
+# PHASE 21 — ADMINISTRATION AVANCÉE
+Renforcer Administration.
+
+Ajouter :
+- moteur de rôles flexible
+- journal d’audit enrichi
+- configuration par secteur
+- presets sectoriels
+- règles d’accès avancées
+- visualisation permissions
+
+Créer ou adapter :
+- role_templates
+- sector_presets
+- audit_extensions
+- access_matrix_view
+
+# PHASE 22 — WORKSPACE SETTINGS ET BILLING
+Renforcer les modules SaaS.
+
+Ajouter :
+- branding par organisation
+- presets locaux
+- activation modulaire
+- recommandations d’upgrade
+- analyse usage vs package
+- suggestions de montée en gamme
+
+Créer ou adapter :
+- plan_usage_insights
+- upgrade_recommendations
+- workspace_branding_profiles
+
+==================================================
+EXIGENCES TECHNIQUES
+==================================================
+
+Tout doit être :
+- multi-tenant aware
+- role-aware
+- plan-aware
+- cohérent avec le branding Nexora
+- compatible avec le marché togolais et la sous-région francophone
+- proprement intégré à l’UI existante
+- démontrable avec données réalistes
+
+Créer les tables, services, DTO, composants, hooks, widgets, routes et pages nécessaires.
+Si certaines fonctionnalités dépendent de providers externes non encore branchés, préparer :
+- l’architecture
+- les interfaces d’abstraction
+- les placeholders techniques
+- les points d’extension
+
+Pour le pointage géolocalisé :
+- prévoir l’utilisation de la géolocalisation côté navigateur/mobile
+- prévoir la gestion des permissions de localisation
+- prévoir une dégradation élégante si la localisation n’est pas disponible
+- prévoir des garde-fous pour éviter les doublons ou pointages incohérents
+
+==================================================
+DONNÉES DE DÉMO
+==================================================
+
+Ajoute des données de démonstration réalistes pour que l’on puisse visualiser :
+- scores
+- alertes
+- résumés
+- recommandations
+- anomalies
+- campagnes
+- dashboards
+- prévisions
+- risques
+- suggestions de prochaine action
+- présences
+- retards
+- pauses
+- pointages géolocalisés
+
+Je veux pouvoir tester visuellement les nouvelles capacités.
+
+==================================================
+PERMISSIONS À AJOUTER
+==================================================
+
+Ajoute les permissions nécessaires, par exemple :
+- view_ai_insights
+- manage_automation_rules
+- view_risk_flags
+- view_recommendations
+- manage_translation_tools
+- manage_whatsapp_links
+- view_client_health_scores
+- view_project_risk_scores
+- view_financial_forecasts
+- manage_intelligent_reports
+- manage_predictive_features
+- view_attendance
+- manage_attendance
+- clock_in_out
+- view_attendance_anomalies
+- manage_attendance_settings
+
+==================================================
+SORTIE FINALE OBLIGATOIRE
+==================================================
+
+À la fin, fournis :
+1. la liste des fichiers créés
+2. la liste des fichiers modifiés
+3. la liste des tables créées ou adaptées
+4. la liste des routes créées
+5. la liste des pages créées
+6. la liste des composants créés
+7. la liste des permissions ajoutées
+8. les variables d’environnement nécessaires
+9. les intégrations externes prévues
+10. les fonctionnalités prêtes à tester
+11. les points restant à connecter
+12. un résumé de la nouvelle couche d’intelligence de Nexora
+13. un résumé du nouveau système de pointage géolocalisé
+
+Règle finale :
+**n’explique pas seulement. Exécute les changements directement dans l’application.**
+Le résultat final doit faire de **Nexora** une plateforme qui se démarque clairement par son intelligence, sa proactivité, sa capacité d’anticipation, sa valeur managériale, et son système professionnel de gestion des présences avec géolocalisation.
