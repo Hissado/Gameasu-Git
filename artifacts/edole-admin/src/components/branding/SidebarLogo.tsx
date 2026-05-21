@@ -14,7 +14,7 @@ export function SidebarLogo({ onNavigate }: { onNavigate?: () => void }) {
       href="/"
       onClick={onNavigate}
       aria-label={BRANDING.appName}
-      className="inline-flex items-center shrink-0 select-none"
+      className="flex w-full items-center justify-center select-none"
     >
       {/* Conteneur à hauteur fixe : à 200 px de large, l'image mesure
           200 × (941/1672) = 112 px de haut. On en affiche 66 px (59 %)
