@@ -81,7 +81,7 @@ export default function WorkspaceSettingsPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Field label="URL du logo" value={branding.logoUrl} onChange={(v) => setBranding((s) => ({ ...s, logoUrl: v }))} placeholder="https://…" />
-          <Field label="Couleur principale" value={branding.primaryColor} onChange={(v) => setBranding((s) => ({ ...s, primaryColor: v }))} placeholder="#FF6B00" />
+          <Field label="Couleur principale" value={branding.primaryColor} onChange={(v) => setBranding((s) => ({ ...s, primaryColor: v }))} placeholder="#C8A24B" />
           <Field label="Couleur secondaire" value={branding.secondaryColor} onChange={(v) => setBranding((s) => ({ ...s, secondaryColor: v }))} placeholder="#0F172A" />
           <div className="md:col-span-3 flex justify-end">
             <Button onClick={() => updateBranding.mutate(branding, { onSuccess: () => toast({ title: "Identité mise à jour" }) })} disabled={updateBranding.isPending}>

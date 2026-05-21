@@ -48,7 +48,7 @@ export default function BalancePage() {
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-muted/60 font-bold border-t-2 border-primary">
+            <tfoot className="bg-slate-50 font-bold border-t-2 border-amber-500">
               <tr>
                 <td colSpan={2} className="p-3 text-right">Totaux généraux</td>
                 <td className="p-3 text-right font-mono">{formatFCFA(data?.totalDebit ?? 0)}</td>

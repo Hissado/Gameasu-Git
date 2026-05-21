@@ -24,7 +24,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 
-const CATEGORY_COLORS = ["#FF6B00", "#0EA5E9", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#EF4444"];
+const CATEGORY_COLORS = ["#F37021", "#0EA5E9", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#EF4444"];
 const KIND_LABELS: Record<string, string> = { in: "Entrée", out: "Sortie", adjust: "Ajustement" };
 
 type Product = {
@@ -1148,7 +1148,7 @@ function ReportsTab() {
                   <RTooltip formatter={(v: number) => formatFCFA(v)} />
                   <Legend iconType="circle" formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
                   <Bar dataKey="purchasesFcfa" name="Achats" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="salesFcfa" name="Ventes" fill="#FF6B00" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="salesFcfa" name="Ventes" fill="#F37021" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

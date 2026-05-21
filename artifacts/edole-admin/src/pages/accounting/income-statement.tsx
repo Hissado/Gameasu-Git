@@ -66,7 +66,7 @@ export default function IncomeStatementPage() {
         </Card>
       </div>
 
-      <Card className="mt-6 border-2 border-primary">
+      <Card className="mt-6 border-2 border-amber-500">
         <CardContent className="p-6 flex items-center justify-between">
           <div>
             <div className="text-xs uppercase text-muted-foreground font-semibold">Résultat net de l'exercice</div>

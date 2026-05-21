@@ -27,7 +27,7 @@ export function UpgradeRequired({ moduleKey }: { moduleKey?: string }) {
         <div className="absolute top-0 left-0 right-0 gold-divider" />
         <div className="mx-auto mb-5 inline-flex items-center justify-center">
           <GaméasùMark className="w-14 h-14 rounded-xl" variant="dark" />
-          <span className="-ml-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center ring-4 ring-card shadow-elev-md">
+          <span className="-ml-3 w-8 h-8 rounded-full bg-[#C8A24B] text-[#0F1A3A] flex items-center justify-center ring-4 ring-card shadow-md">
             <Lock className="w-4 h-4" />
           </span>
         </div>
@@ -40,7 +40,7 @@ export function UpgradeRequired({ moduleKey }: { moduleKey?: string }) {
         </p>
         <Link
           href="/billing"
-          className="mt-7 inline-flex items-center gap-2 rounded-md bg-secondary hover:bg-secondary/90 px-5 py-2.5 text-sm font-semibold text-primary shadow-elev-md hover:shadow-elev-lg transition-all border border-primary/30"
+          className="mt-7 inline-flex items-center gap-2 rounded-lg bg-[#0F1A3A] hover:bg-[#1B2A4E] px-5 py-2.5 text-sm font-semibold text-[#C8A24B] shadow-lg hover:shadow-xl transition-all border border-[#C8A24B]/30"
         >
           Voir les formules <ArrowRight className="w-4 h-4" />
         </Link>
