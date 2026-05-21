@@ -34,7 +34,7 @@ export function getPreviewInbox(limit = 50) {
 export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "EDOLE Africa <no-reply@edole.africa>";
+  const from = process.env.EMAIL_FROM || "Gaméasù <no-reply@gameasu.africa>";
 
   let result: EmailDeliveryResult;
   try {
@@ -89,7 +89,7 @@ export function buildInvitationEmail(opts: {
   recipientName: string; inviterName: string; orgName?: string; acceptUrl: string;
   temporaryPassword: string;
 }): EmailMessage {
-  const org = opts.orgName ?? "EDOLE Africa";
+  const org = opts.orgName ?? "Gaméasù";
   return {
     to: "",
     subject: `Invitation à rejoindre ${org}`,
@@ -134,7 +134,7 @@ export function buildPasswordResetEmail(opts: {
 }): EmailMessage {
   return {
     to: "",
-    subject: "Réinitialisation de votre mot de passe EDOLE",
+    subject: "Réinitialisation de votre mot de passe Gaméasù",
     text: `Bonjour ${opts.recipientName},\n\nUne demande de réinitialisation a été reçue. Cliquez sur le lien ci-dessous (valide 1h) :\n${opts.resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
     html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #eee;padding:24px">

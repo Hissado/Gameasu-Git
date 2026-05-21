@@ -20,7 +20,7 @@ export function IntelligenceWidget() {
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2"><Brain className="w-4 h-4 text-primary" /> Copilote exécutif Nexora</span>
+          <span className="flex items-center gap-2"><Brain className="w-4 h-4 text-primary" /> Copilote exécutif Gaméasù</span>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className={data.aiAvailable ? "border-emerald-500/30 text-emerald-600 text-[10px]" : "border-amber-500/30 text-amber-600 text-[10px]"}>
               <Sparkles className="w-3 h-3 mr-1" /> {data.aiAvailable ? "IA active" : "heuristique"}

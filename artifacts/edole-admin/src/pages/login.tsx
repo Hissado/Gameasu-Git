@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { NexoraLockup } from "@/components/branding/NexoraLockup";
+import { GaméasùLockup } from "@/components/branding/GameasuLockup";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ export default function LoginPage() {
     );
   };
 
-  const NexoraLogo = <NexoraLockup size="xl" variant="dark" />;
+  const GaméasùLogo = <GaméasùLockup size="xl" variant="dark" />;
 
   return (
     <div className="min-h-screen w-full flex">
@@ -54,7 +54,7 @@ export default function LoginPage() {
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B33 0, transparent 45%), radial-gradient(circle at 80% 80%, #1B2A4E66 0, transparent 40%)" }}
         />
-        <div className="relative">{NexoraLogo}</div>
+        <div className="relative">{GaméasùLogo}</div>
 
         <div className="relative space-y-8 max-w-md">
           <div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-md shadow-xl border-border/60">
           <CardHeader className="space-y-2 pb-6">
             <div className="flex lg:hidden justify-center mb-3">
-              <NexoraLockup size="lg" variant="light" />
+              <GaméasùLockup size="lg" variant="light" />
             </div>
             <CardTitle className="font-display text-[26px] font-bold tracking-[-0.03em]">Espace professionnel</CardTitle>
             <CardDescription>

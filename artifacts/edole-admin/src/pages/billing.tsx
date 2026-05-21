@@ -77,7 +77,7 @@ export default function BillingPage() {
               <ArrowUpRight className="w-4 h-4" />
             </Button>
             <Button asChild variant="outline" className="w-full justify-between">
-              <a href={`mailto:${BRANDING.appName.toLowerCase()}-sales@nexora.africa`}>
+              <a href={`mailto:${BRANDING.appName.toLowerCase()}-sales@gameasu.africa`}>
                 Contacter le commercial <ArrowUpRight className="w-4 h-4" />
               </a>
             </Button>

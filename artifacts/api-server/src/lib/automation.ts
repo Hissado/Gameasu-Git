@@ -9,7 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { logger } from "./logger";
 
 // ─────────────────────────────────────────────────────────────────
-// NEXORA — Moteur d'automatisation transversale
+// GAMÉASÙ — Moteur d'automatisation transversale
 // Évalue les règles métier au déclenchement d'événements et exécute
 // les actions configurées (email, SMS, WhatsApp, tâche, notification,
 // changement de statut, tag, résumé, recommandation…).

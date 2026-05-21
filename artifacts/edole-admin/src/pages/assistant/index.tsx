@@ -1,5 +1,5 @@
 /**
- * Phase 13 — Assistant conversationnel Nexora.
+ * Phase 13 — Assistant conversationnel Gaméasù.
  */
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -54,7 +54,7 @@ export default function AssistantPage() {
       <div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Assistant IA</p>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-primary" /> Nexora Assistant
+          <Sparkles className="w-6 h-6 text-primary" /> Gaméasù Assistant
         </h1>
         <p className="text-muted-foreground mt-1">Posez vos questions sur l'activité : KPI, clients, projets, finances, équipe.</p>
       </div>

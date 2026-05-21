@@ -658,7 +658,7 @@ function NewMissionDialog({ open, onClose, onCreated }: { open: boolean; onClose
               </Select>
             </div>
           </div>
-          <div><Label>Adresse de départ</Label><Input value={originAddress} onChange={(e) => setOriginAddress(e.target.value)} placeholder="Dépôt Nexora — Lomé" /></div>
+          <div><Label>Adresse de départ</Label><Input value={originAddress} onChange={(e) => setOriginAddress(e.target.value)} placeholder="Dépôt Gaméasù — Lomé" /></div>
           <div><Label>Destination *</Label><Input value={destinationAddress} onChange={(e) => setDestinationAddress(e.target.value)} placeholder="Chantier client" /></div>
           <div><Label>Date/heure prévue</Label><Input type="datetime-local" value={scheduledStart} onChange={(e) => setScheduledStart(e.target.value)} /></div>
           <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>

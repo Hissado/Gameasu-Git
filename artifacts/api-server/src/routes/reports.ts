@@ -93,9 +93,9 @@ function formatFCFA(amount: number): string {
 function applyExcelBranding(ws: ExcelJS.Worksheet, title: string, period: { from: Date; to: Date }) {
   ws.mergeCells("A1:F1");
   const titleCell = ws.getCell("A1");
-  titleCell.value = `NEXORA — ${title}`;
+  titleCell.value = `GAMÉASÙ — ${title}`;
   titleCell.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
-  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF26B1F" } };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC8A24B" } };
   titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   ws.getRow(1).height = 28;
   ws.mergeCells("A2:F2");
@@ -199,7 +199,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
   res.setHeader("Content-Disposition", `inline; filename="rapport-stock-${new Date().toISOString().slice(0, 10)}.pdf"`);
   doc.pipe(res);
 
-  doc.fontSize(20).fillColor("#F26B1F").text("EDOLE AFRICA", { align: "left" });
+  doc.fontSize(20).fillColor("#C8A24B").text("GAMÉASÙ", { align: "left" });
   doc.fontSize(10).fillColor("#666").text("Le pilotage d'entreprise nouvelle génération");
   doc.moveDown();
 
@@ -219,7 +219,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
   doc.fontSize(13).fillColor("#000").text("Détail par catégorie");
   doc.moveDown(0.5);
   for (const [cat, stats] of Object.entries(byCategory)) {
-    doc.fontSize(11).fillColor("#F26B1F").text(cat, { continued: false });
+    doc.fontSize(11).fillColor("#C8A24B").text(cat, { continued: false });
     doc.fontSize(10).fillColor("#333").text(
       `   Total: ${stats.total}  •  Dispo: ${stats.available}  •  Location: ${stats.rented}  •  Maintenance: ${stats.maintenance}`,
     );
@@ -227,7 +227,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
   }
 
   doc.moveDown(2);
-  doc.fontSize(8).fillColor("#999").text("EDOLE AFRICA — Document confidentiel — Généré automatiquement par la plateforme.", { align: "center" });
+  doc.fontSize(8).fillColor("#999").text("GAMÉASÙ — Document confidentiel — Généré automatiquement par la plateforme.", { align: "center" });
 
   doc.end();
 });

@@ -1,5 +1,5 @@
 /**
- * Phase 13 — Chatbot Nexora (assistant conversationnel).
+ * Phase 13 — Chatbot Gaméasù (assistant conversationnel).
  *  - POST /api/assistant/ask  { question, context? }
  *
  * Détecte l'intention (kpi/clients/projets/finance/rh/recherche/aide), assemble
@@ -156,7 +156,7 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
 
 function heuristicAnswer(intent: Intent, ctx: string, q: string): string {
   if (intent === "help") {
-    return "Je suis l'assistant Nexora. Posez-moi des questions sur vos KPI, clients, projets, tâches, finances ou équipe. Exemples : « combien de factures en retard ? », « tâches urgentes », « trouve le client SOGELEC ». Pour la recherche libre, utilisez /search.";
+    return "Je suis l'assistant Gaméasù. Posez-moi des questions sur vos KPI, clients, projets, tâches, finances ou équipe. Exemples : « combien de factures en retard ? », « tâches urgentes », « trouve le client SOGELEC ». Pour la recherche libre, utilisez /search.";
   }
   if (!ctx.trim()) {
     return "Je n'ai pas trouvé d'éléments correspondants dans vos données. Reformulez ou consultez la recherche universelle.";
@@ -183,7 +183,7 @@ router.post("/assistant/ask", async (req, res, next) => {
 
     if (aiAvailable() && intent !== "help") {
       const summary = await summarize({
-        system: "Tu es l'assistant exécutif Nexora (SaaS B2B Togo/Afrique francophone). Réponds en français business, 3-6 phrases max, factuel, sans préambule, sans markdown. Utilise UNIQUEMENT les données fournies en contexte. Si le contexte est vide, dis-le.",
+        system: "Tu es l'assistant exécutif Gaméasù (SaaS B2B Togo/Afrique francophone). Réponds en français business, 3-6 phrases max, factuel, sans préambule, sans markdown. Utilise UNIQUEMENT les données fournies en contexte. Si le contexte est vide, dis-le.",
         context: `Question: ${question}\n\nContexte:\n${text || "(aucune donnée pertinente trouvée)"}`,
         maxTokens: 400,
       });

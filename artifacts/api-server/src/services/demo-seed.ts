@@ -1,5 +1,5 @@
 /**
- * Génération de données de démo réalistes et interconnectées pour EDOLE AFRICA.
+ * Génération de données de démo réalistes et interconnectées pour GAMÉASÙ.
  *
  * Stratégie :
  * - Idempotent : marqueur via un client "BTP Vision SARL" — si présent, on saute.

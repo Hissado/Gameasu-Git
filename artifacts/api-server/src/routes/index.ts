@@ -117,7 +117,7 @@ seedRbac()
   .then((s) => console.log(`[rbac] seed OK : ${s.permissions} permissions, ${s.roles} rôles système`))
   .catch((e) => console.warn("[rbac] seed failed:", e?.message));
 
-// Seed Nexora SaaS (plans, modules, organisation par défaut). Idempotent.
+// Seed Gaméasù SaaS (plans, modules, organisation par défaut). Idempotent.
 seedSaas()
   .then(() => console.log("[saas] seed OK : organisation, plans, modules, abonnement"))
   .then(() => seedIntelligenceDemo())

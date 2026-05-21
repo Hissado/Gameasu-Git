@@ -1,5 +1,5 @@
 /**
- * Seed SaaS Nexora — crée/maintient :
+ * Seed SaaS Gaméasù — crée/maintient :
  *  - organisation par défaut (où vivent les données métier existantes)
  *  - catalogue des modules
  *  - 4 plans (Starter / Growth / Professional / Enterprise) + features
@@ -206,14 +206,14 @@ async function ensureDefaultOrganization(): Promise<string> {
 
   const [org] = await db.insert(organizationsTable).values({
     slug: "nexora-demo",
-    name: "Nexora Demo",
-    legalName: "Nexora Demo SARL",
+    name: "Gaméasù Demo",
+    legalName: "Gaméasù Demo SARL",
     industry: "Services aux entreprises",
     country: "TG",
     currency: "XOF",
     timezone: "Africa/Lome",
     locale: "fr-FR",
-    contactEmail: "hello@nexora.africa",
+    contactEmail: "hello@gameasu.africa",
     isDefault: true,
     primaryColor: "#FF6B00",
     secondaryColor: "#0F172A",
@@ -332,7 +332,7 @@ async function ensureBillingDemo(orgId: string, subId: string) {
 export async function seedSaas() {
   console.log("• Catalogue modules…");
   await upsertModuleCatalog();
-  console.log("• Plans Nexora…");
+  console.log("• Plans Gaméasù…");
   const planIds = await upsertPlans();
   console.log("• Organisation par défaut…");
   const orgId = await ensureDefaultOrganization();

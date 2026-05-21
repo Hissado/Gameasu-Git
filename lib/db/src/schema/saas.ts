@@ -50,7 +50,7 @@ export const organizationMembersTable = pgTable("organization_members", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// CATALOGUE MODULES — métadonnées des grands modules produits Nexora
+// CATALOGUE MODULES — métadonnées des grands modules produits Gaméasù
 // ─────────────────────────────────────────────────────────────────
 export const moduleCatalogTable = pgTable("module_catalog", {
   id: uuid("id").primaryKey().defaultRandom(),

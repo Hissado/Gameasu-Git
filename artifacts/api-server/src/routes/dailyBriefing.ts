@@ -126,7 +126,7 @@ router.get("/briefing/today", async (req, res, next) => {
 
     if (aiAvailable()) {
       narrative = await summarize({
-        system: "Tu es le briefer exécutif Nexora. Rédige un briefing matinal de 4-6 phrases, en français business, pour un dirigeant pressé. Hiérarchise : priorités du jour > alertes argent > risques > opportunités. Pas de markdown, pas de préambule. Sois factuel.",
+        system: "Tu es le briefer exécutif Gaméasù. Rédige un briefing matinal de 4-6 phrases, en français business, pour un dirigeant pressé. Hiérarchise : priorités du jour > alertes argent > risques > opportunités. Pas de markdown, pas de préambule. Sois factuel.",
         context: ctxLines.join("\n"),
         maxTokens: 350,
       });

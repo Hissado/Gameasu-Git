@@ -1,5 +1,5 @@
 /**
- * Phase 12 — Recherche universelle Nexora.
+ * Phase 12 — Recherche universelle Gaméasù.
  *  - GET /api/search?q=…&limit=10
  *
  * ACL fine : utilise userAccessibleProjectIds / userAccessibleClientIds pour

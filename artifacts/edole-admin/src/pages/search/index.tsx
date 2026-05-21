@@ -1,5 +1,5 @@
 /**
- * Phase 12 — Recherche universelle Nexora.
+ * Phase 12 — Recherche universelle Gaméasù.
  */
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";

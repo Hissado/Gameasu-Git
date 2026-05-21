@@ -1,8 +1,8 @@
-# Nexora — Le pilotage d'entreprise nouvelle génération
+# Gaméasù — Le pilotage d'entreprise nouvelle génération
 
 ## Overview
 
-Plateforme SaaS B2B **multi-tenant** rebrandée **Nexora**, conçue pour les organisations du Togo et d'Afrique de l'Ouest francophone. Issue d'une refonte du socle EDOLE Africa, elle ajoute organisations, plans d'abonnement (Starter/Growth/Professional/Enterprise en FCFA), catalogue de modules, événements de facturation, paramétrage de l'espace de travail, gating par module et identité visuelle dédiée.
+Plateforme SaaS B2B **multi-tenant** rebrandée **Gaméasù**, conçue pour les organisations du Togo et d'Afrique de l'Ouest francophone. Issue d'une refonte du socle EDOLE Africa, elle ajoute organisations, plans d'abonnement (Starter/Growth/Professional/Enterprise en FCFA), catalogue de modules, événements de facturation, paramétrage de l'espace de travail, gating par module et identité visuelle dédiée.
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
@@ -113,4 +113,4 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes
 
-L'historique détaillé des évolutions (transformation SaaS Nexora, gouvernance & sécurité, intelligence/automatisation, modules Operations / Attendance / FP&A / Inventory…) est désormais consigné dans [`CHANGELOG.md`](./CHANGELOG.md).
+L'historique détaillé des évolutions (transformation SaaS Gaméasù, gouvernance & sécurité, intelligence/automatisation, modules Operations / Attendance / FP&A / Inventory…) est désormais consigné dans [`CHANGELOG.md`](./CHANGELOG.md).

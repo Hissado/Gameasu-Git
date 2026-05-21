@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
-import { NexoraLockup } from "@/components/branding/NexoraLockup";
+import { GaméasùLockup } from "@/components/branding/GameasuLockup";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Users, Briefcase, Wrench, Truck,
@@ -23,7 +23,7 @@ type NavItem = {
 };
 type NavGroup = { title: string; items: NavItem[] };
 
-// ─── Architecture d'information Nexora ─────────────────────────────
+// ─── Architecture d'information Gaméasù ─────────────────────────────
 // Hiérarchie 6 sections × ~5 items, classée selon le parcours métier :
 // 1. Pilotage  → où je commence ma journée (cockpit, briefing, IA, approbations)
 // 2. Commercial → cycle de vente complet (clients → pipeline → devis → factures → marketing)
@@ -42,7 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Briefing du jour", path: "/briefing", icon: Sun, moduleKey: "dashboard" },
       { name: "Cockpit IA", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
       { name: "Approbations", path: "/approvals", icon: CheckSquare, moduleKey: "dashboard" },
-      { name: "Assistant Nexora", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
+      { name: "Assistant Gaméasù", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
     ],
   },
   {
@@ -137,10 +137,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* Bandeau logo Nexora */}
+      {/* Bandeau logo Gaméasù */}
       <div className="relative flex items-center justify-between px-5 h-16 shrink-0 bg-sidebar-accent/30 border-b border-sidebar-border/60">
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex">
-          <NexoraLockup size="md" variant="dark" />
+          <GaméasùLockup size="md" variant="dark" />
         </Link>
         <button type="button" onClick={() => setMobileOpen(false)} className="lg:hidden p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:bg-white/[0.06]" aria-label="Fermer le menu">
           <X className="w-5 h-5" />
@@ -236,7 +236,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/" className="lg:hidden inline-flex">
-              <NexoraLockup size="sm" variant="light" showSlogan={false} />
+              <GaméasùLockup size="sm" variant="light" showSlogan={false} />
             </Link>
 
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">

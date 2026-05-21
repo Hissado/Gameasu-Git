@@ -324,7 +324,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ─── Copilote exécutif Nexora ─── */}
+      {/* ─── Copilote exécutif Gaméasù ─── */}
       <IntelligenceWidget />
 
       {/* ─── Bloc 1 : Performance financière ─── */}

@@ -807,7 +807,7 @@ router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
   for (const l of data.lines) cellMap.set(`${l.accountId}::${l.period}`, toNum(l.amount));
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "EDOLE Africa — FP&A";
+  wb.creator = "Gaméasù — FP&A";
   wb.created = new Date();
   const ws = wb.addWorksheet(`Budget ${data.budget.versionNumber}`);
   ws.mergeCells(1, 1, 1, months.length + 4);
@@ -852,7 +852,7 @@ router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
   if (!v) return res.status(404).json({ error: "Introuvable" });
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "EDOLE Africa — FP&A";
+  wb.creator = "Gaméasù — FP&A";
   wb.created = new Date();
 
   // Onglet 1 : synthèse globale
@@ -908,7 +908,7 @@ router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
   const v = await buildVarianceReport(req.params.forecastId);
   if (!v) return res.status(404).json({ error: "Introuvable" });
   const wb = new ExcelJS.Workbook();
-  wb.creator = "EDOLE Africa — FP&A";
+  wb.creator = "Gaméasù — FP&A";
   const ws = wb.addWorksheet("Forecast vs réalisé");
   ws.mergeCells(1, 1, 1, 6);
   const t = ws.getCell(1, 1);
@@ -996,7 +996,7 @@ router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "EDOLE Africa — FP&A";
+  wb.creator = "Gaméasù — FP&A";
   const ws = wb.addWorksheet("Synthèse par projet");
   ws.mergeCells(1, 1, 1, 7);
   const t = ws.getCell(1, 1);

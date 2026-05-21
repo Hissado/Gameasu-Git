@@ -1,5 +1,5 @@
 /**
- * Seed démo : couche d'intelligence Nexora.
+ * Seed démo : couche d'intelligence Gaméasù.
  * Crée scores, risques, insights, recommandations, résumés et pointages
  * de démonstration pour rendre l'expérience visiblement intelligente.
  * Idempotent — n'ajoute rien si des lignes existent déjà.
@@ -232,7 +232,7 @@ export async function seedIntelligenceDemo() {
           latitude: lat.toFixed(7),
           longitude: lng.toFixed(7),
           accuracyMeters: 25,
-          locationLabel: "Lomé - Siège Nexora Demo",
+          locationLabel: "Lomé - Siège Gaméasù Demo",
           sourceDevice: "demo-seed",
           status: "validated",
         })));

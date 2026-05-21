@@ -1,5 +1,5 @@
 /**
- * Contexte tenant Nexora.
+ * Contexte tenant Gaméasù.
  * Pour cette première itération SaaS, chaque utilisateur est rattaché
  * à une et une seule organisation via `organization_members`. On expose un
  * helper `getCurrentOrganizationId(userId)` utilisé par toutes les routes
@@ -18,7 +18,7 @@ import { and, eq } from "drizzle-orm";
  * AUCUN fallback : un utilisateur sans membership ne peut accéder à
  * aucun contexte tenant — les routes SaaS doivent renvoyer 403.
  * (Le seed SaaS rattache déjà tous les utilisateurs seedés à
- * l'organisation `nexora-demo`.)
+ * l'organisation `gameasu-demo`.)
  */
 export async function getCurrentOrganizationId(userId: string): Promise<string | null> {
   const member = await db.select({ orgId: organizationMembersTable.organizationId })

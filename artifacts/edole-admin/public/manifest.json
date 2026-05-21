@@ -1,7 +1,7 @@
 {
-  "name": "Nexora — Pilotage d'entreprise",
-  "short_name": "Nexora",
-  "description": "Nexora — Le pilotage d'entreprise nouvelle génération. Plateforme SaaS B2B pour les organisations du Togo et d'Afrique de l'Ouest francophone.",
+  "name": "Gaméasù — Pilotage d'entreprise",
+  "short_name": "Gaméasù",
+  "description": "Gaméasù — Le pilotage d'entreprise nouvelle génération. Plateforme SaaS B2B pour les organisations du Togo et d'Afrique de l'Ouest francophone.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,7 +11,7 @@
   "lang": "fr",
   "icons": [
     {
-      "src": "/branding/nexora-mark.png",
+      "src": "/branding/gameasu-logo-transparent.png",
       "sizes": "400x400",
       "type": "image/png",
       "purpose": "any maskable"
