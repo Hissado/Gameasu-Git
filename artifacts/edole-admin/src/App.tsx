@@ -79,6 +79,7 @@ const SuperAdminCockpit = lazy(() => import("@/pages/super-admin/index"));
 const OrgTuner = lazy(() => import("@/pages/org-tuner/index"));
 const QuickActions = lazy(() => import("@/pages/quick-actions/index"));
 const OperationsCommandCenter = lazy(() => import("@/pages/operations/index"));
+const InventoryHub = lazy(() => import("@/pages/inventory/index"));
 const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/campaigns"));
@@ -245,6 +246,8 @@ function AppRouter() {
                 <Route path="/quick" component={QuickActions} />
                 <Route path="/operations" component={OperationsCommandCenter} />
                 <Route path="/logistics" component={OperationsCommandCenter} />
+                <Route path="/inventory" component={InventoryHub} />
+                <Route path="/inventory/:tab" component={InventoryHub} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
                 <Route path="/marketing/campaigns" component={MarketingCampaigns} />

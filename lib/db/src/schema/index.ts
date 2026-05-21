@@ -24,3 +24,4 @@ export * from "./intelligence";
 export * from "./attendance";
 export * from "./governance";
 export * from "./operations";
+export * from "./inventory";

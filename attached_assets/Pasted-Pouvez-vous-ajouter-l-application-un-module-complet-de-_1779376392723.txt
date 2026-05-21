@@ -1,0 +1,93 @@
+Pouvez-vous ajouter à l’application un **module complet de gestion des stocks / inventaire de produits et articles destinés à la revente**, entièrement intégré aux modules **Ventes & Relation client**, **Achats / Commandes**, **Opérations** et **Comptabilité** ?
+
+### Objectif
+Je veux que l’application puisse gérer tout le cycle de vie des produits destinés à la revente, depuis l’approvisionnement jusqu’à la vente, avec un suivi fiable des quantités, des coûts, des mouvements de stock et des impacts comptables.
+
+### Périmètre fonctionnel attendu
+Merci d’ajouter une gestion complète incluant au minimum :
+
+#### 1. Référentiel produits / articles
+- création de produits et articles à revendre
+- SKU / code article
+- catégorie
+- unité de mesure
+- prix d’achat
+- prix de vente
+- stock minimum
+- stock disponible
+- variantes si nécessaire
+- fournisseur principal
+- image / fiche article si utile
+
+#### 2. Gestion des achats / approvisionnements
+- création de demandes d’achat si pertinent
+- création et suivi des bons de commande (PO)
+- rattachement aux fournisseurs
+- réception des articles
+- entrée en stock
+- mise à jour automatique des quantités
+- suivi des quantités commandées, reçues et en attente
+
+#### 3. Gestion des stocks / inventaire
+- stock disponible
+- stock réservé
+- stock en attente de réception
+- stock sorti
+- mouvements de stock
+- ajustements manuels
+- inventaires physiques
+- alertes de stock faible
+- historique complet des mouvements
+
+#### 4. Gestion des ventes
+- sélection des articles à vendre
+- lien avec le module Commercial / Ventes & Relation client
+- génération de devis / proformas / commandes / factures
+- décrémentation automatique du stock lors de la vente ou selon le bon statut de validation
+- suivi des articles vendus par client, commande, projet ou service
+
+#### 5. Liaison avec la comptabilité
+Je veux que tout cela soit lié à la comptabilité, notamment :
+- valorisation du stock
+- impact des achats
+- impact des ventes
+- suivi du coût d’achat et du prix de vente
+- logique de marge
+- écritures comptables ou logique comptable préparée/automatisée si pertinent
+- lien avec fournisseurs, factures, paiements et comptes concernés
+
+#### 6. Reporting
+- état de stock
+- mouvements de stock
+- stock faible
+- articles les plus vendus
+- marge par article si possible
+- valorisation du stock
+- achats vs ventes
+- inventaire par catégorie / fournisseur / période
+
+### Intégration attendue
+Le module doit être bien connecté aux autres parties de l’application, notamment :
+- **Ventes & Relation client**
+- **Comptabilité**
+- **Achats / Commandes**
+- **Fournisseurs**
+- **Clients**
+- **Projets**
+- **Services**
+- **Documents**
+- **Rapports**
+
+### Résultat attendu
+Je veux un vrai processus de gestion des articles à revendre, couvrant :
+- ajout des articles
+- approvisionnement
+- bons de commande
+- réception
+- stockage
+- vente
+- sortie de stock
+- lien comptable
+- reporting
+
+L’objectif final est d’avoir un **module complet de gestion des produits / inventaire / stock**, pleinement intégré au commercial et à la comptabilité, avec un fonctionnement professionnel, structuré et cohérent dans toute l’application.

@@ -115,6 +115,12 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "operations.incidents", label: "Gérer les incidents terrain", category: "Opérations" },
   { code: "operations.checklists", label: "Gérer les checklists opérationnelles", category: "Opérations" },
   { code: "operations.performance", label: "Consulter les KPI opérationnels", category: "Opérations" },
+
+  // ─── Inventaire & Stock (produits destinés à la revente) ───────
+  { code: "inventory.read", label: "Voir les produits, stocks et mouvements", category: "Inventaire" },
+  { code: "inventory.manage", label: "Gérer produits, catégories, bons de commande et lignes de vente", category: "Inventaire" },
+  { code: "inventory.receive", label: "Réceptionner les bons de commande", category: "Inventaire" },
+  { code: "inventory.adjust", label: "Ajuster manuellement le stock (inventaire physique)", category: "Inventaire" },
 ];
 
 /**
@@ -173,6 +179,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "attendance.view", "attendance.manage", "attendance.clock", "attendance.view_anomalies",
       "operations.view", "operations.manage", "operations.assign", "operations.dispatch",
       "operations.checkin", "operations.incidents", "operations.checklists", "operations.performance",
+      "inventory.read", "inventory.manage", "inventory.receive", "inventory.adjust",
     ],
   },
   {
@@ -195,6 +202,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "scoring.view_client_health",
       "attendance.clock",
       "operations.view",
+      "inventory.read", "inventory.manage",
     ],
   },
   {
@@ -215,6 +223,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "ai.view_insights",
       "attendance.clock",
       "operations.view", "operations.checkin",
+      "inventory.read",
     ],
   },
 ];

@@ -9,7 +9,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
   Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap,
+  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap, Package,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -65,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
       { name: "Opérations & Logistique", path: "/operations", icon: Truck, moduleKey: "operations" },
       { name: "Parc & équipements", path: "/equipment", icon: Wrench, moduleKey: "inventory_assets" },
+      { name: "Produits & Stock", path: "/inventory", icon: Package, moduleKey: "inventory_products" },
       { name: "Locations & inspections", path: "/rentals", icon: ClipboardCheck, moduleKey: "rentals" },
       { name: "Documents", path: "/documents", icon: FolderOpen, moduleKey: "documents" },
     ],

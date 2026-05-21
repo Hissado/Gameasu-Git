@@ -35,6 +35,7 @@ const MODULES: ModuleSeed[] = [
   { key: "financial_planning", name: "Planification financière", category: "business", sortOrder: 80, icon: "TrendingUp" },
   { key: "operations", name: "Opérations", category: "business", sortOrder: 90, icon: "Truck" },
   { key: "inventory_assets", name: "Parc & équipements", category: "business", sortOrder: 100, icon: "Wrench" },
+  { key: "inventory_products", name: "Produits & Stock", category: "business", sortOrder: 105, icon: "Package" },
   { key: "rentals", name: "Locations", category: "business", sortOrder: 110, icon: "Truck" },
   { key: "documents", name: "Documents", category: "core", sortOrder: 120, isCore: true, icon: "FolderOpen" },
   { key: "team_hr", name: "Équipe & RH", category: "business", sortOrder: 130, icon: "UsersRound" },
@@ -115,7 +116,7 @@ const PLANS = [
     includedModules: [
       "dashboard", "clients", "services", "projects", "tasks",
       "sales_crm", "accounting", "financial_planning",
-      "operations", "inventory_assets", "rentals",
+      "operations", "inventory_assets", "inventory_products", "rentals",
       "documents", "team_hr", "communications", "reports",
       "client_portal", "marketing",
       "administration", "billing_subscription", "workspace_settings",
