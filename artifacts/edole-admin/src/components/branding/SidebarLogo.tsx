@@ -16,19 +16,19 @@ export function SidebarLogo({ onNavigate }: { onNavigate?: () => void }) {
       aria-label={BRANDING.appName}
       className="inline-flex items-center shrink-0 select-none"
     >
-      {/* Conteneur recadré : aspect-ratio 1672/678 = top 72 % de l'image.
-          À 200 px de large → hauteur naturelle 200×(941/1672)=112 px,
-          container visible = 112×0.72 = 81 px. Slogan masqué. */}
-      <div
-        className="overflow-hidden"
-        style={{ width: 200, aspectRatio: "1672 / 678" }}
-      >
+      {/* Conteneur à hauteur fixe : à 200 px de large, l'image mesure
+          200 × (941/1672) = 112 px de haut. On en affiche 66 px (59 %)
+          depuis le haut → slogan + filet masqués, G mark + wordmark visibles. */}
+      <div style={{ width: 200, height: 66, overflow: "hidden" }}>
         <img
           src={BRANDING.logoFullTransparent}
           alt={BRANDING.appName}
           draggable={false}
-          className="w-full h-auto object-cover object-top block select-none"
           style={{
+            width: 200,
+            height: "auto",
+            display: "block",
+            userSelect: "none",
             filter: "brightness(0) invert(1)",
             opacity: 0.93,
           }}
