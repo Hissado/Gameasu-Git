@@ -27,7 +27,7 @@ export default function ActivitiesList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Journal d'Activités</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Journal d'Activités</h1>
           <p className="text-sm text-muted-foreground mt-1">Interactions commerciales</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -46,7 +46,7 @@ export default function ActivitiesList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4">
               <Skeleton className="h-12 w-full" />
@@ -58,8 +58,8 @@ export default function ActivitiesList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Type</TableHead>
                   <TableHead className="font-semibold text-slate-600">Sujet</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Créé par</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Créé par</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -80,8 +80,8 @@ export default function ActivitiesList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-medium text-slate-800">{activity.subject}</TableCell>
-                        <TableCell className="text-sm">{formatDate(activity.createdAt)}</TableCell>
-                        <TableCell className="text-sm font-medium text-slate-600">{activity.userName || "—"}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm">{formatDate(activity.createdAt)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm font-medium text-slate-600">{activity.userName || "—"}</TableCell>
                       </TableRow>
                     );
                   })

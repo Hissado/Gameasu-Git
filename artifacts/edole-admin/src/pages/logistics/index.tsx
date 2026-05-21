@@ -34,7 +34,7 @@ export default function LogisticsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Opérations Logistiques</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Opérations Logistiques</h1>
           <p className="text-sm text-muted-foreground mt-1">Livraisons et enlèvements d'équipements</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -59,7 +59,7 @@ export default function LogisticsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -68,9 +68,9 @@ export default function LogisticsList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Type de Transport</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Responsable / Chauffeur</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Adresse / Projet</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-right">Date Prévue</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Responsable / Chauffeur</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Adresse / Projet</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600 text-right">Date Prévue</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -88,14 +88,14 @@ export default function LogisticsList() {
                     <TableRow key={op.id} className="hover:bg-slate-50/50">
                       <TableCell>{getTypeBadge(op.type)}</TableCell>
                       <TableCell>{getStatusBadge(op.status)}</TableCell>
-                      <TableCell className="font-medium text-slate-800">{op.responsibleName || "—"}</TableCell>
-                      <TableCell className="max-w-[250px]">
+                      <TableCell className="hidden sm:table-cell font-medium text-slate-800">{op.responsibleName || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[250px]">
                         <div className="flex items-start gap-1.5 text-sm">
                           <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                           <span className="truncate text-slate-700" title={op.address}>{op.address || "—"}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="hidden sm:table-cell text-right">
                          <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-slate-600">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           {op.scheduledAt ? formatDate(op.scheduledAt) : "—"}

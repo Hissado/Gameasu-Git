@@ -73,7 +73,7 @@ export default function TasksList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Tâches</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Tâches</h1>
           <p className="text-sm text-muted-foreground mt-1">Liste · Kanban · Calendrier</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -109,7 +109,7 @@ export default function TasksList() {
           </div>
         </CardHeader>
 
-        <CardContent className={view === "list" ? "p-0" : "p-6"}>
+        <CardContent className={view === "list" ? "p-0 overflow-x-auto" : "p-6"}>
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : view === "list" ? (
@@ -117,11 +117,11 @@ export default function TasksList() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Intitulé</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Projet</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Affecté à</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Projet</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Affecté à</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
                   <TableHead className="font-semibold text-slate-600">Priorité</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Échéance</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Échéance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,11 +140,11 @@ export default function TasksList() {
                       <TableCell className="font-bold text-slate-800">
                         <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors">{task.title}</Link>
                       </TableCell>
-                      <TableCell className="text-sm font-medium">{task.projectName || "—"}</TableCell>
-                      <TableCell className="text-sm">{task.assigneeName || "Non affecté"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-medium">{task.projectName || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{task.assigneeName || "Non affecté"}</TableCell>
                       <TableCell>{getStatusBadge(task.status)}</TableCell>
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                      <TableCell className="text-sm font-medium text-slate-600">
+                      <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(task.dueDate)}</span>
                       </TableCell>
                     </TableRow>

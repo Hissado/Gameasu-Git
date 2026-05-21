@@ -17,7 +17,7 @@ export default function InspectionsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Inspections Techniques</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Inspections Techniques</h1>
           <p className="text-sm text-muted-foreground mt-1">États des lieux · Départ et retour</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -42,7 +42,7 @@ export default function InspectionsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -51,9 +51,9 @@ export default function InspectionsList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Contrat Lié</TableHead>
                   <TableHead className="font-semibold text-slate-600">Type de Contrôle</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Inspecteur</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Date d'inspection</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-center">Bilan Litige</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Inspecteur</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date d'inspection</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600 text-center">Bilan Litige</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -80,9 +80,9 @@ export default function InspectionsList() {
                           <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">État des lieux Retour</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium text-slate-800">{inspection.conductedByName || "—"}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{formatDate(inspection.createdAt)}</TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="hidden sm:table-cell font-medium text-slate-800">{inspection.conductedByName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-slate-600">{formatDate(inspection.createdAt)}</TableCell>
+                      <TableCell className="hidden md:table-cell text-center">
                         {inspection.hasDispute ? (
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center justify-center gap-1 w-fit mx-auto">
                             <AlertTriangle className="w-3 h-3" /> Litige Signalé

@@ -27,7 +27,7 @@ export default function EquipmentList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Inventaire Matériel</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Inventaire Matériel</h1>
           <p className="text-sm text-muted-foreground mt-1">Flotte d'équipements et machines</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -107,7 +107,7 @@ export default function EquipmentList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -116,10 +116,10 @@ export default function EquipmentList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600 w-24">Réf.</TableHead>
                   <TableHead className="font-semibold text-slate-600">Désignation</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Catégorie</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Catégorie</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-center">Quantité</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Taux Journalier</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-center">Qté</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right font-semibold text-slate-600">Taux Journalier</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -134,14 +134,14 @@ export default function EquipmentList() {
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono text-xs font-bold text-slate-500 bg-slate-100/50">{item.code || "—"}</TableCell>
                       <TableCell className="font-bold text-slate-800">{item.name}</TableCell>
-                      <TableCell className="text-sm font-medium text-slate-600">{item.categoryName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">{item.categoryName || "—"}</TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell className="text-center font-bold">
                         <span className={item.availableQuantity === 0 ? "text-red-500" : "text-green-600"}>{item.availableQuantity}</span> 
                         <span className="text-slate-400 font-normal mx-1">/</span> 
                         {item.quantity}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-slate-700">
+                      <TableCell className="hidden sm:table-cell text-right font-bold text-slate-700">
                         {formatFCFA(item.dailyRate)}
                       </TableCell>
                     </TableRow>

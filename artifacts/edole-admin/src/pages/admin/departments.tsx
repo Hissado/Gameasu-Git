@@ -45,14 +45,14 @@ export default function AdminDepartmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Départements</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Départements</h1>
           <p className="text-muted-foreground mt-1">Pôles et unités organisationnelles</p>
         </div>
         <Button onClick={() => setOpen(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Nouveau département</Button>
       </div>
       <Card>
         <CardHeader><CardTitle>Liste</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto p-0 sm:p-6">
           {isLoading ? <div>Chargement…</div> : (
             <Table>
               <TableHeader><TableRow>

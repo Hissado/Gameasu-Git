@@ -27,7 +27,7 @@ export default function OrdersList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Bons de Commande</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Bons de Commande</h1>
           <p className="text-sm text-muted-foreground mt-1">Commandes clients validées</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -52,18 +52,18 @@ export default function OrdersList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">N° de Commande</TableHead>
+                  <TableHead className="font-semibold text-slate-600">N° Commande</TableHead>
                   <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Date de création</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date de création</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Montant Total</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -83,7 +83,7 @@ export default function OrdersList() {
                         {order.referenceNumber}
                       </TableCell>
                       <TableCell className="font-bold text-slate-800">{order.clientName || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           {formatDate(order.createdAt)}

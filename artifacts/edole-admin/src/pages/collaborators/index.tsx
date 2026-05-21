@@ -18,7 +18,7 @@ export default function CollaboratorsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Équipe Terrain</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Équipe Terrain</h1>
           <p className="text-sm text-muted-foreground mt-1">Effectifs et affectations</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -43,7 +43,7 @@ export default function CollaboratorsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -51,10 +51,10 @@ export default function CollaboratorsList() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Collaborateur</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Fonction</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Département</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Fonction</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Département</TableHead>
                   <TableHead className="font-semibold text-slate-600">Disponibilité</TableHead>
-                  <TableHead className="text-center font-semibold text-slate-600">Projets Actifs</TableHead>
+                  <TableHead className="hidden sm:table-cell text-center font-semibold text-slate-600">Projets Actifs</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -87,8 +87,8 @@ export default function CollaboratorsList() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-700">{collab.position || "—"}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{collab.department || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell font-medium text-slate-700">{collab.position || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-slate-600">{collab.department || "—"}</TableCell>
                       <TableCell>
                         {collab.isAvailable ? (
                           <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-200">Disponible</Badge>
@@ -96,7 +96,7 @@ export default function CollaboratorsList() {
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Affecté</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="hidden sm:table-cell text-center">
                         <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-sm">
                           {collab.currentProjectsCount || 0}
                         </div>

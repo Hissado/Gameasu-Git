@@ -171,7 +171,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <li key={j}>
                     <Link
                       href={href}
-                      className={`group relative flex items-center gap-3 pl-3 pr-3 py-2 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[38px] ${
+                      onClick={() => setMobileOpen(false)}
+                      className={`group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[44px] ${
                         active
                           ? "bg-white/[0.07] text-white"
                           : locked
@@ -205,7 +206,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <li>
                 <Link
                   href="/super-admin"
-                  className={`group relative flex items-center gap-3 pl-3 pr-3 py-2 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[38px] ${
+                  onClick={() => setMobileOpen(false)}
+                  className={`group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[44px] ${
                     location.startsWith("/super-admin")
                       ? "bg-white/[0.07] text-white"
                       : "text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white"

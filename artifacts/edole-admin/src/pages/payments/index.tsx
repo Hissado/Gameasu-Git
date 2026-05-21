@@ -27,7 +27,7 @@ export default function PaymentsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Encaissements</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Encaissements</h1>
           <p className="text-sm text-muted-foreground mt-1">Encaissements clients</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -52,7 +52,7 @@ export default function PaymentsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -61,8 +61,8 @@ export default function PaymentsList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Date</TableHead>
                   <TableHead className="font-semibold text-slate-600">N° Facture Liée</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Moyen de Paiement</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Réf. Transaction</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Moyen de Paiement</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Réf. Transaction</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Montant Encaissé</TableHead>
                 </TableRow>
               </TableHeader>
@@ -90,10 +90,10 @@ export default function PaymentsList() {
                           {payment.invoiceId.substring(0, 8).toUpperCase()}...
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {getMethodBadge(payment.method)}
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-slate-500">
+                      <TableCell className="hidden md:table-cell font-mono text-xs text-slate-500">
                         {payment.reference || "—"}
                       </TableCell>
                       <TableCell className="text-right">

@@ -28,7 +28,7 @@ export default function RentalsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Locations</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Locations</h1>
           <p className="text-sm text-muted-foreground mt-1">Contrats de location d'équipements</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -53,7 +53,7 @@ export default function RentalsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -63,7 +63,7 @@ export default function RentalsList() {
                   <TableHead className="font-semibold text-slate-600">Référence</TableHead>
                   <TableHead className="font-semibold text-slate-600">Client</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Période de Location</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Période de Location</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Coût Total</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
@@ -88,7 +88,7 @@ export default function RentalsList() {
                       </TableCell>
                       <TableCell className="font-bold text-slate-700">{rental.clientName || "—"}</TableCell>
                       <TableCell>{getStatusBadge(rental.status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-100 w-fit px-2 py-1 rounded">
                           <span>{formatDate(rental.startDate)}</span>
                           <ArrowRight className="w-3 h-3 text-slate-400" />

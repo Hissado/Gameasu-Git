@@ -28,7 +28,7 @@ export default function InvoicesList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Factures</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Factures</h1>
           <p className="text-sm text-muted-foreground mt-1">Facturation client</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -53,7 +53,7 @@ export default function InvoicesList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -62,10 +62,10 @@ export default function InvoicesList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Réf. Facture</TableHead>
                   <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Échéance</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Échéance</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Montant Total</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Reste à payer</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Total</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right font-semibold text-slate-600">Reste à payer</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -89,7 +89,7 @@ export default function InvoicesList() {
                         {invoice.referenceNumber}
                       </TableCell>
                       <TableCell className="font-bold text-slate-800">{invoice.clientName || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? 'text-red-600 font-bold' : 'text-slate-600'}`}>
                           {isOverdue ? <AlertCircle className="w-4 h-4" /> : <Calendar className="w-4 h-4 text-slate-400" />}
                           {formatDate(invoice.dueDate)}
@@ -99,7 +99,7 @@ export default function InvoicesList() {
                       <TableCell className="text-right">
                         <MoneyAmount amount={invoice.totalAmount} size="lg" />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="hidden sm:table-cell text-right">
                         {invoice.status === 'paid' ? (
                           <span className="text-emerald-600 font-semibold text-sm">Soldé</span>
                         ) : (

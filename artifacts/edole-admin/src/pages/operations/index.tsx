@@ -86,7 +86,7 @@ export default function OperationsCommandCenter() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Opérations & Logistique</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Opérations & Logistique</h1>
           <p className="text-muted-foreground mt-1">
             Centre de commande terrain — missions, dispatching, suivi, preuves, incidents et performance.
           </p>
@@ -295,12 +295,12 @@ function MissionsTable({ data, onOpen }: { data: any[]; onOpen: (id: string) => 
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto p-0 sm:p-6">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Réf.</TableHead><TableHead>Titre</TableHead><TableHead>Type</TableHead>
-            <TableHead>Statut</TableHead><TableHead>Priorité</TableHead>
-            <TableHead>Responsable</TableHead><TableHead>Destination</TableHead><TableHead>Planifié</TableHead>
+            <TableHead>Statut</TableHead><TableHead className="hidden sm:table-cell">Priorité</TableHead>
+            <TableHead className="hidden md:table-cell">Responsable</TableHead><TableHead className="hidden lg:table-cell">Destination</TableHead><TableHead className="hidden sm:table-cell">Planifié</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
@@ -311,10 +311,10 @@ function MissionsTable({ data, onOpen }: { data: any[]; onOpen: (id: string) => 
                 <TableCell className="font-medium">{m.title}</TableCell>
                 <TableCell>{KIND_LABELS[m.kind] ?? m.kind}</TableCell>
                 <TableCell><Badge className={STATUS_COLORS[m.status]}>{STATUS_LABELS[m.status] ?? m.status}</Badge></TableCell>
-                <TableCell><Badge variant="outline">{PRIORITY_LABELS[m.priority] ?? m.priority}</Badge></TableCell>
-                <TableCell>{m.responsibleName ?? "—"}</TableCell>
-                <TableCell className="text-xs">{m.destinationAddress ?? "—"}</TableCell>
-                <TableCell className="text-xs">{m.scheduledStart ? new Date(m.scheduledStart).toLocaleString("fr-FR") : "—"}</TableCell>
+                <TableCell className="hidden sm:table-cell"><Badge variant="outline">{PRIORITY_LABELS[m.priority] ?? m.priority}</Badge></TableCell>
+                <TableCell className="hidden md:table-cell">{m.responsibleName ?? "—"}</TableCell>
+                <TableCell className="hidden lg:table-cell text-xs">{m.destinationAddress ?? "—"}</TableCell>
+                <TableCell className="hidden sm:table-cell text-xs">{m.scheduledStart ? new Date(m.scheduledStart).toLocaleString("fr-FR") : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -38,13 +38,13 @@ export default function AdminInvitationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Invitations</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Invitations</h1>
         <p className="text-muted-foreground mt-1">Invitations envoyées</p>
       </div>
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><MailCheck className="w-5 h-5 text-primary" />Invitations</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto p-0 sm:p-6">
           {isLoading ? <div>Chargement…</div> : (
             <Table>
               <TableHeader><TableRow>

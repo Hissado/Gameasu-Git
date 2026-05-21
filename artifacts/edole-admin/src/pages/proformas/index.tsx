@@ -27,7 +27,7 @@ export default function ProformasList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Devis (Proformas)</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Devis (Proformas)</h1>
           <p className="text-sm text-muted-foreground mt-1">Propositions commerciales</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -52,7 +52,7 @@ export default function ProformasList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
@@ -61,9 +61,9 @@ export default function ProformasList() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Réf. Devis</TableHead>
                   <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Date d'émission</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date d'émission</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Montant Total</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -83,7 +83,7 @@ export default function ProformasList() {
                         {proforma.referenceNumber}
                       </TableCell>
                       <TableCell className="font-bold text-slate-800">{proforma.clientName || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           {formatDate(proforma.createdAt)}

@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Utilisateurs</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Utilisateurs</h1>
           <p className="text-muted-foreground mt-1">Invitations · Rôles · Accès projets</p>
         </div>
         <Button onClick={() => setInviteOpen(true)} className="bg-primary hover:bg-primary/90"><UserPlus className="w-4 h-4 mr-2" />Inviter</Button>
@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
 
       <Card>
         <CardHeader><CardTitle>Annuaire ({filtered.length})</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto p-0 sm:p-6">
           {isLoading ? <div>Chargement…</div> : (
             <Table>
               <TableHeader><TableRow>

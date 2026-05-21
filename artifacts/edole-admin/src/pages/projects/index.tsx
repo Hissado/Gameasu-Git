@@ -29,7 +29,7 @@ export default function ProjectsList() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Projets</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Projets</h1>
           <p className="text-sm text-muted-foreground mt-1">Portefeuille de projets</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
@@ -54,7 +54,7 @@ export default function ProjectsList() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 space-y-4">
               <Skeleton className="h-12 w-full" />
@@ -67,11 +67,11 @@ export default function ProjectsList() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Nom du Projet</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Client / Institution</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Client / Institution</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Progression</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Budget Alloué</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Directeur</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Progression</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Budget Alloué</TableHead>
+                  <TableHead className="hidden lg:table-cell font-semibold text-slate-600">Directeur</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -97,9 +97,9 @@ export default function ProjectsList() {
                           {project.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-sm font-medium">{project.clientName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-medium">{project.clientName || "—"}</TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <div className="flex flex-col gap-1.5 w-32">
                           <div className="flex justify-between text-xs">
                             <span className="font-medium text-slate-600">{project.progress || 0}%</span>
@@ -112,8 +112,8 @@ export default function ProjectsList() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{formatFCFA(project.budget)}</TableCell>
-                      <TableCell className="text-sm">{project.managerName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell font-medium">{formatFCFA(project.budget)}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{project.managerName || "—"}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
