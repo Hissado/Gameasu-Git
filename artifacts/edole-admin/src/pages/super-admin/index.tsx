@@ -56,7 +56,10 @@ export default function SuperAdminCockpit() {
           {orgs.data?.rows?.map((o: any) => (
             <div key={o.id} className="flex items-center justify-between text-sm border-b pb-1.5 last:border-0 gap-2">
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{o.name} {o.isDefault && <Badge variant="outline" className="text-[10px] ml-1">défaut</Badge>}</p>
+                <div className="font-medium truncate flex items-center gap-1">
+                  <span className="truncate">{o.name}</span>
+                  {o.isDefault && <Badge variant="outline" className="text-[10px]">défaut</Badge>}
+                </div>
                 <p className="text-xs text-muted-foreground">{o.slug} · {o.country ?? "?"} · {o.memberCount} membre(s) · {o.enabledModules} module(s)</p>
               </div>
               <Badge variant="outline">{o.planCode ?? "—"}</Badge>
