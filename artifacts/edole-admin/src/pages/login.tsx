@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, ShieldCheck, BarChart3, Layers } from "lucide-react";
 import { BRANDING } from "@/config/branding";
 
 const loginSchema = z.object({
@@ -44,45 +43,24 @@ export default function LoginPage() {
     );
   };
 
-  const GaméasùLogo = <GaméasùLockup size="xl" variant="dark" />;
-
   return (
     <div className="min-h-screen w-full flex">
-      {/* Panneau marque */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-sidebar text-sidebar-foreground p-12 relative overflow-hidden">
+      {/* Panneau marque — logo plein cadre */}
+      <div className="hidden lg:flex flex-col w-1/2 bg-sidebar text-sidebar-foreground relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B33 0, transparent 45%), radial-gradient(circle at 80% 80%, #1B2A4E66 0, transparent 40%)" }}
         />
-        <div className="relative">{GaméasùLogo}</div>
-
-        <div className="relative space-y-8 max-w-md">
-          <div>
-            <h2 className="font-display text-[40px] font-bold leading-[1.05] tracking-[-0.03em]">{BRANDING.appTaglineFr}</h2>
-            <p className="text-sm text-sidebar-foreground/60 mt-4 leading-relaxed">
-              Une seule plateforme SaaS pour piloter clients, projets, comptabilité, RH, opérations
-              et facturation — pensée pour les organisations du Togo et de la sous-région.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 pt-4">
-            {[
-              { icon: Layers, label: "Modules à la carte selon votre formule" },
-              { icon: BarChart3, label: "Tableau de bord financier consolidé en FCFA" },
-              { icon: ShieldCheck, label: "Multi-tenant, audit complet, accès granulaire" },
-              { icon: Sparkles, label: "Onboarding accompagné — démarrage en moins de 7 jours" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-3 text-sm text-sidebar-foreground/85">
-                <div className="w-9 h-9 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-[#C8A24B]" />
-                </div>
-                {label}
-              </div>
-            ))}
-          </div>
+        <div className="relative flex-1 flex items-center justify-center p-8">
+          <img
+            src={BRANDING.logoFullTransparent}
+            alt={BRANDING.appName}
+            draggable={false}
+            style={{ filter: "brightness(0) invert(1)", opacity: 0.75 }}
+            className="w-full h-auto max-h-[90vh] object-contain select-none"
+          />
         </div>
-
-        <div className="relative text-xs text-sidebar-foreground/40">
+        <div className="relative px-12 pb-6 text-xs text-sidebar-foreground/40">
           © {new Date().getFullYear()} {BRANDING.legalName} — Tous droits réservés.
         </div>
       </div>
