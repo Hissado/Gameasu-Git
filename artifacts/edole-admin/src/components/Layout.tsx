@@ -206,6 +206,35 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </ul>
           </div>
         ))}
+
+        {user?.role === "super_admin" && (
+          <div className="mb-5 px-4">
+            <h3 className="text-[10px] font-semibold text-sidebar-foreground/35 mb-2.5 uppercase tracking-[0.14em] px-2.5">Plateforme</h3>
+            <ul className="space-y-0.5">
+              <li>
+                <Link
+                  href="/super-admin"
+                  className={`group relative flex items-center gap-3 pl-3 pr-3 py-2 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[38px] ${
+                    location.startsWith("/super-admin")
+                      ? "bg-white/[0.07] text-white"
+                      : "text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white"
+                  }`}
+                >
+                  {location.startsWith("/super-admin") && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-[#C8A24B] shadow-[0_0_10px_rgba(200,162,75,0.45)]" />
+                  )}
+                  <Crown
+                    className={`w-[16px] h-[16px] shrink-0 transition-colors ${
+                      location.startsWith("/super-admin") ? "text-[#D9B86A]" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
+                    }`}
+                    strokeWidth={1.75}
+                  />
+                  <span className="truncate flex-1">Cockpit plateforme</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="px-4 py-3 border-t border-sidebar-border/60 shrink-0">
