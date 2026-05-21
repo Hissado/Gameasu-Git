@@ -138,7 +138,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const SidebarContent = (
     <>
       {/* En-tête logo — fond clair (h-16) aligné visuellement avec la topbar */}
-      <div className="relative flex items-center justify-center gap-2 px-4 shrink-0 h-16 bg-card/95 border-b border-sidebar-border/40">
+      <div className="relative flex items-center justify-center shrink-0 h-16 bg-card/95 border-b border-sidebar-border/40">
         <SidebarLogo onNavigate={() => setMobileOpen(false)} />
         <button
           type="button"
