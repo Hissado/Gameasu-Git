@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
   Search, Send, MessageSquare, Paperclip, Smile, MapPin, Mic, MicOff, Phone, Video,
   CheckCheck, Check, MoreVertical, Reply, Pencil, Trash2, Languages, Pin, BellOff, Bell, Archive, MessageCircle,
-  Plus, X, Loader2, Image as ImageIcon, FileText, Filter,
+  Plus, X, Loader2, Image as ImageIcon, FileText, Filter, Sparkles,
 } from "lucide-react";
 import { apiFetch, uploadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -527,6 +527,22 @@ export default function Messaging() {
     else localStorage.removeItem("msg_auto_trans_lang");
   }, [autoTransLang]);
   const [editing, setEditing] = useState<Msg | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summary, setSummary] = useState<{ content: string; nextActions: string[]; generatedBy: string } | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const runSummarize = useCallback(async () => {
+    if (!selectedConvId) return;
+    setSummaryLoading(true);
+    setSummaryOpen(true);
+    try {
+      const r = await apiFetch<{ content: string; nextActions: string[]; generatedBy: string }>(`/api/conversations/${selectedConvId}/summarize`, { method: "POST" });
+      setSummary(r);
+    } catch (e) {
+      setSummary({ content: "Impossible de générer le résumé.", nextActions: [], generatedBy: "error" });
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [selectedConvId]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -1007,6 +1023,15 @@ export default function Messaging() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-8 gap-1.5 text-slate-600 hover:text-primary"
+                    title="Résumer la conversation (IA)"
+                    onClick={runSummarize}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Résumé IA</span>
+                  </Button>
                   {/* Sélecteur de traduction automatique */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1180,6 +1205,36 @@ export default function Messaging() {
           )}
         </Card>
       </div>
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Résumé de la conversation
+            </DialogTitle>
+          </DialogHeader>
+          {summaryLoading ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin" /> Génération du résumé en cours…
+            </div>
+          ) : summary ? (
+            <div className="space-y-4">
+              <div className="text-sm text-slate-700 whitespace-pre-wrap">{summary.content}</div>
+              {summary.nextActions && summary.nextActions.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Actions suggérées</p>
+                  <ul className="space-y-1 text-sm text-slate-700 list-disc list-inside">
+                    {summary.nextActions.map((a, i) => <li key={i}>{a}</li>)}
+                  </ul>
+                </div>
+              )}
+              <p className="text-xs text-slate-400">
+                Généré par {summary.generatedBy === "openai" ? "IA (OpenAI)" : summary.generatedBy === "heuristic" ? "moteur heuristique (clé IA absente)" : summary.generatedBy}
+              </p>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

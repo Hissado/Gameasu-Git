@@ -27,6 +27,8 @@ import fpaRouter from "./fpa";
 import adminRouter from "./admin";
 import organizationsRouter from "./organizations";
 import subscriptionsRouter from "./subscriptions";
+import intelligenceRouter from "./intelligence";
+import automationRouter from "./automation";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { requireAuth } from "../middlewares/auth";
 import { enforcePasswordChange } from "../middlewares/permissions";
@@ -70,6 +72,8 @@ router.use(fpaRouter);
 router.use(adminRouter);
 router.use(organizationsRouter);
 router.use(subscriptionsRouter);
+router.use(intelligenceRouter);
+router.use(automationRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

@@ -9,7 +9,7 @@
  *
  * Idempotent : peut être ré-exécuté sans dupliquer.
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "./index";
 import {
   organizationsTable,

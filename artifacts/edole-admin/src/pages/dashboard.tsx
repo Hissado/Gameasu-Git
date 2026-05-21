@@ -53,6 +53,7 @@ import {
 import { formatFCFA } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { IntelligenceWidget } from "@/components/IntelligenceWidget";
 
 // ───────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -322,6 +323,9 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* ─── Copilote exécutif Nexora ─── */}
+      <IntelligenceWidget />
 
       {/* ─── Bloc 1 : Performance financière ─── */}
       <section>

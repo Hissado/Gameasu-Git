@@ -113,6 +113,21 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes — mai 2026
 
+### Couche Intelligence & Automatisation Nexora (Phases 1-4) — mai 2026
+- **Phase 1 — Marketing intelligent** : commit antérieur (116975a).
+- **Phase 2 — Socle intelligence/automatisation (DB + backend)** :
+  - Schéma `lib/db/src/schema/intelligence.ts` : 7 tables (`smart_scores`, `risk_flags`, `insights`, `recommendations`, `assistant_summaries`, `automation_rules`, `automation_logs`) avec `organizationId NOT NULL` partout (isolation tenant stricte). Helper `tierForScore(value)`.
+  - `lib/ai.ts` : wrappers OpenAI proxy avec fallback heuristique (`summarize`, `generateList`, `aiAvailable`).
+  - `lib/automation.ts` : moteur d'événements (17 triggers — invoice/payment/project/task/client/lead/etc.) et 12 actions (email, SMS, WhatsApp, tâche, notifications, statut, tag, résumé/recommandation/insight IA, webhook). `triggerEvent(orgId, type, payload)` évalue les conditions et exécute. **Garde SSRF** `isSafeWebhookUrl` (refuse non-http(s), localhost, IP RFC1918, loopback, link-local 169.254 — Cloud metadata, IPv6 ULA/link-local) + timeout 5 s + `redirect: "error"`.
+  - Routes `/api/intelligence/{overview,insights,recommendations,risks,scores,summaries,summaries/generate}` (CRUD + isolation tenant stricte sur `WHERE id AND organization_id`) + `/api/automation/{catalog,rules,rules/:id,rules/:id/run,trigger,logs}` (mutations sous `requireAdmin` pour bloquer la création de webhooks par tout authentifié).
+- **Phase 3 — Cockpit Intelligence (frontend)** : 
+  - `lib/intelligence.ts` (hooks react-query typés).
+  - Page `/intelligence` (4 onglets : insights, recommandations, risques, scores) + page `/automations` (rule builder + journal).
+  - Composant `IntelligenceWidget` posé sur le dashboard.
+  - Entrées sidebar dans « Espace de travail ».
+- **Phase 4 — Communications intelligentes (backend)** : endpoints `POST /api/conversations/:id/summarize` + `GET /api/conversations/:id/summaries` (résumé IA d'une conversation avec fallback heuristique, persistance dans `assistant_summaries`).
+- **Hardening sécurité** (code review architect) : isolation tenant ajoutée sur tous les mutations by-id (insights, recommendations apply/dismiss, risks resolve, automation rules patch/delete/run), retours 404 si la ressource n'appartient pas à l'organisation courante. SSRF + admin gate sur automation. `organizationId NOT NULL` poussé en DB.
+
 ### Transformation SaaS Nexora — mai 2026
 - **Schéma multi-tenant** (`lib/db/src/schema/saas.ts`) : `organizations`, `organization_members`, `module_catalog`, `subscription_plans`, `subscription_plan_features`, `organization_subscriptions`, `organization_modules`, `billing_events`, `workspace_invitations`.
 - **Seed SaaS** (`lib/db/src/seed-saas.ts`, idempotent, exécuté au boot de l'API) : 20 modules (core/business/admin), 4 plans (Starter 8k/mois, Growth 18k, Professional 35k, Enterprise 60k — FCFA par utilisateur), organisation par défaut `nexora-demo`, membership de tous les utilisateurs existants, abonnement Professional 25 sièges mensuel, 3 factures de démo + frais d'installation. Inserts en `onConflictDoUpdate` pour résister aux runs concurrents.

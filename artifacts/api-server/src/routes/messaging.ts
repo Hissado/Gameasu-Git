@@ -18,6 +18,9 @@ import { and, asc, desc, eq, ilike, inArray, isNull, sql, or } from "drizzle-orm
 import { requireAuth } from "../middlewares/auth";
 import { emitToConversation, emitToUser } from "../lib/realtime";
 import { translateText, transcribeAudio } from "../lib/translate";
+import { summarize, generateList } from "../lib/ai";
+import { assistantSummariesTable } from "@workspace/db";
+import { getCurrentOrganizationId } from "../lib/tenant";
 import { UPLOAD_DIR } from "./uploads";
 
 const router = Router();
@@ -507,6 +510,70 @@ router.post("/messages/:id/translate", async (req, res) => {
   const newTranslations = { ...(msg.translations || {}), [targetLang]: translated };
   await db.update(messagesTable).set({ translations: newTranslations }).where(eq(messagesTable.id, msg.id));
   return res.json({ targetLang, text: translated, cached: false });
+});
+
+// Résumé exécutif de conversation (Phase 4 — Communications intelligentes)
+router.post("/conversations/:id/summarize", async (req, res) => {
+  const userId = req.authUser!.id;
+  const convId = req.params.id;
+  const part = await ensureParticipant(convId, userId);
+  if (!part) return res.status(403).json({ error: "Non autorisé" });
+
+  const rows = await db.select({
+    content: messagesTable.content,
+    kind: messagesTable.kind,
+    createdAt: messagesTable.createdAt,
+    firstName: usersTable.firstName,
+    lastName: usersTable.lastName,
+  })
+    .from(messagesTable)
+    .leftJoin(usersTable, eq(messagesTable.senderId, usersTable.id))
+    .where(and(eq(messagesTable.conversationId, convId), isNull(messagesTable.deletedAt)))
+    .orderBy(desc(messagesTable.createdAt))
+    .limit(60);
+
+  const transcript = rows.reverse().map((r) =>
+    `[${new Date(r.createdAt).toLocaleString("fr-FR")}] ${(r.firstName || "").trim()} ${(r.lastName || "").trim()}: ${r.content || `(${r.kind})`}`,
+  ).join("\n");
+
+  const summary = await summarize({
+    system: "Tu es un assistant exécutif francophone. Résume cette discussion professionnelle en 4-6 lignes claires (décisions, points bloquants, ton général). Ne fais pas la liste des actions ici. Pas d'emoji.",
+    context: transcript || "(aucun message)",
+  });
+
+  const heuristic = `Discussion comportant ${rows.length} message(s). Derniers échanges entre ${[...new Set(rows.map((r) => `${r.firstName || ""} ${r.lastName || ""}`.trim()))].slice(0, 3).join(", ")}.`;
+
+  const actions = (await generateList({
+    system: "Extrais une liste concise et actionnable (3 à 6 items max) des décisions, engagements et tâches à suivre dans cette discussion. Réponds en français professionnel sous forme de JSON array de chaînes.",
+    prompt: transcript || "(aucun message)",
+    maxItems: 6,
+  })) || [];
+
+  const orgId = await getCurrentOrganizationId(userId);
+  if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
+  const [inserted] = await db.insert(assistantSummariesTable).values({
+    organizationId: orgId,
+    scope: "conversation",
+    scopeId: convId,
+    period: "recent",
+    title: "Résumé de la discussion",
+    content: summary || heuristic,
+    nextActions: actions,
+    generatedBy: summary ? "ai" : "heuristic",
+  }).returning();
+
+  return res.json(inserted);
+});
+
+router.get("/conversations/:id/summaries", async (req, res) => {
+  const userId = req.authUser!.id;
+  const part = await ensureParticipant(req.params.id, userId);
+  if (!part) return res.status(403).json({ error: "Non autorisé" });
+  const rows = await db.select().from(assistantSummariesTable)
+    .where(and(eq(assistantSummariesTable.scope, "conversation"), eq(assistantSummariesTable.scopeId, req.params.id)))
+    .orderBy(desc(assistantSummariesTable.createdAt))
+    .limit(20);
+  return res.json(rows);
 });
 
 // Voice transcription

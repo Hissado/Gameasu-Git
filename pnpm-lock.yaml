@@ -67,7 +67,7 @@ catalogs:
       specifier: ^7.3.2
       version: 7.3.2
     zod:
-      specifier: ^3.25.76
+      specifier: 3.25.76
       version: 3.25.76
 
 overrides:
@@ -198,7 +198,7 @@ importers:
         version: 2.1.1
       openai:
         specifier: ^6.34.0
-        version: 6.34.0(ws@8.18.3)(zod@4.3.6)
+        version: 6.34.0(ws@8.18.3)(zod@3.25.76)
       pdfkit:
         specifier: ^0.18.0
         version: 0.18.0
@@ -214,6 +214,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/cookie-parser':
         specifier: ^1.4.10
@@ -6169,10 +6172,10 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@6.34.0(ws@8.18.3)(zod@4.3.6):
+  openai@6.34.0(ws@8.18.3)(zod@3.25.76):
     optionalDependencies:
       ws: 8.18.3
-      zod: 4.3.6
+      zod: 3.25.76
 
   orval@8.5.3(prettier@3.8.1)(typescript@5.9.3):
     dependencies:

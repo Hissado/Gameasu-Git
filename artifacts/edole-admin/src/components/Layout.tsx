@@ -9,7 +9,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
   Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock,
+  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +28,8 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Espace de travail",
     items: [
       { name: "Tableau de bord", path: "/", icon: LayoutDashboard, moduleKey: "dashboard" },
+      { name: "Centre d'intelligence", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
+      { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "dashboard" },
       { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
       { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
       { name: "Projets", path: "/projects", icon: FolderKanban, moduleKey: "projects" },

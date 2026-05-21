@@ -20,3 +20,4 @@ export * from "./fpa";
 export * from "./rbac";
 export * from "./engagements";
 export * from "./saas";
+export * from "./intelligence";

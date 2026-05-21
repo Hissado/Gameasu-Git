@@ -100,6 +100,8 @@ const AcceptInvitation = lazy(() => import("@/pages/accept-invitation"));
 const BillingPage = lazy(() => import("@/pages/billing"));
 const WorkspaceSettingsPage = lazy(() => import("@/pages/workspace-settings"));
 const UpgradeRequiredPage = lazy(() => import("@/pages/upgrade-required"));
+const IntelligenceCenter = lazy(() => import("@/pages/intelligence/index"));
+const AutomationsPage = lazy(() => import("@/pages/automations/index"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -231,6 +233,8 @@ function AppRouter() {
                 <Route path="/documents" component={DocumentsPage} />
                 <Route path="/alerts" component={AlertsPage} />
                 <Route path="/tickets" component={TicketsPage} />
+                <Route path="/intelligence" component={IntelligenceCenter} />
+                <Route path="/automations" component={AutomationsPage} />
 
                 <Route path="/admin" component={AdminHub} />
                 <Route path="/admin/roles" component={AdminRoles} />
