@@ -137,26 +137,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* En-tête logo */}
-      <div className="relative flex items-center justify-between gap-2 px-4 pt-5 pb-4 shrink-0">
+      {/* En-tête logo — fond clair (h-16) aligné visuellement avec la topbar */}
+      <div className="relative flex items-center justify-between gap-2 px-4 shrink-0 h-16 bg-card/95 border-b border-sidebar-border/40">
         <SidebarLogo onNavigate={() => setMobileOpen(false)} />
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="relative lg:hidden p-2 -mr-1 rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white"
+          className="relative lg:hidden p-2 -mr-1 rounded-md text-foreground/60 hover:bg-muted"
           aria-label="Fermer le menu"
         >
           <X className="w-5 h-5" />
         </button>
-        {/* Filet or — séparateur premium */}
-        <div
-          aria-hidden
-          className="absolute left-4 right-4 bottom-0 h-px"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(200,162,75,0.50) 20%, rgba(200,162,75,0.65) 50%, rgba(200,162,75,0.50) 80%, transparent 100%)",
-          }}
-        />
       </div>
 
       {/* Carte workspace + plan */}

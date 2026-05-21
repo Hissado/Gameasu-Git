@@ -29,8 +29,7 @@ export function SidebarLogo({ onNavigate }: { onNavigate?: () => void }) {
             height: "auto",
             display: "block",
             userSelect: "none",
-            filter: "brightness(0) invert(1)",
-            opacity: 0.93,
+            opacity: 0.97,
           }}
         />
       </div>
