@@ -41,6 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Ventes & Relation client", path: "/crm", icon: Target, moduleKey: "sales_crm" },
       { name: "Scoring commercial", path: "/sales/scoring", icon: Flame, moduleKey: "sales_crm" },
+      { name: "Focus tâches", path: "/tasks/focus", icon: Flame, moduleKey: "tasks" },
       { name: "Devis", path: "/proformas", icon: FileText, moduleKey: "sales_crm" },
       { name: "Bons de commande", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
       { name: "Factures", path: "/invoices", icon: FileText, moduleKey: "sales_crm" },

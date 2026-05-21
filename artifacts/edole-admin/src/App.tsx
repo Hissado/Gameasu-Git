@@ -67,6 +67,7 @@ const HrAssignments = lazy(() => import("@/pages/hr/assignments"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
 const CommercialServices = lazy(() => import("@/pages/commercial/services"));
 const SalesScoring = lazy(() => import("@/pages/sales/scoring"));
+const TasksFocus = lazy(() => import("@/pages/tasks/Focus"));
 const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/campaigns"));
@@ -218,6 +219,7 @@ function AppRouter() {
                 <Route path="/commercial/clients" component={CommercialClients} />
                 <Route path="/commercial/services" component={CommercialServices} />
                 <Route path="/sales/scoring" component={SalesScoring} />
+                <Route path="/tasks/focus" component={TasksFocus} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
                 <Route path="/marketing/campaigns" component={MarketingCampaigns} />

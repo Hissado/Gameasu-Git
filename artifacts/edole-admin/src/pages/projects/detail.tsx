@@ -4,8 +4,10 @@ import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatFCFA, formatDate } from "@/lib/format";
-import { ExternalLink, FileText } from "lucide-react";
+import { ExternalLink, FileText, Sparkles } from "lucide-react";
+import ProjectIntelligenceTab from "./ProjectIntelligenceTab";
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   planning: { label: "En planification", cls: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -51,6 +53,17 @@ export default function ProjectDetail() {
         <Badge variant="outline" className={`px-3 py-1.5 text-sm font-semibold ${status.cls}`}>{status.label}</Badge>
       </div>
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+          <TabsTrigger value="intelligence" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Intelligence</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="intelligence">
+          <ProjectIntelligenceTab projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="overview" className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
@@ -147,6 +160,8 @@ export default function ProjectDetail() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
