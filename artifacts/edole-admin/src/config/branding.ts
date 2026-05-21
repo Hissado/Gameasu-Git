@@ -11,8 +11,8 @@ export const BRANDING = {
   defaultPlanCode: import.meta.env.VITE_DEFAULT_PLAN_CODE ?? "STARTER",
   primaryColor: "#C8A24B",
   secondaryColor: "#0F1A3A",
-  logoFull: "/branding/nexora-logo.svg",
-  logoMark: "/branding/nexora-mark.svg",
+  logoFull: "/branding/nexora-logo.png",
+  logoMark: "/branding/nexora-mark.png",
   legalName: "Nexora SAS",
   marketBaseline: "Conçu pour les organisations du Togo et d'Afrique de l'Ouest francophone",
 } as const;

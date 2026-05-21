@@ -11,9 +11,9 @@
   "lang": "fr",
   "icons": [
     {
-      "src": "/branding/nexora-mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/branding/nexora-mark.png",
+      "sizes": "400x400",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
