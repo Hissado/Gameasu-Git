@@ -144,12 +144,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <Link href="/" onClick={() => setMobileOpen(false)} aria-label={BRANDING.appName} className="inline-flex flex-1 min-w-0 flex-col items-center">
           {/* On rogne le slogan natif de l'image pour le ré-afficher en HTML
               juste dessous à une taille pilotable. */}
-          <div className="w-full max-w-[220px] overflow-hidden" style={{ aspectRatio: "1024 / 460" }}>
+          <div className="w-full max-w-[220px] overflow-hidden" style={{ aspectRatio: "1672 / 590" }}>
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-full h-auto object-contain select-none"
+              className="w-full h-auto object-contain select-none block"
             />
           </div>
           <div className="flex items-center gap-2 mt-1 w-full max-w-[220px] justify-center">
