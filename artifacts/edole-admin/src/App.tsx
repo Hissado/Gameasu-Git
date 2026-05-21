@@ -102,6 +102,7 @@ const WorkspaceSettingsPage = lazy(() => import("@/pages/workspace-settings"));
 const UpgradeRequiredPage = lazy(() => import("@/pages/upgrade-required"));
 const IntelligenceCenter = lazy(() => import("@/pages/intelligence/index"));
 const AutomationsPage = lazy(() => import("@/pages/automations/index"));
+const AttendancePage = lazy(() => import("@/pages/attendance/index"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -235,6 +236,7 @@ function AppRouter() {
                 <Route path="/tickets" component={TicketsPage} />
                 <Route path="/intelligence" component={IntelligenceCenter} />
                 <Route path="/automations" component={AutomationsPage} />
+                <Route path="/attendance" component={AttendancePage} />
 
                 <Route path="/admin" component={AdminHub} />
                 <Route path="/admin/roles" component={AdminRoles} />

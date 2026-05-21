@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./seed-saas": "./src/seed-saas.ts"
+    "./seed-saas": "./src/seed-saas.ts",
+    "./seed-intelligence": "./src/seed-intelligence.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

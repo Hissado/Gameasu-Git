@@ -113,6 +113,38 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes — mai 2026
 
+### Phase 18 — Présences & Pointage géolocalisé — mai 2026
+- **Schéma** (`lib/db/src/schema/attendance.ts`) : 3 tables tenant-scoped (`organizationId NOT NULL`) :
+  - `attendance_sessions` (collaborator, date, status open/closed/abandoned, clockIn/Out, totalMinutes, breakMinutes, effectiveMinutes, isLate, isEarlyLeave, projectId).
+  - `attendance_records` (timeline détaillée : clock_in / clock_out / break_start / break_end + lat/lng/accuracy/locationLabel/sourceDevice).
+  - `attendance_flags` (anomalies typées : late, early_leave, missing_clock_in/out, long_break, out_of_zone, duplicate, suspicious + severity low/medium/high).
+  - Schéma gouvernance complémentaire (`lib/db/src/schema/governance.ts`) : `role_templates`, `sector_presets`, `plan_usage_insights`.
+- **Backend** (`artifacts/api-server/src/routes/attendance.ts`) :
+  - `POST /api/attendance/{clock-in,clock-out,break-start,break-end}` — pointage avec capture GPS optionnelle (latitude/longitude/accuracyMeters/locationLabel), création/mise à jour automatique de la `session` du jour et insertion du `record` typé. Helper `recomputeSession()` recalcule totalMinutes/breakMinutes/effectiveMinutes à chaque événement.
+  - `GET /api/attendance/me/today` — session courante + records du jour pour l'utilisateur (résout collaboratorId via userId).
+  - `GET /api/attendance/me/history?limit=` — 30 derniers jours de l'utilisateur courant.
+  - `GET /api/attendance/dashboard?date=` — vue RH (sessions du jour, KPI : total/présents/retards/clôturés/heures totales) — permission `attendance.read_all`.
+  - `GET /api/attendance/anomalies?resolved=` — drapeaux ouverts ou résolus.
+  - `POST /api/attendance/anomalies/:id/resolve` — clôture une anomalie (manager+).
+  - `POST /api/attendance/scan` — relance heuristique de détection (oublis, pauses trop longues, etc.) (admin).
+- **Permissions** (`lib/rbac/catalog.ts`) : 4 codes ajoutés (`attendance.read`, `attendance.read_all`, `attendance.manage`, `attendance.admin`) + `ai.*`, `automation.*`, `scoring.*`. Câblés sur les rôles manager / commercial / collaborator.
+- **Frontend** :
+  - `src/lib/attendance.ts` — hooks react-query typés (`useMyAttendanceToday`, `useMyAttendanceHistory`, `useAttendanceDashboard`, `useAttendanceAnomalies`, `useClockMutation`, `useResolveAttendanceFlag`) + helpers `captureGeolocation()` (timeout 8 s, `enableHighAccuracy`) et `formatMinutes()`.
+  - `src/pages/attendance/index.tsx` — page complète à 4 onglets :
+    1. **Mon pointage** : 4 boutons grand format (arrivée / début pause / fin pause / départ) avec capture GPS automatique, badge retard, présence/pause cumulées en temps réel, timeline du jour avec lien OpenStreetMap par pointage.
+    2. **Tableau RH** : sélecteur de date, 5 KPI (total/présents/retards/clôturés/heures totales), tableau collaborateur × département × arrivée/départ/pause/présence/statut.
+    3. **Anomalies** : liste des drapeaux ouverts avec sévérité colorée + bouton "Résoudre".
+    4. **Mon historique** : 30 derniers jours avec cumul d'heures et nombre de retards.
+  - Route `/attendance` enregistrée dans `App.tsx`, entrée sidebar "Présences & Pointage" (icône `Clock`) ajoutée au groupe Business sous module `team_hr`.
+
+### Seed démo intelligence — mai 2026
+- `lib/db/src/seed-intelligence.ts` (exécuté au boot après `seedSaas`, idempotent) :
+  - 29 scores polymorphes (santé clients, risque projets, priorité tâches) avec facteurs explicatifs (poids/valeur/raison).
+  - 4 drapeaux de risque (impayés client, glissement projet, opportunité upsell, surcharge RH).
+  - 4 insights (tendance recouvrement, attrition client, prospects chauds non traités, oublis pointage).
+  - 4 recommandations next-best-action avec impact (commercial/financial/operational/retention) et CTA contextuels.
+  - Historique de pointages démo sur 14 jours pour 5 collaborateurs (lat/lng autour de Lomé + jitter, retards aléatoires, drapeaux générés).
+
 ### Couche Intelligence & Automatisation Nexora (Phases 1-4) — mai 2026
 - **Phase 1 — Marketing intelligent** : commit antérieur (116975a).
 - **Phase 2 — Socle intelligence/automatisation (DB + backend)** :

@@ -82,6 +82,29 @@ export const PERMISSIONS: PermissionDef[] = [
   // ─── Paramètres ────────────────────────────────────────────────
   { code: "settings.read", label: "Voir les paramètres", category: "Paramètres" },
   { code: "settings.manage", label: "Modifier les paramètres globaux", category: "Paramètres" },
+
+  // ─── Intelligence & Automatisation (Phase 2-12) ────────────────
+  { code: "ai.view_insights", label: "Voir les insights IA", category: "Intelligence" },
+  { code: "ai.view_recommendations", label: "Voir les recommandations IA", category: "Intelligence" },
+  { code: "ai.view_risk_flags", label: "Voir les drapeaux de risque", category: "Intelligence" },
+  { code: "ai.manage_predictive", label: "Gérer les fonctions prédictives", category: "Intelligence" },
+  { code: "ai.manage_reports", label: "Gérer les rapports intelligents", category: "Intelligence" },
+  { code: "ai.manage_translation", label: "Gérer les outils de traduction", category: "Intelligence" },
+  { code: "ai.manage_whatsapp", label: "Gérer les liens WhatsApp / canaux", category: "Intelligence" },
+  { code: "automation.read", label: "Voir les règles d'automatisation", category: "Intelligence" },
+  { code: "automation.manage", label: "Gérer les règles d'automatisation", category: "Intelligence" },
+
+  // ─── Scoring & santé (Phases 5-8, 14) ──────────────────────────
+  { code: "scoring.view_client_health", label: "Voir le score de santé client", category: "Scoring" },
+  { code: "scoring.view_project_risk", label: "Voir le score de risque projet", category: "Scoring" },
+  { code: "scoring.view_financial_forecasts", label: "Voir les prévisions financières", category: "Scoring" },
+
+  // ─── Présence / Pointage (Phase 18) ────────────────────────────
+  { code: "attendance.view", label: "Voir les pointages", category: "Présences" },
+  { code: "attendance.manage", label: "Gérer les pointages", category: "Présences" },
+  { code: "attendance.clock", label: "Effectuer ses propres pointages", category: "Présences" },
+  { code: "attendance.view_anomalies", label: "Voir les anomalies de présence", category: "Présences" },
+  { code: "attendance.manage_settings", label: "Configurer le module présence", category: "Présences" },
 ];
 
 /**
@@ -134,6 +157,10 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "messaging.use", "messaging.moderate",
       "marketing.read",
       "settings.read",
+      "ai.view_insights", "ai.view_recommendations", "ai.view_risk_flags", "ai.manage_predictive", "ai.manage_reports",
+      "automation.read", "automation.manage",
+      "scoring.view_client_health", "scoring.view_project_risk", "scoring.view_financial_forecasts",
+      "attendance.view", "attendance.manage", "attendance.clock", "attendance.view_anomalies",
     ],
   },
   {
@@ -152,6 +179,9 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "documents.read", "documents.manage",
       "messaging.use",
       "marketing.read", "marketing.manage",
+      "ai.view_insights", "ai.view_recommendations",
+      "scoring.view_client_health",
+      "attendance.clock",
     ],
   },
   {
@@ -169,6 +199,8 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "equipment.read",
       "documents.read",
       "messaging.use",
+      "ai.view_insights",
+      "attendance.clock",
     ],
   },
 ];

@@ -21,3 +21,5 @@ export * from "./rbac";
 export * from "./engagements";
 export * from "./saas";
 export * from "./intelligence";
+export * from "./attendance";
+export * from "./governance";
