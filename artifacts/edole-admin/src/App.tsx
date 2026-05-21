@@ -68,6 +68,17 @@ const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
 const CommercialServices = lazy(() => import("@/pages/commercial/services"));
 const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
+const MarketingCampaigns = lazy(() => import("@/pages/marketing/campaigns"));
+const MarketingAudiences = lazy(() => import("@/pages/marketing/audiences"));
+const MarketingTemplates = lazy(() => import("@/pages/marketing/templates"));
+const MarketingAutomations = lazy(() => import("@/pages/marketing/automations"));
+const MarketingAlerts = lazy(() => import("@/pages/marketing/alerts"));
+const MarketingContacts = lazy(() => import("@/pages/marketing/contacts"));
+const MarketingCalendar = lazy(() => import("@/pages/marketing/calendar"));
+const MarketingAnalytics = lazy(() => import("@/pages/marketing/analytics"));
+const MarketingConsent = lazy(() => import("@/pages/marketing/consent"));
+const MarketingChannels = lazy(() => import("@/pages/marketing/channels"));
+const MarketingForms = lazy(() => import("@/pages/marketing/forms"));
 const DocumentsPage = lazy(() => import("@/pages/documents/index"));
 const AlertsPage = lazy(() => import("@/pages/alerts/index"));
 const TicketsPage = lazy(() => import("@/pages/tickets/index"));
@@ -204,6 +215,17 @@ function AppRouter() {
                 <Route path="/commercial/services" component={CommercialServices} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
+                <Route path="/marketing/campaigns" component={MarketingCampaigns} />
+                <Route path="/marketing/audiences" component={MarketingAudiences} />
+                <Route path="/marketing/templates" component={MarketingTemplates} />
+                <Route path="/marketing/automations" component={MarketingAutomations} />
+                <Route path="/marketing/alerts" component={MarketingAlerts} />
+                <Route path="/marketing/contacts" component={MarketingContacts} />
+                <Route path="/marketing/calendar" component={MarketingCalendar} />
+                <Route path="/marketing/analytics" component={MarketingAnalytics} />
+                <Route path="/marketing/consent" component={MarketingConsent} />
+                <Route path="/marketing/channels" component={MarketingChannels} />
+                <Route path="/marketing/forms" component={MarketingForms} />
                 <Route path="/marketing/prospects" component={MarketingProspects} />
 
                 <Route path="/documents" component={DocumentsPage} />
