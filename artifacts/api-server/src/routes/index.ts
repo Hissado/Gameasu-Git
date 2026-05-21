@@ -44,8 +44,10 @@ import approvalsQueueRouter from "./approvalsQueue";
 import anomalyDetectionRouter from "./anomalyDetection";
 import superAdminCockpitRouter from "./superAdminCockpit";
 import orgTunerRouter from "./orgTuner";
+import operationsRouter from "./operations";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
+import { seedOperationsDemo } from "@workspace/db/seed-operations";
 import { requireAuth } from "../middlewares/auth";
 import { enforcePasswordChange } from "../middlewares/permissions";
 import { seedRbac } from "../lib/rbac/seed";
@@ -75,6 +77,7 @@ router.use(approvalsQueueRouter);
 router.use(anomalyDetectionRouter);
 router.use(superAdminCockpitRouter);
 router.use(orgTunerRouter);
+router.use(operationsRouter);
 router.use(usersRouter);
 router.use(clientsRouter);
 router.use(crmRouter);
@@ -116,6 +119,8 @@ seedSaas()
   .then(() => console.log("[saas] seed OK : organisation, plans, modules, abonnement"))
   .then(() => seedIntelligenceDemo())
   .then(() => console.log("[intelligence] seed démo OK"))
+  .then(() => seedOperationsDemo())
+  .then(() => console.log("[operations] seed démo OK"))
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h

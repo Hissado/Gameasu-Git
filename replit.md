@@ -113,6 +113,28 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 
 ## Recent Changes — mai 2026
 
+### Operations Command Center (refonte `/logistics` → `/operations`) — mai 2026
+- **Schéma** (`lib/db/src/schema/operations.ts`) : 9 tables tenant-scoped (`organizationId NOT NULL` + index) :
+  - `operations_missions` (reference, kind 8 types, status 9 valeurs, priority, origin/destinationAddress + lat/lng, scheduledStart/End, actualStart/End, responsibleUserId, teamUserIds[], vehicleEquipmentId, clientId, projectId, payloadJson, estimatedCost/actualCostFcfa, isBillable, summaryJson, sla).
+  - `operations_mission_stops` (multi-arrêts par mission avec séquence + état).
+  - `operations_checkins` (`check_in`/`check_out`/`break_start`/`break_end` avec GPS + accuracyMeters).
+  - `operations_proofs` (signature, photos, recipientName, comment, status valid/disputed/rejected).
+  - `operations_incidents` (11 types : delay, breakdown, absence, client_unavailable, missing_material, accident, etc. ; sévérité low→critical ; status open/in_progress/resolved/cancelled).
+  - `operations_checklists` + `operations_checklist_items` (phases pre_departure/loading/arrival/execution/end/return).
+  - `operations_costs` (kind fuel/labor/transport/etc., amountFcfa, isEstimate).
+  - `operations_playbooks` (templates métier réutilisables par secteur).
+- **Backend** (`artifacts/api-server/src/routes/operations.ts`, ~25 endpoints) :
+  - `/api/operations/{overview,performance,dispatch,calendar,map,playbooks}` — agrégateurs et vues transverses.
+  - `/api/operations/missions` (GET liste filtrée + POST create avec auto-référence `OPS-YYYY-NNNN`, instancie DEFAULT_CHECKLISTS selon kind), `/api/operations/missions/:id` (GET détail + PATCH + DELETE soft).
+  - `/api/operations/missions/:id/{assign,status,check-in,proof,incident,cost,summary}` — actions terrain.
+  - `/api/operations/incidents` (GET liste) + `/api/operations/incidents/:id` (PATCH résolution / corrective action).
+  - `/api/operations/checklist-items/:id` (PATCH toggle done) — recalcul automatique des compteurs.
+  - Isolation tenant stricte via `organizationId` sur tous les WHERE et INSERT.
+- **RBAC** (`lib/rbac/catalog.ts`) : 8 permissions ajoutées (`operations.view/manage/assign/dispatch/checkin/incidents/checklists/performance`), câblées sur manager (`*`), commercial (view), collaborator (view + checkin). Super_admin/admin → `*`.
+- **Frontend** (`artifacts/edole-admin/src/pages/operations/index.tsx`) : page complète à 10 onglets — Vue d'ensemble (KPI + activité récente + alertes), Missions (table filtrée), Dispatching (file + dispo équipe), Suivi terrain (kanban 6 colonnes par statut), Incidents (résolution inline), Checklists, Preuves, Coûts & performance (KPI complétion/ponctualité/incidents + tableaux par type/responsable), Carte (liste géolocalisée + lien OSM), Calendrier (groupé par jour). Dialogue de détail riche : check-in GPS, génération résumé final, toggle items checklist, signalement d'incident, transitions de statut. Routes `/operations` et `/logistics` (rétrocompat). Sidebar : entrée renommée « Opérations & Logistique » → `/operations`.
+- **Seed démo** (`lib/db/src/seed-operations.ts`, idempotent, exécuté au boot) : 7 missions couvrant tous les statuts/types (livraison ciment Lomé Plateau, install groupe électrogène Kara, intervention climatisation, collecte fin de chantier, approvisionnement carburant, transfert inter-dépôts bloqué, visite technique), avec checklists pré-remplies, check-ins GPS autour de Lomé/Kara/Tsévié/Aného/Atakpamé, 2 incidents (trafic + panne), preuves d'exécution pour les missions terminées, coûts éclatés (carburant 25 % + main-d'œuvre 50 % + transport 25 %).
+
+
 ### Phase 7 — Intelligence projet & tâches — mai 2026
 - **Backend** (`artifacts/api-server/src/routes/projectIntelligence.ts`, monté avant `tasksRouter` pour éviter la collision `/tasks/priority` ↔ `/tasks/:id`) :
   - `GET /api/projects/:id/intelligence` — agrégateur santé projet : projet enrichi (clientName/managerName), score `smart_scores` lu ou recalculé (schedule 40 % + tâches 30 % + risques 20 % + vélocité 10 %, bornes 0-100), schedule (`on_track`/`at_risk`/`delayed`/`unknown` calculé sur startDate/endDate vs progress), stats tâches (active/done/inProgress/todo/blocked/overdue/dueSoon + completionRate + vélocité 14 j ramenée à la semaine), risques/recos/insights filtrés par scope projet, dernier résumé IA + synthèse heuristique de secours, budget alloué. ACL `projects.read` + `userHasProjectAccess` + isolation tenant stricte.

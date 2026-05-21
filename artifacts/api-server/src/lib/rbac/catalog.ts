@@ -105,6 +105,16 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "attendance.clock", label: "Effectuer ses propres pointages", category: "Présences" },
   { code: "attendance.view_anomalies", label: "Voir les anomalies de présence", category: "Présences" },
   { code: "attendance.manage_settings", label: "Configurer le module présence", category: "Présences" },
+
+  // ─── Opérations & Logistique ────────────────────────────────────
+  { code: "operations.view", label: "Voir les missions et opérations", category: "Opérations" },
+  { code: "operations.manage", label: "Créer / modifier / archiver les missions", category: "Opérations" },
+  { code: "operations.assign", label: "Affecter responsable, équipe, véhicule", category: "Opérations" },
+  { code: "operations.dispatch", label: "Accéder au tableau de dispatching", category: "Opérations" },
+  { code: "operations.checkin", label: "Check-in / check-out terrain", category: "Opérations" },
+  { code: "operations.incidents", label: "Gérer les incidents terrain", category: "Opérations" },
+  { code: "operations.checklists", label: "Gérer les checklists opérationnelles", category: "Opérations" },
+  { code: "operations.performance", label: "Consulter les KPI opérationnels", category: "Opérations" },
 ];
 
 /**
@@ -161,6 +171,8 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "automation.read", "automation.manage",
       "scoring.view_client_health", "scoring.view_project_risk", "scoring.view_financial_forecasts",
       "attendance.view", "attendance.manage", "attendance.clock", "attendance.view_anomalies",
+      "operations.view", "operations.manage", "operations.assign", "operations.dispatch",
+      "operations.checkin", "operations.incidents", "operations.checklists", "operations.performance",
     ],
   },
   {
@@ -182,6 +194,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "ai.view_insights", "ai.view_recommendations",
       "scoring.view_client_health",
       "attendance.clock",
+      "operations.view",
     ],
   },
   {
@@ -201,6 +214,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "messaging.use",
       "ai.view_insights",
       "attendance.clock",
+      "operations.view", "operations.checkin",
     ],
   },
 ];

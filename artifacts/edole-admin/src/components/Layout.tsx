@@ -60,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Comptabilité", path: "/accounting", icon: Calculator, moduleKey: "accounting" },
       { name: "Planification financière", path: "/fpa", icon: TrendingUp, moduleKey: "financial_planning" },
       { name: "Finance IA", path: "/finance/intelligence", icon: Sparkles, moduleKey: "accounting" },
-      { name: "Opérations", path: "/logistics", icon: Truck, moduleKey: "operations" },
+      { name: "Opérations & Logistique", path: "/operations", icon: Truck, moduleKey: "operations" },
       { name: "Parc & équipements", path: "/equipment", icon: Wrench, moduleKey: "inventory_assets" },
       { name: "Locations", path: "/rentals", icon: Truck, moduleKey: "rentals" },
       { name: "Inspections", path: "/inspections", icon: ClipboardCheck, moduleKey: "rentals" },
