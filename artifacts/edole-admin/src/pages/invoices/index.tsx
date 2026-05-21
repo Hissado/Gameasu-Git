@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, Filter, FileText, Calendar, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatFCFA, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { MoneyAmount } from "@/components/ui/money-amount";
 
 export default function InvoicesList() {
   const { data, isLoading } = useListInvoices();
@@ -95,16 +96,14 @@ export default function InvoicesList() {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                      <TableCell className="text-right font-bold text-slate-800 text-lg">
-                        {formatFCFA(invoice.totalAmount)}
+                      <TableCell className="text-right">
+                        <MoneyAmount amount={invoice.totalAmount} size="lg" />
                       </TableCell>
                       <TableCell className="text-right">
                         {invoice.status === 'paid' ? (
-                          <span className="text-green-600 font-bold">Soldé</span>
+                          <span className="text-emerald-600 font-semibold text-sm">Soldé</span>
                         ) : (
-                          <span className={`font-bold ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
-                            {formatFCFA(remaining)}
-                          </span>
+                          <MoneyAmount amount={remaining} size="md" color={isOverdue ? "danger" : "muted"} />
                         )}
                       </TableCell>
                     </TableRow>

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, Filter, FileText, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatFCFA, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { MoneyAmount } from "@/components/ui/money-amount";
 
 export default function ProformasList() {
   const { data, isLoading } = useListProformas();
@@ -89,8 +90,8 @@ export default function ProformasList() {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(proforma.status)}</TableCell>
-                      <TableCell className="text-right font-bold text-slate-800 text-lg">
-                        {formatFCFA(proforma.totalAmount)}
+                      <TableCell className="text-right">
+                        <MoneyAmount amount={proforma.totalAmount} size="lg" />
                       </TableCell>
                     </TableRow>
                   ))

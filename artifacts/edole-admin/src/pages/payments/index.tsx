@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, Filter, CreditCard, Calendar, Building, Landmark, Smartphone, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatFCFA, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { MoneyAmount } from "@/components/ui/money-amount";
 
 export default function PaymentsList() {
   const { data, isLoading } = useListPayments();
@@ -95,8 +96,8 @@ export default function PaymentsList() {
                       <TableCell className="font-mono text-xs text-slate-500">
                         {payment.reference || "—"}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-green-600 text-lg">
-                        + {formatFCFA(payment.amount)}
+                      <TableCell className="text-right">
+                        <MoneyAmount amount={payment.amount} size="lg" color="success" showSign />
                       </TableCell>
                     </TableRow>
                   ))

@@ -51,6 +51,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatFCFA } from "@/lib/format";
+import { MoneyAmount } from "@/components/ui/money-amount";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { IntelligenceWidget } from "@/components/IntelligenceWidget";
@@ -312,12 +313,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-6 text-right">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Encaissements (cumul)</div>
-                <div className="font-display text-2xl font-extrabold text-white mt-1">{formatFCFA(monthlyRevenue)}</div>
+                <MoneyAmount amount={monthlyRevenue} size="2xl" color="white" className="mt-1" />
               </div>
               <div className="hidden md:block w-px h-12 bg-slate-700" />
               <div className="hidden md:block">
                 <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Pipeline</div>
-                <div className="font-display text-2xl font-extrabold text-primary mt-1">{formatFCFA(pipeline)}</div>
+                <MoneyAmount amount={pipeline} size="2xl" color="white" className="mt-1 !text-primary [&>span:last-child]:!text-primary/60" />
               </div>
             </div>
           </div>
@@ -342,21 +343,21 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Encaissements"
-            value={formatFCFA(monthlyRevenue)}
+            value={<MoneyAmount amount={monthlyRevenue} size="xl" color="default" />}
             sub="Paiements reçus à date"
             icon={Banknote} accent="dark" loading={loadingKpis}
             href="/payments"
           />
           <MetricCard
             label="Créances ouvertes"
-            value={formatFCFA(outstanding)}
+            value={<MoneyAmount amount={outstanding} size="xl" color={outstanding > 0 ? "warning" : "default"} />}
             sub="Factures non encaissées"
             icon={Receipt} accent={outstanding > 0 ? "warning" : "neutral"} loading={loadingKpis}
             href="/invoices"
           />
           <MetricCard
             label="Pipeline commercial"
-            value={formatFCFA(pipeline)}
+            value={<MoneyAmount amount={pipeline} size="xl" color="default" />}
             sub={`${kpis?.openOpportunities || 0} opportunités qualifiées`}
             icon={Target} accent="primary" loading={loadingKpis}
             href="/crm"
