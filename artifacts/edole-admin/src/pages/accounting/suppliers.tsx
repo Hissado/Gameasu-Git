@@ -63,7 +63,7 @@ export default function SuppliersPage() {
       subtitle="Tiers fournisseurs, factures d'achat et règlements"
       actions={<>
         <Button variant="outline" onClick={() => setOpenSupplier(true)}><Building2 className="w-4 h-4 mr-2" />Nouveau fournisseur</Button>
-        <Button onClick={() => setOpenInv(true)} className="bg-amber-600 hover:bg-amber-700"><Receipt className="w-4 h-4 mr-2" />Saisir facture</Button>
+        <Button onClick={() => setOpenInv(true)} className=""><Receipt className="w-4 h-4 mr-2" />Saisir facture</Button>
       </>}
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -152,7 +152,7 @@ export default function SuppliersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupplier(false)}>Annuler</Button>
-            <Button onClick={() => createSupplier.mutate()} disabled={!supplierForm.name || createSupplier.isPending} className="bg-amber-600 hover:bg-amber-700">Créer</Button>
+            <Button onClick={() => createSupplier.mutate()} disabled={!supplierForm.name || createSupplier.isPending} className="">Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -184,7 +184,7 @@ export default function SuppliersPage() {
           <p className="text-xs text-muted-foreground mt-2">Une écriture sera générée automatiquement dans le journal ACH (charge / fournisseur).</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenInv(false)}>Annuler</Button>
-            <Button onClick={() => createInv.mutate()} disabled={!invForm.supplierId || !invForm.totalAmount || createInv.isPending} className="bg-amber-600 hover:bg-amber-700">Enregistrer</Button>
+            <Button onClick={() => createInv.mutate()} disabled={!invForm.supplierId || !invForm.totalAmount || createInv.isPending} className="">Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -215,7 +215,7 @@ export default function SuppliersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenPayment(null)}>Annuler</Button>
-            <Button onClick={() => createPayment.mutate()} disabled={!paymentForm.amount || createPayment.isPending} className="bg-amber-600 hover:bg-amber-700">Régler</Button>
+            <Button onClick={() => createPayment.mutate()} disabled={!paymentForm.amount || createPayment.isPending} className="">Régler</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

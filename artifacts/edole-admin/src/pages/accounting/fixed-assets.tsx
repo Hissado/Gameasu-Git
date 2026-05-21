@@ -59,7 +59,7 @@ export default function FixedAssetsPage() {
     <AccountingShell
       title="Immobilisations"
       subtitle="Suivi du parc d'actifs immobilisés et dotations aux amortissements"
-      actions={<Button onClick={() => setOpen(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-4 h-4 mr-2" />Nouvelle immobilisation</Button>}
+      actions={<Button onClick={() => setOpen(true)} className=""><Plus className="w-4 h-4 mr-2" />Nouvelle immobilisation</Button>}
     >
       <div className="grid grid-cols-3 gap-3 mb-4">
         <Card><CardContent className="p-4"><div className="text-xs uppercase text-muted-foreground">Valeur d'acquisition</div><div className="text-xl font-bold mt-1">{formatFCFA(totalCost)}</div></CardContent></Card>
@@ -140,7 +140,7 @@ export default function FixedAssetsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={() => create.mutate()} disabled={!form.code || !form.label || !form.acquisitionCost || !form.accountId || create.isPending} className="bg-amber-600 hover:bg-amber-700">Créer</Button>
+            <Button onClick={() => create.mutate()} disabled={!form.code || !form.label || !form.acquisitionCost || !form.accountId || create.isPending} className="">Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

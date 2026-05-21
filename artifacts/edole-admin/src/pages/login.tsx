@@ -45,24 +45,27 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex">
-      {/* Panneau marque — logo plein cadre, fond clair pour respecter
-          fidèlement le navy + or du logo et la finesse des accents é/ù. */}
-      <div className="hidden lg:flex flex-col w-1/2 relative overflow-hidden border-r border-[#0F1A3A]/10"
-           style={{ background: "linear-gradient(180deg, #FAF6EE 0%, #F4EEDE 100%)" }}>
+      {/* Panneau marque — clair en jour, terminal noir en nuit */}
+      <div className="hidden lg:flex flex-col w-1/2 relative overflow-hidden border-r border-border
+                      bg-[linear-gradient(180deg,#FAF6EE_0%,#F4EEDE_100%)] dark:bg-sidebar">
+        {/* Halo subtil */}
         <div
-          className="absolute inset-0 opacity-[0.10] pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #C8A24B66 0, transparent 50%), radial-gradient(circle at 80% 80%, #0F1A3A22 0, transparent 45%)" }}
+          className="absolute inset-0 opacity-[0.10] dark:opacity-[0.22] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, hsl(var(--primary) / 0.55) 0, transparent 50%), radial-gradient(circle at 80% 80%, hsl(222 47% 11% / 0.18) 0, transparent 45%)" }}
         />
+        {/* Grille fine financière en mode sombre */}
+        <div className="absolute inset-0 opacity-0 dark:opacity-[0.06] pointer-events-none bg-grid" />
         <div className="relative flex-1 flex items-center justify-center px-6">
           <img
             src={BRANDING.logoFullTransparent}
             alt={BRANDING.appName}
             draggable={false}
-            className="w-full h-auto max-h-[88vh] object-contain select-none"
+            className="w-full h-auto max-h-[88vh] object-contain select-none dark:[filter:brightness(0)_invert(1)] dark:opacity-80"
           />
         </div>
-        <div className="relative px-12 pb-6 text-xs text-[#0F1A3A]/55">
-          © {new Date().getFullYear()} {BRANDING.legalName} — Tous droits réservés.
+        <div className="relative px-12 pb-6 text-xs text-foreground/55 dark:text-white/45 flex items-center justify-between">
+          <span>© {new Date().getFullYear()} {BRANDING.legalName}</span>
+          <span className="font-mono uppercase tracking-[0.14em] text-[10px] dark:text-white/35">Pilotage premium</span>
         </div>
       </div>
 

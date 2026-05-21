@@ -43,7 +43,7 @@ export function AccountingShell({ title, subtitle, actions, children }: {
                 className={cn(
                   "px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition",
                   active
-                    ? "border-amber-500 text-amber-700"
+                    ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-slate-300"
                 )}
               >

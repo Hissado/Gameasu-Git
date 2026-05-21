@@ -57,15 +57,15 @@ export default function BanksPage() {
     <AccountingShell
       title="Banques & caisses"
       subtitle="Trésorerie : comptes, mouvements, rapprochements"
-      actions={<Button onClick={() => setOpenBank(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-4 h-4 mr-2" />Nouveau compte</Button>}
+      actions={<Button onClick={() => setOpenBank(true)} className=""><Plus className="w-4 h-4 mr-2" />Nouveau compte</Button>}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {banks?.data.map((b) => (
-          <Card key={b.id} className={`cursor-pointer transition ${selected === b.id ? "border-amber-500 ring-2 ring-amber-200" : ""}`} onClick={() => setSelected(b.id)}>
+          <Card key={b.id} className={`cursor-pointer transition ${selected === b.id ? "border-primary ring-2 ring-primary/25" : ""}`} onClick={() => setSelected(b.id)}>
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
-                  <Landmark className="w-5 h-5 text-amber-700" />
+                  <Landmark className="w-5 h-5 text-primary" />
                   <div>
                     <div className="font-bold">{b.name}</div>
                     <div className="text-xs text-muted-foreground">{b.bankName ?? (b.type === "cash" ? "Caisse" : "Banque")}</div>
@@ -90,7 +90,7 @@ export default function BanksPage() {
               <span className="font-bold">Mouvements — {banks?.data.find((b) => b.id === selected)?.name}</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setOpenRecon(true)}><ArrowLeftRight className="w-3 h-3 mr-1" />Rapprochement</Button>
-                <Button size="sm" onClick={() => setOpenTx(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-3 h-3 mr-1" />Mouvement</Button>
+                <Button size="sm" onClick={() => setOpenTx(true)} className=""><Plus className="w-3 h-3 mr-1" />Mouvement</Button>
               </div>
             </div>
             <table className="w-full text-sm">
@@ -146,7 +146,7 @@ export default function BanksPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenBank(false)}>Annuler</Button>
-            <Button onClick={() => createBank.mutate()} disabled={!bankForm.name || !bankForm.accountId || createBank.isPending} className="bg-amber-600 hover:bg-amber-700">Créer</Button>
+            <Button onClick={() => createBank.mutate()} disabled={!bankForm.name || !bankForm.accountId || createBank.isPending} className="">Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -163,7 +163,7 @@ export default function BanksPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenTx(false)}>Annuler</Button>
-            <Button onClick={() => createTx.mutate()} disabled={!txForm.label || !txForm.amount || createTx.isPending} className="bg-amber-600 hover:bg-amber-700">Enregistrer</Button>
+            <Button onClick={() => createTx.mutate()} disabled={!txForm.label || !txForm.amount || createTx.isPending} className="">Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -183,7 +183,7 @@ export default function BanksPage() {
                     <div className="flex justify-between"><span className="font-mono text-xs">{t.transactionDate}</span><span className={`font-bold ${t.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatFCFA(t.amount)}</span></div>
                     <div>{t.label}</div>
                     <details className="mt-2">
-                      <summary className="text-xs text-amber-700 cursor-pointer font-semibold">Rapprocher avec…</summary>
+                      <summary className="text-xs text-primary cursor-pointer font-semibold">Rapprocher avec…</summary>
                       <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
                         {recon?.journalLines.map((l) => (
                           <button key={l.lineId} type="button" onClick={() => match.mutate({ transactionId: t.id, lineId: l.lineId })}
