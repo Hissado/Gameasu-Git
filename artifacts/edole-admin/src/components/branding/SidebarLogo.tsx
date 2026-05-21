@@ -19,13 +19,13 @@ export function SidebarLogo({ onNavigate }: { onNavigate?: () => void }) {
       {/* Conteneur à hauteur fixe : à 200 px de large, l'image mesure
           200 × (941/1672) = 112 px de haut. On en affiche 66 px (59 %)
           depuis le haut → slogan + filet masqués, G mark + wordmark visibles. */}
-      <div style={{ width: 200, height: 66, overflow: "hidden" }}>
+      <div style={{ width: 232, height: 76, overflow: "hidden" }}>
         <img
           src={BRANDING.logoFullTransparent}
           alt={BRANDING.appName}
           draggable={false}
           style={{
-            width: 200,
+            width: 232,
             height: "auto",
             display: "block",
             userSelect: "none",
