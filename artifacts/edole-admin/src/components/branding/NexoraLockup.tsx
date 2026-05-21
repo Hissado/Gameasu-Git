@@ -42,7 +42,7 @@ export function NexoraLockup({
   return (
     <div className={`inline-flex flex-col ${className}`}>
       <div className="inline-flex items-center">
-        <NexoraMark className={`${s.mark} rounded-md`} variant={variant} />
+        <NexoraMark className={s.mark} variant={variant} />
         <span
           className={`font-display font-bold leading-none tracking-[-0.04em] ${s.word} ${wordColor} ${s.gap}`}
           style={{ fontFeatureSettings: '"ss01"' }}

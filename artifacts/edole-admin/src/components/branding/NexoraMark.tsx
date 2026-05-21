@@ -1,32 +1,28 @@
-import { BRANDING } from "@/config/branding";
-
 /**
- * Nexora — marque officielle.
- * Affiche le « N » du logo officiel (PNG fourni par la marque).
- * Sur fond navy (variant="dark"), la pastille reste cream pour rester fidèle
- * au visuel d'origine ; sur fond clair (variant="light") on est transparent.
+ * Nexora — monogramme officiel.
+ * - variant="light" (fond clair) : version navy + accent or sur fond transparent
+ * - variant="dark"  (fond sombre) : version inversée — N blanc + accent or sur transparent
+ * Plus aucune pastille de fond : le glyphe vit directement sur le support, fidèle au
+ * traitement de marque (comme dans la référence fournie).
  */
 export function NexoraMark({
   className = "w-10 h-10",
   variant = "light",
 }: {
   className?: string;
-  /** dark = pastille cream (à utiliser sur fond navy) — light = transparent (sur fond ivoire/blanc) */
   variant?: "dark" | "light";
 }) {
-  const isDark = variant === "dark";
+  const src =
+    variant === "dark"
+      ? "/branding/nexora-mark-light.png"
+      : "/branding/nexora-mark.png";
   return (
-    <span
-      className={`relative inline-flex items-center justify-center rounded-lg overflow-hidden shrink-0 ${className}`}
-      style={{ background: isDark ? "#F5F1E8" : "transparent" }}
+    <img
+      src={src}
+      alt=""
+      draggable={false}
       aria-hidden="true"
-    >
-      <img
-        src={BRANDING.logoMark}
-        alt=""
-        draggable={false}
-        className="w-[86%] h-[86%] object-contain"
-      />
-    </span>
+      className={`inline-block object-contain shrink-0 select-none ${className}`}
+    />
   );
 }
