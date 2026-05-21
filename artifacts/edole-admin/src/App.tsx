@@ -75,6 +75,13 @@ const NotificationsDigest = lazy(() => import("@/pages/notifications/digest"));
 const UniversalSearch = lazy(() => import("@/pages/search/index"));
 const AssistantPage = lazy(() => import("@/pages/assistant/index"));
 const BriefingPage = lazy(() => import("@/pages/briefing/index"));
+const PipelineIntelligence = lazy(() => import("@/pages/pipeline/intelligence"));
+const DocumentsIntelligence = lazy(() => import("@/pages/documents/intelligence"));
+const ApprovalsQueue = lazy(() => import("@/pages/approvals/index"));
+const AnomalyCenter = lazy(() => import("@/pages/anomalies/index"));
+const SuperAdminCockpit = lazy(() => import("@/pages/super-admin/index"));
+const OrgTuner = lazy(() => import("@/pages/org-tuner/index"));
+const QuickActions = lazy(() => import("@/pages/quick-actions/index"));
 const MarketingDashboard = lazy(() => import("@/pages/marketing/index"));
 const MarketingProspects = lazy(() => import("@/pages/marketing/prospects"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/campaigns"));
@@ -234,6 +241,13 @@ function AppRouter() {
                 <Route path="/search" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />
                 <Route path="/briefing" component={BriefingPage} />
+                <Route path="/pipeline/intelligence" component={PipelineIntelligence} />
+                <Route path="/documents/intelligence" component={DocumentsIntelligence} />
+                <Route path="/approvals" component={ApprovalsQueue} />
+                <Route path="/anomalies" component={AnomalyCenter} />
+                <Route path="/super-admin" component={SuperAdminCockpit} />
+                <Route path="/org-tuner" component={OrgTuner} />
+                <Route path="/quick" component={QuickActions} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
                 <Route path="/marketing/campaigns" component={MarketingCampaigns} />

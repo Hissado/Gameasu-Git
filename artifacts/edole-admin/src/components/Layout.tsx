@@ -9,7 +9,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
   Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing,
+  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +33,13 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Recherche universelle", path: "/search", icon: Search, moduleKey: "dashboard" },
       { name: "Assistant Nexora", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
       { name: "Briefing du jour", path: "/briefing", icon: Sun, moduleKey: "dashboard" },
+      { name: "Pipeline IA", path: "/pipeline/intelligence", icon: TrendingUp, moduleKey: "sales_crm" },
+      { name: "Documents IA", path: "/documents/intelligence", icon: FolderArchive, moduleKey: "documents" },
+      { name: "Approbations", path: "/approvals", icon: CheckSquare, moduleKey: "dashboard" },
+      { name: "Anomalies", path: "/anomalies", icon: Activity, moduleKey: "dashboard" },
+      { name: "Accès rapide", path: "/quick", icon: Zap, moduleKey: "dashboard" },
+      { name: "Org tuner", path: "/org-tuner", icon: Gauge, moduleKey: "dashboard" },
+      { name: "Cockpit plateforme", path: "/super-admin", icon: Crown, moduleKey: "dashboard" },
       { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "dashboard" },
       { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
       { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
