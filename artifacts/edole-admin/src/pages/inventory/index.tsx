@@ -19,6 +19,13 @@ import {
   CheckCircle2, Truck, Settings, BarChart3, FileText, Trash2, ArrowDownToLine,
   ArrowUpFromLine, RefreshCw, Tag, Archive,
 } from "lucide-react";
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RTooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from "recharts";
+
+const CATEGORY_COLORS = ["#F37021", "#0EA5E9", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#EF4444"];
+const KIND_LABELS: Record<string, string> = { in: "Entrée", out: "Sortie", adjust: "Ajustement" };
 
 type Product = {
   id: string; sku: string; name: string; description?: string | null;
@@ -84,14 +91,14 @@ export default function InventoryHub() {
       </div>
 
       <Tabs value={tab} onValueChange={changeTab}>
-        <TabsList className="grid grid-cols-7 w-full mb-4">
-          <TabsTrigger value="overview"><BarChart3 className="h-4 w-4 mr-1" />Vue</TabsTrigger>
-          <TabsTrigger value="products"><Tag className="h-4 w-4 mr-1" />Produits</TabsTrigger>
-          <TabsTrigger value="stock"><Archive className="h-4 w-4 mr-1" />Stock</TabsTrigger>
-          <TabsTrigger value="purchases"><Truck className="h-4 w-4 mr-1" />Achats</TabsTrigger>
-          <TabsTrigger value="movements"><RefreshCw className="h-4 w-4 mr-1" />Mouvements</TabsTrigger>
-          <TabsTrigger value="alerts"><AlertTriangle className="h-4 w-4 mr-1" />Alertes</TabsTrigger>
-          <TabsTrigger value="reports"><FileText className="h-4 w-4 mr-1" />Rapports</TabsTrigger>
+        <TabsList className="grid grid-cols-4 sm:grid-cols-7 w-full mb-4 h-auto">
+          <TabsTrigger value="overview" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><BarChart3 className="h-4 w-4 sm:mr-1" />Vue</TabsTrigger>
+          <TabsTrigger value="products" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><Tag className="h-4 w-4 sm:mr-1" />Produits</TabsTrigger>
+          <TabsTrigger value="stock" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><Archive className="h-4 w-4 sm:mr-1" />Stock</TabsTrigger>
+          <TabsTrigger value="purchases" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><Truck className="h-4 w-4 sm:mr-1" />Achats</TabsTrigger>
+          <TabsTrigger value="movements" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><RefreshCw className="h-4 w-4 sm:mr-1" />Mouvements</TabsTrigger>
+          <TabsTrigger value="alerts" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><AlertTriangle className="h-4 w-4 sm:mr-1" />Alertes</TabsTrigger>
+          <TabsTrigger value="reports" className="flex-col sm:flex-row gap-0 sm:gap-1 py-2 sm:py-1.5 text-xs sm:text-sm"><FileText className="h-4 w-4 sm:mr-1" />Rapports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview"><OverviewTab /></TabsContent>
@@ -108,7 +115,8 @@ export default function InventoryHub() {
 
 // ─── Overview ──────────────────────────────────────────────────────
 function OverviewTab() {
-  const { data } = useQuery<{
+  const [, setLocation] = useLocation();
+  const { data, isLoading } = useQuery<{
     totalProducts: number; stockValuationFcfa: number;
     lowStockCount: number; outOfStockCount: number;
     openPurchaseOrders: number; purchases30dFcfa: number; sales30dFcfa: number;
@@ -116,7 +124,16 @@ function OverviewTab() {
     queryKey: ["inventory-overview"],
     queryFn: () => apiFetch("/api/inventory/overview"),
   });
-  if (!data) return <div className="text-muted-foreground">Chargement…</div>;
+  const { data: alerts, isLoading: alertsLoading } = useQuery<Product[]>({
+    queryKey: ["stock-alerts"],
+    queryFn: () => apiFetch("/api/inventory/stock/alerts"),
+  });
+  const { data: movements, isLoading: movementsLoading } = useQuery<StockMovement[]>({
+    queryKey: ["stock-movements-recent"],
+    queryFn: () => apiFetch("/api/inventory/movements?limit=6"),
+  });
+
+  if (isLoading || !data) return <div className="text-muted-foreground py-8 text-center">Chargement…</div>;
   const cards = [
     { label: "Produits actifs", value: data.totalProducts, icon: Package, color: "text-blue-600" },
     { label: "Valorisation stock", value: formatFCFA(data.stockValuationFcfa), icon: Archive, color: "text-emerald-600" },
@@ -127,21 +144,99 @@ function OverviewTab() {
     { label: "Ventes 30j", value: formatFCFA(data.sales30dFcfa), icon: ArrowUpFromLine, color: "text-violet-600" },
     { label: "Marge 30j", value: formatFCFA(data.sales30dFcfa - data.purchases30dFcfa), icon: TrendingUp, color: "text-orange-600" },
   ];
+  const topAlerts = (alerts ?? []).slice(0, 5);
+  const recentMoves = (movements ?? []).slice(0, 6);
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((c) => (
-        <Card key={c.label}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-muted-foreground">{c.label}</div>
-                <div className="text-xl font-semibold mt-1">{c.value}</div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((c) => (
+          <Card key={c.label}>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground">{c.label}</div>
+                  <div className="text-xl font-semibold mt-1">{c.value}</div>
+                </div>
+                <c.icon className={`h-8 w-8 ${c.color}`} />
               </div>
-              <c.icon className={`h-8 w-8 ${c.color}`} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4 text-amber-600" />Top alertes stock</CardTitle>
+              {topAlerts.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => setLocation("/inventory/alerts")}>Voir tout</Button>
+              )}
             </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {alertsLoading ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">Chargement…</div>
+            ) : topAlerts.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-6 text-center flex flex-col items-center gap-2">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                Tous les stocks sont au-dessus du minimum.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {topAlerts.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between py-1.5 border-b last:border-0 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{p.name}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{p.sku}</div>
+                    </div>
+                    <div className="text-right ml-3">
+                      <div className={p.stockOnHand <= 0 ? "text-rose-700 font-medium" : "text-amber-700"}>
+                        {p.stockOnHand} {p.unit}
+                      </div>
+                      <div className="text-xs text-muted-foreground">min : {parseFloat(p.minStock)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-      ))}
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base"><RefreshCw className="h-4 w-4 text-slate-600" />Derniers mouvements</CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setLocation("/inventory/movements")}>Voir tout</Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {movementsLoading ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">Chargement…</div>
+            ) : recentMoves.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">Aucun mouvement récent.</div>
+            ) : (
+              <div className="space-y-2">
+                {recentMoves.map((m) => {
+                  const qty = parseFloat(m.quantity);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between py-1.5 border-b last:border-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">{m.productName}</div>
+                        <div className="text-xs text-muted-foreground">{formatDate(m.occurredAt)} · {KIND_LABELS[m.kind] ?? m.kind}</div>
+                      </div>
+                      <div className={`text-right font-medium ml-3 ${qty >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                        {qty >= 0 ? "+" : ""}{qty}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -501,16 +596,28 @@ function PurchaseOrdersTab() {
   );
 }
 
-function CreatePoDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
+type PoInitialLine = { productId: string; quantity: number; unitPriceFcfa: number };
+
+function CreatePoDialog({ open, onClose, onSaved, initialLines, initialSupplierId }: {
+  open: boolean; onClose: () => void; onSaved: () => void;
+  initialLines?: PoInitialLine[]; initialSupplierId?: string;
+}) {
   const { toast } = useToast();
   const { data: suppliers } = useQuery<Supplier[]>({ queryKey: ["suppliers"], queryFn: () => apiFetch("/api/accounting/suppliers"), enabled: open });
   const { data: products } = useQuery<Product[]>({ queryKey: ["products-all"], queryFn: () => apiFetch("/api/inventory/products"), enabled: open });
   const [supplierId, setSupplierId] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<{ productId: string; quantity: number; unitPriceFcfa: number }[]>([
-    { productId: "", quantity: 1, unitPriceFcfa: 0 },
-  ]);
+  const [lines, setLines] = useState<PoInitialLine[]>([{ productId: "", quantity: 1, unitPriceFcfa: 0 }]);
+
+  React.useEffect(() => {
+    if (open) {
+      setSupplierId(initialSupplierId ?? "");
+      setLines(initialLines && initialLines.length > 0 ? initialLines : [{ productId: "", quantity: 1, unitPriceFcfa: 0 }]);
+      setExpectedDate("");
+      setNotes("");
+    }
+  }, [open, initialSupplierId, initialLines]);
 
   const total = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0);
 
@@ -615,6 +722,9 @@ function PoDetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
       qc.invalidateQueries({ queryKey: ["purchase-order", id] });
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["stock-levels"] });
+      qc.invalidateQueries({ queryKey: ["stock-movements"] });
+      qc.invalidateQueries({ queryKey: ["stock-movements-recent"] });
+      qc.invalidateQueries({ queryKey: ["stock-alerts"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["inventory-overview"] });
       setReceipts({});
@@ -711,6 +821,8 @@ function PoDetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
 function MovementsTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [filterProduct, setFilterProduct] = useState<string>("all");
+  const [filterKind, setFilterKind] = useState<string>("all");
   const { data: movements } = useQuery<StockMovement[]>({
     queryKey: ["stock-movements"],
     queryFn: () => apiFetch("/api/inventory/movements?limit=200"),
@@ -718,6 +830,11 @@ function MovementsTab() {
   const { data: products } = useQuery<Product[]>({ queryKey: ["products-all"], queryFn: () => apiFetch("/api/inventory/products") });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ productId: "", quantity: 0, reason: "", unitCostFcfa: 0 });
+
+  const filtered = useMemo(() => (movements ?? []).filter((m) =>
+    (filterProduct === "all" || m.productId === filterProduct) &&
+    (filterKind === "all" || m.kind === filterKind)
+  ), [movements, filterProduct, filterKind]);
 
   const adjust = useMutation({
     mutationFn: () => apiFetch("/api/inventory/movements/adjust", {
@@ -727,8 +844,10 @@ function MovementsTab() {
     onSuccess: () => {
       toast({ title: "Ajustement enregistré" });
       qc.invalidateQueries({ queryKey: ["stock-movements"] });
+      qc.invalidateQueries({ queryKey: ["stock-movements-recent"] });
       qc.invalidateQueries({ queryKey: ["stock-levels"] });
       qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock-alerts"] });
       qc.invalidateQueries({ queryKey: ["inventory-overview"] });
       setOpen(false); setForm({ productId: "", quantity: 0, reason: "", unitCostFcfa: 0 });
     },
@@ -738,9 +857,27 @@ function MovementsTab() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <CardTitle>Mouvements de stock</CardTitle>
-          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />Ajustement manuel</Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={filterKind} onValueChange={setFilterKind}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                <SelectItem value="in">Entrées</SelectItem>
+                <SelectItem value="out">Sorties</SelectItem>
+                <SelectItem value="adjust">Ajustements</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterProduct} onValueChange={setFilterProduct}>
+              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les produits</SelectItem>
+                {(products ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.sku} — {p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />Ajustement manuel</Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -754,7 +891,7 @@ function MovementsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(movements ?? []).map((m) => {
+            {filtered.map((m) => {
               const qty = parseFloat(m.quantity);
               return (
                 <TableRow key={m.id}>
@@ -762,7 +899,7 @@ function MovementsTab() {
                   <TableCell><span className="font-medium">{m.productName}</span> <span className="text-xs text-muted-foreground font-mono">{m.productSku}</span></TableCell>
                   <TableCell>
                     <Badge variant={m.kind === "in" ? "default" : m.kind === "out" ? "destructive" : "secondary"}>
-                      {m.kind === "in" ? "Entrée" : m.kind === "out" ? "Sortie" : "Ajustement"}
+                      {KIND_LABELS[m.kind] ?? m.kind}
                     </Badge>
                   </TableCell>
                   <TableCell className={`text-right font-medium ${qty >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
@@ -774,8 +911,10 @@ function MovementsTab() {
                 </TableRow>
               );
             })}
-            {(movements?.length ?? 0) === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun mouvement.</TableCell></TableRow>
+            {filtered.length === 0 && (
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                {(movements?.length ?? 0) === 0 ? "Aucun mouvement." : "Aucun mouvement ne correspond aux filtres."}
+              </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -812,14 +951,51 @@ function MovementsTab() {
 
 // ─── Alerts ────────────────────────────────────────────────────────
 function AlertsTab() {
+  const qc = useQueryClient();
   const { data } = useQuery<Product[]>({
     queryKey: ["stock-alerts"],
     queryFn: () => apiFetch("/api/inventory/stock/alerts"),
   });
+  const [poDialog, setPoDialog] = useState<{ open: boolean; initialLines: PoInitialLine[]; supplierId?: string }>({
+    open: false, initialLines: [],
+  });
+
+  const openOrder = (p: Product) => {
+    const minStock = parseFloat(p.minStock);
+    const toOrder = Math.max(1, minStock * 2 - p.stockOnHand);
+    setPoDialog({
+      open: true,
+      initialLines: [{ productId: p.id, quantity: toOrder, unitPriceFcfa: parseFloat(p.purchasePriceFcfa) }],
+      supplierId: p.primarySupplierId ?? undefined,
+    });
+  };
+  const openOrderAll = () => {
+    const lines = (data ?? []).map((p) => {
+      const minStock = parseFloat(p.minStock);
+      const toOrder = Math.max(1, minStock * 2 - p.stockOnHand);
+      return { productId: p.id, quantity: toOrder, unitPriceFcfa: parseFloat(p.purchasePriceFcfa) };
+    });
+    setPoDialog({ open: true, initialLines: lines });
+  };
+
+  const totalEstimate = (data ?? []).reduce((s, p) => {
+    const minStock = parseFloat(p.minStock);
+    const toOrder = Math.max(0, minStock * 2 - p.stockOnHand);
+    return s + toOrder * parseFloat(p.purchasePriceFcfa);
+  }, 0);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-600" />Alertes de stock faible</CardTitle>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-600" />Alertes de stock faible</CardTitle>
+          {(data?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary">Coût total estimé : {formatFCFA(totalEstimate)}</Badge>
+              <Button size="sm" onClick={openOrderAll}><ShoppingCart className="h-4 w-4 mr-1" />Commander tout</Button>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -830,6 +1006,7 @@ function AlertsTab() {
               <TableHead className="text-right">Stock minimum</TableHead>
               <TableHead className="text-right">À réapprovisionner</TableHead>
               <TableHead className="text-right">Coût estimé</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -845,15 +1022,40 @@ function AlertsTab() {
                   <TableCell className="text-right">{minStock} {p.unit}</TableCell>
                   <TableCell className="text-right font-medium">{toOrder} {p.unit}</TableCell>
                   <TableCell className="text-right">{formatFCFA(toOrder * parseFloat(p.purchasePriceFcfa))}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => openOrder(p)}>
+                      <ShoppingCart className="h-3 w-3 mr-1" />Commander
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
             {(data?.length ?? 0) === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Aucune alerte — tous les stocks sont au-dessus du minimum.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <div className="flex flex-col items-center gap-2">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                  Aucune alerte — tous les stocks sont au-dessus du minimum.
+                </div>
+              </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </CardContent>
+
+      {poDialog.open && (
+        <CreatePoDialog
+          open={poDialog.open}
+          onClose={() => setPoDialog({ open: false, initialLines: [] })}
+          initialLines={poDialog.initialLines}
+          initialSupplierId={poDialog.supplierId}
+          onSaved={() => {
+            setPoDialog({ open: false, initialLines: [] });
+            qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+            qc.invalidateQueries({ queryKey: ["inventory-overview"] });
+            qc.invalidateQueries({ queryKey: ["stock-alerts"] });
+          }}
+        />
+      )}
     </Card>
   );
 }
@@ -882,75 +1084,100 @@ function ReportsTab() {
           <CardTitle>Valorisation par catégorie</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="grid lg:grid-cols-2 gap-6 items-center">
+            <div className="h-64">
+              {(valuation ?? []).length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Aucune donnée.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={valuation ?? []} dataKey="valueFcfa" nameKey="categoryName"
+                         innerRadius={50} outerRadius={90} paddingAngle={2}>
+                      {(valuation ?? []).map((_, i) => <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />)}
+                    </Pie>
+                    <RTooltip formatter={(v: number) => formatFCFA(v)} />
+                    <Legend verticalAlign="bottom" iconType="circle"
+                      formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>Catégorie</TableHead><TableHead className="text-right">Produits</TableHead><TableHead className="text-right">Valeur</TableHead><TableHead className="text-right">%</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {(valuation ?? []).map((v, i) => (
+                  <TableRow key={v.categoryName}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
+                        {v.categoryName}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{v.productCount}</TableCell>
+                    <TableCell className="text-right font-medium">{formatFCFA(v.valueFcfa)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {totalValuation > 0 ? ((v.valueFcfa / totalValuation) * 100).toFixed(1) : "0"}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="font-semibold border-t-2">
+                  <TableCell>Total</TableCell><TableCell></TableCell>
+                  <TableCell className="text-right">{formatFCFA(totalValuation)}</TableCell><TableCell></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Achats vs ventes — flux mensuels</CardTitle></CardHeader>
+        <CardContent>
+          <div className="h-72">
+            {(pvs ?? []).length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Aucune donnée sur la période.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={pvs ?? []} margin={{ left: 10, right: 20, top: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
+                    tickFormatter={(v) => `${(v / 1000).toLocaleString("fr-FR")}k`} />
+                  <RTooltip formatter={(v: number) => formatFCFA(v)} />
+                  <Legend iconType="circle" formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
+                  <Bar dataKey="purchasesFcfa" name="Achats" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="salesFcfa" name="Ventes" fill="#F37021" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-orange-600" />Top ventes (90 derniers jours)</CardTitle>
+        </CardHeader>
+        <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow><TableHead>Catégorie</TableHead><TableHead className="text-right">Produits</TableHead><TableHead className="text-right">Quantité totale</TableHead><TableHead className="text-right">Valeur</TableHead><TableHead className="text-right">%</TableHead></TableRow>
-            </TableHeader>
+            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="text-right">Qté vendue</TableHead><TableHead className="text-right">Coût sorties</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(valuation ?? []).map((v) => (
-                <TableRow key={v.categoryName}>
-                  <TableCell>{v.categoryName}</TableCell>
-                  <TableCell className="text-right">{v.productCount}</TableCell>
-                  <TableCell className="text-right">{v.totalQty.toLocaleString("fr-FR")}</TableCell>
-                  <TableCell className="text-right font-medium">{formatFCFA(v.valueFcfa)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {totalValuation > 0 ? ((v.valueFcfa / totalValuation) * 100).toFixed(1) : "0"}%
-                  </TableCell>
+              {(topSellers ?? []).map((p) => (
+                <TableRow key={p.productId}>
+                  <TableCell><div className="font-medium">{p.productName}</div><div className="text-xs font-mono text-muted-foreground">{p.productSku}</div></TableCell>
+                  <TableCell className="text-right">{p.quantitySold}</TableCell>
+                  <TableCell className="text-right">{formatFCFA(p.revenueFcfa)}</TableCell>
                 </TableRow>
               ))}
-              <TableRow className="font-semibold border-t-2">
-                <TableCell>Total</TableCell><TableCell></TableCell><TableCell></TableCell>
-                <TableCell className="text-right">{formatFCFA(totalValuation)}</TableCell><TableCell></TableCell>
-              </TableRow>
+              {(topSellers?.length ?? 0) === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Aucune vente sur la période.</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle>Top ventes (90 derniers jours)</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="text-right">Qté vendue</TableHead><TableHead className="text-right">Coût sorties</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {(topSellers ?? []).map((p) => (
-                  <TableRow key={p.productId}>
-                    <TableCell><div className="font-medium">{p.productName}</div><div className="text-xs font-mono text-muted-foreground">{p.productSku}</div></TableCell>
-                    <TableCell className="text-right">{p.quantitySold}</TableCell>
-                    <TableCell className="text-right">{formatFCFA(p.revenueFcfa)}</TableCell>
-                  </TableRow>
-                ))}
-                {(topSellers?.length ?? 0) === 0 && (
-                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Aucune vente sur la période.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Achats vs ventes (par mois)</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Mois</TableHead><TableHead className="text-right">Achats</TableHead><TableHead className="text-right">Ventes</TableHead><TableHead className="text-right">Solde</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {(pvs ?? []).map((m) => (
-                  <TableRow key={m.month}>
-                    <TableCell>{m.month}</TableCell>
-                    <TableCell className="text-right text-cyan-700">{formatFCFA(m.purchasesFcfa)}</TableCell>
-                    <TableCell className="text-right text-violet-700">{formatFCFA(m.salesFcfa)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatFCFA(m.salesFcfa - m.purchasesFcfa)}</TableCell>
-                  </TableRow>
-                ))}
-                {(pvs?.length ?? 0) === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Aucune donnée sur la période.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
