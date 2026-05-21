@@ -42,7 +42,7 @@ export default function PipelineIntelligence() {
       </div>
 
       <Tabs defaultValue="forecast">
-        <TabsList><TabsTrigger value="forecast">Prévision</TabsTrigger><TabsTrigger value="risk">À risque</TabsTrigger><TabsTrigger value="actions">Next actions</TabsTrigger><TabsTrigger value="stages">Par stade</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="forecast">Prévision</TabsTrigger><TabsTrigger value="risk">À risque</TabsTrigger><TabsTrigger value="actions">Actions à venir</TabsTrigger><TabsTrigger value="stages">Par stade</TabsTrigger></TabsList>
 
         <TabsContent value="forecast" className="space-y-3">
           <Card><CardHeader className="pb-2"><CardTitle className="text-base">Forecast 6 mois (FCFA)</CardTitle></CardHeader>

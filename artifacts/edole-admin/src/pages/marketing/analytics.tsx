@@ -48,7 +48,7 @@ export default function AnalyticsPage() {
 
   return (
     <MarketingShell title="Analytique marketing" subtitle="Performance des campagnes sur les 90 derniers jours"
-      actions={<Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>}>
+      actions={<Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" /> Exporter en CSV</Button>}>
       {isLoading ? <div className="text-center py-12 text-muted-foreground">Chargement…</div>
         : !data ? null : (
         <div className="space-y-6">

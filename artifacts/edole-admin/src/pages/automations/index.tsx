@@ -83,7 +83,7 @@ function RulesTab() {
                       <h3 className="font-semibold">{r.name}</h3>
                       <Badge variant="outline" className="text-xs"><Zap className="w-3 h-3 mr-1" />{r.triggerType}</Badge>
                       <Badge variant="outline" className="text-xs">{r.actions.length} action(s)</Badge>
-                      {r.isActive ? <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Active</Badge> : <Badge variant="outline">Inactive</Badge>}
+                      {r.isActive ? <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Actif</Badge> : <Badge variant="outline">Inactif</Badge>}
                     </div>
                     {r.description && <p className="text-sm text-muted-foreground mt-1">{r.description}</p>}
                     <p className="text-xs text-muted-foreground mt-2">
