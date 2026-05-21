@@ -137,50 +137,50 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* Bandeau logo Gaméasù — intégration premium sur fond sombre :
-          logo monochrome (silhouette claire) posé directement sur la sidebar,
-          halo subtil + filet or pour la finition haut de gamme. */}
-      <div className="relative flex items-center justify-between gap-2 px-5 pt-6 pb-5 shrink-0">
-        {/* Halo doré subtil pour donner de la profondeur au logo */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(60% 80% at 50% 45%, rgba(200,162,75,0.10) 0%, rgba(200,162,75,0.04) 40%, transparent 75%)",
-          }}
-        />
+      {/* En-tête logo — couleurs d'origine, sans slogan, left-aligné */}
+      <div className="relative flex items-center justify-between gap-2 px-4 pt-5 pb-4 shrink-0">
         <Link
           href="/"
           onClick={() => setMobileOpen(false)}
           aria-label={BRANDING.appName}
-          className="relative inline-flex flex-1 min-w-0 items-center justify-center"
+          className="relative inline-flex items-center shrink-0"
         >
-          <div className="w-full max-w-[300px]" style={{ aspectRatio: "1672 / 820" }}>
+          {/* Conteneur recadré : aspect-ratio = 1672/678 ≈ crop à 72 % de la hauteur,
+              ce qui masque le filet or + slogan tout en gardant le G et « améasù ».
+              object-cover + object-top fait déborder l'image vers le bas (hors clip). */}
+          <div
+            className="overflow-hidden"
+            style={{ width: "180px", aspectRatio: "1672 / 678" }}
+          >
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-full h-auto object-contain select-none block"
-              style={{ filter: "brightness(0) invert(1)", opacity: 0.96 }}
+              className="w-full h-auto object-cover object-top select-none block"
+              style={{
+                /* Halo blanc très léger pour rendre le texte navy lisible sur fond sombre,
+                   sans altérer les couleurs (or du G conservé). */
+                filter:
+                  "drop-shadow(0 0 3px rgba(255,255,255,0.28)) drop-shadow(0 0 1px rgba(255,255,255,0.18))",
+              }}
             />
           </div>
         </Link>
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="relative lg:hidden p-2 -mr-2 rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white"
+          className="relative lg:hidden p-2 -mr-1 rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white"
           aria-label="Fermer le menu"
         >
           <X className="w-5 h-5" />
         </button>
-        {/* Filet or — séparateur premium aligné sur l'accent de marque */}
+        {/* Filet or — séparateur premium */}
         <div
           aria-hidden
-          className="absolute left-5 right-5 bottom-0 h-px"
+          className="absolute left-4 right-4 bottom-0 h-px"
           style={{
             background:
-              "linear-gradient(90deg, transparent 0%, rgba(200,162,75,0.45) 25%, rgba(200,162,75,0.55) 50%, rgba(200,162,75,0.45) 75%, transparent 100%)",
+              "linear-gradient(90deg, transparent 0%, rgba(200,162,75,0.50) 20%, rgba(200,162,75,0.65) 50%, rgba(200,162,75,0.50) 80%, transparent 100%)",
           }}
         />
       </div>
