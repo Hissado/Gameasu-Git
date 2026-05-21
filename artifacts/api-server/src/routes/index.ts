@@ -32,6 +32,7 @@ import automationRouter from "./automation";
 import attendanceRouter from "./attendance";
 import client360Router from "./client360";
 import projectIntelligenceRouter from "./projectIntelligence";
+import documentsIntelligenceRouter from "./documentsIntelligence";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { requireAuth } from "../middlewares/auth";
@@ -51,6 +52,7 @@ router.use(requireAuth);
 router.use(enforcePasswordChange);
 
 router.use(projectIntelligenceRouter); // monté avant tasksRouter pour que /tasks/priority ne soit pas capté par /tasks/:id
+router.use(documentsIntelligenceRouter); // monté avant documentsRouter
 router.use(usersRouter);
 router.use(clientsRouter);
 router.use(crmRouter);

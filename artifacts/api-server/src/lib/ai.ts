@@ -98,3 +98,44 @@ export async function generateList(opts: {
     return null;
   }
 }
+
+/**
+ * Classification stricte d'un document dans une taxonomie fermée.
+ * Retourne `null` si l'IA n'est pas disponible ou si la sortie n'est pas exploitable.
+ */
+export async function classifyEnum<T extends string>(opts: {
+  context: string;
+  labels: readonly T[];
+  hint?: string;
+}): Promise<{ label: T; confidence: number; tags: string[]; summary: string } | null> {
+  const client = getAIClient();
+  if (!client) return null;
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-5-nano",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Tu es un classifieur de documents francophone. Réponds UNIQUEMENT en JSON strict, sans markdown, sans préambule. Schéma: {\"label\": <une valeur exacte parmi les labels>, \"confidence\": <0..1>, \"tags\": [\"...\", \"...\"], \"summary\": \"phrase courte\"}.",
+        },
+        {
+          role: "user",
+          content: `Labels autorisés : ${opts.labels.join(", ")}.\n${opts.hint ? "Indice : " + opts.hint + "\n" : ""}Document à classifier :\n${opts.context}`,
+        },
+      ],
+    });
+    const raw = completion.choices[0]?.message?.content?.trim() || "";
+    const cleaned = raw.replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
+    const parsed = JSON.parse(cleaned);
+    const label = String(parsed.label) as T;
+    if (!opts.labels.includes(label)) return null;
+    const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
+    const tags = Array.isArray(parsed.tags) ? parsed.tags.filter((x: any) => typeof x === "string").slice(0, 8) : [];
+    const summary = String(parsed.summary || "").slice(0, 400);
+    return { label, confidence, tags, summary };
+  } catch (e) {
+    logger.error({ err: e }, "AI classifyEnum failed");
+    return null;
+  }
+}
