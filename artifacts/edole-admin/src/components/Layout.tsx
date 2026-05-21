@@ -149,20 +149,19 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               ce qui masque le filet or + slogan tout en gardant le G et « améasù ».
               object-cover + object-top fait déborder l'image vers le bas (hors clip). */}
           <div
-            className="overflow-hidden"
-            style={{ width: "180px", aspectRatio: "1672 / 678" }}
+            className="overflow-hidden rounded-xl"
+            style={{
+              width: "180px",
+              aspectRatio: "1672 / 678",
+              background: "#fff",
+              padding: "8px 12px",
+            }}
           >
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
               className="w-full h-auto object-cover object-top select-none block"
-              style={{
-                /* Halo blanc très léger pour rendre le texte navy lisible sur fond sombre,
-                   sans altérer les couleurs (or du G conservé). */
-                filter:
-                  "drop-shadow(0 0 3px rgba(255,255,255,0.28)) drop-shadow(0 0 1px rgba(255,255,255,0.18))",
-              }}
             />
           </div>
         </Link>
