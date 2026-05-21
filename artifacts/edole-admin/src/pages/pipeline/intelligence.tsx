@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, TrendingUp, AlertTriangle, Target, Flame } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
+import { priorityLabel } from "@/lib/intelligence";
 
 const KPI = ({ label, value, accent }: { label: string; value: string | number; accent?: string }) => (
   <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1">{label}</p><p className={`text-2xl font-bold ${accent ?? ""}`}>{value}</p></CardContent></Card>
@@ -79,7 +80,7 @@ export default function PipelineIntelligence() {
               <div className="flex-1"><p className="text-sm font-medium">{a.title}</p><p className="text-xs text-muted-foreground">{a.nextAction}{a.daysSinceLastActivity !== null && ` · ${a.daysSinceLastActivity}j sans activité`}</p></div>
               <Badge variant="outline">{a.stage}</Badge>
               <span className="text-sm">{formatFCFA(a.value)}</span>
-              <Badge variant="outline" className={priorityColor(a.priority)}>{a.priority}</Badge>
+              <Badge variant="outline" className={priorityColor(a.priority)}>{priorityLabel(a.priority)}</Badge>
             </CardContent></Card>
           ))}
         </TabsContent>

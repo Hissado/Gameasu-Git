@@ -18,6 +18,11 @@ import {
   useResolveRiskFlag,
   severityColor,
   priorityColor,
+  severityLabel,
+  priorityLabel,
+  insightKindLabel,
+  insightScopeLabel,
+  categoryLabel,
 } from "@/lib/intelligence";
 
 function timeAgoFr(iso: string) {
@@ -107,9 +112,9 @@ function InsightsTab() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-semibold">{it.title}</h3>
-                <Badge variant="outline" className={severityColor(it.severity)}>{it.severity || "info"}</Badge>
-                <Badge variant="outline" className="text-xs">{it.kind}</Badge>
-                <Badge variant="outline" className="text-xs">{it.scope}</Badge>
+                <Badge variant="outline" className={severityColor(it.severity)}>{severityLabel(it.severity || "info")}</Badge>
+                <Badge variant="outline" className="text-xs">{insightKindLabel(it.kind)}</Badge>
+                <Badge variant="outline" className="text-xs">{insightScopeLabel(it.scope)}</Badge>
                 <span className="text-xs text-muted-foreground ml-auto">{timeAgoFr(it.createdAt)}</span>
               </div>
               {it.body && <p className="text-sm text-muted-foreground">{it.body}</p>}
@@ -145,7 +150,7 @@ function RecommendationsTab() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-semibold">{r.title}</h3>
-                <Badge variant="outline" className={priorityColor(r.priority)}>{r.priority}</Badge>
+                <Badge variant="outline" className={priorityColor(r.priority)}>{priorityLabel(r.priority)}</Badge>
                 <Badge variant="outline" className="text-xs">{r.entityType}</Badge>
                 {r.impact && <Badge variant="outline" className="text-xs">impact : {r.impact}</Badge>}
                 <span className="text-xs text-muted-foreground ml-auto">{timeAgoFr(r.createdAt)}</span>
@@ -179,8 +184,8 @@ function RisksTab() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-semibold">{r.title}</h3>
-                <Badge variant="outline" className={severityColor(r.severity)}>{r.severity}</Badge>
-                <Badge variant="outline" className="text-xs">{r.category}</Badge>
+                <Badge variant="outline" className={severityColor(r.severity)}>{severityLabel(r.severity)}</Badge>
+                <Badge variant="outline" className="text-xs">{categoryLabel(r.category)}</Badge>
                 <Badge variant="outline" className="text-xs">{r.entityType}</Badge>
                 <span className="text-xs text-muted-foreground ml-auto">{timeAgoFr(r.detectedAt)}</span>
               </div>

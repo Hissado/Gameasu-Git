@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle, Activity } from "lucide-react";
+import { severityLabel } from "@/lib/intelligence";
 
 const KPI = ({ label, value, accent }: { label: string; value: number; accent?: string }) => (
   <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1">{label}</p><p className={`text-2xl font-bold ${accent ?? ""}`}>{value}</p></CardContent></Card>
@@ -59,7 +60,7 @@ export default function AnomalyCenter() {
                     <p className="text-xs text-muted-foreground truncate">{it.detail}</p>
                   </div>
                   <Badge variant="outline" className="text-[10px] shrink-0">{it.entityType}</Badge>
-                  <Badge variant="outline" className={`${sevColor(it.severity)} text-[10px] shrink-0`}>{it.severity}</Badge>
+                  <Badge variant="outline" className={`${sevColor(it.severity)} text-[10px] shrink-0`}>{severityLabel(it.severity)}</Badge>
                 </CardContent>
               </Card>
             </Link>

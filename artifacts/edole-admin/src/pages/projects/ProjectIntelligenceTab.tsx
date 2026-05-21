@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatFCFA } from "@/lib/format";
+import { severityLabel } from "@/lib/intelligence";
 import {
   Loader2, AlertTriangle, AlertCircle, Lightbulb, Target,
   Sparkles, Clock, TrendingUp, CheckCircle2, Hourglass,
@@ -155,7 +156,7 @@ export default function ProjectIntelligenceTab({ projectId }: { projectId: strin
               <div key={r.id} className="border rounded p-3 space-y-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5">
-                    <Badge variant="outline" className={SEVERITY[r.severity] ?? ""}>{r.severity}</Badge>
+                    <Badge variant="outline" className={SEVERITY[r.severity] ?? ""}>{severityLabel(r.severity)}</Badge>
                     <p className="text-sm font-medium">{r.title}</p>
                     {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
                   </div>

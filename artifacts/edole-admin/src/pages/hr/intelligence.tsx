@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, AlertTriangle, Users, Clock, FileWarning, Flame } from "lucide-react";
+import { severityLabel } from "@/lib/intelligence";
 
 type Overview = {
   headcount: number; workDays: number; presentSessions: number;
@@ -187,7 +188,7 @@ export default function HrIntelligencePage() {
               {expiring.data?.contracts.rows.map((c) => (
                 <div key={c.id} className="flex items-center justify-between border rounded p-2.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className={SEV[c.severity]}>{c.severity}</Badge>
+                    <Badge variant="outline" className={SEV[c.severity]}>{severityLabel(c.severity)}</Badge>
                     <Badge variant="outline">{c.type}</Badge>
                     <span className="font-medium text-sm">{c.name}</span>
                     {c.jobTitle && <span className="text-xs text-muted-foreground">{c.jobTitle}</span>}
@@ -211,7 +212,7 @@ export default function HrIntelligencePage() {
               {expiring.data?.documents.rows.map((d) => (
                 <div key={d.id} className="flex items-center justify-between border rounded p-2.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className={SEV[d.severity]}>{d.severity}</Badge>
+                    <Badge variant="outline" className={SEV[d.severity]}>{severityLabel(d.severity)}</Badge>
                     <Badge variant="outline">{d.type}</Badge>
                     <span className="font-medium text-sm">{d.name}</span>
                     <span className="text-xs text-muted-foreground">{d.collaboratorName}</span>

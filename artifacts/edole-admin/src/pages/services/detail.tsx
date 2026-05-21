@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { priorityLabel } from "@/lib/intelligence";
 import { Briefcase, Plus, Repeat, ChevronLeft, CircleDot, CheckCircle2, Clock, AlertCircle, Layers, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -265,7 +266,7 @@ function TaskRow({ task, subtasks, onAddSubtask, onStatusChange, subtasksOf, dep
           <Icon className={`w-4 h-4 ${task.status === "done" ? "text-emerald-600" : ""}`} />
         </button>
         <span className={`flex-1 text-sm ${task.status === "done" ? "line-through text-muted-foreground" : ""}`}>{task.title}</span>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded ${PRIORITY_COLOR[task.priority] || ""}`}>{task.priority}</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${PRIORITY_COLOR[task.priority] || ""}`}>{priorityLabel(task.priority)}</span>
         {task.dueDate && <span className="text-xs text-muted-foreground">{task.dueDate}</span>}
         {depth < 2 && (
           <button onClick={onAddSubtask} className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-primary hover:underline">

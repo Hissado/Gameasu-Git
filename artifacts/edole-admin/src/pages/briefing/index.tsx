@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sun, AlertTriangle, CheckSquare, Clock, FileText, Lightbulb, Sparkles, Building2, FolderKanban } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
+import { severityLabel, priorityLabel, categoryLabel } from "@/lib/intelligence";
 
 type Briefing = {
   date: string;
@@ -68,7 +69,7 @@ export default function BriefingPage() {
               <Link key={t.id} href={`/tasks/${t.id}`}>
                 <div className="flex items-center justify-between gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm">
                   <span className="truncate flex-1">{t.title}</span>
-                  <Badge variant="outline" className="text-[10px]">{t.priority}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{priorityLabel(t.priority)}</Badge>
                   <Badge variant="secondary" className="text-[10px]">aujourd'hui</Badge>
                 </div>
               </Link>
@@ -77,7 +78,7 @@ export default function BriefingPage() {
               <Link key={t.id} href={`/tasks/${t.id}`}>
                 <div className="flex items-center justify-between gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm">
                   <span className="truncate flex-1">{t.title}</span>
-                  <Badge variant="outline" className="text-[10px]">{t.priority}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{priorityLabel(t.priority)}</Badge>
                   <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">retard {t.dueDate}</Badge>
                 </div>
               </Link>
@@ -107,9 +108,9 @@ export default function BriefingPage() {
             {b.risks.length === 0 && <p className="text-xs italic text-muted-foreground">Aucun risque critique.</p>}
             {b.risks.map((r) => (
               <div key={r.id} className="flex items-start gap-2 p-2 text-sm">
-                <Badge variant="outline" className={r.severity === "critical" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}>{r.severity}</Badge>
+                <Badge variant="outline" className={r.severity === "critical" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}>{severityLabel(r.severity)}</Badge>
                 <span className="flex-1">{r.title}</span>
-                <span className="text-[10px] text-muted-foreground">{r.category}</span>
+                <span className="text-[10px] text-muted-foreground">{categoryLabel(r.category)}</span>
               </div>
             ))}
           </CardContent>
@@ -121,7 +122,7 @@ export default function BriefingPage() {
             {b.recommendations.length === 0 && b.insights.length === 0 && <p className="text-xs italic text-muted-foreground">Aucune recommandation active.</p>}
             {b.recommendations.map((r) => (
               <div key={r.id} className="flex items-start gap-2 p-2 text-sm">
-                <Badge variant="secondary" className="text-[10px]">{r.priority ?? "medium"}</Badge>
+                <Badge variant="secondary" className="text-[10px]">{priorityLabel(r.priority ?? "medium")}</Badge>
                 <span className="flex-1">{r.title}</span>
               </div>
             ))}

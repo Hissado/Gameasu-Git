@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gauge, ArrowRight } from "lucide-react";
+import { severityLabel } from "@/lib/intelligence";
 
 const KPI = ({ label, value, accent }: { label: string; value: string | number; accent?: string }) => (
   <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1">{label}</p><p className={`text-2xl font-bold ${accent ?? ""}`}>{value}</p></CardContent></Card>
@@ -61,7 +62,7 @@ export default function OrgTuner() {
                 <p className="text-sm font-medium">{r.title}</p>
                 <p className="text-xs text-muted-foreground">{r.detail}</p>
               </div>
-              <Badge variant="outline" className={`${sevColor(r.severity)} text-[10px] shrink-0`}>{r.severity}</Badge>
+              <Badge variant="outline" className={`${sevColor(r.severity)} text-[10px] shrink-0`}>{severityLabel(r.severity)}</Badge>
               {r.cta && <Link href={r.cta}><Button size="sm" variant="ghost" className="shrink-0">Action <ArrowRight className="w-3 h-3 ml-1" /></Button></Link>}
             </div>
           ))}

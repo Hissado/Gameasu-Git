@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { severityLabel, priorityLabel } from "@/lib/intelligence";
 import {
   AlertTriangle, Lightbulb, Sparkles, TrendingUp, Activity, Receipt,
   ShoppingCart, FolderKanban, Target, Heart, CheckCircle2, X, Loader2,
@@ -156,7 +157,7 @@ export default function Client360Tab({ clientId }: { clientId: string }) {
               <div key={r.id} className={`rounded-md border p-3 ${SEVERITY_COLORS[r.severity] ?? SEVERITY_COLORS.low}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 text-sm font-medium"><Badge variant="outline" className="text-[10px] uppercase">{r.severity}</Badge>{r.title}</div>
+                    <div className="flex items-center gap-2 text-sm font-medium"><Badge variant="outline" className="text-[10px]">{severityLabel(r.severity)}</Badge>{r.title}</div>
                     {r.description && <p className="text-xs text-muted-foreground mt-1">{r.description}</p>}
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => resolveRisk.mutate(r.id)} disabled={resolveRisk.isPending}>
@@ -178,7 +179,7 @@ export default function Client360Tab({ clientId }: { clientId: string }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <Badge variant="outline" className="text-[10px] uppercase">{r.priority}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{priorityLabel(r.priority)}</Badge>
                       {r.title}
                     </div>
                     {r.reason && <p className="text-xs text-muted-foreground mt-1">{r.reason}</p>}

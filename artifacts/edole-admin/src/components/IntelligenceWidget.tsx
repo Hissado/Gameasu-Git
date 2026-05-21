@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, AlertTriangle, Lightbulb, ShieldAlert, ArrowRight, Brain } from "lucide-react";
-import { useIntelligenceOverview, severityColor, priorityColor } from "@/lib/intelligence";
+import { useIntelligenceOverview, severityColor, priorityColor, severityLabel, priorityLabel } from "@/lib/intelligence";
 
 /**
  * Widget cockpit affichant les insights, recommandations et risques
@@ -41,7 +41,7 @@ export function IntelligenceWidget() {
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Risques prioritaires</p>
             {data.topRisks.slice(0, 3).map((r) => (
               <div key={r.id} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className={`${severityColor(r.severity)} text-[10px] shrink-0`}>{r.severity}</Badge>
+                <Badge variant="outline" className={`${severityColor(r.severity)} text-[10px] shrink-0`}>{severityLabel(r.severity)}</Badge>
                 <span className="truncate">{r.title}</span>
               </div>
             ))}
@@ -53,7 +53,7 @@ export function IntelligenceWidget() {
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1"><Sparkles className="w-3 h-3" /> Prochaines actions</p>
             {data.topRecommendations.slice(0, 3).map((r) => (
               <div key={r.id} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className={`${priorityColor(r.priority)} text-[10px] shrink-0`}>{r.priority}</Badge>
+                <Badge variant="outline" className={`${priorityColor(r.priority)} text-[10px] shrink-0`}>{priorityLabel(r.priority)}</Badge>
                 <span className="truncate">{r.title}</span>
               </div>
             ))}

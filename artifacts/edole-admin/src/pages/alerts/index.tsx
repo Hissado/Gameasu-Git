@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, Check, RefreshCw, AlertTriangle, AlertCircle, Info, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { severityLabel } from "@/lib/intelligence";
 
 type Alert = { id: string; kind: string; entityType?: string; entityId?: string; title: string; message?: string; severity: string; dueAt?: string; acknowledged: boolean; createdAt: string };
 
@@ -76,7 +77,7 @@ export default function AlertsPage() {
         {(summary?.bySeverity ?? []).map((s) => {
           const cfg = SEV[s.severity] || SEV.info;
           const Icon = cfg.icon;
-          return <Card key={s.severity}><CardContent className="p-5"><div className="text-xs uppercase text-muted-foreground font-bold flex items-center gap-1"><Icon className="w-3 h-3" /> {s.severity}</div><div className="text-3xl font-bold mt-1">{s.count}</div></CardContent></Card>;
+          return <Card key={s.severity}><CardContent className="p-5"><div className="text-xs uppercase text-muted-foreground font-bold flex items-center gap-1"><Icon className="w-3 h-3" /> {severityLabel(s.severity)}</div><div className="text-3xl font-bold mt-1">{s.count}</div></CardContent></Card>;
         })}
       </div>
 

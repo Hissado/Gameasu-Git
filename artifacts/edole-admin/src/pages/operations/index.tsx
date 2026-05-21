@@ -19,6 +19,12 @@ import {
   PlayCircle, PauseCircle, XCircle, ChevronRight, Gauge, BarChart3,
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
+import { severityLabel } from "@/lib/intelligence";
+
+const CHECKIN_KIND_LABELS: Record<string, string> = {
+  arrival: "Arrivée", departure: "Départ", start: "Démarrage", stop: "Arrêt",
+  pause: "Pause", resume: "Reprise", checkpoint: "Point d'étape", "check-in": "Check-in",
+};
 
 const KIND_LABELS: Record<string, string> = {
   delivery: "Livraison", collect: "Collecte", transfer: "Transfert",
@@ -418,7 +424,7 @@ function IncidentsTab({ data, onChanged }: { data: any[]; onChanged: () => void 
               {data.map((i) => (
                 <TableRow key={i.id}>
                   <TableCell>{INCIDENT_LABELS[i.kind] ?? i.kind}</TableCell>
-                  <TableCell><Badge className={SEVERITY_COLORS[i.severity]}>{i.severity}</Badge></TableCell>
+                  <TableCell><Badge className={SEVERITY_COLORS[i.severity]}>{severityLabel(i.severity)}</Badge></TableCell>
                   <TableCell className="text-xs">{i.missionRef} — {i.missionTitle}</TableCell>
                   <TableCell className="text-sm max-w-md truncate">{i.description}</TableCell>
                   <TableCell><Badge variant={i.status === "resolved" ? "outline" : "default"}>{i.status}</Badge></TableCell>
@@ -789,7 +795,7 @@ function MissionDetailDialog({ missionId, onClose, onChanged }: { missionId: str
                 <div className="space-y-1">
                   {data.checkins.map((c: any) => (
                     <div key={c.id} className="text-sm flex items-center justify-between">
-                      <span><Badge variant="outline">{c.kind}</Badge> {new Date(c.at).toLocaleString("fr-FR")}</span>
+                      <span><Badge variant="outline">{CHECKIN_KIND_LABELS[c.kind] ?? c.kind}</Badge> {new Date(c.at).toLocaleString("fr-FR")}</span>
                       {c.lat && <a href={`https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lng}`} target="_blank" rel="noreferrer" className="text-xs text-primary">GPS</a>}
                     </div>
                   ))}
@@ -804,7 +810,7 @@ function MissionDetailDialog({ missionId, onClose, onChanged }: { missionId: str
               {data.incidents?.map((i: any) => (
                 <div key={i.id} className="p-2 rounded border text-sm">
                   <div className="flex items-center gap-2">
-                    <Badge className={SEVERITY_COLORS[i.severity]}>{i.severity}</Badge>
+                    <Badge className={SEVERITY_COLORS[i.severity]}>{severityLabel(i.severity)}</Badge>
                     <span className="font-medium">{INCIDENT_LABELS[i.kind] ?? i.kind}</span>
                     <Badge variant="outline">{i.status}</Badge>
                   </div>

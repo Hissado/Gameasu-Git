@@ -13,6 +13,7 @@ import {
   captureGeolocation, formatMinutes, type AttendanceRecord,
 } from "@/lib/attendance";
 import { toast } from "sonner";
+import { severityLabel } from "@/lib/intelligence";
 
 const KIND_LABEL: Record<string, string> = {
   clock_in: "Arrivée",
@@ -236,7 +237,7 @@ function AnomaliesPanel() {
                   {f.description && <p className="text-xs text-slate-500">{f.description}</p>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={f.severity === "high" ? "destructive" : "secondary"}>{f.severity}</Badge>
+                  <Badge variant={f.severity === "high" ? "destructive" : "secondary"}>{severityLabel(f.severity)}</Badge>
                   <Button size="sm" variant="ghost" onClick={() => resolve.mutate(f.id)}>
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Résoudre
                   </Button>

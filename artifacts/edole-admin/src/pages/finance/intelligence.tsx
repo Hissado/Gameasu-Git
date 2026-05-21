@@ -12,6 +12,7 @@ import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianG
 import { formatFCFA } from "@/lib/format";
 import { Loader2, TrendingUp, AlertTriangle, Flame, Receipt, Clock } from "lucide-react";
 import { Link } from "wouter";
+import { severityLabel } from "@/lib/intelligence";
 
 type Overview = {
   openCount: number; overdueCount: number;
@@ -188,7 +189,7 @@ export default function FinanceIntelligencePage() {
                   <div className="border rounded p-2.5 hover:bg-muted/40 cursor-pointer space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={SEV[a.severity]}>{a.severity}</Badge>
+                        <Badge variant="outline" className={SEV[a.severity]}>{severityLabel(a.severity)}</Badge>
                         <Badge variant="outline">{TYPE_LABEL[a.type] ?? a.type}</Badge>
                         <span className="text-sm font-medium">{a.reference}</span>
                         <span className="text-xs text-muted-foreground">{a.clientName ?? "—"}</span>

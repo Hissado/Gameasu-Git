@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Flame, ExternalLink, Calendar, User } from "lucide-react";
 import { Link } from "wouter";
+import { priorityLabel } from "@/lib/intelligence";
 
 type ScoredTask = {
   id: string; title: string; status: string; priority: string | null;
@@ -93,7 +94,7 @@ export default function TasksFocusPage() {
                             </span>
                           )}
                           <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[t.status] ?? t.status}</Badge>
-                          {t.priority && <Badge variant="outline" className="text-[10px]">{t.priority}</Badge>}
+                          {t.priority && <Badge variant="outline" className="text-[10px]">{priorityLabel(t.priority)}</Badge>}
                         </div>
                       </div>
                       <Link href={`/tasks/${t.id}`}><Button size="sm" variant="ghost">Ouvrir</Button></Link>

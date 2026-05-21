@@ -253,6 +253,83 @@ export const severityColor = (s?: string | null): string => {
   }
 };
 
+// ─── Libellés FR pour badges (gravité, priorité, type, scope, catégorie) ────
+export const severityLabel = (s?: string | null): string => {
+  switch (s) {
+    case "critical": return "Critique";
+    case "high": return "Élevée";
+    case "medium": return "Moyenne";
+    case "low": return "Faible";
+    case "warning": return "Alerte";
+    case "info": return "Info";
+    case "success": return "OK";
+    case "danger": case "error": return "Erreur";
+    default: return s || "—";
+  }
+};
+
+export const priorityLabel = (p?: string | null): string => {
+  switch (p) {
+    case "urgent": return "Urgente";
+    case "high": return "Haute";
+    case "medium": return "Moyenne";
+    case "low": return "Faible";
+    default: return p || "—";
+  }
+};
+
+export const insightKindLabel = (k?: string | null): string => {
+  switch (k) {
+    case "trend": return "Tendance";
+    case "anomaly": return "Anomalie";
+    case "opportunity": return "Opportunité";
+    case "risk": return "Risque";
+    case "reminder": return "Rappel";
+    case "alert": return "Alerte";
+    case "insight": return "Constat";
+    case "recommendation": return "Recommandation";
+    case "summary": return "Synthèse";
+    case "forecast": return "Prévision";
+    case "milestone": return "Jalon";
+    case "info": return "Info";
+    default: return k || "—";
+  }
+};
+
+export const insightScopeLabel = (s?: string | null): string => {
+  switch (s) {
+    case "workspace": return "Espace";
+    case "organization": return "Organisation";
+    case "client": return "Client";
+    case "project": return "Projet";
+    case "task": return "Tâche";
+    case "finance": return "Finance";
+    case "rh": case "hr": return "RH";
+    case "commercial": return "Commercial";
+    case "operations": return "Opérations";
+    case "marketing": return "Marketing";
+    case "inventory": return "Stock";
+    case "user": return "Utilisateur";
+    default: return s || "—";
+  }
+};
+
+export const categoryLabel = (c?: string | null): string => {
+  switch (c) {
+    case "finance": return "Finance";
+    case "commercial": return "Commercial";
+    case "operations": return "Opérations";
+    case "rh": case "hr": return "RH";
+    case "compliance": return "Conformité";
+    case "delivery": return "Livraison";
+    case "quality": return "Qualité";
+    case "safety": return "Sécurité";
+    case "data": return "Données";
+    case "performance": return "Performance";
+    default: return c || "—";
+  }
+};
+
 export const priorityColor = (p?: string | null): string => {
   switch (p) {
     case "urgent": return "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300";

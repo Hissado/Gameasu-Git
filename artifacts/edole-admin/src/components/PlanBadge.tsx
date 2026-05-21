@@ -23,9 +23,9 @@ export function PlanBadge({
     ? "bg-[#C8A24B]/12 text-[#8A6A22] ring-[#C8A24B]/40"
     : (COLOR_MAP[code] ?? COLOR_MAP.STARTER);
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider ring-1 ${cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-wide ring-1 ${cls}`}>
       <Icon className="w-3 h-3" />
-      {compact ? code : (name ?? code)}
+      {name ?? code}
     </span>
   );
 }
