@@ -11,14 +11,20 @@ export const NEXORA_SLOGAN = "Gérer aujourd'hui. Construire demain.";
 type Size = "sm" | "md" | "lg" | "xl";
 type Variant = "dark" | "light";
 
+/**
+ * Proportions calées sur le logo de référence : le « N » majuscule mesure
+ * ≈ 1.4× la hauteur d'x des minuscules « exora » et dépasse légèrement au-dessus
+ * comme en-dessous du bandeau de texte (descendeur or). Pas un carré qui colle
+ * la hauteur totale du texte.
+ */
 const SIZES: Record<
   Size,
   { mark: string; word: string; slogan: string; gap: string; rule: string; pad: string }
 > = {
-  sm: { mark: "w-7 h-7",   word: "text-[18px]", slogan: "text-[8.5px]  tracking-[0.20em]", gap: "-ml-0.5", rule: "w-5",  pad: "mt-1" },
-  md: { mark: "w-9 h-9",   word: "text-[22px]", slogan: "text-[9px]    tracking-[0.22em]", gap: "-ml-1",   rule: "w-6",  pad: "mt-1.5" },
-  lg: { mark: "w-12 h-12", word: "text-[30px]", slogan: "text-[10px]   tracking-[0.26em]", gap: "-ml-1.5", rule: "w-7",  pad: "mt-2" },
-  xl: { mark: "w-16 h-16", word: "text-[44px]", slogan: "text-[11px]   tracking-[0.30em]", gap: "-ml-2",   rule: "w-9",  pad: "mt-2.5" },
+  sm: { mark: "h-[14px] w-[14px]", word: "text-[18px]", slogan: "text-[8.5px] tracking-[0.20em]", gap: "ml-[3px]",  rule: "w-5",  pad: "mt-1.5" },
+  md: { mark: "h-[18px] w-[18px]", word: "text-[22px]", slogan: "text-[9px]   tracking-[0.22em]", gap: "ml-[3px]",  rule: "w-6",  pad: "mt-2" },
+  lg: { mark: "h-[24px] w-[24px]", word: "text-[30px]", slogan: "text-[10px]  tracking-[0.26em]", gap: "ml-[4px]",  rule: "w-7",  pad: "mt-2.5" },
+  xl: { mark: "h-[34px] w-[34px]", word: "text-[44px]", slogan: "text-[11px]  tracking-[0.30em]", gap: "ml-[5px]",  rule: "w-9",  pad: "mt-3" },
 };
 
 export function NexoraLockup({
