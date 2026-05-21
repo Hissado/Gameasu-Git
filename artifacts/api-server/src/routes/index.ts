@@ -25,6 +25,9 @@ import alertsRouter, { runAlertsScan } from "./alerts";
 import ticketsRouter from "./tickets";
 import fpaRouter from "./fpa";
 import adminRouter from "./admin";
+import organizationsRouter from "./organizations";
+import subscriptionsRouter from "./subscriptions";
+import { seedSaas } from "@workspace/db/seed-saas";
 import { requireAuth } from "../middlewares/auth";
 import { enforcePasswordChange } from "../middlewares/permissions";
 import { seedRbac } from "../lib/rbac/seed";
@@ -65,11 +68,18 @@ router.use(alertsRouter);
 router.use(ticketsRouter);
 router.use(fpaRouter);
 router.use(adminRouter);
+router.use(organizationsRouter);
+router.use(subscriptionsRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()
   .then((s) => console.log(`[rbac] seed OK : ${s.permissions} permissions, ${s.roles} rôles système`))
   .catch((e) => console.warn("[rbac] seed failed:", e?.message));
+
+// Seed Nexora SaaS (plans, modules, organisation par défaut). Idempotent.
+seedSaas()
+  .then(() => console.log("[saas] seed OK : organisation, plans, modules, abonnement"))
+  .catch((e) => console.warn("[saas] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h
 runAlertsScan().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));

@@ -1,17 +1,17 @@
 {
-  "name": "EDOLE AFRICA ADMIN",
-  "short_name": "EDOLE",
-  "description": "Plateforme BTP — Pilotage, Matériel, Commercial, Comptabilité OHADA",
+  "name": "Nexora — Pilotage d'entreprise",
+  "short_name": "Nexora",
+  "description": "Nexora — Le pilotage d'entreprise nouvelle génération. Plateforme SaaS B2B pour les organisations du Togo et d'Afrique de l'Ouest francophone.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0F1115",
+  "background_color": "#0F172A",
   "theme_color": "#FF6B00",
   "lang": "fr",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/branding/nexora-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

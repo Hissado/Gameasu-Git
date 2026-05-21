@@ -10,8 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { HardHat, ShieldCheck, BarChart3 } from "lucide-react";
-import logo from "@/assets/edole-logo.png";
+import { Sparkles, ShieldCheck, BarChart3, Layers } from "lucide-react";
+import { BRANDING } from "@/config/branding";
 
 const loginSchema = z.object({
   email: z.string().email("Adresse e-mail invalide"),
@@ -24,68 +24,69 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-
   const loginMutation = useLogin();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "admin@edole.africa",
-      password: "admin123",
-    },
+    defaultValues: { email: "admin@edole.africa", password: "admin123" },
   });
 
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(
       { data },
       {
-        onSuccess: (res) => {
-          login(res.token);
-          setLocation("/");
-        },
+        onSuccess: (res) => { login(res.token); setLocation("/"); },
         onError: () => {
-          toast({
-            variant: "destructive",
-            title: "Échec de la connexion",
-            description: "Vérifiez vos identifiants et réessayez.",
-          });
+          toast({ variant: "destructive", title: "Échec de la connexion", description: "Vérifiez vos identifiants et réessayez." });
         },
-      }
+      },
     );
   };
 
+  const NexoraLogo = (
+    <div className="inline-flex items-center gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30">
+        <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 18 V6 L18 18 V6" />
+        </svg>
+      </div>
+      <div>
+        <p className="text-2xl font-bold tracking-tight text-white">{BRANDING.appName}</p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-orange-300/80 font-semibold">Operations OS</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen w-full flex">
-      {/* Left brand panel */}
+      {/* Panneau marque */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-sidebar text-sidebar-foreground p-12 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
-             style={{ backgroundImage: "radial-gradient(circle at 20% 20%, hsl(24 100% 50%) 0, transparent 40%), radial-gradient(circle at 80% 80%, hsl(24 100% 50%) 0, transparent 35%)" }} />
-        <div className="relative">
-          <div className="bg-white inline-flex rounded-md p-3 shadow-2xl">
-            <img src={logo} alt="EDOLE" className="h-10 object-contain" />
-          </div>
-        </div>
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #FF8A1F 0, transparent 40%), radial-gradient(circle at 80% 80%, #FF5A00 0, transparent 35%)" }}
+        />
+        <div className="relative">{NexoraLogo}</div>
 
         <div className="relative space-y-8 max-w-md">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-primary font-bold mb-3">Le numérique au service du BTP</p>
-            <h2 className="text-4xl font-bold leading-tight">
-              Pilotez vos chantiers, votre matériel et vos équipes depuis une seule plateforme.
-            </h2>
+            <p className="text-xs uppercase tracking-[0.3em] text-orange-400 font-bold mb-3">{BRANDING.marketBaseline}</p>
+            <h2 className="text-4xl font-bold leading-tight">{BRANDING.appTaglineFr}</h2>
             <p className="text-sm text-sidebar-foreground/60 mt-4 leading-relaxed">
-              EDOLE accompagne les entreprises du Bâtiment et des Travaux Publics en Afrique francophone — du devis au paiement, du chantier à la maintenance.
+              Une seule plateforme SaaS pour piloter clients, projets, comptabilité, RH, opérations
+              et facturation — pensée pour les organisations du Togo et de la sous-région.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 pt-4">
             {[
-              { icon: HardHat, label: "Suivi opérationnel des chantiers en temps réel" },
+              { icon: Layers, label: "Modules à la carte selon votre formule" },
               { icon: BarChart3, label: "Tableau de bord financier consolidé en FCFA" },
-              { icon: ShieldCheck, label: "Conformité, traçabilité et contrôle d'accès" },
+              { icon: ShieldCheck, label: "Multi-tenant, audit complet, accès granulaire" },
+              { icon: Sparkles, label: "Onboarding accompagné — démarrage en moins de 7 jours" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-3 text-sm text-sidebar-foreground/85">
                 <div className="w-9 h-9 rounded-md bg-sidebar-accent border border-sidebar-border flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-primary" />
+                  <Icon className="w-4 h-4 text-orange-400" />
                 </div>
                 {label}
               </div>
@@ -94,20 +95,25 @@ export default function LoginPage() {
         </div>
 
         <div className="relative text-xs text-sidebar-foreground/40">
-          © {new Date().getFullYear()} EDOLE Africa — Tous droits réservés.
+          © {new Date().getFullYear()} {BRANDING.legalName} — Tous droits réservés.
         </div>
       </div>
 
-      {/* Right form panel */}
+      {/* Panneau formulaire */}
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <Card className="w-full max-w-md shadow-xl border-border/60">
           <CardHeader className="space-y-2 pb-6">
             <div className="flex lg:hidden justify-center mb-2">
-              <img src={logo} alt="EDOLE" className="h-10 object-contain" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 18 V6 L18 18 V6" />
+                </svg>
+              </div>
             </div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">{BRANDING.appName}</p>
             <CardTitle className="text-2xl font-bold tracking-tight">Espace professionnel</CardTitle>
             <CardDescription>
-              Connectez-vous avec votre compte EDOLE pour accéder à la plateforme.
+              Connectez-vous à votre espace de travail {BRANDING.appName}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -119,9 +125,7 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Adresse e-mail professionnelle</FormLabel>
-                      <FormControl>
-                        <Input placeholder="prenom.nom@edole.africa" autoComplete="email" {...field} />
-                      </FormControl>
+                      <FormControl><Input placeholder="prenom.nom@votre-entreprise.com" autoComplete="email" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -132,9 +136,7 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Mot de passe</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" autoComplete="current-password" {...field} />
-                      </FormControl>
+                      <FormControl><Input type="password" placeholder="••••••••" autoComplete="current-password" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

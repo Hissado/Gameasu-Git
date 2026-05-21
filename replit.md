@@ -1,8 +1,8 @@
-# EDOLE AFRICA ADMIN
+# Nexora — Le pilotage d'entreprise nouvelle génération
 
 ## Overview
 
-Full-stack SaaS operations management platform for an African B2B company. Premium "Bloomberg terminal for operations" aesthetic with deep teal/emerald + amber/gold palette.
+Plateforme SaaS B2B **multi-tenant** rebrandée **Nexora**, conçue pour les organisations du Togo et d'Afrique de l'Ouest francophone. Issue d'une refonte du socle EDOLE Africa, elle ajoute organisations, plans d'abonnement (Starter/Growth/Professional/Enterprise en FCFA), catalogue de modules, événements de facturation, paramétrage de l'espace de travail, gating par module et identité visuelle dédiée.
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
@@ -110,6 +110,28 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 - 2 orders, 1 proforma, 1 invoice, 1 payment
 - 2 conversations with messages
 - 5 notifications
+
+## Recent Changes — mai 2026
+
+### Transformation SaaS Nexora — mai 2026
+- **Schéma multi-tenant** (`lib/db/src/schema/saas.ts`) : `organizations`, `organization_members`, `module_catalog`, `subscription_plans`, `subscription_plan_features`, `organization_subscriptions`, `organization_modules`, `billing_events`, `workspace_invitations`.
+- **Seed SaaS** (`lib/db/src/seed-saas.ts`, idempotent, exécuté au boot de l'API) : 20 modules (core/business/admin), 4 plans (Starter 8k/mois, Growth 18k, Professional 35k, Enterprise 60k — FCFA par utilisateur), organisation par défaut `nexora-demo`, membership de tous les utilisateurs existants, abonnement Professional 25 sièges mensuel, 3 factures de démo + frais d'installation. Inserts en `onConflictDoUpdate` pour résister aux runs concurrents.
+- **Backend** : `artifacts/api-server/src/lib/tenant.ts` (helpers `getCurrentOrganizationId` / `getCurrentSubscription`) + nouvelles routes `artifacts/api-server/src/routes/{organizations,subscriptions}.ts` :
+  - `/api/organizations/current` + PATCH (admin), `/api/organizations`, `/api/organization-members`.
+  - `/api/subscription-plans`, `/api/subscriptions/current` + PATCH, `/api/subscriptions/change-plan`, `/api/subscriptions/change-billing-cycle`.
+  - `/api/organization-modules`, `/api/organization-modules/:moduleKey/toggle` (403 `upgrade_required` si module hors plan).
+  - `/api/billing/summary`, `/api/billing/events`, `/api/billing/usage`.
+  - `/api/workspace-settings`, `/api/workspace-settings/{general,branding,preferences}` (PATCH admin).
+- **Frontend Nexora** :
+  - Identité centralisée : `src/config/branding.ts` (nom, slogan, couleurs, logo) lue depuis `VITE_APP_*` avec fallback.
+  - Assets : `public/branding/nexora-logo.svg`, `nexora-mark.svg`, manifest PWA et `index.html` rebrandés.
+  - Composants : `branding/AppLogo.tsx`, `PlanBadge.tsx` (badge plan coloré par tier), `FeatureGate.tsx` (hook `useModuleEnabled` + écran `UpgradeRequired`).
+  - Hooks SaaS centralisés dans `src/lib/saas.ts` : `useCurrentOrganization`, `useCurrentSubscription`, `useSubscriptionPlans`, `useOrganizationModules`, `useBillingSummary`, `useBillingEvents`, `useBillingUsage`, `useWorkspaceSettings`, mutations `useChangePlan`, `useChangeBillingCycle`, `useToggleModule`, `useUpdateWorkspaceSettings`. Mapping route ↔ module via `ROUTE_MODULE_MAP` / `moduleKeyForPath`.
+  - Pages : `/billing` (formule active, plans comparés, cycle, modules inclus, historique), `/workspace-settings` (général, identité visuelle, préférences régionales, toggle modules, lien vers admin/rôles), `/upgrade-required?module=…` (écran upsell).
+  - Sidebar refondue (`components/Layout.tsx`) : 3 groupes **Espace de travail / Business / Administration**, badge plan + nom de l'organisation, lock 🔒 sur les items dont le module est désactivé (redirige vers `/upgrade-required`), bandeau logo Nexora.
+  - Login (`pages/login.tsx`) : panneau marque Nexora (slogan, baseline marché, 4 piliers), aucune mention EDOLE résiduelle.
+- **Multi-tenant partiel** : les tables métier existantes (clients, projets, factures, etc.) ne sont pas encore partitionnées par `organization_id` — elles vivent implicitement dans l'organisation par défaut. Le partitionnement strict est listé en roadmap dans `README.md`.
+- **Documentation & config** : `README.md` complet (architecture, plans, endpoints, env), `.env.example` racine avec toutes les variables `APP_*`, `BILLING_*`, `VITE_APP_*`.
 
 ## Recent Changes — avril 2026
 

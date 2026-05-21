@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
+import { RouteModuleGate } from "@/components/RouteModuleGate";
 import { CallCenterProvider } from "@/components/CallCenter";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
 import NotFound from "@/pages/not-found";
@@ -85,6 +86,9 @@ const AdminInvitations = lazy(() => import("@/pages/admin/invitations"));
 const AdminAudit = lazy(() => import("@/pages/admin/audit"));
 const ChangePassword = lazy(() => import("@/pages/change-password"));
 const AcceptInvitation = lazy(() => import("@/pages/accept-invitation"));
+const BillingPage = lazy(() => import("@/pages/billing"));
+const WorkspaceSettingsPage = lazy(() => import("@/pages/workspace-settings"));
+const UpgradeRequiredPage = lazy(() => import("@/pages/upgrade-required"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -123,6 +127,7 @@ function AppRouter() {
           <GlobalNotifications />
           <Layout>
             <Suspense fallback={<PageFallback />}>
+              <RouteModuleGate>
               <Switch>
                 <Route path="/" component={Dashboard} />
 
@@ -214,8 +219,13 @@ function AppRouter() {
                 <Route path="/admin/audit" component={AdminAudit} />
                 <Route path="/change-password" component={ChangePassword} />
 
+                <Route path="/billing" component={BillingPage} />
+                <Route path="/workspace-settings" component={WorkspaceSettingsPage} />
+                <Route path="/upgrade-required" component={UpgradeRequiredPage} />
+
                 <Route component={NotFound} />
               </Switch>
+              </RouteModuleGate>
             </Suspense>
           </Layout>
           </CallCenterProvider>

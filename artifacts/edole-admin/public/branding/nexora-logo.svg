@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" width="240" height="56">
+  <defs>
+    <linearGradient id="nx" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8A1F"/>
+      <stop offset="100%" stop-color="#FF5A00"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="4" y="8" width="40" height="40" rx="10" fill="url(#nx)"/>
+    <path d="M14 38 V18 L30 38 V18" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Inter, system-ui, sans-serif" font-weight="700">
+    <text x="56" y="36" font-size="26" fill="#0F172A" letter-spacing="0.5">nexora</text>
+  </g>
+</svg>
