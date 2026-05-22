@@ -38,6 +38,7 @@ const RentalsList = lazy(() => import("@/pages/rentals/index"));
 const RentalDetail = lazy(() => import("@/pages/rentals/detail"));
 const InspectionsList = lazy(() => import("@/pages/inspections/index"));
 const LogisticsList = lazy(() => import("@/pages/logistics/index"));
+const PricingCalculator = lazy(() => import("@/pages/pricing/index"));
 const ProformasList = lazy(() => import("@/pages/proformas/index"));
 const OrdersList = lazy(() => import("@/pages/orders/index"));
 const InvoicesList = lazy(() => import("@/pages/invoices/index"));
@@ -209,6 +210,7 @@ function AppRouter() {
                 <Route path="/inspections" component={InspectionsList} />
                 <Route path="/logistics" component={LogisticsList} />
 
+                <Route path="/pricing" component={PricingCalculator} />
                 <Route path="/orders" component={OrdersList} />
                 <Route path="/proformas" component={ProformasList} />
                 <Route path="/invoices" component={InvoicesList} />
