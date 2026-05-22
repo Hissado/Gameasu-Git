@@ -313,8 +313,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 <DropdownMenuItem asChild className="cursor-pointer py-2.5">
                   <Link href="/billing"><CreditCard className="w-4 h-4 mr-2 text-muted-foreground" />Abonnement & facturation</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2.5">
-                  <UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />Mon profil
+                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
+                  <Link href="/profile"><UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />Mon profil</Link>
                 </DropdownMenuItem>
                 <div className="h-px bg-border my-1"></div>
                 <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive focus:text-destructive" onClick={() => logout()}>

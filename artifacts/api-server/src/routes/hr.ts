@@ -898,4 +898,142 @@ router.delete("/hr/movements/:id", requireManagerOrAbove, async (req, res, next)
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// ÉDITION PROFIL COLLABORATEUR (admin / manager)
+// ════════════════════════════════════════════════════════════════
+
+/** PUT /api/hr/collaborators/:id/profile — mise à jour complète par admin/manager.
+ *  - Tous les champs RH sont modifiables.
+ *  - baseSalary est réservé aux rôles admin/super_admin.
+ */
+router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const isAdmin = ["admin", "super_admin"].includes(req.authUser!.role);
+
+    const {
+      firstName, lastName, email, phone, nationalId, birthDate, address,
+      emergencyContact, employeeNumber, departmentId, positionId, position,
+      department, managerCollaboratorId, hireDate, employmentStatus, isAvailable,
+      avatarUrl, baseSalary,
+    } = req.body;
+
+    const updateData: Record<string, unknown> = {
+      ...(firstName !== undefined && { firstName }),
+      ...(lastName !== undefined && { lastName }),
+      ...(email !== undefined && { email }),
+      ...(phone !== undefined && { phone }),
+      ...(nationalId !== undefined && { nationalId }),
+      ...(birthDate !== undefined && { birthDate: birthDate || null }),
+      ...(address !== undefined && { address }),
+      ...(emergencyContact !== undefined && { emergencyContact: emergencyContact || null }),
+      ...(employeeNumber !== undefined && { employeeNumber }),
+      ...(position !== undefined && { position }),
+      ...(department !== undefined && { department }),
+      ...(departmentId !== undefined && { departmentId: departmentId || null }),
+      ...(positionId !== undefined && { positionId: positionId || null }),
+      ...(managerCollaboratorId !== undefined && { managerCollaboratorId: managerCollaboratorId || null }),
+      ...(hireDate !== undefined && { hireDate: hireDate || null }),
+      ...(employmentStatus !== undefined && { employmentStatus }),
+      ...(isAvailable !== undefined && { isAvailable }),
+      ...(avatarUrl !== undefined && { avatarUrl: avatarUrl || null }),
+    };
+
+    if (isAdmin && baseSalary !== undefined) {
+      updateData.baseSalary = baseSalary != null ? String(baseSalary) : null;
+    }
+
+    const [collab] = await db.update(collaboratorsTable)
+      .set(updateData as any)
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, req.params.id)))
+      .returning();
+    if (!collab) { res.status(404).json({ error: "Collaborateur introuvable" }); return; }
+    res.json(collab);
+  } catch (e) { next(e); }
+});
+
+/** PATCH /api/hr/collaborators/:id/avatar — mise à jour avatar (admin/manager OU propriétaire).
+ *  Body : { avatarUrl: "data:image/..." } — base64 data URL, max 2 Mo.
+ */
+router.patch("/hr/collaborators/:id/avatar", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const userId = req.authUser!.id;
+    const { avatarUrl } = req.body;
+
+    if (!avatarUrl) { res.status(400).json({ error: "avatarUrl requis" }); return; }
+    if (typeof avatarUrl === "string" && avatarUrl.length > 2.8 * 1024 * 1024) {
+      res.status(400).json({ error: "Image trop volumineuse (max 2 Mo)" }); return;
+    }
+
+    const isManagerOrAbove = ["admin", "super_admin", "manager"].includes(req.authUser!.role);
+    if (!isManagerOrAbove) {
+      const [own] = await db.select({ id: collaboratorsTable.id })
+        .from(collaboratorsTable)
+        .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId)))
+        .limit(1);
+      if (!own || own.id !== req.params.id) {
+        res.status(403).json({ error: "Accès refusé : vous ne pouvez modifier que votre propre avatar" }); return;
+      }
+    }
+
+    const [collab] = await db.update(collaboratorsTable)
+      .set({ avatarUrl })
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, req.params.id)))
+      .returning({ id: collaboratorsTable.id, avatarUrl: collaboratorsTable.avatarUrl });
+    if (!collab) { res.status(404).json({ error: "Collaborateur introuvable" }); return; }
+    res.json(collab);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// MON PROFIL (self-service utilisateur)
+// ════════════════════════════════════════════════════════════════
+
+/** GET /api/hr/me/profile — profil collaborateur de l'utilisateur connecté (via userId). */
+router.get("/hr/me/profile", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const [collab] = await db.select().from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+      .limit(1);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
+    res.json(collab);
+  } catch (e) { next(e); }
+});
+
+/** PATCH /api/hr/me/profile — auto-modification des champs non sensibles.
+ *  Champs autorisés : phone, address, emergencyContact, avatarUrl.
+ *  Tout autre champ est ignoré (pas de modification de salaire/poste/statut en self-service).
+ */
+router.patch("/hr/me/profile", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const [existing] = await db.select({ id: collaboratorsTable.id })
+      .from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+      .limit(1);
+    if (!existing) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
+
+    const { phone, address, emergencyContact, avatarUrl } = req.body;
+    if (avatarUrl && typeof avatarUrl === "string" && avatarUrl.length > 2.8 * 1024 * 1024) {
+      res.status(400).json({ error: "Image trop volumineuse (max 2 Mo)" }); return;
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (phone !== undefined) updateData.phone = phone;
+    if (address !== undefined) updateData.address = address;
+    if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact || null;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
+
+    const [collab] = await db.update(collaboratorsTable)
+      .set(updateData as any)
+      .where(eq(collaboratorsTable.id, existing.id))
+      .returning();
+    res.json(collab);
+  } catch (e) { next(e); }
+});
+
 export default router;

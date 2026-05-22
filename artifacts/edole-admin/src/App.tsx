@@ -47,6 +47,7 @@ const CallsList = lazy(() => import("@/pages/calls/index"));
 const UsersList = lazy(() => import("@/pages/users/index"));
 const NotificationsList = lazy(() => import("@/pages/notifications/index"));
 const Settings = lazy(() => import("@/pages/settings/index"));
+const MyProfile = lazy(() => import("@/pages/profile/index"));
 const AccountingDashboard = lazy(() => import("@/pages/accounting/index"));
 const AccountingChart = lazy(() => import("@/pages/accounting/chart-of-accounts"));
 const AccountingEntries = lazy(() => import("@/pages/accounting/entries"));
@@ -218,6 +219,7 @@ function AppRouter() {
                 <Route path="/users" component={UsersList} />
                 <Route path="/notifications" component={NotificationsList} />
                 <Route path="/settings" component={Settings} />
+                <Route path="/profile" component={MyProfile} />
 
                 <Route path="/fpa" component={FpaDashboard} />
                 <Route path="/fpa/budgets" component={FpaBudgets} />
