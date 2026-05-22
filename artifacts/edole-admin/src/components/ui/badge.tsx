@@ -1,27 +1,30 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  // @replit
-  // Whitespace-nowrap: Badges should never wrap.
-  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
-  " hover-elevate ",
+  "whitespace-nowrap inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none transition-colors border",
   {
     variants: {
       variant: {
         default:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-primary text-primary-foreground shadow-xs",
+          "bg-primary/10 text-primary border-primary/20",
         secondary:
-          // @replit no hover because we use hover-elevate
-          "border-transparent bg-secondary text-secondary-foreground",
+          "bg-secondary/8 text-secondary border-secondary/15",
         destructive:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-destructive text-destructive-foreground shadow-xs",
-          // @replit shadow-xs" - use badge outline variable
-        outline: "text-foreground border [border-color:var(--badge-outline)]",
+          "bg-destructive/10 text-destructive border-destructive/20",
+        outline:
+          "text-foreground/70 border-border/70 bg-transparent",
+        success:
+          "bg-emerald-50 text-emerald-700 border-emerald-200",
+        warning:
+          "bg-amber-50 text-amber-700 border-amber-200",
+        info:
+          "bg-sky-50 text-sky-700 border-sky-200",
+        navy:
+          "bg-[#0F1A3A]/8 text-[#0F1A3A] border-[#0F1A3A]/15",
+        gold:
+          "bg-[#C8A24B]/10 text-[#8B6914] border-[#C8A24B]/25",
       },
     },
     defaultVariants: {

@@ -258,7 +258,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
-        <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border/70 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-10 gap-2 sticky top-0">
+        <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-10 gap-2 sticky top-0 shadow-[var(--shadow-xs)]">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <button type="button" onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted" aria-label="Ouvrir le menu">
               <Menu className="w-6 h-6" />
@@ -325,8 +325,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-8 page-scroll">
-          <div className="max-w-7xl mx-auto w-full">{children}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 page-scroll bg-background">
+          <div className="max-w-[1440px] mx-auto w-full">{children}</div>
         </div>
       </main>
     </div>
