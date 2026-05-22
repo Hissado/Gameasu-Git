@@ -7,7 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sun, AlertTriangle, CheckSquare, Clock, FileText, Lightbulb, Sparkles, Building2, FolderKanban } from "lucide-react";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { severityLabel, priorityLabel, categoryLabel } from "@/lib/intelligence";
 
 type Briefing = {
@@ -24,9 +24,12 @@ type Briefing = {
 };
 
 const KPI = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string | number; accent?: string }) => (
-  <Card><CardContent className="p-4">
-    <div className="flex items-center gap-2 mb-1.5"><Icon className={`w-4 h-4 ${accent ?? "text-muted-foreground"}`} /><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">{label}</p></div>
-    <p className={`text-2xl font-bold ${accent ?? ""}`}>{value}</p>
+  <Card><CardContent className="p-3 sm:p-4">
+    <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+      <Icon className={`w-3.5 h-3.5 shrink-0 ${accent ?? "text-muted-foreground"}`} />
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold truncate">{label}</p>
+    </div>
+    <p className={`text-base sm:text-2xl font-bold leading-tight break-words ${accent ?? ""}`}>{value}</p>
   </CardContent></Card>
 );
 
@@ -62,7 +65,7 @@ export default function BriefingPage() {
         <KPI icon={CheckSquare} label="Tâches du jour" value={b.kpis.tasksDueToday} accent={b.kpis.tasksDueToday > 0 ? "text-primary" : ""} />
         <KPI icon={Clock} label="Tâches en retard" value={b.kpis.tasksOverdue} accent={b.kpis.tasksOverdue > 0 ? "text-red-600" : ""} />
         <KPI icon={FileText} label="Factures en retard" value={b.kpis.invoicesOverdue} accent={b.kpis.invoicesOverdue > 0 ? "text-amber-600" : ""} />
-        <KPI icon={FileText} label="Encours retard" value={formatFCFA(b.kpis.outstandingFCFA)} accent={b.kpis.outstandingFCFA > 0 ? "text-amber-600" : ""} />
+        <KPI icon={FileText} label="Encours retard" value={formatFCFACompact(b.kpis.outstandingFCFA)} accent={b.kpis.outstandingFCFA > 0 ? "text-amber-600" : ""} />
         <KPI icon={AlertTriangle} label="Risques critiques" value={b.kpis.criticalRisks} accent={b.kpis.criticalRisks > 0 ? "text-red-600" : ""} />
       </div>
 

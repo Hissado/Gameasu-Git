@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -177,14 +177,14 @@ export default function FpaDashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
             <HeroKpi
               label="Budget annuel"
-              value={formatFCFA(annualBudget)}
+              value={formatFCFACompact(annualBudget)}
               hint={summary.companyBudget?.name?.replace("[DÉMO] ", "") ?? "Budget actif"}
               icon={Target}
               accent="bg-blue-500/20 text-blue-200"
             />
             <HeroKpi
               label="Réalisé YTD"
-              value={formatFCFA(ytdActual)}
+              value={formatFCFACompact(ytdActual)}
               hint={`${ytdPct.toFixed(1)} % du budget consommé`}
               icon={Activity}
               accent="bg-emerald-500/20 text-emerald-200"
@@ -192,7 +192,7 @@ export default function FpaDashboardPage() {
             {projectionAvailable && projectedVariance !== null ? (
               <HeroKpi
                 label={projectedVariance >= 0 ? "Dépassement projeté" : "Économie projetée"}
-                value={formatFCFA(Math.abs(projectedVariance))}
+                value={formatFCFACompact(Math.abs(projectedVariance))}
                 hint={`Projection : ${fmtCompact(projectedYearEnd ?? 0)} FCFA`}
                 icon={projectedVariance >= 0 ? TrendingUp : TrendingDown}
                 accent={projectedVariance > 0 ? "bg-amber-500/20 text-amber-200" : "bg-emerald-500/20 text-emerald-200"}
@@ -208,7 +208,7 @@ export default function FpaDashboardPage() {
             )}
             <HeroKpi
               label="Marge brute"
-              value={formatFCFA(grossMargin)}
+              value={formatFCFACompact(grossMargin)}
               hint={`${marginPct.toFixed(1)} % du CA · ${byProject?.rows.length ?? 0} projets`}
               icon={Wallet}
               accent={grossMargin >= 0 ? "bg-violet-500/20 text-violet-200" : "bg-rose-500/20 text-rose-200"}
@@ -524,15 +524,15 @@ export default function FpaDashboardPage() {
 
 function HeroKpi({ label, value, hint, icon: Icon, accent }: { label: string; value: string; hint?: string; icon: any; accent: string }) {
   return (
-    <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10">
+    <div className="bg-white/5 backdrop-blur rounded-lg p-3 sm:p-4 border border-white/10">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] text-slate-300 uppercase tracking-wide font-medium">{label}</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{value}</p>
-          {hint && <p className="text-[11px] text-slate-400 mt-1 truncate">{hint}</p>}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] sm:text-[11px] text-slate-300 uppercase tracking-wide font-medium truncate">{label}</p>
+          <p className="text-base sm:text-xl font-bold mt-1 break-words leading-tight">{value}</p>
+          {hint && <p className="text-[10px] text-slate-400 mt-1 truncate">{hint}</p>}
         </div>
-        <div className={`p-2 rounded-md ${accent} shrink-0`}>
-          <Icon className="w-4 h-4" />
+        <div className={`p-1.5 sm:p-2 rounded-md ${accent} shrink-0`}>
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
       </div>
     </div>

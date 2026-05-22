@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * Usage :
  *   <MoneyAmount amount={325_200_000} size="lg" />
  *   <MoneyAmount amount={payment} size="xl" color="success" showSign />
- *   <MoneyAmount amount={balance} size="2xl" color="white" />
+ *   <MoneyAmount amount={balance} size="2xl" color="white" compactMobile />
  */
 
 type Size = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -23,15 +23,18 @@ interface MoneyAmountProps {
   className?: string;
   showSign?: boolean;
   compact?: boolean;
+  /** Sur mobile (< sm), affiche le montant en format compact (k / M / Md).
+   *  Sur sm+ affiche le montant complet. Remplace `compact` quand les deux sont passés. */
+  compactMobile?: boolean;
 }
 
 const NUM_SIZE: Record<Size, string> = {
   xs:  "text-xs",
   sm:  "text-sm",
   md:  "text-base",
-  lg:  "text-sm sm:text-lg",
-  xl:  "text-base sm:text-xl",
-  "2xl": "text-lg sm:text-2xl",
+  lg:  "text-xs sm:text-lg",
+  xl:  "text-sm sm:text-xl",
+  "2xl": "text-sm sm:text-2xl",
 };
 
 const CUR_SIZE: Record<Size, string> = {
@@ -64,13 +67,13 @@ const CUR_COLOR: Record<Color, string> = {
 function formatNumber(amount: number, compact: boolean): string {
   if (compact) {
     if (Math.abs(amount) >= 1_000_000_000) {
-      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(amount / 1_000_000_000) + " Md";
+      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(amount / 1_000_000_000) + "\u202FMd";
     }
     if (Math.abs(amount) >= 1_000_000) {
-      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(amount / 1_000_000) + " M";
+      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(amount / 1_000_000) + "\u202FM";
     }
     if (Math.abs(amount) >= 1_000) {
-      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount / 1_000) + " k";
+      return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount / 1_000) + "\u202Fk";
     }
   }
   return new Intl.NumberFormat("fr-FR", {
@@ -86,35 +89,52 @@ export function MoneyAmount({
   className,
   showSign = false,
   compact = false,
+  compactMobile = false,
 }: MoneyAmountProps) {
   const value = amount ?? 0;
-  const formatted = formatNumber(Math.abs(value), compact);
-  const sign = showSign && value > 0 ? "+" : value < 0 ? "−" : "";
   const isNegative = value < 0;
-
+  const abs = Math.abs(value);
+  const sign = showSign && value > 0 ? "+" : isNegative ? "−" : "";
   const effectiveColor: Color = isNegative && color === "default" ? "danger" : color;
+
+  const baseSpanClass = cn(
+    "inline-flex items-baseline flex-wrap gap-x-1 gap-y-0 font-display font-bold tracking-tight leading-tight tabular-nums min-w-0",
+    NUM_SIZE[size],
+    NUM_COLOR[effectiveColor],
+    className,
+  );
+
+  const curSpanClass = cn(
+    "font-semibold uppercase tracking-wider not-italic whitespace-nowrap",
+    CUR_SIZE[size],
+    CUR_COLOR[effectiveColor],
+  );
+
+  if (compactMobile) {
+    const compactNum = formatNumber(abs, true);
+    const fullNum = formatNumber(abs, false);
+    return (
+      <span className={baseSpanClass} style={{ fontVariantNumeric: "tabular-nums" }}>
+        {sign && <span className="opacity-70">{sign}</span>}
+        {/* Mobile : compact */}
+        <span className="sm:hidden">{compactNum}</span>
+        {/* sm+ : complet */}
+        <span className="hidden sm:inline">{fullNum}</span>
+        <span className={curSpanClass}>FCFA</span>
+      </span>
+    );
+  }
+
+  const formatted = formatNumber(abs, compact);
 
   return (
     <span
-      className={cn(
-        "inline-flex items-baseline flex-wrap gap-x-1.5 gap-y-0 font-display font-bold tracking-tight leading-tight tabular-nums min-w-0",
-        NUM_SIZE[size],
-        NUM_COLOR[effectiveColor],
-        className,
-      )}
+      className={baseSpanClass}
       style={{ fontVariantNumeric: "tabular-nums" }}
     >
       {sign && <span className="opacity-70">{sign}</span>}
       <span>{formatted}</span>
-      <span
-        className={cn(
-          "font-semibold uppercase tracking-wider not-italic whitespace-nowrap",
-          CUR_SIZE[size],
-          CUR_COLOR[effectiveColor],
-        )}
-      >
-        FCFA
-      </span>
+      <span className={curSpanClass}>FCFA</span>
     </span>
   );
 }

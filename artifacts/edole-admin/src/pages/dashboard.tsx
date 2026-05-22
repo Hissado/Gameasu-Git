@@ -313,12 +313,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-6 text-right">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Encaissements (cumul)</div>
-                <MoneyAmount amount={monthlyRevenue} size="2xl" color="white" className="mt-1" />
+                <MoneyAmount amount={monthlyRevenue} size="2xl" color="white" className="mt-1" compactMobile />
               </div>
               <div className="hidden md:block w-px h-12 bg-slate-700" />
               <div className="hidden md:block">
                 <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Pipeline</div>
-                <MoneyAmount amount={pipeline} size="2xl" color="white" className="mt-1 !text-primary [&>span:last-child]:!text-primary/60" />
+                <MoneyAmount amount={pipeline} size="2xl" color="white" className="mt-1 !text-primary [&>span:last-child]:!text-primary/60" compactMobile />
               </div>
             </div>
           </div>
