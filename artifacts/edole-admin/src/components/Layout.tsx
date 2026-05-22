@@ -49,12 +49,12 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Commercial",
     items: [
       { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
+      { name: "Calculateur tarifaire", path: "/pricing", icon: Tag, moduleKey: "sales_crm" },
       { name: "Pipeline & opportunités", path: "/crm", icon: Target, moduleKey: "sales_crm" },
       { name: "Devis", path: "/proformas", icon: FileSignature, moduleKey: "sales_crm" },
       { name: "Commandes", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
       { name: "Factures", path: "/invoices", icon: FileText, moduleKey: "sales_crm" },
       { name: "Encaissements", path: "/payments", icon: CreditCard, moduleKey: "sales_crm" },
-      { name: "Calculateur tarifaire", path: "/pricing", icon: Tag, moduleKey: "sales_crm" },
       { name: "Marketing", path: "/marketing", icon: Megaphone, moduleKey: "marketing" },
     ],
   },
