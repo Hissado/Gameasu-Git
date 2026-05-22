@@ -51,7 +51,7 @@ export default function TrainingPage() {
 
   const { data: collaborators = [] } = useQuery<any[]>({
     queryKey: ["collaborators-list"],
-    queryFn: () => fetchJSON(`${API}/collaborators`),
+    queryFn: () => fetchJSON(`${API}/collaborators`).then((r) => r.data ?? r),
   });
 
   const createMut = useMutation({

@@ -55,7 +55,7 @@ export default function EvaluationsPage() {
 
   const { data: collaborators = [] } = useQuery<any[]>({
     queryKey: ["collaborators-list"],
-    queryFn: () => fetchJSON(`${API}/collaborators`),
+    queryFn: () => fetchJSON(`${API}/collaborators`).then((r) => r.data ?? r),
   });
 
   const { data: detail } = useQuery<any>({
