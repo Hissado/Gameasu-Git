@@ -71,82 +71,68 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════════
           PANNEAU GAUCHE — Identité de marque
       ═══════════════════════════════════════════════════ */}
-      <div
-        className="hidden lg:flex flex-col w-[52%] xl:w-[58%] relative overflow-hidden"
-        style={{ background: "linear-gradient(145deg, #0F1A3A 0%, #0A1628 60%, #071020 100%)" }}
-      >
-        {/* Texture : grille de points */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-        {/* Halos lumineux */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background: [
-            "radial-gradient(ellipse 60% 55% at 30% 35%, rgba(200,162,75,0.10) 0%, transparent 70%)",
-            "radial-gradient(ellipse 50% 50% at 80% 75%, rgba(15,26,58,0.6) 0%, transparent 65%)",
-          ].join(","),
-        }} />
-        {/* Ligne dorée verticale décorative */}
-        <div className="absolute top-0 left-0 w-px h-full opacity-20"
-             style={{ background: "linear-gradient(180deg, transparent 0%, #C8A24B 30%, #C8A24B 70%, transparent 100%)" }} />
+      <div className="hidden lg:flex flex-col w-[52%] xl:w-[58%] relative overflow-hidden">
 
-        {/* Barre supérieure */}
-        <div className="relative flex items-center justify-between px-10 pt-8">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#C8A24B]" />
-            <span className="text-[11px] font-bold tracking-[0.18em] text-white/40 uppercase">
-              {BRANDING.appName}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 bg-white/5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] text-white/50 font-medium">Système opérationnel</span>
-          </div>
-        </div>
+        {/* ── Zone HAUTE : fond blanc avec logo original ── */}
+        <div className="relative flex flex-col items-center justify-center px-10 xl:px-16 py-12"
+             style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #F7F4EE 100%)", minHeight: "42%" }}>
+          {/* Texture très subtile */}
+          <div className="absolute inset-0 pointer-events-none opacity-40"
+               style={{ backgroundImage: "radial-gradient(rgba(15,26,58,0.04) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+          {/* Halo or derrière le logo */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-24 pointer-events-none"
+               style={{ background: "radial-gradient(ellipse at 50% 100%, rgba(200,162,75,0.10) 0%, transparent 70%)" }} />
 
-        {/* Contenu central */}
-        <div className="relative flex-1 flex flex-col items-center justify-center px-10 xl:px-16">
-          {/* Logo */}
-          <div className="w-full max-w-[320px] xl:max-w-[380px] mb-10">
-            {/* Halo derrière le logo */}
-            <div className="relative">
-              <div className="absolute inset-0 rounded-3xl pointer-events-none"
-                   style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,162,75,0.12) 0%, transparent 75%)" }} />
-              <img
-                src={BRANDING.logoFullTransparent}
-                alt={BRANDING.appName}
-                draggable={false}
-                className="relative w-full h-auto object-contain select-none"
-                style={{
-                  filter: [
-                    "brightness(0) invert(1)",         /* rend tout blanc */
-                    "sepia(1)",                         /* teinte chaude */
-                    "saturate(2.2)",                    /* renforce l'or */
-                    "hue-rotate(340deg)",               /* vire vers l'or chaud */
-                    "brightness(1.1)",                  /* léger éclat */
-                    "drop-shadow(0 4px 24px rgba(200,162,75,0.35))",
-                  ].join(" "),
-                }}
-              />
+          {/* Barre de statut en haut */}
+          <div className="absolute top-5 right-6">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#0F1A3A]/10 bg-white/80 shadow-sm">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] text-[#0F1A3A]/50 font-medium">Système opérationnel</span>
             </div>
           </div>
 
+          {/* Logo original en couleurs */}
+          <div className="relative w-full max-w-[300px] xl:max-w-[360px]">
+            <img
+              src={BRANDING.logoFullTransparent}
+              alt={BRANDING.appName}
+              draggable={false}
+              className="w-full h-auto object-contain select-none"
+              style={{ filter: "drop-shadow(0 4px 16px rgba(15,26,58,0.08))" }}
+            />
+          </div>
+        </div>
+
+        {/* Séparateur avec vague */}
+        <div className="relative h-px bg-gradient-to-r from-transparent via-[#C8A24B]/30 to-transparent" />
+
+        {/* ── Zone BASSE : fond navy avec tagline + features ── */}
+        <div
+          className="relative flex-1 flex flex-col px-10 xl:px-14 py-10 overflow-hidden"
+          style={{ background: "linear-gradient(160deg, #0F1A3A 0%, #0A1628 70%, #071020 100%)" }}
+        >
+          {/* Texture points */}
+          <div className="absolute inset-0 pointer-events-none"
+               style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+          {/* Halo lumineux */}
+          <div className="absolute inset-0 pointer-events-none"
+               style={{ background: "radial-gradient(ellipse 70% 60% at 30% 20%, rgba(200,162,75,0.07) 0%, transparent 65%)" }} />
+          {/* Ligne dorée verticale */}
+          <div className="absolute top-0 left-0 w-px h-full opacity-15"
+               style={{ background: "linear-gradient(180deg, #C8A24B 0%, transparent 100%)" }} />
+
           {/* Tagline */}
-          <div className="text-center mb-12">
+          <div className="relative mb-8">
             <p className="text-white/90 text-lg xl:text-xl font-light tracking-wide leading-relaxed">
               {BRANDING.appTaglineFr}
             </p>
-            <div className="mt-3 mx-auto h-px w-16 bg-gradient-to-r from-transparent via-[#C8A24B] to-transparent opacity-60" />
+            <div className="mt-3 h-px w-12 bg-gradient-to-r from-[#C8A24B] to-transparent opacity-70" />
           </div>
 
           {/* Features */}
-          <div className="w-full max-w-sm space-y-3">
+          <div className="relative flex-1 space-y-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex items-start gap-3.5 group">
+              <div key={title} className="flex items-start gap-3.5">
                 <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
                      style={{ background: "rgba(200,162,75,0.12)", border: "1px solid rgba(200,162,75,0.20)" }}>
                   <Icon className="w-3.5 h-3.5 text-[#C8A24B]" />
@@ -158,16 +144,14 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Footer gauche */}
-        <div className="relative px-10 pb-8 flex items-center justify-between">
-          <p className="text-[11px] text-white/25">
-            © {year} {BRANDING.legalName}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <Shield className="w-3 h-3 text-white/20" />
-            <span className="text-[10px] text-white/25">Connexion chiffrée TLS 1.3</span>
+          {/* Footer gauche */}
+          <div className="relative mt-8 flex items-center justify-between">
+            <p className="text-[11px] text-white/25">© {year} {BRANDING.legalName}</p>
+            <div className="flex items-center gap-1.5">
+              <Shield className="w-3 h-3 text-white/20" />
+              <span className="text-[10px] text-white/25">TLS 1.3</span>
+            </div>
           </div>
         </div>
       </div>
