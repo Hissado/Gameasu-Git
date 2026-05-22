@@ -14,7 +14,7 @@ export const BRANDING = {
   logoFull: "/branding/gameasu-logo.png",
   logoFullTransparent: "/branding/gameasu-logo-transparent.png",
   logoMark: "/branding/gameasu-logo-transparent.png",
-  legalName: "Gaméasù SAS",
+  legalName: "Gaméasù Technology",
   marketBaseline: "Conçu pour les organisations du Togo et d'Afrique de l'Ouest francophone",
 } as const;
 
