@@ -16,6 +16,7 @@ const TABS = [
   { path: "/accounting/customers", label: "Clients" },
   { path: "/accounting/suppliers", label: "Fournisseurs" },
   { path: "/accounting/banks", label: "Banques" },
+  { path: "/accounting/reconciliation", label: "Rapprochement" },
   { path: "/accounting/fixed-assets", label: "Immobilisations" },
   { path: "/accounting/analytical", label: "Analytique" },
 ];

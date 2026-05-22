@@ -57,6 +57,7 @@ const AccountingBalanceSheet = lazy(() => import("@/pages/accounting/balance-she
 const AccountingCustomers = lazy(() => import("@/pages/accounting/customers"));
 const AccountingSuppliers = lazy(() => import("@/pages/accounting/suppliers"));
 const AccountingBanks = lazy(() => import("@/pages/accounting/banks"));
+const AccountingReconciliation = lazy(() => import("@/pages/accounting/reconciliation"));
 const AccountingFixedAssets = lazy(() => import("@/pages/accounting/fixed-assets"));
 const AccountingMatching = lazy(() => import("@/pages/accounting/matching"));
 const AccountingFiscalPeriods = lazy(() => import("@/pages/accounting/fiscal-periods"));
@@ -234,6 +235,7 @@ function AppRouter() {
                 <Route path="/accounting/customers" component={AccountingCustomers} />
                 <Route path="/accounting/suppliers" component={AccountingSuppliers} />
                 <Route path="/accounting/banks" component={AccountingBanks} />
+                <Route path="/accounting/reconciliation" component={AccountingReconciliation} />
                 <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
                 <Route path="/accounting/matching" component={AccountingMatching} />
                 <Route path="/accounting/fiscal-periods" component={AccountingFiscalPeriods} />

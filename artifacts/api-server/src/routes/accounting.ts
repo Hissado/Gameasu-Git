@@ -1414,4 +1414,217 @@ router.post("/accounting/fixed-assets/:id/dispose", requireManagerOrAbove, async
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// RAPPROCHEMENT BANCAIRE — import en lot + auto-matching
+// ════════════════════════════════════════════════════════════════
+
+// Import en lot de lignes (depuis CSV/XLSX parsé côté frontend)
+router.post("/accounting/bank-accounts/:id/transactions/bulk", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const bank = (await db.select({ id: bankAccountsTable.id })
+    .from(bankAccountsTable)
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .limit(1))[0];
+  if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
+
+  const { lines } = req.body as { lines: Array<{ date: string; label: string; amount: number; reference?: string }> };
+  if (!Array.isArray(lines) || lines.length === 0) { res.status(400).json({ error: "Aucune ligne fournie" }); return; }
+
+  const inserted = await db.insert(bankTransactionsTable).values(
+    lines.map((l) => ({
+      organizationId: orgId,
+      bankAccountId: req.params.id,
+      transactionDate: l.date,
+      label: l.label ?? "",
+      amount: String(l.amount),
+      reference: l.reference,
+      importedAt: new Date(),
+    }))
+  ).returning();
+  res.status(201).json({ imported: inserted.length, transactions: inserted.map((t) => ({ ...t, amount: toNum(t.amount) })) });
+});
+
+// Suggestions d'auto-matching avec scores de confiance
+router.get("/accounting/bank-accounts/:id/auto-match", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const bank = (await db.select().from(bankAccountsTable)
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .limit(1))[0];
+  if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
+
+  // Transactions non rapprochées
+  const txs = await db.select().from(bankTransactionsTable)
+    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id), eq(bankTransactionsTable.isReconciled, false)))
+    .orderBy(asc(bankTransactionsTable.transactionDate));
+
+  // Lignes de journal non rapprochées sur le compte bancaire (statut posted)
+  const jels = await db
+    .select({ line: journalEntryLinesTable, entry: journalEntriesTable })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
+      eq(journalEntryLinesTable.accountId, bank.accountId),
+      isNull(journalEntryLinesTable.reconciledAt),
+      eq(journalEntriesTable.status, "posted"),
+    ));
+
+  const suggestions = txs.map((tx) => {
+    const txAmount = toNum(tx.amount); // >0 = entrée (débit journal), <0 = sortie (crédit journal)
+    const candidates = jels
+      .map((j) => {
+        const jDebit  = toNum(j.line.debit);
+        const jCredit = toNum(j.line.credit);
+        const jNet    = jDebit - jCredit; // >0 = débit net, <0 = crédit net
+
+        let score = 0;
+        // ── Correspondance montant ──
+        const amtDiff = Math.abs(Math.abs(txAmount) - Math.abs(jNet));
+        const amtPct  = Math.abs(jNet) > 0 ? amtDiff / Math.abs(jNet) : 1;
+        if (amtDiff < 0.01)      score += 60;
+        else if (amtPct < 0.01)  score += 45;
+        else if (amtPct < 0.05)  score += 20;
+        else                     score -= 40; // montant trop éloigné
+
+        // ── Sens concordant ──
+        const sameSign = (txAmount > 0 && jNet > 0) || (txAmount < 0 && jNet < 0);
+        if (sameSign) score += 15; else score -= 20;
+
+        // ── Proximité de date ──
+        const txDate   = new Date(tx.transactionDate).getTime();
+        const jelDate  = new Date(j.entry.entryDate).getTime();
+        const diffDays = Math.abs(txDate - jelDate) / 86_400_000;
+        if (diffDays <= 1)       score += 25;
+        else if (diffDays <= 3)  score += 15;
+        else if (diffDays <= 7)  score += 8;
+        else if (diffDays > 30)  score -= 10;
+
+        // ── Similarité libellé (simple) ──
+        const txWords = (tx.label ?? "").toLowerCase().split(/\s+/);
+        const jelDesc = ((j.line.description ?? "") + " " + (j.entry.description ?? "")).toLowerCase();
+        const overlap = txWords.filter((w) => w.length > 3 && jelDesc.includes(w)).length;
+        score += Math.min(overlap * 5, 10);
+
+        return {
+          lineId: j.line.id,
+          entryNumber: j.entry.entryNumber,
+          entryDate: j.entry.entryDate,
+          description: j.line.description ?? j.entry.description ?? "",
+          debit: jDebit, credit: jCredit, net: jNet,
+          score: Math.max(0, Math.min(100, score)),
+        };
+      })
+      .filter((c) => c.score >= 20)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    const bestMatch = candidates[0]?.score >= 60 ? candidates[0] : null;
+    return {
+      transaction: { id: tx.id, transactionDate: tx.transactionDate, label: tx.label, amount: txAmount, reference: tx.reference },
+      candidates,
+      bestMatch,
+      confidence: bestMatch ? bestMatch.score : 0,
+    };
+  });
+
+  res.json({
+    suggestions,
+    stats: {
+      total: txs.length,
+      highConfidence: suggestions.filter((s) => s.confidence >= 60).length,
+      medium: suggestions.filter((s) => s.confidence >= 20 && s.confidence < 60).length,
+      unmatched: suggestions.filter((s) => s.confidence < 20).length,
+    },
+  });
+});
+
+// Appliquer toutes les correspondances à haute confiance (≥ 60)
+router.post("/accounting/bank-accounts/:id/auto-match/apply", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const bank = (await db.select().from(bankAccountsTable)
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .limit(1))[0];
+  if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
+
+  // Re-calculer les suggestions à haute confiance
+  const txs = await db.select().from(bankTransactionsTable)
+    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id), eq(bankTransactionsTable.isReconciled, false)));
+  const jels = await db
+    .select({ line: journalEntryLinesTable, entry: journalEntriesTable })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
+      eq(journalEntryLinesTable.accountId, bank.accountId),
+      isNull(journalEntryLinesTable.reconciledAt),
+      eq(journalEntriesTable.status, "posted"),
+    ));
+
+  const usedLineIds = new Set<string>();
+  const usedTxIds  = new Set<string>();
+  let applied = 0;
+
+  for (const tx of txs) {
+    const txAmount = toNum(tx.amount);
+    const best = jels
+      .filter((j) => !usedLineIds.has(j.line.id))
+      .map((j) => {
+        const jNet = toNum(j.line.debit) - toNum(j.line.credit);
+        const amtDiff = Math.abs(Math.abs(txAmount) - Math.abs(jNet));
+        const amtPct  = Math.abs(jNet) > 0 ? amtDiff / Math.abs(jNet) : 1;
+        let score = 0;
+        if (amtDiff < 0.01) score += 60; else if (amtPct < 0.01) score += 45; else if (amtPct < 0.05) score += 20; else score -= 40;
+        const sameSign = (txAmount > 0 && jNet > 0) || (txAmount < 0 && jNet < 0);
+        if (sameSign) score += 15; else score -= 20;
+        const diffDays = Math.abs(new Date(tx.transactionDate).getTime() - new Date(j.entry.entryDate).getTime()) / 86_400_000;
+        if (diffDays <= 1) score += 25; else if (diffDays <= 3) score += 15; else if (diffDays <= 7) score += 8;
+        return { lineId: j.line.id, score: Math.max(0, Math.min(100, score)) };
+      })
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (best && best.score >= 60 && !usedTxIds.has(tx.id) && !usedLineIds.has(best.lineId)) {
+      usedLineIds.add(best.lineId);
+      usedTxIds.add(tx.id);
+      await db.update(bankTransactionsTable)
+        .set({ isReconciled: true, reconciledLineId: best.lineId })
+        .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, tx.id)));
+      await db.update(journalEntryLinesTable)
+        .set({ reconciledAt: new Date(), bankTransactionId: tx.id })
+        .where(eq(journalEntryLinesTable.id, best.lineId));
+      applied++;
+    }
+  }
+  res.json({ applied });
+});
+
+// Dé-rapprocher une transaction
+router.post("/accounting/reconciliation/unmatch", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { transactionId } = req.body as { transactionId: string };
+  const tx = (await db.select().from(bankTransactionsTable)
+    .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, transactionId)))
+    .limit(1))[0];
+  if (!tx) { res.status(404).json({ error: "Transaction introuvable" }); return; }
+
+  if (tx.reconciledLineId) {
+    await db.update(journalEntryLinesTable)
+      .set({ reconciledAt: null, bankTransactionId: null })
+      .where(eq(journalEntryLinesTable.id, tx.reconciledLineId));
+  }
+  await db.update(bankTransactionsTable)
+    .set({ isReconciled: false, reconciledLineId: null })
+    .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, transactionId)));
+  res.json({ ok: true });
+});
+
+// Ignorer une transaction (rapprochement sans écriture)
+router.post("/accounting/reconciliation/ignore", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { transactionId } = req.body as { transactionId: string };
+  await db.update(bankTransactionsTable)
+    .set({ isReconciled: true, reconciledLineId: null })
+    .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, transactionId)));
+  res.json({ ok: true });
+});
+
 export default router;
