@@ -185,7 +185,7 @@ function MetricCard({
         {loading ? (
           <Skeleton className="h-8 w-28 mt-3" />
         ) : (
-          <div className="font-display text-[clamp(1.1rem,2.1vw,1.55rem)] font-extrabold text-slate-900 tracking-tight mt-2 leading-tight whitespace-nowrap">
+          <div className="font-display text-base sm:text-[clamp(1.1rem,2.1vw,1.55rem)] font-extrabold text-slate-900 tracking-tight mt-2 leading-tight min-w-0 overflow-hidden">
             {value}
           </div>
         )}

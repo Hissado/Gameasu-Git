@@ -29,9 +29,9 @@ const NUM_SIZE: Record<Size, string> = {
   xs:  "text-xs",
   sm:  "text-sm",
   md:  "text-base",
-  lg:  "text-lg",
-  xl:  "text-xl",
-  "2xl": "text-2xl",
+  lg:  "text-sm sm:text-lg",
+  xl:  "text-base sm:text-xl",
+  "2xl": "text-lg sm:text-2xl",
 };
 
 const CUR_SIZE: Record<Size, string> = {
@@ -97,7 +97,7 @@ export function MoneyAmount({
   return (
     <span
       className={cn(
-        "inline-flex items-baseline gap-1.5 font-display font-bold tracking-tight leading-tight whitespace-nowrap tabular-nums",
+        "inline-flex items-baseline flex-wrap gap-x-1.5 gap-y-0 font-display font-bold tracking-tight leading-tight tabular-nums min-w-0",
         NUM_SIZE[size],
         NUM_COLOR[effectiveColor],
         className,
@@ -108,7 +108,7 @@ export function MoneyAmount({
       <span>{formatted}</span>
       <span
         className={cn(
-          "font-semibold uppercase tracking-wider not-italic",
+          "font-semibold uppercase tracking-wider not-italic whitespace-nowrap",
           CUR_SIZE[size],
           CUR_COLOR[effectiveColor],
         )}

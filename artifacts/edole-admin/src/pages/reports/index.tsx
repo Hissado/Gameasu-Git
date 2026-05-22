@@ -180,9 +180,9 @@ function Kpi({ label, value, hint, accent = "default" }: { label: string; value:
     primary: "bg-orange-50 border-orange-100 text-orange-700",
   };
   return (
-    <div className={`border p-4 rounded-xl ${tone[accent]}`}>
-      <div className="text-xs font-bold uppercase tracking-wider mb-2 opacity-80">{label}</div>
-      <div className="text-2xl font-bold leading-tight">{value}</div>
+    <div className={`border p-3 sm:p-4 rounded-xl overflow-hidden min-w-0 ${tone[accent]}`}>
+      <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 opacity-80 leading-tight">{label}</div>
+      <div className="text-xs sm:text-2xl font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{value}</div>
       {hint && <div className="text-xs opacity-70 mt-1">{hint}</div>}
     </div>
   );
