@@ -111,14 +111,28 @@ export default function LoginPage() {
         {/* Contenu central */}
         <div className="relative flex-1 flex flex-col items-center justify-center px-10 xl:px-16">
           {/* Logo */}
-          <div className="w-full max-w-[340px] xl:max-w-[400px] mb-12">
-            <img
-              src={BRANDING.logoFullTransparent}
-              alt={BRANDING.appName}
-              draggable={false}
-              className="w-full h-auto object-contain select-none drop-shadow-2xl"
-              style={{ filter: "drop-shadow(0 8px 32px rgba(200,162,75,0.20))" }}
-            />
+          <div className="w-full max-w-[320px] xl:max-w-[380px] mb-10">
+            {/* Halo derrière le logo */}
+            <div className="relative">
+              <div className="absolute inset-0 rounded-3xl pointer-events-none"
+                   style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,162,75,0.12) 0%, transparent 75%)" }} />
+              <img
+                src={BRANDING.logoFullTransparent}
+                alt={BRANDING.appName}
+                draggable={false}
+                className="relative w-full h-auto object-contain select-none"
+                style={{
+                  filter: [
+                    "brightness(0) invert(1)",         /* rend tout blanc */
+                    "sepia(1)",                         /* teinte chaude */
+                    "saturate(2.2)",                    /* renforce l'or */
+                    "hue-rotate(340deg)",               /* vire vers l'or chaud */
+                    "brightness(1.1)",                  /* léger éclat */
+                    "drop-shadow(0 4px 24px rgba(200,162,75,0.35))",
+                  ].join(" "),
+                }}
+              />
+            </div>
           </div>
 
           {/* Tagline */}
