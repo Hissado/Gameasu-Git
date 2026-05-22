@@ -154,6 +154,11 @@ export default function FpaDashboardPage() {
                 </SelectContent>
               </Select>
             </div>
+            <Link href="/fpa/cashflow">
+              <Button variant="secondary" size="sm" className="bg-white/10 text-white hover:bg-white/20 border-0">
+                <Wallet className="w-4 h-4 mr-1.5" />Trésorerie
+              </Button>
+            </Link>
             <Link href="/fpa/budgets">
               <Button variant="secondary" size="sm" className="bg-white/10 text-white hover:bg-white/20 border-0">
                 <BarChart3 className="w-4 h-4 mr-1.5" />Budgets

@@ -5,7 +5,9 @@ import {
   fiscalPeriodsTable, chartOfAccountsTable,
   journalEntriesTable, journalEntryLinesTable,
   projectsTable, departmentsTable, servicesTable, usersTable,
+  invoicesTable, supplierInvoicesTable, suppliersTable, bankAccountsTable,
 } from "@workspace/db";
+import { clientsTable } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, inArray, isNull } from "drizzle-orm";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 import ExcelJS from "exceljs";
@@ -1049,6 +1051,213 @@ router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
   tr.getCell(7).numFmt = PCT_FORMAT;
   ws.columns.forEach((c, i) => { c.width = i === 0 ? 32 : 16; });
   await sendWorkbook(res, wb, `synthese-projets-${fp.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// CASH FLOW / GESTION DE TRÉSORERIE
+// Sources : comptes classe 5 (mouvements réels) + factures clients (AR)
+//           + factures fournisseurs (AP) + soldes bancaires
+// ════════════════════════════════════════════════════════════════════════════
+router.get("/fpa/cashflow", async (req, res) => {
+  const { fiscalPeriodId } = req.query as Record<string, string>;
+  if (!fiscalPeriodId) { res.status(400).json({ error: "fiscalPeriodId requis" }); return; }
+  const orgId = req.authUser!.organizationId;
+  const fp = await loadFiscalPeriod(orgId, fiscalPeriodId);
+  if (!fp) { res.status(404).json({ error: "Période introuvable" }); return; }
+
+  // ── 1. Comptes de trésorerie (classe 5) ──────────────────────────────────
+  const class5 = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code, label: chartOfAccountsTable.label })
+    .from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.classNum, 5), eq(chartOfAccountsTable.isActive, true)));
+  const class5Ids = class5.map((a) => a.id);
+
+  // ── 2. Solde d'ouverture (cumul des soldes initiaux des comptes bancaires) ──
+  const bankAccs = await db.select({ openingBalance: bankAccountsTable.openingBalance })
+    .from(bankAccountsTable)
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.isActive, true)));
+  const openingBalance = bankAccs.reduce((s, b) => s + toNum(b.openingBalance), 0);
+
+  // ── 3. Solde actuel : ouverture + tous mouvements postés sur classe 5 ──────
+  let currentBalance = openingBalance;
+  if (class5Ids.length > 0) {
+    const totals = (await db.select({
+      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
+      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
+    }).from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .where(and(
+        eq(journalEntriesTable.organizationId, orgId),
+        eq(journalEntriesTable.status, "posted"),
+        inArray(journalEntryLinesTable.accountId, class5Ids),
+      )))[0];
+    currentBalance = openingBalance + toNum(totals.d) - toNum(totals.c);
+  }
+
+  // ── 4. Flux mensuels sur la période fiscale ──────────────────────────────
+  const months = listMonths(fp.startDate, fp.endDate);
+  const monthMap = new Map<string, { inflows: number; outflows: number }>();
+  if (class5Ids.length > 0) {
+    const rows = await db.select({
+      period: sql<string>`substring(${journalEntriesTable.entryDate}, 1, 7)`,
+      inflows:  sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
+      outflows: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
+    }).from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .where(and(
+        eq(journalEntriesTable.organizationId, orgId),
+        eq(journalEntriesTable.status, "posted"),
+        gte(journalEntriesTable.entryDate, fp.startDate),
+        lte(journalEntriesTable.entryDate, fp.endDate),
+        inArray(journalEntryLinesTable.accountId, class5Ids),
+      ))
+      .groupBy(sql`substring(${journalEntriesTable.entryDate}, 1, 7)`)
+      .orderBy(asc(sql`substring(${journalEntriesTable.entryDate}, 1, 7)`));
+    for (const r of rows) monthMap.set(r.period, { inflows: toNum(r.inflows), outflows: toNum(r.outflows) });
+  }
+
+  // Construire la courbe mensuelle avec solde cumulatif
+  let cumulBalance = openingBalance;
+  const today = new Date().toISOString().slice(0, 7);
+  const monthly = months.map((period) => {
+    const d = monthMap.get(period) ?? { inflows: 0, outflows: 0 };
+    const net = d.inflows - d.outflows;
+    cumulBalance += net;
+    return { period, inflows: Math.round(d.inflows), outflows: Math.round(d.outflows), net: Math.round(net), balance: Math.round(cumulBalance) };
+  });
+
+  // ── 5. Burn rate : moyenne des 3 derniers mois avec activité ─────────────
+  const pastActive = monthly.filter((m) => m.period < today && (m.inflows > 0 || m.outflows > 0));
+  const last3 = pastActive.slice(-3);
+  const burnRate = last3.length > 0 ? last3.reduce((s, m) => s + m.net, 0) / last3.length : 0;
+  const avgMonthlyInflows  = pastActive.length > 0 ? pastActive.reduce((s, m) => s + m.inflows, 0) / pastActive.length : 0;
+  const avgMonthlyOutflows = pastActive.length > 0 ? pastActive.reduce((s, m) => s + m.outflows, 0) / pastActive.length : 0;
+
+  // Runway et Zero Cash Date
+  const runwayMonths  = burnRate < 0 && currentBalance > 0 ? currentBalance / Math.abs(burnRate) : null;
+  let zeroCashDate: string | null = null;
+  if (runwayMonths !== null) {
+    const zd = new Date();
+    zd.setMonth(zd.getMonth() + Math.floor(runwayMonths));
+    zeroCashDate = zd.toISOString().slice(0, 7);
+  }
+
+  // ── 6. Créances clients (AR) — factures non entièrement payées ────────────
+  const arRows = await db.select({
+    id: invoicesTable.id,
+    referenceNumber: invoicesTable.referenceNumber,
+    totalAmount: invoicesTable.totalAmount,
+    paidAmount: invoicesTable.paidAmount,
+    dueDate: invoicesTable.dueDate,
+    issuedAt: invoicesTable.issuedAt,
+    clientName: clientsTable.name,
+  }).from(invoicesTable)
+    .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+    .where(and(
+      eq(invoicesTable.organizationId, orgId),
+      sql`COALESCE(${invoicesTable.totalAmount}::numeric, 0) - COALESCE(${invoicesTable.paidAmount}::numeric, 0) > 0`,
+    ))
+    .orderBy(asc(invoicesTable.dueDate))
+    .limit(30);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const ar = arRows.map((i) => ({
+    id: i.id,
+    reference: i.referenceNumber,
+    clientName: i.clientName ?? "—",
+    amount: Math.round(toNum(i.totalAmount) - toNum(i.paidAmount)),
+    dueDate: i.dueDate,
+    overdue: !!(i.dueDate && i.dueDate < todayStr),
+  }));
+  const totalAR = ar.reduce((s, i) => s + i.amount, 0);
+
+  // ── 7. Dettes fournisseurs (AP) — factures non entièrement payées ─────────
+  const apRows = await db.select({
+    id: supplierInvoicesTable.id,
+    referenceNumber: supplierInvoicesTable.referenceNumber,
+    totalAmount: supplierInvoicesTable.totalAmount,
+    paidAmount: supplierInvoicesTable.paidAmount,
+    dueDate: supplierInvoicesTable.dueDate,
+    supplierName: suppliersTable.name,
+  }).from(supplierInvoicesTable)
+    .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+    .where(and(
+      eq(supplierInvoicesTable.organizationId, orgId),
+      sql`COALESCE(${supplierInvoicesTable.totalAmount}::numeric, 0) - COALESCE(${supplierInvoicesTable.paidAmount}::numeric, 0) > 0`,
+    ))
+    .orderBy(asc(supplierInvoicesTable.dueDate))
+    .limit(30);
+
+  const ap = apRows.map((i) => ({
+    id: i.id,
+    reference: i.referenceNumber,
+    supplierName: i.supplierName ?? "—",
+    amount: Math.round(toNum(i.totalAmount) - toNum(i.paidAmount)),
+    dueDate: i.dueDate,
+    overdue: !!(i.dueDate && i.dueDate < todayStr),
+  }));
+  const totalAP = ap.reduce((s, i) => s + i.amount, 0);
+
+  // ── 8. Projection 12 mois depuis aujourd'hui ─────────────────────────────
+  const arByMonth = new Map<string, number>();
+  const apByMonth = new Map<string, number>();
+  for (const inv of ar) { const m = inv.dueDate?.slice(0, 7); if (m) arByMonth.set(m, (arByMonth.get(m) || 0) + inv.amount); }
+  for (const inv of ap) { const m = inv.dueDate?.slice(0, 7); if (m) apByMonth.set(m, (apByMonth.get(m) || 0) + inv.amount); }
+
+  const projMonths: string[] = [];
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(); d.setMonth(d.getMonth() + i);
+    projMonths.push(d.toISOString().slice(0, 7));
+  }
+  let pBase = currentBalance, pOpt = currentBalance, pPes = currentBalance;
+  const projection = projMonths.map((period) => {
+    const arIn  = arByMonth.get(period) || 0;
+    const apOut = apByMonth.get(period) || 0;
+    const baseNet = burnRate + arIn - apOut;
+    pBase = Math.max(0, pBase + baseNet);
+    pOpt  = Math.max(0, pOpt  + baseNet * 1.2);
+    pPes  = Math.max(0, pPes  + baseNet * 0.8);
+    return { period, base: Math.round(pBase), optimiste: Math.round(pOpt), pessimiste: Math.round(pPes), arIn, apOut };
+  });
+
+  // ── 9. Alertes ────────────────────────────────────────────────────────────
+  type Alert = { type: string; severity: "critical" | "warning" | "info"; title: string; detail: string; period?: string };
+  const alerts: Alert[] = [];
+
+  if (runwayMonths !== null) {
+    const m = Math.floor(runwayMonths);
+    if (m <= 1)      alerts.push({ type: "zero_cash", severity: "critical", title: "Rupture de trésorerie imminente", detail: `Zero cash date estimée dans ${m} mois (${zeroCashDate}) au rythme actuel.`, period: zeroCashDate! });
+    else if (m <= 3) alerts.push({ type: "zero_cash", severity: "critical", title: "Trésorerie critique", detail: `Solde estimé à zéro dans ${m} mois (${zeroCashDate}). Action urgente requise.`, period: zeroCashDate! });
+    else if (m <= 6) alerts.push({ type: "zero_cash", severity: "warning", title: "Trésorerie sous surveillance", detail: `Zero cash date estimée à ${zeroCashDate} (${m} mois). Surveiller les encaissements.`, period: zeroCashDate! });
+    else if (m <= 12) alerts.push({ type: "zero_cash", severity: "info", title: "Vigilance trésorerie", detail: `Zero cash date projetée à ${zeroCashDate} (${m} mois).`, period: zeroCashDate! });
+  }
+  const overdueAR = ar.filter((i) => i.overdue);
+  if (overdueAR.length > 0) alerts.push({ type: "ar_overdue", severity: "warning", title: `${overdueAR.length} facture(s) client en retard`, detail: `Total à recouvrer : ${overdueAR.reduce((s, i) => s + i.amount, 0).toLocaleString("fr-FR")} FCFA` });
+  const overdueAP = ap.filter((i) => i.overdue);
+  if (overdueAP.length > 0) alerts.push({ type: "ap_overdue", severity: "warning", title: `${overdueAP.length} facture(s) fournisseur en retard`, detail: `Total dû : ${overdueAP.reduce((s, i) => s + i.amount, 0).toLocaleString("fr-FR")} FCFA` });
+  const lowProjPeriods = projection.filter((p) => p.base > 0 && p.base < currentBalance * 0.15);
+  if (lowProjPeriods.length > 0) alerts.push({ type: "low_balance", severity: "info", title: "Solde projeté bas", detail: `Le solde projeté descend sous 15 % du solde actuel à partir de ${lowProjPeriods[0].period}.`, period: lowProjPeriods[0].period });
+
+  res.json({
+    fiscalPeriod: fp,
+    kpis: {
+      currentBalance: Math.round(currentBalance),
+      openingBalance: Math.round(openingBalance),
+      burnRate: Math.round(burnRate),
+      runwayMonths: runwayMonths !== null ? Math.round(runwayMonths * 10) / 10 : null,
+      zeroCashDate,
+      totalAR,
+      totalAP,
+      netPosition: Math.round(currentBalance + totalAR - totalAP),
+      avgMonthlyInflows: Math.round(avgMonthlyInflows),
+      avgMonthlyOutflows: Math.round(avgMonthlyOutflows),
+    },
+    monthly,
+    projection,
+    ar,
+    ap,
+    alerts,
+    class5Accounts: class5.map((a) => ({ code: a.code, label: a.label })),
+  });
 });
 
 export default router;

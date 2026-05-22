@@ -108,6 +108,7 @@ const MarketingForms = lazy(() => import("@/pages/marketing/forms"));
 const AlertsPage = lazy(() => import("@/pages/alerts/index"));
 const TicketsPage = lazy(() => import("@/pages/tickets/index"));
 const FpaDashboard = lazy(() => import("@/pages/fpa/index"));
+const FpaCashflow = lazy(() => import("@/pages/fpa/cashflow"));
 const FpaBudgets = lazy(() => import("@/pages/fpa/budgets"));
 const FpaBudgetDetail = lazy(() => import("@/pages/fpa/budget-detail"));
 const FpaVariance = lazy(() => import("@/pages/fpa/variance"));
@@ -223,6 +224,7 @@ function AppRouter() {
                 <Route path="/fpa/budgets/:id" component={FpaBudgetDetail} />
                 <Route path="/fpa/variance" component={FpaVariance} />
                 <Route path="/fpa/forecast" component={FpaForecast} />
+                <Route path="/fpa/cashflow" component={FpaCashflow} />
                 <Route path="/fpa/reports" component={FpaReports} />
 
                 <Route path="/accounting" component={AccountingDashboard} />
