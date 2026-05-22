@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
@@ -44,3 +44,25 @@ export type Client = typeof clientsTable.$inferSelect;
 export const insertClientContactSchema = createInsertSchema(clientContactsTable).omit({ id: true, createdAt: true });
 export type InsertClientContact = z.infer<typeof insertClientContactSchema>;
 export type ClientContact = typeof clientContactsTable.$inferSelect;
+
+export const clientEmailLogsTable = pgTable("client_email_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").notNull().references(() => clientsTable.id),
+  direction: text("direction").notNull().default("outbound"),
+  subject: text("subject").notNull(),
+  fromAddress: text("from_address").notNull(),
+  toAddress: text("to_address").notNull(),
+  preview: text("preview"),
+  body: text("body"),
+  hasAttachments: boolean("has_attachments").default(false),
+  status: text("status").default("sent"),
+  resendMessageId: text("resend_message_id"),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  clientEmailLogsClientIdx: index("client_email_logs_client_idx").on(t.clientId),
+  clientEmailLogsSentAtIdx: index("client_email_logs_sent_at_idx").on(t.sentAt),
+}));
+
+export type ClientEmailLog = typeof clientEmailLogsTable.$inferSelect;

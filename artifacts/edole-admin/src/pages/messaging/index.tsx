@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -438,16 +439,26 @@ function MessageBubble({
 }
 
 // ─── New Conversation Dialog ────────────────────────────────────────────────
+type ClientOption = { id: string; name: string };
+
 function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [search, setSearch] = useState("");
+  const [clientId, setClientId] = useState<string>("");
   const users = useUsers();
   const me = useAuth().user;
   const filtered = users.filter((u) => u.id !== me?.id && (
     !search || `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
   ));
+
+  const { data: clientsData } = useQuery<{ data: ClientOption[] }>({
+    queryKey: ["clients-list-messaging"],
+    queryFn: () => apiFetch("/api/clients?limit=100"),
+    enabled: open && selected.length > 1,
+    staleTime: 60_000,
+  });
 
   async function create() {
     if (selected.length === 0) return;
@@ -457,11 +468,12 @@ function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) 
         title: selected.length > 1 ? (title || null) : null,
         type: selected.length > 1 ? "group" : "direct",
         participantIds: selected,
+        clientId: selected.length > 1 && clientId ? clientId : undefined,
       } as any,
     });
     onCreated(c);
     setOpen(false);
-    setSelected([]); setTitle(""); setSearch("");
+    setSelected([]); setTitle(""); setSearch(""); setClientId("");
   }
 
   return (
@@ -474,7 +486,22 @@ function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) 
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Nouvelle discussion</DialogTitle></DialogHeader>
         {selected.length > 1 && (
-          <Input placeholder="Nom du groupe (optionnel)" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <>
+            <Input placeholder="Nom du groupe (optionnel)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Lier à un client (optionnel)</label>
+              <select
+                value={clientId}
+                onChange={e => setClientId(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Aucun client —</option>
+                {(clientsData?.data ?? []).map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </>
         )}
         <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="max-h-[300px] overflow-y-auto space-y-1">

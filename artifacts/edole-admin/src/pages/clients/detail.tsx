@@ -1,17 +1,26 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useRoute, Link, useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import Client360Tab from "./Client360Tab";
 import {
   Building2, Briefcase, FolderKanban, CheckSquare, FolderOpen,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Mail, Phone, Globe,
-  Repeat, Calendar, ChevronDown, MessageCircle,
+  Repeat, Calendar, ChevronDown, MessageCircle, Send, Inbox,
+  ArrowUpRight, ArrowDownLeft, Paperclip, Clock, Activity,
+  FileText, CreditCard, ShoppingCart, Receipt, Users2, Tag,
+  CheckCircle2, AlertCircle, Sparkles, ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
+import { formatFCFA } from "@/lib/format";
 
 function waLink(phone?: string, text?: string) {
   if (!phone) return null;
@@ -21,14 +30,50 @@ function waLink(phone?: string, text?: string) {
   return text ? `${url}?text=${encodeURIComponent(text)}` : url;
 }
 
+function fmtDate(d: string | Date) {
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+}
+function fmtDateTime(d: string | Date) {
+  return new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function relDate(d: string | Date) {
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `il y a ${days}j`;
+  return fmtDate(d);
+}
+
 type Client = { id: string; name: string; email?: string; phone?: string; website?: string; industry?: string; address?: string; status: string };
 type Engagement = { id: string; name: string; isRecurring: boolean; status: string; recurrencePattern?: any; clientName?: string };
 type Project = { id: string; name: string; status: string; progress?: number };
 type Task = { id: string; title: string; status: string; priority: string; serviceId?: string; projectId?: string; dueDate?: string };
-type Document = { id: string; name: string; entityType?: string; entityId?: string; category?: string; createdAt: string; fileUrl: string };
+type EmailLog = { id: string; direction: string; subject: string; fromAddress: string; toAddress: string; preview?: string; body?: string; status: string; hasAttachments: boolean; sentAt: string };
+type ActivityEvent = { id: string; type: string; label: string; createdAt: string; meta: Record<string, any> };
+type Conv = { id: string; title?: string | null; type: string; lastMessage?: string | null; lastMessageAt?: string | null };
+
+// ─── Activity event config ────────────────────────────────────────────────────
+
+const ACTIVITY_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
+  client_created:        { icon: Building2,    color: "text-blue-500",   label: "Client créé" },
+  project_created:       { icon: FolderKanban, color: "text-indigo-500", label: "Projet créé" },
+  invoice_created:       { icon: Receipt,      color: "text-orange-500", label: "Facture créée" },
+  proforma_created:      { icon: FileText,     color: "text-amber-500",  label: "Devis créé" },
+  order_created:         { icon: ShoppingCart, color: "text-green-500",  label: "Commande créée" },
+  payment_recorded:      { icon: CreditCard,   color: "text-emerald-500",label: "Encaissement" },
+  email_sent:            { icon: ArrowUpRight, color: "text-sky-500",    label: "Email envoyé" },
+  email_received:        { icon: ArrowDownLeft,color: "text-purple-500", label: "Email reçu" },
+  conversation_created:  { icon: MessageSquare,color: "text-pink-500",   label: "Groupe créé" },
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ClientDetailWorkspace() {
   const [, params] = useRoute("/clients/:id");
+  const [, navigate] = useLocation();
   const id = params?.id;
 
   const { data: client, isLoading } = useQuery<Client>({
@@ -70,7 +115,6 @@ export default function ClientDetailWorkspace() {
             href={waLink(client.phone)!}
             target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[#25D366] text-white text-sm font-medium hover:bg-[#1DA851] transition-colors shrink-0"
-            title="Ouvrir une conversation WhatsApp"
           >
             <MessageCircle className="w-4 h-4" /> WhatsApp
           </a>
@@ -79,20 +123,28 @@ export default function ClientDetailWorkspace() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Briefcase} label="Engagements" value={engagements?.data?.length ?? 0} />
-        <StatCard icon={FolderKanban} label="Projets" value={projects?.data?.length ?? 0} />
-        <StatCard icon={CheckSquare} label="Tâches" value={"—"} />
-        <StatCard icon={FolderOpen} label="Documents" value={"—"} />
+        <StatCard icon={Briefcase}    label="Engagements" value={engagements?.data?.length ?? 0} />
+        <StatCard icon={FolderKanban} label="Projets"      value={projects?.data?.length ?? 0} />
+        <StatCard icon={CheckSquare}  label="Tâches"        value="—" />
+        <StatCard icon={FolderOpen}   label="Documents"     value="—" />
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="360" className="w-full">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="360">Vue 360°</TabsTrigger>
           <TabsTrigger value="tree">Arborescence</TabsTrigger>
           <TabsTrigger value="engagements">Services</TabsTrigger>
           <TabsTrigger value="projects">Projets</TabsTrigger>
-          <TabsTrigger value="messaging">Messagerie</TabsTrigger>
+          <TabsTrigger value="communication">
+            <Mail className="w-3.5 h-3.5 mr-1" />Communication
+          </TabsTrigger>
+          <TabsTrigger value="messaging">
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />Messagerie
+          </TabsTrigger>
+          <TabsTrigger value="journal">
+            <Activity className="w-3.5 h-3.5 mr-1" />Journal
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="360" className="mt-4">
@@ -149,17 +201,403 @@ export default function ClientDetailWorkspace() {
           ))}
         </TabsContent>
 
+        {/* ── Communication ── */}
+        <TabsContent value="communication" className="mt-4">
+          <CommunicationTab client={client} />
+        </TabsContent>
+
+        {/* ── Messagerie ── */}
         <TabsContent value="messaging" className="mt-4">
-          <Card><CardContent className="py-10 text-center text-muted-foreground">
-            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p>Conversations liées à ce client.</p>
-            <Link href={`/messaging?clientId=${client.id}`}><Button size="sm" variant="outline" className="mt-3">Ouvrir la messagerie</Button></Link>
-          </CardContent></Card>
+          <MessagingTab client={client} />
+        </TabsContent>
+
+        {/* ── Journal d'activité ── */}
+        <TabsContent value="journal" className="mt-4">
+          <JournalTab clientId={client.id} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+// ─── Communication tab ────────────────────────────────────────────────────────
+
+function CommunicationTab({ client }: { client: Client }) {
+  const qc = useQueryClient();
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const { data, isLoading } = useQuery<{ data: EmailLog[] }>({
+    queryKey: ["client-emails", client.id],
+    queryFn: () => apiFetch(`/api/clients/${client.id}/emails`),
+  });
+  const emails = data?.data ?? [];
+
+  async function sendEmail() {
+    if (!subject.trim() || !body.trim()) { toast.error("Sujet et message requis"); return; }
+    setSending(true);
+    try {
+      await apiFetch(`/api/clients/${client.id}/emails/send`, {
+        method: "POST",
+        body: { subject, body, toAddress: client.email },
+      });
+      toast.success("Email envoyé et enregistré");
+      qc.invalidateQueries({ queryKey: ["client-emails", client.id] });
+      qc.invalidateQueries({ queryKey: ["client-activity", client.id] });
+      setSubject(""); setBody(""); setComposeOpen(false);
+    } catch {
+      toast.error("Échec de l'envoi");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const totalEmails = emails.length;
+  const sent = emails.filter(e => e.direction === "outbound").length;
+  const received = emails.filter(e => e.direction === "inbound").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-4 text-sm">
+          <span className="text-muted-foreground">{totalEmails} échange{totalEmails !== 1 ? "s" : ""}</span>
+          <span className="flex items-center gap-1 text-sky-600"><ArrowUpRight className="w-3.5 h-3.5" />{sent} envoyé{sent !== 1 ? "s" : ""}</span>
+          <span className="flex items-center gap-1 text-purple-600"><ArrowDownLeft className="w-3.5 h-3.5" />{received} reçu{received !== 1 ? "s" : ""}</span>
+        </div>
+        <Button size="sm" className="gap-1.5 bg-primary text-white" onClick={() => setComposeOpen(true)}>
+          <Send className="w-3.5 h-3.5" /> Composer un email
+        </Button>
+      </div>
+
+      {/* AI synthesis */}
+      {emails.length > 0 && (
+        <Card className="border-amber-200/60 bg-amber-50/40">
+          <CardContent className="p-4 flex gap-3">
+            <Sparkles className="w-5 h-5 text-[#C8A24B] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-amber-800">Synthèse des échanges</div>
+              <p className="text-sm text-amber-700/90">
+                {sent} email{sent !== 1 ? "s" : ""} envoyé{sent !== 1 ? "s" : ""} et {received} reçu{received !== 1 ? "s" : ""} avec {client.name}.
+                {emails[0] && ` Dernier échange le ${fmtDate(emails[0].sentAt)} — ${emails[0].direction === "outbound" ? "envoi" : "réception"} : « ${emails[0].subject} ».`}
+                {sent > 0 && " Suivi actif."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Email list */}
+      {isLoading && <div className="text-center py-8 text-muted-foreground text-sm">Chargement…</div>}
+      {!isLoading && emails.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <Inbox className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">Aucun email enregistré pour ce client</p>
+            <p className="text-xs mt-1">Composez un premier email pour démarrer le suivi de communication.</p>
+            <Button size="sm" variant="outline" className="mt-4 gap-1.5" onClick={() => setComposeOpen(true)}>
+              <Send className="w-3.5 h-3.5" /> Composer
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-2">
+        {emails.map(email => (
+          <EmailCard key={email.id} email={email} />
+        ))}
+      </div>
+
+      {/* Compose dialog */}
+      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-4 h-4 text-primary" /> Nouveau message à {client.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>À</Label>
+              <Input value={client.email ?? ""} disabled className="bg-slate-50 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label>Sujet *</Label>
+              <Input placeholder="Objet du message…" value={subject} onChange={e => setSubject(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Message *</Label>
+              <Textarea rows={6} placeholder="Corps du message…" value={body} onChange={e => setBody(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setComposeOpen(false)}>Annuler</Button>
+              <Button className="gap-1.5 bg-primary text-white" disabled={sending} onClick={sendEmail}>
+                <Send className="w-3.5 h-3.5" /> {sending ? "Envoi…" : "Envoyer"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function EmailCard({ email }: { email: EmailLog }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOut = email.direction === "outbound";
+  return (
+    <Card className={`hover:shadow-sm transition-shadow ${isOut ? "border-l-2 border-l-sky-400" : "border-l-2 border-l-purple-400"}`}>
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <div className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isOut ? "bg-sky-100" : "bg-purple-100"}`}>
+            {isOut ? <ArrowUpRight className="w-3.5 h-3.5 text-sky-600" /> : <ArrowDownLeft className="w-3.5 h-3.5 text-purple-600" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm truncate">{email.subject}</span>
+              {email.hasAttachments && <Paperclip className="w-3 h-3 text-muted-foreground" />}
+              <StatusBadge status={email.status} />
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
+              <span>{isOut ? `À : ${email.toAddress}` : `De : ${email.fromAddress}`}</span>
+              <span>·</span>
+              <span title={fmtDateTime(email.sentAt)}>{relDate(email.sentAt)}</span>
+            </div>
+            {email.preview && !expanded && (
+              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{email.preview}</p>
+            )}
+            {expanded && email.body && (
+              <div className="mt-2 text-sm whitespace-pre-wrap bg-slate-50 rounded-md p-3 border text-slate-700">{email.body}</div>
+            )}
+          </div>
+          <button
+            onClick={() => setExpanded(o => !o)}
+            className="text-xs text-muted-foreground hover:text-foreground shrink-0 mt-1"
+          >
+            {expanded ? "Réduire" : "Lire"}
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; class: string }> = {
+    sent:      { label: "Envoyé",    class: "bg-blue-100 text-blue-700" },
+    delivered: { label: "Livré",     class: "bg-green-100 text-green-700" },
+    opened:    { label: "Ouvert",    class: "bg-emerald-100 text-emerald-700" },
+    bounced:   { label: "Rejeté",    class: "bg-red-100 text-red-700" },
+    failed:    { label: "Échec",     class: "bg-red-100 text-red-700" },
+  };
+  const s = map[status] ?? { label: status, class: "bg-slate-100 text-slate-600" };
+  return <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${s.class}`}>{s.label}</span>;
+}
+
+// ─── Messagerie tab ───────────────────────────────────────────────────────────
+
+function MessagingTab({ client }: { client: Client }) {
+  const [, navigate] = useLocation();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [groupTitle, setGroupTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery<{ data: Conv[] }>({
+    queryKey: ["client-conversations", client.id],
+    queryFn: () => apiFetch(`/api/conversations?clientId=${client.id}`),
+  });
+  const conversations = data?.data ?? [];
+
+  async function createGroup() {
+    setCreating(true);
+    try {
+      const conv = await apiFetch<Conv>("/api/conversations", {
+        method: "POST",
+        body: {
+          title: groupTitle || `${client.name} — Discussion`,
+          type: "group",
+          clientId: client.id,
+          participantIds: [],
+        } as any,
+      });
+      toast.success("Groupe créé");
+      qc.invalidateQueries({ queryKey: ["client-conversations", client.id] });
+      setCreateOpen(false);
+      setGroupTitle("");
+      navigate(`/messaging?convId=${conv.id}`);
+    } catch {
+      toast.error("Impossible de créer le groupe");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {conversations.length} groupe{conversations.length !== 1 ? "s" : ""} lié{conversations.length !== 1 ? "s" : ""} à ce client
+        </p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" asChild>
+            <Link href={`/messaging?clientId=${client.id}`}>
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Ouvrir la messagerie
+            </Link>
+          </Button>
+          <Button size="sm" className="gap-1.5 bg-primary text-white" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-3.5 h-3.5" /> Nouveau groupe
+          </Button>
+        </div>
+      </div>
+
+      {isLoading && <div className="text-center py-8 text-muted-foreground text-sm">Chargement…</div>}
+      {!isLoading && conversations.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">Aucun groupe lié à ce client</p>
+            <p className="text-xs mt-1">Créez un groupe de discussion dédié pour centraliser les échanges internes.</p>
+            <Button size="sm" variant="outline" className="mt-4 gap-1.5" onClick={() => setCreateOpen(true)}>
+              <Plus className="w-3.5 h-3.5" /> Créer un groupe
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-2">
+        {conversations.map(conv => (
+          <Link key={conv.id} href={`/messaging?convId=${conv.id}`}>
+            <Card className="hover:border-primary/50 cursor-pointer hover:shadow-sm transition-all">
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{conv.title ?? "Discussion"}</div>
+                  {conv.lastMessage && (
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">{conv.lastMessage}</div>
+                  )}
+                </div>
+                {conv.lastMessageAt && (
+                  <span className="text-xs text-muted-foreground shrink-0">{relDate(conv.lastMessageAt)}</span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      {/* Create group dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              Nouveau groupe — {client.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nom du groupe</Label>
+              <Input
+                placeholder={`${client.name} — Discussion`}
+                value={groupTitle}
+                onChange={e => setGroupTitle(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Le groupe sera automatiquement lié à ce client. Vous pourrez ajouter des participants depuis la messagerie.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+              <Button className="gap-1.5 bg-primary text-white" disabled={creating} onClick={createGroup}>
+                <Plus className="w-3.5 h-3.5" /> {creating ? "Création…" : "Créer"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Journal tab ──────────────────────────────────────────────────────────────
+
+function JournalTab({ clientId }: { clientId: string }) {
+  const { data, isLoading } = useQuery<{ data: ActivityEvent[] }>({
+    queryKey: ["client-activity", clientId],
+    queryFn: () => apiFetch(`/api/clients/${clientId}/activity`),
+  });
+  const events = data?.data ?? [];
+
+  function groupByDate(events: ActivityEvent[]) {
+    const groups: Record<string, ActivityEvent[]> = {};
+    events.forEach(e => {
+      const key = new Date(e.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+    return groups;
+  }
+
+  const grouped = groupByDate(events);
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground text-sm">Chargement…</div>;
+
+  if (events.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          <Activity className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p className="font-medium">Aucune activité enregistrée</p>
+          <p className="text-xs mt-1">Les actions liées à ce client apparaîtront ici au fil du temps.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {Object.entries(grouped).map(([date, dayEvents]) => (
+        <div key={date}>
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{date}</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="space-y-2 ml-1">
+            {dayEvents.map(event => {
+              const cfg = ACTIVITY_CONFIG[event.type] ?? { icon: Activity, color: "text-slate-400", label: event.type };
+              const Icon = cfg.icon;
+              return (
+                <div key={event.id} className="flex items-start gap-3 group">
+                  <div className={`mt-0.5 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors`}>
+                    <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0 py-0.5">
+                    <p className="text-sm text-slate-800">{event.label}</p>
+                    {event.meta?.amount && (
+                      <p className="text-xs text-muted-foreground">{formatFCFA(Number(event.meta.amount))}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 mt-1">
+                    {new Date(event.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Shared sub-components ────────────────────────────────────────────────────
 
 function StatCard({ icon: Icon, label, value }: any) {
   return (
