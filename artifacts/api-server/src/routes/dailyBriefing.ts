@@ -24,7 +24,9 @@ router.get("/briefing/today", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    // Utilise la date locale du serveur (pas UTC) pour éviter le décalage de fuseau horaire
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     const [clientIds, projectIds, orgId] = await Promise.all([
       userAccessibleClientIds(userId),

@@ -40,7 +40,13 @@ export default function BriefingPage() {
     <div className="space-y-4">
       <div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1 flex items-center gap-2"><Sun className="w-3 h-3" />Briefing du jour</p>
-        <h1 className="text-3xl font-bold tracking-tight">{new Date(b.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{(() => {
+          // Parse la date en heure locale (pas UTC) pour éviter le décalage d'un jour
+          const [y, m, d] = b.date.split("-").map(Number);
+          const label = new Date(y, m - 1, d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+          // Capitalize le premier caractère (ex: "lundi" → "Lundi")
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        })()}</h1>
       </div>
 
       <Card className="border-orange-200 bg-gradient-to-br from-orange-50/50 to-transparent">
