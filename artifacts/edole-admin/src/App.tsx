@@ -68,6 +68,13 @@ const HrContracts = lazy(() => import("@/pages/hr/contracts"));
 const HrDocuments = lazy(() => import("@/pages/hr/documents"));
 const HrAssignments = lazy(() => import("@/pages/hr/assignments"));
 const HrLeaves = lazy(() => import("@/pages/hr/leaves"));
+const HrPayroll = lazy(() => import("@/pages/hr/payroll"));
+const HrRecruitment = lazy(() => import("@/pages/hr/recruitment"));
+const HrEvaluations = lazy(() => import("@/pages/hr/evaluations"));
+const HrTraining = lazy(() => import("@/pages/hr/training"));
+const HrMovements = lazy(() => import("@/pages/hr/movements"));
+const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
+const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
 const CommercialServices = lazy(() => import("@/pages/commercial/services"));
 const DocumentsHub = lazy(() => import("@/pages/documents/_wrapper"));
@@ -239,6 +246,13 @@ function AppRouter() {
                 <Route path="/hr/documents" component={HrDocuments} />
                 <Route path="/hr/assignments" component={HrAssignments} />
                 <Route path="/hr/leaves" component={HrLeaves} />
+                <Route path="/hr/payroll" component={HrPayroll} />
+                <Route path="/hr/recruitment" component={HrRecruitment} />
+                <Route path="/hr/evaluations" component={HrEvaluations} />
+                <Route path="/hr/training" component={HrTraining} />
+                <Route path="/hr/movements" component={HrMovements} />
+                <Route path="/accounting/analytical" component={AccountingAnalytical} />
+                <Route path="/inventory/warehouses" component={InventoryWarehouses} />
 
                 <Route path="/commercial/clients" component={CommercialClients} />
                 <Route path="/commercial/services" component={CommercialServices} />

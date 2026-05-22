@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, numeric, integer, date, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, numeric, integer, boolean, date, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _uniqueIndex = uniqueIndex; // évite l'avertissement non-utilisé après nettoyage
 import { createInsertSchema } from "drizzle-zod";
@@ -134,6 +134,172 @@ export const collaboratorAssignmentsTable = pgTable("collaborator_assignments", 
 }));
 
 // ────────────────────────────────────────────────────────────────
+// RECRUTEMENT — OFFRES D'EMPLOI
+// ────────────────────────────────────────────────────────────────
+export const jobOffersTable = pgTable("job_offers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  reference: text("reference").notNull(),
+  title: text("title").notNull(),
+  departmentId: uuid("department_id").references(() => departmentsTable.id),
+  positionId: uuid("position_id").references(() => positionsTable.id),
+  // CDI | CDD | stage | prestation | alternance | freelance
+  contractType: text("contract_type").notNull().default("CDI"),
+  // open | in_review | closed | cancelled
+  status: text("status").notNull().default("open"),
+  description: text("description"),
+  requirements: text("requirements"),
+  responsibilities: text("responsibilities"),
+  location: text("location"),
+  salaryMin: numeric("salary_min", { precision: 14, scale: 2 }),
+  salaryMax: numeric("salary_max", { precision: 14, scale: 2 }),
+  currency: text("currency").default("XOF"),
+  isRemote: boolean("is_remote").default(false),
+  openDate: date("open_date"),
+  closeDate: date("close_date"),
+  maxCandidates: integer("max_candidates"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  refOrgIdx: uniqueIndex("job_offers_org_ref_uidx").on(t.organizationId, t.reference),
+  statusIdx: index("job_offers_status_idx").on(t.status),
+}));
+
+// ────────────────────────────────────────────────────────────────
+// RECRUTEMENT — CANDIDATURES
+// ────────────────────────────────────────────────────────────────
+export const candidaciesTable = pgTable("candidacies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  jobOfferId: uuid("job_offer_id").notNull().references(() => jobOffersTable.id, { onDelete: "cascade" }),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  cvUrl: text("cv_url"),
+  coverLetterUrl: text("cover_letter_url"),
+  linkedinUrl: text("linkedin_url"),
+  // new | cv_review | phone_screen | interview | assessment | offer | hired | rejected
+  stage: text("stage").notNull().default("new"),
+  rating: integer("rating"), // 1-5
+  source: text("source"), // linkedin | indeed | referral | direct | etc.
+  notes: text("notes"),
+  interviewDate: timestamp("interview_date", { withTimezone: true }),
+  interviewNotes: text("interview_notes"),
+  offerDate: date("offer_date"),
+  offeredSalary: numeric("offered_salary", { precision: 14, scale: 2 }),
+  rejectionReason: text("rejection_reason"),
+  hiredCollaboratorId: uuid("hired_collaborator_id").references(() => collaboratorsTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  jobOfferIdx: index("candidacies_job_offer_idx").on(t.jobOfferId),
+  stageIdx: index("candidacies_stage_idx").on(t.stage),
+}));
+
+// ────────────────────────────────────────────────────────────────
+// ÉVALUATIONS DE PERFORMANCE
+// ────────────────────────────────────────────────────────────────
+export const performanceReviewsTable = pgTable("performance_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  reviewerId: uuid("reviewer_id").references(() => collaboratorsTable.id),
+  // annual | semi_annual | quarterly | probation | 360
+  type: text("type").notNull().default("annual"),
+  // Période évaluée (ex: "2026", "2026-Q1")
+  period: text("period").notNull(),
+  reviewDate: date("review_date"),
+  // Note globale : 1=Insuffisant, 2=En développement, 3=Satisfaisant, 4=Bien, 5=Excellent
+  overallRating: integer("overall_rating"),
+  // Critères d'évaluation: [{label, rating, comment}]
+  criteria: jsonb("criteria").default([]),
+  strengths: text("strengths"),
+  areasForImprovement: text("areas_for_improvement"),
+  goals: text("goals"),
+  // draft | submitted | acknowledged | validated
+  status: text("status").notNull().default("draft"),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  collabIdx: index("perf_reviews_collab_idx").on(t.collaboratorId),
+  periodIdx: index("perf_reviews_period_idx").on(t.period),
+}));
+
+// ────────────────────────────────────────────────────────────────
+// FORMATIONS
+// ────────────────────────────────────────────────────────────────
+export const trainingSessionsTable = pgTable("training_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  // interne | externe | e_learning | conference | coaching
+  type: text("type").notNull().default("externe"),
+  provider: text("provider"),
+  description: text("description"),
+  location: text("location"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  durationHours: numeric("duration_hours", { precision: 6, scale: 1 }),
+  cost: numeric("cost", { precision: 14, scale: 2 }),
+  currency: text("currency").default("XOF"),
+  maxParticipants: integer("max_participants"),
+  // planned | ongoing | completed | cancelled
+  status: text("status").notNull().default("planned"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  statusIdx: index("training_status_idx").on(t.status),
+}));
+
+export const trainingParticipantsTable = pgTable("training_participants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  trainingSessionId: uuid("training_session_id").notNull().references(() => trainingSessionsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  // registered | confirmed | attended | absent | certified
+  status: text("status").notNull().default("registered"),
+  score: numeric("score", { precision: 5, scale: 2 }),
+  certificationDate: date("certification_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  sessionCollabIdx: uniqueIndex("training_participants_session_collab_uidx").on(t.trainingSessionId, t.collaboratorId),
+}));
+
+// ────────────────────────────────────────────────────────────────
+// MOUVEMENTS DU PERSONNEL
+// ────────────────────────────────────────────────────────────────
+export const personnelMovementsTable = pgTable("personnel_movements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  // promotion | mutation | reclassification | departure | retirement | disciplinary
+  type: text("type").notNull(),
+  effectiveDate: date("effective_date").notNull(),
+  // Avant
+  previousDepartmentId: uuid("previous_department_id").references(() => departmentsTable.id),
+  previousPositionId: uuid("previous_position_id").references(() => positionsTable.id),
+  previousSalary: numeric("previous_salary", { precision: 14, scale: 2 }),
+  // Après
+  newDepartmentId: uuid("new_department_id").references(() => departmentsTable.id),
+  newPositionId: uuid("new_position_id").references(() => positionsTable.id),
+  newSalary: numeric("new_salary", { precision: 14, scale: 2 }),
+  reason: text("reason"),
+  approvedById: uuid("approved_by_id").references(() => collaboratorsTable.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  collabIdx: index("personnel_movements_collab_idx").on(t.collaboratorId),
+  typeIdx: index("personnel_movements_type_idx").on(t.type),
+  dateIdx: index("personnel_movements_date_idx").on(t.effectiveDate),
+}));
+
+// ────────────────────────────────────────────────────────────────
 // DEMANDES D'ABSENCES / CONGÉS
 // ────────────────────────────────────────────────────────────────
 export const leaveRequestsTable = pgTable("leave_requests", {
@@ -171,6 +337,11 @@ export const insertHrDocumentSchema = createInsertSchema(hrDocumentsTable).omit(
 export const insertCollabAssignmentSchema = createInsertSchema(collaboratorAssignmentsTable).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertLeaveRequestSchema = createInsertSchema(leaveRequestsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
+export const insertJobOfferSchema = createInsertSchema(jobOffersTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCandidacySchema = createInsertSchema(candidaciesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPerformanceReviewSchema = createInsertSchema(performanceReviewsTable).omit({ id: true, createdAt: true, updatedAt: true, acknowledgedAt: true });
+export const insertTrainingSessionSchema = createInsertSchema(trainingSessionsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPersonnelMovementSchema = createInsertSchema(personnelMovementsTable).omit({ id: true, createdAt: true });
 
 export type Department = typeof departmentsTable.$inferSelect;
 export type Position = typeof positionsTable.$inferSelect;
@@ -178,3 +349,8 @@ export type Contract = typeof contractsTable.$inferSelect;
 export type HrDocument = typeof hrDocumentsTable.$inferSelect;
 export type CollaboratorAssignment = typeof collaboratorAssignmentsTable.$inferSelect;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
+export type JobOffer = typeof jobOffersTable.$inferSelect;
+export type Candidacy = typeof candidaciesTable.$inferSelect;
+export type PerformanceReview = typeof performanceReviewsTable.$inferSelect;
+export type TrainingSession = typeof trainingSessionsTable.$inferSelect;
+export type PersonnelMovement = typeof personnelMovementsTable.$inferSelect;

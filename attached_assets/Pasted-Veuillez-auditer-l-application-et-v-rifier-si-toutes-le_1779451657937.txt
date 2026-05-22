@@ -1,0 +1,91 @@
+Veuillez auditer l’application et vérifier si toutes les fonctionnalités ci-dessous existent déjà, sont incomplètes ou manquent totalement, puis implémentez ce qu’il faut.
+
+Je veux une logique d’exécution :
+- vérifier l’existant
+- identifier les écarts
+- compléter les fonctionnalités manquantes
+- corriger les modules incomplets
+- relier le tout aux autres modules de l’application
+
+### Blocs à auditer et compléter
+- Comptabilité générale
+- Comptabilité budgétaire
+- Comptabilité analytique
+- Immobilisations
+- Paie & GRH
+- Stocks
+
+### À couvrir dans la comptabilité
+- taxes : IRPP, NA, IPTS, AIB, etc.
+- lettrage automatique et manuel
+- comptabilité auxiliaire clients
+- gestion des chèques
+- saisie / validation / modification / suppression d’écritures
+- comptabilité d’engagement
+- trésorerie
+- rapprochement bancaire
+- suivi des factures et fournisseurs
+- ouverture / clôture d’exercice
+- ouverture / clôture de période
+- états fiscaux
+- états financiers complets
+
+### À couvrir dans la comptabilité budgétaire
+- paramétrage des types de budget
+- suivi budgétaire
+- suivi des ressources et emplois
+- taux de réalisation
+- réaménagement budgétaire
+- tableau de bord budgétaire
+
+### À couvrir dans la comptabilité analytique
+- centres de coût
+- types de coûts
+- états analytiques périodiques
+
+### À couvrir dans les immobilisations
+- codification
+- codes-barres
+- acquisitions
+- entrée / affectation / sortie
+- amortissements
+- fiches immobilisations
+- tableaux immobilisations et amortissements
+
+### À couvrir dans la paie & GRH
+- candidatures
+- recrutements
+- embauches
+- mouvements du personnel
+- absences / permissions / congés
+- missions
+- performances
+- postes
+- formations
+- carrières
+- plaintes
+- fiche personnel
+- contrats
+- ordres de mission
+- autorisations
+- paie
+- déclarations mensuelles et annuelles
+- bulletins de paie
+- livre de paie
+- déclaration annuelle des salaires
+
+### À couvrir dans les stocks
+- gestion des besoins
+- entrées / sorties / soldes
+- fournitures et petits équipements
+- stock d’alerte
+- commandes et réceptions
+- gestion par magasin
+- états de stock
+
+### Résultat attendu
+Je veux :
+1. un audit clair de ce qui existe déjà ou non
+2. l’implémentation des éléments manquants
+3. une intégration complète avec les autres modules
+4. un système professionnel, cohérent et réellement exploitable

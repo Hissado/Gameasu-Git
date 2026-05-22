@@ -116,6 +116,7 @@ export const journalEntryLinesTable = pgTable("journal_entry_lines", {
   thirdPartyType: text("third_party_type"),     // client | supplier
   thirdPartyId: uuid("third_party_id"),
   projectId: uuid("project_id").references(() => projectsTable.id),
+  costCenterId: uuid("cost_center_id"),
   // pour rapprochement bancaire
   reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
   bankTransactionId: uuid("bank_transaction_id"),
@@ -271,6 +272,35 @@ export const supplierPaymentsTable = pgTable("supplier_payments", {
 });
 
 // ────────────────────────────────────────────────────────────────
+// COMPTABILITÉ ANALYTIQUE — CENTRES DE COÛT
+// ────────────────────────────────────────────────────────────────
+export const costCentersTable = pgTable("cost_centers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  // department | project | activity | service | geographic | product_line
+  type: text("type").notNull().default("department"),
+  parentId: uuid("parent_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  // Budget annuel indicatif pour ce centre (en FCFA)
+  budgetAmount: numeric("budget_amount", { precision: 18, scale: 2 }),
+  managerId: uuid("manager_id").references(() => usersTable.id),
+  color: text("color"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  codeOrgIdx: uniqueIndex("cost_centers_org_code_uidx").on(t.organizationId, t.code),
+  typeIdx: index("cost_centers_type_idx").on(t.type),
+}));
+
+// Imputation analytique : lien entre une ligne d'écriture et un ou plusieurs centres de coût
+// Géré via costCenterId dans journalEntryLinesTable (à ajouter si besoin de profondeur)
+// Pour l'instant : les lignes d'écriture pointent vers projectId, et les centres de coût
+// peuvent être liés à des projets ou des départements pour l'agrégation analytique.
+
+// ────────────────────────────────────────────────────────────────
 // Zod & types
 // ────────────────────────────────────────────────────────────────
 export const insertAccountSchema = createInsertSchema(chartOfAccountsTable).omit({ id: true, createdAt: true });
@@ -292,4 +322,6 @@ export const insertSupplierInvoiceSchema = createInsertSchema(supplierInvoicesTa
 export const insertBankAccountSchema = createInsertSchema(bankAccountsTable).omit({ id: true, createdAt: true });
 export const insertBankTransactionSchema = createInsertSchema(bankTransactionsTable).omit({ id: true, createdAt: true });
 export const insertFixedAssetSchema = createInsertSchema(fixedAssetsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCostCenterSchema = createInsertSchema(costCentersTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type CostCenter = typeof costCentersTable.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;

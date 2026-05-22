@@ -13,7 +13,7 @@
  *
  * Tous tenant-scoped via `organizationId NOT NULL`.
  */
-import { pgTable, text, timestamp, uuid, numeric, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, numeric, integer, boolean, date, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
@@ -158,6 +158,68 @@ export const salesLinesTable = pgTable("sales_lines", {
 }));
 
 // ─────────────────────────────────────────────────────────
+// MAGASINS / DÉPÔTS
+// ─────────────────────────────────────────────────────────
+export const warehousesTable = pgTable("warehouses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  location: text("location"),
+  address: text("address"),
+  // principal | secondaire | transit | externe
+  type: text("type").notNull().default("principal"),
+  managerId: uuid("manager_id").references(() => usersTable.id),
+  isActive: boolean("is_active").notNull().default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  codeOrgIdx: uniqueIndex("warehouses_org_code_uidx").on(t.organizationId, t.code),
+}));
+
+// ─────────────────────────────────────────────────────────
+// DEMANDES INTERNES (BESOINS)
+// ─────────────────────────────────────────────────────────
+export const internalRequestsTable = pgTable("internal_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  reference: text("reference").notNull(),
+  requestedById: uuid("requested_by_id").references(() => usersTable.id),
+  // draft | submitted | approved | rejected | fulfilled | cancelled
+  status: text("status").notNull().default("draft"),
+  // Département / service demandeur (texte libre ou futur FK)
+  requesterDepartment: text("requester_department"),
+  neededDate: date("needed_date"),
+  priority: text("priority").notNull().default("normal"), // low | normal | high | urgent
+  notes: text("notes"),
+  approvedById: uuid("approved_by_id").references(() => usersTable.id),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  refOrgIdx: uniqueIndex("internal_requests_org_ref_uidx").on(t.organizationId, t.reference),
+  statusIdx: index("internal_requests_status_idx").on(t.status),
+}));
+
+export const internalRequestLinesTable = pgTable("internal_request_lines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  requestId: uuid("request_id").notNull().references(() => internalRequestsTable.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").references(() => productsTable.id),
+  description: text("description"),
+  quantity: numeric("quantity", { precision: 10, scale: 3 }).notNull(),
+  unit: text("unit").notNull().default("pcs"),
+  // Quantité réellement servie
+  servedQuantity: numeric("served_quantity", { precision: 10, scale: 3 }).default("0"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  requestIdx: index("irl_request_idx").on(t.requestId),
+}));
+
+// ─────────────────────────────────────────────────────────
 // ZOD SCHEMAS
 // ─────────────────────────────────────────────────────────
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
@@ -173,5 +235,11 @@ export type PurchaseOrder = typeof purchaseOrdersTable.$inferSelect;
 export type PurchaseOrderLine = typeof purchaseOrderLinesTable.$inferSelect;
 export type StockMovement = typeof stockMovementsTable.$inferSelect;
 export type SalesLine = typeof salesLinesTable.$inferSelect;
+export const insertWarehouseSchema = createInsertSchema(warehousesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertInternalRequestSchema = createInsertSchema(internalRequestsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
+export const insertInternalRequestLineSchema = createInsertSchema(internalRequestLinesTable).omit({ id: true, createdAt: true });
+export type Warehouse = typeof warehousesTable.$inferSelect;
+export type InternalRequest = typeof internalRequestsTable.$inferSelect;
+export type InternalRequestLine = typeof internalRequestLinesTable.$inferSelect;
 
 export type { z };

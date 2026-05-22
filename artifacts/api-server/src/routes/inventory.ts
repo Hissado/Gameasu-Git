@@ -57,8 +57,11 @@ import {
   suppliersTable,
   insertProductSchema,
   insertProductCategorySchema,
+  warehousesTable,
+  internalRequestsTable,
+  internalRequestLinesTable,
 } from "@workspace/db";
-import { and, desc, eq, isNull, sql, gte, lte, ilike, or, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql, gte, lte, ilike, or, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requirePermission } from "../middlewares/permissions";
 import { getCurrentOrganizationId as getOrgIdForUser } from "../lib/tenant";
@@ -819,6 +822,206 @@ router.get("/inventory/reports/purchases-vs-sales", requirePermission("inventory
     byMonth.set(r.month, m);
   }
   res.json(Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month)));
+});
+
+// ════════════════════════════════════════════════════════════════
+// MAGASINS / DÉPÔTS
+// ════════════════════════════════════════════════════════════════
+router.get("/inventory/warehouses", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select().from(warehousesTable)
+      .where(eq(warehousesTable.organizationId, orgId))
+      .orderBy(asc(warehousesTable.code));
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+router.post("/inventory/warehouses", requirePermission("inventory.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { code, name, location, address, type, notes } = req.body as {
+      code: string; name: string; location?: string; address?: string; type?: string; notes?: string;
+    };
+    if (!code || !name) { res.status(400).json({ error: "code et name sont requis" }); return; }
+    const [row] = await db.insert(warehousesTable).values({
+      organizationId: orgId, code, name, location, address, type, notes,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.get("/inventory/warehouses/:id", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select().from(warehousesTable)
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
+
+    // Stock dans ce magasin (via mouvements)
+    const stock = await db
+      .select({
+        productId: stockMovementsTable.productId,
+        productName: productsTable.name,
+        productCode: productsTable.code,
+        unit: productsTable.unit,
+        qty: sql<number>`SUM(CASE WHEN ${stockMovementsTable.kind} IN ('in','initial') THEN ${stockMovementsTable.quantity} ELSE -${stockMovementsTable.quantity} END)`,
+      })
+      .from(stockMovementsTable)
+      .leftJoin(productsTable, eq(stockMovementsTable.productId, productsTable.id))
+      .where(and(
+        eq(stockMovementsTable.organizationId, orgId),
+        eq(stockMovementsTable.warehouseId, row.id),
+      ))
+      .groupBy(stockMovementsTable.productId, productsTable.name, productsTable.code, productsTable.unit);
+
+    res.json({ ...row, stock });
+  } catch (e) { next(e); }
+});
+
+router.patch("/inventory/warehouses/:id", requirePermission("inventory.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select().from(warehousesTable)
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
+    const upd = req.body as Record<string, unknown>;
+    const [updated] = await db.update(warehousesTable).set({
+      ...(upd.name != null && { name: String(upd.name) }),
+      ...(upd.location != null && { location: String(upd.location) }),
+      ...(upd.address != null && { address: String(upd.address) }),
+      ...(upd.type != null && { type: String(upd.type) }),
+      ...(upd.notes != null && { notes: String(upd.notes) }),
+      ...(upd.isActive != null && { isActive: Boolean(upd.isActive) }),
+    }).where(eq(warehousesTable.id, row.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/inventory/warehouses/:id", requirePermission("inventory.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select().from(warehousesTable)
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
+    await db.delete(warehousesTable).where(eq(warehousesTable.id, row.id));
+    res.status(204).send();
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// DEMANDES INTERNES (BESOINS)
+// ════════════════════════════════════════════════════════════════
+router.get("/inventory/requests", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { status } = req.query as { status?: string };
+    const conditions = [eq(internalRequestsTable.organizationId, orgId)];
+    if (status) conditions.push(eq(internalRequestsTable.status, status));
+    const rows = await db.select({
+      id: internalRequestsTable.id,
+      reference: internalRequestsTable.reference,
+      status: internalRequestsTable.status,
+      priority: internalRequestsTable.priority,
+      requesterDepartment: internalRequestsTable.requesterDepartment,
+      neededDate: internalRequestsTable.neededDate,
+      notes: internalRequestsTable.notes,
+      createdAt: internalRequestsTable.createdAt,
+      lineCount: sql<number>`(
+        SELECT COUNT(*) FROM internal_request_lines WHERE internal_request_lines.request_id = ${internalRequestsTable.id}
+      )`,
+    }).from(internalRequestsTable)
+      .where(and(...conditions))
+      .orderBy(desc(internalRequestsTable.createdAt));
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+router.post("/inventory/requests", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { reference, requesterDepartment, neededDate, priority, notes, lines } = req.body as {
+      reference: string; requesterDepartment?: string; neededDate?: string; priority?: string; notes?: string;
+      lines?: { productId?: string; description?: string; quantity: number; unit?: string }[];
+    };
+    if (!reference) { res.status(400).json({ error: "La référence est requise" }); return; }
+    const [req_] = await db.insert(internalRequestsTable).values({
+      organizationId: orgId, reference, requesterDepartment, neededDate, priority, notes,
+      requestedById: req.authUser!.id,
+    }).returning();
+    if (lines?.length) {
+      await db.insert(internalRequestLinesTable).values(
+        lines.map((l) => ({
+          organizationId: orgId,
+          requestId: req_.id,
+          productId: l.productId,
+          description: l.description,
+          quantity: String(l.quantity),
+          unit: l.unit ?? "pcs",
+        }))
+      );
+    }
+    res.status(201).json(req_);
+  } catch (e) { next(e); }
+});
+
+router.get("/inventory/requests/:id", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [ir] = await db.select().from(internalRequestsTable)
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .limit(1);
+    if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
+    const lines = await db.select({
+      id: internalRequestLinesTable.id,
+      productId: internalRequestLinesTable.productId,
+      description: internalRequestLinesTable.description,
+      quantity: internalRequestLinesTable.quantity,
+      unit: internalRequestLinesTable.unit,
+      servedQuantity: internalRequestLinesTable.servedQuantity,
+      productName: productsTable.name,
+      productCode: productsTable.code,
+    }).from(internalRequestLinesTable)
+      .leftJoin(productsTable, eq(internalRequestLinesTable.productId, productsTable.id))
+      .where(eq(internalRequestLinesTable.requestId, ir.id));
+    res.json({ ...ir, lines });
+  } catch (e) { next(e); }
+});
+
+router.patch("/inventory/requests/:id", requirePermission("inventory.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [ir] = await db.select().from(internalRequestsTable)
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .limit(1);
+    if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
+    const upd = req.body as Record<string, unknown>;
+    const [updated] = await db.update(internalRequestsTable).set({
+      ...(upd.status != null && { status: String(upd.status) }),
+      ...(upd.priority != null && { priority: String(upd.priority) }),
+      ...(upd.notes != null && { notes: String(upd.notes) }),
+      ...(upd.neededDate != null && { neededDate: String(upd.neededDate) }),
+      ...(upd.rejectionReason != null && { rejectionReason: String(upd.rejectionReason) }),
+      ...(upd.status === "approved" && { approvedById: req.authUser!.id, approvedAt: new Date() }),
+    }).where(eq(internalRequestsTable.id, ir.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/inventory/requests/:id", requirePermission("inventory.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [ir] = await db.select().from(internalRequestsTable)
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .limit(1);
+    if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
+    await db.delete(internalRequestLinesTable).where(eq(internalRequestLinesTable.requestId, ir.id));
+    await db.delete(internalRequestsTable).where(eq(internalRequestsTable.id, ir.id));
+    res.status(204).send();
+  } catch (e) { next(e); }
 });
 
 export default router;

@@ -17,6 +17,7 @@ import {
   paymentsTable,
   clientsTable,
   projectsTable,
+  costCentersTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
@@ -1235,6 +1236,181 @@ router.get("/accounting/fiscal/tva-detail", async (req, res, next) => {
       .orderBy(asc(journalEntriesTable.entryDate));
 
     res.json({ data: rows.map((r) => ({ ...r, debit: toNum(r.debit), credit: toNum(r.credit) })) });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// COMPTABILITÉ ANALYTIQUE — CENTRES DE COÛT
+// ════════════════════════════════════════════════════════════════
+router.get("/accounting/cost-centers", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select().from(costCentersTable)
+      .where(eq(costCentersTable.organizationId, orgId))
+      .orderBy(asc(costCentersTable.code));
+    res.json(rows.map((r) => ({ ...r, budgetAmount: r.budgetAmount != null ? Number(r.budgetAmount) : null })));
+  } catch (e) { next(e); }
+});
+
+router.post("/accounting/cost-centers", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { code, name, description, type, parentId, budgetAmount, color, notes } = req.body as {
+      code: string; name: string; description?: string; type?: string; parentId?: string;
+      budgetAmount?: number; color?: string; notes?: string;
+    };
+    if (!code || !name) { res.status(400).json({ error: "code et name sont requis" }); return; }
+    const [row] = await db.insert(costCentersTable).values({
+      organizationId: orgId, code, name, description, type, parentId,
+      budgetAmount: budgetAmount != null ? String(budgetAmount) : undefined,
+      color,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.get("/accounting/cost-centers/:id", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [cc] = await db.select().from(costCentersTable)
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+    if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
+
+    // Charges imputées à ce centre via journalEntryLines
+    const { from: fromDate, to: toDate } = req.query as { from?: string; to?: string };
+    const lineConditions = [
+      eq(journalEntryLinesTable.organizationId, orgId),
+      sql`${journalEntryLinesTable.costCenterId} = ${cc.id}`,
+    ];
+    if (fromDate) lineConditions.push(gte(journalEntriesTable.entryDate, fromDate));
+    if (toDate) lineConditions.push(lte(journalEntriesTable.entryDate, toDate));
+
+    const charges = await db.select({
+      accountCode: chartOfAccountsTable.code,
+      accountLabel: chartOfAccountsTable.label,
+      totalDebit: sql<number>`SUM(${journalEntryLinesTable.debit})`,
+      totalCredit: sql<number>`SUM(${journalEntryLinesTable.credit})`,
+    }).from(journalEntryLinesTable)
+      .leftJoin(journalEntriesTable, eq(journalEntryLinesTable.journalEntryId, journalEntriesTable.id))
+      .leftJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(...lineConditions))
+      .groupBy(chartOfAccountsTable.code, chartOfAccountsTable.label)
+      .orderBy(asc(chartOfAccountsTable.code));
+
+    const totalDebit = charges.reduce((s, r) => s + toNum(r.totalDebit), 0);
+    const totalCredit = charges.reduce((s, r) => s + toNum(r.totalCredit), 0);
+
+    res.json({
+      ...cc,
+      budgetAmount: cc.budgetAmount != null ? Number(cc.budgetAmount) : null,
+      charges: charges.map((r) => ({
+        ...r,
+        totalDebit: toNum(r.totalDebit),
+        totalCredit: toNum(r.totalCredit),
+        net: toNum(r.totalDebit) - toNum(r.totalCredit),
+      })),
+      totalDebit,
+      totalCredit,
+      netConsumption: totalDebit - totalCredit,
+    });
+  } catch (e) { next(e); }
+});
+
+router.patch("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [cc] = await db.select().from(costCentersTable)
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+    if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
+    const upd = req.body as Record<string, unknown>;
+    const [updated] = await db.update(costCentersTable).set({
+      ...(upd.name != null && { name: String(upd.name) }),
+      ...(upd.description != null && { description: String(upd.description) }),
+      ...(upd.type != null && { type: String(upd.type) }),
+      ...(upd.budgetAmount != null && { budgetAmount: String(upd.budgetAmount) }),
+      ...(upd.color != null && { color: String(upd.color) }),
+      ...(upd.isActive != null && { isActive: Boolean(upd.isActive) }),
+    }).where(eq(costCentersTable.id, cc.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [cc] = await db.select().from(costCentersTable)
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+    if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
+    await db.delete(costCentersTable).where(eq(costCentersTable.id, cc.id));
+    res.status(204).send();
+  } catch (e) { next(e); }
+});
+
+// État analytique global : charges par centre de coût sur une période
+router.get("/accounting/analytical/summary", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { from: fromDate, to: toDate } = req.query as { from?: string; to?: string };
+    const centers = await db.select().from(costCentersTable)
+      .where(eq(costCentersTable.organizationId, orgId)).orderBy(asc(costCentersTable.code));
+
+    const conditions = [eq(journalEntryLinesTable.organizationId, orgId)];
+    if (fromDate) conditions.push(gte(journalEntriesTable.entryDate, fromDate));
+    if (toDate) conditions.push(lte(journalEntriesTable.entryDate, toDate));
+
+    const imputations = await db.select({
+      costCenterId: sql<string>`"journal_entry_lines"."cost_center_id"`,
+      totalDebit: sql<number>`SUM("journal_entry_lines"."debit")`,
+      totalCredit: sql<number>`SUM("journal_entry_lines"."credit")`,
+    }).from(journalEntryLinesTable)
+      .leftJoin(journalEntriesTable, sql`"journal_entry_lines"."entry_id" = "journal_entries"."id"`)
+      .where(and(...conditions, sql`"journal_entry_lines"."cost_center_id" IS NOT NULL`))
+      .groupBy(sql`"journal_entry_lines"."cost_center_id"`);
+
+    const byCenter = new Map(imputations.map((i) => [i.costCenterId, i]));
+    const result = centers.map((c) => {
+      const imp = byCenter.get(c.id);
+      const debit = imp ? toNum(imp.totalDebit) : 0;
+      const credit = imp ? toNum(imp.totalCredit) : 0;
+      const budget = c.budgetAmount != null ? Number(c.budgetAmount) : null;
+      return {
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        type: c.type,
+        color: c.color,
+        budgetAmount: budget,
+        totalDebit: debit,
+        totalCredit: credit,
+        netConsumption: debit - credit,
+        usagePct: budget != null && budget > 0 ? Math.round(((debit - credit) / budget) * 100) : null,
+      };
+    });
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// IMMOBILISATIONS — SORTIE / CESSION
+// ════════════════════════════════════════════════════════════════
+router.post("/accounting/fixed-assets/:id/dispose", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [asset] = await db.select().from(fixedAssetsTable)
+      .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).limit(1);
+    if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
+    if (asset.status === "disposed") { res.status(400).json({ error: "Bien déjà sorti" }); return; }
+    const { disposalDate, disposalValue, disposalReason } = req.body as {
+      disposalDate: string; disposalValue?: number; disposalReason?: string;
+    };
+    if (!disposalDate) { res.status(400).json({ error: "disposalDate requis" }); return; }
+    const [updated] = await db.update(fixedAssetsTable).set({
+      status: "disposed",
+      disposalDate,
+      disposalValue: disposalValue != null ? String(disposalValue) : undefined,
+      disposalReason,
+    }).where(eq(fixedAssetsTable.id, asset.id)).returning();
+    res.json(updated);
   } catch (e) { next(e); }
 });
 

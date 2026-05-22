@@ -17,6 +17,7 @@ const TABS = [
   { path: "/accounting/suppliers", label: "Fournisseurs" },
   { path: "/accounting/banks", label: "Banques" },
   { path: "/accounting/fixed-assets", label: "Immobilisations" },
+  { path: "/accounting/analytical", label: "Analytique" },
 ];
 
 export function AccountingShell({ title, subtitle, actions, children }: {

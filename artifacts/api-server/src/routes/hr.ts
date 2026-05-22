@@ -10,10 +10,16 @@ import {
   projectsTable,
   tasksTable,
   equipmentTable,
+  leaveRequestsTable,
+  jobOffersTable,
+  candidaciesTable,
+  performanceReviewsTable,
+  trainingSessionsTable,
+  trainingParticipantsTable,
+  personnelMovementsTable,
 } from "@workspace/db";
-import { and, eq, isNull, sql, desc, gte, lte } from "drizzle-orm";
+import { and, asc, eq, isNull, sql, desc, gte, lte } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
-import { leaveRequestsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -578,6 +584,318 @@ router.delete("/hr/leaves/:id", requireManagerOrAbove, async (req, res) => {
   if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
   await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)));
   res.status(204).send();
+});
+
+// ════════════════════════════════════════════════════════════════
+// ÉVALUATIONS DE PERFORMANCE
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { period, status } = req.query as { period?: string; status?: string };
+    const conditions = [eq(performanceReviewsTable.organizationId, orgId)];
+    if (period) conditions.push(eq(performanceReviewsTable.period, period));
+    if (status) conditions.push(eq(performanceReviewsTable.status, status));
+    const rows = await db.select({
+      id: performanceReviewsTable.id,
+      collaboratorId: performanceReviewsTable.collaboratorId,
+      type: performanceReviewsTable.type,
+      period: performanceReviewsTable.period,
+      reviewDate: performanceReviewsTable.reviewDate,
+      overallRating: performanceReviewsTable.overallRating,
+      status: performanceReviewsTable.status,
+      createdAt: performanceReviewsTable.createdAt,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      department: collaboratorsTable.department,
+      jobTitle: collaboratorsTable.position,
+    }).from(performanceReviewsTable)
+      .leftJoin(collaboratorsTable, eq(performanceReviewsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(performanceReviewsTable.reviewDate));
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { collaboratorId, reviewerId, type, period, reviewDate, overallRating, criteria, strengths, areasForImprovement, goals, status, notes } =
+      req.body as {
+        collaboratorId: string; reviewerId?: string; type?: string; period: string;
+        reviewDate?: string; overallRating?: number; criteria?: unknown[]; strengths?: string;
+        areasForImprovement?: string; goals?: string; status?: string; notes?: string;
+      };
+    if (!collaboratorId || !period) { res.status(400).json({ error: "collaboratorId et period requis" }); return; }
+    const [row] = await db.insert(performanceReviewsTable).values({
+      organizationId: orgId, collaboratorId, reviewerId, type, period, reviewDate,
+      overallRating, criteria, strengths, areasForImprovement, goals, status, notes,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.get("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select({
+      id: performanceReviewsTable.id,
+      collaboratorId: performanceReviewsTable.collaboratorId,
+      reviewerId: performanceReviewsTable.reviewerId,
+      type: performanceReviewsTable.type,
+      period: performanceReviewsTable.period,
+      reviewDate: performanceReviewsTable.reviewDate,
+      overallRating: performanceReviewsTable.overallRating,
+      criteria: performanceReviewsTable.criteria,
+      strengths: performanceReviewsTable.strengths,
+      areasForImprovement: performanceReviewsTable.areasForImprovement,
+      goals: performanceReviewsTable.goals,
+      status: performanceReviewsTable.status,
+      notes: performanceReviewsTable.notes,
+      acknowledgedAt: performanceReviewsTable.acknowledgedAt,
+      createdAt: performanceReviewsTable.createdAt,
+      updatedAt: performanceReviewsTable.updatedAt,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      department: collaboratorsTable.department,
+      jobTitle: collaboratorsTable.position,
+    }).from(performanceReviewsTable)
+      .leftJoin(collaboratorsTable, eq(performanceReviewsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id)))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
+router.patch("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [ev] = await db.select().from(performanceReviewsTable)
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id))).limit(1);
+    if (!ev) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
+    const upd = req.body as Record<string, unknown>;
+    const [updated] = await db.update(performanceReviewsTable).set({
+      ...(upd.reviewDate != null && { reviewDate: String(upd.reviewDate) }),
+      ...(upd.overallRating != null && { overallRating: Number(upd.overallRating) }),
+      ...(upd.criteria != null && { criteria: upd.criteria }),
+      ...(upd.strengths != null && { strengths: String(upd.strengths) }),
+      ...(upd.areasForImprovement != null && { areasForImprovement: String(upd.areasForImprovement) }),
+      ...(upd.goals != null && { goals: String(upd.goals) }),
+      ...(upd.status != null && { status: String(upd.status) }),
+      ...(upd.notes != null && { notes: String(upd.notes) }),
+      ...(upd.status === "acknowledged" && { acknowledgedAt: new Date() }),
+    }).where(eq(performanceReviewsTable.id, ev.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [ev] = await db.select().from(performanceReviewsTable)
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id))).limit(1);
+    if (!ev) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
+    await db.delete(performanceReviewsTable).where(eq(performanceReviewsTable.id, ev.id));
+    res.status(204).send();
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// FORMATIONS
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/training", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { status } = req.query as { status?: string };
+    const conditions = [eq(trainingSessionsTable.organizationId, orgId)];
+    if (status) conditions.push(eq(trainingSessionsTable.status, status));
+    const rows = await db.select({
+      id: trainingSessionsTable.id,
+      title: trainingSessionsTable.title,
+      type: trainingSessionsTable.type,
+      provider: trainingSessionsTable.provider,
+      location: trainingSessionsTable.location,
+      startDate: trainingSessionsTable.startDate,
+      endDate: trainingSessionsTable.endDate,
+      durationHours: trainingSessionsTable.durationHours,
+      cost: trainingSessionsTable.cost,
+      currency: trainingSessionsTable.currency,
+      maxParticipants: trainingSessionsTable.maxParticipants,
+      status: trainingSessionsTable.status,
+      participantCount: sql<number>`(
+        SELECT COUNT(*) FROM training_participants WHERE training_participants.training_session_id = ${trainingSessionsTable.id}
+      )`,
+    }).from(trainingSessionsTable)
+      .where(and(...conditions))
+      .orderBy(desc(trainingSessionsTable.startDate));
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/training", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { title, type, provider, description, location, startDate, endDate, durationHours, cost, maxParticipants, status, notes } =
+      req.body as {
+        title: string; type?: string; provider?: string; description?: string; location?: string;
+        startDate?: string; endDate?: string; durationHours?: number; cost?: number;
+        maxParticipants?: number; status?: string; notes?: string;
+      };
+    if (!title) { res.status(400).json({ error: "Le titre est requis" }); return; }
+    const [row] = await db.insert(trainingSessionsTable).values({
+      organizationId: orgId, title, type, provider, description, location, startDate, endDate,
+      durationHours: durationHours != null ? String(durationHours) : undefined,
+      cost: cost != null ? String(cost) : undefined,
+      maxParticipants, status, notes,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.get("/hr/training/:id", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [session] = await db.select().from(trainingSessionsTable)
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+    if (!session) { res.status(404).json({ error: "Formation introuvable" }); return; }
+    const participants = await db.select({
+      id: trainingParticipantsTable.id,
+      collaboratorId: trainingParticipantsTable.collaboratorId,
+      status: trainingParticipantsTable.status,
+      score: trainingParticipantsTable.score,
+      certificationDate: trainingParticipantsTable.certificationDate,
+      notes: trainingParticipantsTable.notes,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      department: collaboratorsTable.department,
+    }).from(trainingParticipantsTable)
+      .leftJoin(collaboratorsTable, eq(trainingParticipantsTable.collaboratorId, collaboratorsTable.id))
+      .where(eq(trainingParticipantsTable.trainingSessionId, session.id))
+      .orderBy(asc(collaboratorsTable.lastName));
+    res.json({ ...session, participants });
+  } catch (e) { next(e); }
+});
+
+router.patch("/hr/training/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [s] = await db.select().from(trainingSessionsTable)
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+    if (!s) { res.status(404).json({ error: "Formation introuvable" }); return; }
+    const upd = req.body as Record<string, unknown>;
+    const [updated] = await db.update(trainingSessionsTable).set({
+      ...(upd.title != null && { title: String(upd.title) }),
+      ...(upd.status != null && { status: String(upd.status) }),
+      ...(upd.provider != null && { provider: String(upd.provider) }),
+      ...(upd.location != null && { location: String(upd.location) }),
+      ...(upd.startDate != null && { startDate: String(upd.startDate) }),
+      ...(upd.endDate != null && { endDate: String(upd.endDate) }),
+      ...(upd.notes != null && { notes: String(upd.notes) }),
+      ...(upd.cost != null && { cost: String(upd.cost) }),
+      ...(upd.maxParticipants != null && { maxParticipants: Number(upd.maxParticipants) }),
+    }).where(eq(trainingSessionsTable.id, s.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/training/:id/participants", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [s] = await db.select().from(trainingSessionsTable)
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+    if (!s) { res.status(404).json({ error: "Formation introuvable" }); return; }
+    const { collaboratorId, status } = req.body as { collaboratorId: string; status?: string };
+    if (!collaboratorId) { res.status(400).json({ error: "collaboratorId requis" }); return; }
+    const [p] = await db.insert(trainingParticipantsTable).values({
+      organizationId: orgId,
+      trainingSessionId: s.id,
+      collaboratorId,
+      status: status ?? "registered",
+    }).returning();
+    res.status(201).json(p);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// MOUVEMENTS DU PERSONNEL
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { type } = req.query as { type?: string };
+    const conditions = [eq(personnelMovementsTable.organizationId, orgId)];
+    if (type) conditions.push(eq(personnelMovementsTable.type, type));
+    const rows = await db.select({
+      id: personnelMovementsTable.id,
+      collaboratorId: personnelMovementsTable.collaboratorId,
+      type: personnelMovementsTable.type,
+      effectiveDate: personnelMovementsTable.effectiveDate,
+      previousSalary: personnelMovementsTable.previousSalary,
+      newSalary: personnelMovementsTable.newSalary,
+      reason: personnelMovementsTable.reason,
+      createdAt: personnelMovementsTable.createdAt,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      department: collaboratorsTable.department,
+      jobTitle: collaboratorsTable.position,
+    }).from(personnelMovementsTable)
+      .leftJoin(collaboratorsTable, eq(personnelMovementsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(personnelMovementsTable.effectiveDate));
+    res.json(rows.map((r) => ({
+      ...r,
+      previousSalary: r.previousSalary != null ? Number(r.previousSalary) : null,
+      newSalary: r.newSalary != null ? Number(r.newSalary) : null,
+    })));
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const {
+      collaboratorId, type, effectiveDate,
+      previousDepartmentId, previousPositionId, previousSalary,
+      newDepartmentId, newPositionId, newSalary,
+      reason, approvedById, notes,
+    } = req.body as {
+      collaboratorId: string; type: string; effectiveDate: string;
+      previousDepartmentId?: string; previousPositionId?: string; previousSalary?: number;
+      newDepartmentId?: string; newPositionId?: string; newSalary?: number;
+      reason?: string; approvedById?: string; notes?: string;
+    };
+    if (!collaboratorId || !type || !effectiveDate) {
+      res.status(400).json({ error: "collaboratorId, type et effectiveDate requis" }); return;
+    }
+    const [row] = await db.insert(personnelMovementsTable).values({
+      organizationId: orgId,
+      collaboratorId, type, effectiveDate,
+      previousDepartmentId, previousPositionId,
+      previousSalary: previousSalary != null ? String(previousSalary) : undefined,
+      newDepartmentId, newPositionId,
+      newSalary: newSalary != null ? String(newSalary) : undefined,
+      reason, approvedById, notes,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.get("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select().from(personnelMovementsTable)
+      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, req.params.id))).limit(1);
+    if (!row) { res.status(404).json({ error: "Mouvement introuvable" }); return; }
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
+router.delete("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select().from(personnelMovementsTable)
+      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, req.params.id))).limit(1);
+    if (!row) { res.status(404).json({ error: "Mouvement introuvable" }); return; }
+    await db.delete(personnelMovementsTable).where(eq(personnelMovementsTable.id, row.id));
+    res.status(204).send();
+  } catch (e) { next(e); }
 });
 
 export default router;
