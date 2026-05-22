@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable } from "@workspace/db";
+import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable, salesLinesTable, creditNotesTable, organizationsTable } from "@workspace/db";
 import { eq, sql, isNull, and, desc } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
 import { logger } from "../lib/logger";
+import { sendEmail, buildProformaEmail, buildOrderEmail, buildInvoiceEmail, buildCreditNoteEmail } from "../lib/email";
 
 const router = Router();
 
@@ -637,6 +638,320 @@ router.get("/commercial-audit", async (req, res, next) => {
       .limit(parseInt(limit));
 
     res.json({ data: rows });
+  } catch (e) { next(e); }
+});
+
+// ─── SALES LINES — GET/PUT ────────────────────────────────────────────────────
+
+async function getLines(orgId: string, parentType: string, parentId: string) {
+  return db.select().from(salesLinesTable)
+    .where(and(
+      eq(salesLinesTable.organizationId, orgId),
+      eq(salesLinesTable.parentType, parentType),
+      eq(salesLinesTable.parentId, parentId),
+    ))
+    .orderBy(salesLinesTable.position);
+}
+
+async function replaceLines(
+  orgId: string, parentType: string, parentId: string,
+  rawLines: Array<{ description: string; quantity: number; unitPriceFcfa: number; discountPct?: number; taxRatePct?: number; productId?: string | null }>,
+) {
+  await db.delete(salesLinesTable).where(and(
+    eq(salesLinesTable.organizationId, orgId),
+    eq(salesLinesTable.parentType, parentType),
+    eq(salesLinesTable.parentId, parentId),
+  ));
+  if (rawLines.length === 0) return [];
+  const toInsert = rawLines.map((l, i) => {
+    const qty = Number(l.quantity) || 0;
+    const unitPrice = Number(l.unitPriceFcfa) || 0;
+    const disc = Number(l.discountPct ?? 0);
+    const tax = Number(l.taxRatePct ?? 18);
+    const total = Math.round(qty * unitPrice * (1 - disc / 100) * (1 + tax / 100));
+    return {
+      organizationId: orgId, parentType, parentId,
+      productId: l.productId ?? null,
+      description: l.description,
+      quantity: qty.toString(),
+      unitPriceFcfa: unitPrice.toString(),
+      discountPct: disc.toString(),
+      taxRatePct: tax.toString(),
+      totalFcfa: total.toString(),
+      position: i,
+    };
+  });
+  return db.insert(salesLinesTable).values(toInsert).returning();
+}
+
+function computeTotalFromLines(lines: { totalFcfa: string }[]): number {
+  return lines.reduce((s, l) => s + Number(l.totalFcfa), 0);
+}
+
+function lineToFront(l: typeof salesLinesTable.$inferSelect) {
+  return {
+    ...l,
+    quantity: Number(l.quantity),
+    unitPriceFcfa: Number(l.unitPriceFcfa),
+    discountPct: Number(l.discountPct),
+    taxRatePct: Number(l.taxRatePct),
+    totalFcfa: Number(l.totalFcfa),
+  };
+}
+
+router.get("/orders/:id/lines", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const lines = await getLines(orgId, "order", req.params.id);
+    res.json({ data: lines.map(lineToFront) });
+  } catch (e) { next(e); }
+});
+
+router.put("/orders/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { lines } = req.body as { lines: any[] };
+    const saved = await replaceLines(orgId, "order", req.params.id, lines ?? []);
+    const total = computeTotalFromLines(saved);
+    await db.update(ordersTable).set({ totalAmount: total.toString() })
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id)));
+    res.json({ data: saved.map(lineToFront), totalAmount: total });
+  } catch (e) { next(e); }
+});
+
+router.get("/proformas/:id/lines", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const lines = await getLines(orgId, "proforma", req.params.id);
+    res.json({ data: lines.map(lineToFront) });
+  } catch (e) { next(e); }
+});
+
+router.put("/proformas/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { lines } = req.body as { lines: any[] };
+    const saved = await replaceLines(orgId, "proforma", req.params.id, lines ?? []);
+    const total = computeTotalFromLines(saved);
+    await db.update(proformasTable).set({ totalAmount: total.toString() })
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id)));
+    res.json({ data: saved.map(lineToFront), totalAmount: total });
+  } catch (e) { next(e); }
+});
+
+router.get("/invoices/:id/lines", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const lines = await getLines(orgId, "invoice", req.params.id);
+    res.json({ data: lines.map(lineToFront) });
+  } catch (e) { next(e); }
+});
+
+router.put("/invoices/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { lines } = req.body as { lines: any[] };
+    const saved = await replaceLines(orgId, "invoice", req.params.id, lines ?? []);
+    const total = computeTotalFromLines(saved);
+    await db.update(invoicesTable).set({ totalAmount: total.toString() })
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)));
+    res.json({ data: saved.map(lineToFront), totalAmount: total });
+  } catch (e) { next(e); }
+});
+
+// ─── EMAIL SENDING ─────────────────────────────────────────────────────────────
+
+async function getOrgBranding(orgId: string) {
+  const [org] = await db.select({ name: organizationsTable.name, logoUrl: organizationsTable.logoUrl, primaryColor: organizationsTable.primaryColor })
+    .from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+  return org ?? { name: "Gaméasù", logoUrl: null, primaryColor: "#C8A24B" };
+}
+
+router.post("/proformas/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { to, message } = req.body as { to: string; message?: string };
+    if (!to?.trim()) { res.status(400).json({ error: "Adresse email requise" }); return; }
+
+    const rows = await db.select({ pro: proformasTable, clientName: clientsTable.name })
+      .from(proformasTable).leftJoin(clientsTable, eq(proformasTable.clientId, clientsTable.id))
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+    if (!rows[0]) { res.status(404).json({ error: "Devis introuvable" }); return; }
+
+    const { pro, clientName } = rows[0];
+    const lines = await getLines(orgId, "proforma", pro.id);
+    const org = await getOrgBranding(orgId);
+
+    const tpl = buildProformaEmail({
+      org, refNumber: pro.referenceNumber, clientName: clientName ?? "Client",
+      totalAmount: Number(pro.totalAmount ?? 0), lines: lines.map(lineToFront),
+      notes: pro.notes, validUntil: pro.validUntil, paymentTerms: pro.paymentTerms, message,
+    });
+    tpl.to = to.trim();
+    const result = await sendEmail(tpl);
+
+    if (result.delivered) {
+      await db.update(proformasTable).set({ status: pro.status === "draft" ? "sent" : pro.status })
+        .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, pro.id)));
+      await writeAudit(req, "proforma_email_sent", "proforma", pro.id, { to, provider: result.provider });
+    }
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+router.post("/orders/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { to, message } = req.body as { to: string; message?: string };
+    if (!to?.trim()) { res.status(400).json({ error: "Adresse email requise" }); return; }
+
+    const rows = await db.select({ order: ordersTable, clientName: clientsTable.name })
+      .from(ordersTable).leftJoin(clientsTable, eq(ordersTable.clientId, clientsTable.id))
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+    if (!rows[0]) { res.status(404).json({ error: "Commande introuvable" }); return; }
+
+    const { order, clientName } = rows[0];
+    const lines = await getLines(orgId, "order", order.id);
+    const org = await getOrgBranding(orgId);
+
+    const tpl = buildOrderEmail({
+      org, refNumber: order.referenceNumber, clientName: clientName ?? "Client",
+      totalAmount: Number(order.totalAmount ?? 0), lines: lines.map(lineToFront), notes: order.notes, message,
+    });
+    tpl.to = to.trim();
+    const result = await sendEmail(tpl);
+
+    if (result.delivered) {
+      await writeAudit(req, "order_email_sent", "order", order.id, { to, provider: result.provider });
+    }
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+router.post("/invoices/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { to, message } = req.body as { to: string; message?: string };
+    if (!to?.trim()) { res.status(400).json({ error: "Adresse email requise" }); return; }
+
+    const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name, clientEmail: clientsTable.email })
+      .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+    if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
+
+    const { inv, clientName } = rows[0];
+    const lines = await getLines(orgId, "invoice", inv.id);
+    const org = await getOrgBranding(orgId);
+
+    const tpl = buildInvoiceEmail({
+      org, refNumber: inv.referenceNumber, clientName: clientName ?? "Client",
+      totalAmount: Number(inv.totalAmount ?? 0), lines: lines.map(lineToFront),
+      notes: inv.notes, dueDate: inv.dueDate, message,
+    });
+    tpl.to = to.trim();
+    const result = await sendEmail(tpl);
+
+    if (result.delivered) {
+      await writeAudit(req, "invoice_email_sent", "invoice", inv.id, { to, provider: result.provider });
+    }
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+// ─── CREDIT NOTES / AVOIRS ────────────────────────────────────────────────────
+
+router.get("/credit-notes", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { invoiceId, page = "1", limit = "20" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page); const limitNum = parseInt(limit);
+    const base = and(eq(creditNotesTable.organizationId, orgId), invoiceId ? eq(creditNotesTable.invoiceId, invoiceId) : undefined);
+    const rows = await db.select({ cn: creditNotesTable, clientName: clientsTable.name, invoiceRef: invoicesTable.referenceNumber })
+      .from(creditNotesTable)
+      .leftJoin(clientsTable, eq(creditNotesTable.clientId, clientsTable.id))
+      .leftJoin(invoicesTable, eq(creditNotesTable.invoiceId, invoicesTable.id))
+      .where(base).orderBy(desc(creditNotesTable.createdAt))
+      .limit(limitNum).offset((pageNum - 1) * limitNum);
+    const count = await db.select({ count: sql<number>`count(*)` }).from(creditNotesTable).where(base);
+    res.json({
+      data: rows.map(r => ({ ...r.cn, clientName: r.clientName, invoiceRef: r.invoiceRef, amount: toNum(r.cn.amount), appliedAmount: toNum(r.cn.appliedAmount) })),
+      total: Number(count[0].count), page: pageNum, limit: limitNum,
+    });
+  } catch (e) { next(e); }
+});
+
+router.get("/invoices/:id/credit-notes", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select().from(creditNotesTable)
+      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.invoiceId, req.params.id)))
+      .orderBy(desc(creditNotesTable.createdAt));
+    res.json({ data: rows.map(cn => ({ ...cn, amount: toNum(cn.amount), appliedAmount: toNum(cn.appliedAmount) })) });
+  } catch (e) { next(e); }
+});
+
+router.post("/invoices/:id/credit-note", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { amount, reason, notes } = req.body;
+    if (!amount || Number(amount) <= 0) { res.status(400).json({ error: "Montant invalide" }); return; }
+    if (!reason?.trim()) { res.status(400).json({ error: "Motif requis" }); return; }
+
+    const [inv] = await db.select().from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+    if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
+    if (inv.status === "cancelled") { res.status(422).json({ error: "Impossible d'émettre un avoir sur une facture annulée" }); return; }
+
+    const maxAmount = Number(inv.totalAmount ?? 0);
+    if (Number(amount) > maxAmount) {
+      res.status(422).json({ error: `Le montant de l'avoir (${amount}) ne peut pas dépasser le montant de la facture (${maxAmount})` });
+      return;
+    }
+
+    const refNum = `AV-${Date.now().toString(36).toUpperCase()}`;
+    const [cn] = await db.insert(creditNotesTable).values({
+      organizationId: orgId,
+      referenceNumber: refNum,
+      invoiceId: inv.id,
+      clientId: inv.clientId,
+      reason: reason.trim(),
+      amount: amount.toString(),
+      appliedAmount: "0",
+      currency: inv.currency ?? "XOF",
+      status: "issued",
+      notes: notes?.trim() || null,
+    }).returning();
+
+    await writeAudit(req, "credit_note_created", "invoice", inv.id, { creditNoteId: cn.id, refNum, amount, reason });
+
+    res.status(201).json({ ...cn, amount: toNum(cn.amount), appliedAmount: toNum(cn.appliedAmount) });
+  } catch (e) { next(e); }
+});
+
+router.post("/credit-notes/:id/apply", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [cn] = await db.select().from(creditNotesTable)
+      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.id, req.params.id))).limit(1);
+    if (!cn) { res.status(404).json({ error: "Note de crédit introuvable" }); return; }
+    if (cn.status === "applied" || cn.status === "cancelled") {
+      res.status(409).json({ error: "Cette note de crédit a déjà été appliquée ou annulée" }); return;
+    }
+    const cnAmount = Number(cn.amount);
+    await db.execute(sql`
+      UPDATE ${invoicesTable}
+         SET total_amount = GREATEST(0, COALESCE(total_amount, 0) - ${cnAmount}),
+             status = CASE
+               WHEN COALESCE(paid_amount, 0) >= GREATEST(0, COALESCE(total_amount, 0) - ${cnAmount}) THEN 'paid'
+               ELSE status
+             END
+       WHERE id = ${cn.invoiceId} AND organization_id = ${orgId}
+    `);
+    const [updated] = await db.update(creditNotesTable)
+      .set({ status: "applied", appliedAmount: cn.amount })
+      .where(eq(creditNotesTable.id, cn.id)).returning();
+    await writeAudit(req, "credit_note_applied", "invoice", cn.invoiceId, { creditNoteId: cn.id, amount: cnAmount });
+    res.json({ ...updated, amount: toNum(updated.amount), appliedAmount: toNum(updated.appliedAmount) });
   } catch (e) { next(e); }
 });
 

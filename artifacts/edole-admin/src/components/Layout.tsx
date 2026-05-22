@@ -9,7 +9,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
   Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap, Package, Tag,
+  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap, Package, Tag, MinusCircle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Commandes", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
       { name: "Factures", path: "/invoices", icon: FileText, moduleKey: "sales_crm" },
       { name: "Encaissements", path: "/payments", icon: CreditCard, moduleKey: "sales_crm" },
+      { name: "Avoirs", path: "/credit-notes", icon: MinusCircle, moduleKey: "sales_crm" },
       { name: "Marketing", path: "/marketing", icon: Megaphone, moduleKey: "marketing" },
     ],
   },

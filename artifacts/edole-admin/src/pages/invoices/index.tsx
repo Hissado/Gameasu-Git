@@ -11,9 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert } from "lucide-react";
+import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
+import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
+import { CreditNoteDialog } from "@/components/commercial/CreditNoteDialog";
 
 type Client = { id: string; name: string };
 type Invoice = {
@@ -114,16 +117,27 @@ function RecordPaymentDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
 function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { data: clientsRes } = useQuery<{ data: Client[] }>({ queryKey: ["clients-list"], queryFn: () => apiFetch("/api/clients?limit=100") });
   const clients = clientsRes?.data ?? [];
-  const [clientId, setClientId] = useState(""); const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState(""); const [notes, setNotes] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const totals = computeTotals(lines);
 
   const handleSave = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
-    if (!amount || Number(amount) <= 0) { toast.error("Montant requis"); return; }
+    if (lines.length === 0) { toast.error("Ajoutez au moins une ligne"); return; }
     setSaving(true);
     try {
-      await apiFetch("/api/invoices", { method: "POST", body: JSON.stringify({ clientId, totalAmount: Number(amount), currency: "XOF", status: "pending", issuedAt: new Date().toISOString().slice(0, 10), dueDate: dueDate || undefined, notes: notes || undefined }) });
+      const inv = await apiFetch<{ id: string }>("/api/invoices", {
+        method: "POST",
+        body: JSON.stringify({
+          clientId, totalAmount: totals.totalTTC, currency: "XOF",
+          status: "pending", issuedAt: new Date().toISOString().slice(0, 10),
+          dueDate: dueDate || undefined, notes: notes || undefined,
+        }),
+      });
+      await apiFetch(`/api/invoices/${inv.id}/lines`, { method: "PUT", body: JSON.stringify({ lines }) });
       toast.success("Facture créée et comptabilisée");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
@@ -131,28 +145,39 @@ function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#C8A24B]" /> Nouvelle facture</DialogTitle>
-          <DialogDescription>La facture sera comptabilisée automatiquement à la création.</DialogDescription>
+          <DialogDescription>La facture sera comptabilisée automatiquement. Sélectionnez les produits/services facturés.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="space-y-1">
-            <Label>Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
-              <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Client *</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
+                <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date d'échéance</Label>
+              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>Montant (FCFA) *</Label><Input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Date d'échéance</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Lignes facturées</Label>
+            <LineItemsEditor lines={lines} onChange={setLines} />
           </div>
-          <div className="space-y-1"><Label>Notes / Objet</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Notes / Objet</Label>
+            <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Objet, référence commande, conditions…" />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : "Créer la facture"}</Button>
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            {saving ? "Création…" : totals.totalTTC > 0 ? `Créer — ${formatFCFA(totals.totalTTC)}` : "Créer la facture"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -307,6 +332,8 @@ export default function InvoicesList() {
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [editTarget, setEditTarget] = useState<Invoice | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Invoice | null>(null);
+  const [sendEmailTarget, setSendEmailTarget] = useState<Invoice | null>(null);
+  const [creditNoteTarget, setCreditNoteTarget] = useState<Invoice | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Invoice[] }>({
     queryKey: ["invoices"],
@@ -429,6 +456,14 @@ export default function InvoicesList() {
                                 <Wallet className="w-3 h-3" /> Encaisser
                               </Button>
                             )}
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => setSendEmailTarget(inv)}>
+                              <Mail className="w-3 h-3" /> Email
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-amber-600 border-amber-200 hover:bg-amber-50"
+                              onClick={() => setCreditNoteTarget(inv)}>
+                              <MinusCircle className="w-3 h-3" /> Avoir
+                            </Button>
                             {canEditDoc && (
                               <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
                                 onClick={() => setEditTarget(inv)}>
@@ -458,6 +493,24 @@ export default function InvoicesList() {
       {payingInvoice && <RecordPaymentDialog invoice={payingInvoice} onClose={() => setPayingInvoice(null)} onSuccess={invalidate} />}
       {editTarget && <EditInvoiceDialog invoice={editTarget} onClose={() => setEditTarget(null)} onSuccess={invalidate} />}
       {cancelTarget && <CancelInvoiceDialog invoice={cancelTarget} onClose={() => setCancelTarget(null)} onSuccess={invalidate} />}
+      {sendEmailTarget && (
+        <SendEmailDialog
+          docType="invoice"
+          docId={sendEmailTarget.id}
+          referenceNumber={sendEmailTarget.referenceNumber}
+          clientName={sendEmailTarget.clientName ?? null}
+          clientEmail={null}
+          totalAmount={sendEmailTarget.totalAmount ?? null}
+          onClose={() => setSendEmailTarget(null)}
+        />
+      )}
+      {creditNoteTarget && (
+        <CreditNoteDialog
+          invoice={creditNoteTarget}
+          onClose={() => setCreditNoteTarget(null)}
+          onSuccess={invalidate}
+        />
+      )}
     </div>
   );
 }

@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock } from "lucide-react";
+import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
+import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
 
 type Client = { id: string; name: string };
 type Proforma = {
@@ -51,49 +53,72 @@ function NewProformaDialog({ onClose, onSuccess }: { onClose: () => void; onSucc
   });
   const clients = clientsRes?.data ?? [];
   const [clientId, setClientId] = useState("");
-  const [amount, setAmount] = useState("");
   const [validUntil, setValidUntil] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
   const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const totals = computeTotals(lines);
 
   const handleSave = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
-    if (!amount || Number(amount) <= 0) { toast.error("Montant requis"); return; }
+    if (lines.length === 0) { toast.error("Ajoutez au moins une ligne"); return; }
     setSaving(true);
     try {
-      await apiFetch("/api/proformas", {
+      const pro = await apiFetch<{ id: string }>("/api/proformas", {
         method: "POST",
-        body: JSON.stringify({ clientId, totalAmount: Number(amount), currency: "XOF", validUntil: validUntil || undefined, notes: notes || undefined }),
+        body: JSON.stringify({
+          clientId, totalAmount: totals.totalTTC, currency: "XOF",
+          validUntil: validUntil || undefined,
+          paymentTerms: paymentTerms || undefined,
+          notes: notes || undefined,
+        }),
       });
-      toast.success("Devis créé");
+      await apiFetch(`/api/proformas/${pro.id}/lines`, { method: "PUT", body: JSON.stringify({ lines }) });
+      toast.success("Devis créé avec succès");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
   };
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#C8A24B]" /> Nouveau devis</DialogTitle>
-          <DialogDescription>Créer une proposition commerciale pour un client.</DialogDescription>
+          <DialogDescription>Sélectionnez les produits/services et définissez les conditions commerciales.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="space-y-1">
-            <Label>Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
-              <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Client *</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
+                <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valable jusqu'au</Label>
+              <Input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>Montant (FCFA) *</Label><Input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Valable jusqu'au</Label><Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Conditions de paiement</Label>
+            <Input value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} placeholder="ex : 30 jours fin de mois, À la commande…" />
           </div>
-          <div className="space-y-1"><Label>Notes / Objet</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Lignes du devis</Label>
+            <LineItemsEditor lines={lines} onChange={setLines} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes / Objet</Label>
+            <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Objet, conditions particulières…" />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : "Créer le devis"}</Button>
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            {saving ? "Création…" : totals.totalTTC > 0 ? `Créer le devis — ${formatFCFA(totals.totalTTC)}` : "Créer le devis"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -248,6 +273,7 @@ export default function ProformasList() {
   const [newOpen, setNewOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Proforma | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Proforma | null>(null);
+  const [sendEmailTarget, setSendEmailTarget] = useState<Proforma | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Proforma[] }>({
@@ -380,6 +406,10 @@ export default function ProformasList() {
                                 <CheckCircle2 className="w-3 h-3 mr-0.5" /> Approuver
                               </Button>
                             )}
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => setSendEmailTarget(p)}>
+                              <Mail className="w-3 h-3" /> Email
+                            </Button>
                             {p.status !== "rejected" && p.status !== "cancelled" && (
                               <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white"
                                 disabled={generatingId === p.id} onClick={() => generateInvoice(p.id)}>
@@ -413,6 +443,17 @@ export default function ProformasList() {
       {newOpen && <NewProformaDialog onClose={() => setNewOpen(false)} onSuccess={invalidate} />}
       {editTarget && <EditProformaDialog proforma={editTarget} onClose={() => setEditTarget(null)} onSuccess={invalidate} />}
       {cancelTarget && <CancelProformaDialog proforma={cancelTarget} onClose={() => setCancelTarget(null)} onSuccess={invalidate} />}
+      {sendEmailTarget && (
+        <SendEmailDialog
+          docType="proforma"
+          docId={sendEmailTarget.id}
+          referenceNumber={sendEmailTarget.referenceNumber}
+          clientName={sendEmailTarget.clientName ?? null}
+          clientEmail={null}
+          totalAmount={sendEmailTarget.totalAmount ?? null}
+          onClose={() => setSendEmailTarget(null)}
+        />
+      )}
     </div>
   );
 }

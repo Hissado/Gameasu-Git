@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert } from "lucide-react";
+import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
+import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
 
 type Client = { id: string; name: string };
 type Order = {
@@ -45,16 +47,23 @@ const CANCEL_RULES: Record<string, { allowed: boolean; needsReason: boolean; war
 function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { data: clientsData } = useQuery<{ data: Client[] }>({ queryKey: ["clients-list"], queryFn: () => apiFetch("/api/clients?limit=100") });
   const clients = clientsData?.data ?? [];
-  const [clientId, setClientId] = useState(""); const [amount, setAmount] = useState("");
-  const [status, setStatus] = useState("draft"); const [notes, setNotes] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [status, setStatus] = useState("draft");
+  const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const totals = computeTotals(lines);
 
   const handleSave = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
-    if (!amount || Number(amount) <= 0) { toast.error("Montant requis"); return; }
+    if (lines.length === 0) { toast.error("Ajoutez au moins une ligne"); return; }
     setSaving(true);
     try {
-      await apiFetch("/api/orders", { method: "POST", body: JSON.stringify({ clientId, totalAmount: Number(amount), currency: "XOF", status, notes: notes || undefined }) });
+      const order = await apiFetch<{ id: string }>("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({ clientId, totalAmount: totals.totalTTC, currency: "XOF", status, notes: notes || undefined }),
+      });
+      await apiFetch(`/api/orders/${order.id}/lines`, { method: "PUT", body: JSON.stringify({ lines }) });
       toast.success("Commande créée avec succès");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
@@ -62,26 +71,25 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-[#C8A24B]" /> Créer une commande</DialogTitle>
           <DialogDescription>Bon de commande client — vous pourrez générer la facture depuis ce tableau.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label>Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
-              <SelectContent>
-                {clients.length === 0
-                  ? <div className="px-3 py-2 text-sm text-muted-foreground">Aucun client</div>
-                  : clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>Montant (FCFA) *</Label><Input type="number" min="0" placeholder="5 000 000" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Client *</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
+                <SelectContent>
+                  {clients.length === 0
+                    ? <div className="px-3 py-2 text-sm text-muted-foreground">Aucun client</div>
+                    : clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>Statut initial</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -92,11 +100,20 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </Select>
             </div>
           </div>
-          <div className="space-y-1"><Label>Notes / Objet</Label><Textarea rows={2} placeholder="Objet de la commande, conditions particulières…" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Lignes de la commande</Label>
+            <LineItemsEditor lines={lines} onChange={setLines} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes / Objet</Label>
+            <Textarea rows={2} placeholder="Objet de la commande, conditions particulières…" value={notes} onChange={e => setNotes(e.target.value)} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : "Créer la commande"}</Button>
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            {saving ? "Création…" : totals.totalTTC > 0 ? `Créer la commande — ${formatFCFA(totals.totalTTC)}` : "Créer la commande"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -238,6 +255,7 @@ export default function OrdersList() {
   const [newOpen, setNewOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Order | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [sendEmailTarget, setSendEmailTarget] = useState<Order | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Order[] }>({
@@ -352,6 +370,12 @@ export default function OrdersList() {
                               <Receipt className="w-3 h-3" />{generatingId === order.id ? "…" : "Facturer"}
                             </Button>
                           )}
+                          {!isCancelled && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => setSendEmailTarget(order)}>
+                              <Mail className="w-3 h-3" /> Email
+                            </Button>
+                          )}
                           {canEditDoc && (
                             <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
                               onClick={() => setEditTarget(order)}>
@@ -379,6 +403,17 @@ export default function OrdersList() {
       {newOpen && <NewOrderDialog onClose={() => setNewOpen(false)} onSuccess={invalidate} />}
       {editTarget && <EditOrderDialog order={editTarget} onClose={() => setEditTarget(null)} onSuccess={invalidate} />}
       {cancelTarget && <CancelOrderDialog order={cancelTarget} onClose={() => setCancelTarget(null)} onSuccess={invalidate} />}
+      {sendEmailTarget && (
+        <SendEmailDialog
+          docType="order"
+          docId={sendEmailTarget.id}
+          referenceNumber={sendEmailTarget.referenceNumber}
+          clientName={sendEmailTarget.clientName ?? null}
+          clientEmail={null}
+          totalAmount={sendEmailTarget.totalAmount ?? null}
+          onClose={() => setSendEmailTarget(null)}
+        />
+      )}
     </div>
   );
 }

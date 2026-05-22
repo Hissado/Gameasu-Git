@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, numeric, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, numeric, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clientsTable } from "./clients";
@@ -67,6 +67,27 @@ export const paymentsTable = pgTable("payments", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ─── CREDIT NOTES / AVOIRS ────────────────────────────────────────────────────
+export const creditNotesTable = pgTable("credit_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  referenceNumber: text("reference_number").notNull(),
+  invoiceId: uuid("invoice_id").notNull().references(() => invoicesTable.id),
+  clientId: uuid("client_id").references(() => clientsTable.id),
+  reason: text("reason").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  appliedAmount: numeric("applied_amount", { precision: 15, scale: 2 }).default("0"),
+  currency: text("currency").default("XOF"),
+  // draft | issued | applied | cancelled
+  status: text("status").notNull().default("draft"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("cn_org_idx").on(t.organizationId),
+  invoiceIdx: index("cn_invoice_idx").on(t.invoiceId),
+}));
+
 export const insertOrderSchema = createInsertSchema(ordersTable).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof ordersTable.$inferSelect;
@@ -82,3 +103,7 @@ export type Invoice = typeof invoicesTable.$inferSelect;
 export const insertPaymentSchema = createInsertSchema(paymentsTable).omit({ id: true, createdAt: true });
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof paymentsTable.$inferSelect;
+
+export const insertCreditNoteSchema = createInsertSchema(creditNotesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCreditNote = z.infer<typeof insertCreditNoteSchema>;
+export type CreditNote = typeof creditNotesTable.$inferSelect;

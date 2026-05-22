@@ -43,6 +43,7 @@ const ProformasList = lazy(() => import("@/pages/proformas/index"));
 const OrdersList = lazy(() => import("@/pages/orders/index"));
 const InvoicesList = lazy(() => import("@/pages/invoices/index"));
 const PaymentsList = lazy(() => import("@/pages/payments/index"));
+const CreditNotesList = lazy(() => import("@/pages/credit-notes/index"));
 const Messaging = lazy(() => import("@/pages/messaging/index"));
 const CallsList = lazy(() => import("@/pages/calls/index"));
 const UsersList = lazy(() => import("@/pages/users/index"));
@@ -215,6 +216,7 @@ function AppRouter() {
                 <Route path="/proformas" component={ProformasList} />
                 <Route path="/invoices" component={InvoicesList} />
                 <Route path="/payments" component={PaymentsList} />
+                <Route path="/credit-notes" component={CreditNotesList} />
 
                 <Route path="/messaging" component={Messaging} />
                 <Route path="/calls" component={CallsList} />

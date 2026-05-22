@@ -116,6 +116,141 @@ function parseFromHeader(h: string): { email: string; name?: string } {
   return { email: h.trim() };
 }
 
+// ─── Commercial Document Templates ──────────────────────────────────────────
+
+type OrgBranding = { name: string; logoUrl?: string | null; primaryColor?: string | null };
+type DocLine = { description: string; quantity: number; unitPriceFcfa: number; discountPct: number; taxRatePct: number; totalFcfa: number };
+
+function fmt(n: number) { return n.toLocaleString("fr-FR") + " FCFA"; }
+
+function buildDocHeader(org: OrgBranding, color: string): string {
+  const logo = org.logoUrl
+    ? `<img src="${org.logoUrl}" alt="${org.name}" style="max-height:48px;max-width:160px;object-fit:contain" />`
+    : `<div style="color:#fff;font-weight:700;letter-spacing:2px;font-size:14px">${org.name.toUpperCase()}</div>`;
+  return `<div style="background:${color};padding:20px 28px">${logo}</div>`;
+}
+
+function buildLinesTable(lines: DocLine[]): string {
+  if (!lines.length) return "";
+  const rows = lines.map(l => {
+    const disc = l.discountPct > 0 ? ` <span style="color:#e67e22;font-size:10px">(−${l.discountPct}%)</span>` : "";
+    return `<tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 10px;font-size:13px">${l.description}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:13px;color:#555">${l.quantity}</td>
+      <td style="padding:8px 10px;text-align:right;font-size:13px;color:#555">${fmt(l.unitPriceFcfa)}${disc}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:13px;color:#555">${l.taxRatePct}%</td>
+      <td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:600">${fmt(l.totalFcfa)}</td>
+    </tr>`;
+  }).join("");
+  const subtotalHT = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (1 - l.discountPct / 100), 0);
+  const totalTVA = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (1 - l.discountPct / 100) * (l.taxRatePct / 100), 0);
+  const totalTTC = subtotalHT + totalTVA;
+  return `<table style="width:100%;border-collapse:collapse;margin:16px 0;font-family:Inter,Arial,sans-serif">
+    <thead><tr style="background:#f8f8f8">
+      <th style="padding:8px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Description</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">Qté</th>
+      <th style="padding:8px 10px;text-align:right;font-size:11px;color:#666;text-transform:uppercase">PU HT</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">TVA</th>
+      <th style="padding:8px 10px;text-align:right;font-size:11px;color:#666;text-transform:uppercase">Total TTC</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="display:flex;justify-content:flex-end"><table style="width:260px;font-size:13px">
+    <tr><td style="padding:3px 8px;color:#666">Sous-total HT</td><td style="padding:3px 8px;text-align:right">${fmt(Math.round(subtotalHT))}</td></tr>
+    <tr><td style="padding:3px 8px;color:#666">TVA</td><td style="padding:3px 8px;text-align:right">${fmt(Math.round(totalTVA))}</td></tr>
+    <tr style="border-top:2px solid #eee"><td style="padding:6px 8px;font-weight:700;font-size:15px">Total TTC</td><td style="padding:6px 8px;text-align:right;font-weight:700;font-size:15px">${fmt(Math.round(totalTTC))}</td></tr>
+  </table></div>`;
+}
+
+function buildDocEmail(opts: {
+  org: OrgBranding; docTypeLabel: string; refNumber: string; clientName: string;
+  totalAmount: number; lines: DocLine[]; notes?: string | null;
+  extraFields?: Array<{ label: string; value: string }>; message?: string; color: string;
+}): EmailMessage {
+  const { color } = opts;
+  const header = buildDocHeader(opts.org, color);
+  const linesHtml = buildLinesTable(opts.lines);
+  const extras = (opts.extraFields ?? []).map(f =>
+    `<div style="font-size:12px;color:#666;margin-top:2px">${f.label} : <strong>${f.value}</strong></div>`
+  ).join("");
+  const notesHtml = opts.notes ? `<div style="margin-top:16px;background:#fafafa;border-left:3px solid ${color};border-radius:4px;padding:12px;font-size:13px;color:#555"><strong>Notes :</strong> ${opts.notes}</div>` : "";
+  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#f5f7ff;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
+  const totalBlock = linesHtml ? "" : `<div style="text-align:center;padding:24px 0"><div style="font-size:30px;font-weight:700;color:${color}">${fmt(opts.totalAmount)}</div><div style="font-size:12px;color:#aaa;margin-top:4px">Montant total TTC</div></div>`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  ${header}
+  <div style="padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div><div style="font-size:11px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:4px">${opts.docTypeLabel}</div><div style="font-size:22px;font-weight:700">${opts.refNumber}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Client</div><div style="font-weight:600;font-size:15px">${opts.clientName}</div>${extras}</div>
+    </div>
+    ${msgHtml}${linesHtml}${totalBlock}${notesHtml}
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
+</div></body></html>`;
+  const textLines = opts.lines.map(l => `  - ${l.description} × ${l.quantity} = ${fmt(l.totalFcfa)}`).join("\n");
+  const text = `${opts.docTypeLabel} ${opts.refNumber}\nClient : ${opts.clientName}\n${textLines ? `\nLignes :\n${textLines}\n` : ""}Total : ${fmt(opts.totalAmount)}${opts.notes ? `\n\nNotes : ${opts.notes}` : ""}`;
+  return { to: "", subject: `${opts.docTypeLabel} ${opts.refNumber} — ${opts.org.name}`, html, text, category: "commercial" };
+}
+
+export function buildProformaEmail(opts: {
+  org: OrgBranding; refNumber: string; clientName: string; totalAmount: number;
+  lines: DocLine[]; notes?: string | null; validUntil?: string | null;
+  paymentTerms?: string | null; message?: string;
+}): EmailMessage {
+  const extras: Array<{ label: string; value: string }> = [];
+  if (opts.validUntil) extras.push({ label: "Valide jusqu'au", value: new Date(opts.validUntil).toLocaleDateString("fr-FR") });
+  if (opts.paymentTerms) extras.push({ label: "Conditions", value: opts.paymentTerms });
+  return buildDocEmail({ ...opts, docTypeLabel: "DEVIS", color: "#2563eb", extraFields: extras });
+}
+
+export function buildOrderEmail(opts: {
+  org: OrgBranding; refNumber: string; clientName: string; totalAmount: number;
+  lines: DocLine[]; notes?: string | null; message?: string;
+}): EmailMessage {
+  return buildDocEmail({ ...opts, docTypeLabel: "BON DE COMMANDE", color: "#7c3aed" });
+}
+
+export function buildInvoiceEmail(opts: {
+  org: OrgBranding; refNumber: string; clientName: string; totalAmount: number;
+  lines: DocLine[]; notes?: string | null; dueDate?: string | null; message?: string;
+}): EmailMessage {
+  const extras: Array<{ label: string; value: string }> = [];
+  if (opts.dueDate) extras.push({ label: "Échéance", value: new Date(opts.dueDate).toLocaleDateString("fr-FR") });
+  return buildDocEmail({ ...opts, docTypeLabel: "FACTURE", color: "#059669", extraFields: extras });
+}
+
+export function buildCreditNoteEmail(opts: {
+  org: OrgBranding; refNumber: string; originalInvoiceRef: string; clientName: string;
+  amount: number; reason: string; notes?: string | null; message?: string;
+}): EmailMessage {
+  const color = "#d97706";
+  const header = buildDocHeader(opts.org, color);
+  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#fefce8;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  ${header}
+  <div style="padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div><div style="font-size:11px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:4px">NOTE DE CRÉDIT / AVOIR</div><div style="font-size:22px;font-weight:700">${opts.refNumber}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Client</div><div style="font-weight:600;font-size:15px">${opts.clientName}</div><div style="font-size:12px;color:#666;margin-top:2px">Facture d'origine : ${opts.originalInvoiceRef}</div></div>
+    </div>
+    ${msgHtml}
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:20px;text-align:center;margin:20px 0">
+      <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Montant de l'avoir</div>
+      <div style="font-size:32px;font-weight:700;color:${color}">− ${fmt(opts.amount)}</div>
+    </div>
+    <div style="margin-top:16px;background:#fafafa;border-left:3px solid ${color};padding:12px;font-size:13px;color:#555"><strong>Motif :</strong> ${opts.reason}</div>
+    ${opts.notes ? `<div style="margin-top:12px;font-size:13px;color:#666"><strong>Notes :</strong> ${opts.notes}</div>` : ""}
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
+</div></body></html>`;
+  const text = `NOTE DE CRÉDIT ${opts.refNumber}\nClient : ${opts.clientName}\nFacture d'origine : ${opts.originalInvoiceRef}\nMontant : −${fmt(opts.amount)}\nMotif : ${opts.reason}`;
+  return { to: "", subject: `Note de crédit ${opts.refNumber} — ${opts.org.name}`, html, text, category: "commercial" };
+}
+
 // ─── Templates ──────────────────────────────────────────────────────────
 export function buildInvitationEmail(opts: {
   recipientName: string; inviterName: string; orgName?: string; acceptUrl: string;
