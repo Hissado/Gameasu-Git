@@ -29,7 +29,7 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const qc = useQueryClient();
   const { toast } = useToast();
   const [mode, setMode] = useState<"full" | "link">("full");
-  const [result, setResult] = useState<{ acceptUrl?: string; onboardUrl?: string; temporaryPassword?: string; orgName?: string } | null>(null);
+  const [result, setResult] = useState<{ acceptUrl?: string; onboardUrl?: string; temporaryPassword?: string; orgName?: string; emailSent?: boolean; adminEmail?: string } | null>(null);
 
   // Champs mode complet
   const [orgName, setOrgName] = useState("");
@@ -65,7 +65,7 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       adminEmail, adminFirstName, adminLastName,
     } as any }),
     onSuccess: (r) => {
-      setResult({ acceptUrl: r.acceptUrl, temporaryPassword: r.temporaryPassword, orgName: r.organization.name });
+      setResult({ acceptUrl: r.acceptUrl, temporaryPassword: r.temporaryPassword, orgName: r.organization.name, emailSent: r.delivery?.delivered === true, adminEmail: adminEmail });
       qc.invalidateQueries({ queryKey: ["sa-ov"] });
       qc.invalidateQueries({ queryKey: ["sa-orgs"] });
       toast({ title: "Structure créée", description: `${r.organization.name} — essai 14 jours actif.` });
@@ -108,8 +108,10 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <Alert className="border-emerald-200 bg-emerald-50">
               <CheckCircle2 className="w-4 h-4 text-emerald-700" />
               <AlertDescription className="text-emerald-800">
-                {result.orgName ? `${result.orgName} a été créée. ` : ""}
-                Lien d'activation :
+                <span className="font-semibold">{result.orgName}</span> a été créée avec succès.{" "}
+                {result.emailSent
+                  ? <>Email d'invitation envoyé à <span className="font-medium">{result.adminEmail}</span>.</>
+                  : <>Aucun provider email configuré — partagez le lien ci-dessous manuellement.</>}
               </AlertDescription>
             </Alert>
             <div className="space-y-2">

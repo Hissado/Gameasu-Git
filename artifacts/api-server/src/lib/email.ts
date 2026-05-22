@@ -1,13 +1,14 @@
 /**
- * Envoi d'emails — détection automatique d'intégration disponible.
+ * Envoi d'emails via Resend (Replit Connectors SDK) ou fallback preview.
  *
  * Stratégie :
- * 1) Si SENDGRID_API_KEY ou RESEND_API_KEY présents → utiliser le provider correspondant.
- * 2) Sinon → mode "preview" : on log l'email en console et on garde l'enveloppe en
- *    mémoire pour qu'un admin puisse récupérer le lien depuis le panneau "Invitations".
+ * 1) Replit Connectors SDK → proxy Resend (préféré, zero-config en prod)
+ * 2) RESEND_API_KEY dans l'env → appel Resend direct
+ * 3) SENDGRID_API_KEY → SendGrid direct
+ * 4) Sinon → mode "preview" : log console + boîte de réception mémoire
  *
- * Les routes d'invitation renvoient toujours l'URL d'acceptation dans la réponse
- * pour faciliter le copier-coller, indépendamment de l'envoi effectif.
+ * Les routes d'invitation renvoient toujours l'URL dans la réponse HTTP
+ * pour faciliter le copier-coller, quelle que soit la méthode d'envoi.
  */
 
 export type EmailMessage = {
@@ -20,7 +21,7 @@ export type EmailMessage = {
 
 export type EmailDeliveryResult = {
   delivered: boolean;
-  provider: "sendgrid" | "resend" | "preview";
+  provider: "resend-connector" | "resend" | "sendgrid" | "preview";
   messageId?: string;
   error?: string;
 };
@@ -38,7 +39,46 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult>
 
   let result: EmailDeliveryResult;
   try {
-    if (sendgridKey) {
+    // 1) Replit Connectors SDK → Resend proxy (preferred)
+    if (!sendgridKey && !resendKey) {
+      try {
+        const { ReplitConnectors } = await import("@replit/connectors-sdk");
+        const connectors = new ReplitConnectors();
+        const r = await connectors.proxy("resend", "/emails", {
+          method: "POST",
+          body: JSON.stringify({
+            from,
+            to: msg.to,
+            subject: msg.subject,
+            html: msg.html,
+            text: msg.text,
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const j: any = typeof r === "object" ? r : {};
+        if (j?.id) {
+          result = { delivered: true, provider: "resend-connector", messageId: j.id };
+        } else {
+          result = { delivered: false, provider: "resend-connector", error: j?.message || JSON.stringify(j).slice(0, 200) };
+        }
+      } catch (connErr: any) {
+        // Connector not available (dev without binding) → fall through to preview
+        console.log(`[email] connector unavailable: ${connErr?.message} — using preview mode`);
+        result = await previewFallback(msg);
+      }
+    } else if (resendKey) {
+      // 2) Direct Resend via API key
+      const r = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
+      });
+      const j: any = await r.json().catch(() => ({}));
+      result = r.ok
+        ? { delivered: true, provider: "resend", messageId: j.id }
+        : { delivered: false, provider: "resend", error: j?.message || `Resend HTTP ${r.status}` };
+    } else {
+      // 3) SendGrid
       const r = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: { Authorization: `Bearer ${sendgridKey}`, "Content-Type": "application/json" },
@@ -55,19 +95,6 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult>
       result = r.ok
         ? { delivered: true, provider: "sendgrid", messageId: r.headers.get("x-message-id") || undefined }
         : { delivered: false, provider: "sendgrid", error: `SendGrid HTTP ${r.status}: ${await r.text()}` };
-    } else if (resendKey) {
-      const r = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
-      });
-      const j: any = await r.json().catch(() => ({}));
-      result = r.ok
-        ? { delivered: true, provider: "resend", messageId: j.id }
-        : { delivered: false, provider: "resend", error: j?.message || `Resend HTTP ${r.status}` };
-    } else {
-      console.log(`\n📧 [EMAIL PREVIEW] To: ${msg.to}\nSubject: ${msg.subject}\n${msg.text}\n`);
-      result = { delivered: true, provider: "preview" };
     }
   } catch (e: any) {
     result = { delivered: false, provider: "preview", error: e?.message || "send failed" };
@@ -76,6 +103,11 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult>
   PREVIEW_INBOX.push({ ...msg, sentAt: new Date(), result });
   if (PREVIEW_INBOX.length > 200) PREVIEW_INBOX.splice(0, PREVIEW_INBOX.length - 200);
   return result;
+}
+
+async function previewFallback(msg: EmailMessage): Promise<EmailDeliveryResult> {
+  console.log(`\n📧 [EMAIL PREVIEW] To: ${msg.to}\nSubject: ${msg.subject}\n${msg.text}\n`);
+  return { delivered: true, provider: "preview" };
 }
 
 function parseFromHeader(h: string): { email: string; name?: string } {
