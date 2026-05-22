@@ -163,7 +163,7 @@ export default function BudgetsListPage() {
               <SelectContent>
                 <SelectItem value="all">Tous</SelectItem>
                 <SelectItem value="budget">Budget</SelectItem>
-                <SelectItem value="forecast">Forecast (prévisions)</SelectItem>
+                <SelectItem value="forecast">Prévision</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -203,7 +203,7 @@ export default function BudgetsListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={b.kind === "forecast" ? "outline" : "secondary"}>
-                        {b.kind === "forecast" ? "Forecast" : "Budget"}
+                        {b.kind === "forecast" ? "Prévision" : "Budget"}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
@@ -310,7 +310,7 @@ function CreateBudgetDialog({ periods, projects, departments, services, onCreate
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="budget">Budget</SelectItem>
-                <SelectItem value="forecast">Forecast (prévisions)</SelectItem>
+                <SelectItem value="forecast">Prévision</SelectItem>
               </SelectContent>
             </Select>
           </div>

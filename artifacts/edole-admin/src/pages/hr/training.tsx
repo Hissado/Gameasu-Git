@@ -162,7 +162,7 @@ export default function TrainingPage() {
                             <TableHead>Nom</TableHead>
                             <TableHead>Département</TableHead>
                             <TableHead>Statut</TableHead>
-                            <TableHead>Score</TableHead>
+                            <TableHead>Note</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

@@ -148,7 +148,7 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
   overdue: "En retard", cancelled: "Annulée", void: "Annulée",
 };
 const PROJECT_STATUS_LABELS: Record<string, string> = {
-  planning: "En planification", active: "Active", in_progress: "En cours",
+  planning: "En planification", active: "Actif", in_progress: "En cours",
   on_hold: "En pause", completed: "Terminée", cancelled: "Annulée",
 };
 const PIPELINE_STAGE_LABELS: Record<string, string> = {
@@ -162,7 +162,7 @@ const FLAG_KIND_LABELS: Record<string, string> = {
 };
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super administrateur", admin: "Administrateur",
-  manager: "Manager", commercial: "Commercial", collaborator: "Collaborateur", viewer: "Lecteur",
+  manager: "Responsable", commercial: "Commercial", collaborator: "Collaborateur", viewer: "Lecteur",
 };
 
 const PIE_COLORS = ["#F26B1F", "#1F2937", "#10B981", "#3B82F6", "#F59E0B", "#8B5CF6", "#EF4444", "#06B6D4"];
@@ -455,7 +455,7 @@ function SalesTab({ periodQuery }: { periodQuery: string }) {
             <Kpi label="Commandes" value={String(data.kpi.ordersCount)} hint={formatFCFA(data.kpi.ordersAmount)} accent="primary" />
             <Kpi label="Proformas" value={String(data.kpi.proformasCount)} hint={formatFCFA(data.kpi.proformasAmount)} />
             <Kpi label="Conversion proforma" value={`${data.kpi.conversionRate} %`} hint={`${data.kpi.proformasConverted} converties`} accent="success" />
-            <Kpi label="Pipeline" value={formatFCFA(data.kpi.pipelineValue)} hint={`${data.kpi.pipelineCount} opportunité(s)`} />
+            <Kpi label="Opportunités" value={formatFCFA(data.kpi.pipelineValue)} hint={`${data.kpi.pipelineCount} opportunité(s)`} />
           </div>
 
           <Card>

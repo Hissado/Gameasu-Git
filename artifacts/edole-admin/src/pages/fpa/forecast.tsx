@@ -54,7 +54,7 @@ export default function ForecastPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Forecast & projection fin d'année</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Prévisions & projection fin d'année</h1>
         <p className="text-muted-foreground mt-1">Prévisionnel vs réalisé et atterrissage estimé.</p>
       </div>
 
@@ -70,7 +70,7 @@ export default function ForecastPage() {
       <Card className="p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
-            <h2 className="text-lg font-semibold">Forecast vs réalisé</h2>
+            <h2 className="text-lg font-semibold">Prévisions vs réalisé</h2>
             <p className="text-sm text-muted-foreground">Comparez vos prévisions à la réalité comptable.</p>
           </div>
           {forecastId && (
@@ -80,9 +80,9 @@ export default function ForecastPage() {
           )}
         </div>
         <Select value={forecastId} onValueChange={setForecastId}>
-          <SelectTrigger className="max-w-xl"><SelectValue placeholder="Choisir un forecast…" /></SelectTrigger>
+          <SelectTrigger className="max-w-xl"><SelectValue placeholder="Choisir une prévision…" /></SelectTrigger>
           <SelectContent>
-            {forecasts.length === 0 && <div className="px-2 py-2 text-sm text-muted-foreground">Aucun forecast pour cette période.</div>}
+            {forecasts.length === 0 && <div className="px-2 py-2 text-sm text-muted-foreground">Aucune prévision pour cette période.</div>}
             {forecasts.map((f) => <SelectItem key={f.id} value={f.id}>{f.name} (v{f.versionNumber}) — {f.status}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -90,7 +90,7 @@ export default function ForecastPage() {
         {forecastReport && (
           <div className="mt-4">
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <Mini label="Forecast" value={formatFCFA(forecastReport.totals.budget)} />
+              <Mini label="Prévision" value={formatFCFA(forecastReport.totals.budget)} />
               <Mini label="Réalisé" value={formatFCFA(forecastReport.totals.actual)} />
               <Mini label="Écart" value={formatFCFA(forecastReport.totals.variance)}
                 color={forecastReport.totals.variance > 0 ? "text-amber-700" : "text-emerald-600"} />
@@ -100,7 +100,7 @@ export default function ForecastPage() {
                 <thead className="bg-muted/40 text-xs uppercase">
                   <tr>
                     <th className="px-3 py-2 text-left">Compte</th>
-                    <th className="px-3 py-2 text-right">Forecast</th>
+                    <th className="px-3 py-2 text-right">Prévision</th>
                     <th className="px-3 py-2 text-right">Réalisé</th>
                     <th className="px-3 py-2 text-right">Écart</th>
                     <th className="px-3 py-2 text-right">%</th>
@@ -130,7 +130,7 @@ export default function ForecastPage() {
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Projection fin d'année</h2>
           <p className="text-sm text-muted-foreground">
-            Atterrissage = réalisé YTD + budget des mois restants. Projection linéaire = extrapolation des actuels.
+            Atterrissage = réalisé cumulé + budget des mois restants. Projection linéaire = extrapolation des actuels.
           </p>
         </div>
         <Select value={budgetId} onValueChange={setBudgetId}>
@@ -144,7 +144,7 @@ export default function ForecastPage() {
           <div className="mt-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               <Mini label="Budget annuel" value={formatFCFA(projection.totals.annualBudget)} />
-              <Mini label="Réalisé YTD" value={formatFCFA(projection.totals.ytdActual)} />
+              <Mini label="Réalisé cumulé" value={formatFCFA(projection.totals.ytdActual)} />
               <Mini label="Atterrissage" value={formatFCFA(projection.totals.projectedTotal)} color="text-blue-600" />
               <Mini label="Projection linéaire" value={formatFCFA(projection.totals.linearProjection)} color="text-violet-600" />
             </div>
@@ -155,7 +155,7 @@ export default function ForecastPage() {
                   <tr>
                     <th className="px-3 py-2 text-left">Compte</th>
                     <th className="px-3 py-2 text-right">Budget</th>
-                    <th className="px-3 py-2 text-right">YTD</th>
+                    <th className="px-3 py-2 text-right">Cumulé</th>
                     <th className="px-3 py-2 text-right">Atterrissage</th>
                     <th className="px-3 py-2 text-right">Linéaire</th>
                     <th className="px-3 py-2 text-right">Δ vs budget</th>

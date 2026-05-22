@@ -35,7 +35,7 @@ export default function PositionsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["hr-positions"] }); toast({ title: "Supprimé" }); },
   });
 
-  const levelLabel = (l?: number) => ({ 1: "Junior", 2: "Confirmé", 3: "Senior", 4: "Lead", 5: "Direction" } as any)[l ?? 1] ?? "—";
+  const levelLabel = (l?: number) => ({ 1: "Junior", 2: "Confirmé", 3: "Senior", 4: "Référent", 5: "Direction" } as any)[l ?? 1] ?? "—";
 
   return (
     <HrShell

@@ -78,7 +78,7 @@ export default function RecruitmentPage() {
   });
 
   return (
-    <HrShell title="Recrutement" subtitle="Pipeline de candidatures et offres d'emploi">
+    <HrShell title="Recrutement" subtitle="Vivier de candidatures et offres d'emploi">
       <div className="space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -102,7 +102,7 @@ export default function RecruitmentPage() {
         {/* Tabs + actions */}
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
-            <Button variant={view === "pipeline" ? "default" : "outline"} size="sm" onClick={() => setView("pipeline")}>Pipeline</Button>
+            <Button variant={view === "pipeline" ? "default" : "outline"} size="sm" onClick={() => setView("pipeline")}>Vue kanban</Button>
             <Button variant={view === "jobs" ? "default" : "outline"} size="sm" onClick={() => setView("jobs")}>Offres</Button>
           </div>
           <div className="flex gap-2">

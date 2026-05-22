@@ -199,7 +199,7 @@ export default function ReportsPage() {
                     <a href={`/api/fpa/export/budget/${b.id}.xlsx?token=${token()}`} download title="Budget">
                       <Button size="sm" variant="ghost"><FileSpreadsheet className="w-4 h-4" /></Button>
                     </a>
-                    <a href={`/api/fpa/export/variance/${b.id}.xlsx?token=${token()}`} download title="Variance">
+                    <a href={`/api/fpa/export/variance/${b.id}.xlsx?token=${token()}`} download title="Analyse d'écarts">
                       <Button size="sm" variant="ghost"><Activity className="w-4 h-4" /></Button>
                     </a>
                   </div>
@@ -208,9 +208,9 @@ export default function ReportsPage() {
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1"><Activity className="w-4 h-4" /> Forecasts</h3>
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1"><Activity className="w-4 h-4" /> Prévisions</h3>
             <div className="space-y-1 max-h-72 overflow-y-auto">
-              {forecasts.length === 0 && <p className="text-sm text-muted-foreground">Aucun forecast.</p>}
+              {forecasts.length === 0 && <p className="text-sm text-muted-foreground">Aucune prévision.</p>}
               {forecasts.map((b) => (
                 <div key={b.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/30">
                   <span className="text-sm truncate">{b.name} <Badge variant="outline" className="ml-1 text-[10px]">v{b.versionNumber}</Badge></span>

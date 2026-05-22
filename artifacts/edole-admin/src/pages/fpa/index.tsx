@@ -183,7 +183,7 @@ export default function FpaDashboardPage() {
               accent="bg-blue-500/20 text-blue-200"
             />
             <HeroKpi
-              label="Réalisé YTD"
+              label="Réalisé cumulé"
               value={formatFCFACompact(ytdActual)}
               hint={`${ytdPct.toFixed(1)} % du budget consommé`}
               icon={Activity}
@@ -254,7 +254,7 @@ export default function FpaDashboardPage() {
               </div>
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="text-xs">
-                  YTD : <span className="font-semibold ml-1">{ytdPct.toFixed(1)} %</span>
+                  Cumul : <span className="font-semibold ml-1">{ytdPct.toFixed(1)} %</span>
                 </Badge>
                 {projectionAvailable && projectedVariance !== null ? (
                   <Badge
@@ -287,7 +287,7 @@ export default function FpaDashboardPage() {
               </div>
               <div className="flex justify-between text-[11px] text-muted-foreground">
                 <span>0</span>
-                <span className="font-medium">YTD {fmtCompact(ytdActual)}</span>
+                <span className="font-medium">Cumul {fmtCompact(ytdActual)}</span>
                 <span>Budget {fmtCompact(annualBudget)} FCFA</span>
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function FpaDashboardPage() {
                     <PieIcon className="w-4 h-4 text-amber-500" />
                     Performance
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Produits & charges YTD</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Produits & charges cumulés</p>
                 </div>
               </div>
               <div className="space-y-4">

@@ -136,7 +136,7 @@ export default function Client360Tab({ clientId }: { clientId: string }) {
         <Kpi icon={AlertTriangle} label="En retard" value={formatFCFA(data.financial.totalOverdue)}
           hint={data.financial.overdueCount > 0 ? `${data.financial.overdueCount} facture(s) · max ${data.financial.maxOverdueDays} j` : "À jour"}
           accent={data.financial.totalOverdue > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"} />
-        <Kpi icon={Target} label="Pipeline" value={formatFCFA(data.financial.pipelineAmount)}
+        <Kpi icon={Target} label="Opportunités" value={formatFCFA(data.financial.pipelineAmount)}
           hint={`${data.operations.opportunitiesCount} opportunité(s)`} />
         <Kpi icon={FolderKanban} label="Projets" value={data.operations.projectsCount} />
         <Kpi icon={Activity} label="Tâches ouvertes" value={data.operations.openTasks}

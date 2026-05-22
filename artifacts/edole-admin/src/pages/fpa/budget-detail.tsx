@@ -147,7 +147,7 @@ export default function BudgetDetailPage() {
           <h1 className="text-2xl font-bold mt-2">{budget.name}</h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <Badge variant={budget.kind === "forecast" ? "outline" : "secondary"}>
-              {budget.kind === "forecast" ? "Forecast" : "Budget"}
+              {budget.kind === "forecast" ? "Prévision" : "Budget"}
             </Badge>
             <Badge variant="outline">v{budget.versionNumber}</Badge>
             <Badge variant="outline">{budget.status}</Badge>
