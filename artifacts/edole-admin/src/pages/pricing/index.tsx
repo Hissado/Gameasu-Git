@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PieChart, Pie, Cell, Tooltip as RechartTooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Trash2, Tag, Info, Copy, ChevronRight, FileSignature, ShoppingCart, Save, Download, RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck, Users, Wrench, DollarSign, ArrowRight } from "lucide-react";
+import { Plus, Trash2, Tag, Info, Copy, ChevronRight, FileSignature, ShoppingCart, Save, Download, RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck, Users, Wrench, DollarSign, ArrowRight, Search, BookOpen, X } from "lucide-react";
 import { toast } from "sonner";
 const uid = () => crypto.randomUUID().slice(0, 8);
 
@@ -45,6 +45,22 @@ interface Scenario {
   taxMode: TaxMode;
   quantity: number;
 }
+
+// ─── Catalog types ────────────────────────────────────────────────────────────
+
+type CatalogProduct = {
+  id: string; sku: string; name: string; unit: string;
+  sellingPriceFcfa: string; taxRatePct: string; isActive: boolean;
+  categoryName?: string;
+};
+type CatalogService = {
+  id: string; code: string; name: string; unit: string;
+  unitPrice: string; category: string | null; isActive: boolean;
+};
+type CatalogEntry = {
+  id: string; name: string; ref: string; unit: string;
+  price: number; taxRate: number; kind: "product" | "service";
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -365,6 +381,71 @@ export default function PricingCalculator() {
     setScenarios(prev => prev.map(s => s.id === activeId ? { ...s, ...patch } : s));
   }, [activeId]);
 
+  // ── Catalogue
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogTab, setCatalogTab] = useState<"product" | "service">("product");
+  const [catalogSearch, setCatalogSearch] = useState("");
+
+  const { data: productsRaw } = useQuery<CatalogProduct[]>({
+    queryKey: ["catalog-products"],
+    queryFn: () => apiFetch("/api/inventory/products?activeOnly=true"),
+    staleTime: 5 * 60_000,
+    enabled: catalogOpen,
+  });
+  const { data: servicesRaw } = useQuery<{ data: CatalogService[] }>({
+    queryKey: ["catalog-services"],
+    queryFn: () => apiFetch("/api/services?active=true"),
+    staleTime: 5 * 60_000,
+    enabled: catalogOpen,
+  });
+
+  const catalogEntries = useMemo((): CatalogEntry[] => {
+    if (catalogTab === "product") {
+      return (productsRaw ?? [])
+        .filter(p => p.isActive !== false)
+        .map(p => ({
+          id: p.id, name: p.name, ref: p.sku, unit: p.unit,
+          price: Number(p.sellingPriceFcfa), taxRate: Number(p.taxRatePct),
+          kind: "product" as const,
+        }));
+    }
+    return (servicesRaw?.data ?? [])
+      .filter(s => s.isActive !== false)
+      .map(s => ({
+        id: s.id, name: s.name, ref: s.code, unit: s.unit,
+        price: Number(s.unitPrice), taxRate: 18,
+        kind: "service" as const,
+      }));
+  }, [catalogTab, productsRaw, servicesRaw]);
+
+  const filteredEntries = useMemo(() =>
+    catalogSearch
+      ? catalogEntries.filter(e =>
+          e.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          e.ref.toLowerCase().includes(catalogSearch.toLowerCase()),
+        )
+      : catalogEntries,
+  [catalogEntries, catalogSearch]);
+
+  const applyCatalogItem = useCallback((entry: CatalogEntry) => {
+    updateScenario({
+      productName: entry.name,
+      taxRate: entry.taxRate,
+      costItems: [
+        ...scenario.costItems.filter(c => !c.label.startsWith("[Catalogue]")),
+        {
+          id: uid(),
+          label: `[Catalogue] ${entry.name}`,
+          category: entry.kind === "product" ? ("purchase" as const) : ("direct" as const),
+          amount: entry.price,
+        },
+      ],
+    });
+    setCatalogOpen(false);
+    setCatalogSearch("");
+    toast.success(`${entry.name} chargé depuis le catalogue`);
+  }, [scenario.costItems, updateScenario]);
+
   const addCostItem = () => {
     updateScenario({
       costItems: [...scenario.costItems, { id: uid(), label: "", category: "direct", amount: 0 }],
@@ -506,10 +587,97 @@ export default function PricingCalculator() {
             {/* Product info */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="w-4 h-4 text-[#C8A24B]" /> Produit / Service tarifé
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Package className="w-4 h-4 text-[#C8A24B]" /> Produit / Service tarifé
+                  </CardTitle>
+                  <Button
+                    size="sm" variant="outline"
+                    className={`h-7 text-xs gap-1.5 ${catalogOpen ? "bg-[#C8A24B] text-white border-[#C8A24B]" : "text-[#C8A24B] border-[#C8A24B]/40 hover:bg-amber-50"}`}
+                    onClick={() => { setCatalogOpen(o => !o); setCatalogSearch(""); }}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {catalogOpen ? "Fermer le catalogue" : "Charger depuis le catalogue"}
+                  </Button>
+                </div>
               </CardHeader>
+
+              {/* ── Catalogue picker panel ── */}
+              {catalogOpen && (
+                <div className="border-b bg-slate-50/70 px-4 py-3 space-y-3">
+                  {/* Tab: Produits / Services */}
+                  <div className="flex items-center gap-1">
+                    {(["product", "service"] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => { setCatalogTab(tab); setCatalogSearch(""); }}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all
+                          ${catalogTab === tab
+                            ? "bg-[#1a1a2e] text-white border-[#1a1a2e]"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"}`}
+                      >
+                        {tab === "product" ? "Produits" : "Services"}
+                      </button>
+                    ))}
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {filteredEntries.length} article{filteredEntries.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      className="pl-8 h-8 text-xs"
+                      placeholder={catalogTab === "product" ? "Rechercher par nom ou SKU…" : "Rechercher par nom ou code…"}
+                      value={catalogSearch}
+                      onChange={e => setCatalogSearch(e.target.value)}
+                    />
+                    {catalogSearch && (
+                      <button onClick={() => setCatalogSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
+                    {filteredEntries.length === 0 && (
+                      <div className="py-6 text-center text-xs text-muted-foreground">
+                        {catalogSearch ? "Aucun résultat" : "Catalogue vide"}
+                      </div>
+                    )}
+                    {filteredEntries.map(entry => (
+                      <button
+                        key={entry.id}
+                        onClick={() => applyCatalogItem(entry)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-amber-50 transition-colors group"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold text-slate-800 truncate">{entry.name}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">{entry.ref} · {entry.unit}</div>
+                        </div>
+                        <div className="ml-3 flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <div className="text-xs font-bold text-[#C8A24B]">{formatFCFA(entry.price)}</div>
+                            {entry.taxRate > 0 && (
+                              <div className="text-[10px] text-muted-foreground">TVA {entry.taxRate}%</div>
+                            )}
+                          </div>
+                          <div className="w-5 h-5 rounded-full bg-[#C8A24B]/10 group-hover:bg-[#C8A24B] flex items-center justify-center transition-colors">
+                            <Plus className="w-3 h-3 text-[#C8A24B] group-hover:text-white" />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground">
+                    Cliquer sur un article charge son nom, son taux de TVA et ajoute son prix comme poste de coût.
+                  </p>
+                </div>
+              )}
+
               <CardContent className="pt-4">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
