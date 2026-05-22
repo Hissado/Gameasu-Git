@@ -1,0 +1,201 @@
+Pouvez-vous **auditer l’application** pour vérifier si les fonctionnalités ci-dessous sont **déjà présentes, partiellement implémentées ou absentes**, puis **faire le nécessaire pour compléter, corriger ou intégrer tout ce qui manque** ?
+
+Je veux une démarche orientée **contrôle + exécution** :
+1. vérifier l’existant dans l’application
+2. identifier les écarts
+3. compléter les fonctionnalités manquantes
+4. corriger les fonctionnalités incomplètes ou insuffisamment intégrées
+5. s’assurer que tout soit bien relié aux autres modules de l’application
+
+L’objectif est d’avoir un ensemble **complet, cohérent, professionnel et pleinement exploitable**, notamment pour les volets :
+- comptabilité générale
+- comptabilité budgétaire
+- comptabilité analytique
+- immobilisations
+- paie & GRH
+- stocks
+
+==================================================
+1. GESTION DE LA COMPTABILITÉ
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire les fonctionnalités suivantes :
+
+- comptabilité intégrée au module de gestion
+- gestion des taxes :
+  - IRPP
+  - NA
+  - IPTS
+  - AIB
+  - et autres taxes pertinentes
+- lettrage automatique et manuel
+- comptabilité auxiliaire clients
+- gestion des chèques
+- saisie, validation, modification et suppression d’écritures
+- comptabilité d’engagement
+- gestion de trésorerie
+- rapprochement bancaire
+- pointage / lettrage des écritures
+- suivi des factures et fournisseurs
+- ouverture / clôture d’exercice
+- ouverture / clôture de période
+- états fiscaux
+
+### États financiers à vérifier / intégrer
+- bilan version allégée / développée
+- compte de résultat version allégée / développée
+- hors bilan version allégée / développée
+- ratios prudentiels
+- indicateurs financiers périodiques
+- indicateurs non financiers périodiques
+- tableau des emplois et ressources
+- état des biens donnés en crédit-bail et opérations assimilées
+- état des biens détenus dans le cadre de la concession
+- état des biens détenus dans le cadre de la clause de réserve de propriété
+- détail du compte 6221 – personnel extérieur à l’institution
+- état des crédits en souffrance
+- état des informations annexes
+
+==================================================
+2. COMPTABILITÉ BUDGÉTAIRE
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire :
+
+- paramétrage de tous les types de budget utilisés
+- suivi budgétaire
+- suivi des ressources et emplois
+- taux de réalisation des ressources et des emplois
+- possibilité de réaménagement budgétaire
+- tableau de bord du suivi budgétaire
+
+==================================================
+3. COMPTABILITÉ ANALYTIQUE
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire :
+
+- paramétrage par centre de coût
+  - direction générale
+  - direction centrale
+  - agence
+  - point de service
+  - etc.
+- paramétrage par type de coût :
+  - fixe / variable
+  - direct / indirect
+  - investissement / fonctionnement / opérations
+  - etc.
+- états analytiques périodiques
+
+==================================================
+4. IMMOBILISATIONS
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire :
+
+- codification des immobilisations
+- gestion des codes-barres
+- suivi des immobilisations acquises
+- entrée des immobilisations :
+  - achat
+  - subvention
+  - autre source
+- affectation
+- sortie
+- amortissement des immobilisations
+- liste des acquisitions par nature d’immobilisation et source de financement
+- fiche d’immobilisation
+- tableau des immobilisations
+- tableau d’amortissement des immobilisations
+
+==================================================
+5. PAIE & GRH
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire :
+
+### Gestion des Ressources Humaines
+- gestion des candidatures
+- recrutements et embauches
+- mouvements du personnel
+- gestion des absences, permissions et congés
+- gestion des missions nationales et internationales
+- gestion des performances / notation
+- gestion du poste
+- gestion des formations
+- gestion des carrières
+- gestion des plaintes
+- fiche du personnel
+- contrats de travail
+- contrats de stage
+- ordre de mission
+- autorisation de congés
+- autorisation d’absence / permission
+- état individuel du personnel
+
+### Gestion de la paie
+- traitement des salaires
+- traitement des déclarations mensuelles et annuelles de charges et taxes
+- bulletin de paie
+- livre de paie
+- déclaration annuelle de salaires
+
+==================================================
+6. STOCKS
+==================================================
+
+Merci de vérifier et d’intégrer si nécessaire :
+
+- gestion des besoins
+- traitement des mouvements de stock :
+  - entrées
+  - sorties
+  - solde
+- gestion des stocks de fournitures et petits équipements hors immobilisations
+- gestion du stock d’alerte
+- gestion des commandes et réceptions
+- gestion par magasin
+- états / rapports de stock
+
+==================================================
+7. CE QUE J’ATTENDS CONCRÈTEMENT
+==================================================
+
+Je veux que vous :
+
+1. passiez en revue toutes les fonctionnalités listées ci-dessus
+2. indiquiez clairement pour chacune :
+   - déjà présente
+   - partiellement présente
+   - absente
+3. fassiez les ajustements nécessaires dans l’application
+4. ajoutiez les modules, sous-modules, tables, routes, écrans, workflows et rapports manquants
+5. vous assuriez que tout soit correctement intégré au reste de l’application :
+   - commercial
+   - comptabilité
+   - RH
+   - stocks
+   - reporting
+   - documents
+   - opérations
+6. harmonisiez le wording, les écrans et les workflows pour que l’ensemble soit professionnel, cohérent et exploitable
+
+==================================================
+8. RÉSULTAT ATTENDU
+==================================================
+
+Je veux une application où ces fonctionnalités ne sont pas simplement listées, mais réellement :
+- vérifiées
+- intégrées
+- reliées entre elles
+- bien structurées
+- prêtes à être utilisées de manière professionnelle
+
+L’objectif final est d’obtenir un système beaucoup plus complet, notamment sur :
+- la comptabilité
+- le budget
+- l’analytique
+- les immobilisations
+- la paie / GRH
+- les stocks
