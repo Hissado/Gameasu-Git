@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle } from "lucide-react";
+import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
@@ -459,6 +459,10 @@ export default function InvoicesList() {
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
                               onClick={() => setSendEmailTarget(inv)}>
                               <Mail className="w-3 h-3" /> Email
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+                              onClick={() => window.open(`/documents/invoice/${inv.id}/print`, "_blank")}>
+                              <Printer className="w-3 h-3" /> PDF
                             </Button>
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-amber-600 border-amber-200 hover:bg-amber-50"
                               onClick={() => setCreditNoteTarget(inv)}>

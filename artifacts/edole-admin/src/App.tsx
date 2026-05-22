@@ -44,6 +44,7 @@ const OrdersList = lazy(() => import("@/pages/orders/index"));
 const InvoicesList = lazy(() => import("@/pages/invoices/index"));
 const PaymentsList = lazy(() => import("@/pages/payments/index"));
 const CreditNotesList = lazy(() => import("@/pages/credit-notes/index"));
+const PrintDocument = lazy(() => import("@/pages/documents/print"));
 const Messaging = lazy(() => import("@/pages/messaging/index"));
 const CallsList = lazy(() => import("@/pages/calls/index"));
 const UsersList = lazy(() => import("@/pages/users/index"));
@@ -167,6 +168,11 @@ function AppRouter() {
       </Route>
       <Route path="/onboard-structure">
         <Suspense fallback={<PageFallback />}><OnboardStructure /></Suspense>
+      </Route>
+      <Route path="/documents/:type/:id/print">
+        <ProtectedRoute>
+          <Suspense fallback={<PageFallback />}><PrintDocument /></Suspense>
+        </ProtectedRoute>
       </Route>
       <Route>
         <ProtectedRoute>

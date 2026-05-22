@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock, Mail } from "lucide-react";
+import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock, Mail, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
@@ -409,6 +409,10 @@ export default function ProformasList() {
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
                               onClick={() => setSendEmailTarget(p)}>
                               <Mail className="w-3 h-3" /> Email
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+                              onClick={() => window.open(`/documents/proforma/${p.id}/print`, "_blank")}>
+                              <Printer className="w-3 h-3" /> PDF
                             </Button>
                             {p.status !== "rejected" && p.status !== "cancelled" && (
                               <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white"

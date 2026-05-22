@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail } from "lucide-react";
+import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
@@ -376,6 +376,10 @@ export default function OrdersList() {
                               <Mail className="w-3 h-3" /> Email
                             </Button>
                           )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+                            onClick={() => window.open(`/documents/order/${order.id}/print`, "_blank")}>
+                            <Printer className="w-3 h-3" /> PDF
+                          </Button>
                           {canEditDoc && (
                             <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
                               onClick={() => setEditTarget(order)}>
