@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Cell } from "recharts";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { Loader2, TrendingUp, AlertTriangle, Flame, Receipt, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { severityLabel } from "@/lib/intelligence";
@@ -90,11 +90,11 @@ export default function FinanceIntelligencePage() {
         <p className="text-muted-foreground mt-1">Prévision de trésorerie, anomalies factures, priorisation du recouvrement.</p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">Encours</p><p className="text-2xl font-bold">{formatFCFA(ov.totalOutstanding)}</p><p className="text-[10px] text-muted-foreground mt-1">{ov.openCount} facture(s) ouverte(s)</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">En retard</p><p className="text-2xl font-bold text-red-600">{formatFCFA(ov.totalOverdue)}</p><p className="text-[10px] text-muted-foreground mt-1">{ov.overdueCount} facture(s)</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">DSO (90 j)</p><p className="text-2xl font-bold">{ov.dso} <span className="text-sm text-muted-foreground">jours</span></p><p className="text-[10px] text-muted-foreground mt-1">CA 90 j : {formatFCFA(ov.ca90)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">Prévu sur {horizon} j</p><p className="text-2xl font-bold text-primary">{forecast.data ? formatFCFA(forecast.data.totalExpected) : "…"}</p><p className="text-[10px] text-muted-foreground mt-1">Pondéré : {forecast.data ? formatFCFA(forecast.data.totalWeighted) : "…"}</p></CardContent></Card>
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold truncate">Encours</p><p className="text-base sm:text-2xl font-bold leading-tight break-words">{formatFCFACompact(ov.totalOutstanding)}</p><p className="text-[10px] text-muted-foreground mt-1">{ov.openCount} facture(s) ouverte(s)</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold truncate">En retard</p><p className="text-base sm:text-2xl font-bold text-red-600 leading-tight break-words">{formatFCFACompact(ov.totalOverdue)}</p><p className="text-[10px] text-muted-foreground mt-1">{ov.overdueCount} facture(s)</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold truncate">DSO (90 j)</p><p className="text-base sm:text-2xl font-bold leading-tight">{ov.dso} <span className="text-sm text-muted-foreground">jours</span></p><p className="text-[10px] text-muted-foreground mt-1">CA 90 j : {formatFCFACompact(ov.ca90)}</p></CardContent></Card>
+        <Card><CardContent className="p-3 sm:p-4"><p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold truncate">Prévu sur {horizon} j</p><p className="text-base sm:text-2xl font-bold text-primary leading-tight break-words">{forecast.data ? formatFCFACompact(forecast.data.totalExpected) : "…"}</p><p className="text-[10px] text-muted-foreground mt-1">Pondéré : {forecast.data ? formatFCFACompact(forecast.data.totalWeighted) : "…"}</p></CardContent></Card>
       </div>
 
       <Tabs defaultValue="forecast" className="w-full">

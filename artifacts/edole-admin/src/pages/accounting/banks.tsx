@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { AccountingShell } from "./_layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ export default function BanksPage() {
               <div className="text-xs text-muted-foreground">Compte SYSCOHADA : <span className="font-mono">{b.accountCode}</span></div>
               <div className="mt-3 pt-3 border-t">
                 <div className="text-xs uppercase text-muted-foreground">Solde calculé</div>
-                <div className="text-2xl font-bold text-emerald-600">{formatFCFA(b.computedBalance)}</div>
+                <div className="text-base sm:text-2xl font-bold text-emerald-600 break-words">{formatFCFACompact(b.computedBalance)}</div>
               </div>
             </CardContent>
           </Card>

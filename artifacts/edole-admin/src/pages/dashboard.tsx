@@ -50,7 +50,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -515,7 +515,7 @@ export default function Dashboard() {
             <div>
               <div className="flex items-baseline justify-between">
                 <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Pipeline qualifié</span>
-                <span className="font-display text-2xl font-extrabold text-primary">{formatFCFA(pipeline)}</span>
+                <span className="font-display text-base sm:text-2xl font-extrabold text-primary">{formatFCFACompact(pipeline)}</span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
                 <div className="h-full bg-primary" style={{ width: `${Math.min(100, (pipeline / Math.max(monthlyRevenue || 1, pipeline)) * 100)}%` }} />

@@ -6,13 +6,16 @@ import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, TrendingUp, AlertTriangle, Target, Flame } from "lucide-react";
-import { formatFCFA } from "@/lib/format";
+import { Loader2, TrendingUp, AlertTriangle } from "lucide-react";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { priorityLabel } from "@/lib/intelligence";
 
 const KPI = ({ label, value, accent }: { label: string; value: string | number; accent?: string }) => (
-  <Card><CardContent className="p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1">{label}</p><p className={`text-2xl font-bold ${accent ?? ""}`}>{value}</p></CardContent></Card>
+  <Card><CardContent className="p-3 sm:p-4">
+    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-bold mb-1 truncate">{label}</p>
+    <p className={`text-base sm:text-2xl font-bold leading-tight break-words ${accent ?? ""}`}>{value}</p>
+  </CardContent></Card>
 );
 
 const priorityColor = (p: string) =>
@@ -32,12 +35,12 @@ export default function PipelineIntelligence() {
 
   return (
     <div className="space-y-4">
-      <div><p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1 flex items-center gap-2"><TrendingUp className="w-3 h-3" />Pipeline IA</p><h1 className="text-3xl font-bold tracking-tight">Intelligence commerciale</h1></div>
+      <div><p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1 flex items-center gap-2"><TrendingUp className="w-3 h-3" />Pipeline IA</p><h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Intelligence commerciale</h1></div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
         <KPI label="Opps ouvertes" value={o.totalOpen} />
-        <KPI label="Valeur totale" value={formatFCFA(o.totalValue)} />
-        <KPI label="Valeur pondérée" value={formatFCFA(o.weightedValue)} accent="text-primary" />
+        <KPI label="Valeur totale" value={formatFCFACompact(o.totalValue)} />
+        <KPI label="Valeur pondérée" value={formatFCFACompact(o.weightedValue)} accent="text-primary" />
         <KPI label="Opps chaudes" value={o.hotOpps} accent="text-red-600" />
         <KPI label="Clôture < 30j" value={o.closingSoon} accent="text-amber-600" />
       </div>
@@ -65,29 +68,37 @@ export default function PipelineIntelligence() {
         <TabsContent value="risk" className="space-y-2">
           {ar.data?.rows?.length === 0 && <Card><CardContent className="p-6 text-center text-muted-foreground italic">Aucune opportunité à risque détectée.</CardContent></Card>}
           {ar.data?.rows?.map((r: any) => (
-            <Card key={r.id}><CardContent className="p-3 flex items-center justify-between gap-3">
-              <div className="flex-1"><p className="text-sm font-medium">{r.title}</p><p className="text-xs text-muted-foreground">{r.reasons.join(" · ")}</p></div>
-              <Badge variant="outline">{r.stage}</Badge>
-              <span className="text-sm">{formatFCFA(r.value)}</span>
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><AlertTriangle className="w-3 h-3 mr-1" />{r.riskScore}</Badge>
+            <Card key={r.id}><CardContent className="p-3 flex items-start sm:items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+              <div className="flex-1 min-w-0"><p className="text-sm font-medium">{r.title}</p><p className="text-xs text-muted-foreground">{r.reasons.join(" · ")}</p></div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="outline">{r.stage}</Badge>
+                <span className="text-sm font-medium whitespace-nowrap">{formatFCFACompact(r.value)}</span>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><AlertTriangle className="w-3 h-3 mr-1" />{r.riskScore}</Badge>
+              </div>
             </CardContent></Card>
           ))}
         </TabsContent>
 
         <TabsContent value="actions" className="space-y-2">
           {na.data?.actions?.map((a: any) => (
-            <Card key={a.id}><CardContent className="p-3 flex items-center justify-between gap-3">
-              <div className="flex-1"><p className="text-sm font-medium">{a.title}</p><p className="text-xs text-muted-foreground">{a.nextAction}{a.daysSinceLastActivity !== null && ` · ${a.daysSinceLastActivity}j sans activité`}</p></div>
-              <Badge variant="outline">{a.stage}</Badge>
-              <span className="text-sm">{formatFCFA(a.value)}</span>
-              <Badge variant="outline" className={priorityColor(a.priority)}>{priorityLabel(a.priority)}</Badge>
+            <Card key={a.id}><CardContent className="p-3 flex items-start sm:items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+              <div className="flex-1 min-w-0"><p className="text-sm font-medium">{a.title}</p><p className="text-xs text-muted-foreground">{a.nextAction}{a.daysSinceLastActivity !== null && ` · ${a.daysSinceLastActivity}j sans activité`}</p></div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="outline">{a.stage}</Badge>
+                <span className="text-sm font-medium whitespace-nowrap">{formatFCFACompact(a.value)}</span>
+                <Badge variant="outline" className={priorityColor(a.priority)}>{priorityLabel(a.priority)}</Badge>
+              </div>
             </CardContent></Card>
           ))}
         </TabsContent>
 
         <TabsContent value="stages" className="space-y-2">
           {Object.entries(o.byStage ?? {}).map(([k, v]: any) => (
-            <Card key={k}><CardContent className="p-3 flex items-center justify-between"><span className="text-sm font-medium capitalize">{k}</span><span className="text-xs text-muted-foreground">{v.count} opp(s)</span><span className="text-sm">{formatFCFA(v.value)}</span></CardContent></Card>
+            <Card key={k}><CardContent className="p-3 flex items-center justify-between gap-2">
+              <span className="text-sm font-medium capitalize">{k}</span>
+              <span className="text-xs text-muted-foreground">{v.count} opp(s)</span>
+              <span className="text-sm font-medium whitespace-nowrap">{formatFCFACompact(v.value)}</span>
+            </CardContent></Card>
           ))}
         </TabsContent>
       </Tabs>
