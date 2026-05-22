@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
+import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable } from "@workspace/db";
 import { eq, sql, isNull, and, desc } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
@@ -360,6 +360,20 @@ router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, r
     const [order] = await db.select().from(ordersTable)
       .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
     if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
+    if (order.status === "cancelled") { res.status(422).json({ error: "Impossible de facturer une commande annulée" }); return; }
+
+    // Idempotence : vérifie si une facture existe déjà pour cette commande (via notes)
+    const existing = await db.select({ id: invoicesTable.id, ref: invoicesTable.referenceNumber })
+      .from(invoicesTable)
+      .where(and(
+        eq(invoicesTable.organizationId, orgId),
+        eq(invoicesTable.clientId, order.clientId!),
+        sql`${invoicesTable.notes} LIKE ${'%' + order.referenceNumber + '%'}`,
+      )).limit(1);
+    if (existing.length > 0) {
+      res.status(409).json({ error: "Facture déjà générée pour cette commande", invoiceId: existing[0].id, invoiceRef: existing[0].ref });
+      return;
+    }
 
     const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
     const [inv] = await db.insert(invoicesTable).values({
@@ -379,8 +393,279 @@ router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, r
       logger.error({ err: e, invoiceId: inv.id }, "Comptabilisation facture depuis commande — non bloquant");
     }
 
+    // Piste d'audit
+    await writeAudit(req, "order_generate_invoice", "order", order.id, { invoiceRef: refNum, invoiceId: inv.id });
+
     res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
   } catch (e) { next(e); }
 });
+
+// ─── PATCH /orders/:id/edit — Modification avec règles métier ────────────────
+router.patch("/orders/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [order] = await db.select().from(ordersTable)
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+    if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
+
+    // Règles de modification selon statut
+    const EDITABLE: Record<string, string[]> = {
+      draft:     ["clientId", "totalAmount", "currency", "notes"],
+      confirmed: ["notes"],
+    };
+    const allowed = EDITABLE[order.status];
+    if (!allowed) {
+      res.status(422).json({ error: `La commande en statut "${order.status}" ne peut pas être modifiée` });
+      return;
+    }
+
+    const { clientId, totalAmount, currency, notes } = req.body;
+    const patch: Record<string, unknown> = {};
+    if (allowed.includes("clientId") && clientId !== undefined) patch.clientId = clientId;
+    if (allowed.includes("totalAmount") && totalAmount !== undefined) patch.totalAmount = totalAmount?.toString();
+    if (allowed.includes("currency") && currency !== undefined) patch.currency = currency;
+    if (allowed.includes("notes") && notes !== undefined) patch.notes = notes;
+
+    const before = { status: order.status, totalAmount: order.totalAmount, notes: order.notes };
+    const [updated] = await db.update(ordersTable).set(patch as any)
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "order_edit", "order", order.id, { before, after: patch, reason: req.body.reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount) });
+  } catch (e) { next(e); }
+});
+
+// ─── POST /orders/:id/cancel — Annulation avec règles métier ────────────────
+router.post("/orders/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { reason } = req.body;
+    const [order] = await db.select().from(ordersTable)
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+    if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
+
+    if (order.status === "cancelled") { res.status(409).json({ error: "Commande déjà annulée" }); return; }
+    if (order.status === "delivered") {
+      res.status(422).json({ error: "Une commande livrée ne peut pas être annulée. Créez un avoir." });
+      return;
+    }
+    if (order.status === "confirmed" && !reason?.trim()) {
+      res.status(422).json({ error: "Un motif d'annulation est requis pour une commande confirmée" });
+      return;
+    }
+
+    const [updated] = await db.update(ordersTable)
+      .set({ status: "cancelled" })
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "order_cancel", "order", order.id, { before: { status: order.status }, after: { status: "cancelled" }, reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount) });
+  } catch (e) { next(e); }
+});
+
+// ─── PATCH /proformas/:id/edit — Modification avec règles métier ─────────────
+router.patch("/proformas/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [pro] = await db.select().from(proformasTable)
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+    if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
+
+    const EDITABLE: Record<string, string[]> = {
+      draft: ["clientId", "totalAmount", "validUntil", "notes", "currency"],
+      sent:  ["totalAmount", "validUntil", "notes"],
+    };
+    const allowed = EDITABLE[pro.status];
+    if (!allowed) {
+      res.status(422).json({ error: `Le devis en statut "${pro.status}" ne peut pas être modifié` });
+      return;
+    }
+
+    const { clientId, totalAmount, validUntil, notes, currency } = req.body;
+    const patch: Record<string, unknown> = {};
+    if (allowed.includes("clientId") && clientId !== undefined) patch.clientId = clientId;
+    if (allowed.includes("totalAmount") && totalAmount !== undefined) patch.totalAmount = totalAmount?.toString();
+    if (allowed.includes("validUntil") && validUntil !== undefined) patch.validUntil = validUntil || null;
+    if (allowed.includes("notes") && notes !== undefined) patch.notes = notes;
+    if (allowed.includes("currency") && currency !== undefined) patch.currency = currency;
+
+    const before = { status: pro.status, totalAmount: pro.totalAmount, notes: pro.notes };
+    const [updated] = await db.update(proformasTable).set(patch as any)
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "proforma_edit", "proforma", pro.id, { before, after: patch, reason: req.body.reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount), caution: toNum(updated.caution) });
+  } catch (e) { next(e); }
+});
+
+// ─── POST /proformas/:id/cancel — Annulation avec règles métier ──────────────
+router.post("/proformas/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { reason } = req.body;
+    const [pro] = await db.select().from(proformasTable)
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+    if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
+    if (pro.status === "cancelled") { res.status(409).json({ error: "Devis déjà annulé" }); return; }
+
+    // Si approuvé, vérifier qu'aucune facture n'existe
+    if (pro.status === "approved") {
+      const existingInvoice = await db.select({ id: invoicesTable.id })
+        .from(invoicesTable)
+        .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.proformaId, pro.id))).limit(1);
+      if (existingInvoice.length > 0) {
+        res.status(422).json({ error: "Ce devis a déjà généré une facture — annulez la facture d'abord" });
+        return;
+      }
+      if (!reason?.trim()) {
+        res.status(422).json({ error: "Un motif est requis pour annuler un devis approuvé" });
+        return;
+      }
+    }
+    if (pro.status === "sent" && !reason?.trim()) {
+      res.status(422).json({ error: "Un motif d'annulation est requis pour un devis envoyé" });
+      return;
+    }
+
+    const [updated] = await db.update(proformasTable)
+      .set({ status: "cancelled" })
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "proforma_cancel", "proforma", pro.id, { before: { status: pro.status }, after: { status: "cancelled" }, reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount), caution: toNum(updated.caution) });
+  } catch (e) { next(e); }
+});
+
+// ─── PATCH /invoices/:id/edit — Modification avec règles métier ──────────────
+router.patch("/invoices/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [inv] = await db.select().from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+    if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
+
+    const EDITABLE: Record<string, string[]> = {
+      draft:          ["clientId", "totalAmount", "dueDate", "notes", "currency"],
+      pending:        ["dueDate", "notes"],
+      overdue:        ["dueDate", "notes"],
+      partially_paid: ["notes"],
+    };
+    const allowed = EDITABLE[inv.status];
+    if (!allowed) {
+      res.status(422).json({ error: `La facture en statut "${inv.status}" ne peut pas être modifiée` });
+      return;
+    }
+
+    const { clientId, totalAmount, dueDate, notes, currency } = req.body;
+    const patch: Record<string, unknown> = {};
+    if (allowed.includes("clientId") && clientId !== undefined) patch.clientId = clientId;
+    if (allowed.includes("totalAmount") && totalAmount !== undefined) {
+      // Contrôle interne : montant ne peut pas descendre sous le montant déjà payé
+      const paid = Number(inv.paidAmount ?? 0);
+      if (Number(totalAmount) < paid) {
+        res.status(422).json({ error: `Le montant ne peut pas être inférieur au montant déjà encaissé (${paid} XOF)` });
+        return;
+      }
+      patch.totalAmount = totalAmount.toString();
+    }
+    if (allowed.includes("dueDate") && dueDate !== undefined) patch.dueDate = dueDate || null;
+    if (allowed.includes("notes") && notes !== undefined) patch.notes = notes;
+    if (allowed.includes("currency") && currency !== undefined) patch.currency = currency;
+
+    const before = { status: inv.status, totalAmount: inv.totalAmount, dueDate: inv.dueDate, notes: inv.notes };
+    const [updated] = await db.update(invoicesTable).set(patch as any)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "invoice_edit", "invoice", inv.id, { before, after: patch, reason: req.body.reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount), paidAmount: toNum(updated.paidAmount) });
+  } catch (e) { next(e); }
+});
+
+// ─── POST /invoices/:id/cancel — Annulation avec règles métier ───────────────
+router.post("/invoices/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { reason } = req.body;
+    const [inv] = await db.select().from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+    if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
+    if (inv.status === "cancelled") { res.status(409).json({ error: "Facture déjà annulée" }); return; }
+
+    // Contrôle interne : bloquer si des paiements ont été reçus
+    if (inv.status === "paid") {
+      res.status(422).json({ error: "Facture entièrement encaissée — annulez les paiements via votre comptable avant toute modification" });
+      return;
+    }
+    if (inv.status === "partially_paid") {
+      res.status(422).json({ error: "Un encaissement partiel a déjà été reçu — annulez les paiements associés avant d'annuler cette facture" });
+      return;
+    }
+    if ((inv.status === "pending" || inv.status === "overdue") && !reason?.trim()) {
+      res.status(422).json({ error: "Un motif d'annulation est requis" });
+      return;
+    }
+
+    const [updated] = await db.update(invoicesTable)
+      .set({ status: "cancelled" })
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).returning();
+
+    await writeAudit(req, "invoice_cancel", "invoice", inv.id, { before: { status: inv.status, totalAmount: inv.totalAmount }, after: { status: "cancelled" }, reason });
+
+    res.json({ ...updated, totalAmount: toNum(updated.totalAmount), paidAmount: toNum(updated.paidAmount) });
+  } catch (e) { next(e); }
+});
+
+// ─── GET /commercial-audit — Piste d'audit pour un document commercial ────────
+router.get("/commercial-audit", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { entityType, entityId, limit = "20" } = req.query as Record<string, string>;
+    if (!entityType || !entityId) { res.status(400).json({ error: "entityType et entityId sont requis" }); return; }
+
+    const rows = await db.select().from(auditLogsTable)
+      .where(and(
+        eq(auditLogsTable.organizationId, orgId),
+        eq(auditLogsTable.entityType, entityType),
+        eq(auditLogsTable.entityId as any, entityId),
+      ))
+      .orderBy(desc(auditLogsTable.createdAt))
+      .limit(parseInt(limit));
+
+    res.json({ data: rows });
+  } catch (e) { next(e); }
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+async function writeAudit(
+  req: any,
+  action: string,
+  entityType: string,
+  entityId: string,
+  payload: { before?: unknown; after?: unknown; reason?: string; [k: string]: unknown },
+) {
+  const orgId = req.authUser?.organizationId;
+  if (!orgId) return;
+  try {
+    await db.insert(auditLogsTable).values({
+      organizationId: orgId,
+      userId: req.authUser?.id ?? null,
+      userEmail: req.authUser?.email ?? null,
+      action,
+      entityType,
+      entityId: entityId as any,
+      payload: payload as any,
+      ipAddress: req.ip ?? null,
+      userAgent: req.headers?.["user-agent"] ?? null,
+    });
+  } catch (e: any) {
+    logger.warn({ err: e }, "[audit] write failed");
+  }
+}
 
 export default router;

@@ -1,0 +1,64 @@
+Pouvez-vous revoir en profondeur la **logique de gestion des commandes, devis, factures et encaissements**, afin de corriger les dysfonctionnements actuels et de renforcer le contrôle interne ?
+
+### 1. Problème actuel sur la facturation des commandes
+Aujourd’hui, lorsque nous cliquons sur **“Facturer”** au niveau d’une commande, cela ne fonctionne pas correctement.
+
+Merci de :
+- vérifier la logique actuelle de transformation de la commande en facture
+- corriger le bouton, l’action ou le workflow associé
+- vous assurer que la facturation à partir d’une commande fonctionne de bout en bout
+- tester la cohérence du processus après correction
+
+### 2. Modification / annulation des documents commerciaux
+Je veux également que l’application permette, de manière contrôlée et professionnelle, de :
+
+- modifier une **commande**
+- annuler une **commande**
+- modifier un **devis**
+- annuler un **devis**
+- modifier une **facture** si les règles le permettent
+- annuler une **facture** selon une logique métier sécurisée
+
+### 3. Audit trail / piste d’audit
+Toutes ces actions doivent impérativement être encadrées par un **audit trail** complet.
+
+Je veux que le système garde une trace de :
+- qui a effectué l’action
+- quand l’action a été effectuée
+- quelle donnée a été modifiée
+- l’ancienne valeur et la nouvelle valeur si pertinent
+- la raison de la modification ou de l’annulation si possible
+- le statut avant et après l’action
+
+### 4. Contrôle interne
+Je veux aussi que cette logique tienne compte du **contrôle interne**.
+
+Par exemple :
+- définir ce qu’il est permis de modifier ou d’annuler selon le statut du document
+- empêcher certaines modifications une fois qu’un document a atteint un certain niveau de validation
+- appliquer des restrictions selon le rôle utilisateur
+- exiger une justification ou une validation complémentaire pour certaines opérations sensibles
+
+### 5. Cas spécifique : facture déjà encaissée
+Un point important à traiter :
+si un **encaissement a déjà été reçu**, comment l’application doit-elle gérer l’annulation ou la modification de la facture ?
+
+Je veux une logique métier propre pour ce type de situation, par exemple :
+- empêcher l’annulation directe d’une facture déjà encaissée sans traitement préalable
+- exiger d’abord l’annulation, le remboursement ou l’ajustement de l’encaissement si nécessaire
+- prévoir un mécanisme de régularisation propre et traçable
+- éviter toute incohérence entre commercial, encaissements et comptabilité
+
+### 6. Résultat attendu
+Je veux un workflow beaucoup plus fiable, professionnel et sécurisé pour :
+- les devis
+- les commandes
+- les factures
+- les encaissements
+
+L’objectif final est d’avoir :
+- une logique de facturation qui fonctionne correctement
+- la possibilité de modifier ou d’annuler les documents selon des règles claires
+- une vraie piste d’audit
+- une logique conforme au contrôle interne
+- une bonne gestion des cas sensibles, notamment lorsqu’un encaissement a déjà été reçu
