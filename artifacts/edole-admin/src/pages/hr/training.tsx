@@ -231,7 +231,7 @@ export default function TrainingPage() {
             <Label>Collaborateur</Label>
             <Select value={participantCollab} onValueChange={setParticipantCollab}>
               <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-              <SelectContent>{collaborators.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>)}</SelectContent>
+              <SelectContent>{(Array.isArray(collaborators) ? collaborators : []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <DialogFooter>
