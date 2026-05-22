@@ -134,6 +134,34 @@ export const collaboratorAssignmentsTable = pgTable("collaborator_assignments", 
 }));
 
 // ────────────────────────────────────────────────────────────────
+// DEMANDES D'ABSENCES / CONGÉS
+// ────────────────────────────────────────────────────────────────
+export const leaveRequestsTable = pgTable("leave_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  // congé_payé | RTT | maladie | maternité | paternité | sans_solde | formation | exceptionnel | autre
+  type: text("type").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  // Nombre de jours ouvrables (calculé ou saisi)
+  days: numeric("days", { precision: 5, scale: 1 }).notNull().default("1"),
+  reason: text("reason"),
+  // pending | approved | rejected | cancelled
+  status: text("status").notNull().default("pending"),
+  approvedById: uuid("approved_by_id").references(() => collaboratorsTable.id),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  collabIdx: index("leave_requests_collaborator_idx").on(t.collaboratorId),
+  statusIdx: index("leave_requests_status_idx").on(t.status),
+  dateIdx: index("leave_requests_date_idx").on(t.startDate),
+}));
+
+// ────────────────────────────────────────────────────────────────
 // Schémas Zod & Types
 // ────────────────────────────────────────────────────────────────
 export const insertDepartmentSchema = createInsertSchema(departmentsTable).omit({ id: true, createdAt: true, updatedAt: true });
@@ -142,8 +170,11 @@ export const insertContractSchema = createInsertSchema(contractsTable).omit({ id
 export const insertHrDocumentSchema = createInsertSchema(hrDocumentsTable).omit({ id: true, uploadedAt: true });
 export const insertCollabAssignmentSchema = createInsertSchema(collaboratorAssignmentsTable).omit({ id: true, createdAt: true, updatedAt: true });
 
+export const insertLeaveRequestSchema = createInsertSchema(leaveRequestsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
+
 export type Department = typeof departmentsTable.$inferSelect;
 export type Position = typeof positionsTable.$inferSelect;
 export type Contract = typeof contractsTable.$inferSelect;
 export type HrDocument = typeof hrDocumentsTable.$inferSelect;
 export type CollaboratorAssignment = typeof collaboratorAssignmentsTable.$inferSelect;
+export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;

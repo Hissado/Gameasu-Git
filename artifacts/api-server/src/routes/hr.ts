@@ -11,8 +11,9 @@ import {
   tasksTable,
   equipmentTable,
 } from "@workspace/db";
-import { and, eq, isNull, sql, desc } from "drizzle-orm";
+import { and, eq, isNull, sql, desc, gte, lte } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { leaveRequestsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -445,6 +446,138 @@ router.get("/hr/dashboard", async (_req, res) => {
       collaboratorName: `${e.collabFirst ?? ""} ${e.collabLast ?? ""}`.trim(),
     })),
   });
+});
+
+// ════════════════════════════════════════════════════════════════
+// ABSENCES / CONGÉS
+// ════════════════════════════════════════════════════════════════
+
+router.get("/hr/leaves", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { collaboratorId, status, year } = req.query as Record<string, string>;
+
+  const conditions = [eq(leaveRequestsTable.organizationId, orgId)];
+  if (collaboratorId) conditions.push(eq(leaveRequestsTable.collaboratorId, collaboratorId));
+  if (status && status !== "all") conditions.push(eq(leaveRequestsTable.status, status));
+  if (year) {
+    const y = parseInt(year);
+    conditions.push(gte(leaveRequestsTable.startDate, `${y}-01-01`));
+    conditions.push(lte(leaveRequestsTable.endDate, `${y}-12-31`));
+  }
+
+  const rows = await db.select({
+    l: leaveRequestsTable,
+    collabFirst: collaboratorsTable.firstName,
+    collabLast: collaboratorsTable.lastName,
+    collabAvatar: collaboratorsTable.avatarUrl,
+  }).from(leaveRequestsTable)
+    .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(leaveRequestsTable.startDate));
+
+  res.json({ data: rows.map(r => ({
+    ...r.l,
+    days: Number(r.l.days),
+    collaboratorName: `${r.collabFirst ?? ""} ${r.collabLast ?? ""}`.trim(),
+    collaboratorAvatar: r.collabAvatar,
+  })) });
+});
+
+router.get("/hr/leaves/stats", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const year = parseInt((req.query.year as string) ?? String(new Date().getFullYear()));
+
+  const [pending] = await db.select({ n: sql<number>`COUNT(*)` })
+    .from(leaveRequestsTable)
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.status, "pending")));
+
+  const approvedThisYear = await db.select({ n: sql<number>`COUNT(*)`, days: sql<string>`COALESCE(SUM(${leaveRequestsTable.days}),0)` })
+    .from(leaveRequestsTable)
+    .where(and(
+      eq(leaveRequestsTable.organizationId, orgId),
+      eq(leaveRequestsTable.status, "approved"),
+      gte(leaveRequestsTable.startDate, `${year}-01-01`),
+      lte(leaveRequestsTable.startDate, `${year}-12-31`),
+    ));
+
+  const byType = await db.select({
+    type: leaveRequestsTable.type,
+    n: sql<number>`COUNT(*)`,
+    totalDays: sql<string>`COALESCE(SUM(${leaveRequestsTable.days}),0)`,
+  }).from(leaveRequestsTable)
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.status, "approved"), gte(leaveRequestsTable.startDate, `${year}-01-01`), lte(leaveRequestsTable.startDate, `${year}-12-31`)))
+    .groupBy(leaveRequestsTable.type);
+
+  res.json({
+    pendingCount: Number(pending?.n ?? 0),
+    approvedCount: Number(approvedThisYear[0]?.n ?? 0),
+    approvedDays: Number(approvedThisYear[0]?.days ?? 0),
+    byType: byType.map(t => ({ type: t.type, count: Number(t.n), days: Number(t.totalDays) })),
+  });
+});
+
+router.get("/hr/leaves/:id", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const [row] = await db.select({
+    l: leaveRequestsTable,
+    collabFirst: collaboratorsTable.firstName,
+    collabLast: collaboratorsTable.lastName,
+  }).from(leaveRequestsTable)
+    .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)))
+    .limit(1);
+  if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
+  res.json({ ...row.l, days: Number(row.l.days), collaboratorName: `${row.collabFirst ?? ""} ${row.collabLast ?? ""}`.trim() });
+});
+
+router.post("/hr/leaves", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { collaboratorId, type, startDate, endDate, days, reason, notes } = req.body;
+  if (!collaboratorId || !type || !startDate || !endDate) {
+    res.status(400).json({ error: "Champs requis : collaborateur, type, dates" }); return;
+  }
+  const [row] = await db.insert(leaveRequestsTable).values({
+    organizationId: orgId,
+    collaboratorId,
+    type,
+    startDate,
+    endDate,
+    days: days != null ? String(days) : "1",
+    reason: reason ?? null,
+    notes: notes ?? null,
+    status: "pending",
+  }).returning();
+  res.status(201).json(row);
+});
+
+router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { status, rejectionReason } = req.body;
+  if (!["approved", "rejected", "cancelled"].includes(status)) {
+    res.status(400).json({ error: "Statut invalide" }); return;
+  }
+  const [leave] = await db.select().from(leaveRequestsTable)
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)))
+    .limit(1);
+  if (!leave) { res.status(404).json({ error: "Demande introuvable" }); return; }
+
+  const [updated] = await db.update(leaveRequestsTable).set({
+    status,
+    approvedById: status === "approved" ? req.authUser!.id : leave.approvedById,
+    approvedAt: status === "approved" ? new Date() : null,
+    rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
+    updatedAt: new Date(),
+  }).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id))).returning();
+  res.json(updated);
+});
+
+router.delete("/hr/leaves/:id", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const [row] = await db.select().from(leaveRequestsTable)
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id))).limit(1);
+  if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
+  await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)));
+  res.status(204).send();
 });
 
 export default router;

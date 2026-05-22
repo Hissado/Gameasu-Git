@@ -796,6 +796,68 @@ router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, as
   }
 });
 
+// ── Fiche détaillée immobilisation ───────────────────────────────
+router.get("/accounting/fixed-assets/:id", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const asset = (await db.select().from(fixedAssetsTable)
+    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id)))
+    .limit(1))[0];
+  if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
+
+  const amorts = await db.select({
+    a: amortizationsTable,
+  }).from(amortizationsTable)
+    .where(eq(amortizationsTable.fixedAssetId, asset.id))
+    .orderBy(asc(amortizationsTable.postedAt));
+
+  const cost = toNum(asset.acquisitionCost);
+  const residual = toNum(asset.residualValue);
+  const depreciableBase = cost - residual;
+  const annualAmount = depreciableBase / asset.usefulLifeYears;
+  const accumulated = amorts.reduce((s, r) => s + toNum(r.a.periodAmount), 0);
+
+  // Plan d'amortissement prévisionnel
+  const acqYear = new Date(asset.acquisitionDate).getFullYear();
+  const schedule: Array<{ year: number; annualAmount: number; accumulated: number; netBookValue: number; posted: boolean }> = [];
+  for (let i = 0; i < asset.usefulLifeYears; i++) {
+    const yr = acqYear + i;
+    const accum = Math.min(annualAmount * (i + 1), depreciableBase);
+    schedule.push({
+      year: yr,
+      annualAmount,
+      accumulated: accum,
+      netBookValue: Math.max(cost - accum, residual),
+      posted: amorts.length > i,
+    });
+  }
+
+  res.json({
+    ...asset,
+    acquisitionCost: cost,
+    residualValue: residual,
+    accumulatedDepreciation: accumulated,
+    netBookValue: cost - accumulated,
+    annualAmount,
+    schedule,
+    history: amorts.map(r => ({ ...r.a, periodAmount: toNum(r.a.periodAmount), accumulatedAmount: toNum(r.a.accumulatedAmount) })),
+  });
+});
+
+router.put("/accounting/fixed-assets/:id", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const asset = (await db.select().from(fixedAssetsTable)
+    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).limit(1))[0];
+  if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
+  const { label, category, notes, status } = req.body;
+  const [updated] = await db.update(fixedAssetsTable).set({
+    ...(label != null && { label }),
+    ...(category != null && { category }),
+    ...(notes != null && { notes }),
+    ...(status != null && { status }),
+  }).where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).returning();
+  res.json(updated);
+});
+
 // ════════════════════════════════════════════════════════════════
 // DASHBOARD FINANCIER
 // ════════════════════════════════════════════════════════════════
