@@ -106,7 +106,7 @@ export default function LoginPage() {
 
           {/* ── Logo dans un cadre blanc flottant ── */}
           <div
-            className="w-full max-w-[300px] xl:max-w-[340px] rounded-2xl mb-10 px-8 py-7"
+            className="w-full max-w-[320px] xl:max-w-[360px] rounded-2xl mb-10 px-6 py-5"
             style={{
               background: "linear-gradient(145deg, #FFFFFF 0%, #F8F5EE 100%)",
               boxShadow: "0 20px 60px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)",
