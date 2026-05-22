@@ -1,83 +1,315 @@
-import React from "react";
-import { useListPayments } from "@workspace/api-client-react";
+import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, CreditCard, Calendar, Building, Landmark, Smartphone, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
+import { toast } from "sonner";
 
-export default function PaymentsList() {
-  const { data, isLoading } = useListPayments();
+type Invoice = {
+  id: string; referenceNumber: string; status: string;
+  totalAmount: number | null; paidAmount: number | null;
+  clientName: string | null;
+};
 
-  const getMethodBadge = (method: string) => {
-    switch (method) {
-      case "bank_transfer": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><Landmark className="w-4 h-4 text-slate-400" /> Virement Bancaire</span>;
-      case "cash": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><CreditCard className="w-4 h-4 text-slate-400" /> Espèces</span>;
-      case "mobile_money": return <span className="flex items-center gap-1.5 text-amber-700 text-sm font-bold"><Smartphone className="w-4 h-4 text-amber-400" /> Mobile Money</span>;
-      case "check": return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium"><FileText className="w-4 h-4 text-slate-400" /> Chèque</span>;
-      default: return <span className="flex items-center gap-1.5 text-slate-600 text-sm font-medium">Autre</span>;
+type Payment = {
+  id: string; invoiceId: string; amount: number | null;
+  method: string | null; reference: string | null;
+  paidAt: string | null; createdAt: string;
+};
+
+const METHODS: Record<string, string> = {
+  cash: "Espèces",
+  bank: "Virement bancaire",
+  bank_transfer: "Virement bancaire",
+  mobile_money: "Mobile Money",
+  check: "Chèque",
+  other: "Autre",
+};
+
+function getMethodBadge(method: string | null) {
+  const m = method ?? "other";
+  const icons: Record<string, React.ReactNode> = {
+    bank: <Landmark className="w-4 h-4 text-slate-400" />,
+    bank_transfer: <Landmark className="w-4 h-4 text-slate-400" />,
+    cash: <CreditCard className="w-4 h-4 text-slate-400" />,
+    mobile_money: <Smartphone className="w-4 h-4 text-amber-400" />,
+    check: <FileText className="w-4 h-4 text-slate-400" />,
+  };
+  const label = METHODS[m] ?? "Autre";
+  const isMobile = m === "mobile_money";
+  return (
+    <span className={`flex items-center gap-1.5 text-sm font-medium ${isMobile ? "text-amber-700" : "text-slate-600"}`}>
+      {icons[m] ?? <CreditCard className="w-4 h-4 text-slate-400" />}
+      {label}
+    </span>
+  );
+}
+
+// ─── RecordPaymentDialog ──────────────────────────────────────────────────────
+
+function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { data: invoicesData, isLoading: loadingInvoices } = useQuery<{ data: Invoice[] }>({
+    queryKey: ["invoices-unpaid"],
+    queryFn: () => apiFetch("/api/invoices?limit=100"),
+  });
+
+  const unpaidInvoices = (invoicesData?.data ?? []).filter(
+    (inv) => inv.status !== "paid" && inv.status !== "cancelled"
+  );
+
+  const [invoiceId, setInvoiceId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("bank");
+  const [reference, setReference] = useState("");
+  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const selectedInvoice = unpaidInvoices.find((i) => i.id === invoiceId);
+  const remaining = selectedInvoice
+    ? Math.max(0, (selectedInvoice.totalAmount ?? 0) - (selectedInvoice.paidAmount ?? 0))
+    : 0;
+
+  const handleInvoiceChange = (id: string) => {
+    setInvoiceId(id);
+    const inv = unpaidInvoices.find((i) => i.id === id);
+    if (inv) {
+      setAmount(String(Math.max(0, (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0))));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!invoiceId) { toast.error("Sélectionnez une facture"); return; }
+    if (!amount || Number(amount) <= 0) { toast.error("Montant invalide"); return; }
+    setSaving(true);
+    try {
+      await apiFetch("/api/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          invoiceId,
+          amount: Number(amount),
+          currency: "XOF",
+          method,
+          reference: reference || undefined,
+          paidAt,
+          notes: notes || undefined,
+        }),
+      });
+      toast.success("Paiement enregistré et comptabilisé automatiquement");
+      onSuccess();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur lors de l'enregistrement");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-[#C8A24B]" /> Saisir un encaissement
+          </DialogTitle>
+          <DialogDescription>
+            Le paiement est comptabilisé automatiquement (débit 521/571 · crédit 411).
+          </DialogDescription>
+        </DialogHeader>
+
+        {loadingInvoices ? (
+          <div className="py-6 space-y-3">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ) : unpaidInvoices.length === 0 ? (
+          <div className="py-6 text-center text-muted-foreground text-sm">
+            <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            Aucune facture impayée à ce jour.
+          </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>Facture à encaisser *</Label>
+              <Select value={invoiceId} onValueChange={handleInvoiceChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une facture…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unpaidInvoices.map((inv) => (
+                    <SelectItem key={inv.id} value={inv.id}>
+                      {inv.referenceNumber}
+                      {inv.clientName ? ` — ${inv.clientName}` : ""}
+                      {" · "}reste {formatFCFA(Math.max(0, (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0)))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedInvoice && (
+                <p className="text-xs text-muted-foreground">
+                  Solde restant :{" "}
+                  <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Montant (FCFA) *</Label>
+                <Input
+                  type="number" min="1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Mode de paiement</Label>
+                <Select value={method} onValueChange={setMethod}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank">Virement bancaire</SelectItem>
+                    <SelectItem value="cash">Espèces</SelectItem>
+                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                    <SelectItem value="check">Chèque</SelectItem>
+                    <SelectItem value="other">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Date d'encaissement</Label>
+                <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Référence / N° virement</Label>
+                <Input placeholder="REF-2026-001" value={reference} onChange={(e) => setReference(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          {unpaidInvoices.length > 0 && (
+            <Button
+              onClick={handleSave}
+              disabled={saving || !invoiceId}
+              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+            >
+              {saving ? "Enregistrement…" : "Valider le paiement"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function PaymentsList() {
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { data, isLoading } = useQuery<{ data: Payment[] }>({
+    queryKey: ["payments"],
+    queryFn: () => apiFetch("/api/payments?limit=50"),
+  });
+
+  const payments = (data?.data ?? []).filter((p) =>
+    !search ||
+    (p.reference ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    p.invoiceId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalEncaisse = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
+
+  return (
+    <div className="space-y-5 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Encaissements</h1>
-          <p className="text-sm text-muted-foreground mt-1">Encaissements clients</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Journal des paiements clients ·{" "}
+            <strong className="text-emerald-600">{formatFCFA(totalEncaisse)}</strong> encaissé
+          </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Saisir un Encaissement
+        <Button
+          onClick={() => setDialogOpen(true)}
+          className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold shadow-sm gap-1.5"
+        >
+          <Plus className="w-4 h-4" strokeWidth={3} />
+          Saisir un encaissement
         </Button>
       </div>
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle className="text-lg">Journal des Paiements</CardTitle>
+            <CardTitle className="text-lg">Journal des paiements</CardTitle>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="N° Facture, Référence..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
+                <Input
+                  type="search"
+                  placeholder="N° Facture, Référence…"
+                  className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
               <Button variant="outline" size="sm" className="h-9">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtres
+                <Filter className="w-4 h-4 mr-2" /> Filtres
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+            <div className="p-8 space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
           ) : (
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="font-semibold text-slate-600">N° Facture Liée</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Moyen de Paiement</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Réf. Transaction</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Montant Encaissé</TableHead>
+                  <TableHead className="font-semibold text-slate-600">N° Facture liée</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Moyen de paiement</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Réf. transaction</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Montant encaissé</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {!data?.data || data.data.length === 0 ? (
+                {payments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <CreditCard className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-lg font-medium text-slate-600">Aucun paiement enregistré.</p>
+                        <p className="text-sm mt-1">Cliquez sur « Saisir un encaissement » pour commencer.</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.data.map((payment) => (
+                  payments.map((payment) => (
                     <TableRow key={payment.id} className="hover:bg-slate-50/50">
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
@@ -86,9 +318,9 @@ export default function PaymentsList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 font-mono text-xs hover:bg-blue-100 cursor-pointer">
-                          {payment.invoiceId.substring(0, 8).toUpperCase()}...
-                        </Badge>
+                        <span className="bg-blue-50 text-blue-700 font-mono text-xs px-2 py-0.5 rounded border border-blue-200">
+                          {payment.invoiceId.substring(0, 8).toUpperCase()}…
+                        </span>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {getMethodBadge(payment.method)}
@@ -107,6 +339,17 @@ export default function PaymentsList() {
           )}
         </CardContent>
       </Card>
+
+      {dialogOpen && (
+        <RecordPaymentDialog
+          onClose={() => setDialogOpen(false)}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["payments"] });
+            qc.invalidateQueries({ queryKey: ["invoices"] });
+            qc.invalidateQueries({ queryKey: ["invoices-unpaid"] });
+          }}
+        />
+      )}
     </div>
   );
 }

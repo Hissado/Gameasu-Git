@@ -211,7 +211,7 @@ export default function Client360Tab({ clientId }: { clientId: string }) {
               const remaining = Math.max(0, t - p);
               const overdue = remaining > 0 && inv.dueDate && new Date(inv.dueDate) < new Date();
               return (
-                <Link key={inv.id} href={`/invoices/${inv.id}`}>
+                <Link key={inv.id} href={`/invoices`}>
                   <div className="flex items-center gap-2 text-sm py-1.5 px-2 rounded hover:bg-muted/50">
                     <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="font-medium flex-1 truncate">{inv.invoiceNumber ?? inv.id.slice(0, 8)}</span>
