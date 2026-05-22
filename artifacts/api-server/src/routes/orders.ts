@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
-import { eq, sql, isNull, and } from "drizzle-orm";
+import { eq, sql, isNull, and, desc } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
 import { logger } from "../lib/logger";
@@ -261,6 +261,126 @@ router.post("/payments", requireManagerOrAbove, async (req, res) => {
   }
 
   return res.status(201).json({ ...payment, amount: toNum(payment.amount) });
+});
+
+// ─── GET /clients/:id/commercial ─────────────────────────────────────────────
+router.get("/clients/:id/commercial", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const clientId = req.params.id;
+
+    const [client] = await db.select().from(clientsTable)
+      .where(and(eq(clientsTable.organizationId, orgId), eq(clientsTable.id, clientId))).limit(1);
+    if (!client) { res.status(404).json({ error: "Client introuvable" }); return; }
+
+    const [proformas, orders, invoices] = await Promise.all([
+      db.select().from(proformasTable)
+        .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.clientId, clientId)))
+        .orderBy(desc(proformasTable.createdAt)),
+      db.select().from(ordersTable)
+        .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.clientId, clientId), isNull(ordersTable.deletedAt)))
+        .orderBy(desc(ordersTable.createdAt)),
+      db.select().from(invoicesTable)
+        .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.clientId, clientId)))
+        .orderBy(desc(invoicesTable.createdAt)),
+    ]);
+
+    const invoiceIds = invoices.map(i => i.id);
+    let rawPayments: { pay: typeof paymentsTable.$inferSelect; invoiceRef: string | null }[] = [];
+    if (invoiceIds.length > 0) {
+      rawPayments = await db.select({ pay: paymentsTable, invoiceRef: invoicesTable.referenceNumber })
+        .from(paymentsTable)
+        .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
+        .where(and(eq(paymentsTable.organizationId, orgId), eq(invoicesTable.clientId, clientId)))
+        .orderBy(desc(paymentsTable.paidAt));
+    }
+
+    const totalInvoiced = invoices.reduce((s, i) => s + (i.totalAmount ? Number(i.totalAmount) : 0), 0);
+    const totalPaid = invoices.reduce((s, i) => s + (i.paidAmount ? Number(i.paidAmount) : 0), 0);
+
+    res.json({
+      kpis: {
+        totalProformas: proformas.length,
+        totalOrders: orders.length,
+        totalInvoices: invoices.length,
+        totalInvoiced,
+        totalPaid,
+        outstandingBalance: totalInvoiced - totalPaid,
+      },
+      proformas: proformas.map(p => ({ ...p, totalAmount: toNum(p.totalAmount) })),
+      orders: orders.map(o => ({ ...o, totalAmount: toNum(o.totalAmount) })),
+      invoices: invoices.map(i => ({ ...i, totalAmount: toNum(i.totalAmount), paidAmount: toNum(i.paidAmount) })),
+      payments: rawPayments.map(p => ({ ...p.pay, amount: toNum(p.pay.amount), invoiceRef: p.invoiceRef })),
+    });
+  } catch (e) { next(e); }
+});
+
+// ─── POST /proformas/:id/generate-invoice ─────────────────────────────────────
+router.post("/proformas/:id/generate-invoice", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [pro] = await db.select().from(proformasTable)
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+    if (!pro) { res.status(404).json({ error: "Proforma introuvable" }); return; }
+
+    const existing = await db.select().from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.proformaId, pro.id))).limit(1);
+    if (existing.length > 0) {
+      res.status(409).json({ error: "Facture déjà générée pour ce devis", invoiceId: existing[0].id, invoiceRef: existing[0].referenceNumber });
+      return;
+    }
+
+    const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+    const [inv] = await db.insert(invoicesTable).values({
+      organizationId: orgId,
+      referenceNumber: refNum,
+      proformaId: pro.id,
+      clientId: pro.clientId,
+      status: "pending",
+      totalAmount: pro.totalAmount,
+      currency: pro.currency ?? "XOF",
+      notes: `Facture générée depuis le devis ${pro.referenceNumber}`,
+      issuedAt: new Date().toISOString().slice(0, 10),
+    }).returning();
+
+    try {
+      await postCustomerInvoice(orgId, inv.id, req.authUser?.id);
+    } catch (e: any) {
+      logger.error({ err: e, invoiceId: inv.id }, "Comptabilisation facture depuis proforma — non bloquant");
+    }
+
+    res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
+  } catch (e) { next(e); }
+});
+
+// ─── POST /orders/:id/generate-invoice ────────────────────────────────────────
+router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [order] = await db.select().from(ordersTable)
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+    if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
+
+    const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+    const [inv] = await db.insert(invoicesTable).values({
+      organizationId: orgId,
+      referenceNumber: refNum,
+      clientId: order.clientId,
+      status: "pending",
+      totalAmount: order.totalAmount,
+      currency: order.currency ?? "XOF",
+      notes: `Facture générée depuis la commande ${order.referenceNumber}`,
+      issuedAt: new Date().toISOString().slice(0, 10),
+    }).returning();
+
+    try {
+      await postCustomerInvoice(orgId, inv.id, req.authUser?.id);
+    } catch (e: any) {
+      logger.error({ err: e, invoiceId: inv.id }, "Comptabilisation facture depuis commande — non bloquant");
+    }
+
+    res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
+  } catch (e) { next(e); }
 });
 
 export default router;

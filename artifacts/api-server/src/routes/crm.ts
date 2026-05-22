@@ -108,4 +108,42 @@ router.post("/crm/activities", async (req, res) => {
   return res.status(201).json(act);
 });
 
+// ─── POST /crm/opportunities/:id/convert-to-client ───────────────────────────
+router.post("/crm/opportunities/:id/convert-to-client", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [opp] = await db.select().from(opportunitiesTable)
+      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, req.params.id))).limit(1);
+    if (!opp) { res.status(404).json({ error: "Opportunité introuvable" }); return; }
+
+    let clientId = opp.clientId;
+    let created = false;
+
+    if (clientId) {
+      await db.update(clientsTable)
+        .set({ status: "active" })
+        .where(and(eq(clientsTable.organizationId, orgId), eq(clientsTable.id, clientId)));
+    } else {
+      const { name, email, phone, industry } = req.body as Record<string, string>;
+      const [newClient] = await db.insert(clientsTable).values({
+        organizationId: orgId,
+        name: name || opp.title,
+        email: email ?? undefined,
+        phone: phone ?? undefined,
+        industry: industry ?? undefined,
+        status: "active",
+      }).returning();
+      clientId = newClient.id;
+      created = true;
+    }
+
+    const [updatedOpp] = await db.update(opportunitiesTable)
+      .set({ stage: "won", clientId })
+      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, req.params.id)))
+      .returning();
+
+    res.json({ clientId, created, opportunity: { ...updatedOpp, value: updatedOpp.value ? Number(updatedOpp.value) : null } });
+  } catch (e) { next(e); }
+});
+
 export default router;

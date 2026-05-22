@@ -1,54 +1,236 @@
-import React from "react";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetCrmPipeline, useListOpportunities } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Building, Briefcase } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Building, Briefcase, ArrowRight, UserCheck, FileText, ChevronDown } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { Link } from "wouter";
 
-export default function CrmHome() {
-  const { data: pipeline, isLoading: isLoadingPipeline } = useGetCrmPipeline();
-  const { data: opportunities, isLoading: isLoadingOpps } = useListOpportunities();
+const STAGES = [
+  { key: "lead",        label: "Prospects",      colorCls: "border-t-slate-400 bg-slate-50" },
+  { key: "qualified",   label: "Qualifiés",       colorCls: "border-t-blue-400 bg-blue-50/30" },
+  { key: "proposal",    label: "En proposition",  colorCls: "border-t-indigo-400 bg-indigo-50/30" },
+  { key: "negotiation", label: "Négociation",     colorCls: "border-t-amber-400 bg-amber-50/30" },
+  { key: "won",         label: "Gagnés",          colorCls: "border-t-emerald-400 bg-emerald-50/30" },
+  { key: "lost",        label: "Perdus",          colorCls: "border-t-red-400 bg-red-50/30" },
+];
 
-  const getStageTitle = (stage: string) => {
-    switch (stage) {
-      case "lead": return "Prospects";
-      case "qualified": return "Qualifiés";
-      case "proposal": return "En proposition";
-      case "negotiation": return "Négociation";
-      case "won": return "Gagnés";
-      case "lost": return "Perdus";
-      default: return stage;
-    }
-  };
+const STAGE_LABELS: Record<string, string> = Object.fromEntries(STAGES.map(s => [s.key, s.label]));
 
-  const getStageColor = (stage: string) => {
-    switch (stage) {
-      case "lead": return "bg-slate-200 border-slate-300 text-slate-700";
-      case "qualified": return "bg-blue-100 border-blue-200 text-blue-700";
-      case "proposal": return "bg-indigo-100 border-indigo-200 text-indigo-700";
-      case "negotiation": return "bg-amber-100 border-amber-200 text-amber-700";
-      case "won": return "bg-green-100 border-green-200 text-green-700";
-      case "lost": return "bg-red-100 border-red-200 text-red-700";
-      default: return "bg-slate-100 border-slate-200 text-slate-700";
+type Opp = {
+  id: string; title: string; stage: string;
+  value: number | null; clientId: string | null; clientName: string | null;
+  probability: number | null; expectedCloseDate: string | null;
+};
+
+// ─── ConvertDialog ────────────────────────────────────────────────────────────
+
+function ConvertDialog({ opp, onClose }: { opp: Opp; onClose: (clientId?: string) => void }) {
+  const [name, setName] = useState(opp.clientName || opp.title);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const hasClient = !!opp.clientId;
+
+  const handleConvert = async () => {
+    setSaving(true);
+    try {
+      const result = await apiFetch(`/api/crm/opportunities/${opp.id}/convert-to-client`, {
+        method: "POST",
+        body: JSON.stringify({ name, email: email || undefined, phone: phone || undefined }),
+      }) as { clientId: string; created: boolean };
+      toast.success(result.created ? "Client créé et opportunité marquée gagnée" : "Client activé et opportunité marquée gagnée");
+      onClose(result.clientId);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur lors de la conversion");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-emerald-500" />
+            {hasClient ? "Activer le client" : "Convertir en client"}
+          </DialogTitle>
+          <DialogDescription>
+            {hasClient
+              ? `Le client lié à cette opportunité passera en statut "Actif".`
+              : "Un nouveau compte client sera créé depuis cette opportunité."}
+          </DialogDescription>
+        </DialogHeader>
+        {!hasClient && (
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Nom du client *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input type="email" placeholder="contact@entreprise.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Téléphone</Label>
+                <Input placeholder="+228 90000000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose()} disabled={saving}>Annuler</Button>
+          <Button onClick={handleConvert} disabled={saving || (!hasClient && !name.trim())}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+            <UserCheck className="w-4 h-4" />
+            {saving ? "…" : hasClient ? "Activer le client" : "Créer le client"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── NewOpportunityDialog ─────────────────────────────────────────────────────
+
+function NewOpportunityDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [title, setTitle] = useState("");
+  const [value, setValue] = useState("");
+  const [stage, setStage] = useState("lead");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!title.trim()) { toast.error("Titre requis"); return; }
+    setSaving(true);
+    try {
+      await apiFetch("/api/crm/opportunities", {
+        method: "POST",
+        body: JSON.stringify({ title, value: value ? Number(value) : undefined, stage, currency: "XOF", notes: notes || undefined }),
+      });
+      toast.success("Opportunité créée");
+      onSuccess();
+      onClose();
+    } catch {
+      toast.error("Erreur lors de la création");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-[#C8A24B]" /> Nouvelle opportunité
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Titre *</Label>
+            <Input placeholder="Contrat de maintenance…" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Valeur estimée (FCFA)</Label>
+              <Input type="number" min="0" placeholder="5 000 000" value={value} onChange={(e) => setValue(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Stade</Label>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STAGES.filter(s => s.key !== "won" && s.key !== "lost").map(s => (
+                    <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Notes</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            {saving ? "Création…" : "Créer l'opportunité"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function CrmHome() {
+  const qc = useQueryClient();
+  const { data: pipeline, isLoading: isLoadingPipeline } = useGetCrmPipeline();
+  const { data: opportunities, isLoading: isLoadingOpps, refetch } = useListOpportunities();
+
+  const [newOppOpen, setNewOppOpen] = useState(false);
+  const [convertOpp, setConvertOpp] = useState<Opp | null>(null);
+  const [movingOpp, setMovingOpp] = useState<string | null>(null);
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, stage }: { id: string; stage: string }) =>
+      apiFetch(`/api/crm/opportunities/${id}`, { method: "PUT", body: JSON.stringify({ stage }) }),
+    onSuccess: () => { refetch(); qc.invalidateQueries({ queryKey: ["GetCrmPipeline"] }); },
+    onError: () => toast.error("Erreur lors du déplacement"),
+  });
+
+  const handleConvertClose = (clientId?: string) => {
+    setConvertOpp(null);
+    refetch();
+    qc.invalidateQueries({ queryKey: ["GetCrmPipeline"] });
+    if (clientId) toast.success(`Fiche client accessible depuis l'annuaire`);
+  };
+
+  const isLoading = isLoadingPipeline || isLoadingOpps;
+
+  return (
+    <div className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Pipeline Commercial</h1>
-          <p className="text-sm text-muted-foreground mt-1">Pipeline d'opportunités</p>
+          <h1 className="text-2xl font-bold tracking-tight">Pipeline Commercial</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {opportunities?.total ?? 0} opportunités ·{" "}
+            {pipeline && formatFCFA(pipeline.totalValue ?? 0)} en pipeline
+          </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Nouvelle Opportunité
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/crm/clients">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Building className="w-4 h-4" /> Annuaire clients
+            </Button>
+          </Link>
+          <Button onClick={() => setNewOppOpen(true)}
+            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+            <Plus className="w-4 h-4" strokeWidth={3} />
+            Nouvelle opportunité
+          </Button>
+        </div>
       </div>
 
-      {(isLoadingPipeline || isLoadingOpps) ? (
+      {/* Pipeline board */}
+      {isLoading ? (
         <div className="flex gap-4 overflow-hidden h-full">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="flex-1 min-w-[300px] max-w-[350px] bg-slate-50/50 rounded-xl border border-border p-3">
@@ -61,50 +243,110 @@ export default function CrmHome() {
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4 flex-1 items-start custom-scrollbar">
-          {pipeline?.stages?.map((stage) => (
-            <div key={stage.stage} className="flex-1 min-w-[320px] max-w-[350px] bg-slate-50 rounded-xl border border-border/50 flex flex-col h-full max-h-full">
-              <div className={`p-3 border-b border-border/50 flex justify-between items-center bg-white/50 rounded-t-xl ${getStageColor(stage.stage).replace('text-', 'border-t-4 border-t-')}`}>
-                <div>
-                  <h3 className="font-bold text-sm uppercase tracking-wider">{getStageTitle(stage.stage)}</h3>
-                  <p className="text-xs text-muted-foreground font-medium mt-0.5">{formatFCFA(stage.totalValue)}</p>
-                </div>
-                <Badge variant="secondary" className="font-bold bg-white shadow-sm border-border">
-                  {stage.count}
-                </Badge>
-              </div>
-              
-              <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-                {opportunities?.data?.filter(opp => opp.stage === stage.stage).map(opp => (
-                  <Card key={opp.id} className="cursor-pointer hover:border-primary/50 transition-colors shadow-sm group">
-                    <CardContent className="p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">{opp.title}</h4>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-xs text-slate-600">
-                          <Building className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          <span className="truncate font-medium">{opp.clientName || "Prospect non assigné"}</span>
-                        </div>
-                        <div className="flex items-center text-xs text-slate-600">
-                          <Briefcase className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          <span className="font-bold text-slate-800">{formatFCFA(opp.value)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {opportunities?.data?.filter(opp => opp.stage === stage.stage).length === 0 && (
-                  <div className="text-center p-6 text-sm text-muted-foreground bg-white/50 rounded-lg border border-dashed border-border flex flex-col items-center justify-center">
-                    <Briefcase className="w-8 h-8 text-slate-200 mb-2" />
-                    Aucune opportunité
+        <div className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
+          {STAGES.map((stage) => {
+            const stageOpps = (opportunities?.data as Opp[] ?? []).filter(o => o.stage === stage.key);
+            const stageTotal = stageOpps.reduce((s, o) => s + (o.value ?? 0), 0);
+
+            return (
+              <div key={stage.key}
+                className={`flex-1 min-w-[280px] max-w-[340px] rounded-xl border border-border/50 border-t-4 flex flex-col max-h-full ${stage.colorCls}`}>
+                {/* Column header */}
+                <div className="px-3 pt-3 pb-2 flex items-center justify-between bg-white/60 rounded-t-lg backdrop-blur-sm border-b border-border/30">
+                  <div>
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">{stage.label}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-medium">{formatFCFA(stageTotal)}</p>
                   </div>
-                )}
+                  <Badge variant="secondary" className="font-bold bg-white shadow-sm border-border text-xs">
+                    {stageOpps.length}
+                  </Badge>
+                </div>
+
+                {/* Cards */}
+                <div className="p-2 space-y-2 overflow-y-auto flex-1">
+                  {stageOpps.map(opp => (
+                    <Card key={opp.id} className="shadow-sm hover:shadow-md transition-shadow bg-white">
+                      <CardContent className="p-3 space-y-2">
+                        <div className="font-semibold text-sm leading-tight">{opp.title}</div>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <Building className="w-3 h-3 shrink-0 text-slate-400" />
+                          <span className="truncate">{opp.clientName || <span className="italic text-slate-400">Prospect non assigné</span>}</span>
+                        </div>
+                        {opp.value && (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                            <Briefcase className="w-3 h-3 text-slate-400" />
+                            {formatFCFA(opp.value)}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 pt-1 flex-wrap">
+                          {opp.clientId && (
+                            <Link href={`/crm/clients/${opp.clientId}`}>
+                              <button className="text-[10px] font-semibold px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center gap-1 transition-colors">
+                                <Building className="w-3 h-3" /> Fiche client
+                              </button>
+                            </Link>
+                          )}
+                          {opp.clientId && (
+                            <Link href={`/crm/clients/${opp.clientId}?action=proforma`}>
+                              <button className="text-[10px] font-semibold px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center gap-1 transition-colors">
+                                <FileText className="w-3 h-3" /> Devis
+                              </button>
+                            </Link>
+                          )}
+                          {stage.key !== "won" && stage.key !== "lost" && (
+                            <button
+                              onClick={() => setConvertOpp(opp)}
+                              className="text-[10px] font-semibold px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center gap-1 transition-colors">
+                              <UserCheck className="w-3 h-3" /> Convertir
+                            </button>
+                          )}
+                          {stage.key === "won" && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">✓ Gagné</span>
+                          )}
+                        </div>
+
+                        {/* Stage mover */}
+                        <div className="flex items-center gap-1 pt-0.5">
+                          {STAGES.filter(s => s.key !== stage.key).map(s => (
+                            <button key={s.key}
+                              onClick={() => moveMutation.mutate({ id: opp.id, stage: s.key })}
+                              disabled={moveMutation.isPending && movingOpp === opp.id}
+                              title={`Déplacer vers : ${s.label}`}
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded border border-slate-200 hover:border-slate-400 text-slate-500 hover:text-slate-700 transition-colors">
+                              → {s.label.split(" ")[0]}
+                            </button>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {stageOpps.length === 0 && (
+                    <div className="text-center p-6 text-xs text-muted-foreground bg-white/50 rounded-lg border border-dashed border-border">
+                      <Briefcase className="w-6 h-6 mx-auto text-slate-200 mb-1.5" />
+                      Aucune opportunité
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* Dialogs */}
+      {newOppOpen && (
+        <NewOpportunityDialog
+          onClose={() => setNewOppOpen(false)}
+          onSuccess={() => {
+            refetch();
+            qc.invalidateQueries({ queryKey: ["GetCrmPipeline"] });
+          }}
+        />
+      )}
+      {convertOpp && <ConvertDialog opp={convertOpp} onClose={handleConvertClose} />}
     </div>
   );
 }

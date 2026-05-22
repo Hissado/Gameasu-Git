@@ -1,0 +1,64 @@
+Pouvez-vous revoir entièrement l’onglet **Commercial / Ventes & Relation client** et vous assurer que tout le workflow commercial est **correctement structuré, bien relié et parfaitement synchronisé** avec le reste de l’application, notamment la **comptabilité** ?
+
+### Objectif
+Je veux que tout le cycle commercial suive une logique fluide, professionnelle et cohérente, depuis le **prospect** jusqu’à l’**encaissement**, sans rupture entre les étapes.
+
+### Workflow attendu
+Merci de vérifier et de faire en sorte que le processus suivant soit bien pris en charge de bout en bout :
+
+- Prospect
+- transformation en client
+- devis
+- commande
+- facture
+- encaissement
+
+Tout cela doit suivre une **logique claire**, avec des transitions naturelles entre les étapes, et chaque élément doit être correctement lié aux autres.
+
+### Ce qu’il faut vérifier / corriger
+Merci de vous assurer que :
+
+- un **prospect** peut être transformé proprement en **client**
+- un **devis** peut être créé à partir d’un prospect ou d’un client
+- une **commande** peut être générée à partir d’un devis si pertinent
+- une **facture** peut être générée selon le bon workflow
+- un **encaissement** peut être enregistré facilement
+- toutes ces étapes restent liées entre elles dans l’historique commercial
+
+### Synchronisation avec la comptabilité
+Je veux également que tout le flux commercial soit bien relié au module **Comptabilité**.
+
+Par exemple :
+- la facture doit avoir un impact cohérent dans la comptabilité
+- l’encaissement doit être relié à la facture et aux écritures concernées
+- le client, ses ventes, ses paiements et ses soldes doivent être synchronisés correctement
+- il ne doit pas y avoir de rupture entre le commercial et la finance
+
+### Expérience utilisateur attendue
+Je veux une expérience plus fluide et plus pratique.
+
+Par exemple, lorsqu’on clique sur la fiche d’un **client**, on doit pouvoir directement :
+- enregistrer un encaissement
+- créer un devis
+- créer une commande
+- émettre une facture
+- consulter l’historique commercial
+- voir les paiements, soldes, documents et interactions liés
+
+L’idée est que tout soit :
+- connecté
+- synchronisé
+- facilement accessible
+- interchangeable de manière logique
+- simple à utiliser
+
+### Résultat attendu
+Je veux un onglet Commercial beaucoup plus :
+- structuré
+- cohérent
+- fluide
+- intégré
+- synchronisé avec la comptabilité
+- user-friendly
+
+L’objectif final est d’avoir un véritable workflow commercial complet, de la prospection à l’encaissement, avec une navigation simple, logique et professionnelle dans toute l’application.
