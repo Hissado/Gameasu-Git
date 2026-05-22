@@ -310,7 +310,7 @@ function EditCollaboratorDialog({
                   <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— Aucun —</SelectItem>
-                    {posts.map((p: any) => <SelectItem key={p.pos.id} value={p.pos.id}>{p.pos.title}</SelectItem>)}
+                    {posts.filter((p: any) => p?.pos?.id).map((p: any) => <SelectItem key={p.pos.id} value={p.pos.id}>{p.pos.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
