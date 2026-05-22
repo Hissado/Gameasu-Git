@@ -921,4 +921,259 @@ router.get("/accounting/dashboard", async (req, res) => {
   });
 });
 
+// ════════════════════════════════════════════════════════════════
+// LETTRAGE DES ÉCRITURES (pointage auxiliaire tiers)
+// ════════════════════════════════════════════════════════════════
+
+// GET /accounting/matching?accountCode=411&thirdPartyType=client&thirdPartyId=xxx
+// Retourne les lignes non lettrées (solde ≠ 0) pour un tiers donné
+router.get("/accounting/matching", async (req, res, next) => {
+  try {
+    const { accountCode, accountId: accountIdParam, thirdPartyType, thirdPartyId } = req.query as Record<string, string>;
+    const orgId = req.authUser!.organizationId;
+
+    let resolvedAccountId = accountIdParam;
+    if (!resolvedAccountId && accountCode) {
+      const [acc] = await db.select({ id: chartOfAccountsTable.id })
+        .from(chartOfAccountsTable)
+        .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, accountCode))).limit(1);
+      resolvedAccountId = acc?.id;
+    }
+
+    const conds: any[] = [
+      eq(journalEntriesTable.organizationId, orgId),
+      eq(journalEntriesTable.status, "posted"),
+      isNull(journalEntryLinesTable.reconciledAt),
+    ];
+    if (resolvedAccountId) conds.push(eq(journalEntryLinesTable.accountId, resolvedAccountId));
+    if (thirdPartyType) conds.push(eq(journalEntryLinesTable.thirdPartyType, thirdPartyType));
+    if (thirdPartyId) conds.push(eq(journalEntryLinesTable.thirdPartyId, thirdPartyId));
+
+    const rows = await db
+      .select({
+        line: journalEntryLinesTable,
+        entryNumber: journalEntriesTable.entryNumber,
+        entryDate: journalEntriesTable.entryDate,
+        description: journalEntriesTable.description,
+        accountCode: chartOfAccountsTable.code,
+        accountLabel: chartOfAccountsTable.label,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(...conds))
+      .orderBy(asc(journalEntriesTable.entryDate));
+
+    res.json({
+      data: rows.map((r) => ({
+        lineId: r.line.id,
+        entryId: r.line.entryId,
+        entryNumber: r.entryNumber,
+        entryDate: r.entryDate,
+        description: r.line.description ?? r.description,
+        accountCode: r.accountCode,
+        accountLabel: r.accountLabel,
+        debit: toNum(r.line.debit),
+        credit: toNum(r.line.credit),
+        thirdPartyType: r.line.thirdPartyType,
+        thirdPartyId: r.line.thirdPartyId,
+      })),
+    });
+  } catch (e) { next(e); }
+});
+
+// POST /accounting/matching/match  { lineIds: string[] }
+// Lettrage manuel d'un groupe de lignes (total débit = total crédit requis)
+router.post("/accounting/matching/match", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { lineIds } = req.body as { lineIds: string[] };
+    if (!lineIds || lineIds.length < 2) { res.status(400).json({ error: "Au moins 2 lignes requises pour le lettrage" }); return; }
+
+    const lines = await db
+      .select({ line: journalEntryLinesTable })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .where(and(eq(journalEntriesTable.organizationId, orgId), inArray(journalEntryLinesTable.id, lineIds)));
+
+    if (lines.length !== lineIds.length) { res.status(404).json({ error: "Certaines lignes sont introuvables" }); return; }
+
+    const totalDebit = lines.reduce((s, l) => s + toNum(l.line.debit), 0);
+    const totalCredit = lines.reduce((s, l) => s + toNum(l.line.credit), 0);
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      res.status(400).json({ error: `Déséquilibre : débit ${totalDebit.toFixed(2)} ≠ crédit ${totalCredit.toFixed(2)}` }); return;
+    }
+
+    const matchRef = `LET-${Date.now()}`;
+    const matchedAt = new Date();
+    await db.update(journalEntryLinesTable)
+      .set({ reconciledAt: matchedAt })
+      .where(inArray(journalEntryLinesTable.id, lineIds));
+
+    res.json({ ok: true, matchRef, count: lineIds.length });
+  } catch (e) { next(e); }
+});
+
+// POST /accounting/matching/unmatch  { lineIds: string[] }
+// Délettrage
+router.post("/accounting/matching/unmatch", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { lineIds } = req.body as { lineIds: string[] };
+    if (!lineIds?.length) { res.status(400).json({ error: "lineIds requis" }); return; }
+    const lines = await db
+      .select({ line: journalEntryLinesTable })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .where(and(eq(journalEntriesTable.organizationId, orgId), inArray(journalEntryLinesTable.id, lineIds)));
+    if (lines.length !== lineIds.length) { res.status(404).json({ error: "Certaines lignes sont introuvables" }); return; }
+    await db.update(journalEntryLinesTable)
+      .set({ reconciledAt: null })
+      .where(inArray(journalEntryLinesTable.id, lineIds));
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// EXERCICES FISCAUX — gestion complète (ouverture / clôture)
+// ════════════════════════════════════════════════════════════════
+
+// GET /accounting/fiscal-periods/:id — détail avec stats
+router.get("/accounting/fiscal-periods/:id", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [period] = await db.select().from(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+    if (!period) { res.status(404).json({ error: "Exercice introuvable" }); return; }
+
+    const stats = await db.select({
+      n: sql<string>`COUNT(*)`,
+      td: sql<string>`COALESCE(SUM(${journalEntriesTable.totalDebit}), 0)`,
+    }).from(journalEntriesTable)
+      .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.fiscalPeriodId, period.id), eq(journalEntriesTable.status, "posted")));
+
+    res.json({ ...period, entryCount: Number(stats[0]?.n ?? 0), totalVolume: toNum(stats[0]?.td) });
+  } catch (e) { next(e); }
+});
+
+// POST /accounting/fiscal-periods/:id/reopen — réouverture (admin seulement)
+router.post("/accounting/fiscal-periods/:id/reopen", requireAdmin, async (req, res, next) => {
+  try {
+    const [p] = await db.update(fiscalPeriodsTable)
+      .set({ status: "open", closedAt: null, closedById: null })
+      .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id))).returning();
+    if (!p) { res.status(404).json({ error: "Exercice introuvable" }); return; }
+    res.json(p);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// TAXES & ÉTATS FISCAUX (TOGO / UEMOA)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * GET /accounting/fiscal/summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+ * Calcule les assiettes et montants des principales taxes :
+ *  - TVA collectée (compte 4431x / 44xx) et déductible (compte 4456x)
+ *  - IRPP (retenues à la source sur salaires — compte 4473x)
+ *  - AIB (acompte d'impôt sur bénéfice — compte 4472x)
+ *  - IPTS (impôt sur traitements et salaires — compte 4471x)
+ *  - Cotisations CNSS/CNPS (compte 431x)
+ *  - Résultat fiscal estimé (produits – charges, hors éléments exceptionnels)
+ */
+router.get("/accounting/fiscal/summary", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { from, to } = req.query as Record<string, string>;
+
+    const conds: any[] = [eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted")];
+    if (from) conds.push(gte(journalEntriesTable.entryDate, from));
+    if (to) conds.push(lte(journalEntriesTable.entryDate, to));
+
+    const agg = await db.select({
+      code: chartOfAccountsTable.code,
+      classNum: chartOfAccountsTable.classNum,
+      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
+      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
+    })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(...conds, eq(chartOfAccountsTable.organizationId, orgId)))
+      .groupBy(chartOfAccountsTable.code, chartOfAccountsTable.classNum);
+
+    const sum = (codePrefix: string) => {
+      const rows = agg.filter((r) => r.code.startsWith(codePrefix));
+      return {
+        debit: rows.reduce((s, r) => s + toNum(r.d), 0),
+        credit: rows.reduce((s, r) => s + toNum(r.c), 0),
+      };
+    };
+
+    const tvaCollectee = sum("443");
+    const tvaDeductible = sum("4456");
+    const tvaDue = (tvaCollectee.credit - tvaCollectee.debit) - (tvaDeductible.debit - tvaDeductible.credit);
+
+    const irpp = sum("4473");
+    const aib = sum("4472");
+    const ipts = sum("4471");
+    const cnss = sum("431");
+
+    // Résultat fiscal = produits (cl 7) – charges (cl 6)
+    const revenus = agg.filter((r) => r.classNum === 7).reduce((s, r) => s + toNum(r.c) - toNum(r.d), 0);
+    const charges = agg.filter((r) => r.classNum === 6).reduce((s, r) => s + toNum(r.d) - toNum(r.c), 0);
+    const resultatFiscal = revenus - charges;
+
+    res.json({
+      period: { from: from ?? null, to: to ?? null },
+      tva: {
+        collectee: tvaCollectee.credit - tvaCollectee.debit,
+        deductible: tvaDeductible.debit - tvaDeductible.credit,
+        due: tvaDue,
+      },
+      irpp: irpp.credit - irpp.debit,
+      aib: aib.credit - aib.debit,
+      ipts: ipts.credit - ipts.debit,
+      cnss: cnss.credit - cnss.debit,
+      resultatFiscal,
+      revenus,
+      charges,
+    });
+  } catch (e) { next(e); }
+});
+
+/**
+ * GET /accounting/fiscal/tva-detail?from=&to=
+ * Détail ligne à ligne des mouvements TVA (pour déclaration mensuelle)
+ */
+router.get("/accounting/fiscal/tva-detail", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { from, to } = req.query as Record<string, string>;
+    const conds: any[] = [eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"),
+      eq(chartOfAccountsTable.organizationId, orgId), sql`LEFT(${chartOfAccountsTable.code}, 2) IN ('44')`,
+      sql`LEFT(${chartOfAccountsTable.code}, 3) IN ('443', '445')`,
+    ];
+    if (from) conds.push(gte(journalEntriesTable.entryDate, from));
+    if (to) conds.push(lte(journalEntriesTable.entryDate, to));
+
+    const rows = await db.select({
+      entryNumber: journalEntriesTable.entryNumber,
+      entryDate: journalEntriesTable.entryDate,
+      description: journalEntriesTable.description,
+      accountCode: chartOfAccountsTable.code,
+      accountLabel: chartOfAccountsTable.label,
+      debit: journalEntryLinesTable.debit,
+      credit: journalEntryLinesTable.credit,
+    })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(...conds))
+      .orderBy(asc(journalEntriesTable.entryDate));
+
+    res.json({ data: rows.map((r) => ({ ...r, debit: toNum(r.debit), credit: toNum(r.credit) })) });
+  } catch (e) { next(e); }
+});
+
 export default router;
