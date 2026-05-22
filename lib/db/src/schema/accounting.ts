@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, numeric, integer, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, numeric, integer, boolean, jsonb, index, uniqueIndex, date } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -325,3 +325,31 @@ export const insertFixedAssetSchema = createInsertSchema(fixedAssetsTable).omit(
 export const insertCostCenterSchema = createInsertSchema(costCentersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type CostCenter = typeof costCentersTable.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+// ─── Taxes / Référentiel fiscal ──────────────────────────────────────────────
+export const taxesTable = pgTable("taxes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("vat"), // vat | income_tax | withholding | social | other
+  rate: numeric("rate", { precision: 8, scale: 4 }),
+  appliesTo: text("applies_to").array(),
+  collectAccountCode: text("collect_account_code"),
+  deductAccountCode: text("deduct_account_code"),
+  declarationPeriod: text("declaration_period").notNull().default("monthly"), // monthly | quarterly | annual | none
+  nextDueDate: date("next_due_date"),
+  isActive: boolean("is_active").notNull().default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("taxes_org_idx").on(t.organizationId),
+  codeOrgIdx: uniqueIndex("taxes_code_org_idx").on(t.organizationId, t.code),
+}));
+
+export type Tax = typeof taxesTable.$inferSelect;
+export const insertTaxSchema = createInsertSchema(taxesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const updateTaxSchema = insertTaxSchema.partial().omit({ organizationId: true });
+export type InsertTax = z.infer<typeof insertTaxSchema>;

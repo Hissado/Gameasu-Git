@@ -18,6 +18,8 @@ import {
   clientsTable,
   projectsTable,
   costCentersTable,
+  taxesTable,
+  updateTaxSchema,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
@@ -1625,6 +1627,102 @@ router.post("/accounting/reconciliation/ignore", requireManagerOrAbove, async (r
     .set({ isReconciled: true, reconciledLineId: null })
     .where(and(eq(bankTransactionsTable.organizationId, orgId), eq(bankTransactionsTable.id, transactionId)));
   res.json({ ok: true });
+});
+
+// ─── Taxes — Référentiel fiscal CRUD ────────────────────────────────────────
+
+const DEFAULT_TAXES = [
+  { code: "TVA_18", name: "TVA 18%", description: "Taxe sur la Valeur Ajoutée — taux normal Togo/UEMOA", type: "vat", rate: "18.0000", appliesTo: ["sales", "purchases"], collectAccountCode: "443100", deductAccountCode: "445600", declarationPeriod: "monthly", isActive: true },
+  { code: "IS_28", name: "IS 28%", description: "Impôt sur les Sociétés — taux standard Togo", type: "income_tax", rate: "28.0000", appliesTo: ["other"], collectAccountCode: "444100", deductAccountCode: null, declarationPeriod: "annual", isActive: true },
+  { code: "IRPP", name: "IRPP — Retenue à la source", description: "Impôt sur le Revenu des Personnes Physiques retenu à la source", type: "withholding", rate: null, appliesTo: ["payroll"], collectAccountCode: "447300", deductAccountCode: null, declarationPeriod: "monthly", isActive: true },
+  { code: "IPTS", name: "IPTS — Taxe sur salaires", description: "Impôt Patronal sur les Traitements et Salaires", type: "withholding", rate: null, appliesTo: ["payroll"], collectAccountCode: "447100", deductAccountCode: null, declarationPeriod: "monthly", isActive: true },
+  { code: "AIB", name: "AIB 1%", description: "Avance sur Impôt Bénéfice — retenue à la source sur achats", type: "withholding", rate: "1.0000", appliesTo: ["purchases"], collectAccountCode: "447200", deductAccountCode: null, declarationPeriod: "quarterly", isActive: true },
+  { code: "CNSS", name: "CNSS — Cotisations sociales", description: "Caisse Nationale de Sécurité Sociale — part patronale + salariale", type: "social", rate: "20.5000", appliesTo: ["payroll"], collectAccountCode: "431000", deductAccountCode: null, declarationPeriod: "monthly", isActive: true },
+];
+
+// GET /accounting/taxes
+router.get("/accounting/taxes", requireAuth, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    let taxes = await db.select().from(taxesTable)
+      .where(eq(taxesTable.organizationId, orgId))
+      .orderBy(asc(taxesTable.type), asc(taxesTable.code));
+
+    if (taxes.length === 0) {
+      await db.insert(taxesTable).values(
+        DEFAULT_TAXES.map((t) => ({ ...t, organizationId: orgId, rate: t.rate ?? undefined, deductAccountCode: t.deductAccountCode ?? undefined }))
+      );
+      taxes = await db.select().from(taxesTable)
+        .where(eq(taxesTable.organizationId, orgId))
+        .orderBy(asc(taxesTable.type), asc(taxesTable.code));
+    }
+    res.json({ data: taxes });
+  } catch (e) { next(e); }
+});
+
+// POST /accounting/taxes
+router.post("/accounting/taxes", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const body = req.body as Record<string, unknown>;
+    const [tax] = await db.insert(taxesTable).values({
+      organizationId: orgId,
+      code: String(body.code ?? ""),
+      name: String(body.name ?? ""),
+      description: body.description ? String(body.description) : undefined,
+      type: String(body.type ?? "vat"),
+      rate: body.rate != null ? String(body.rate) : undefined,
+      appliesTo: Array.isArray(body.appliesTo) ? (body.appliesTo as string[]) : undefined,
+      collectAccountCode: body.collectAccountCode ? String(body.collectAccountCode) : undefined,
+      deductAccountCode: body.deductAccountCode ? String(body.deductAccountCode) : undefined,
+      declarationPeriod: String(body.declarationPeriod ?? "monthly"),
+      nextDueDate: body.nextDueDate ? String(body.nextDueDate) : undefined,
+      isActive: body.isActive !== false,
+      notes: body.notes ? String(body.notes) : undefined,
+    }).returning();
+    res.status(201).json(tax);
+  } catch (e) { next(e); }
+});
+
+// PUT /accounting/taxes/:id
+router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { id } = req.params;
+    const [existing] = await db.select().from(taxesTable)
+      .where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).limit(1);
+    if (!existing) { res.status(404).json({ error: "Taxe introuvable" }); return; }
+
+    const body = req.body as Record<string, unknown>;
+    const [updated] = await db.update(taxesTable).set({
+      code: body.code ? String(body.code) : existing.code,
+      name: body.name ? String(body.name) : existing.name,
+      description: body.description !== undefined ? (body.description ? String(body.description) : null) : existing.description,
+      type: body.type ? String(body.type) : existing.type,
+      rate: body.rate !== undefined ? (body.rate != null ? String(body.rate) : null) : existing.rate,
+      appliesTo: Array.isArray(body.appliesTo) ? (body.appliesTo as string[]) : existing.appliesTo,
+      collectAccountCode: body.collectAccountCode !== undefined ? (body.collectAccountCode ? String(body.collectAccountCode) : null) : existing.collectAccountCode,
+      deductAccountCode: body.deductAccountCode !== undefined ? (body.deductAccountCode ? String(body.deductAccountCode) : null) : existing.deductAccountCode,
+      declarationPeriod: body.declarationPeriod ? String(body.declarationPeriod) : existing.declarationPeriod,
+      nextDueDate: body.nextDueDate !== undefined ? (body.nextDueDate ? String(body.nextDueDate) : null) : existing.nextDueDate,
+      isActive: body.isActive !== undefined ? Boolean(body.isActive) : existing.isActive,
+      notes: body.notes !== undefined ? (body.notes ? String(body.notes) : null) : existing.notes,
+    }).where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// DELETE /accounting/taxes/:id
+router.delete("/accounting/taxes/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { id } = req.params;
+    const [existing] = await db.select().from(taxesTable)
+      .where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).limit(1);
+    if (!existing) { res.status(404).json({ error: "Taxe introuvable" }); return; }
+    await db.delete(taxesTable).where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id)));
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 export default router;
