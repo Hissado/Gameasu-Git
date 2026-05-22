@@ -102,20 +102,17 @@ export default function LoginPage() {
 
           {/* ── Logo dans un cadre blanc flottant ── */}
           <div
-            className="rounded-full mb-10 flex items-center justify-center"
+            className="w-full max-w-[440px] xl:max-w-[480px] rounded-2xl mb-10 px-3 py-3"
             style={{
-              width: 260,
-              height: 260,
-              flexShrink: 0,
               background: "linear-gradient(145deg, #FFFFFF 0%, #F8F5EE 100%)",
-              boxShadow: "0 20px 60px -12px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.06)",
+              boxShadow: "0 20px 60px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)",
             }}
           >
             <img
               src={BRANDING.logoFullTransparent}
               alt={BRANDING.appName}
               draggable={false}
-              className="w-[78%] h-auto object-contain select-none"
+              className="w-full h-auto object-contain select-none"
               style={{ filter: "drop-shadow(0 2px 8px rgba(15,26,58,0.06))" }}
             />
           </div>
