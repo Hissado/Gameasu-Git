@@ -20,7 +20,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const FEATURES = [
-  { icon: TrendingUp, title: "Pilotage financier OHADA", desc: "Budgets, prévisions et reporting consolidés" },
+  { icon: TrendingUp, title: "Pilotage financier", desc: "Budgets, prévisions et reporting consolidés" },
   { icon: Globe2,    title: "Multi-entités & workspaces", desc: "Gérez plusieurs filiales depuis une seule plateforme" },
   { icon: Shield,    title: "Sécurité niveau entreprise", desc: "Chiffrement TLS 1.3, audit complet, RBAC" },
   { icon: Users,     title: "Collaboration en temps réel", desc: "Équipes, rôles, droits d'accès granulaires" },
