@@ -89,13 +89,7 @@ export default function LoginPage() {
         <div className="absolute top-0 left-0 w-[2px] h-full opacity-30"
              style={{ background: "linear-gradient(180deg, transparent 0%, #C8A24B 20%, #C8A24B 80%, transparent 100%)" }} />
 
-        {/* Header interne */}
-        <div className="relative flex items-center justify-end px-10 pt-7">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04]">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] text-white/40 font-medium">Système opérationnel</span>
-          </div>
-        </div>
+        <div className="relative pt-7" />
 
         {/* Contenu centré */}
         <div className="relative flex-1 flex flex-col items-center justify-center px-10 xl:px-14">
