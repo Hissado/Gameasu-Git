@@ -90,11 +90,7 @@ export default function LoginPage() {
              style={{ background: "linear-gradient(180deg, transparent 0%, #C8A24B 20%, #C8A24B 80%, transparent 100%)" }} />
 
         {/* Header interne */}
-        <div className="relative flex items-center justify-between px-10 pt-7">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#C8A24B]/70" />
-            <span className="text-[10px] font-bold tracking-[0.20em] text-white/35 uppercase">{BRANDING.appName}</span>
-          </div>
+        <div className="relative flex items-center justify-end px-10 pt-7">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04]">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] text-white/40 font-medium">Système opérationnel</span>
@@ -320,14 +316,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer droit */}
-        <div className="relative px-6 pb-6 text-center">
-          <p className="text-[11px] text-[#0F1A3A]/28 leading-relaxed">
-            {BRANDING.marketBaseline}
-          </p>
-          <p className="text-[10.5px] text-[#0F1A3A]/18 mt-0.5">
-            © {year} {BRANDING.legalName} — Tous droits réservés.
-          </p>
-        </div>
+        <div className="relative px-6 pb-6" />
       </div>
     </div>
   );
