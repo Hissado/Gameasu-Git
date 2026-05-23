@@ -540,10 +540,28 @@ export default function Messaging() {
   const callCenter = useCallCenter();
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
+
+  // Read convId / clientId from URL query params
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlConvId = urlParams.get("convId");
+  const urlClientId = urlParams.get("clientId");
+
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(urlConvId);
 
   const { data: conversations, setData: setConversations, loading: convsLoading, refresh } = useConversations({ search, archived: showArchived });
   const { data: messages, setData: setMessages, loading: msgsLoading } = useMessages(selectedConvId);
+
+  // Auto-select conversation from URL once conversations are loaded
+  useEffect(() => {
+    if (convsLoading) return;
+    if (urlConvId && conversations.some((c) => c.id === urlConvId)) {
+      setSelectedConvId(urlConvId);
+    } else if (urlClientId) {
+      const match = conversations.find((c) => (c as any).clientId === urlClientId);
+      if (match) setSelectedConvId(match.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convsLoading]);
   const selectedConv = conversations.find((c) => c.id === selectedConvId);
   const allUsers = useUsers();
 
