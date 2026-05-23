@@ -405,7 +405,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
     ));
 
   // Mark sender as read
-  await db.insert(messageReadsTable).values({ messageId: msg.id, userId }).onConflictDoNothing();
+  await db.insert(messageReadsTable).values({ organizationId: req.authUser!.organizationId, messageId: msg.id, userId, readAt: new Date() }).onConflictDoNothing();
 
   // Notifications
   const allParts = await db.select().from(conversationParticipantsTable)

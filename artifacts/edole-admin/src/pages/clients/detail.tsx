@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Client360Tab from "./Client360Tab";
 import {
-  Building2, Briefcase, FolderKanban, CheckSquare, FolderOpen,
+  Building2, Briefcase, FolderKanban, CheckSquare, Check, FolderOpen,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Mail, Phone, Globe,
   Repeat, Calendar, ChevronDown, MessageCircle, Send, Inbox,
   ArrowUpRight, ArrowDownLeft, Paperclip, Clock, Activity,
@@ -402,6 +402,7 @@ function MessagingTab({ client }: { client: Client }) {
   const [, navigate] = useLocation();
   const [createOpen, setCreateOpen] = useState(false);
   const [groupTitle, setGroupTitle] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const qc = useQueryClient();
 
@@ -410,6 +411,16 @@ function MessagingTab({ client }: { client: Client }) {
     queryFn: () => apiFetch(`/api/conversations?clientId=${client.id}`),
   });
   const conversations = data?.data ?? [];
+
+  const { data: usersData } = useQuery<{ data: Array<{ id: string; firstName: string; lastName: string; email: string; role: string }> }>({
+    queryKey: ["users-list"],
+    queryFn: () => apiFetch("/api/users"),
+  });
+  const users = usersData?.data ?? [];
+
+  function toggleUser(uid: string) {
+    setSelectedUsers(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
+  }
 
   async function createGroup() {
     setCreating(true);
@@ -420,13 +431,14 @@ function MessagingTab({ client }: { client: Client }) {
           title: groupTitle || `${client.name} — Discussion`,
           type: "group",
           clientId: client.id,
-          participantIds: [],
+          participantIds: selectedUsers,
         } as any,
       });
       toast.success("Groupe créé");
       qc.invalidateQueries({ queryKey: ["client-conversations", client.id] });
       setCreateOpen(false);
       setGroupTitle("");
+      setSelectedUsers([]);
       navigate(`/messaging?convId=${conv.id}`);
     } catch {
       toast.error("Impossible de créer le groupe");
@@ -492,15 +504,15 @@ function MessagingTab({ client }: { client: Client }) {
       </div>
 
       {/* Create group dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { setSelectedUsers([]); setGroupTitle(""); } }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
               Nouveau groupe — {client.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="space-y-1">
               <Label>Nom du groupe</Label>
               <Input
@@ -509,9 +521,38 @@ function MessagingTab({ client }: { client: Client }) {
                 onChange={e => setGroupTitle(e.target.value)}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Le groupe sera automatiquement lié à ce client. Vous pourrez ajouter des participants depuis la messagerie.
-            </p>
+
+            <div className="space-y-2">
+              <Label>Participants{selectedUsers.length > 0 && <span className="ml-1.5 text-xs text-primary font-normal">({selectedUsers.length} sélectionné{selectedUsers.length > 1 ? "s" : ""})</span>}</Label>
+              <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
+                {users.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Chargement…</div>
+                )}
+                {users.map(u => {
+                  const selected = selectedUsers.includes(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => toggleUser(u.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors ${selected ? "bg-primary/5" : ""}`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-border"}`}>
+                        {selected && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                        {u.firstName[0]}{u.lastName[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{u.firstName} {u.lastName}</div>
+                        <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
               <Button className="gap-1.5 bg-primary text-white" disabled={creating} onClick={createGroup}>
