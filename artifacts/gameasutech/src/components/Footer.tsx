@@ -15,12 +15,11 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <div className="bg-white rounded-xl p-3 inline-block">
+              <div className="bg-white rounded-xl px-4 py-2.5 inline-flex items-center">
                 <img
-                  src={`${import.meta.env.BASE_URL}gameasutech-logo.png`}
-                  alt="Gaméasù Technology"
-                  className="h-10 w-auto"
-                  style={{ maxWidth: "180px" }}
+                  src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
+                  alt="Gaméasù"
+                  style={{ height: "36px", width: "auto", display: "block" }}
                 />
               </div>
             </div>

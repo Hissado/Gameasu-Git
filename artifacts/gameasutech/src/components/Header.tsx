@@ -39,14 +39,14 @@ export function Header() {
       }`}
     >
       <div className="container mx-auto px-6 flex items-center justify-between gap-6">
-        {/* Logo */}
+        {/* Logo — icône seule, wordmark masqué */}
         <Link href="/">
           <div className="cursor-pointer flex-shrink-0">
             <img
-              src={`${import.meta.env.BASE_URL}gameasutech-logo.png`}
-              alt="Gaméasù Technology"
-              className="h-10 w-auto"
-              style={{ maxWidth: "200px" }}
+              src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
+              alt="Gaméasù"
+              className="h-9 w-auto"
+              style={{ maxWidth: "180px" }}
             />
           </div>
         </Link>
