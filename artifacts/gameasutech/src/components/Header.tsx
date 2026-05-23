@@ -43,10 +43,9 @@ export function Header() {
         <Link href="/">
           <div className="cursor-pointer flex-shrink-0">
             <img
-              src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
-              alt="Gaméasù"
-              className="h-9 w-auto"
-              style={{ maxWidth: "180px" }}
+              src={`${import.meta.env.BASE_URL}gameasutech-icon.svg`}
+              alt="Gaméasù Technology"
+              className="h-11 w-11"
             />
           </div>
         </Link>
