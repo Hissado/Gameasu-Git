@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PieChart, Pie, Cell, Tooltip as RechartTooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Trash2, Tag, Info, Copy, ChevronRight, FileSignature, ShoppingCart, Save, Download, RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck, Users, Wrench, DollarSign, ArrowRight, Search, BookOpen, X } from "lucide-react";
+import { Plus, Trash2, Tag, Info, Copy, ChevronRight, FileSignature, ShoppingCart, Save, Download, RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck, Users, Wrench, DollarSign, ArrowRight, Search, BookOpen, X, Clock, HardHat, Calculator, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 const uid = () => crypto.randomUUID().slice(0, 8);
 
@@ -39,6 +39,8 @@ interface Scenario {
   description: string;
   productName: string;
   costItems: CostItem[];
+  laborLines: LaborLineItem[];
+  laborSettings: LaborSettings;
   marginMode: MarginMode;
   marginTarget: number;
   taxRate: number;
@@ -61,6 +63,30 @@ type CatalogEntry = {
   id: string; name: string; ref: string; unit: string;
   price: number; taxRate: number; kind: "product" | "service";
 };
+type CatalogCollab = {
+  id: string; firstName: string; lastName: string;
+  position?: string | null; department?: string | null;
+  baseSalary?: string | null; employmentStatus: string;
+};
+
+// ─── Main-d'œuvre types ───────────────────────────────────────────────────────
+
+interface LaborSettings {
+  employerChargeRate: number; // % charges patronales totales (CNSS 16.4% + IPTS 2% = 18.4% défaut)
+  weeklyHours: number;        // heures/semaine de référence (défaut 40)
+}
+
+interface LaborLineItem {
+  id: string;
+  name: string;               // libellé (prénom nom ou texte libre)
+  collaboratorId?: string;    // lien optionnel vers collaborateur
+  contractType: string;       // CDI | CDD | prestation | freelance | autre
+  monthlySalaryBrut: number;  // salaire brut mensuel (base de calcul)
+  employerChargeRate: number; // % charges patronales (spécifique à cette ligne)
+  benefitsMonthly: number;    // avantages mensuels fixes (transport, logement, repas…)
+  weeklyHours: number;        // heures/semaine pour ce poste
+  allocatedHours: number;     // heures allouées à ce projet / mission
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,6 +108,11 @@ const MARGIN_MODES: Record<MarginMode, { label: string; desc: string }> = {
 
 const CHART_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#6B7280", "#EF4444", "#EC4899", "#C8A24B"];
 
+const DEFAULT_LABOR_SETTINGS: LaborSettings = {
+  employerChargeRate: 18.4, // CNSS patronal 16.4% + IPTS 2%
+  weeklyHours: 40,
+};
+
 const DEFAULT_SCENARIO: Scenario = {
   id: "default",
   name: "Scénario 1",
@@ -89,8 +120,9 @@ const DEFAULT_SCENARIO: Scenario = {
   productName: "",
   costItems: [
     { id: "c1", label: "Matériaux / Fournitures", category: "direct", amount: 0 },
-    { id: "c2", label: "Main d'œuvre directe",   category: "labor",  amount: 0 },
   ],
+  laborLines: [],
+  laborSettings: { ...DEFAULT_LABOR_SETTINGS },
   marginMode: "net",
   marginTarget: 25,
   taxRate: 18,
@@ -116,14 +148,29 @@ interface PricingResult {
   unitTTC: number;
 }
 
+/** Calcule le coût employeur réel d'une ligne de main-d'œuvre */
+function computeLaborLineCost(line: LaborLineItem): { hourlyRate: number; totalCost: number; monthlyCostEmployeur: number } {
+  const monthlyHours = (line.weeklyHours * 52) / 12; // ~173.33h pour 40h/sem
+  const monthlyCostEmployeur = line.monthlySalaryBrut * (1 + line.employerChargeRate / 100) + line.benefitsMonthly;
+  const hourlyRate = monthlyHours > 0 ? monthlyCostEmployeur / monthlyHours : 0;
+  const totalCost = hourlyRate * line.allocatedHours;
+  return { hourlyRate, totalCost, monthlyCostEmployeur };
+}
+
 function calculate(scenario: Scenario): PricingResult {
   const qty = Math.max(1, scenario.quantity);
   const byCategory: Record<CostCategory, number> = {
     direct: 0, labor: 0, indirect: 0, logistics: 0, purchase: 0, tax_input: 0, other: 0,
   };
 
+  // 0. Coûts main-d'œuvre (lignes Personnel)
+  for (const line of (scenario.laborLines ?? [])) {
+    const { totalCost } = computeLaborLineCost(line);
+    byCategory.labor += Math.max(0, totalCost);
+  }
+
   // 1. Coûts fixes (non %)
-  let fixedCost = 0;
+  let fixedCost = byCategory.labor; // les coûts MO sont des coûts fixes
   const fixedItems = scenario.costItems.filter(i => !i.isPercent);
   for (const item of fixedItems) {
     const amt = Math.max(0, item.amount);
@@ -364,6 +411,178 @@ function PieTooltip({ active, payload }: any) {
   );
 }
 
+// ─── LaborLineRow ─────────────────────────────────────────────────────────────
+
+const CONTRACT_TYPES = ["CDI", "CDD", "Prestation", "Freelance", "Autre"];
+
+function LaborLineRow({ line, onUpdate, onRemove }: {
+  line: LaborLineItem;
+  onUpdate: (l: LaborLineItem) => void;
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { hourlyRate, totalCost, monthlyCostEmployeur } = computeLaborLineCost(line);
+
+  return (
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-purple-200 transition-colors">
+      {/* Summary row */}
+      <div className="flex items-center gap-2 px-3 py-2 group">
+        <HardHat className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+        <Input
+          className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 font-medium flex-1 min-w-0"
+          placeholder="Nom / poste (ex. Ingénieur génie civil)"
+          value={line.name}
+          onChange={e => onUpdate({ ...line, name: e.target.value })}
+        />
+        <div className="flex items-center gap-3 shrink-0 text-xs">
+          <span className="hidden sm:flex items-center gap-1 text-muted-foreground">
+            <Clock className="w-3 h-3" /> {line.allocatedHours}h allouées
+          </span>
+          <span className="text-purple-700 font-semibold">{formatFCFA(Math.round(hourlyRate))}/h</span>
+          <span className="font-bold text-slate-800">{formatFCFA(Math.round(totalCost))}</span>
+        </div>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="p-1 rounded hover:bg-slate-100 text-muted-foreground transition-colors"
+          title={expanded ? "Réduire" : "Développer"}
+        >
+          {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        <button
+          onClick={onRemove}
+          className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+          title="Supprimer cette ligne"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Detail panel */}
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Type de contrat */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Type de contrat</label>
+            <Select value={line.contractType} onValueChange={v => onUpdate({ ...line, contractType: v })}>
+              <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CONTRACT_TYPES.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Salaire brut mensuel */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Salaire brut mensuel (XOF)</label>
+            <Input
+              type="number" min="0" step="5000"
+              className="h-7 text-xs"
+              placeholder="300 000"
+              value={line.monthlySalaryBrut || ""}
+              onChange={e => onUpdate({ ...line, monthlySalaryBrut: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+
+          {/* Charges patronales */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              Charges patronales (%)
+              <Tooltip>
+                <TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Togo : CNSS patronal 16,4% + IPTS 2% = 18,4% par défaut.<br/>
+                  Ajustez selon le régime applicable (prestataire, contractuel…).
+                </TooltipContent>
+              </Tooltip>
+            </label>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number" min="0" max="100" step="0.1"
+                className="h-7 text-xs"
+                value={line.employerChargeRate}
+                onChange={e => onUpdate({ ...line, employerChargeRate: parseFloat(e.target.value) || 0 })}
+              />
+              <span className="text-xs text-muted-foreground shrink-0">%</span>
+            </div>
+          </div>
+
+          {/* Avantages mensuels */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              Avantages mensuels (XOF)
+              <Tooltip>
+                <TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Transport, logement, repas, assurance, téléphone, véhicule…<br/>
+                  Sera ajouté au coût mensuel employeur avant calcul du taux horaire.
+                </TooltipContent>
+              </Tooltip>
+            </label>
+            <Input
+              type="number" min="0" step="1000"
+              className="h-7 text-xs"
+              placeholder="50 000"
+              value={line.benefitsMonthly || ""}
+              onChange={e => onUpdate({ ...line, benefitsMonthly: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+
+          {/* Heures / semaine */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Heures / semaine</label>
+            <Input
+              type="number" min="1" max="80" step="0.5"
+              className="h-7 text-xs"
+              value={line.weeklyHours}
+              onChange={e => onUpdate({ ...line, weeklyHours: parseFloat(e.target.value) || 40 })}
+            />
+          </div>
+
+          {/* Heures allouées */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              Heures allouées au projet
+              <Tooltip>
+                <TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent className="text-xs">Nombre d'heures de travail effectif pour ce projet/mission.</TooltipContent>
+              </Tooltip>
+            </label>
+            <Input
+              type="number" min="0" step="1"
+              className="h-7 text-xs"
+              placeholder="80"
+              value={line.allocatedHours || ""}
+              onChange={e => onUpdate({ ...line, allocatedHours: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+
+          {/* Récapitulatif coût */}
+          <div className="sm:col-span-2 lg:col-span-3 bg-purple-50 border border-purple-100 rounded-md px-3 py-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div>
+                <div className="text-muted-foreground">Heures/mois (base)</div>
+                <div className="font-semibold">{((line.weeklyHours * 52) / 12).toFixed(1)} h</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Coût employeur/mois</div>
+                <div className="font-semibold">{formatFCFA(Math.round(monthlyCostEmployeur))}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Taux horaire réel</div>
+                <div className="font-bold text-purple-700">{formatFCFA(Math.round(hourlyRate))} / h</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Coût total alloué</div>
+                <div className="font-bold text-slate-800">{formatFCFA(Math.round(totalCost))}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PricingCalculator() {
@@ -383,23 +602,30 @@ export default function PricingCalculator() {
 
   // ── Catalogue
   const [catalogOpen, setCatalogOpen] = useState(false);
-  const [catalogTab, setCatalogTab] = useState<"product" | "service">("product");
+  const [catalogTab, setCatalogTab] = useState<"product" | "service" | "labor">("product");
   const [catalogSearch, setCatalogSearch] = useState("");
 
   const { data: productsRaw } = useQuery<CatalogProduct[]>({
     queryKey: ["catalog-products"],
     queryFn: () => apiFetch("/api/inventory/products?activeOnly=true"),
     staleTime: 5 * 60_000,
-    enabled: catalogOpen,
+    enabled: catalogOpen && catalogTab !== "labor",
   });
   const { data: servicesRaw } = useQuery<{ data: CatalogService[] }>({
     queryKey: ["catalog-services"],
     queryFn: () => apiFetch("/api/services?active=true"),
     staleTime: 5 * 60_000,
-    enabled: catalogOpen,
+    enabled: catalogOpen && catalogTab !== "labor",
+  });
+  const { data: collabsRaw } = useQuery<{ data: CatalogCollab[] }>({
+    queryKey: ["catalog-collabs"],
+    queryFn: () => apiFetch("/api/collaborators?limit=200"),
+    staleTime: 5 * 60_000,
+    enabled: catalogOpen && catalogTab === "labor",
   });
 
   const catalogEntries = useMemo((): CatalogEntry[] => {
+    if (catalogTab === "labor") return []; // handled separately
     if (catalogTab === "product") {
       return (productsRaw ?? [])
         .filter(p => p.isActive !== false)
@@ -427,6 +653,17 @@ export default function PricingCalculator() {
       : catalogEntries,
   [catalogEntries, catalogSearch]);
 
+  const filteredCollabs = useMemo(() => {
+    const list = collabsRaw?.data ?? [];
+    return catalogSearch
+      ? list.filter(c =>
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          (c.position ?? "").toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          (c.department ?? "").toLowerCase().includes(catalogSearch.toLowerCase()),
+        )
+      : list;
+  }, [collabsRaw, catalogSearch]);
+
   const applyCatalogItem = useCallback((entry: CatalogEntry) => {
     updateScenario({
       productName: entry.name,
@@ -446,6 +683,24 @@ export default function PricingCalculator() {
     toast.success(`${entry.name} chargé depuis le catalogue`);
   }, [scenario.costItems, updateScenario]);
 
+  const applyCollabToLabor = useCallback((collab: CatalogCollab) => {
+    const baseSalary = Number(collab.baseSalary ?? 0);
+    const newLine: LaborLineItem = {
+      id: uid(),
+      name: `${collab.firstName} ${collab.lastName}${collab.position ? ` — ${collab.position}` : ""}`,
+      collaboratorId: collab.id,
+      contractType: "CDI",
+      monthlySalaryBrut: baseSalary,
+      employerChargeRate: scenario.laborSettings.employerChargeRate,
+      benefitsMonthly: 0,
+      weeklyHours: scenario.laborSettings.weeklyHours,
+      allocatedHours: 80,
+    };
+    updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
+    toast.success(`${collab.firstName} ${collab.lastName} ajouté à la main-d'œuvre`);
+    setCatalogSearch("");
+  }, [scenario.laborLines, scenario.laborSettings, updateScenario]);
+
   const addCostItem = () => {
     updateScenario({
       costItems: [...scenario.costItems, { id: uid(), label: "", category: "direct", amount: 0 }],
@@ -459,6 +714,33 @@ export default function PricingCalculator() {
   const removeCostItem = (id: string) => {
     updateScenario({ costItems: scenario.costItems.filter(c => c.id !== id) });
   };
+
+  // ── Main-d'œuvre handlers
+  const addLaborLine = () => {
+    const newLine: LaborLineItem = {
+      id: uid(),
+      name: "",
+      contractType: "CDI",
+      monthlySalaryBrut: 0,
+      employerChargeRate: scenario.laborSettings.employerChargeRate,
+      benefitsMonthly: 0,
+      weeklyHours: scenario.laborSettings.weeklyHours,
+      allocatedHours: 0,
+    };
+    updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
+  };
+
+  const updateLaborLine = (id: string, line: LaborLineItem) => {
+    updateScenario({ laborLines: (scenario.laborLines ?? []).map(l => l.id === id ? line : l) });
+  };
+
+  const removeLaborLine = (id: string) => {
+    updateScenario({ laborLines: (scenario.laborLines ?? []).filter(l => l.id !== id) });
+  };
+
+  const totalLaborCost = useMemo(() =>
+    (scenario.laborLines ?? []).reduce((acc, l) => acc + computeLaborLineCost(l).totalCost, 0),
+  [scenario.laborLines]);
 
   const addScenario = () => {
     const newS: Scenario = {
@@ -605,22 +887,30 @@ export default function PricingCalculator() {
               {/* ── Catalogue picker panel ── */}
               {catalogOpen && (
                 <div className="border-b bg-slate-50/70 px-4 py-3 space-y-3">
-                  {/* Tab: Produits / Services */}
-                  <div className="flex items-center gap-1">
-                    {(["product", "service"] as const).map(tab => (
+                  {/* Tabs: Produits / Services / Personnel */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {([
+                      { key: "product", label: "Produits" },
+                      { key: "service", label: "Services" },
+                      { key: "labor",   label: "Personnel" },
+                    ] as const).map(({ key, label }) => (
                       <button
-                        key={tab}
-                        onClick={() => { setCatalogTab(tab); setCatalogSearch(""); }}
+                        key={key}
+                        onClick={() => { setCatalogTab(key); setCatalogSearch(""); }}
                         className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all
-                          ${catalogTab === tab
-                            ? "bg-[#1a1a2e] text-white border-[#1a1a2e]"
+                          ${catalogTab === key
+                            ? key === "labor"
+                              ? "bg-purple-700 text-white border-purple-700"
+                              : "bg-[#1a1a2e] text-white border-[#1a1a2e]"
                             : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"}`}
                       >
-                        {tab === "product" ? "Produits" : "Services"}
+                        {label}
                       </button>
                     ))}
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {filteredEntries.length} article{filteredEntries.length !== 1 ? "s" : ""}
+                      {catalogTab === "labor"
+                        ? `${filteredCollabs.length} personne${filteredCollabs.length !== 1 ? "s" : ""}`
+                        : `${filteredEntries.length} article${filteredEntries.length !== 1 ? "s" : ""}`}
                     </span>
                   </div>
 
@@ -629,7 +919,11 @@ export default function PricingCalculator() {
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <Input
                       className="pl-8 h-8 text-xs"
-                      placeholder={catalogTab === "product" ? "Rechercher par nom ou SKU…" : "Rechercher par nom ou code…"}
+                      placeholder={
+                        catalogTab === "product" ? "Rechercher par nom ou SKU…"
+                        : catalogTab === "service" ? "Rechercher par nom ou code…"
+                        : "Rechercher par nom, poste ou département…"
+                      }
                       value={catalogSearch}
                       onChange={e => setCatalogSearch(e.target.value)}
                     />
@@ -640,40 +934,89 @@ export default function PricingCalculator() {
                     )}
                   </div>
 
-                  {/* List */}
-                  <div className="max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
-                    {filteredEntries.length === 0 && (
-                      <div className="py-6 text-center text-xs text-muted-foreground">
-                        {catalogSearch ? "Aucun résultat" : "Catalogue vide"}
-                      </div>
-                    )}
-                    {filteredEntries.map(entry => (
-                      <button
-                        key={entry.id}
-                        onClick={() => applyCatalogItem(entry)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-amber-50 transition-colors group"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold text-slate-800 truncate">{entry.name}</div>
-                          <div className="text-[10px] text-muted-foreground font-mono">{entry.ref} · {entry.unit}</div>
+                  {/* List — Produits / Services */}
+                  {catalogTab !== "labor" && (
+                    <div className="max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
+                      {filteredEntries.length === 0 && (
+                        <div className="py-6 text-center text-xs text-muted-foreground">
+                          {catalogSearch ? "Aucun résultat" : "Catalogue vide"}
                         </div>
-                        <div className="ml-3 flex items-center gap-2 shrink-0">
-                          <div className="text-right">
-                            <div className="text-xs font-bold text-[#C8A24B]">{formatFCFA(entry.price)}</div>
-                            {entry.taxRate > 0 && (
-                              <div className="text-[10px] text-muted-foreground">TVA {entry.taxRate}%</div>
-                            )}
+                      )}
+                      {filteredEntries.map(entry => (
+                        <button
+                          key={entry.id}
+                          onClick={() => applyCatalogItem(entry)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-amber-50 transition-colors group"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold text-slate-800 truncate">{entry.name}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono">{entry.ref} · {entry.unit}</div>
                           </div>
-                          <div className="w-5 h-5 rounded-full bg-[#C8A24B]/10 group-hover:bg-[#C8A24B] flex items-center justify-center transition-colors">
-                            <Plus className="w-3 h-3 text-[#C8A24B] group-hover:text-white" />
+                          <div className="ml-3 flex items-center gap-2 shrink-0">
+                            <div className="text-right">
+                              <div className="text-xs font-bold text-[#C8A24B]">{formatFCFA(entry.price)}</div>
+                              {entry.taxRate > 0 && <div className="text-[10px] text-muted-foreground">TVA {entry.taxRate}%</div>}
+                            </div>
+                            <div className="w-5 h-5 rounded-full bg-[#C8A24B]/10 group-hover:bg-[#C8A24B] flex items-center justify-center transition-colors">
+                              <Plus className="w-3 h-3 text-[#C8A24B] group-hover:text-white" />
+                            </div>
                           </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* List — Personnel */}
+                  {catalogTab === "labor" && (
+                    <div className="max-h-52 overflow-y-auto rounded-md border border-purple-100 bg-white divide-y divide-slate-100">
+                      {filteredCollabs.length === 0 && (
+                        <div className="py-6 text-center text-xs text-muted-foreground">
+                          {catalogSearch ? "Aucun résultat" : "Aucun collaborateur trouvé"}
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      )}
+                      {filteredCollabs.map(c => {
+                        const baseSalary = Number(c.baseSalary ?? 0);
+                        const monthlyHours = (scenario.laborSettings.weeklyHours * 52) / 12;
+                        const employerCost = baseSalary * (1 + scenario.laborSettings.employerChargeRate / 100);
+                        const hourlyRate = monthlyHours > 0 && baseSalary > 0 ? employerCost / monthlyHours : null;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => applyCollabToLabor(c)}
+                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-purple-50 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center shrink-0 text-purple-700 text-[10px] font-bold">
+                                {c.firstName[0]}{c.lastName[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-slate-800 truncate">{c.firstName} {c.lastName}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">
+                                  {c.position ?? "—"}{c.department ? ` · ${c.department}` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="ml-3 flex items-center gap-2 shrink-0">
+                              <div className="text-right">
+                                {hourlyRate !== null
+                                  ? <div className="text-xs font-bold text-purple-700">{formatFCFA(Math.round(hourlyRate))}/h</div>
+                                  : <div className="text-[10px] text-muted-foreground">salaire non renseigné</div>}
+                                <div className="text-[10px] text-muted-foreground capitalize">{c.employmentStatus}</div>
+                              </div>
+                              <div className="w-5 h-5 rounded-full bg-purple-100 group-hover:bg-purple-600 flex items-center justify-center transition-colors">
+                                <Plus className="w-3 h-3 text-purple-600 group-hover:text-white" />
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   <p className="text-[10px] text-muted-foreground">
-                    Cliquer sur un article charge son nom, son taux de TVA et ajoute son prix comme poste de coût.
+                    {catalogTab === "labor"
+                      ? "Cliquer ajoute la personne dans la section Main-d'œuvre avec son salaire brut pré-rempli."
+                      : "Cliquer sur un article charge son nom, son taux de TVA et ajoute son prix comme poste de coût."}
                   </p>
                 </div>
               )}
@@ -755,14 +1098,153 @@ export default function PricingCalculator() {
               </CardContent>
             </Card>
 
+            {/* ── Personnel / Main-d'œuvre ── */}
+            <Card className="shadow-sm border-purple-100">
+              <CardHeader className="pb-3 border-b border-purple-100">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HardHat className="w-4 h-4 text-purple-600" />
+                    Personnel / Main-d'œuvre
+                    {(scenario.laborLines ?? []).length > 0 && (
+                      <span className="text-xs font-normal text-purple-600 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">
+                        {(scenario.laborLines ?? []).length} ligne{(scenario.laborLines ?? []).length !== 1 ? "s" : ""} · {formatFCFA(Math.round(totalLaborCost))}
+                      </span>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm" variant="outline"
+                      className="h-7 text-xs gap-1.5 text-purple-600 border-purple-200 hover:bg-purple-50"
+                      onClick={() => { setCatalogOpen(true); setCatalogTab("labor"); setCatalogSearch(""); }}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" /> Depuis les collaborateurs
+                    </Button>
+                    <Button
+                      size="sm" variant="outline"
+                      className="h-7 text-xs gap-1.5 text-purple-600 border-purple-200 hover:bg-purple-50"
+                      onClick={addLaborLine}
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Ajouter
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3">
+                {(scenario.laborLines ?? []).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    <HardHat className="w-8 h-8 mx-auto text-slate-200 mb-2" />
+                    <p>Aucune ressource humaine — cliquez sur « Ajouter » ou chargez depuis les collaborateurs</p>
+                    <p className="text-xs mt-1 text-muted-foreground/60">
+                      Le coût réel employeur est calculé automatiquement : salaire brut + charges patronales + avantages
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(scenario.laborLines ?? []).map(line => (
+                      <LaborLineRow
+                        key={line.id}
+                        line={line}
+                        onUpdate={(updated) => updateLaborLine(line.id, updated)}
+                        onRemove={() => removeLaborLine(line.id)}
+                      />
+                    ))}
+                    {/* Total MO */}
+                    <div className="flex items-center justify-between pt-2 border-t border-purple-100 text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-purple-500" />
+                        Total Main-d'œuvre
+                      </span>
+                      <span className="font-bold text-purple-700">{formatFCFA(Math.round(totalLaborCost))}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Margin & Tax config */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-[#C8A24B]" /> Paramétrage marge & taxes
+                  <TrendingUp className="w-4 h-4 text-[#C8A24B]" /> Paramétrage marge, taxes & main-d'œuvre
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 space-y-5">
+                {/* Labor settings global */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                    <HardHat className="w-3.5 h-3.5 text-purple-500" /> Paramètres Main-d'œuvre (valeurs par défaut pour nouvelles lignes)
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="flex items-center gap-1 text-xs">
+                        Taux de charges patronales (%)
+                        <Tooltip>
+                          <TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Togo : CNSS patronal 16,4% + IPTS 2% = <strong>18,4%</strong> par défaut.<br/>
+                            Ce taux sera pré-rempli pour chaque nouvelle ligne de personnel.
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" min="0" max="100" step="0.1"
+                          className="h-8 text-sm flex-1"
+                          value={scenario.laborSettings.employerChargeRate}
+                          onChange={e => updateScenario({ laborSettings: { ...scenario.laborSettings, employerChargeRate: parseFloat(e.target.value) || 0 } })}
+                        />
+                        <span className="text-sm text-muted-foreground shrink-0">%</span>
+                      </div>
+                      <div className="flex gap-1">
+                        {[0, 18.4, 25, 30].map(v => (
+                          <Button key={v} size="sm" variant="outline"
+                            className={`h-6 text-[10px] px-1.5 ${scenario.laborSettings.employerChargeRate === v ? "bg-purple-600 text-white border-purple-600" : ""}`}
+                            onClick={() => updateScenario({ laborSettings: { ...scenario.laborSettings, employerChargeRate: v } })}>
+                            {v === 18.4 ? "Togo 18,4%" : `${v}%`}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="flex items-center gap-1 text-xs">
+                        Heures / semaine de référence
+                        <Tooltip>
+                          <TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                          <TooltipContent className="text-xs">
+                            Sert à calculer les heures mensuelles de base :<br/>
+                            {scenario.laborSettings.weeklyHours}h × 52 / 12 = <strong>{((scenario.laborSettings.weeklyHours * 52) / 12).toFixed(1)} h/mois</strong>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" min="1" max="80" step="0.5"
+                          className="h-8 text-sm flex-1"
+                          value={scenario.laborSettings.weeklyHours}
+                          onChange={e => updateScenario({ laborSettings: { ...scenario.laborSettings, weeklyHours: parseFloat(e.target.value) || 40 } })}
+                        />
+                        <span className="text-sm text-muted-foreground shrink-0">h/sem</span>
+                      </div>
+                      <div className="flex gap-1">
+                        {[35, 40, 45, 48].map(v => (
+                          <Button key={v} size="sm" variant="outline"
+                            className={`h-6 text-[10px] px-1.5 ${scenario.laborSettings.weeklyHours === v ? "bg-purple-600 text-white border-purple-600" : ""}`}
+                            onClick={() => updateScenario({ laborSettings: { ...scenario.laborSettings, weeklyHours: v } })}>
+                            {v}h
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground bg-purple-50/60 border border-purple-100 rounded px-3 py-1.5">
+                    Base horaire mensuelle calculée : <strong className="text-purple-700">{((scenario.laborSettings.weeklyHours * 52) / 12).toFixed(1)} h/mois</strong>
+                    {" · "}Coût employeur = salaire brut × {(1 + scenario.laborSettings.employerChargeRate / 100).toFixed(3)} + avantages
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div className="grid sm:grid-cols-2 gap-4">
                   {/* Margin mode */}
                   <div className="space-y-2">
