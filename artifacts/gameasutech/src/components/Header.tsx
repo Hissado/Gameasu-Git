@@ -41,15 +41,13 @@ export function Header() {
       <div className="container mx-auto px-6 flex items-center justify-between gap-6">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center gap-3 cursor-pointer flex-shrink-0">
+          <div className="cursor-pointer flex-shrink-0">
             <img
               src={`${import.meta.env.BASE_URL}gameasutech-logo.png`}
               alt="Gaméasù Technology"
-              className="h-9 w-auto"
+              className="h-10 w-auto"
+              style={{ maxWidth: "200px" }}
             />
-            <span className="font-bold text-xl tracking-tight text-slate-900 hidden sm:block">
-              Gaméasù
-            </span>
           </div>
         </Link>
 
