@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Building2, Plus, Mail, Phone, ChevronRight } from "lucide-react";
+import { Building2, Plus, Mail, Phone, ChevronRight, FileSignature, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Client = { id: string; name: string; email?: string; phone?: string; industry?: string; status: string };
@@ -53,29 +53,60 @@ export default function ClientsWorkspace() {
       {isLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {(data?.data ?? []).map(c => (
-          <Link key={c.id} href={`/clients/${c.id}`}>
-            <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 bg-primary/10 rounded-md flex items-center justify-center shrink-0">
-                      <Building2 className="w-4 h-4 text-primary" />
+        {(data?.data ?? []).map(c => {
+          const statusLabel: Record<string, { label: string; cls: string }> = {
+            active:   { label: "Actif",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+            client:   { label: "Client",     cls: "bg-blue-100 text-blue-700 border-blue-200" },
+            prospect: { label: "Prospect",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
+            inactive: { label: "Inactif",    cls: "bg-slate-100 text-slate-500 border-slate-200" },
+            lead:     { label: "Lead",       cls: "bg-purple-50 text-purple-700 border-purple-200" },
+          };
+          const stBadge = statusLabel[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-500 border-slate-200" };
+          return (
+            <div key={c.id} className="relative group">
+              <Link href={`/clients/${c.id}`}>
+                <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-9 h-9 bg-primary/10 rounded-md flex items-center justify-center shrink-0">
+                          <Building2 className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold truncate text-sm">{c.name}</h3>
+                          {c.industry && <p className="text-[10px] text-muted-foreground truncate">{c.industry}</p>}
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${stBadge.cls} shrink-0`}>{stBadge.label}</span>
                     </div>
-                    <h3 className="font-semibold truncate">{c.name}</h3>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                </div>
-                {c.industry && <p className="text-xs text-muted-foreground mb-2">{c.industry}</p>}
-                <div className="flex flex-wrap gap-1.5">
-                  {c.email && <Badge variant="outline" className="text-xs gap-1"><Mail className="w-3 h-3" />Email</Badge>}
-                  {c.phone && <Badge variant="outline" className="text-xs gap-1"><Phone className="w-3 h-3" />Téléphone</Badge>}
-                  <Badge variant={c.status === "active" || c.status === "client" ? "default" : "outline"} className="text-xs">{c.status}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      {c.email && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-slate-50 border border-border rounded px-1.5 py-0.5">
+                          <Mail className="w-2.5 h-2.5" /> {c.email.split("@")[0]}…
+                        </span>
+                      )}
+                      {c.phone && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-slate-50 border border-border rounded px-1.5 py-0.5">
+                          <Phone className="w-2.5 h-2.5" /> {c.phone}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+              {/* CTA rapide — visible au survol */}
+              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link href="/proformas">
+                  <button
+                    title="Créer un devis pour ce client"
+                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-md bg-[#C8A24B] hover:bg-[#b8922b] text-white shadow-md transition-colors">
+                    <FileSignature className="w-3 h-3" /> Devis
+                  </button>
+                </Link>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

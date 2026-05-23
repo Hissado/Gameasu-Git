@@ -1,0 +1,80 @@
+Pouvez-vous faire un **audit complet de l’onglet Commercial / Ventes & Relation client** afin de vérifier si toutes les fonctionnalités fonctionnent correctement, si elles sont bien organisées, et si l’expérience utilisateur est réellement fluide, logique et professionnelle ?
+
+### Objectif
+Je veux m’assurer que l’onglet Commercial est :
+- pleinement fonctionnel
+- bien structuré
+- cohérent dans sa logique métier
+- facile à utiliser
+- agréable à parcourir
+- professionnel dans son organisation et son rendu
+
+### Ce qu’il faut vérifier
+Merci de contrôler notamment :
+
+- si toutes les fonctionnalités existantes marchent correctement
+- s’il n’y a pas de boutons cassés, de routes manquantes ou d’actions incomplètes
+- si le parcours commercial est logique de bout en bout
+- si les écrans sont bien organisés
+- si la hiérarchie des sections est claire
+- si la navigation est simple et intuitive
+- si l’expérience utilisateur est vraiment **user-friendly**
+- si les liens avec les autres modules sont bien faits, notamment :
+  - clients
+  - devis
+  - commandes
+  - factures
+  - encaissements
+  - comptabilité
+  - calculateur tarifaire
+  - marketing
+
+### Audit fonctionnel attendu
+Je veux que vous vérifiiez si l’ensemble du cycle commercial est cohérent, par exemple :
+- prospect / opportunité
+- client
+- calculateur tarifaire
+- devis
+- commande
+- facture
+- encaissement
+- suivi / relance / marketing
+
+### Amélioration de l’expérience
+Merci également d’évaluer si certaines fonctionnalités sont :
+- mal placées
+- répétitives
+- peu claires
+- insuffisamment reliées entre elles
+- peu pratiques pour l’utilisateur final
+
+Si nécessaire, veuillez :
+- réorganiser les sections
+- simplifier certains parcours
+- améliorer la lisibilité
+- rendre le module plus fluide et plus agréable à utiliser
+
+### Idées révolutionnaires
+Si vous estimez qu’il est encore possible d’améliorer fortement l’expérience client et la valeur de l’application, merci d’ajouter également des **idées ou fonctionnalités différenciantes / révolutionnaires** qui pourraient booster le module Commercial.
+
+Par exemple :
+- automatisations intelligentes
+- suggestions de prochaine action commerciale
+- résumé IA client / opportunité
+- alertes commerciales
+- recommandations d’upsell / cross-sell
+- scoring de prospects ou d’opportunités
+- raccourcis intelligents
+- meilleure vue 360 commerciale
+- toute autre amélioration pertinente
+
+### Résultat attendu
+Je veux un onglet Commercial :
+- plus fiable
+- mieux organisé
+- plus intuitif
+- plus professionnel
+- plus agréable à utiliser
+- plus puissant fonctionnellement
+
+L’objectif final est d’avoir un module Commercial vraiment abouti, bien structuré, entièrement opérationnel, et capable d’offrir une expérience premium à l’utilisateur.

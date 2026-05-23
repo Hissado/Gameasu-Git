@@ -328,6 +328,7 @@ function CancelInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
 export default function InvoicesList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [editTarget, setEditTarget] = useState<Invoice | null>(null);
@@ -340,15 +341,18 @@ export default function InvoicesList() {
     queryFn: () => apiFetch("/api/invoices?limit=50"),
   });
 
-  const invoices = (data?.data ?? []).filter(inv =>
-    !search || inv.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    (inv.clientName ?? "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const overdueCount = invoices.filter(i => i.status === "overdue").length;
-  const totalOutstanding = invoices
+  const allInvoices = data?.data ?? [];
+  const overdueCount = allInvoices.filter(i => i.status === "overdue").length;
+  const totalOutstanding = allInvoices
     .filter(i => i.status !== "paid" && i.status !== "cancelled")
     .reduce((s, i) => s + ((i.totalAmount ?? 0) - (i.paidAmount ?? 0)), 0);
+
+  const invoices = allInvoices.filter(inv => {
+    if (showOverdueOnly && inv.status !== "overdue") return false;
+    if (!search) return true;
+    return inv.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
+      (inv.clientName ?? "").toLowerCase().includes(search.toLowerCase());
+  });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -369,6 +373,39 @@ export default function InvoicesList() {
           <Plus className="w-4 h-4" strokeWidth={3} /> Créer une facture
         </Button>
       </div>
+
+      {/* Bannière factures en retard */}
+      {overdueCount > 0 && (
+        <div className="flex items-start md:items-center gap-4 p-4 rounded-xl border-2 border-red-200 bg-red-50 animate-in fade-in">
+          <div className="p-2 bg-red-100 rounded-lg shrink-0">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-red-800">
+              {overdueCount} facture{overdueCount > 1 ? "s" : ""} en retard de paiement
+            </p>
+            <p className="text-xs text-red-600 mt-0.5">
+              Encours échu : <strong>{formatFCFA(allInvoices.filter(i => i.status === "overdue").reduce((s, i) => s + ((i.totalAmount ?? 0) - (i.paidAmount ?? 0)), 0))}</strong>
+              {" · "}Relancez vos clients pour régulariser les paiements en attente.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="outline" className={`text-xs gap-1 ${showOverdueOnly ? "border-red-500 bg-red-100 text-red-800" : "border-red-300 text-red-700 hover:bg-red-100"}`}
+              onClick={() => setShowOverdueOnly(v => !v)}>
+              <AlertCircle className="w-3.5 h-3.5" /> {showOverdueOnly ? "Tout afficher" : "Filtrer retards"}
+            </Button>
+            {(() => {
+              const first = invoices.find(i => i.status === "overdue");
+              return first ? (
+                <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs gap-1"
+                  onClick={() => setSendEmailTarget(first)}>
+                  <Mail className="w-3.5 h-3.5" /> Relancer
+                </Button>
+              ) : null;
+            })()}
+          </div>
+        </div>
+      )}
 
       <Card className="shadow-sm">
         <CardHeader className="pb-4 border-b">
@@ -419,14 +456,14 @@ export default function InvoicesList() {
                     <TableRow key={inv.id} className={`hover:bg-slate-50/50 ${isOverdue ? "bg-red-50/20" : ""} ${isCancelled ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold">
                         {inv.clientId
-                          ? <Link href={`/crm/clients/${inv.clientId}`}><span className="hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.referenceNumber}</span></Link>
+                          ? <Link href={`/clients/${inv.clientId}`}><span className="hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.referenceNumber}</span></Link>
                           : inv.referenceNumber}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           {inv.clientId
-                            ? <Link href={`/crm/clients/${inv.clientId}`}><span className="font-medium text-sm hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.clientName || "—"}</span></Link>
+                            ? <Link href={`/clients/${inv.clientId}`}><span className="font-medium text-sm hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.clientName || "—"}</span></Link>
                             : <span className="font-medium text-sm">{inv.clientName || "—"}</span>}
                         </div>
                       </TableCell>
