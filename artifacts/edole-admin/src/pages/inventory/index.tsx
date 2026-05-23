@@ -377,10 +377,11 @@ function ProductDialog({ open, onClose, product, categories, onSaved }: {
   categories: Category[]; onSaved: () => void;
 }) {
   const { toast } = useToast();
-  const { data: suppliers } = useQuery<Supplier[]>({
+  const { data: suppliersRes } = useQuery<{ data: Supplier[] }>({
     queryKey: ["suppliers"], queryFn: () => apiFetch("/api/accounting/suppliers"),
     enabled: open,
   });
+  const suppliers = suppliersRes?.data ?? [];
   const [form, setForm] = useState({
     sku: "", name: "", description: "", categoryId: "",
     unit: "pcs", purchasePriceFcfa: "0", sellingPriceFcfa: "0",
@@ -603,8 +604,10 @@ function CreatePoDialog({ open, onClose, onSaved, initialLines, initialSupplierI
   initialLines?: PoInitialLine[]; initialSupplierId?: string;
 }) {
   const { toast } = useToast();
-  const { data: suppliers } = useQuery<Supplier[]>({ queryKey: ["suppliers"], queryFn: () => apiFetch("/api/accounting/suppliers"), enabled: open });
-  const { data: products } = useQuery<Product[]>({ queryKey: ["products-all"], queryFn: () => apiFetch("/api/inventory/products"), enabled: open });
+  const { data: suppliersRes2 } = useQuery<{ data: Supplier[] }>({ queryKey: ["suppliers"], queryFn: () => apiFetch("/api/accounting/suppliers"), enabled: open });
+  const suppliers = suppliersRes2?.data ?? [];
+  const { data: productsRes } = useQuery<{ data: Product[] }>({ queryKey: ["products-all"], queryFn: () => apiFetch("/api/inventory/products"), enabled: open });
+  const products = productsRes?.data ?? [];
   const [supplierId, setSupplierId] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
