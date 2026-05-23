@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X } from "lucide-react";
-import { SidebarLogo } from "@/components/branding/SidebarLogo";
+import { Menu, X, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
-  LayoutDashboard, FolderKanban, CheckSquare, Users, Briefcase, Wrench, Truck,
+  LayoutDashboard, CheckSquare, Briefcase, Wrench, Truck,
   ClipboardCheck, ShoppingCart, FileText, CreditCard, MessageSquare, PhoneCall,
-  Settings, Bell, Search, UserCircle, LogOut, BarChart3, Map as MapIcon, QrCode,
-  Calculator, BookOpen, Scale, TrendingUp, Landmark, Building2, PiggyBank, Network,
+  Settings, Bell, Search, UserCircle, LogOut, BarChart3,
+  Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, ExternalLink, Lock, Brain, Workflow, Clock, Flame, Sparkles, Sun, BellRing, Activity, Gauge, Crown, Zap, Package, Tag, MinusCircle,
+  FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
+  Gauge, FolderKanban, Users2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,83 +21,82 @@ type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   moduleKey?: string;
 };
-type NavGroup = { title: string; items: NavItem[] };
+type NavGroup = {
+  title: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  items: NavItem[];
+};
 
-// ─── Architecture d'information Gaméasù ─────────────────────────────
-// Hiérarchie 6 sections × ~5 items, classée selon le parcours métier :
-// 1. Pilotage  → où je commence ma journée (cockpit, briefing, IA, approbations)
-// 2. Commercial → cycle de vente complet (clients → pipeline → devis → factures → marketing)
-// 3. Projets & Opérations → exécution (projets, tâches, opérations, parc, documents)
-// 4. Finance → comptabilité et planification
-// 5. Équipe → RH, présences, collaboration interne
-// 6. Administration → paramétrage SaaS et gouvernance
-//
-// Les variantes IA sont repliées comme onglets dans la page parente
-// (ex. /documents → onglets « Bibliothèque » + « IA & insights »).
 const NAV_GROUPS: NavGroup[] = [
   {
     title: "Pilotage",
+    icon: Gauge,
     items: [
-      { name: "Tableau de bord", path: "/", icon: LayoutDashboard, moduleKey: "dashboard" },
-      { name: "Briefing du jour", path: "/briefing", icon: Sun, moduleKey: "dashboard" },
-      { name: "Cockpit IA", path: "/intelligence", icon: Brain, moduleKey: "dashboard" },
-      { name: "Approbations", path: "/approvals", icon: CheckSquare, moduleKey: "dashboard" },
-      { name: "Assistant Gaméasù", path: "/assistant", icon: Sparkles, moduleKey: "dashboard" },
+      { name: "Tableau de bord",    path: "/",            icon: LayoutDashboard, moduleKey: "dashboard" },
+      { name: "Briefing du jour",   path: "/briefing",    icon: Sun,             moduleKey: "dashboard" },
+      { name: "Cockpit IA",         path: "/intelligence",icon: Brain,           moduleKey: "dashboard" },
+      { name: "Approbations",       path: "/approvals",   icon: CheckSquare,     moduleKey: "dashboard" },
+      { name: "Assistant Gaméasù",  path: "/assistant",   icon: Sparkles,        moduleKey: "dashboard" },
     ],
   },
   {
     title: "Commercial",
+    icon: TrendingUp,
     items: [
-      { name: "Pipeline & opportunités", path: "/crm", icon: Target, moduleKey: "sales_crm" },
-      { name: "Clients", path: "/clients", icon: Building2, moduleKey: "clients" },
-      { name: "Calculateur tarifaire", path: "/pricing", icon: Tag, moduleKey: "sales_crm" },
-      { name: "Devis", path: "/proformas", icon: FileSignature, moduleKey: "sales_crm" },
-      { name: "Commandes", path: "/orders", icon: ShoppingCart, moduleKey: "sales_crm" },
-      { name: "Factures", path: "/invoices", icon: FileText, moduleKey: "sales_crm" },
-      { name: "Encaissements", path: "/payments", icon: CreditCard, moduleKey: "sales_crm" },
-      { name: "Avoirs", path: "/credit-notes", icon: MinusCircle, moduleKey: "sales_crm" },
-      { name: "Marketing", path: "/marketing", icon: Megaphone, moduleKey: "marketing" },
+      { name: "Pipeline & opportunités", path: "/crm",          icon: Target,        moduleKey: "sales_crm" },
+      { name: "Clients",                 path: "/clients",       icon: Building2,     moduleKey: "clients" },
+      { name: "Calculateur tarifaire",   path: "/pricing",       icon: Tag,           moduleKey: "sales_crm" },
+      { name: "Devis",                   path: "/proformas",     icon: FileSignature, moduleKey: "sales_crm" },
+      { name: "Commandes",               path: "/orders",        icon: ShoppingCart,  moduleKey: "sales_crm" },
+      { name: "Factures",                path: "/invoices",      icon: FileText,      moduleKey: "sales_crm" },
+      { name: "Encaissements",           path: "/payments",      icon: CreditCard,    moduleKey: "sales_crm" },
+      { name: "Avoirs",                  path: "/credit-notes",  icon: MinusCircle,   moduleKey: "sales_crm" },
+      { name: "Marketing",               path: "/marketing",     icon: Megaphone,     moduleKey: "marketing" },
     ],
   },
   {
     title: "Projets & Opérations",
+    icon: FolderKanban,
     items: [
-      { name: "Projets", path: "/projects", icon: FolderKanban, moduleKey: "projects" },
-      { name: "Tâches", path: "/tasks", icon: CheckSquare, moduleKey: "tasks" },
-      { name: "Services", path: "/services", icon: Briefcase, moduleKey: "services" },
-      { name: "Opérations & Logistique", path: "/operations", icon: Truck, moduleKey: "operations" },
-      { name: "Parc & équipements", path: "/equipment", icon: Wrench, moduleKey: "inventory_assets" },
-      { name: "Produits & Stock", path: "/inventory", icon: Package, moduleKey: "inventory_products" },
-      { name: "Locations & inspections", path: "/rentals", icon: ClipboardCheck, moduleKey: "rentals" },
-      { name: "Documents", path: "/documents", icon: FolderOpen, moduleKey: "documents" },
+      { name: "Projets",                path: "/projects",   icon: FolderKanban, moduleKey: "projects" },
+      { name: "Tâches",                 path: "/tasks",      icon: CheckSquare,  moduleKey: "tasks" },
+      { name: "Services",               path: "/services",   icon: Briefcase,    moduleKey: "services" },
+      { name: "Opérations & Logistique",path: "/operations", icon: Truck,        moduleKey: "operations" },
+      { name: "Parc & équipements",     path: "/equipment",  icon: Wrench,       moduleKey: "inventory_assets" },
+      { name: "Produits & Stock",       path: "/inventory",  icon: Package,      moduleKey: "inventory_products" },
+      { name: "Locations & inspections",path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
+      { name: "Documents",              path: "/documents",  icon: FolderOpen,   moduleKey: "documents" },
     ],
   },
   {
     title: "Finance",
+    icon: Landmark,
     items: [
-      { name: "Comptabilité", path: "/accounting", icon: Calculator, moduleKey: "accounting" },
-      { name: "Planification financière", path: "/fpa", icon: TrendingUp, moduleKey: "financial_planning" },
-      { name: "Rapports & analytique", path: "/reports", icon: BarChart3, moduleKey: "reports" },
+      { name: "Comptabilité",           path: "/accounting", icon: Calculator,  moduleKey: "accounting" },
+      { name: "Planification financière",path: "/fpa",       icon: TrendingUp,  moduleKey: "financial_planning" },
+      { name: "Rapports & analytique",  path: "/reports",    icon: BarChart3,   moduleKey: "reports" },
     ],
   },
   {
     title: "Équipe & Communication",
+    icon: Users2,
     items: [
-      { name: "Équipe & RH", path: "/hr", icon: UsersRound, moduleKey: "team_hr" },
-      { name: "Collaborateurs", path: "/collaborators", icon: GraduationCap, moduleKey: "team_hr" },
-      { name: "Présences & pointage", path: "/attendance", icon: Clock, moduleKey: "team_hr" },
-      { name: "Messagerie", path: "/messaging", icon: MessageSquare, moduleKey: "communications" },
-      { name: "Appels", path: "/calls", icon: PhoneCall, moduleKey: "communications" },
+      { name: "Équipe & RH",        path: "/hr",            icon: UsersRound,    moduleKey: "team_hr" },
+      { name: "Collaborateurs",     path: "/collaborators", icon: GraduationCap, moduleKey: "team_hr" },
+      { name: "Présences & pointage",path: "/attendance",   icon: Clock,         moduleKey: "team_hr" },
+      { name: "Messagerie",         path: "/messaging",     icon: MessageSquare, moduleKey: "communications" },
+      { name: "Appels",             path: "/calls",         icon: PhoneCall,     moduleKey: "communications" },
     ],
   },
   {
     title: "Administration",
+    icon: Shield,
     items: [
-      { name: "Console admin", path: "/admin", icon: Shield, moduleKey: "administration" },
-      { name: "Automatisations", path: "/automations", icon: Workflow, moduleKey: "administration" },
-      { name: "Abonnement & facturation", path: "/billing", icon: CreditCard, moduleKey: "billing_subscription" },
-      { name: "Paramètres de l'espace", path: "/workspace-settings", icon: Settings, moduleKey: "workspace_settings" },
-      { name: "Support", path: "/tickets", icon: LifeBuoy },
+      { name: "Console admin",           path: "/admin",               icon: Shield,    moduleKey: "administration" },
+      { name: "Automatisations",         path: "/automations",          icon: Workflow,  moduleKey: "administration" },
+      { name: "Abonnement & facturation",path: "/billing",              icon: CreditCard,moduleKey: "billing_subscription" },
+      { name: "Paramètres de l'espace",  path: "/workspace-settings",   icon: Settings,  moduleKey: "workspace_settings" },
+      { name: "Support",                 path: "/tickets",              icon: LifeBuoy },
     ],
   },
 ];
@@ -111,6 +110,12 @@ const ROLE_LABEL: Record<string, string> = {
   comptable: "Comptable",
   client: "Client",
 };
+
+function isGroupActive(group: NavGroup, location: string) {
+  return group.items.some(
+    (item) => location === item.path || (item.path !== "/" && location.startsWith(item.path))
+  );
+}
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
@@ -130,111 +135,226 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => { setMobileOpen(false); }, [location]);
+
+  // Collapsible groups — open the active one by default
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    NAV_GROUPS.forEach((g) => {
+      if (isGroupActive(g, location)) initial.add(g.title);
+    });
+    return initial;
+  });
+
+  // Auto-expand the group containing the active page on navigation
   useEffect(() => {
-    if (mobileOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
+    setMobileOpen(false);
+    const activeGroup = NAV_GROUPS.find((g) => isGroupActive(g, location));
+    if (activeGroup) {
+      setOpenGroups((prev) => {
+        if (prev.has(activeGroup.title)) return prev;
+        const next = new Set(prev);
+        next.add(activeGroup.title);
+        return next;
+      });
+    }
+  }, [location]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  const toggleGroup = (title: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
+
   const SidebarContent = (
     <>
-      {/* En-tête logo — fond clair (h-16) aligné visuellement avec la topbar */}
-      <div className="relative flex items-center justify-center shrink-0 h-16 bg-card/95 border-b border-sidebar-border/40">
-        <SidebarLogo onNavigate={() => setMobileOpen(false)} />
+      {/* ── Logo area ─────────────────────────────────────────────── */}
+      <div className="shrink-0 h-16 flex items-center px-5 border-b border-white/[0.07] relative">
+        <Link href="/" aria-label={BRANDING.appName} className="flex items-center gap-3 group/logo" onClick={() => setMobileOpen(false)}>
+          {/* Mark */}
+          <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.10] flex items-center justify-center shrink-0 overflow-hidden group-hover/logo:bg-white/[0.12] transition-colors duration-200">
+            <img
+              src={BRANDING.logoMark}
+              alt=""
+              draggable={false}
+              aria-hidden="true"
+              className="w-5 h-5 object-contain select-none"
+              style={{ filter: "brightness(0) invert(1)", opacity: 0.9 }}
+            />
+          </div>
+          {/* Wordmark */}
+          <div>
+            <p className="text-[15px] font-bold text-white leading-none tracking-tight">{BRANDING.appName}</p>
+            <p className="text-[10px] text-white/35 mt-0.5 tracking-wide">{BRANDING.appTaglineFr}</p>
+          </div>
+        </Link>
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="relative lg:hidden p-2 -mr-1 rounded-md text-foreground/60 hover:bg-muted"
+          className="lg:hidden ml-auto p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] transition-colors"
           aria-label="Fermer le menu"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Carte workspace + plan */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
-          <p className="text-[10px] font-semibold text-sidebar-foreground/45 uppercase tracking-wider">Espace de travail</p>
-          <p className="text-[13.5px] font-semibold text-white truncate mt-0.5">{org?.name ?? "Chargement…"}</p>
+      {/* ── Workspace card ────────────────────────────────────────── */}
+      <div className="px-3 pt-3 pb-1 shrink-0">
+        <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.05] border border-white/[0.07] px-3 py-2.5 hover:bg-white/[0.07] transition-colors cursor-default">
+          <div className="w-7 h-7 rounded-md bg-[#C8A24B]/20 border border-[#C8A24B]/30 flex items-center justify-center shrink-0">
+            <span className="text-[11px] font-black text-[#C8A24B]">{(org?.name || "?")[0].toUpperCase()}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold text-white/90 truncate leading-none">{org?.name ?? "…"}</p>
+            <p className="text-[9.5px] text-white/35 mt-0.5 uppercase tracking-wider">Espace de travail</p>
+          </div>
+          {subData && <PlanBadge code={subData.plan.code} name={subData.plan.name} compact light />}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-3 pb-5 custom-scrollbar overscroll-contain">
-        {NAV_GROUPS.map((group, i) => (
-          <div key={i} className="mb-5 px-4">
-            <h3 className="text-[10px] font-semibold text-sidebar-foreground/35 mb-2.5 uppercase tracking-[0.14em] px-2.5">{group.title}</h3>
-            <ul className="space-y-0.5">
-              {group.items.map((item, j) => {
-                const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
-                const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
-                return (
-                  <li key={j}>
-                    <Link
-                      href={href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[44px] ${
-                        active
-                          ? "bg-white/[0.07] text-white"
-                          : locked
-                            ? "text-sidebar-foreground/35 hover:text-sidebar-foreground/55 hover:bg-white/[0.02]"
-                            : "text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white"
-                      }`}
-                    >
-                      {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-[#C8A24B] shadow-[0_0_10px_rgba(200,162,75,0.45)]" />
-                      )}
-                      <item.icon
-                        className={`w-[16px] h-[16px] shrink-0 transition-colors ${
-                          active ? "text-[#D9B86A]" : locked ? "text-sidebar-foreground/25" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
-                        }`}
-                        strokeWidth={1.75}
-                      />
-                      <span className="truncate flex-1">{item.name}</span>
-                      {locked && <Lock className="w-3 h-3 text-sidebar-foreground/30" />}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+      {/* ── Navigation groups ─────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto pt-2 pb-4 custom-scrollbar overscroll-contain">
+        <nav className="px-2 space-y-0.5">
+          {NAV_GROUPS.map((group) => {
+            const isOpen = openGroups.has(group.title);
+            const hasActive = isGroupActive(group, location);
+            const GroupIcon = group.icon;
 
-        {user?.role === "super_admin" && (
-          <div className="mb-5 px-4">
-            <h3 className="text-[10px] font-semibold text-sidebar-foreground/35 mb-2.5 uppercase tracking-[0.14em] px-2.5">Plateforme</h3>
-            <ul className="space-y-0.5">
-              <li>
-                <Link
-                  href="/super-admin"
-                  onClick={() => setMobileOpen(false)}
-                  className={`group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium min-h-[44px] ${
-                    location.startsWith("/super-admin")
-                      ? "bg-white/[0.07] text-white"
-                      : "text-sidebar-foreground/70 hover:bg-white/[0.04] hover:text-white"
+            return (
+              <div key={group.title}>
+                {/* Group header — clickable toggle */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.title)}
+                  className={`
+                    w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                    transition-all duration-150 text-left select-none
+                    ${hasActive && !isOpen
+                      ? "bg-white/[0.05] text-white/90"
+                      : isOpen
+                        ? "bg-white/[0.04] text-white/80"
+                        : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+                    }
+                  `}
+                >
+                  <GroupIcon
+                    className={`w-[15px] h-[15px] shrink-0 transition-colors duration-150 ${
+                      hasActive ? "text-[#C8A24B]" : isOpen ? "text-white/50" : "text-white/25"
+                    }`}
+                    strokeWidth={hasActive ? 2 : 1.75}
+                  />
+                  <span className={`flex-1 text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-150`}>
+                    {group.title}
+                  </span>
+                  {/* Active dot when group collapsed and has active item */}
+                  {hasActive && !isOpen && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C8A24B] shadow-[0_0_6px_rgba(200,162,75,0.6)]" />
+                  )}
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isOpen ? "rotate-90 text-white/40" : "text-white/20"
+                    }`}
+                    strokeWidth={2}
+                  />
+                </button>
+
+                {/* Collapsible items — smooth CSS grid animation */}
+                <div
+                  className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                   }`}
                 >
-                  {location.startsWith("/super-admin") && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-[#C8A24B] shadow-[0_0_10px_rgba(200,162,75,0.45)]" />
+                  <div className="overflow-hidden">
+                    <ul className="pt-0.5 pb-1 pl-2 space-y-0.5">
+                      {group.items.map((item) => {
+                        const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                        const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
+                        const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
+
+                        return (
+                          <li key={item.path}>
+                            <Link
+                              href={href}
+                              className={`
+                                group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg
+                                text-[12.5px] font-medium transition-all duration-150
+                                ${active
+                                  ? "bg-white/[0.08] text-white"
+                                  : locked
+                                    ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]"
+                                    : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                                }
+                              `}
+                            >
+                              {/* Active left accent bar */}
+                              {active && (
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />
+                              )}
+                              <item.icon
+                                className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${
+                                  active
+                                    ? "text-[#D9B86A]"
+                                    : locked
+                                      ? "text-white/20"
+                                      : "text-white/35 group-hover/item:text-white/60"
+                                }`}
+                                strokeWidth={active ? 2 : 1.75}
+                              />
+                              <span className="truncate flex-1">{item.name}</span>
+                              {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Super admin section */}
+          {user?.role === "super_admin" && (() => {
+            const isActive = location.startsWith("/super-admin");
+            return (
+              <div className="pt-1 mt-1 border-t border-white/[0.06]">
+                <Link
+                  href="/super-admin"
+                  className={`
+                    group/item relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                    text-[11.5px] font-bold uppercase tracking-[0.08em] transition-all duration-150
+                    ${isActive
+                      ? "bg-white/[0.08] text-white"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+                    }
+                  `}
+                >
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />
                   )}
                   <Crown
-                    className={`w-[16px] h-[16px] shrink-0 transition-colors ${
-                      location.startsWith("/super-admin") ? "text-[#D9B86A]" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
-                    }`}
-                    strokeWidth={1.75}
+                    className={`w-[15px] h-[15px] shrink-0 ${isActive ? "text-[#C8A24B]" : "text-white/25"}`}
+                    strokeWidth={isActive ? 2 : 1.75}
                   />
-                  <span className="truncate flex-1">Cockpit plateforme</span>
+                  <span className="flex-1">Cockpit plateforme</span>
                 </Link>
-              </li>
-            </ul>
-          </div>
-        )}
+              </div>
+            );
+          })()}
+        </nav>
       </div>
 
-      <div className="px-4 py-3 border-t border-sidebar-border/60 shrink-0">
-        <p className="text-[10px] text-sidebar-foreground/35 text-center">
-          {BRANDING.appName} · {BRANDING.appTaglineFr}
+      {/* ── Footer ────────────────────────────────────────────────── */}
+      <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
+        <p className="text-[9.5px] text-white/20 text-center tracking-wide">
+          {BRANDING.appName} · v2026
         </p>
       </div>
     </>
@@ -242,16 +362,24 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-background font-sans">
-      <aside className="hidden lg:flex w-[268px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-[260px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08] pointer-events-none" />
         <div className="relative flex flex-col h-full">{SidebarContent}</div>
       </aside>
 
+      {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
       )}
+
+      {/* Mobile sidebar */}
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[85%] max-w-[320px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col shadow-2xl transition-transform duration-200 ease-out ${
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[82%] max-w-[300px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col shadow-2xl transition-transform duration-200 ease-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-hidden={!mobileOpen}
@@ -259,19 +387,38 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         {SidebarContent}
       </aside>
 
+      {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
+        {/* Topbar */}
         <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-10 gap-2 sticky top-0 shadow-[var(--shadow-xs)]">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <button type="button" onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted" aria-label="Ouvrir le menu">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted"
+              aria-label="Ouvrir le menu"
+            >
               <Menu className="w-6 h-6" />
             </button>
-            <span className="lg:hidden inline-flex">
-              <SidebarLogo />
+            {/* Mobile logo */}
+            <span className="lg:hidden inline-flex items-center gap-2">
+              <img
+                src={BRANDING.logoMark}
+                alt={BRANDING.appName}
+                className="h-7 w-7 object-contain"
+                draggable={false}
+              />
+              <span className="text-[15px] font-bold text-foreground">{BRANDING.appName}</span>
             </span>
 
+            {/* Search bar */}
             <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
               <Search className="w-4 h-4 mr-2.5 text-muted-foreground/70 shrink-0" />
-              <input type="text" placeholder="Rechercher clients, projets, factures…" className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/70" />
+              <input
+                type="text"
+                placeholder="Rechercher clients, projets, factures…"
+                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/70"
+              />
               <kbd className="hidden lg:inline-flex ml-2 text-[10px] text-muted-foreground/70 font-mono bg-background border border-border rounded px-1.5 py-0.5">⌘K</kbd>
             </div>
             <button type="button" className="md:hidden p-2 rounded-md text-muted-foreground hover:bg-muted ml-auto" aria-label="Rechercher">
@@ -286,10 +433,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
               <Bell className="w-5 h-5" strokeWidth={1.75} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card" />
             </Link>
 
-            <div className="w-px h-6 bg-border/70 hidden sm:block mx-1"></div>
+            <div className="w-px h-6 bg-border/70 hidden sm:block mx-1" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -318,7 +465,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 <DropdownMenuItem asChild className="cursor-pointer py-2.5">
                   <Link href="/profile"><UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />Mon profil</Link>
                 </DropdownMenuItem>
-                <div className="h-px bg-border my-1"></div>
+                <div className="h-px bg-border my-1" />
                 <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive focus:text-destructive" onClick={() => logout()}>
                   <LogOut className="w-4 h-4 mr-2" />Déconnexion
                 </DropdownMenuItem>
