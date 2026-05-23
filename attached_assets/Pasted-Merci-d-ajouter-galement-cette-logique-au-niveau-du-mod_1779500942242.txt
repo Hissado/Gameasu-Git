@@ -1,0 +1,80 @@
+Merci d’ajouter également cette logique au niveau du module **RH / Équipe & RH**, afin que toutes les données nécessaires soient bien disponibles, bien structurées et correctement exploitées dans le **calculateur tarifaire**.
+
+### 1. Données RH à intégrer et à rendre exploitables
+Je veux que les informations suivantes soient configurées directement dans le module **RH / Équipe & RH** :
+
+- salaire
+- charges
+- avantages
+- type de contrat
+- statut du collaborateur ou du contractuel
+- coût employeur réel
+
+### 2. Logique attendue avec le calculateur tarifaire
+L’objectif est que, dès que l’on sélectionne un **collaborateur** ou un **contractuel** dans le **calculateur tarifaire**, les données utiles remontent automatiquement depuis le module RH.
+
+Autrement dit, je veux que :
+- le salaire ne soit pas saisi manuellement dans le calculateur
+- les charges et avantages ne soient pas saisis manuellement à chaque fois
+- toutes ces données soient déjà configurées côté RH
+- le calculateur tarifaire récupère automatiquement ces informations
+- le coût réel de la ressource soit calculé de manière cohérente et professionnelle
+
+### 3. Calcul du coût employeur réel
+Je veux que le module RH permette de configurer correctement le **coût employeur réel**, en tenant compte non seulement du salaire, mais aussi de :
+- les charges patronales
+- les taxes liées à l’emploi
+- les avantages
+- les primes ou compléments si pertinent
+- tout autre élément utile au coût complet de la ressource
+
+Ainsi, lorsqu’un collaborateur ou un contractuel est utilisé dans le calculateur tarifaire, le système doit pouvoir remonter automatiquement :
+- son coût horaire
+- ou son coût journalier
+- sur la base de son coût employeur réel
+
+### 4. Audit global du module RH
+Veuillez également faire un **audit complet du module RH / Équipe & RH** afin de vérifier :
+- ce qui est déjà présent
+- ce qui est partiellement implémenté
+- ce qui manque encore
+- ce qui doit être renforcé pour faire du module RH un vrai module complet, moderne et structuré
+
+### 5. Ajouter des fonctionnalités RH plus avancées / révolutionnaires
+Je veux que vous réfléchissiez aussi à des **fonctionnalités RH plus avancées et différenciantes**, afin que l’onglet RH couvre réellement tout le cycle de vie du collaborateur, de manière professionnelle.
+
+L’objectif est d’avoir un module RH capable de couvrir **tout le parcours**, par exemple :
+- recrutement
+- candidatures
+- embauche
+- onboarding
+- contrats
+- affectations
+- gestion administrative du personnel
+- absences / permissions / congés
+- missions
+- pointage / présence
+- performance
+- formations
+- évolution / carrière
+- paie
+- charges sociales et fiscales
+- gestion des avantages
+- gestion disciplinaire / plaintes si pertinent
+- offboarding
+- retraite / sortie du personnel
+
+### 6. Résultat attendu
+Je veux un module **RH / Équipe & RH** beaucoup plus complet, dans lequel :
+- les données salariales et contractuelles sont bien configurées à la source
+- les charges, avantages et coûts employeur sont correctement pris en compte
+- le calculateur tarifaire récupère automatiquement les bonnes données
+- le module RH soit assez riche pour gérer le collaborateur de son recrutement jusqu’à sa sortie ou sa retraite
+- l’ensemble soit structuré, professionnel, cohérent et utile à la fois pour les RH, la finance, l’opérationnel et le commercial
+
+### Objectif final
+Je veux un **module RH robuste, moderne et intégré**, qui :
+- alimente automatiquement le calculateur tarifaire
+- centralise les données du personnel
+- couvre l’ensemble du cycle de vie RH
+- et apporte une vraie valeur ajoutée à l’application.

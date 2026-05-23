@@ -21,7 +21,10 @@ import {
   ArrowLeft, Mail, Phone, Calendar, FolderKanban, Briefcase, FileSignature, Wrench,
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
+  HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -57,10 +60,35 @@ type EditForm = {
   employmentStatus: string;
   isAvailable: boolean;
   baseSalary: string;
+  // Coût employeur réel
+  employerChargeRate: string;
+  transportAllowance: string;
+  housingAllowance: string;
+  mealAllowance: string;
+  otherBenefitsMonthly: string;
+  weeklyHours: string;
   ecName: string;
   ecPhone: string;
   ecRelation: string;
   avatarUrl: string;
+};
+
+type EmployerCost = {
+  baseSalary: number;
+  weeklyHours: number;
+  employerChargeRate: number;
+  transportAllowance: number;
+  housingAllowance: number;
+  mealAllowance: number;
+  otherBenefitsMonthly: number;
+  totalBenefitsMonthly: number;
+  monthlyHours: number;
+  monthlyCostEmployeur: number;
+  hourlyRate: number;
+  dailyRate: number;
+  contractType: string | null;
+  salarySource: string;
+  weeklyHoursSource: string;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -155,13 +183,22 @@ function EditCollaboratorDialog({
           employmentStatus: data.employmentStatus,
           isAvailable: data.isAvailable,
           avatarUrl: data.avatarUrl || null,
-          ...(canEditSalary && { baseSalary: data.baseSalary ? Number(data.baseSalary) : null }),
+          ...(canEditSalary && {
+            baseSalary: data.baseSalary ? Number(data.baseSalary) : null,
+            employerChargeRate: data.employerChargeRate ? Number(data.employerChargeRate) : 18.4,
+            transportAllowance: data.transportAllowance ? Number(data.transportAllowance) : 0,
+            housingAllowance: data.housingAllowance ? Number(data.housingAllowance) : 0,
+            mealAllowance: data.mealAllowance ? Number(data.mealAllowance) : 0,
+            otherBenefitsMonthly: data.otherBenefitsMonthly ? Number(data.otherBenefitsMonthly) : 0,
+            weeklyHours: data.weeklyHours ? Number(data.weeklyHours) : 40,
+          }),
         }),
       }),
     onSuccess: () => {
       toast.success("Profil mis à jour avec succès");
       queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(collaboratorId) });
       queryClient.invalidateQueries({ queryKey: ["hr-overview", collaboratorId] });
+      queryClient.invalidateQueries({ queryKey: ["employer-cost", collaboratorId] });
       onClose();
     },
     onError: (err: any) => {
@@ -351,20 +388,143 @@ function EditCollaboratorDialog({
             </div>
           </TabsContent>
 
-          {/* TAB 3 — Rémunération (admin seulement) */}
+          {/* TAB 3 — Rémunération & Coût employeur (admin seulement) */}
           <TabsContent value="salary" className="space-y-4">
             {canEditSalary ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="baseSalary">Salaire de base (FCFA)</Label>
-                <Input
-                  id="baseSalary"
-                  type="number"
-                  value={form.baseSalary}
-                  onChange={e => set("baseSalary", e.target.value)}
-                  placeholder="ex : 450000"
-                />
-                <p className="text-xs text-muted-foreground">Montant brut mensuel en FCFA.</p>
-              </div>
+              <>
+                {/* Salaire brut */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="baseSalary" className="flex items-center gap-1">
+                    Salaire brut mensuel (FCFA) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="baseSalary"
+                    type="number"
+                    value={form.baseSalary}
+                    onChange={e => set("baseSalary", e.target.value)}
+                    placeholder="ex : 450 000"
+                  />
+                  <p className="text-xs text-muted-foreground">Salaire brut mensuel en FCFA avant charges et impôts.</p>
+                </div>
+
+                <Separator />
+
+                {/* Heures de travail */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="weeklyHours" className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-purple-500" />
+                    Heures de travail / semaine
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="weeklyHours"
+                      type="number" min="1" max="80" step="0.5"
+                      className="flex-1"
+                      value={form.weeklyHours}
+                      onChange={e => set("weeklyHours", e.target.value)}
+                    />
+                    <span className="text-sm text-muted-foreground shrink-0">h/sem</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Heures mensuelles calculées : <strong>{(parseFloat(form.weeklyHours || "40") * 52 / 12).toFixed(1)} h/mois</strong>
+                  </p>
+                </div>
+
+                {/* Taux de charges patronales */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="employerChargeRate" className="flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
+                    Taux de charges patronales (%)
+                    <Tooltip>
+                      <TooltipTrigger asChild><InfoIcon className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        Togo : CNSS patronal 16,4% + IPTS 2% = <strong>18,4%</strong>.<br/>
+                        Ajuster selon le type de contrat (prestataire, freelance…).
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="employerChargeRate"
+                      type="number" min="0" max="100" step="0.1"
+                      className="flex-1"
+                      value={form.employerChargeRate}
+                      onChange={e => set("employerChargeRate", e.target.value)}
+                    />
+                    <span className="text-sm text-muted-foreground shrink-0">%</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[0, 18.4, 25].map(v => (
+                      <button key={v} type="button"
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${parseFloat(form.employerChargeRate) === v ? "bg-purple-600 text-white border-purple-600" : "border-slate-200 hover:border-slate-400"}`}
+                        onClick={() => set("employerChargeRate", String(v))}>
+                        {v === 18.4 ? "Togo 18,4%" : `${v}%`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Avantages mensuels */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Avantages mensuels (FCFA)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="transportAllowance" className="flex items-center gap-1 text-xs">
+                        <Bus className="w-3 h-3 text-blue-500" /> Transport
+                      </Label>
+                      <Input id="transportAllowance" type="number" min="0" step="1000" placeholder="0"
+                        value={form.transportAllowance} onChange={e => set("transportAllowance", e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="housingAllowance" className="flex items-center gap-1 text-xs">
+                        <Home className="w-3 h-3 text-emerald-500" /> Logement
+                      </Label>
+                      <Input id="housingAllowance" type="number" min="0" step="1000" placeholder="0"
+                        value={form.housingAllowance} onChange={e => set("housingAllowance", e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="mealAllowance" className="flex items-center gap-1 text-xs">
+                        <Utensils className="w-3 h-3 text-amber-500" /> Repas
+                      </Label>
+                      <Input id="mealAllowance" type="number" min="0" step="1000" placeholder="0"
+                        value={form.mealAllowance} onChange={e => set("mealAllowance", e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="otherBenefitsMonthly" className="flex items-center gap-1 text-xs">
+                        <Gift className="w-3 h-3 text-purple-500" /> Autres (assurance, tel…)
+                      </Label>
+                      <Input id="otherBenefitsMonthly" type="number" min="0" step="1000" placeholder="0"
+                        value={form.otherBenefitsMonthly} onChange={e => set("otherBenefitsMonthly", e.target.value)} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Récapitulatif calculé */}
+                {parseFloat(form.baseSalary || "0") > 0 && (
+                  <div className="bg-purple-50 border border-purple-100 rounded-lg px-4 py-3 text-xs">
+                    <p className="font-semibold text-purple-800 mb-2 flex items-center gap-1"><HardHat className="w-3.5 h-3.5" /> Coût employeur calculé</p>
+                    <div className="grid grid-cols-2 gap-2 text-slate-700">
+                      {(() => {
+                        const salary = parseFloat(form.baseSalary || "0");
+                        const rate = parseFloat(form.employerChargeRate || "18.4");
+                        const benefits = parseFloat(form.transportAllowance || "0") + parseFloat(form.housingAllowance || "0") + parseFloat(form.mealAllowance || "0") + parseFloat(form.otherBenefitsMonthly || "0");
+                        const wh = parseFloat(form.weeklyHours || "40");
+                        const monthHours = (wh * 52) / 12;
+                        const monthlyCost = salary * (1 + rate / 100) + benefits;
+                        const hrRate = monthHours > 0 ? monthlyCost / monthHours : 0;
+                        return <>
+                          <div><div className="text-muted-foreground">Heures/mois</div><div className="font-semibold">{monthHours.toFixed(1)} h</div></div>
+                          <div><div className="text-muted-foreground">Total avantages/mois</div><div className="font-semibold">{formatFCFA(Math.round(benefits))}</div></div>
+                          <div><div className="text-muted-foreground">Coût employeur/mois</div><div className="font-bold text-purple-700">{formatFCFA(Math.round(monthlyCost))}</div></div>
+                          <div><div className="text-muted-foreground">Taux horaire réel</div><div className="font-bold text-purple-700">{formatFCFA(Math.round(hrRate))}/h</div></div>
+                        </>;
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -416,6 +576,12 @@ export default function CollaboratorDetail() {
     query: { enabled: !!id, queryKey: getGetCollaboratorQueryKey(id) },
   });
 
+  const { data: employerCost } = useQuery<EmployerCost>({
+    queryKey: ["employer-cost", id],
+    queryFn: () => apiFetch(`/api/collaborators/${id}/employer-cost`),
+    enabled: !!id,
+  });
+
   const { data: overview, isLoading: overviewLoading } = useQuery<Overview>({
     queryKey: ["hr-overview", id],
     queryFn: () => apiFetch(`/api/hr/collaborators/${id}/overview`),
@@ -444,6 +610,12 @@ export default function CollaboratorDetail() {
       employmentStatus: c?.employmentStatus || "active",
       isAvailable: c?.isAvailable !== false,
       baseSalary: c?.baseSalary ? String(c.baseSalary) : "",
+      employerChargeRate: c?.employerChargeRate ? String(c.employerChargeRate) : "18.4",
+      transportAllowance: c?.transportAllowance ? String(c.transportAllowance) : "0",
+      housingAllowance: c?.housingAllowance ? String(c.housingAllowance) : "0",
+      mealAllowance: c?.mealAllowance ? String(c.mealAllowance) : "0",
+      otherBenefitsMonthly: c?.otherBenefitsMonthly ? String(c.otherBenefitsMonthly) : "0",
+      weeklyHours: c?.weeklyHours ? String(c.weeklyHours) : "40",
       ecName: ec?.name || "",
       ecPhone: ec?.phone || "",
       ecRelation: ec?.relation || "",
@@ -664,6 +836,121 @@ export default function CollaboratorDetail() {
           </Card>
         </div>
       </div>
+
+      {/* COÛT EMPLOYEUR RÉEL */}
+      {isAdmin && (
+        <Card className="shadow-sm border-border">
+          <CardHeader className="bg-purple-50/60 border-b border-border/50 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-purple-100 rounded-md"><HardHat className="w-4 h-4 text-purple-600" /></div>
+                <div>
+                  <CardTitle className="text-base text-purple-900">Coût employeur réel</CardTitle>
+                  <CardDescription className="text-xs">
+                    Calcul sur la base du profil RH — utilisé par le calculateur tarifaire
+                    {employerCost && (
+                      <span className="ml-2 text-[10px] font-medium bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">
+                        Source : {employerCost.salarySource === "profile" ? "Profil" : employerCost.salarySource === "contract" ? "Contrat actif" : "Non défini"}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+              </div>
+              {isManagerOrAbove && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setEditOpen(true)}>
+                  <Pencil className="w-3 h-3" /> Modifier
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-5">
+            {!employerCost ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
+              </div>
+            ) : employerCost.salarySource === "none" ? (
+              <div className="flex items-center gap-3 py-6 justify-center text-muted-foreground text-sm">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+                Aucun salaire défini sur ce profil. Renseignez le salaire brut dans l'onglet Rémunération.
+              </div>
+            ) : (
+              <TooltipProvider>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                  {/* Salaire brut */}
+                  <div className="bg-muted/30 border border-border rounded-lg p-3">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                      <DollarSign className="w-3 h-3" /> Salaire brut
+                    </div>
+                    <div className="text-xl font-bold text-foreground">{formatFCFA(Math.round(employerCost.baseSalary))}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">/mois</div>
+                  </div>
+                  {/* Charges patronales */}
+                  <div className="bg-muted/30 border border-border rounded-lg p-3">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> Charges patronales
+                    </div>
+                    <div className="text-xl font-bold text-foreground">{employerCost.employerChargeRate}%</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {formatFCFA(Math.round(employerCost.baseSalary * employerCost.employerChargeRate / 100))} FCFA
+                    </div>
+                  </div>
+                  {/* Heures de travail */}
+                  <div className="bg-muted/30 border border-border rounded-lg p-3">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Heures/sem.
+                      {employerCost.weeklyHoursSource === "default" && (
+                        <Tooltip>
+                          <TooltipTrigger asChild><InfoIcon className="w-3 h-3 text-amber-400 cursor-help" /></TooltipTrigger>
+                          <TooltipContent>Valeur par défaut (40h). Définissez-la dans le profil.</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <div className="text-xl font-bold text-foreground">{employerCost.weeklyHours}h</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{employerCost.monthlyHours} h/mois</div>
+                  </div>
+                  {/* Avantages totaux */}
+                  <div className="bg-muted/30 border border-border rounded-lg p-3">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                      <Gift className="w-3 h-3" /> Avantages/mois
+                    </div>
+                    <div className="text-xl font-bold text-foreground">{formatFCFA(Math.round(employerCost.totalBenefitsMonthly))}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-1">
+                      {employerCost.transportAllowance > 0 && <span className="bg-blue-100 text-blue-700 px-1 rounded">Transp. {formatFCFA(Math.round(employerCost.transportAllowance))}</span>}
+                      {employerCost.housingAllowance > 0 && <span className="bg-emerald-100 text-emerald-700 px-1 rounded">Log. {formatFCFA(Math.round(employerCost.housingAllowance))}</span>}
+                      {employerCost.mealAllowance > 0 && <span className="bg-amber-100 text-amber-700 px-1 rounded">Repas {formatFCFA(Math.round(employerCost.mealAllowance))}</span>}
+                      {employerCost.otherBenefitsMonthly > 0 && <span className="bg-purple-100 text-purple-700 px-1 rounded">Autres {formatFCFA(Math.round(employerCost.otherBenefitsMonthly))}</span>}
+                      {employerCost.totalBenefitsMonthly === 0 && <span className="text-muted-foreground">Aucun</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPIs coût réel */}
+                <div className="grid grid-cols-3 gap-4 bg-purple-50 border border-purple-100 rounded-xl p-4">
+                  <div className="text-center">
+                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">Coût employeur / mois</div>
+                    <div className="text-2xl font-black text-purple-800 mt-1">{formatFCFA(Math.round(employerCost.monthlyCostEmployeur))}</div>
+                    <div className="text-[10px] text-purple-500 mt-0.5">charges + avantages inclus</div>
+                  </div>
+                  <div className="text-center border-l border-purple-200">
+                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3" /> Taux horaire réel
+                    </div>
+                    <div className="text-2xl font-black text-purple-800 mt-1">{formatFCFA(Math.round(employerCost.hourlyRate))}</div>
+                    <div className="text-[10px] text-purple-500 mt-0.5">par heure travaillée</div>
+                  </div>
+                  <div className="text-center border-l border-purple-200">
+                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide flex items-center justify-center gap-1">
+                      <Calendar className="w-3 h-3" /> Taux journalier (TJM)
+                    </div>
+                    <div className="text-2xl font-black text-purple-800 mt-1">{formatFCFA(Math.round(employerCost.dailyRate))}</div>
+                    <div className="text-[10px] text-purple-500 mt-0.5">base {(employerCost.weeklyHours / 5).toFixed(1)}h/jour</div>
+                  </div>
+                </div>
+              </TooltipProvider>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* GRILLE BAS — Contrats / Équipements / Documents */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

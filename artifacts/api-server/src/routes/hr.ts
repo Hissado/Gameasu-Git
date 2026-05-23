@@ -916,6 +916,9 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
       emergencyContact, employeeNumber, departmentId, positionId, position,
       department, managerCollaboratorId, hireDate, employmentStatus, isAvailable,
       avatarUrl, baseSalary,
+      // Champs coût employeur
+      employerChargeRate, transportAllowance, housingAllowance, mealAllowance,
+      otherBenefitsMonthly, weeklyHours,
     } = req.body;
 
     const updateData: Record<string, unknown> = {
@@ -937,11 +940,18 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
       ...(employmentStatus !== undefined && { employmentStatus }),
       ...(isAvailable !== undefined && { isAvailable }),
       ...(avatarUrl !== undefined && { avatarUrl: avatarUrl || null }),
+      ...(weeklyHours !== undefined && { weeklyHours: weeklyHours != null ? String(weeklyHours) : null }),
     };
 
     if (isAdmin && baseSalary !== undefined) {
       updateData.baseSalary = baseSalary != null ? String(baseSalary) : null;
     }
+    // Champs coût employeur : réservés manager+
+    if (employerChargeRate !== undefined) updateData.employerChargeRate = employerChargeRate != null ? String(employerChargeRate) : null;
+    if (transportAllowance !== undefined) updateData.transportAllowance = transportAllowance != null ? String(transportAllowance) : "0";
+    if (housingAllowance   !== undefined) updateData.housingAllowance   = housingAllowance   != null ? String(housingAllowance)   : "0";
+    if (mealAllowance      !== undefined) updateData.mealAllowance      = mealAllowance      != null ? String(mealAllowance)      : "0";
+    if (otherBenefitsMonthly !== undefined) updateData.otherBenefitsMonthly = otherBenefitsMonthly != null ? String(otherBenefitsMonthly) : "0";
 
     const [collab] = await db.update(collaboratorsTable)
       .set(updateData as any)

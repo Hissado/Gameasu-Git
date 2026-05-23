@@ -683,21 +683,48 @@ export default function PricingCalculator() {
     toast.success(`${entry.name} chargé depuis le catalogue`);
   }, [scenario.costItems, updateScenario]);
 
-  const applyCollabToLabor = useCallback((collab: CatalogCollab) => {
-    const baseSalary = Number(collab.baseSalary ?? 0);
-    const newLine: LaborLineItem = {
-      id: uid(),
-      name: `${collab.firstName} ${collab.lastName}${collab.position ? ` — ${collab.position}` : ""}`,
-      collaboratorId: collab.id,
-      contractType: "CDI",
-      monthlySalaryBrut: baseSalary,
-      employerChargeRate: scenario.laborSettings.employerChargeRate,
-      benefitsMonthly: 0,
-      weeklyHours: scenario.laborSettings.weeklyHours,
-      allocatedHours: 80,
-    };
-    updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
-    toast.success(`${collab.firstName} ${collab.lastName} ajouté à la main-d'œuvre`);
+  const applyCollabToLabor = useCallback(async (collab: CatalogCollab) => {
+    const collabName = `${collab.firstName} ${collab.lastName}${collab.position ? ` — ${collab.position}` : ""}`;
+    try {
+      // Récupérer le coût employeur réel depuis l'API
+      const cost = await apiFetch(`/api/collaborators/${collab.id}/employer-cost`) as {
+        baseSalary: number; weeklyHours: number; employerChargeRate: number;
+        totalBenefitsMonthly: number; hourlyRate: number; contractType: string | null;
+      };
+      const newLine: LaborLineItem = {
+        id: uid(),
+        name: collabName,
+        collaboratorId: collab.id,
+        contractType: cost.contractType ?? "CDI",
+        monthlySalaryBrut: cost.baseSalary ?? Number(collab.baseSalary ?? 0),
+        employerChargeRate: cost.employerChargeRate ?? scenario.laborSettings.employerChargeRate,
+        benefitsMonthly: cost.totalBenefitsMonthly ?? 0,
+        weeklyHours: cost.weeklyHours ?? scenario.laborSettings.weeklyHours,
+        allocatedHours: 80,
+      };
+      updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
+      const hrRate = Math.round(cost.hourlyRate ?? 0);
+      toast.success(
+        hrRate > 0
+          ? `${collab.firstName} ${collab.lastName} ajouté — taux horaire réel : ${hrRate.toLocaleString("fr-FR")} FCFA/h`
+          : `${collab.firstName} ${collab.lastName} ajouté à la main-d'œuvre`
+      );
+    } catch {
+      // Fallback si l'endpoint échoue (réseau, données manquantes)
+      const newLine: LaborLineItem = {
+        id: uid(),
+        name: collabName,
+        collaboratorId: collab.id,
+        contractType: "CDI",
+        monthlySalaryBrut: Number(collab.baseSalary ?? 0),
+        employerChargeRate: scenario.laborSettings.employerChargeRate,
+        benefitsMonthly: 0,
+        weeklyHours: scenario.laborSettings.weeklyHours,
+        allocatedHours: 80,
+      };
+      updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
+      toast.success(`${collab.firstName} ${collab.lastName} ajouté à la main-d'œuvre`);
+    }
     setCatalogSearch("");
   }, [scenario.laborLines, scenario.laborSettings, updateScenario]);
 

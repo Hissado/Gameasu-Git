@@ -42,6 +42,19 @@ export const collaboratorsTable = pgTable("collaborators", {
   address: text("address"),
   emergencyContact: jsonb("emergency_contact"), // { name, phone, relation }
   baseSalary: numeric("base_salary", { precision: 14, scale: 2 }),
+
+  // ── Coût employeur réel (utilisé par le calculateur tarifaire)
+  // Taux de charges patronales en % (CNSS 16,4% + IPTS 2% = 18,4% par défaut au Togo).
+  employerChargeRate: numeric("employer_charge_rate", { precision: 6, scale: 3 }).default("18.4"),
+  // Avantages mensuels en espèces (transport, logement, repas, autres).
+  transportAllowance: numeric("transport_allowance", { precision: 14, scale: 2 }).default("0"),
+  housingAllowance: numeric("housing_allowance", { precision: 14, scale: 2 }).default("0"),
+  mealAllowance: numeric("meal_allowance", { precision: 14, scale: 2 }).default("0"),
+  // Autres avantages récurrents en FCFA/mois (assurance, téléphone, véhicule…).
+  otherBenefitsMonthly: numeric("other_benefits_monthly", { precision: 14, scale: 2 }).default("0"),
+  // Durée de travail hebdomadaire de référence pour le calcul du taux horaire.
+  weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }).default("40"),
+
   // active | on_leave | terminated | retired
   employmentStatus: text("employment_status").notNull().default("active"),
 
