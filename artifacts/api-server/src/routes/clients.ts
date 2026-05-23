@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
-  clientsTable, clientContactsTable, clientEmailLogsTable,
+  clientsTable, clientContactsTable, clientEmailLogsTable, clientNotesTable,
   ordersTable, proformasTable, invoicesTable, paymentsTable,
   projectsTable, conversationsTable,
 } from "@workspace/db";
@@ -201,6 +201,51 @@ router.get("/clients/:id/activity", requirePermission("clients.read"), async (re
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   res.json({ data: events }); return;
+});
+
+// ─── Notes ────────────────────────────────────────────────────────────────────
+router.get("/clients/:id/notes", requirePermission("clients.read"), async (req, res) => {
+  const clientId = req.params.id;
+  const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, clientId)).limit(1);
+  if (!client) { res.status(404).json({ error: "Client introuvable" }); return; }
+  const notes = await db.select().from(clientNotesTable)
+    .where(eq(clientNotesTable.clientId, clientId))
+    .orderBy(desc(clientNotesTable.pinned), desc(clientNotesTable.createdAt));
+  res.json({ data: notes }); return;
+});
+
+router.post("/clients/:id/notes", requirePermission("clients.manage"), async (req, res) => {
+  const clientId = req.params.id;
+  const { content } = req.body || {};
+  if (!content?.trim()) { res.status(400).json({ error: "Contenu requis" }); return; }
+  const { pinned } = req.body || {};
+  const [note] = await db.insert(clientNotesTable).values({
+    organizationId: req.authUser!.organizationId,
+    clientId,
+    authorId: req.authUser!.id,
+    content: content.trim(),
+    ...(pinned !== undefined ? { pinned: Boolean(pinned) } : {}),
+  }).returning();
+  res.status(201).json(note); return;
+});
+
+router.patch("/clients/:id/notes/:noteId", requirePermission("clients.manage"), async (req, res) => {
+  const { content, pinned } = req.body || {};
+  const updates: Record<string, unknown> = {};
+  if (content !== undefined) updates.content = content.trim();
+  if (pinned !== undefined) updates.pinned = pinned;
+  const [note] = await db.update(clientNotesTable)
+    .set(updates)
+    .where(and(eq(clientNotesTable.id, req.params.noteId), eq(clientNotesTable.clientId, req.params.id)))
+    .returning();
+  if (!note) { res.status(404).json({ error: "Note introuvable" }); return; }
+  res.json(note); return;
+});
+
+router.delete("/clients/:id/notes/:noteId", requirePermission("clients.manage"), async (req, res) => {
+  await db.delete(clientNotesTable)
+    .where(and(eq(clientNotesTable.id, req.params.noteId), eq(clientNotesTable.clientId, req.params.id)));
+  res.json({ success: true }); return;
 });
 
 export default router;

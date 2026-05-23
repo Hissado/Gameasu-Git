@@ -66,3 +66,18 @@ export const clientEmailLogsTable = pgTable("client_email_logs", {
 }));
 
 export type ClientEmailLog = typeof clientEmailLogsTable.$inferSelect;
+
+export const clientNotesTable = pgTable("client_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id"),
+  content: text("content").notNull(),
+  pinned: boolean("pinned").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  clientNotesClientIdx: index("client_notes_client_idx").on(t.clientId),
+}));
+
+export type ClientNote = typeof clientNotesTable.$inferSelect;

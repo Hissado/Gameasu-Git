@@ -17,7 +17,7 @@ import {
   Repeat, Calendar, ChevronDown, MessageCircle, Send, Inbox,
   ArrowUpRight, ArrowDownLeft, Paperclip, Clock, Activity,
   FileText, CreditCard, ShoppingCart, Receipt, Users2, Tag,
-  CheckCircle2, AlertCircle, Sparkles, ExternalLink,
+  CheckCircle2, AlertCircle, Sparkles, ExternalLink, Pin, Pencil, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatFCFA } from "@/lib/format";
@@ -142,6 +142,9 @@ export default function ClientDetailWorkspace() {
           <TabsTrigger value="messaging">
             <MessageSquare className="w-3.5 h-3.5 mr-1" />Messagerie
           </TabsTrigger>
+          <TabsTrigger value="notes">
+            <FileText className="w-3.5 h-3.5 mr-1" />Notes
+          </TabsTrigger>
           <TabsTrigger value="journal">
             <Activity className="w-3.5 h-3.5 mr-1" />Journal
           </TabsTrigger>
@@ -209,6 +212,11 @@ export default function ClientDetailWorkspace() {
         {/* ── Messagerie ── */}
         <TabsContent value="messaging" className="mt-4">
           <MessagingTab client={client} />
+        </TabsContent>
+
+        {/* ── Notes ── */}
+        <TabsContent value="notes" className="mt-4">
+          <NotesTab clientId={client.id} />
         </TabsContent>
 
         {/* ── Journal d'activité ── */}
@@ -634,6 +642,196 @@ function JournalTab({ clientId }: { clientId: string }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Notes tab ────────────────────────────────────────────────────────────────
+
+type ClientNote = { id: string; content: string; pinned: boolean; authorId?: string | null; createdAt: string; updatedAt: string };
+
+function relTimeNote(iso: string) {
+  const d = new Date(iso);
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return "à l'instant";
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function NoteCard({
+  note, editingId, editContent,
+  onEdit, onCancelEdit, onEditChange, onSaveEdit, onPin, onDelete,
+}: {
+  note: ClientNote;
+  editingId: string | null;
+  editContent: string;
+  onEdit: (note: ClientNote) => void;
+  onCancelEdit: () => void;
+  onEditChange: (v: string) => void;
+  onSaveEdit: (id: string) => void;
+  onPin: (note: ClientNote) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Card className={`transition-all ${note.pinned ? "border-primary/40 bg-primary/[0.02]" : ""}`}>
+      <CardContent className="p-4">
+        {editingId === note.id ? (
+          <div className="space-y-2">
+            <Textarea
+              value={editContent}
+              onChange={e => onEditChange(e.target.value)}
+              rows={3}
+              autoFocus
+              className="text-sm resize-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="outline" onClick={onCancelEdit}>Annuler</Button>
+              <Button size="sm" className="bg-primary text-white" onClick={() => onSaveEdit(note.id)}>Enregistrer</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+              <p className="text-xs text-muted-foreground mt-2">{relTimeNote(note.createdAt)}</p>
+            </div>
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                onClick={() => onPin(note)}
+                className={`p-1 rounded hover:bg-muted transition-colors ${note.pinned ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                title={note.pinned ? "Désépingler" : "Épingler"}
+              >
+                <Pin className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => onEdit(note)}
+                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                title="Modifier"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => onDelete(note.id)}
+                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NotesTab({ clientId }: { clientId: string }) {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  const { data, isLoading } = useQuery<{ data: ClientNote[] }>({
+    queryKey: ["client-notes", clientId],
+    queryFn: () => apiFetch(`/api/clients/${clientId}/notes`),
+  });
+  const notes = data?.data ?? [];
+  const pinnedNotes = notes.filter(n => n.pinned);
+  const otherNotes = notes.filter(n => !n.pinned);
+
+  async function addNote() {
+    if (!draft.trim()) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/api/clients/${clientId}/notes`, { method: "POST", body: { content: draft } as any });
+      qc.invalidateQueries({ queryKey: ["client-notes", clientId] });
+      setDraft("");
+      toast.success("Note ajoutée");
+    } catch { toast.error("Erreur lors de l'ajout"); }
+    finally { setSaving(false); }
+  }
+
+  async function handlePin(note: ClientNote) {
+    await apiFetch(`/api/clients/${clientId}/notes/${note.id}`, { method: "PATCH", body: { pinned: !note.pinned } as any });
+    qc.invalidateQueries({ queryKey: ["client-notes", clientId] });
+  }
+
+  async function handleDelete(id: string) {
+    await apiFetch(`/api/clients/${clientId}/notes/${id}`, { method: "DELETE" });
+    qc.invalidateQueries({ queryKey: ["client-notes", clientId] });
+    toast.success("Note supprimée");
+  }
+
+  async function handleSaveEdit(id: string) {
+    if (!editContent.trim()) return;
+    await apiFetch(`/api/clients/${clientId}/notes/${id}`, { method: "PATCH", body: { content: editContent } as any });
+    qc.invalidateQueries({ queryKey: ["client-notes", clientId] });
+    setEditingId(null);
+  }
+
+  const cardProps = {
+    editingId,
+    editContent,
+    onEdit: (n: ClientNote) => { setEditingId(n.id); setEditContent(n.content); },
+    onCancelEdit: () => setEditingId(null),
+    onEditChange: setEditContent,
+    onSaveEdit: handleSaveEdit,
+    onPin: handlePin,
+    onDelete: handleDelete,
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <Textarea
+            placeholder="Saisissez une note interne…"
+            rows={3}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            className="resize-none text-sm"
+            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) addNote(); }}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Ctrl + Entrée pour envoyer</p>
+            <Button size="sm" className="bg-primary text-white gap-1.5" disabled={!draft.trim() || saving} onClick={addNote}>
+              <Plus className="w-3.5 h-3.5" /> {saving ? "Ajout…" : "Ajouter"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading && <div className="text-center py-8 text-muted-foreground text-sm">Chargement…</div>}
+
+      {!isLoading && notes.length === 0 && (
+        <Card>
+          <CardContent className="py-14 text-center text-muted-foreground">
+            <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">Aucune note pour ce client</p>
+            <p className="text-xs mt-1">Ajoutez des notes internes, rappels ou observations.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {pinnedNotes.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Pin className="w-3 h-3 text-primary" /> Épinglées
+          </p>
+          {pinnedNotes.map(n => <NoteCard key={n.id} note={n} {...cardProps} />)}
+        </div>
+      )}
+
+      {otherNotes.length > 0 && (
+        <div className="space-y-2">
+          {pinnedNotes.length > 0 && (
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Autres notes</p>
+          )}
+          {otherNotes.map(n => <NoteCard key={n.id} note={n} {...cardProps} />)}
+        </div>
+      )}
     </div>
   );
 }
