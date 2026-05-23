@@ -197,6 +197,7 @@ router.post("/conversations", async (req, res) => {
 
   for (const pid of allParticipants) {
     await db.insert(conversationParticipantsTable).values({
+      organizationId: convo.organizationId,
       conversationId: convo.id,
       userId: pid,
       isAdmin: pid === userId,
@@ -270,7 +271,7 @@ router.put("/conversations/:id/read", async (req, res) => {
     ));
   if (unreadMessages.length > 0) {
     for (const m of unreadMessages) {
-      await db.insert(messageReadsTable).values({ messageId: m.id, userId, readAt: now }).onConflictDoNothing();
+      await db.insert(messageReadsTable).values({ organizationId: req.authUser!.organizationId, messageId: m.id, userId, readAt: now }).onConflictDoNothing();
     }
   }
   emitToConversation(req.params.id, "conversation:read", {
