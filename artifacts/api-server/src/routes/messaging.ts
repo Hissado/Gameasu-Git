@@ -287,6 +287,7 @@ router.post("/conversations/:id/participants", async (req, res) => {
   const { participantIds = [] } = req.body || {};
   for (const pid of participantIds) {
     await db.insert(conversationParticipantsTable).values({
+      organizationId: req.authUser!.organizationId,
       conversationId: req.params.id, userId: pid,
     }).onConflictDoNothing();
     emitToUser(pid, "conversation:new", { conversationId: req.params.id });

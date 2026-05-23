@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
   Search, Send, MessageSquare, Paperclip, Smile, MapPin, Mic, MicOff, Phone, Video,
   CheckCheck, Check, MoreVertical, Reply, Pencil, Trash2, Languages, Pin, BellOff, Bell, Archive, MessageCircle,
-  Plus, X, Loader2, Image as ImageIcon, FileText, Filter, Sparkles,
+  Plus, X, Loader2, Image as ImageIcon, FileText, Filter, Sparkles, UserPlus, Users,
 } from "lucide-react";
 import { apiFetch, uploadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -545,6 +545,7 @@ export default function Messaging() {
   const { data: conversations, setData: setConversations, loading: convsLoading, refresh } = useConversations({ search, archived: showArchived });
   const { data: messages, setData: setMessages, loading: msgsLoading } = useMessages(selectedConvId);
   const selectedConv = conversations.find((c) => c.id === selectedConvId);
+  const allUsers = useUsers();
 
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
@@ -582,6 +583,27 @@ export default function Messaging() {
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map()); // userId -> name
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [addingMembers, setAddingMembers] = useState(false);
+  const [newMemberIds, setNewMemberIds] = useState<string[]>([]);
+
+  async function addParticipants() {
+    if (!selectedConvId || newMemberIds.length === 0) return;
+    setAddingMembers(true);
+    try {
+      const result = await apiFetch<{ participants: Participant[] }>(`/api/conversations/${selectedConvId}/participants`, {
+        method: "POST",
+        body: { participantIds: newMemberIds } as any,
+      });
+      setConversations((cs) => cs.map((c) => c.id === selectedConvId ? { ...c, participants: result.participants } : c));
+      setNewMemberIds([]);
+      import("sonner").then(({ toast }) => toast.success(`${newMemberIds.length} participant(s) ajouté(s)`));
+    } catch {
+      import("sonner").then(({ toast }) => toast.error("Impossible d'ajouter les participants"));
+    } finally {
+      setAddingMembers(false);
+    }
+  }
 
   // Init socket
   useEffect(() => { getSocket(); }, []);
@@ -1109,6 +1131,17 @@ export default function Messaging() {
                     );
                   })()}
 
+                  {selectedConv.type === "group" && (
+                    <Button
+                      variant="ghost" size="sm"
+                      className="h-8 gap-1.5 text-slate-600 hover:text-primary"
+                      title="Gérer les participants"
+                      onClick={() => { setMembersOpen(true); setNewMemberIds([]); }}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Membres</span>
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => startCall("audio")} className="text-slate-600 hover:text-primary">
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -1117,6 +1150,92 @@ export default function Messaging() {
                   </Button>
                 </div>
               </div>
+
+              {/* Members management dialog */}
+              {selectedConv && (
+                <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        Membres — {selectedConv.title ?? "Groupe"}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {/* Current participants */}
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Participants actuels ({selectedConv.participants.length})
+                        </p>
+                        <div className="border rounded-md divide-y max-h-36 overflow-y-auto">
+                          {selectedConv.participants.map((p) => (
+                            <div key={p.userId} className="flex items-center gap-2.5 px-3 py-2">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                                {p.name?.slice(0, 2).toUpperCase() ?? "?"}
+                              </div>
+                              <span className="text-sm font-medium flex-1 truncate">{p.name}</span>
+                              {p.userId === meId && (
+                                <span className="text-[10px] text-primary font-semibold border border-primary/30 rounded px-1.5 py-0.5">Vous</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Add new participants */}
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <UserPlus className="w-3.5 h-3.5" />
+                          Ajouter des participants
+                          {newMemberIds.length > 0 && <span className="text-primary">({newMemberIds.length} sélectionné{newMemberIds.length > 1 ? "s" : ""})</span>}
+                        </p>
+                        <div className="border rounded-md divide-y max-h-44 overflow-y-auto">
+                          {allUsers
+                            .filter((u) => !selectedConv.participants.some((p) => p.userId === u.id))
+                            .map((u) => {
+                              const sel = newMemberIds.includes(u.id);
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => setNewMemberIds((prev) => sel ? prev.filter((x) => x !== u.id) : [...prev, u.id])}
+                                  className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors ${sel ? "bg-primary/5" : ""}`}
+                                >
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${sel ? "bg-primary border-primary" : "border-border"}`}>
+                                    {sel && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                                    {u.firstName[0]}{u.lastName[0]}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{u.firstName} {u.lastName}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          {allUsers.filter((u) => !selectedConv.participants.some((p) => p.userId === u.id)).length === 0 && (
+                            <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                              Tous les membres sont déjà participants.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setMembersOpen(false)}>Fermer</Button>
+                        <Button
+                          className="gap-1.5 bg-primary text-white"
+                          disabled={newMemberIds.length === 0 || addingMembers}
+                          onClick={async () => { await addParticipants(); setMembersOpen(false); }}
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          {addingMembers ? "Ajout…" : `Ajouter${newMemberIds.length > 0 ? ` (${newMemberIds.length})` : ""}`}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-3 bg-[#f8fafc]">
                 {msgsLoading ? (
