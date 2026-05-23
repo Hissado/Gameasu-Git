@@ -190,9 +190,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             />
           </div>
           {/* Wordmark */}
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold text-white leading-none tracking-tight whitespace-nowrap">{BRANDING.appName}</p>
-            <p className="text-[10px] text-white mt-0.5 tracking-wide truncate whitespace-nowrap">Gérer aujourd'hui · Construire demain</p>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className="text-[15px] font-bold text-white leading-none tracking-tight overflow-hidden whitespace-nowrap text-ellipsis">{BRANDING.appName}</p>
+            <p className="text-[10px] text-white mt-0.5 tracking-wide overflow-hidden whitespace-nowrap text-ellipsis">Gérer aujourd'hui · Construire demain</p>
           </div>
         </Link>
         <button
