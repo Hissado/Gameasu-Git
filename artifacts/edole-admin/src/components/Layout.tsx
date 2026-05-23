@@ -177,7 +177,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {/* ── Logo area ─────────────────────────────────────────────── */}
       <div className="shrink-0 h-16 flex items-center px-5 border-b border-white/[0.07] relative">
-        <Link href="/" aria-label={BRANDING.appName} className="flex items-center gap-3 group/logo" onClick={() => setMobileOpen(false)}>
+        <Link href="/" aria-label={BRANDING.appName} className="flex items-center gap-3 group/logo min-w-0 flex-1" onClick={() => setMobileOpen(false)}>
           {/* Mark */}
           <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.10] flex items-center justify-center shrink-0 overflow-hidden group-hover/logo:bg-white/[0.12] transition-colors duration-200">
             <img
@@ -190,9 +190,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             />
           </div>
           {/* Wordmark */}
-          <div>
-            <p className="text-[15px] font-bold text-white leading-none tracking-tight">{BRANDING.appName}</p>
-            <p className="text-[10px] text-white/35 mt-0.5 tracking-wide">{BRANDING.appTaglineFr}</p>
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold text-white leading-none tracking-tight whitespace-nowrap">{BRANDING.appName}</p>
+            <p className="text-[10px] text-white/35 mt-0.5 tracking-wide truncate whitespace-nowrap">Gérer aujourd'hui · Construire demain</p>
           </div>
         </Link>
         <button
