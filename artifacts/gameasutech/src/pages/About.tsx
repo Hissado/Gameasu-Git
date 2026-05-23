@@ -17,7 +17,7 @@ const milestones = [
   { year: "2010", eventFr: "Fondation de Gaméasù Technology aux États-Unis", eventEn: "Gaméasù Technology founded in the United States" },
   { year: "2013", eventFr: "Expansion en France et en Belgique", eventEn: "Expansion to France and Belgium" },
   { year: "2016", eventFr: "Ouverture du bureau Afrique à Lomé, Togo", eventEn: "Opening of Africa office in Lomé, Togo" },
-  { year: "2018", eventFr: "Lancement des activités au Canada et en Côte d'Ivoire", eventEn: "Launch of operations in Canada and Côte d'Ivoire" },
+  { year: "2018", eventFr: "Lancement au Canada et en Côte d'Ivoire", eventEn: "Launch in Canada and Côte d'Ivoire" },
   { year: "2021", eventFr: "Expansion au Mali — 500 projets livrés", eventEn: "Expansion to Mali — 500 projects delivered" },
   { year: "2024", eventFr: "Lancement de la practice IA & Automatisation", eventEn: "Launch of AI & Automation practice" },
 ];
@@ -36,21 +36,21 @@ export default function About() {
   const fr = language === "fr";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="relative pt-32 pb-24 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-20%,rgba(30,64,200,0.2)_0%,transparent_70%)] pointer-events-none" />
+      <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-4xl">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "À propos de nous" : "About us"}
             </p>
-            <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-8">
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-8">
               {fr
                 ? "Une entreprise née d'une ambition : connecter l'Afrique au monde technologique."
                 : "A company born from one ambition: connecting Africa to the technology world."}
             </h1>
-            <p className="text-xl text-muted-foreground leading-relaxed max-w-3xl">
+            <p className="text-xl text-slate-500 leading-relaxed max-w-3xl">
               {fr
                 ? "Gaméasù Technology est à l'intersection d'un cabinet de conseil IT mondial et d'une entreprise technologique africaine ambitieuse — précise, fiable, et résolument tournée vers l'avenir."
                 : "Gaméasù Technology stands at the intersection of a world-class IT consultancy and an ambitious African tech firm — precise, reliable, and firmly forward-looking."}
@@ -60,26 +60,26 @@ export default function About() {
       </section>
 
       {/* Mission / Vision */}
-      <section className="py-20 bg-card border-y border-border">
+      <section className="py-20 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-primary/10 border border-primary/20 rounded-2xl p-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-primary/5 border border-primary/15 rounded-2xl p-10">
               <div className="flex items-center gap-3 mb-6">
-                <Target className="text-primary" size={28} />
-                <h2 className="text-2xl font-bold text-white">{fr ? "Notre Mission" : "Our Mission"}</h2>
+                <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Target size={24} /></div>
+                <h2 className="text-2xl font-bold text-slate-900">{fr ? "Notre Mission" : "Our Mission"}</h2>
               </div>
-              <p className="text-muted-foreground leading-relaxed text-lg">
+              <p className="text-slate-600 leading-relaxed text-lg">
                 {fr
                   ? "Accompagner les entreprises, institutions et organisations dans leur transformation numérique grâce à des solutions technologiques modernes, sécurisées et évolutives — en maintenant les plus hauts standards de qualité, partout dans le monde."
                   : "To support businesses, institutions, and organizations in their digital transformation through modern, secure, and scalable technology solutions — maintaining the highest quality standards everywhere in the world."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-2xl p-10 hover:border-primary/30 transition-colors">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-2xl p-10 hover:border-primary/30 transition-colors shadow-sm">
               <div className="flex items-center gap-3 mb-6">
-                <Globe className="text-primary" size={28} />
-                <h2 className="text-2xl font-bold text-white">{fr ? "Notre Vision" : "Our Vision"}</h2>
+                <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Globe size={24} /></div>
+                <h2 className="text-2xl font-bold text-slate-900">{fr ? "Notre Vision" : "Our Vision"}</h2>
               </div>
-              <p className="text-muted-foreground leading-relaxed text-lg">
+              <p className="text-slate-600 leading-relaxed text-lg">
                 {fr
                   ? "Devenir le partenaire technologique de référence en Afrique francophone et dans la diaspora internationale, en bâtissant un pont entre les standards technologiques mondiaux et les réalités des marchés émergents."
                   : "To become the reference technology partner in French-speaking Africa and the international diaspora, building a bridge between global technology standards and emerging market realities."}
@@ -90,22 +90,22 @@ export default function About() {
       </section>
 
       {/* Values */}
-      <section className="py-28">
+      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Ce qui nous guide" : "What guides us"}</p>
-            <h2 className="text-4xl font-bold text-white mb-4">{fr ? "Nos valeurs fondamentales" : "Our core values"}</h2>
-            <p className="text-muted-foreground text-lg">{fr ? "Les principes qui définissent notre façon de travailler et de nous engager avec nos clients." : "The principles that define how we work and engage with our clients."}</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Nos valeurs fondamentales" : "Our core values"}</h2>
+            <p className="text-slate-500 text-lg">{fr ? "Les principes qui définissent notre façon de travailler et de nous engager." : "The principles that define how we work and engage with our clients."}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {values.map((v, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                <div className="group h-full bg-card border border-border rounded-xl p-8 hover:border-primary/40 hover:bg-primary/3 transition-all duration-300">
-                  <div className="p-3 rounded-lg bg-primary/10 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                  <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <v.icon size={24} />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{fr ? v.keyFr : v.keyEn}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{fr ? v.descFr : v.descEn}</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">{fr ? v.keyFr : v.keyEn}</h3>
+                  <p className="text-slate-500 leading-relaxed text-sm">{fr ? v.descFr : v.descEn}</p>
                 </div>
               </motion.div>
             ))}
@@ -114,24 +114,24 @@ export default function About() {
       </section>
 
       {/* Timeline */}
-      <section className="py-28 bg-card border-y border-border">
+      <section className="py-28 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre parcours" : "Our journey"}</p>
-              <h2 className="text-4xl font-bold text-white">{fr ? "15 ans d'innovation" : "15 years of innovation"}</h2>
+              <h2 className="text-4xl font-bold text-slate-900">{fr ? "15 ans d'innovation" : "15 years of innovation"}</h2>
             </div>
             <div className="relative">
-              <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
+              <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-200" />
               <div className="space-y-8">
                 {milestones.map((m, i) => (
                   <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="flex gap-8 relative">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center flex-shrink-0 relative z-10 bg-card">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center flex-shrink-0 relative z-10 bg-white">
                       <span className="text-xs font-bold text-primary">{m.year.slice(2)}</span>
                     </div>
                     <div className="flex-1 pb-2 pt-2">
                       <div className="text-xs text-primary font-semibold mb-1">{m.year}</div>
-                      <div className="text-white font-medium">{fr ? m.eventFr : m.eventEn}</div>
+                      <div className="text-slate-800 font-medium">{fr ? m.eventFr : m.eventEn}</div>
                     </div>
                   </motion.div>
                 ))}
@@ -142,23 +142,23 @@ export default function About() {
       </section>
 
       {/* Commitments */}
-      <section className="py-28">
+      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre engagement" : "Our commitment"}</p>
-              <h2 className="text-4xl font-bold text-white mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
-              <p className="text-muted-foreground text-lg leading-relaxed mb-10">
+              <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
+              <p className="text-slate-500 text-lg leading-relaxed mb-10">
                 {fr
-                  ? "Chaque client reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales. Voici ce que nous garantissons dans chaque engagement."
-                  : "Every client receives service comparable to the world's largest technology firms. Here is what we guarantee in every engagement."}
+                  ? "Chaque client reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales — peu importe la taille du projet ou la géographie."
+                  : "Every client receives service comparable to the world's largest technology firms — regardless of project size or geography."}
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {commitments.map((c, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="flex items-start gap-4 p-4 rounded-lg bg-card border border-border hover:border-primary/30 transition-colors">
+                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/30 transition-colors shadow-sm">
                   <CheckCircle size={20} className="text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground">{fr ? c.fr : c.en}</span>
+                  <span className="text-slate-700 font-medium text-sm">{fr ? c.fr : c.en}</span>
                 </motion.div>
               ))}
             </div>

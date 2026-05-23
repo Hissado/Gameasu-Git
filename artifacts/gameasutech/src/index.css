@@ -49,41 +49,42 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root, .dark {
-  --background: 220 47% 7%;
-  --foreground: 0 0% 98%;
+/* ── LIGHT THEME (default) ─────────────────────────────────── */
+:root {
+  --background: 210 25% 98%;
+  --foreground: 222 47% 11%;
 
-  --card: 220 40% 10%;
-  --card-foreground: 0 0% 98%;
-  --card-border: 220 40% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --card-border: 214 32% 90%;
 
-  --popover: 220 40% 10%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 220 40% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --popover-border: 214 32% 90%;
 
-  --primary: 225 80% 45%;
+  --primary: 214 82% 42%;
   --primary-foreground: 0 0% 100%;
-  --primary-border: 225 80% 50%;
+  --primary-border: 214 82% 47%;
 
-  --secondary: 220 40% 12%;
-  --secondary-foreground: 0 0% 98%;
-  --secondary-border: 220 40% 18%;
+  --secondary: 213 27% 94%;
+  --secondary-foreground: 222 47% 11%;
+  --secondary-border: 213 27% 88%;
 
-  --muted: 220 40% 12%;
-  --muted-foreground: 215 20% 65%;
-  --muted-border: 220 40% 18%;
+  --muted: 213 27% 95%;
+  --muted-foreground: 215 16% 47%;
+  --muted-border: 213 27% 88%;
 
-  --accent: 225 80% 45%;
+  --accent: 214 82% 42%;
   --accent-foreground: 0 0% 100%;
-  --accent-border: 225 80% 50%;
+  --accent-border: 214 82% 47%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   --destructive-border: 0 84% 65%;
 
-  --border: 220 40% 15%;
-  --input: 220 40% 18%;
-  --ring: 225 80% 45%;
+  --border: 214 32% 88%;
+  --input: 213 27% 94%;
+  --ring: 214 82% 42%;
 
   --radius: 0.5rem;
 }
@@ -99,3 +100,14 @@
     @apply font-sans tracking-tight;
   }
 }
+
+/* ── UTILITY: section avec fond alternant léger ────────────── */
+.section-alt {
+  background-color: hsl(213, 27%, 96%);
+}
+
+/* ── SCROLLBAR ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: hsl(213, 27%, 96%); }
+::-webkit-scrollbar-thumb { background: hsl(214, 32%, 78%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(214, 82%, 42%); }

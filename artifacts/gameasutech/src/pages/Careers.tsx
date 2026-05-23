@@ -10,25 +10,31 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Globe, TrendingUp, Heart, GraduationCap, Award, CheckCircle } from "lucide-react";
+import { CheckCircle, Globe, Zap, Users, TrendingUp, Heart, Award } from "lucide-react";
 
-const values = [
-  { icon: Globe, fr: "Impact Global", en: "Global Impact", descFr: "Travaillez sur des projets qui connectent l'Afrique au monde.", descEn: "Work on projects that connect Africa to the world." },
-  { icon: TrendingUp, fr: "Croissance", en: "Growth", descFr: "Évoluez avec des experts certifiés dans un environnement stimulant.", descEn: "Grow with certified experts in a stimulating environment." },
-  { icon: Heart, fr: "Culture inclusive", en: "Inclusive culture", descFr: "Diversité, respect et appartenance au cœur de notre organisation.", descEn: "Diversity, respect, and belonging at the heart of our organization." },
-  { icon: GraduationCap, fr: "Formation continue", en: "Continuous learning", descFr: "Budget formation dédié, certifications prises en charge, conférences.", descEn: "Dedicated training budget, covered certifications, conferences." },
-  { icon: Award, fr: "Excellence", en: "Excellence", descFr: "Rejoignez une équipe qui maintient les plus hauts standards.", descEn: "Join a team that maintains the highest standards." },
-  { icon: Users, fr: "Équipe soudée", en: "Tight-knit team", descFr: "Une communauté internationale unie par une mission commune.", descEn: "An international community united by a common mission." }
+const reasons = [
+  { icon: Globe, titleFr: "Impact international", titleEn: "International impact", descFr: "Travaillez sur des projets qui transforment des organisations dans 7 pays, de l'Afrique de l'Ouest aux États-Unis.", descEn: "Work on projects transforming organizations in 7 countries, from West Africa to the USA." },
+  { icon: Zap, titleFr: "Technologies de pointe", titleEn: "Cutting-edge technology", descFr: "Accédez aux dernières certifications et travaillez avec les leaders technologiques mondiaux.", descEn: "Access the latest certifications and work with global technology leaders." },
+  { icon: Users, titleFr: "Équipe multiculturelle", titleEn: "Multicultural team", descFr: "Une équipe diverse et inclusive avec des expertises complémentaires sur plusieurs continents.", descEn: "A diverse and inclusive team with complementary expertise across multiple continents." },
+  { icon: TrendingUp, titleFr: "Croissance accélérée", titleEn: "Accelerated growth", descFr: "Un environnement qui favorise l'évolution rapide avec un accompagnement personnalisé.", descEn: "An environment that fosters rapid growth with personalized mentoring." },
+  { icon: Heart, titleFr: "Équilibre vie pro/perso", titleEn: "Work-life balance", descFr: "Politique de télétravail flexible, congés généreux et culture du respect du temps personnel.", descEn: "Flexible remote work policy, generous leave, and culture of respecting personal time." },
+  { icon: Award, titleFr: "Formation continue", titleEn: "Continuous learning", descFr: "Budget formation annuel, certifications prises en charge et conférences internationales.", descEn: "Annual training budget, sponsored certifications, and international conferences." }
 ];
 
-const schema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
+const openings = [
+  { titleFr: "Ingénieur Cybersécurité SOC", titleEn: "SOC Cybersecurity Engineer", locationFr: "Lomé, Togo (Hybride)", locationEn: "Lomé, Togo (Hybrid)", typeFr: "CDI", typeEn: "Full-time", expFr: "3+ ans", expEn: "3+ years" },
+  { titleFr: "Architecte Cloud AWS / Azure", titleEn: "AWS / Azure Cloud Architect", locationFr: "Paris, France (Hybride)", locationEn: "Paris, France (Hybrid)", typeFr: "CDI", typeEn: "Full-time", expFr: "5+ ans", expEn: "5+ years" },
+  { titleFr: "Consultant Transformation Digitale", titleEn: "Digital Transformation Consultant", locationFr: "Abidjan, Côte d'Ivoire", locationEn: "Abidjan, Côte d'Ivoire", typeFr: "CDI", typeEn: "Full-time", expFr: "4+ ans", expEn: "4+ years" },
+  { titleFr: "Ingénieur IA & Data Science", titleEn: "AI & Data Science Engineer", locationFr: "New York, USA (Remote)", locationEn: "New York, USA (Remote)", typeFr: "CDI", typeEn: "Full-time", expFr: "3+ ans", expEn: "3+ years" }
+];
+
+const formSchema = z.object({
+  name: z.string().min(2),
   email: z.string().email(),
-  phone: z.string().optional(),
+  phone: z.string().min(5),
   position: z.string().min(2),
   experience: z.string().min(1),
-  message: z.string().min(20)
+  motivation: z.string().min(20)
 });
 
 export default function Careers() {
@@ -36,47 +42,46 @@ export default function Careers() {
   const fr = language === "fr";
   const [submitted, setSubmitted] = useState(false);
 
-  const form = useForm({ resolver: zodResolver(schema), defaultValues: { firstName: "", lastName: "", email: "", phone: "", position: "", experience: "", message: "" } });
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "", email: "", phone: "", position: "", experience: "", motivation: "" }
+  });
 
-  const onSubmit = () => { setTimeout(() => setSubmitted(true), 500); };
+  const onSubmit = () => setTimeout(() => setSubmitted(true), 400);
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-20%,rgba(30,64,200,0.2)_0%,transparent_70%)] pointer-events-none" />
-        <div className="container mx-auto px-6 relative z-10">
+    <div className="min-h-screen bg-background">
+      <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10 max-w-4xl">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
-              {fr ? "Rejoignez-nous" : "Join us"}
-            </p>
-            <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
-              {fr ? "Construisez la technologie de demain avec nous" : "Build tomorrow's technology with us"}
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Carrières" : "Careers"}</p>
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
+              {fr ? "Rejoignez une équipe qui change la donne" : "Join a team that changes the game"}
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl">
-              {fr
-                ? "Chez Gaméasù Technology, nous croyons que les meilleurs projets technologiques sont construits par des équipes talentueuses, passionnées et engagées. Si vous partagez cette vision, rejoignez-nous."
-                : "At Gaméasù Technology, we believe the best technology projects are built by talented, passionate, committed teams. If you share this vision, join us."}
+            <p className="text-xl text-slate-500">
+              {fr ? "Nous recrutons des experts passionnés qui souhaitent construire le futur numérique de l'Afrique et contribuer à des projets d'envergure internationale." : "We recruit passionate experts who want to build Africa's digital future and contribute to international-scale projects."}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Why Join */}
-      <section className="py-24 bg-card border-y border-border">
+      {/* Why join */}
+      <section className="py-28 bg-white border-b border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-4xl font-bold text-white mb-4">{fr ? "Pourquoi nous rejoindre ?" : "Why join us?"}</h2>
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Pourquoi nous rejoindre" : "Why join us"}</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "6 raisons de faire partie de l'aventure" : "6 reasons to be part of the adventure"}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {values.map((v, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
-                <div className="group h-full bg-background border border-border rounded-xl p-7 hover:border-primary/40 hover:bg-primary/3 transition-all duration-300">
-                  <div className="p-3 rounded-lg bg-primary/10 text-primary inline-flex mb-5 group-hover:bg-primary group-hover:text-white transition-colors">
-                    <v.icon size={22} />
+            {reasons.map((r, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+                <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all">
+                  <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+                    <r.icon size={24} />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{fr ? v.fr : v.en}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{fr ? v.descFr : v.descEn}</p>
+                  <h3 className="text-lg font-bold text-slate-900 mb-3">{fr ? r.titleFr : r.titleEn}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{fr ? r.descFr : r.descEn}</p>
                 </div>
               </motion.div>
             ))}
@@ -84,127 +89,84 @@ export default function Careers() {
         </div>
       </section>
 
-      {/* Current Openings */}
-      <section className="py-24">
+      {/* Open positions */}
+      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl font-bold text-white mb-6">{fr ? "Postes ouverts" : "Open positions"}</h2>
-            <div className="bg-card border border-border rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <Users size={28} className="text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {fr ? "Aucun poste ouvert actuellement" : "No open positions currently"}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                {fr
-                  ? "Nous n'avons pas de postes ouverts en ce moment, mais nous recevons toujours avec plaisir les candidatures spontanées de profils talentueux. Postulez ci-dessous et nous vous contacterons dès qu'une opportunité correspondra à votre profil."
-                  : "We don't have any open positions right now, but we always welcome spontaneous applications from talented profiles. Apply below and we'll contact you as soon as an opportunity matches your profile."}
-              </p>
-              <div className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
-                {[
-                  fr ? "Consultant IT" : "IT Consultant",
-                  fr ? "Ingénieur réseau" : "Network Engineer",
-                  fr ? "Expert cybersécurité" : "Cybersecurity Expert",
-                  fr ? "Chef de projet" : "Project Manager",
-                  fr ? "Commercial IT" : "IT Sales"
-                ].map((role, i) => (
-                  <span key={i} className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-primary text-xs font-medium">{role}</span>
-                ))}
-              </div>
-            </div>
+          <div className="text-center mb-16">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Postes ouverts" : "Open positions"}</p>
+            <h2 className="text-4xl font-bold text-slate-900">{fr ? "Opportunités actuelles" : "Current opportunities"}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {openings.map((o, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+                <div className="group bg-white border border-slate-200 rounded-xl p-7 hover:border-primary/40 hover:shadow-md transition-all">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">{fr ? o.titleFr : o.titleEn}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-primary/8 text-primary text-xs font-semibold rounded-full">{fr ? o.locationFr : o.locationEn}</span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">{fr ? o.typeFr : o.typeEn}</span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">{fr ? o.expFr : o.expEn}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Spontaneous Application Form */}
-      <section className="py-24 bg-card border-t border-border">
-        <div className="container mx-auto px-6">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-white mb-4">{fr ? "Candidature spontanée" : "Spontaneous application"}</h2>
-              <p className="text-muted-foreground text-lg">{fr ? "Envoyez-nous votre profil et nous vous recontactons pour les opportunités futures." : "Send us your profile and we'll contact you for future opportunities."}</p>
-            </div>
-
-            {submitted ? (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16 bg-primary/5 border border-primary/20 rounded-2xl">
-                <CheckCircle size={56} className="text-primary mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-white mb-3">{fr ? "Candidature reçue !" : "Application received!"}</h3>
-                <p className="text-muted-foreground">{fr ? "Nous avons bien reçu votre candidature. Notre équipe RH la traitera dans les meilleurs délais." : "We have received your application. Our HR team will process it as soon as possible."}</p>
-              </motion.div>
-            ) : (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="firstName" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fr ? "Prénom" : "First name"}</FormLabel>
-                        <FormControl><Input placeholder={fr ? "Jean" : "John"} {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="lastName" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fr ? "Nom" : "Last name"}</FormLabel>
-                        <FormControl><Input placeholder={fr ? "Dupont" : "Doe"} {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl><Input type="email" placeholder="jean@example.com" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fr ? "Téléphone" : "Phone"}</FormLabel>
-                        <FormControl><Input placeholder="+33 6 00 00 00 00" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                  <FormField control={form.control} name="position" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{fr ? "Poste recherché" : "Position sought"}</FormLabel>
-                      <FormControl><Input placeholder={fr ? "Ex: Consultant en cybersécurité" : "Ex: Cybersecurity consultant"} {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="experience" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{fr ? "Niveau d'expérience" : "Experience level"}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder={fr ? "Sélectionner" : "Select"} /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="junior">{fr ? "Junior (0-2 ans)" : "Junior (0-2 years)"}</SelectItem>
-                          <SelectItem value="mid">{fr ? "Intermédiaire (3-5 ans)" : "Mid-level (3-5 years)"}</SelectItem>
-                          <SelectItem value="senior">{fr ? "Senior (6-10 ans)" : "Senior (6-10 years)"}</SelectItem>
-                          <SelectItem value="expert">{fr ? "Expert (10+ ans)" : "Expert (10+ years)"}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="message" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{fr ? "Lettre de motivation" : "Cover letter"}</FormLabel>
-                      <FormControl><Textarea rows={5} placeholder={fr ? "Présentez-vous et expliquez pourquoi vous souhaitez rejoindre Gaméasù Technology..." : "Introduce yourself and explain why you want to join Gaméasù Technology..."} {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? (fr ? "Envoi..." : "Sending...") : (fr ? "Envoyer ma candidature" : "Submit my application")}
-                  </Button>
-                </form>
-              </Form>
-            )}
+      {/* Application form */}
+      <section className="py-28 bg-white border-t border-slate-100">
+        <div className="container mx-auto px-6 max-w-2xl">
+          <div className="text-center mb-12">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Candidature" : "Application"}</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Candidature spontanée" : "Spontaneous application"}</h2>
+            <p className="text-slate-500">{fr ? "Aucun poste ne correspond ? Envoyez-nous votre candidature et nous vous contacterons dès qu'une opportunité se présente." : "No matching position? Send us your application and we'll contact you when an opportunity arises."}</p>
           </div>
+
+          {submitted ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16 bg-primary/5 border border-primary/20 rounded-2xl">
+              <CheckCircle size={56} className="text-primary mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">{fr ? "Candidature reçue !" : "Application received!"}</h3>
+              <p className="text-slate-500">{fr ? "Nous examinerons votre profil et vous contacterons dans les meilleurs délais." : "We will review your profile and contact you as soon as possible."}</p>
+            </motion.div>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel>{fr ? "Nom complet" : "Full name"}</FormLabel><FormControl><Input placeholder="Jean Dupont" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="jean@company.com" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <FormField control={form.control} name="phone" render={({ field }) => (
+                  <FormItem><FormLabel>{fr ? "Téléphone" : "Phone"}</FormLabel><FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="position" render={({ field }) => (
+                  <FormItem><FormLabel>{fr ? "Poste visé" : "Target position"}</FormLabel><FormControl><Input placeholder={fr ? "Ex: Ingénieur Cloud" : "Ex: Cloud Engineer"} {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="experience" render={({ field }) => (
+                  <FormItem><FormLabel>{fr ? "Années d'expérience" : "Years of experience"}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder={fr ? "Choisir" : "Choose"} /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="0-2">{fr ? "0 à 2 ans" : "0 to 2 years"}</SelectItem>
+                        <SelectItem value="3-5">{fr ? "3 à 5 ans" : "3 to 5 years"}</SelectItem>
+                        <SelectItem value="6-10">{fr ? "6 à 10 ans" : "6 to 10 years"}</SelectItem>
+                        <SelectItem value="10+">{fr ? "10 ans et plus" : "10+ years"}</SelectItem>
+                      </SelectContent>
+                    </Select><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="motivation" render={({ field }) => (
+                  <FormItem><FormLabel>{fr ? "Lettre de motivation" : "Cover letter"}</FormLabel><FormControl><Textarea rows={5} placeholder={fr ? "Présentez-vous et expliquez votre motivation..." : "Introduce yourself and explain your motivation..."} {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (fr ? "Envoi..." : "Sending...") : (fr ? "Envoyer ma candidature" : "Submit application")}
+                </Button>
+              </form>
+            </Form>
+          )}
         </div>
       </section>
     </div>

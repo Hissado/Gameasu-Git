@@ -2,9 +2,21 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
-export function ServiceCard({ title, desc, icon: Icon, href, index = 0 }: { title: string; desc: string; icon: any; href: string; index?: number }) {
+export function ServiceCard({
+  title,
+  desc,
+  icon: Icon,
+  href,
+  index = 0,
+}: {
+  title: string;
+  desc: string;
+  icon: any;
+  href: string;
+  index?: number;
+}) {
   const { t } = useLanguage();
   return (
     <motion.div
@@ -14,18 +26,20 @@ export function ServiceCard({ title, desc, icon: Icon, href, index = 0 }: { titl
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
       <Link href={href}>
-        <div className="group h-full bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_30px_-5px_rgba(30,64,200,0.3)] cursor-pointer relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 transition-opacity duration-500">
-            <Icon size={120} className="text-primary" />
-          </div>
-          <div className="mb-6 inline-flex p-4 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 relative z-10">
-            <Icon size={32} />
-          </div>
-          <h3 className="text-xl font-bold mb-4 text-foreground relative z-10">{title}</h3>
-          <p className="text-muted-foreground mb-8 relative z-10 leading-relaxed">{desc}</p>
-          <div className="mt-auto flex items-center text-primary font-medium text-sm relative z-10">
-            {t.common.learnMore}
-            <ArrowRight size={16} className="ml-2 group-hover:translate-x-2 transition-transform" />
+        <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_4px_30px_rgba(37,99,235,0.12)] cursor-pointer relative overflow-hidden">
+          {/* Hover background accent */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          <div className="relative z-10">
+            <div className="mb-6 inline-flex p-4 rounded-xl bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
+              <Icon size={28} />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-slate-900">{title}</h3>
+            <p className="text-slate-500 mb-8 leading-relaxed text-sm">{desc}</p>
+            <div className="mt-auto flex items-center text-primary font-semibold text-sm gap-1 group-hover:gap-2 transition-all">
+              {t.common.learnMore}
+              <ArrowUpRight size={15} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
           </div>
         </div>
       </Link>
