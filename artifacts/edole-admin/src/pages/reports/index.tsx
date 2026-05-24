@@ -34,6 +34,7 @@ import {
   Receipt,
   Building2,
   BookOpen,
+  Percent,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -587,13 +588,14 @@ type ManagementReport = {
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
   return (
     <Tabs defaultValue="billing" className="w-full">
-      <TabsList className="grid grid-cols-4 md:grid-cols-8 mb-4 h-auto gap-px">
+      <TabsList className="grid grid-cols-3 md:grid-cols-9 mb-4 h-auto gap-px">
         <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
         <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
         <TabsTrigger value="balance-gen" className="text-xs"><BookOpen className="w-3.5 h-3.5 mr-1" />Balance</TabsTrigger>
         <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
         <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
         <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
+        <TabsTrigger value="fiscal" className="text-xs"><Percent className="w-3.5 h-3.5 mr-1" />Synthèse fiscale</TabsTrigger>
         <TabsTrigger value="reconciliation" className="text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement</TabsTrigger>
         <TabsTrigger value="management" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion</TabsTrigger>
       </TabsList>
@@ -603,6 +605,7 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
       <TabsContent value="income-statement"><IncomeStatementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="balance-sheet"><BalanceSheetSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="cash-flow"><CashFlowSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="fiscal"><SyntheseFiscaleSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="reconciliation"><ReconciliationSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="management"><ManagementSubTab periodQuery={periodQuery} /></TabsContent>
     </Tabs>
@@ -1040,6 +1043,139 @@ function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
               </CardContent>
             </Card>
           )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Synthèse fiscale
+// ────────────────────────────────────────────────────────────────
+type FiscalSummaryReport = {
+  period: { from: string | null; to: string | null };
+  tva: { collectee: number; deductible: number; due: number };
+  irpp: number; aib: number; ipts: number; cnss: number;
+  resultatFiscal: number; revenus: number; charges: number;
+};
+
+type TaxItem = { id: string; code: string; name: string; type: string; rate: string | null; isActive: boolean };
+
+function FiscalKPI({ label, value, sub, icon: Icon, accent = "default" }: {
+  label: string; value: string; sub?: string; icon: any;
+  accent?: "success" | "danger" | "warning" | "default";
+}) {
+  const colors = {
+    success: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    danger:  "bg-red-50 border-red-200 text-red-700",
+    warning: "bg-amber-50 border-amber-200 text-amber-700",
+    default: "bg-slate-50 border-slate-200 text-slate-700",
+  };
+  return (
+    <div className={`border rounded-xl p-4 ${colors[accent]}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold uppercase tracking-wider opacity-70">{label}</span>
+        <Icon className="w-4 h-4 opacity-60" />
+      </div>
+      <div className="text-xl font-bold">{value}</div>
+      {sub && <div className="text-xs opacity-70 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function SyntheseFiscaleSubTab({ periodQuery }: { periodQuery: string }) {
+  const fromDate = useMemo(() => {
+    const m = periodQuery.match(/from=([^&]+)/);
+    return m ? m[1] : new Date().getFullYear() + "-01-01";
+  }, [periodQuery]);
+  const toDate = useMemo(() => {
+    const m = periodQuery.match(/to=([^&]+)/);
+    return m ? m[1] : new Date().getFullYear() + "-12-31";
+  }, [periodQuery]);
+
+  const { data: summary, isLoading: loadingSummary } = useQuery<FiscalSummaryReport>({
+    queryKey: ["fiscal-summary-report", fromDate, toDate],
+    queryFn: () => apiFetch(`/api/accounting/fiscal/summary?from=${fromDate}&to=${toDate}`),
+  });
+
+  const { data: taxesRes } = useQuery<{ data: TaxItem[] }>({
+    queryKey: ["taxes-for-report"],
+    queryFn: () => apiFetch("/api/accounting/taxes"),
+  });
+  const taxes = taxesRes?.data ?? [];
+  const isTax = taxes.find(t => t.type === "income_tax" && t.isActive);
+  const isRate = isTax ? parseFloat(isTax.rate ?? "28") : 28;
+  const isAmount = summary ? (summary.resultatFiscal > 0 ? summary.resultatFiscal * (isRate / 100) : 0) : null;
+
+  if (loadingSummary) return (
+    <div className="space-y-4 pt-4">
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-5 pt-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">Synthèse fiscale</h3>
+          <p className="text-xs text-muted-foreground">
+            Obligations fiscales temps réel · SYSCOHADA TOGO/UEMOA · {fromDate} – {toDate}
+          </p>
+        </div>
+        {isTax && (
+          <Badge variant="outline" className="text-xs gap-1">
+            <Percent className="w-3 h-3" /> IS {isRate.toFixed(0)}% — {isTax.code}
+          </Badge>
+        )}
+      </div>
+
+      {!summary ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <Percent className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Données indisponibles</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">TVA & Retenues</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <FiscalKPI label="TVA collectée" value={formatFCFA(summary.tva.collectee)} sub="Compte 443x" icon={TrendingUp} accent="default" />
+              <FiscalKPI label="TVA déductible" value={formatFCFA(summary.tva.deductible)} sub="Compte 445x" icon={Receipt} accent="default" />
+              <FiscalKPI label="TVA nette due" value={formatFCFA(summary.tva.due)}
+                sub={summary.tva.due > 0 ? "À décaisser" : "Crédit de TVA"} icon={Percent}
+                accent={summary.tva.due > 0 ? "warning" : "success"} />
+              <FiscalKPI label="IRPP retenu" value={formatFCFA(summary.irpp)} sub="Compte 4473x" icon={Users} accent="default" />
+              <FiscalKPI label="IPTS" value={formatFCFA(summary.ipts)} sub="Compte 4471x" icon={Building2} accent="default" />
+              <FiscalKPI label="AIB" value={formatFCFA(summary.aib)} sub="Compte 4472x" icon={Receipt} accent="default" />
+              <FiscalKPI label="CNSS" value={formatFCFA(summary.cnss)} sub="Compte 431x" icon={Users} accent="default" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Résultat fiscal & IS</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <FiscalKPI label="Revenus (Cl. 7)" value={formatFCFA(summary.revenus)} icon={TrendingUp} accent="success" />
+              <FiscalKPI label="Charges (Cl. 6)" value={formatFCFA(summary.charges)} icon={Receipt} accent="default" />
+              <FiscalKPI label="Résultat fiscal" value={formatFCFA(summary.resultatFiscal)} icon={Building2}
+                accent={summary.resultatFiscal >= 0 ? "success" : "danger"} />
+              <FiscalKPI
+                label={`IS estimé (${isRate.toFixed(0)}%${isTax ? ` — ${isTax.code}` : " — défaut"})`}
+                value={isAmount !== null ? formatFCFA(isAmount) : "—"}
+                sub={summary.resultatFiscal <= 0 ? "Résultat négatif" : "Projection sur résultat courant"}
+                icon={Percent}
+                accent={isAmount && isAmount > 0 ? "warning" : "default"}
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            {isTax
+              ? <>Taux IS lu depuis le référentiel fiscal ({isTax.name} — {isTax.code}). Modifiable dans <strong>Comptabilité → Fiscal → Référentiel fiscal</strong>.</>
+              : <>Taux IS par défaut 28%. Configurez vos taxes dans <strong>Comptabilité → Fiscal → Référentiel fiscal</strong>.</>
+            }
+          </p>
         </>
       )}
     </div>

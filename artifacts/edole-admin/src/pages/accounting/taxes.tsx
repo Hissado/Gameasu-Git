@@ -312,7 +312,7 @@ export default function TaxesPage() {
 
   const [from, setFrom] = useState(firstDay);
   const [to, setTo] = useState(lastDay);
-  const [tab, setTab] = useState<"referentiel" | "summary" | "schedule" | "tva-detail">("referentiel");
+  const [tab, setTab] = useState<"referentiel" | "schedule" | "tva-detail">("referentiel");
   const [formOpen, setFormOpen] = useState(false);
   const [editTax, setEditTax] = useState<Tax | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -325,12 +325,6 @@ export default function TaxesPage() {
     queryFn: () => apiFetch("/api/accounting/taxes"),
   });
   const taxes = taxesRes?.data ?? [];
-
-  const { data: summary, isLoading: loadingSummary } = useQuery<FiscalSummary>({
-    queryKey: ["fiscal-summary", from, to],
-    queryFn: () => apiFetch(`/api/accounting/fiscal/summary?${params}`),
-    enabled: tab === "summary",
-  });
 
   const { data: tvaDetail, isLoading: loadingTva } = useQuery<{ data: TvaLine[] }>({
     queryKey: ["tva-detail", from, to],
@@ -368,11 +362,6 @@ export default function TaxesPage() {
     },
   });
 
-  // IS rate from taxes table
-  const isTax = taxes.find((t) => t.type === "income_tax" && t.isActive);
-  const isRate = isTax ? parseFloat(isTax.rate ?? "28") : 28;
-  const isAmount = summary ? (summary.resultatFiscal > 0 ? summary.resultatFiscal * (isRate / 100) : 0) : null;
-
   const tvaLines = tvaDetail?.data ?? [];
 
   // Schedule — computed deadlines
@@ -388,7 +377,6 @@ export default function TaxesPage() {
 
   const tabs = [
     { key: "referentiel",  label: "Référentiel fiscal" },
-    { key: "summary",      label: "Synthèse fiscale" },
     { key: "schedule",     label: "Échéancier" },
     { key: "tva-detail",   label: "Détail TVA" },
   ] as const;
@@ -512,76 +500,6 @@ export default function TaxesPage() {
                 </Table>
               </Card>
             )}
-          </div>
-        )}
-
-        {/* ── Synthèse fiscale ── */}
-        {tab === "summary" && (
-          <div className="space-y-4">
-            {/* Filtres */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex flex-wrap gap-3 items-end">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Du</label>
-                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Au</label>
-                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-                  </div>
-                  <Button variant="outline" onClick={() => {
-                    const m = today.getMonth(); const y = today.getFullYear();
-                    setFrom(new Date(y, m, 1).toISOString().slice(0, 10));
-                    setTo(new Date(y, m + 1, 0).toISOString().slice(0, 10));
-                  }}>Mois en cours</Button>
-                  <Button variant="outline" onClick={() => {
-                    const y = today.getFullYear();
-                    setFrom(`${y}-01-01`); setTo(`${y}-12-31`);
-                  }}>Année en cours</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {loadingSummary ? (
-              <div className="text-center py-12 text-muted-foreground">Chargement…</div>
-            ) : summary ? (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  <TaxKPI label="TVA collectée" value={formatFCFA(summary.tva.collectee)} sub="Compte 443x" icon={TrendingUp} accent="default" />
-                  <TaxKPI label="TVA déductible" value={formatFCFA(summary.tva.deductible)} sub="Compte 445x" icon={Receipt} accent="default" />
-                  <TaxKPI label="TVA nette due" value={formatFCFA(summary.tva.due)} sub={summary.tva.due > 0 ? "À décaisser" : "Crédit de TVA"} icon={Percent}
-                    accent={summary.tva.due > 0 ? "warning" : "success"} />
-                  <TaxKPI label="IRPP retenu" value={formatFCFA(summary.irpp)} sub="Compte 4473x" icon={Users} accent="default" />
-                  <TaxKPI label="IPTS" value={formatFCFA(summary.ipts)} sub="Compte 4471x" icon={Building2} accent="default" />
-                  <TaxKPI label="AIB" value={formatFCFA(summary.aib)} sub="Compte 4472x" icon={Receipt} accent="default" />
-                  <TaxKPI label="CNSS" value={formatFCFA(summary.cnss)} sub="Compte 431x" icon={Users} accent="default" />
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <TaxKPI label="Revenus (Cl. 7)" value={formatFCFA(summary.revenus)} icon={TrendingUp} accent="success" />
-                  <TaxKPI label="Charges (Cl. 6)" value={formatFCFA(summary.charges)} icon={Receipt} accent="default" />
-                  <TaxKPI label="Résultat fiscal" value={formatFCFA(summary.resultatFiscal)} icon={Building2}
-                    accent={summary.resultatFiscal >= 0 ? "success" : "danger"} />
-                  <TaxKPI
-                    label={`IS estimé (${isRate.toFixed(0)}%${isTax ? ` — ${isTax.code}` : " — défaut"})`}
-                    value={isAmount !== null ? formatFCFA(isAmount) : "—"}
-                    sub={summary.resultatFiscal <= 0 ? "Résultat négatif" : "Projection sur résultat courant"}
-                    icon={Percent}
-                    accent={isAmount && isAmount > 0 ? "warning" : "default"}
-                  />
-                </div>
-
-                {isTax && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    Taux IS lu depuis le référentiel fiscal ({isTax.name} — {isTax.code}) — modifiable dans l'onglet <strong>Référentiel fiscal</strong>.
-                  </p>
-                )}
-              </>
-            ) : null}
           </div>
         )}
 
