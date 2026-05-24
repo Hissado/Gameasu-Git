@@ -586,11 +586,12 @@ type ManagementReport = {
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
   return (
     <Tabs defaultValue="billing" className="w-full">
-      <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4 h-auto gap-px">
+      <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-4 h-auto gap-px">
         <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
         <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
         <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
         <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
+        <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
         <TabsTrigger value="reconciliation" className="text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement</TabsTrigger>
         <TabsTrigger value="management" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion</TabsTrigger>
       </TabsList>
@@ -598,6 +599,7 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
       <TabsContent value="income-statement"><IncomeStatementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="balance-sheet"><BalanceSheetSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="cash-flow"><CashFlowSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="decaissements"><DecaissementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="reconciliation"><ReconciliationSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="management"><ManagementSubTab periodQuery={periodQuery} /></TabsContent>
     </Tabs>
@@ -1035,6 +1037,225 @@ function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
               </CardContent>
             </Card>
           )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Décaissements
+// ────────────────────────────────────────────────────────────────
+type DecaissementsReport = {
+  period: { from: string; to: string };
+  total: number;
+  count: number;
+  topSuppliers: Array<{ name: string; total: number; count: number; percent: number }>;
+  methodBreakdown: Array<{ method: string; amount: number; percent: number }>;
+  series: Array<{ month: string; amount: number }>;
+  transactions: Array<{ id: string; date: string; supplier: string; invoiceRef: string; method: string; amount: number; reference: string }>;
+  hasData: boolean;
+};
+
+const METHOD_LABELS: Record<string, string> = {
+  bank_transfer: "Virement bancaire", cash: "Espèces", check: "Chèque",
+  mobile_money: "Mobile Money", card: "Carte bancaire", other: "Autre",
+};
+
+function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {
+  const [search, setSearch] = useState("");
+  const [methodFilter, setMethodFilter] = useState("all");
+
+  const { data, isLoading } = useQuery<DecaissementsReport>({
+    queryKey: ["report", "decaissements", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/decaissements?${periodQuery}`),
+  });
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    return data.transactions.filter(t => {
+      const matchSearch = !search || t.supplier.toLowerCase().includes(search.toLowerCase()) || t.invoiceRef.toLowerCase().includes(search.toLowerCase()) || t.reference.toLowerCase().includes(search.toLowerCase());
+      const matchMethod = methodFilter === "all" || t.method === methodFilter;
+      return matchSearch && matchMethod;
+    });
+  }, [data, search, methodFilter]);
+
+  if (isLoading) return <div className="space-y-4 pt-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>;
+
+  if (!data) return (
+    <Card className="mt-4"><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+      <ArrowDownRight className="w-8 h-8 opacity-30" />
+      <p className="text-sm font-medium">Données indisponibles</p>
+    </CardContent></Card>
+  );
+
+  const periodLabel = `${new Date(data.period.from).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })} – ${new Date(data.period.to).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`;
+  const hasFilters = !!(search || methodFilter !== "all");
+
+  return (
+    <div className="space-y-6 pt-4">
+
+      {/* KPIs rapides */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Kpi label="Total décaissé" value={formatFCFA(data.total)} accent="danger" hint={`${data.count} paiement${data.count > 1 ? "s" : ""}`} />
+        <Kpi label="Fournisseurs payés" value={String(data.topSuppliers.length)} accent="default" />
+        <Kpi label="Montant moyen" value={data.count > 0 ? formatFCFA(Math.round(data.total / data.count)) : "—"} accent="default" />
+        <Kpi label="Mode principal" value={data.methodBreakdown[0] ? (METHOD_LABELS[data.methodBreakdown[0].method] ?? data.methodBreakdown[0].method) : "—"} accent="default" hint={data.methodBreakdown[0] ? `${data.methodBreakdown[0].percent}%` : undefined} />
+      </div>
+
+      {!data.hasData ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <ArrowDownRight className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Aucun décaissement sur la période</p>
+          <p className="text-xs text-center max-w-xs">Les paiements fournisseurs enregistrés apparaîtront ici.</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          {/* Graphique mensuel + ventilation méthode */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {data.series.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Décaissements mensuels</CardTitle>
+                  <CardDescription>{periodLabel}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tickFormatter={v => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                        <Bar dataKey="amount" name="Décaissements" fill="#F97316" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.methodBreakdown.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Répartition par mode de paiement</CardTitle>
+                  <CardDescription>Total : {formatFCFA(data.total)}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2.5 mt-1">
+                    {data.methodBreakdown.map(m => (
+                      <div key={m.method} className="flex items-center gap-3">
+                        <span className="text-sm text-slate-600 w-36 shrink-0">{METHOD_LABELS[m.method] ?? m.method}</span>
+                        <div className="flex-1">
+                          <div className="h-2 bg-slate-100 rounded-full">
+                            <div className="h-2 rounded-full bg-orange-400" style={{ width: `${Math.min(m.percent, 100)}%` }} />
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums w-28 text-right">{formatFCFA(m.amount)}</span>
+                        <span className="text-xs text-slate-400 w-8 text-right">{m.percent}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Top fournisseurs */}
+          {data.topSuppliers.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  Top fournisseurs payés
+                </CardTitle>
+                <CardDescription>Montants décaissés par fournisseur sur la période</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
+                      <th className="py-2 px-4 text-center text-xs font-semibold text-slate-500">Paiements</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Montant</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                      <th className="py-2 px-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topSuppliers.map(s => (
+                      <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
+                        <td className="py-2.5 px-4 text-center text-slate-500">{s.count}</td>
+                        <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.total)}</td>
+                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
+                        <td className="py-2.5 px-4">
+                          <div className="h-1.5 bg-slate-100 rounded-full w-20 ml-auto">
+                            <div className="h-1.5 rounded-full bg-orange-400" style={{ width: `${Math.min(s.percent, 100)}%` }} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Journal des transactions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <CardTitle className="text-sm">Journal des décaissements</CardTitle>
+                  <CardDescription>{data.count} paiement{data.count > 1 ? "s" : ""} sur la période</CardDescription>
+                </div>
+                <FilterBar onClear={hasFilters ? () => { setSearch(""); setMethodFilter("all"); } : undefined}>
+                  <FilterInput placeholder="Fournisseur, référence…" value={search} onChange={setSearch} />
+                  <FilterSelect placeholder="Tous les modes" value={methodFilter} onChange={setMethodFilter}
+                    options={data.methodBreakdown.map(m => ({ value: m.method, label: METHOD_LABELS[m.method] ?? m.method }))} />
+                </FilterBar>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {filtered.length === 0 ? (
+                <div className="py-10 text-center text-sm text-slate-400">Aucun résultat pour ces filtres.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Date</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Réf. facture</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Mode</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Référence</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(t => (
+                      <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-2.5 px-4 text-slate-500 tabular-nums">{new Date(t.date).toLocaleDateString("fr-FR")}</td>
+                        <td className="py-2.5 px-4 font-medium text-slate-800">{t.supplier}</td>
+                        <td className="py-2.5 px-4 text-slate-500 font-mono text-xs">{t.invoiceRef}</td>
+                        <td className="py-2.5 px-4">
+                          <Badge variant="outline" className="text-xs">{METHOD_LABELS[t.method] ?? t.method}</Badge>
+                        </td>
+                        <td className="py-2.5 px-4 text-slate-400 text-xs font-mono">{t.reference || "—"}</td>
+                        <td className="py-2.5 px-4 text-right font-semibold tabular-nums text-red-600">{formatFCFA(t.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-50 border-t">
+                      <td colSpan={5} className="py-2 px-4 text-sm font-semibold text-slate-600">Total affiché</td>
+                      <td className="py-2 px-4 text-right font-bold tabular-nums text-red-700">{formatFCFA(filtered.reduce((s, t) => s + t.amount, 0))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

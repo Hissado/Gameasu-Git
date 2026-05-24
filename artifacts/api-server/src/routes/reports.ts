@@ -1241,6 +1241,90 @@ router.get("/reports/purchases", requireAuth, requireManagerOrAbove, async (req,
 });
 
 // ────────────────────────────────────────────────────────────────
+// Décaissements (paiements fournisseurs + sorties de tréso)
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/finance/decaissements", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { from, to, fromIso, toIso } = parsePeriod(req);
+
+    // ── Paiements fournisseurs de la période ─────────────────────
+    const supplierPmts = await db
+      .select({
+        id: supplierPaymentsTable.id,
+        amount: supplierPaymentsTable.amount,
+        method: supplierPaymentsTable.method,
+        paidAt: supplierPaymentsTable.paidAt,
+        reference: supplierPaymentsTable.reference,
+        supplierName: suppliersTable.name,
+        invoiceRef: supplierInvoicesTable.referenceNumber,
+      })
+      .from(supplierPaymentsTable)
+      .leftJoin(supplierInvoicesTable, eq(supplierPaymentsTable.supplierInvoiceId, supplierInvoicesTable.id))
+      .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+      .where(and(
+        eq(supplierPaymentsTable.organizationId, orgId),
+        gte(supplierPaymentsTable.paidAt, from),
+        lte(supplierPaymentsTable.paidAt, to),
+      ))
+      .orderBy(desc(supplierPaymentsTable.paidAt));
+
+    const total = supplierPmts.reduce((s, p) => s + num(p.amount), 0);
+
+    // ── Agrégation par fournisseur ────────────────────────────────
+    const bySupplier: Record<string, { name: string; total: number; count: number }> = {};
+    for (const p of supplierPmts) {
+      const k = p.supplierName ?? "Fournisseur non renseigné";
+      if (!bySupplier[k]) bySupplier[k] = { name: k, total: 0, count: 0 };
+      bySupplier[k].total += num(p.amount);
+      bySupplier[k].count++;
+    }
+    const topSuppliers = Object.values(bySupplier)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10)
+      .map(s => ({ ...s, percent: total > 0 ? Math.round((s.total / total) * 1000) / 10 : 0 }));
+
+    // ── Agrégation par mode de paiement ──────────────────────────
+    const byMethod: Record<string, number> = {};
+    for (const p of supplierPmts) {
+      const m = p.method ?? "other";
+      byMethod[m] = (byMethod[m] || 0) + num(p.amount);
+    }
+    const methodBreakdown = Object.entries(byMethod)
+      .sort(([, a], [, b]) => b - a)
+      .map(([method, amount]) => ({ method, amount, percent: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0 }));
+
+    // ── Séries mensuelles ─────────────────────────────────────────
+    const monthlyMap: Record<string, number> = {};
+    for (const p of supplierPmts) {
+      const m = new Date(p.paidAt).toISOString().slice(0, 7);
+      monthlyMap[m] = (monthlyMap[m] || 0) + num(p.amount);
+    }
+    const series = Object.entries(monthlyMap).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, amount]) => ({ month, amount }));
+
+    res.json({
+      period: { from: fromIso, to: toIso },
+      total,
+      count: supplierPmts.length,
+      topSuppliers,
+      methodBreakdown,
+      series,
+      transactions: supplierPmts.slice(0, 50).map(p => ({
+        id: p.id,
+        date: new Date(p.paidAt).toISOString().slice(0, 10),
+        supplier: p.supplierName ?? "—",
+        invoiceRef: p.invoiceRef ?? "—",
+        method: p.method,
+        amount: num(p.amount),
+        reference: p.reference ?? "",
+      })),
+      hasData: supplierPmts.length > 0,
+    });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
 // Compte de résultat (Income Statement) depuis les écritures
 // ────────────────────────────────────────────────────────────────
 router.get("/reports/finance/income-statement", requireAuth, requireManagerOrAbove, async (req, res, next) => {
