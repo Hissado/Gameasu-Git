@@ -1124,7 +1124,7 @@ router.get("/reports/aged-receivables", requireAuth, requireManagerOrAbove, asyn
 // ────────────────────────────────────────────────────────────────
 router.get("/reports/purchases", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.authUser!.organizationId;
     const { from, to, fromIso, toIso } = parsePeriod(req);
     const fromDate = fromIso;
     const toDate = toIso;
@@ -1245,7 +1245,7 @@ router.get("/reports/purchases", requireAuth, requireManagerOrAbove, async (req,
 // ────────────────────────────────────────────────────────────────
 router.get("/reports/finance/income-statement", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.authUser!.organizationId;
     const { fromIso, toIso } = parsePeriod(req);
 
     // Toutes les lignes d'écritures VALIDÉES de la période
@@ -1314,7 +1314,7 @@ router.get("/reports/finance/income-statement", requireAuth, requireManagerOrAbo
 // ────────────────────────────────────────────────────────────────
 router.get("/reports/finance/balance-sheet", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.authUser!.organizationId;
     const { toIso } = parsePeriod(req);
 
     // Toutes les lignes VALIDÉES jusqu'à la date "to" (bilan = cumulatif)
@@ -1388,7 +1388,7 @@ router.get("/reports/finance/balance-sheet", requireAuth, requireManagerOrAbove,
 // ────────────────────────────────────────────────────────────────
 router.get("/reports/aged-payables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.authUser!.organizationId;
     const supplierSearch = typeof req.query.supplier === "string" ? req.query.supplier.toLowerCase() : "";
     const statusFilter = typeof req.query.status === "string" ? req.query.status : "";
 

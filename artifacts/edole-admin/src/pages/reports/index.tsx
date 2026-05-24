@@ -1248,24 +1248,110 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const expenseChange = pctChange(f.expenses, d.prev.expenses);
   const netChange = pctChange(f.netResult, d.prev.netResult);
 
-  const revInsight = revenueChange !== null
-    ? `Les produits s'élèvent à ${formatFCFA(f.revenues)}, soit ${revenueChange >= 0 ? "une hausse" : "une baisse"} de ${Math.abs(revenueChange)}% par rapport à la même période N-1 (${formatFCFA(d.prev.revenues)}).`
-    : `Les produits s'élèvent à ${formatFCFA(f.revenues)} sur la période.`;
+  // ── Signaux de statut pour le résumé exécutif ────────────────
+  const revenueSignal: "positive" | "neutral" | "warning" =
+    revenueChange === null ? "neutral" : revenueChange >= 5 ? "positive" : revenueChange >= 0 ? "neutral" : "warning";
+  const profitSignal: "positive" | "neutral" | "warning" =
+    f.netResult > 0 ? "positive" : f.netResult === 0 ? "neutral" : "warning";
+  const liquiditySignal: "positive" | "neutral" | "warning" =
+    liq.cashPosition >= 0 && liq.workingCapital >= 0 ? "positive" : liq.cashPosition < 0 ? "warning" : "neutral";
+  const opsSignal: "positive" | "neutral" | "warning" =
+    ops.overdueProjects === 0 && ops.avgProgress >= 50 ? "positive" : ops.overdueProjects > 0 ? "warning" : "neutral";
 
-  const expInsight = expenseChange !== null
-    ? `Les charges totales atteignent ${formatFCFA(f.expenses)}, ${expenseChange >= 0 ? "en hausse" : "en baisse"} de ${Math.abs(expenseChange)}% vs N-1.`
-    : `Les charges totales s'établissent à ${formatFCFA(f.expenses)}.`;
+  const signalConfig = {
+    positive: { dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Situation favorable" },
+    neutral:  { dot: "bg-sky-400",     badge: "bg-sky-50 text-sky-700 border-sky-200",             label: "Situation stable" },
+    warning:  { dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200",       label: "Point d'attention" },
+  };
 
-  const topExpense = d.expenseBreakdown[0];
-  const topExpenseText = topExpense ? ` Le premier poste de charges est « ${topExpense.label} » (${formatFCFA(topExpense.amount)}, soit ${topExpense.percent}%).` : "";
+  // ── Textes narratifs — ton direction générale ─────────────────
+  const revHeadline = revenueChange !== null
+    ? revenueChange >= 0
+      ? `Activité commerciale en progression de ${revenueChange}% sur la période`
+      : `Activité commerciale en recul de ${Math.abs(revenueChange)}% par rapport à N-1`
+    : f.revenues > 0
+      ? `Activité commerciale active sur la période`
+      : `Aucune donnée de produits enregistrée sur la période`;
 
-  const netInsight = f.netResult >= 0
-    ? `Le résultat net est bénéficiaire à ${formatFCFA(f.netResult)} (marge nette : ${f.margin}%).`
-    : `Le résultat net est déficitaire à ${formatFCFA(f.netResult)} (marge nette : ${f.margin}%).`;
+  const revBody = (() => {
+    const base = f.revenues > 0
+      ? `Les produits de la période s'établissent à ${formatFCFA(f.revenues)}.`
+      : `Aucun produit comptabilisé sur cette période — les données d'encaissements issus des factures indiquent toutefois une activité en cours.`;
+    const comp = revenueChange !== null && d.prev.revenues > 0
+      ? ` La période N-1 affichait ${formatFCFA(d.prev.revenues)}, soit un écart de ${revenueChange >= 0 ? "+" : ""}${revenueChange}%.`
+      : "";
+    const arNote = liq.arOutstanding > 0
+      ? ` À noter : ${formatFCFA(liq.arOutstanding)} de créances clients restent à encaisser${liq.arOverdue > 0 ? `, dont ${formatFCFA(liq.arOverdue)} présentent un dépassement d'échéance` : ""}.`
+      : "";
+    return base + comp + arNote;
+  })();
 
-  const liquidityInsight = liq.cashPosition >= 0
-    ? `La trésorerie disponible s'établit à ${formatFCFA(liq.cashPosition)}. Les créances clients en cours représentent ${formatFCFA(liq.arOutstanding)}${liq.arOverdue > 0 ? `, dont ${formatFCFA(liq.arOverdue)} en retard` : ""}.`
-    : `Attention : la position de trésorerie est négative à ${formatFCFA(liq.cashPosition)}.`;
+  const profitHeadline = f.netResult > 0
+    ? `Résultat bénéficiaire — marge nette de ${f.margin}%`
+    : f.netResult === 0
+      ? `Résultat à l'équilibre sur la période`
+      : `Résultat déficitaire — marge nette de ${f.margin}%`;
+
+  const profitBody = (() => {
+    const net = f.netResult !== 0
+      ? `Le résultat net de la période est de ${formatFCFA(f.netResult)}`
+      : `Le résultat net est à l'équilibre`;
+    const margin = f.margin !== 0 ? `, représentant une marge nette de ${f.margin}%.` : ".";
+    const ebitdaNote = f.ebitda !== 0 && f.ebitda !== f.netResult
+      ? ` L'EBITDA s'établit à ${formatFCFA(f.ebitda)}, reflétant la capacité de génération de cash avant amortissements.`
+      : "";
+    const expNote = f.expenses > 0
+      ? ` Le ratio charges / produits est de ${f.operatingExpenseRatio}%${f.operatingExpenseRatio < 80 ? " — niveau sain" : f.operatingExpenseRatio < 100 ? " — à surveiller" : " — supérieur à 100%, situation à redresser"}.`
+      : "";
+    const topExp = d.expenseBreakdown[0]
+      ? ` Premier poste de charges : ${d.expenseBreakdown[0].label} (${d.expenseBreakdown[0].percent}% du total).`
+      : "";
+    return net + margin + ebitdaNote + expNote + topExp;
+  })();
+
+  const liquidityHeadline = liq.cashPosition >= 0
+    ? liq.workingCapital >= 0
+      ? `Trésorerie positive — fonds de roulement sain`
+      : `Trésorerie positive mais fonds de roulement sous pression`
+    : `Trésorerie négative — vigilance requise sur la liquidité`;
+
+  const liquidityBody = (() => {
+    const cash = liq.cashPosition !== 0
+      ? `La position de trésorerie nette est de ${formatFCFA(liq.cashPosition)}.`
+      : `La position de trésorerie est nulle sur la période.`;
+    const wc = ` Le fonds de roulement s'établit à ${formatFCFA(liq.workingCapital)}, soit la marge disponible après couverture des engagements à court terme.`;
+    const ap = liq.apOutstanding > 0
+      ? ` Les dettes fournisseurs en cours représentent ${formatFCFA(liq.apOutstanding)}${liq.apOverdue > 0 ? `, dont ${formatFCFA(liq.apOverdue)} en dépassement d'échéance` : ""}.`
+      : "";
+    return cash + wc + ap;
+  })();
+
+  const opsHeadline = ops.activeProjects > 0
+    ? ops.overdueProjects === 0
+      ? `${ops.activeProjects} projets actifs — exécution dans les délais`
+      : `${ops.activeProjects} projets actifs — ${ops.overdueProjects} projet${ops.overdueProjects > 1 ? "s" : ""} en retard à solder`
+    : `Aucun projet actif enregistré sur la période`;
+
+  const opsBody = (() => {
+    const base = ops.totalProjects > 0
+      ? `Le portefeuille compte ${ops.totalProjects} projets au total, dont ${ops.activeProjects} en cours et ${ops.completedProjects} achevés.`
+      : `Aucun projet enregistré sur cette période.`;
+    const budget = ops.totalBudget > 0 ? ` Le budget cumulé des projets actifs s'élève à ${formatFCFA(ops.totalBudget)}.` : "";
+    const progress = ops.activeProjects > 0
+      ? ` L'avancement moyen est de ${ops.avgProgress}%${ops.avgProgress >= 75 ? " — excellent rythme" : ops.avgProgress >= 40 ? " — progression régulière" : " — rythme à accélérer"}.`
+      : "";
+    const hr = d.hr.activeCollab > 0 ? ` L'équipe mobilisée compte ${d.hr.activeCollab} collaborateurs actifs.` : "";
+    return base + budget + progress + hr;
+  })();
+
+  // Points d'attention
+  const watchpoints: string[] = [];
+  if (liq.arOverdue > 0) watchpoints.push(`${formatFCFA(liq.arOverdue)} de créances clients en dépassement d'échéance — recouvrement à prioriser.`);
+  if (liq.apOverdue > 0) watchpoints.push(`${formatFCFA(liq.apOverdue)} de dettes fournisseurs en dépassement d'échéance — régularisation recommandée.`);
+  if (ops.overdueProjects > 0) watchpoints.push(`${ops.overdueProjects} projet${ops.overdueProjects > 1 ? "s" : ""} actif${ops.overdueProjects > 1 ? "s" : ""} dépasse${ops.overdueProjects > 1 ? "nt" : ""} la date de livraison prévue.`);
+  if (liq.cashPosition < 0) watchpoints.push(`La trésorerie est négative (${formatFCFA(liq.cashPosition)}) — un financement à court terme peut être nécessaire.`);
+  if (f.netResult < 0) watchpoints.push(`Le résultat net est déficitaire. Une révision du plan de charges est à envisager.`);
+  if (f.operatingExpenseRatio > 100) watchpoints.push(`Le ratio charges / produits dépasse 100% — les charges excèdent les produits sur la période.`);
 
   return (
     <div className="space-y-6 pt-4">
@@ -1307,30 +1393,74 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       </div>
 
       {/* ── Résumé exécutif ───────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            Résumé exécutif
-          </CardTitle>
-          <CardDescription>{periodLabel}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { title: "Produits", text: revInsight, icon: TrendingUp, accent: "text-emerald-600" },
-              { title: "Charges", text: expInsight + topExpenseText, icon: ArrowDownRight, accent: "text-red-600" },
-              { title: "Résultat & Rentabilité", text: netInsight + (f.ebitda !== f.netResult ? ` L'EBITDA s'établit à ${formatFCFA(f.ebitda)}, la marge brute à ${f.grossMargin}%.` : ""), icon: BarChart2, accent: "text-primary" },
-              { title: "Liquidité & Trésorerie", text: liquidityInsight + ` Les dettes fournisseurs s'élèvent à ${formatFCFA(liq.apOutstanding)}. Fonds de roulement : ${formatFCFA(liq.workingCapital)}.`, icon: Banknote, accent: "text-sky-600" },
-            ].map(({ title, text, icon: Icon, accent }) => (
-              <div key={title} className="space-y-1">
-                <div className={`flex items-center gap-1.5 text-sm font-semibold ${accent}`}>
-                  <Icon className="w-4 h-4" /> {title}
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
-              </div>
-            ))}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-4 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Résumé exécutif
+              </CardTitle>
+              <CardDescription className="mt-0.5">{periodLabel} · Usage exclusif Direction &amp; Gouvernance</CardDescription>
+            </div>
+            <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                [revenueSignal, profitSignal, liquiditySignal, opsSignal].some(s => s === "warning") ? "bg-amber-400" : "bg-emerald-400"
+              }`} />
+              {[revenueSignal, profitSignal, liquiditySignal, opsSignal].some(s => s === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
+            </div>
           </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Sections thématiques */}
+          {([
+            { signal: revenueSignal,   icon: TrendingUp, headline: revHeadline,     body: revBody,     theme: "Performance commerciale" },
+            { signal: profitSignal,    icon: BarChart2,  headline: profitHeadline,  body: profitBody,  theme: "Rentabilité" },
+            { signal: liquiditySignal, icon: Banknote,   headline: liquidityHeadline, body: liquidityBody, theme: "Liquidité & Trésorerie" },
+            { signal: opsSignal,       icon: Briefcase,  headline: opsHeadline,     body: opsBody,     theme: "Activité opérationnelle" },
+          ] as const).map(({ signal, icon: Icon, headline, body, theme }) => {
+            const cfg = signalConfig[signal];
+            return (
+              <div key={theme} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                {/* Bande colorée latérale */}
+                <div className={`w-1 shrink-0 ${signal === "positive" ? "bg-emerald-400" : signal === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
+                <div className="flex-1 px-5 py-4">
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{theme}</span>
+                    </div>
+                    <span className={`shrink-0 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.badge}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 mb-1">{headline}</p>
+                  <p className="text-sm text-slate-500 leading-relaxed">{body}</p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Points d'attention */}
+          {watchpoints.length > 0 && (
+            <div className="mx-5 my-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="text-sm font-semibold text-amber-800">
+                  {watchpoints.length === 1 ? "Point d'attention" : `${watchpoints.length} points d'attention`}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {watchpoints.map((wp, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-500 shrink-0" />
+                    {wp}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 
