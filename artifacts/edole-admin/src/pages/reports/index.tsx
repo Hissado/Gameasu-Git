@@ -26,6 +26,13 @@ import {
   Search,
   X,
   SlidersHorizontal,
+  Package,
+  ArrowUpRight,
+  ArrowDownRight,
+  Scale,
+  BarChart2,
+  Receipt,
+  Building2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -127,7 +134,7 @@ type HrReport = {
   flagsByKind: Record<string, number>;
   topPerformers: Array<{ id: string; name: string; hours: number; minutes: number }>;
   byDepartment: Record<string, number>;
-  expiringList: Array<{ id: string; collaborator: string; type: string; endDate: string | null; jobTitle: string | null }>;
+  expiringList: Array<{ id: string; collaborator: string; type: string; endDate: string | null; jobTitle: string | null; contractType?: string }>;
 };
 
 type StockReport = {
@@ -169,6 +176,14 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const PIE_COLORS = ["#F26B1F", "#1F2937", "#10B981", "#3B82F6", "#F59E0B", "#8B5CF6", "#EF4444", "#06B6D4"];
+
+const CONTRACT_TYPE_LABELS: Record<string, string> = {
+  CDI: "CDI", CDD: "CDD", freelance: "Freelance", stage: "Stage",
+  interim: "Intérim", apprenti: "Apprentissage", consultant: "Consultant", other: "Autre",
+};
+const SUPPLIER_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente", paid: "Réglée", overdue: "En retard", partial: "Partiellement réglée", cancelled: "Annulée", draft: "Brouillon",
+};
 
 // ────────────────────────────────────────────────────────────────
 // Petits composants UI
@@ -294,18 +309,20 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-6">
-          <TabsTrigger value="overview"><TrendingUp className="w-4 h-4 mr-1.5" />Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="finance"><Banknote className="w-4 h-4 mr-1.5" />Finance</TabsTrigger>
-          <TabsTrigger value="sales"><ShoppingCart className="w-4 h-4 mr-1.5" />Ventes</TabsTrigger>
-          <TabsTrigger value="projects"><Briefcase className="w-4 h-4 mr-1.5" />Projets</TabsTrigger>
-          <TabsTrigger value="hr"><Users className="w-4 h-4 mr-1.5" />RH</TabsTrigger>
-          <TabsTrigger value="parc"><Wrench className="w-4 h-4 mr-1.5" />Parc</TabsTrigger>
+        <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-6 h-auto gap-px">
+          <TabsTrigger value="overview" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Vue d'ensemble</TabsTrigger>
+          <TabsTrigger value="finance" className="text-xs"><Banknote className="w-3.5 h-3.5 mr-1" />Finance</TabsTrigger>
+          <TabsTrigger value="sales" className="text-xs"><ShoppingCart className="w-3.5 h-3.5 mr-1" />Ventes</TabsTrigger>
+          <TabsTrigger value="purchases" className="text-xs"><Package className="w-3.5 h-3.5 mr-1" />Achats</TabsTrigger>
+          <TabsTrigger value="projects" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Projets</TabsTrigger>
+          <TabsTrigger value="hr" className="text-xs"><Users className="w-3.5 h-3.5 mr-1" />RH</TabsTrigger>
+          <TabsTrigger value="parc" className="text-xs"><Wrench className="w-3.5 h-3.5 mr-1" />Parc</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview"><OverviewTab periodQuery={periodQuery} /></TabsContent>
         <TabsContent value="finance"><FinanceTab periodQuery={periodQuery} /></TabsContent>
         <TabsContent value="sales"><SalesTab periodQuery={periodQuery} /></TabsContent>
+        <TabsContent value="purchases"><PurchasesTab periodQuery={periodQuery} /></TabsContent>
         <TabsContent value="projects"><ProjectsTab periodQuery={periodQuery} /></TabsContent>
         <TabsContent value="hr"><HrTab periodQuery={periodQuery} /></TabsContent>
         <TabsContent value="parc"><ParcTab /></TabsContent>
@@ -328,29 +345,60 @@ function OverviewTab({ periodQuery }: { periodQuery: string }) {
     queryKey: ["report", "overview", periodQuery],
     queryFn: () => apiFetch(`/api/reports/overview?${periodQuery}`),
   });
+  const { data: payables } = useQuery<AgedPayables>({
+    queryKey: ["report", "aged-payables"],
+    queryFn: () => apiFetch("/api/reports/aged-payables"),
+  });
+  const { data: purchases } = useQuery<PurchasesReport>({
+    queryKey: ["report", "purchases", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/purchases?${periodQuery}`),
+  });
 
   if (isLoading || !data) return <Skeleton className="h-96 w-full" />;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Kpi label="Chiffre d'affaires facturé" value={formatFCFA(data.finance.kpi.invoicedAmount)} hint={`${data.finance.kpi.invoicedCount} facture(s)`} accent="primary" />
-        <Kpi label="Encaissements" value={formatFCFA(data.finance.kpi.collectedAmount)} hint={`Taux : ${data.finance.kpi.collectionRate} %`} accent="success" />
-        <Kpi label="Encours en retard" value={formatFCFA(data.finance.kpi.overdueAmount)} hint={`${data.finance.kpi.overdueCount} facture(s)`} accent="danger" />
-        <Kpi label="Pipeline ventes" value={formatFCFA(data.sales.kpi.pipelineValue)} hint={`${data.sales.kpi.pipelineCount} opportunité(s)`} accent="default" />
-        <Kpi label="Projets actifs" value={String(data.projects.kpi.activeCount)} hint={`${data.projects.kpi.overdueCount} en retard`} accent={data.projects.kpi.overdueCount > 0 ? "warning" : "default"} />
-        <Kpi label="Avancement moyen" value={`${data.projects.kpi.avgProgress} %`} accent="default" />
-        <Kpi label="Effectif actif" value={String(data.hr.kpi.active)} hint={`${data.hr.kpi.onLeave} en congé`} accent="default" />
-        <Kpi label="Heures pointées" value={String(data.hr.kpi.totalHours)} hint={`${data.hr.kpi.unresolvedFlags} anomalie(s) ouverte(s)`} accent={data.hr.kpi.unresolvedFlags > 0 ? "warning" : "default"} />
+      {/* ── Bloc 1 : Revenus & recouvrements ────────────────── */}
+      <div>
+        <SectionTitle icon={ArrowUpRight}>Revenus & recouvrements</SectionTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Kpi label="CA facturé" value={formatFCFA(data.finance.kpi.invoicedAmount)} hint={`${data.finance.kpi.invoicedCount} facture(s)`} accent="primary" />
+          <Kpi label="Encaissé" value={formatFCFA(data.finance.kpi.collectedAmount)} hint={`Taux ${data.finance.kpi.collectionRate} %`} accent="success" />
+          <Kpi label="Créances en retard" value={formatFCFA(data.finance.kpi.overdueAmount)} hint={`${data.finance.kpi.overdueCount} facture(s)`} accent="danger" />
+          <Kpi label="Pipeline commercial" value={formatFCFA(data.sales.kpi.pipelineValue)} hint={`${data.sales.kpi.pipelineCount} opportunité(s)`} />
+        </div>
       </div>
 
+      {/* ── Bloc 2 : Dettes & engagements ───────────────────── */}
+      <div>
+        <SectionTitle icon={ArrowDownRight}>Dettes & engagements fournisseurs</SectionTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Kpi label="Achats (période)" value={formatFCFA(purchases?.kpi.totalAmount ?? 0)} hint={`${purchases?.kpi.invoiceCount ?? 0} facture(s)`} accent="default" />
+          <Kpi label="Réglé fournisseurs" value={formatFCFA(purchases?.kpi.paidAmount ?? 0)} hint={`Taux ${purchases?.kpi.paymentRate ?? 0} %`} accent="success" />
+          <Kpi label="Dettes encours" value={formatFCFA(payables?.totalOutstanding ?? 0)} hint="Toutes échéances" accent="warning" />
+          <Kpi label="Dettes en retard" value={formatFCFA(payables?.buckets.filter(b => b.key !== "current").reduce((s, b) => s + b.amount, 0) ?? 0)} hint={`${payables?.buckets.filter(b => b.key !== "current" && b.count > 0).length ?? 0} tranche(s)`} accent="danger" />
+        </div>
+      </div>
+
+      {/* ── Bloc 3 : Opérations ──────────────────────────────── */}
+      <div>
+        <SectionTitle icon={Briefcase}>Opérations & RH</SectionTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Kpi label="Projets actifs" value={String(data.projects.kpi.activeCount)} hint={`${data.projects.kpi.overdueCount} en retard`} accent={data.projects.kpi.overdueCount > 0 ? "warning" : "default"} />
+          <Kpi label="Avancement moyen" value={`${data.projects.kpi.avgProgress} %`} />
+          <Kpi label="Effectif actif" value={String(data.hr.kpi.active)} hint={`${data.hr.kpi.onLeave} en congé`} />
+          <Kpi label="Anomalies ouvertes" value={String(data.hr.kpi.unresolvedFlags)} hint={`${data.hr.kpi.totalHours} h pointées`} accent={data.hr.kpi.unresolvedFlags > 0 ? "warning" : "default"} />
+        </div>
+      </div>
+
+      {/* ── Graphique facturation / encaissement ─────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> Évolution facturation vs encaissement</CardTitle>
-          <CardDescription>Les 6 derniers mois — montants en FCFA.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> Facturation clients vs encaissements</CardTitle>
+          <CardDescription>12 derniers mois — montants en FCFA.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.finance.series}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -365,6 +413,48 @@ function OverviewTab({ periodQuery }: { periodQuery: string }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Balance âgée synthèse ────────────────────────────── */}
+      {payables && payables.totalOutstanding > 0 && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="w-4 h-4 text-red-500" /> Dettes fournisseurs par ancienneté</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {payables.buckets.map((b) => {
+                  const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
+                  return (
+                    <div key={b.key} className="flex items-center gap-2">
+                      <span className="w-20 text-xs shrink-0 text-slate-600">{b.label}</span>
+                      <div className="flex-1 h-4 bg-slate-100 rounded overflow-hidden">
+                        <div className="h-full rounded" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
+                      </div>
+                      <span className="text-xs font-bold w-28 text-right" style={{ color: clr }}>{formatFCFA(b.amount)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><Users className="w-4 h-4 text-primary" /> Top fournisseurs (encours)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1.5">
+                {payables.bySupplier.slice(0, 6).map((s) => (
+                  <div key={s.supplier} className="flex items-center justify-between p-2 border rounded text-sm">
+                    <span className="font-medium text-slate-800 truncate">{s.supplier}</span>
+                    <span className="font-bold text-red-600 shrink-0 ml-2">{formatFCFA(s.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -400,22 +490,57 @@ type AgedPayables = {
   detail: Array<{ id: string; reference: string; supplier: string; outstanding: number; dueDate: string | null; daysOverdue: number; status: string; bucket: string }>;
 };
 
+type PurchasesReport = {
+  period: { from: string; to: string };
+  kpi: { totalAmount: number; paidAmount: number; outstanding: number; overdueAmount: number; overdueCount: number; taxTotal: number; invoiceCount: number; paymentRate: number };
+  series: Array<{ month: string; achat: number; paye: number }>;
+  topSuppliers: Array<{ id: string; name: string; amount: number; count: number; paid: number }>;
+  byStatus: Record<string, { count: number; amount: number }>;
+  overdueList: Array<{ id: string; supplier: string; dueDate: string | null; outstanding: number; status: string }>;
+};
+
+type IncomeStatement = {
+  revenues: Array<{ code: string; label: string; amount: number }>;
+  expenses: Array<{ code: string; label: string; amount: number }>;
+  totalRevenue: number;
+  totalExpense: number;
+  netResult: number;
+  series: Array<{ month: string; revenue: number; expense: number; result: number }>;
+  hasData: boolean;
+};
+
+type BalanceSheet = {
+  assets: {
+    fixedAssets: Array<{ code: string; label: string; balance: number }>;
+    stocks: Array<{ code: string; label: string; balance: number }>;
+    receivables: Array<{ code: string; label: string; balance: number }>;
+    treasury: Array<{ code: string; label: string; balance: number }>;
+    total: number;
+  };
+  liabilities: {
+    equity: Array<{ code: string; label: string; balance: number }>;
+    payables: Array<{ code: string; label: string; balance: number }>;
+    total: number;
+  };
+  balance: number;
+  hasData: boolean;
+};
+
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
   const [clientSearch, setClientSearch] = useState("");
   const [invoiceStatus, setInvoiceStatus] = useState("all");
-  const [supplierSearch, setSupplierSearch] = useState("");
 
   const { data, isLoading } = useQuery<FinanceReport>({
     queryKey: ["report", "finance", periodQuery],
     queryFn: () => apiFetch(`/api/reports/finance?${periodQuery}`),
   });
-  const { data: aged } = useQuery<AgedReceivables>({
-    queryKey: ["report", "aged-receivables"],
-    queryFn: () => apiFetch("/api/reports/aged-receivables"),
+  const { data: incomeStatement, isLoading: isLoadingIS } = useQuery<IncomeStatement>({
+    queryKey: ["report", "income-statement", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/income-statement?${periodQuery}`),
   });
-  const { data: agedPayables } = useQuery<AgedPayables>({
-    queryKey: ["report", "aged-payables"],
-    queryFn: () => apiFetch("/api/reports/aged-payables"),
+  const { data: balanceSheet, isLoading: isLoadingBS } = useQuery<BalanceSheet>({
+    queryKey: ["report", "balance-sheet", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/balance-sheet?${periodQuery}`),
   });
 
   const filteredTopClients = useMemo(() =>
@@ -433,20 +558,12 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
     return Object.fromEntries(Object.entries(data.byStatus).filter(([s]) => s === invoiceStatus));
   }, [data, invoiceStatus]);
 
-  const filteredAgedByClient = useMemo(() =>
-    (aged?.byClient ?? []).filter(c => !clientSearch || c.client.toLowerCase().includes(clientSearch.toLowerCase())),
-    [aged, clientSearch]);
-
-  const filteredAgedBySupplier = useMemo(() =>
-    (agedPayables?.bySupplier ?? []).filter(s => !supplierSearch || s.supplier.toLowerCase().includes(supplierSearch.toLowerCase())),
-    [agedPayables, supplierSearch]);
-
-  const hasFilters = !!(clientSearch || invoiceStatus !== "all" || supplierSearch);
+  const hasFilters = !!(clientSearch || invoiceStatus !== "all");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <FilterBar onClear={hasFilters ? () => { setClientSearch(""); setInvoiceStatus("all"); setSupplierSearch(""); } : undefined}>
+        <FilterBar onClear={hasFilters ? () => { setClientSearch(""); setInvoiceStatus("all"); } : undefined}>
           <FilterInput placeholder="Client / référence…" value={clientSearch} onChange={setClientSearch} />
           <FilterSelect placeholder="Tous les statuts" value={invoiceStatus} onChange={setInvoiceStatus} options={[
             { value: "draft", label: "Brouillon" }, { value: "sent", label: "Envoyée" },
@@ -458,7 +575,10 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
           <Download className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
-      {isLoading || !data ? <Skeleton className="h-96 w-full" /> : (
+
+      {/* ── Section 1 : Facturation clients ──────────────── */}
+      <SectionTitle icon={Receipt}>Facturation clients</SectionTitle>
+      {isLoading || !data ? <Skeleton className="h-64 w-full" /> : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Kpi label="Facturé" value={formatFCFA(data.kpi.invoicedAmount)} hint={`${data.kpi.invoicedCount} facture(s)`} accent="primary" />
@@ -469,11 +589,11 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Évolution mensuelle</CardTitle>
-              <CardDescription>Facturation et encaissement — 12 derniers mois.</CardDescription>
+              <CardTitle>Évolution mensuelle — Facturation & Encaissements</CardTitle>
+              <CardDescription>12 derniers mois, montants en FCFA.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-72">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.series}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -512,7 +632,6 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                 )}
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Répartition par statut {invoiceStatus !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{INVOICE_STATUS_LABELS[invoiceStatus]}</Badge>}</CardTitle>
@@ -558,133 +677,158 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
               </CardContent>
             </Card>
           )}
+        </>
+      )}
 
-          {/* ── Balance âgée clients ─────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-500" /> Balance âgée — créances clients
-              </CardTitle>
-              {aged && aged.totalOutstanding > 0
-                ? <CardDescription>Total encours : <strong>{formatFCFA(aged.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
-                : <CardDescription>Répartition des factures impayées par ancienneté.</CardDescription>}
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {!aged || aged.totalOutstanding === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
-                  <Clock className="w-8 h-8 opacity-30" />
-                  <p className="text-sm font-medium">Aucune créance impayée</p>
-                  <p className="text-xs">Toutes les factures sont soldées, ou aucune facture n'a encore été émise.</p>
+      {/* ── Section 2 : Compte de résultat ───────────────── */}
+      <SectionTitle icon={BarChart2}>Compte de résultat</SectionTitle>
+      {isLoadingIS ? <Skeleton className="h-64 w-full" /> : !incomeStatement?.hasData ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <BarChart2 className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Aucune écriture comptable validée sur la période</p>
+          <p className="text-xs">Les produits et charges apparaîtront ici une fois les écritures postées.</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Kpi label="Total produits (cl. 7)" value={formatFCFA(incomeStatement.totalRevenue)} accent="success" />
+            <Kpi label="Total charges (cl. 6)" value={formatFCFA(incomeStatement.totalExpense)} accent="danger" />
+            <Kpi label="Résultat net" value={formatFCFA(incomeStatement.netResult)} accent={incomeStatement.netResult >= 0 ? "success" : "danger"}
+              hint={incomeStatement.netResult >= 0 ? "Bénéfice" : "Perte"} />
+          </div>
+
+          {incomeStatement.series.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Produits vs Charges — évolution mensuelle</CardTitle></CardHeader>
+              <CardContent>
+                <div className="h-60">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={incomeStatement.series}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
+                      <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                      <Legend />
+                      <Bar dataKey="revenue" name="Produits" fill="#10B981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="expense" name="Charges" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {aged.buckets.map((b) => {
-                      const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
-                      return (
-                        <div key={b.key} className="flex items-center gap-3">
-                          <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
-                          <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
-                            <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
-                          </div>
-                          <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
-                          <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {filteredAgedByClient.length > 0 && (
-                    <div>
-                      <SectionTitle icon={Users}>Par client {clientSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
-                      <div className="space-y-1">
-                        {filteredAgedByClient.slice(0, 8).map((c) => (
-                          <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-slate-50/50">
-                            <span className="font-medium text-slate-800">{c.client}</span>
-                            <span className="font-bold text-primary">{formatFCFA(c.total)}</span>
-                          </div>
-                        ))}
-                      </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="text-base text-green-700">Produits (classe 7)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  {incomeStatement.revenues.map(r => (
+                    <div key={r.code} className="flex items-center justify-between p-2 border rounded text-sm">
+                      <div><span className="font-mono text-xs text-slate-400 mr-2">{r.code}</span><span>{r.label}</span></div>
+                      <span className="font-bold text-green-700 shrink-0 ml-2">{formatFCFA(r.amount)}</span>
                     </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Balance âgée fournisseurs ─────────────────────── */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-500" /> Balance âgée — dettes fournisseurs
-                  </CardTitle>
-                  {agedPayables && agedPayables.totalOutstanding > 0
-                    ? <CardDescription className="mt-1">Total dû : <strong>{formatFCFA(agedPayables.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
-                    : <CardDescription className="mt-1">Répartition des factures fournisseurs impayées par ancienneté.</CardDescription>}
+                  ))}
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded text-sm font-bold border-t-2 border-green-200">
+                    <span>Total produits</span><span className="text-green-700">{formatFCFA(incomeStatement.totalRevenue)}</span>
+                  </div>
                 </div>
-                <FilterInput placeholder="Fournisseur…" value={supplierSearch} onChange={setSupplierSearch} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base text-red-700">Charges (classe 6)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  {incomeStatement.expenses.map(e => (
+                    <div key={e.code} className="flex items-center justify-between p-2 border rounded text-sm">
+                      <div><span className="font-mono text-xs text-slate-400 mr-2">{e.code}</span><span>{e.label}</span></div>
+                      <span className="font-bold text-red-700 shrink-0 ml-2">{formatFCFA(e.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between p-2 bg-red-50 rounded text-sm font-bold border-t-2 border-red-200">
+                    <span>Total charges</span><span className="text-red-700">{formatFCFA(incomeStatement.totalExpense)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* ── Section 3 : Bilan ────────────────────────────── */}
+      <SectionTitle icon={Scale}>Bilan simplifié</SectionTitle>
+      {isLoadingBS ? <Skeleton className="h-64 w-full" /> : !balanceSheet?.hasData ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <Scale className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Aucune écriture comptable validée</p>
+          <p className="text-xs">Le bilan apparaîtra ici une fois les écritures postées.</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Kpi label="Total actif" value={formatFCFA(balanceSheet.assets.total)} accent="primary" />
+            <Kpi label="Total passif" value={formatFCFA(balanceSheet.liabilities.total)} accent="default" />
+          </div>
+          {balanceSheet.balance !== 0 && (
+            <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-700">Déséquilibre actif / passif : <strong>{formatFCFA(Math.abs(balanceSheet.balance))}</strong> — vérifiez vos écritures.</p>
+            </div>
+          )}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* ACTIF */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-blue-500" /> ACTIF</h4>
+              {[
+                { label: "Immobilisations (cl. 2)", items: balanceSheet.assets.fixedAssets, color: "blue" },
+                { label: "Stocks (cl. 3)", items: balanceSheet.assets.stocks, color: "indigo" },
+                { label: "Créances (cl. 4)", items: balanceSheet.assets.receivables, color: "amber" },
+                { label: "Trésorerie (cl. 5)", items: balanceSheet.assets.treasury, color: "green" },
+              ].map(({ label, items, color }) => items.length > 0 && (
+                <Card key={label}>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      {items.map(i => (
+                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-slate-50 rounded">
+                          <div><span className="font-mono text-xs text-slate-400 mr-2">{i.code}</span>{i.label}</div>
+                          <span className={`font-bold text-${color}-600 shrink-0 ml-2`}>{formatFCFA(i.balance)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg font-bold">
+                <span>Total actif</span><span className="text-blue-700">{formatFCFA(balanceSheet.assets.total)}</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {!agedPayables || agedPayables.totalOutstanding === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
-                  <CheckCircle2 className="w-8 h-8 opacity-30 text-green-500" />
-                  <p className="text-sm font-medium">Aucune dette fournisseur en cours</p>
-                  <p className="text-xs">Toutes les factures fournisseurs sont réglées, ou aucune n'a encore été enregistrée.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {agedPayables.buckets.map((b) => {
-                      const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
-                      return (
-                        <div key={b.key} className="flex items-center gap-3">
-                          <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
-                          <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
-                            <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
-                          </div>
-                          <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
-                          <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+            </div>
+            {/* PASSIF */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-500" /> PASSIF</h4>
+              {[
+                { label: "Capitaux propres & emprunts (cl. 1)", items: balanceSheet.liabilities.equity, color: "purple" },
+                { label: "Dettes fournisseurs (cl. 4)", items: balanceSheet.liabilities.payables, color: "red" },
+              ].map(({ label, items, color }) => items.length > 0 && (
+                <Card key={label}>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      {items.map(i => (
+                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-slate-50 rounded">
+                          <div><span className="font-mono text-xs text-slate-400 mr-2">{i.code}</span>{i.label}</div>
+                          <span className={`font-bold text-${color}-600 shrink-0 ml-2`}>{formatFCFA(i.balance)}</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                  {filteredAgedBySupplier.length > 0 && (
-                    <div>
-                      <SectionTitle icon={Users}>Par fournisseur {supplierSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
-                      <div className="space-y-1">
-                        {filteredAgedBySupplier.slice(0, 8).map((s) => (
-                          <div key={s.supplier} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-red-50/30">
-                            <span className="font-medium text-slate-800">{s.supplier}</span>
-                            <span className="font-bold text-red-600">{formatFCFA(s.total)}</span>
-                          </div>
-                        ))}
-                      </div>
+                      ))}
                     </div>
-                  )}
-                  {agedPayables.detail.length > 0 && (
-                    <div>
-                      <SectionTitle icon={FileText}>Détail des factures</SectionTitle>
-                      <div className="space-y-1">
-                        {agedPayables.detail
-                          .filter(d => !supplierSearch || d.supplier.toLowerCase().includes(supplierSearch.toLowerCase()))
-                          .slice(0, 10)
-                          .map((d) => (
-                            <div key={d.id} className="grid grid-cols-4 items-center gap-2 p-2.5 border rounded-md text-xs hover:bg-slate-50/50">
-                              <span className="font-medium text-slate-800 truncate">{d.reference}</span>
-                              <span className="text-slate-500 truncate">{d.supplier}</span>
-                              <span className="text-slate-400">{d.dueDate ? new Date(d.dueDate).toLocaleDateString("fr-FR") : "—"} · {d.daysOverdue > 0 ? `${d.daysOverdue}j retard` : "À échoir"}</span>
-                              <span className="font-bold text-red-600 text-right">{formatFCFA(d.outstanding)}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+              ))}
+              <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg font-bold">
+                <span>Total passif</span><span className="text-red-700">{formatFCFA(balanceSheet.liabilities.total)}</span>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -809,8 +953,315 @@ function SalesTab({ periodQuery }: { periodQuery: string }) {
               </CardContent>
             </Card>
           </div>
+
+          {/* ── Balance âgée clients ─────────────────────── */}
+          <AgedReceivablesSection clientSearch={clientSearch} />
         </>
       )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Composant réutilisable : balance âgée créances clients
+// ────────────────────────────────────────────────────────────────
+
+function AgedReceivablesSection({ clientSearch }: { clientSearch: string }) {
+  const { data: aged } = useQuery<AgedReceivables>({
+    queryKey: ["report", "aged-receivables"],
+    queryFn: () => apiFetch("/api/reports/aged-receivables"),
+  });
+  const filteredByClient = useMemo(() =>
+    (aged?.byClient ?? []).filter(c => !clientSearch || c.client.toLowerCase().includes(clientSearch.toLowerCase())),
+    [aged, clientSearch]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-amber-500" /> Balance âgée — créances clients
+        </CardTitle>
+        {aged && aged.totalOutstanding > 0
+          ? <CardDescription>Total encours : <strong>{formatFCFA(aged.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
+          : <CardDescription>Répartition des factures impayées par ancienneté.</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {!aged || aged.totalOutstanding === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
+            <CheckCircle2 className="w-8 h-8 opacity-30 text-green-500" />
+            <p className="text-sm font-medium">Aucune créance impayée</p>
+            <p className="text-xs">Toutes les factures clients sont soldées.</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {aged.buckets.map((b) => {
+                const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
+                return (
+                  <div key={b.key} className="flex items-center gap-3">
+                    <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
+                    <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                      <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
+                    </div>
+                    <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
+                    <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                  </div>
+                );
+              })}
+            </div>
+            {filteredByClient.length > 0 && (
+              <div>
+                <SectionTitle icon={Users}>Par client {clientSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
+                <div className="space-y-1">
+                  {filteredByClient.slice(0, 8).map((c) => (
+                    <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-slate-50/50">
+                      <span className="font-medium text-slate-800">{c.client}</span>
+                      <span className="font-bold text-primary">{formatFCFA(c.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Achats / Fournisseurs
+// ────────────────────────────────────────────────────────────────
+
+function PurchasesTab({ periodQuery }: { periodQuery: string }) {
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data, isLoading } = useQuery<PurchasesReport>({
+    queryKey: ["report", "purchases", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/purchases?${periodQuery}`),
+  });
+  const { data: agedPayables } = useQuery<AgedPayables>({
+    queryKey: ["report", "aged-payables"],
+    queryFn: () => apiFetch("/api/reports/aged-payables"),
+  });
+
+  const filteredTopSuppliers = useMemo(() =>
+    (data?.topSuppliers ?? []).filter(s => !supplierSearch || s.name.toLowerCase().includes(supplierSearch.toLowerCase())),
+    [data, supplierSearch]);
+
+  const filteredByStatus = useMemo(() => {
+    if (!data) return {};
+    if (statusFilter === "all") return data.byStatus;
+    return Object.fromEntries(Object.entries(data.byStatus).filter(([s]) => s === statusFilter));
+  }, [data, statusFilter]);
+
+  const filteredAgedBySupplier = useMemo(() =>
+    (agedPayables?.bySupplier ?? []).filter(s => !supplierSearch || s.supplier.toLowerCase().includes(supplierSearch.toLowerCase())),
+    [agedPayables, supplierSearch]);
+
+  const filteredOverdueList = useMemo(() =>
+    (data?.overdueList ?? []).filter(o => !supplierSearch || o.supplier.toLowerCase().includes(supplierSearch.toLowerCase())),
+    [data, supplierSearch]);
+
+  const hasFilters = !!(supplierSearch || statusFilter !== "all");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterBar onClear={hasFilters ? () => { setSupplierSearch(""); setStatusFilter("all"); } : undefined}>
+          <FilterInput placeholder="Fournisseur…" value={supplierSearch} onChange={setSupplierSearch} />
+          <FilterSelect placeholder="Tous les statuts" value={statusFilter} onChange={setStatusFilter} options={
+            Object.entries(SUPPLIER_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))
+          } />
+        </FilterBar>
+      </div>
+
+      {isLoading || !data ? <Skeleton className="h-64 w-full" /> : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Kpi label="Achats (période)" value={formatFCFA(data.kpi.totalAmount)} hint={`${data.kpi.invoiceCount} facture(s)`} accent="primary" />
+            <Kpi label="Réglé" value={formatFCFA(data.kpi.paidAmount)} hint={`Taux ${data.kpi.paymentRate} %`} accent="success" />
+            <Kpi label="Reste à payer" value={formatFCFA(data.kpi.outstanding)} hint="sur la période" accent="warning" />
+            <Kpi label="En retard" value={formatFCFA(data.kpi.overdueAmount)} hint={`${data.kpi.overdueCount} facture(s)`} accent="danger" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Kpi label="TVA déductible" value={formatFCFA(data.kpi.taxTotal)} hint="Classe 4457 — à vérifier" />
+            <Kpi label="Taux de règlement" value={`${data.kpi.paymentRate} %`} accent={data.kpi.paymentRate >= 80 ? "success" : data.kpi.paymentRate >= 50 ? "warning" : "danger"} />
+          </div>
+
+          {/* Série mensuelle */}
+          {data.series.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Évolution mensuelle des achats</CardTitle>
+                <CardDescription>12 derniers mois — montants en FCFA.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.series}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
+                      <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                      <Legend />
+                      <Bar dataKey="achat" name="Achats" fill="#F26B1F" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="paye" name="Réglé" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Top fournisseurs + par statut */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top fournisseurs {supplierSearch && <Badge variant="secondary" className="ml-2 text-xs font-normal">filtrés</Badge>}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredTopSuppliers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{supplierSearch ? "Aucun fournisseur ne correspond." : "Aucun achat sur la période."}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredTopSuppliers.map(s => (
+                      <div key={s.id} className="flex items-center justify-between p-3 border rounded-md">
+                        <div>
+                          <div className="font-semibold text-sm">{s.name}</div>
+                          <div className="text-xs text-muted-foreground">{s.count} facture(s) · Réglé {formatFCFA(s.paid)}</div>
+                        </div>
+                        <div className="font-bold text-sm">{formatFCFA(s.amount)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Par statut {statusFilter !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{SUPPLIER_STATUS_LABELS[statusFilter]}</Badge>}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(filteredByStatus).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucune facture correspondant aux filtres.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {Object.entries(filteredByStatus).map(([s, v]) => (
+                      <div key={s} className="flex items-center justify-between p-3 border rounded-md">
+                        <Badge variant="outline">{SUPPLIER_STATUS_LABELS[s] || s}</Badge>
+                        <div className="text-sm"><strong>{v.count}</strong> · {formatFCFA(v.amount)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Factures en retard */}
+          {filteredOverdueList.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" /> Factures fournisseurs en retard
+                  {supplierSearch && <Badge variant="secondary" className="text-xs font-normal">filtrées</Badge>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {filteredOverdueList.map(o => (
+                    <div key={o.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-red-50/30">
+                      <div>
+                        <div className="font-semibold text-sm">{o.supplier}</div>
+                        <div className="text-xs text-muted-foreground">Échéance : {o.dueDate ? new Date(o.dueDate).toLocaleDateString("fr-FR") : "—"}</div>
+                      </div>
+                      <div className="font-bold text-sm text-red-600">{formatFCFA(o.outstanding)}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Balance âgée fournisseurs */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-500" /> Balance âgée — dettes fournisseurs
+              </CardTitle>
+              {agedPayables && agedPayables.totalOutstanding > 0
+                ? <CardDescription className="mt-1">Total dû : <strong>{formatFCFA(agedPayables.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
+                : <CardDescription className="mt-1">Aucune dette fournisseur en cours.</CardDescription>}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {!agedPayables || agedPayables.totalOutstanding === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
+              <CheckCircle2 className="w-8 h-8 opacity-30 text-green-500" />
+              <p className="text-sm font-medium">Aucune dette fournisseur en cours</p>
+              <p className="text-xs">Toutes les factures fournisseurs sont réglées.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {agedPayables.buckets.map((b) => {
+                  const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
+                  return (
+                    <div key={b.key} className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
+                      <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                        <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
+                      </div>
+                      <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
+                      <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {filteredAgedBySupplier.length > 0 && (
+                <div>
+                  <SectionTitle icon={Building2}>Par fournisseur {supplierSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
+                  <div className="space-y-1">
+                    {filteredAgedBySupplier.slice(0, 8).map((s) => (
+                      <div key={s.supplier} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-red-50/30">
+                        <span className="font-medium text-slate-800">{s.supplier}</span>
+                        <span className="font-bold text-red-600">{formatFCFA(s.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {agedPayables.detail.length > 0 && (
+                <div>
+                  <SectionTitle icon={FileText}>Détail</SectionTitle>
+                  <div className="space-y-1">
+                    {agedPayables.detail
+                      .filter(d => !supplierSearch || d.supplier.toLowerCase().includes(supplierSearch.toLowerCase()))
+                      .slice(0, 10)
+                      .map((d) => (
+                        <div key={d.id} className="grid grid-cols-4 items-center gap-2 p-2.5 border rounded-md text-xs hover:bg-slate-50/50">
+                          <span className="font-medium text-slate-800 truncate">{d.reference}</span>
+                          <span className="text-slate-500 truncate">{d.supplier}</span>
+                          <span className="text-slate-400">{d.dueDate ? new Date(d.dueDate).toLocaleDateString("fr-FR") : "—"} · {d.daysOverdue > 0 ? `${d.daysOverdue}j retard` : "À échoir"}</span>
+                          <span className="font-bold text-red-600 text-right">{formatFCFA(d.outstanding)}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -951,6 +1402,7 @@ function ProjectsTab({ periodQuery }: { periodQuery: string }) {
 function HrTab({ periodQuery }: { periodQuery: string }) {
   const [collabSearch, setCollabSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [contractTypeFilter, setContractTypeFilter] = useState("all");
 
   const { data, isLoading } = useQuery<HrReport>({
     queryKey: ["report", "hr", periodQuery],
@@ -980,9 +1432,13 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
     ), [data, collabSearch, deptFilter]);
 
   const filteredExpiringList = useMemo(() =>
-    (data?.expiringList ?? []).filter(c =>
-      !collabSearch || c.collaborator.toLowerCase().includes(collabSearch.toLowerCase())
-    ), [data, collabSearch]);
+    (data?.expiringList ?? []).filter(c => {
+      const ctype = c.contractType || c.type;
+      return (
+        (!collabSearch || c.collaborator.toLowerCase().includes(collabSearch.toLowerCase())) &&
+        (contractTypeFilter === "all" || ctype === contractTypeFilter)
+      );
+    }), [data, collabSearch, contractTypeFilter]);
 
   const filteredWorkload = useMemo(() =>
     (workload ?? []).filter(u =>
@@ -995,14 +1451,22 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
     return Object.fromEntries(Object.entries(data.byDepartment).filter(([d]) => d === deptFilter));
   }, [data, deptFilter]);
 
-  const hasFilters = !!(collabSearch || deptFilter !== "all");
+  const contractTypeOptions = useMemo(() => {
+    const types = new Set((data?.expiringList ?? []).map(c => c.contractType || c.type).filter(Boolean));
+    return Array.from(types).map(t => ({ value: t, label: CONTRACT_TYPE_LABELS[t] || t }));
+  }, [data]);
+
+  const hasFilters = !!(collabSearch || deptFilter !== "all" || contractTypeFilter !== "all");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <FilterBar onClear={hasFilters ? () => { setCollabSearch(""); setDeptFilter("all"); } : undefined}>
+        <FilterBar onClear={hasFilters ? () => { setCollabSearch(""); setDeptFilter("all"); setContractTypeFilter("all"); } : undefined}>
           <FilterInput placeholder="Collaborateur…" value={collabSearch} onChange={setCollabSearch} />
           <FilterSelect placeholder="Tous les départements" value={deptFilter} onChange={setDeptFilter} options={deptOptions} />
+          {contractTypeOptions.length > 0 && (
+            <FilterSelect placeholder="Type de contrat" value={contractTypeFilter} onChange={setContractTypeFilter} options={contractTypeOptions} />
+          )}
         </FilterBar>
         <Button onClick={() => downloadAuthed(`/api/reports/hr/export.xlsx?${periodQuery}`, `rapport-rh-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
           <Download className="w-4 h-4 mr-2" /> Exporter Excel

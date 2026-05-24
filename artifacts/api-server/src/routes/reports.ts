@@ -28,6 +28,12 @@ import {
   personnelMovementsTable,
   supplierInvoicesTable,
   suppliersTable,
+  supplierPaymentsTable,
+  journalEntriesTable,
+  journalEntryLinesTable,
+  chartOfAccountsTable,
+  bankAccountsTable,
+  bankTransactionsTable,
 } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
@@ -1114,9 +1120,273 @@ router.get("/reports/aged-receivables", requireAuth, requireManagerOrAbove, asyn
 });
 
 // ────────────────────────────────────────────────────────────────
+// Rapport Achats / Fournisseurs
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/purchases", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.user!.organizationId;
+    const { from, to, fromIso, toIso } = parsePeriod(req);
+    const fromDate = fromIso;
+    const toDate = toIso;
+
+    const invoices = await db
+      .select({
+        id: supplierInvoicesTable.id,
+        supplierId: supplierInvoicesTable.supplierId,
+        supplierName: suppliersTable.name,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        status: supplierInvoicesTable.status,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        dueDate: supplierInvoicesTable.dueDate,
+        taxAmount: supplierInvoicesTable.taxAmount,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+      .where(
+        and(
+          eq(supplierInvoicesTable.organizationId, orgId),
+          ne(supplierInvoicesTable.status, "cancelled"),
+          ne(supplierInvoicesTable.status, "draft"),
+          gte(supplierInvoicesTable.invoiceDate, fromDate),
+          lte(supplierInvoicesTable.invoiceDate, toDate),
+        )
+      );
+
+    // KPIs
+    let totalAmount = 0, paidAmount = 0, overdueAmount = 0, overdueCount = 0, taxTotal = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    for (const inv of invoices) {
+      totalAmount += num(inv.totalAmount);
+      paidAmount += num(inv.paidAmount);
+      taxTotal += num(inv.taxAmount);
+      const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+      if (outstanding > 0 && inv.dueDate && inv.dueDate < today) {
+        overdueAmount += outstanding;
+        overdueCount++;
+      }
+    }
+    const outstanding = totalAmount - paidAmount;
+
+    // Série mensuelle (12 derniers mois, quel que soit le filtre de période)
+    const allInvoices = await db
+      .select({ invoiceDate: supplierInvoicesTable.invoiceDate, totalAmount: supplierInvoicesTable.totalAmount, paidAmount: supplierInvoicesTable.paidAmount })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled"), ne(supplierInvoicesTable.status, "draft")));
+    const monthMap: Record<string, { achat: number; paye: number }> = {};
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 11); cutoff.setDate(1);
+    for (const inv of allInvoices) {
+      if (!inv.invoiceDate) continue;
+      const d = new Date(inv.invoiceDate);
+      if (d < cutoff) continue;
+      const key = inv.invoiceDate.slice(0, 7);
+      if (!monthMap[key]) monthMap[key] = { achat: 0, paye: 0 };
+      monthMap[key].achat += num(inv.totalAmount);
+      monthMap[key].paye += num(inv.paidAmount);
+    }
+    const series = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({ month, ...v }));
+
+    // Top fournisseurs
+    const bySupplier: Record<string, { name: string; amount: number; count: number; paid: number }> = {};
+    for (const inv of invoices) {
+      const sid = inv.supplierId;
+      if (!bySupplier[sid]) bySupplier[sid] = { name: inv.supplierName || "—", amount: 0, count: 0, paid: 0 };
+      bySupplier[sid].amount += num(inv.totalAmount);
+      bySupplier[sid].count++;
+      bySupplier[sid].paid += num(inv.paidAmount);
+    }
+    const topSuppliers = Object.entries(bySupplier)
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+
+    // Répartition par statut
+    const byStatus: Record<string, { count: number; amount: number }> = {};
+    for (const inv of invoices) {
+      if (!byStatus[inv.status]) byStatus[inv.status] = { count: 0, amount: 0 };
+      byStatus[inv.status].count++;
+      byStatus[inv.status].amount += num(inv.totalAmount);
+    }
+
+    // Liste des factures en retard
+    const overdueList = invoices
+      .filter(inv => {
+        const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+        return outstanding > 0 && inv.dueDate && inv.dueDate < today;
+      })
+      .sort((a, b) => num(b.totalAmount) - num(b.paidAmount) - (num(a.totalAmount) - num(a.paidAmount)))
+      .slice(0, 10)
+      .map(inv => ({
+        id: inv.id,
+        supplier: inv.supplierName || "—",
+        dueDate: inv.dueDate,
+        outstanding: num(inv.totalAmount) - num(inv.paidAmount),
+        status: inv.status,
+      }));
+
+    res.json({
+      period: { from: from.toISOString(), to: to.toISOString() },
+      kpi: {
+        totalAmount, paidAmount, outstanding, overdueAmount, overdueCount,
+        taxTotal, invoiceCount: invoices.length,
+        paymentRate: totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0,
+      },
+      series,
+      topSuppliers,
+      byStatus,
+      overdueList,
+    });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Compte de résultat (Income Statement) depuis les écritures
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/finance/income-statement", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.user!.organizationId;
+    const { fromIso, toIso } = parsePeriod(req);
+
+    // Toutes les lignes d'écritures VALIDÉES de la période
+    const lines = await db
+      .select({
+        classNum: chartOfAccountsTable.classNum,
+        accountLabel: chartOfAccountsTable.label,
+        accountCode: chartOfAccountsTable.code,
+        debit: journalEntryLinesTable.debit,
+        credit: journalEntryLinesTable.credit,
+        entryDate: journalEntriesTable.entryDate,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(
+        and(
+          eq(journalEntriesTable.organizationId, orgId),
+          eq(journalEntriesTable.status, "posted"),
+          gte(journalEntriesTable.entryDate, fromIso),
+          lte(journalEntriesTable.entryDate, toIso),
+        )
+      );
+
+    // Produits (classe 7) : solde = credit - debit
+    // Charges (classe 6) : solde = debit - credit
+    const revenueByAccount: Record<string, { code: string; label: string; amount: number }> = {};
+    const expenseByAccount: Record<string, { code: string; label: string; amount: number }> = {};
+    const monthMap: Record<string, { revenue: number; expense: number }> = {};
+
+    for (const line of lines) {
+      const d = num(line.debit);
+      const c = num(line.credit);
+      const month = (line.entryDate || "").slice(0, 7);
+      if (!monthMap[month]) monthMap[month] = { revenue: 0, expense: 0 };
+
+      if (line.classNum === 7) {
+        const bal = c - d;
+        const key = line.accountCode;
+        if (!revenueByAccount[key]) revenueByAccount[key] = { code: line.accountCode, label: line.accountLabel, amount: 0 };
+        revenueByAccount[key].amount += bal;
+        monthMap[month].revenue += bal;
+      } else if (line.classNum === 6) {
+        const bal = d - c;
+        const key = line.accountCode;
+        if (!expenseByAccount[key]) expenseByAccount[key] = { code: line.accountCode, label: line.accountLabel, amount: 0 };
+        expenseByAccount[key].amount += bal;
+        monthMap[month].expense += bal;
+      }
+    }
+
+    const revenues = Object.values(revenueByAccount).filter(r => r.amount !== 0).sort((a, b) => b.amount - a.amount);
+    const expenses = Object.values(expenseByAccount).filter(e => e.amount !== 0).sort((a, b) => b.amount - a.amount);
+    const totalRevenue = revenues.reduce((s, r) => s + r.amount, 0);
+    const totalExpense = expenses.reduce((s, e) => s + e.amount, 0);
+    const netResult = totalRevenue - totalExpense;
+    const series = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({ month, revenue: v.revenue, expense: v.expense, result: v.revenue - v.expense }));
+
+    res.json({ revenues, expenses, totalRevenue, totalExpense, netResult, series, hasData: lines.length > 0 });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Bilan simplifié (Balance Sheet) depuis les écritures
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/finance/balance-sheet", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.user!.organizationId;
+    const { toIso } = parsePeriod(req);
+
+    // Toutes les lignes VALIDÉES jusqu'à la date "to" (bilan = cumulatif)
+    const lines = await db
+      .select({
+        classNum: chartOfAccountsTable.classNum,
+        accountCode: chartOfAccountsTable.code,
+        accountLabel: chartOfAccountsTable.label,
+        accountType: chartOfAccountsTable.type,
+        normalBalance: chartOfAccountsTable.normalBalance,
+        debit: journalEntryLinesTable.debit,
+        credit: journalEntryLinesTable.credit,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(
+        and(
+          eq(journalEntriesTable.organizationId, orgId),
+          eq(journalEntriesTable.status, "posted"),
+          lte(journalEntriesTable.entryDate, toIso),
+        )
+      );
+
+    // Soldes par compte (débit - crédit pour actif normal, crédit - débit pour passif normal)
+    const accountBal: Record<string, { code: string; label: string; classNum: number; type: string; normalBalance: string; balance: number }> = {};
+    for (const line of lines) {
+      const key = line.accountCode;
+      if (!accountBal[key]) {
+        accountBal[key] = { code: key, label: line.accountLabel, classNum: line.classNum, type: line.accountType, normalBalance: line.normalBalance, balance: 0 };
+      }
+      // Solde = débit - crédit (positif si solde débiteur)
+      accountBal[key].balance += num(line.debit) - num(line.credit);
+    }
+
+    const accounts = Object.values(accountBal);
+
+    // ACTIF : classe 2 (immobilisations), 3 (stocks), 4 débiteurs (créances), 5 (trésorerie)
+    const fixedAssets = accounts.filter(a => a.classNum === 2 && a.balance > 0);
+    const stocks = accounts.filter(a => a.classNum === 3 && a.balance > 0);
+    const receivables = accounts.filter(a => a.classNum === 4 && a.balance > 0); // solde débiteur = créances
+    const treasury = accounts.filter(a => a.classNum === 5 && a.balance > 0);
+    const totalAssets = [...fixedAssets, ...stocks, ...receivables, ...treasury].reduce((s, a) => s + a.balance, 0);
+
+    // PASSIF : classe 1 (capitaux + emprunts), 4 créditeurs (dettes fournisseurs)
+    const equity = accounts.filter(a => a.classNum === 1 && a.balance < 0).map(a => ({ ...a, balance: -a.balance }));
+    const payables = accounts.filter(a => a.classNum === 4 && a.balance < 0).map(a => ({ ...a, balance: -a.balance })); // solde créditeur = dettes
+    const totalLiabilities = [...equity, ...payables].reduce((s, a) => s + a.balance, 0);
+
+    res.json({
+      assets: {
+        fixedAssets: fixedAssets.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        stocks: stocks.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        receivables: receivables.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        treasury: treasury.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        total: totalAssets,
+      },
+      liabilities: {
+        equity: equity.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        payables: payables.sort((a, b) => b.balance - a.balance).slice(0, 10),
+        total: totalLiabilities,
+      },
+      balance: totalAssets - totalLiabilities,
+      hasData: lines.length > 0,
+    });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
 // Balance âgée fournisseurs
 // ────────────────────────────────────────────────────────────────
-router.get("/aged-payables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+router.get("/reports/aged-payables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.user!.organizationId;
     const supplierSearch = typeof req.query.supplier === "string" ? req.query.supplier.toLowerCase() : "";
