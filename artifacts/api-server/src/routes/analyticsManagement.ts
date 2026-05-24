@@ -12,6 +12,7 @@ import {
   costCentersTable,
   journalEntryLinesTable,
   journalEntriesTable,
+  chartOfAccountsTable,
   projectsTable,
   clientsTable,
 } from "@workspace/db/schema";
@@ -331,7 +332,12 @@ router.get("/analytics/reports/by-cost-center", async (req, res, next) => {
       .groupBy(analyticalEntriesTable.costCenterId);
 
     // Imputations depuis comptabilité générale (journal_entry_lines) avec cost_center_id
-    const jeConds = [eq(journalEntryLinesTable.organizationId, orgId)];
+    // On ne retient que les écritures validées (posted) sur comptes de charges class 6
+    const jeConds = [
+      eq(journalEntryLinesTable.organizationId, orgId),
+      eq(journalEntriesTable.status, "posted"),
+      eq(chartOfAccountsTable.classNum, 6),
+    ];
     if (from) jeConds.push(gte(journalEntriesTable.entryDate, from));
     if (to) jeConds.push(lte(journalEntriesTable.entryDate, to));
 
@@ -340,7 +346,8 @@ router.get("/analytics/reports/by-cost-center", async (req, res, next) => {
       totalDebit: sql<string>`SUM("journal_entry_lines"."debit")`,
       totalCredit: sql<string>`SUM("journal_entry_lines"."credit")`,
     }).from(journalEntryLinesTable)
-      .leftJoin(journalEntriesTable, sql`"journal_entry_lines"."entry_id" = "journal_entries"."id"`)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
       .where(and(...jeConds, sql`"journal_entry_lines"."cost_center_id" IS NOT NULL`))
       .groupBy(sql`"journal_entry_lines"."cost_center_id"`);
 
