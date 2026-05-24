@@ -523,10 +523,10 @@ function ImputationsTab({ from, to }: { from: string; to: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const defaultPeriod = today.slice(0, 7);
   const [form, setForm] = useState({ date: today, period: defaultPeriod, accountId: "", costCenterId: "", amount: "", costType: "direct", label: "", reference: "", projectId: "", clientId: "" });
-  const [filterCC, setFilterCC] = useState("");
-  const [filterType, setFilterType] = useState("");
+  const [filterCC, setFilterCC] = useState("all");
+  const [filterType, setFilterType] = useState("all");
 
-  const q = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}), ...(filterCC ? { costCenterId: filterCC } : {}), ...(filterType ? { costType: filterType } : {}) }).toString();
+  const q = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}), ...(filterCC !== "all" ? { costCenterId: filterCC } : {}), ...(filterType !== "all" ? { costType: filterType } : {}) }).toString();
 
   const { data, isLoading } = useQuery<{ data: any[]; total: number }>({
     queryKey: ["cage-entries", from, to, filterCC, filterType],
@@ -573,7 +573,7 @@ function ImputationsTab({ from, to }: { from: string; to: string }) {
             <Select value={filterCC} onValueChange={setFilterCC}>
               <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Tous les centres" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les centres</SelectItem>
+                <SelectItem value="all">Tous les centres</SelectItem>
                 {costCenters.map((cc: any) => <SelectItem key={cc.id} value={cc.id}>{cc.code} — {cc.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -583,7 +583,7 @@ function ImputationsTab({ from, to }: { from: string; to: string }) {
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Tous" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous</SelectItem>
+                <SelectItem value="all">Tous</SelectItem>
                 {COST_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
