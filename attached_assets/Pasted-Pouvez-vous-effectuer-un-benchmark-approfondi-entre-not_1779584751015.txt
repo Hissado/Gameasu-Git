@@ -1,0 +1,109 @@
+Pouvez-vous effectuer un **benchmark approfondi** entre notre application et des solutions de référence comme **QuickBooks** et **Xero**, afin de vérifier si notre plateforme couvre bien les fonctionnalités essentielles attendues d’un **ERP moderne** ?
+
+### Objectif
+Je veux évaluer si notre application est suffisamment complète, cohérente et compétitive, notamment sur les fonctions clés qu’une solution de gestion / ERP doit proposer.
+
+### Ce que j’attends
+Merci de :
+
+- analyser les fonctionnalités principales de **QuickBooks** et **Xero**
+- comparer ces fonctionnalités avec celles actuellement présentes dans notre application
+- identifier clairement :
+  - ce que nous avons déjà
+  - ce qui est partiellement couvert
+  - ce qui manque
+  - ce qui devrait être amélioré
+- vérifier si notre application répond réellement aux standards attendus pour une plateforme ERP professionnelle
+
+### Périmètre de comparaison
+Le benchmark doit couvrir l’ensemble des grands blocs fonctionnels, notamment :
+
+#### 1. Comptabilité / Finance
+- comptabilité générale
+- taxes
+- rapprochement bancaire
+- comptes clients / fournisseurs
+- trésorerie
+- états financiers
+- reporting financier
+- budget / prévisions / cash flow
+- clôture de période / exercice
+- automatisations comptables
+
+#### 2. Commercial / Ventes
+- prospects / pipeline
+- clients
+- devis
+- commandes
+- factures
+- encaissements
+- notes de crédit / avoirs
+- calculateur tarifaire
+- remises / taxes / conditions de paiement
+- expérience utilisateur du cycle commercial
+
+#### 3. RH / Paie
+- gestion du personnel
+- contrats
+- absences / congés / permissions
+- pointage / présence
+- paie
+- charges et taxes sociales
+- performance
+- formations
+- carrière
+- reporting RH
+
+#### 4. Logistique / Opérations
+- missions
+- transport
+- interventions
+- suivi terrain
+- incidents
+- checklists
+- preuves d’exécution
+- coûts opérationnels
+- performance logistique
+
+#### 5. Stocks / Inventaire / Immobilisations
+- gestion de stock
+- approvisionnement
+- achats / PO
+- réceptions
+- mouvements de stock
+- stock d’alerte
+- immobilisations
+- amortissements
+- valorisation
+
+#### 6. Rapports / États / Pilotage
+- tableaux de bord
+- rapports standards
+- rapports financiers
+- rapports commerciaux
+- rapports RH
+- rapports logistiques
+- indicateurs de performance
+- exports
+- qualité générale du reporting
+
+### Rapports à vérifier
+Je veux aussi que vous vérifiiez si notre application contient les **rapports et états qu’un ERP sérieux doit normalement avoir**, surtout sur :
+- la comptabilité
+- la finance
+- le commercial
+- les RH
+- la logistique
+- les stocks
+- le pilotage global
+
+### Résultat attendu
+Je veux un benchmark structuré qui montre clairement :
+- les points forts de notre application
+- les écarts par rapport à QuickBooks et Xero
+- les fonctionnalités manquantes
+- les rapports ou états à ajouter
+- les priorités d’amélioration pour atteindre un niveau ERP plus complet et plus compétitif
+
+### Objectif final
+L’objectif est de nous assurer que notre application dispose bien des **fonctionnalités essentielles et des rapports stratégiques qu’un ERP moderne doit proposer**, et d’identifier les améliorations nécessaires pour la rendre plus robuste, plus crédible et plus complète.
