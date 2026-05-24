@@ -1,0 +1,53 @@
+Je veux que vous utilisiez le **format du document Syft Analytics joint** comme **référence de présentation et de structuration** pour le **Management Report / Rapport de Gestion** dans l’application.
+
+### Objectif
+Je souhaite que le **Rapport de Gestion** de l’application adopte un rendu beaucoup plus :
+- professionnel
+- structuré
+- lisible
+- premium
+- orienté direction / management
+- proche d’un vrai rapport exécutif prêt à être partagé
+
+### Ce que j’attends
+Merci de vous baser sur le document **Syft Analytics joint** pour revoir le format du **Management Report**, notamment en vous inspirant de :
+
+- la structure générale
+- l’organisation des sections
+- la hiérarchie de l’information
+- la présentation des indicateurs
+- la mise en page
+- le style visuel
+- la logique narrative du rapport
+- le niveau de clarté attendu pour un public dirigeant
+
+### Important
+Je ne veux pas une simple copie visuelle brute.
+Je veux que vous :
+- repreniez la **logique de présentation** du modèle joint
+- l’adaptiez intelligemment à **Nexora**
+- gardiez la cohérence avec notre branding, notre design et notre contexte métier
+- produisiez un **Rapport de Gestion** plus professionnel, plus élégant et plus crédible
+
+### Ce que le Rapport de Gestion doit idéalement refléter
+Le rapport doit permettre de présenter de manière claire et synthétique :
+- la performance globale
+- les principaux indicateurs financiers
+- les éléments clés de trésorerie
+- les ventes et encaissements
+- les dépenses
+- les dettes / obligations si pertinent
+- les points d’attention
+- les tendances
+- les synthèses utiles à la direction
+
+### Résultat attendu
+Je veux que le **Management Report / Rapport de Gestion** dans l’application :
+- reprenne le niveau de qualité du modèle **Syft Analytics**
+- soit beaucoup plus professionnel dans sa structure
+- soit mieux présenté
+- soit plus lisible pour le management
+- soit prêt pour l’analyse, la présentation et l’export
+
+### Objectif final
+Je veux un **Rapport de Gestion** dans Nexora qui s’inspire clairement du format **Syft Analytics** joint, tout en restant aligné avec l’identité visuelle, la logique métier et le positionnement premium de l’application.

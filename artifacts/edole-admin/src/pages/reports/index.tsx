@@ -563,15 +563,22 @@ type ReconciliationReport = {
 
 type ManagementReport = {
   period: { from: string; to: string };
+  prev: { revenues: number; expenses: number; netResult: number; margin: number; from: string; to: string };
   finance: {
     revenues: number; expenses: number; netResult: number; ebitda: number;
-    margin: number; totalPurchases: number;
+    margin: number; grossProfit: number; grossMargin: number; operatingExpenseRatio: number;
+    totalPurchases: number; cashIn: number; cashOut: number;
   };
   liquidity: {
     cashPosition: number; arOutstanding: number; arOverdue: number;
     apOutstanding: number; apOverdue: number; workingCapital: number;
+    debtorsDays: number; creditorsDays: number;
   };
-  operations: { activeProjects: number; overdueProjects: number; totalBudget: number; avgProgress: number };
+  series: Array<{ month: string; revenues: number; expenses: number; netResult: number }>;
+  topArClients: Array<{ name: string; outstanding: number; overdue: number; percent: number }>;
+  topApSuppliers: Array<{ name: string; outstanding: number; overdue: number; percent: number }>;
+  expenseBreakdown: Array<{ code: string; label: string; amount: number; percent: number }>;
+  operations: { activeProjects: number; overdueProjects: number; totalBudget: number; avgProgress: number; completedProjects: number; totalProjects: number };
   hr: { activeCollab: number; byContractType: Record<string, number> };
   hasData: boolean;
 };
@@ -1144,59 +1151,515 @@ function ReconciliationSubTab({ periodQuery }: { periodQuery: string }) {
 // ────────────────────────────────────────────────────────────────
 // Sous-onglet : Rapport de gestion
 // ────────────────────────────────────────────────────────────────
+// ── Helpers rapport de gestion ──────────────────────────────────
+function fmtCompact(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} Mrd`;
+  if (abs >= 1_000_000)     return `${(n / 1_000_000).toFixed(1)} M`;
+  if (abs >= 1_000)         return `${(n / 1_000).toFixed(1)} k`;
+  return n.toLocaleString("fr-FR");
+}
+
+function pctChange(curr: number, prev: number): number | null {
+  if (prev === 0) return null;
+  return Math.round(((curr - prev) / Math.abs(prev)) * 1000) / 10;
+}
+
+function TrendBadge({ curr, prev, higherIsBetter = true }: { curr: number; prev: number; higherIsBetter?: boolean }) {
+  const pct = pctChange(curr, prev);
+  if (pct === null) return <span className="text-xs text-slate-400">N/A vs N-1</span>;
+  const isPositive = higherIsBetter ? pct >= 0 : pct <= 0;
+  const sign = pct >= 0 ? "+" : "";
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${isPositive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+      {pct >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+      {sign}{pct}% vs N-1
+    </span>
+  );
+}
+
+function HealthRow({ label, value, prev, target, targetLabel, importance, higherIsBetter = true }: {
+  label: string; value: string | number; prev: string | number; target?: string; targetLabel?: string;
+  importance: "Critique" | "Élevé" | "Moyen" | "Faible"; higherIsBetter?: boolean;
+}) {
+  const numVal = typeof value === "number" ? value : parseFloat(String(value));
+  const numPrev = typeof prev === "number" ? prev : parseFloat(String(prev));
+  const change = !isNaN(numVal) && !isNaN(numPrev) ? pctChange(numVal, numPrev) : null;
+  const improving = change !== null ? (higherIsBetter ? change >= 0 : change <= 0) : null;
+  const dot = improving === null ? "bg-slate-200" : improving ? "bg-emerald-400" : "bg-red-400";
+  const importanceColor: Record<string, string> = {
+    "Critique": "text-red-600 bg-red-50", "Élevé": "text-amber-600 bg-amber-50",
+    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-slate-500 bg-slate-50",
+  };
+  return (
+    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+      <td className="py-2 px-3 flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+        <span className="text-sm text-slate-700">{label}</span>
+      </td>
+      <td className="py-2 px-3 text-right text-sm font-semibold tabular-nums">{typeof value === "number" ? formatFCFA(value) : value}</td>
+      <td className="py-2 px-3 text-right text-sm text-slate-500 tabular-nums">{typeof prev === "number" ? formatFCFA(prev) : prev}</td>
+      <td className="py-2 px-3 text-center text-xs text-slate-400">{target ?? "—"}</td>
+      <td className="py-2 px-3 text-center">
+        {change !== null ? (
+          <span className={`text-xs font-medium ${improving ? "text-emerald-600" : "text-red-500"}`}>
+            {change >= 0 ? "+" : ""}{change}%
+          </span>
+        ) : <span className="text-xs text-slate-300">—</span>}
+      </td>
+      <td className="py-2 px-3">
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${importanceColor[importance] ?? "text-slate-500"}`}>{importance}</span>
+      </td>
+    </tr>
+  );
+}
+
 function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const { data, isLoading } = useQuery<ManagementReport>({
     queryKey: ["report", "management", periodQuery],
     queryFn: () => apiFetch(`/api/reports/management?${periodQuery}`),
   });
 
+  const generatedAt = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+
+  if (isLoading) return (
+    <div className="space-y-4 pt-4">
+      <Skeleton className="h-32 w-full rounded-xl" />
+      <Skeleton className="h-48 w-full" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  );
+
+  if (!data) return (
+    <Card className="mt-4"><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+      <Briefcase className="w-8 h-8 opacity-30" />
+      <p className="text-sm font-medium">Données indisponibles</p>
+    </CardContent></Card>
+  );
+
+  const d = data;
+  const f = d.finance;
+  const liq = d.liquidity;
+  const ops = d.operations;
+  const periodLabel = `${new Date(d.period.from).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })} – ${new Date(d.period.to).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`;
+
+  // Insights auto-générés (résumé exécutif)
+  const revenueChange = pctChange(f.revenues, d.prev.revenues);
+  const expenseChange = pctChange(f.expenses, d.prev.expenses);
+  const netChange = pctChange(f.netResult, d.prev.netResult);
+
+  const revInsight = revenueChange !== null
+    ? `Les produits s'élèvent à ${formatFCFA(f.revenues)}, soit ${revenueChange >= 0 ? "une hausse" : "une baisse"} de ${Math.abs(revenueChange)}% par rapport à la même période N-1 (${formatFCFA(d.prev.revenues)}).`
+    : `Les produits s'élèvent à ${formatFCFA(f.revenues)} sur la période.`;
+
+  const expInsight = expenseChange !== null
+    ? `Les charges totales atteignent ${formatFCFA(f.expenses)}, ${expenseChange >= 0 ? "en hausse" : "en baisse"} de ${Math.abs(expenseChange)}% vs N-1.`
+    : `Les charges totales s'établissent à ${formatFCFA(f.expenses)}.`;
+
+  const topExpense = d.expenseBreakdown[0];
+  const topExpenseText = topExpense ? ` Le premier poste de charges est « ${topExpense.label} » (${formatFCFA(topExpense.amount)}, soit ${topExpense.percent}%).` : "";
+
+  const netInsight = f.netResult >= 0
+    ? `Le résultat net est bénéficiaire à ${formatFCFA(f.netResult)} (marge nette : ${f.margin}%).`
+    : `Le résultat net est déficitaire à ${formatFCFA(f.netResult)} (marge nette : ${f.margin}%).`;
+
+  const liquidityInsight = liq.cashPosition >= 0
+    ? `La trésorerie disponible s'établit à ${formatFCFA(liq.cashPosition)}. Les créances clients en cours représentent ${formatFCFA(liq.arOutstanding)}${liq.arOverdue > 0 ? `, dont ${formatFCFA(liq.arOverdue)} en retard` : ""}.`
+    : `Attention : la position de trésorerie est négative à ${formatFCFA(liq.cashPosition)}.`;
+
   return (
     <div className="space-y-6 pt-4">
-      {isLoading ? <Skeleton className="h-64 w-full" /> : !data ? (
-        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-          <Briefcase className="w-8 h-8 opacity-30" />
-          <p className="text-sm font-medium">Données indisponibles</p>
-        </CardContent></Card>
-      ) : (
-        <>
-          {/* ── Finance ──────────────────────────── */}
-          <SectionTitle icon={BarChart2}>Synthèse financière</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Kpi label="Produits" value={formatFCFA(data.finance.revenues)} accent="success" />
-            <Kpi label="Charges" value={formatFCFA(data.finance.expenses)} accent="danger" />
-            <Kpi label="Résultat net" value={formatFCFA(data.finance.netResult)} accent={data.finance.netResult >= 0 ? "success" : "danger"} hint={`${data.finance.margin}% marge`} />
-            <Kpi label="EBITDA" value={formatFCFA(data.finance.ebitda)} accent="primary" />
-            <Kpi label="Achats" value={formatFCFA(data.finance.totalPurchases)} accent="default" />
-            <Kpi label="Position de tréso." value={formatFCFA(data.liquidity.cashPosition)} accent={data.liquidity.cashPosition >= 0 ? "success" : "danger"} />
-          </div>
 
-          {/* ── Liquidité ────────────────────────── */}
-          <SectionTitle icon={TrendingUp}>Liquidité & BFR</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Kpi label="Créances clients" value={formatFCFA(data.liquidity.arOutstanding)} hint={data.liquidity.arOverdue > 0 ? `dont ${formatFCFA(data.liquidity.arOverdue)} en retard` : undefined} accent={data.liquidity.arOverdue > 0 ? "warning" : "default"} />
-            <Kpi label="Dettes fournisseurs" value={formatFCFA(data.liquidity.apOutstanding)} hint={data.liquidity.apOverdue > 0 ? `dont ${formatFCFA(data.liquidity.apOverdue)} en retard` : undefined} accent={data.liquidity.apOverdue > 0 ? "warning" : "default"} />
-            <Kpi label="Fonds de roulement" value={formatFCFA(data.liquidity.workingCapital)} accent={data.liquidity.workingCapital >= 0 ? "success" : "danger"} hint="Tréso + créances - dettes" />
+      {/* ── En-tête rapport ──────────────────────────────────────────── */}
+      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+        <div className="bg-slate-900 text-white px-6 py-5 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Briefcase className="w-5 h-5 text-primary" />
+              <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Rapport de Gestion</span>
+            </div>
+            <h1 className="text-2xl font-bold leading-tight">Tableau de bord exécutif</h1>
+            <p className="text-slate-400 text-sm mt-1">{periodLabel}</p>
           </div>
-
-          {/* ── Opérations ───────────────────────── */}
-          <SectionTitle icon={Receipt}>Projets & Opérations</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Kpi label="Projets actifs" value={String(data.operations.activeProjects)} accent="primary" />
-            <Kpi label="En retard" value={String(data.operations.overdueProjects)} accent={data.operations.overdueProjects > 0 ? "danger" : "default"} />
-            <Kpi label="Budget total" value={formatFCFA(data.operations.totalBudget)} accent="default" />
-            <Kpi label="Avancement moyen" value={`${data.operations.avgProgress}%`} accent={data.operations.avgProgress >= 75 ? "success" : data.operations.avgProgress >= 40 ? "warning" : "default"} />
+          <div className="text-right text-xs text-slate-500 mt-1">
+            <div>Généré le {generatedAt}</div>
+            <div className="mt-1 flex items-center justify-end gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${f.netResult >= 0 ? "bg-emerald-400" : "bg-red-400"}`} />
+              <span className="text-slate-400">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</span>
+            </div>
           </div>
+        </div>
 
-          {/* ── RH ───────────────────────────────── */}
-          <SectionTitle icon={Users}>Ressources humaines</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Kpi label="Effectif actif" value={String(data.hr.activeCollab)} accent="primary" />
-            {Object.entries(data.hr.byContractType).map(([type, count]) => (
-              <Kpi key={type} label={type.toUpperCase()} value={String(count)} accent="default" hint="contrats" />
+        {/* Barre résumé rapide */}
+        <div className="bg-slate-800 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-700">
+          {[
+            { label: "Produits", value: fmtCompact(f.revenues) + " FCFA", color: "text-emerald-400" },
+            { label: "Charges", value: fmtCompact(f.expenses) + " FCFA", color: "text-red-400" },
+            { label: "Résultat net", value: fmtCompact(f.netResult) + " FCFA", color: f.netResult >= 0 ? "text-emerald-400" : "text-red-400" },
+            { label: "Trésorerie", value: fmtCompact(liq.cashPosition) + " FCFA", color: liq.cashPosition >= 0 ? "text-sky-400" : "text-red-400" },
+          ].map(item => (
+            <div key={item.label} className="px-4 first:pl-0">
+              <div className="text-xs text-slate-500">{item.label}</div>
+              <div className={`text-sm font-bold ${item.color}`}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Résumé exécutif ───────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" />
+            Résumé exécutif
+          </CardTitle>
+          <CardDescription>{periodLabel}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            {[
+              { title: "Produits", text: revInsight, icon: TrendingUp, accent: "text-emerald-600" },
+              { title: "Charges", text: expInsight + topExpenseText, icon: ArrowDownRight, accent: "text-red-600" },
+              { title: "Résultat & Rentabilité", text: netInsight + (f.ebitda !== f.netResult ? ` L'EBITDA s'établit à ${formatFCFA(f.ebitda)}, la marge brute à ${f.grossMargin}%.` : ""), icon: BarChart2, accent: "text-primary" },
+              { title: "Liquidité & Trésorerie", text: liquidityInsight + ` Les dettes fournisseurs s'élèvent à ${formatFCFA(liq.apOutstanding)}. Fonds de roulement : ${formatFCFA(liq.workingCapital)}.`, icon: Banknote, accent: "text-sky-600" },
+            ].map(({ title, text, icon: Icon, accent }) => (
+              <div key={title} className="space-y-1">
+                <div className={`flex items-center gap-1.5 text-sm font-semibold ${accent}`}>
+                  <Icon className="w-4 h-4" /> {title}
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
+              </div>
             ))}
           </div>
-        </>
+        </CardContent>
+      </Card>
+
+      {/* ── Chiffres clés ─────────────────────────────────────────── */}
+      <div>
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Chiffres clés</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            {
+              title: "Produits", value: fmtCompact(f.revenues) + " FCFA",
+              trend: <TrendBadge curr={f.revenues} prev={d.prev.revenues} />,
+              sub: `Les produits sur la période s'élèvent à ${formatFCFA(f.revenues)}.${revenueChange !== null ? ` C'est une ${revenueChange >= 0 ? "hausse" : "baisse"} de ${Math.abs(revenueChange)}% vs N-1 (${formatFCFA(d.prev.revenues)}).` : ""}`,
+              color: "border-l-emerald-500",
+            },
+            {
+              title: "Charges", value: fmtCompact(f.expenses) + " FCFA",
+              trend: <TrendBadge curr={f.expenses} prev={d.prev.expenses} higherIsBetter={false} />,
+              sub: `Les charges totales s'élèvent à ${formatFCFA(f.expenses)}.${expenseChange !== null ? ` Évolution de ${expenseChange >= 0 ? "+" : ""}${expenseChange}% vs N-1 (${formatFCFA(d.prev.expenses)}).` : ""}`,
+              color: "border-l-red-400",
+            },
+            {
+              title: "Ratio charges / produits", value: `${f.operatingExpenseRatio}%`,
+              trend: <TrendBadge curr={f.operatingExpenseRatio} prev={d.prev.revenues > 0 ? Math.round((d.prev.expenses / d.prev.revenues) * 1000) / 10 : 0} higherIsBetter={false} />,
+              sub: `Le ratio charges/produits de la période est de ${f.operatingExpenseRatio}%. Un ratio inférieur à 80% est généralement considéré sain.`,
+              color: "border-l-amber-400",
+            },
+            {
+              title: "Marge nette", value: `${f.margin}%`,
+              trend: <TrendBadge curr={f.margin} prev={d.prev.margin} />,
+              sub: `La marge nette de la période est de ${f.margin}%.${netChange !== null ? ` Résultat N-1 : ${formatFCFA(d.prev.netResult)} (marge : ${d.prev.margin}%).` : ""}`,
+              color: f.margin >= 0 ? "border-l-primary" : "border-l-red-500",
+            },
+          ].map(item => (
+            <div key={item.title} className={`bg-white border border-slate-200 rounded-lg p-4 border-l-4 ${item.color} shadow-sm`}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{item.title}</span>
+                {item.trend}
+              </div>
+              <div className="text-2xl font-bold text-slate-900 mb-2">{item.value}</div>
+              <p className="text-xs text-slate-500 leading-relaxed">{item.sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Santé financière ──────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Scale className="w-4 h-4 text-primary" />
+              Santé financière
+            </CardTitle>
+            <CardDescription>{periodLabel} vs N-1</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-slate-600">Indicateur</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">Période</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">N-1</th>
+                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Cible</th>
+                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Évolution</th>
+                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Importance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Croissance</td></tr>
+                <HealthRow label="Produits totaux" value={f.revenues} prev={d.prev.revenues} importance="Élevé" />
+                <HealthRow label="Résultat net" value={f.netResult} prev={d.prev.netResult} importance="Élevé" />
+                <HealthRow label="Marge nette" value={`${f.margin}%`} prev={`${d.prev.margin}%`} importance="Élevé" />
+                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Rentabilité</td></tr>
+                <HealthRow label="Ratio charges/produits" value={`${f.operatingExpenseRatio}%`} prev={d.prev.revenues > 0 ? `${Math.round((d.prev.expenses / d.prev.revenues) * 1000) / 10}%` : "N/A"} target="< 80%" importance="Élevé" higherIsBetter={false} />
+                <HealthRow label="EBITDA" value={f.ebitda} prev={d.prev.netResult} importance="Moyen" />
+                <HealthRow label="Marge brute" value={`${f.grossMargin}%`} prev="N/A" importance="Moyen" />
+                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Liquidité</td></tr>
+                <HealthRow label="Trésorerie" value={liq.cashPosition} prev={0} target="≥ 0" importance="Élevé" />
+                <HealthRow label="Créances clients" value={liq.arOutstanding} prev={0} importance="Moyen" higherIsBetter={false} />
+                <HealthRow label="Délai de recouvrement" value={`${liq.debtorsDays}j`} prev="—" target="< 60j" importance="Moyen" higherIsBetter={false} />
+                <HealthRow label="Délai de règlement" value={`${liq.creditorsDays}j`} prev="—" target="< 90j" importance="Faible" />
+                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Solvabilité</td></tr>
+                <HealthRow label="Fonds de roulement" value={liq.workingCapital} prev={0} target="≥ 0" importance="Élevé" />
+                <HealthRow label="Dettes fournisseurs" value={liq.apOutstanding} prev={0} importance="Moyen" higherIsBetter={false} />
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Produits vs Charges — graphique ────────────────────────── */}
+      {d.series.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-primary" />
+              Produits vs Charges — Évolution mensuelle
+            </CardTitle>
+            <CardDescription>
+              {d.series.length > 0 && (() => {
+                const bestMonth = [...d.series].sort((a, b) => b.revenues - a.revenues)[0];
+                const worstMonth = [...d.series].sort((a, b) => a.revenues - b.revenues)[0];
+                const totalRev = d.series.reduce((s, m) => s + m.revenues, 0);
+                const avgRev = Math.round(totalRev / d.series.length);
+                return `Produits cumulés : ${formatFCFA(totalRev)}. Moyenne mensuelle : ${formatFCFA(avgRev)}. Meilleur mois : ${bestMonth.month} (${formatFCFA(bestMonth.revenues)}) ; pire mois : ${worstMonth.month} (${formatFCFA(worstMonth.revenues)}).`;
+              })()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={d.series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                  <Legend />
+                  <Bar dataKey="revenues" name="Produits" fill="#10B981" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="expenses" name="Charges" fill="#F97316" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* ── Créances clients (AR) ─────────────────────────────────── */}
+      {d.topArClients.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-primary" />
+              Soldes clients — Créances en cours
+            </CardTitle>
+            <CardDescription>Clients avec encours non réglé · Total : {formatFCFA(liq.arOutstanding)}{liq.arOverdue > 0 ? ` dont ${formatFCFA(liq.arOverdue)} en retard` : ""}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b">
+                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Client</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.topArClients.map((c) => (
+                  <tr key={c.name} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="py-2.5 px-4 font-medium text-slate-800">{c.name}</td>
+                    <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(c.outstanding)}</td>
+                    <td className={`py-2.5 px-4 text-right tabular-nums ${c.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                      {c.overdue > 0 ? formatFCFA(c.overdue) : "—"}
+                    </td>
+                    <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{c.percent}%</td>
+                    <td className="py-2.5 px-4">
+                      <div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto">
+                        <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(c.percent, 100)}%` }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Charges par compte ────────────────────────────────────── */}
+      {d.expenseBreakdown.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ArrowDownRight className="w-4 h-4 text-red-500" />
+              Ventilation des charges
+            </CardTitle>
+            <CardDescription>Top postes de charges (classe 6) · Total : {formatFCFA(f.expenses)}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {d.expenseBreakdown.map((e) => (
+                <div key={e.code} className="flex items-center gap-3">
+                  <div className="w-28 shrink-0">
+                    <span className="font-mono text-xs text-slate-400">{e.code}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-sm text-slate-700 truncate">{e.label}</span>
+                      <span className="text-sm font-semibold tabular-nums shrink-0 ml-2">{formatFCFA(e.amount)}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full">
+                      <div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(e.percent, 100)}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-400 w-10 text-right shrink-0">{e.percent}%</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Soldes fournisseurs (AP) ───────────────────────────────── */}
+      {d.topApSuppliers.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-amber-500" />
+              Soldes fournisseurs — Dettes en cours
+            </CardTitle>
+            <CardDescription>Fournisseurs avec dettes non réglées · Total : {formatFCFA(liq.apOutstanding)}{liq.apOverdue > 0 ? ` dont ${formatFCFA(liq.apOverdue)} en retard` : ""}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b">
+                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
+                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.topApSuppliers.map((s) => (
+                  <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
+                    <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.outstanding)}</td>
+                    <td className={`py-2.5 px-4 text-right tabular-nums ${s.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                      {s.overdue > 0 ? formatFCFA(s.overdue) : "—"}
+                    </td>
+                    <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
+                    <td className="py-2.5 px-4">
+                      <div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto">
+                        <div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${Math.min(s.percent, 100)}%` }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Projets & Opérations ──────────────────────────────────── */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-primary" />
+              Projets & Opérations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[
+                { label: "Projets actifs", value: String(ops.activeProjects), note: `sur ${ops.totalProjects} total`, color: "text-primary" },
+                { label: "Projets terminés", value: String(ops.completedProjects), note: "", color: "text-emerald-600" },
+                { label: "Projets en retard", value: String(ops.overdueProjects), note: ops.overdueProjects > 0 ? "⚠ Action requise" : "", color: ops.overdueProjects > 0 ? "text-red-600" : "text-slate-400" },
+                { label: "Budget total actifs", value: formatFCFA(ops.totalBudget), note: "", color: "text-slate-700" },
+                { label: "Avancement moyen", value: `${ops.avgProgress}%`, note: ops.avgProgress >= 75 ? "Bon rythme" : ops.avgProgress >= 40 ? "En cours" : "Attention", color: ops.avgProgress >= 75 ? "text-emerald-600" : ops.avgProgress >= 40 ? "text-amber-600" : "text-red-600" },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                  <span className="text-sm text-slate-600">{item.label}</span>
+                  <div className="text-right">
+                    <span className={`font-semibold text-sm ${item.color}`}>{item.value}</span>
+                    {item.note && <div className="text-xs text-slate-400">{item.note}</div>}
+                  </div>
+                </div>
+              ))}
+              {ops.avgProgress > 0 && (
+                <div className="pt-1">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>Avancement global</span><span>{ops.avgProgress}%</span>
+                  </div>
+                  <Progress value={ops.avgProgress} className="h-2" />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Ressources Humaines
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600">Effectif actif</span>
+                <span className="font-bold text-lg text-primary">{d.hr.activeCollab}</span>
+              </div>
+              {Object.entries(d.hr.byContractType).length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Contrats actifs</div>
+                  {Object.entries(d.hr.byContractType).map(([type, count]) => (
+                    <div key={type} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
+                      <span className="text-sm text-slate-600">{type}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 bg-slate-100 rounded-full w-16">
+                          <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.round((count / d.hr.activeCollab) * 100)}%` }} />
+                        </div>
+                        <span className="text-sm font-semibold w-6 text-right">{count}</span>
+                        <span className="text-xs text-slate-400 w-10">{Math.round((count / d.hr.activeCollab) * 100)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {d.hr.activeCollab === 0 && (
+                <p className="text-sm text-slate-400 py-4 text-center">Aucun collaborateur actif enregistré.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Note de bas de rapport ────────────────────────────────── */}
+      <div className="text-center py-3 text-xs text-slate-400 border-t border-slate-200">
+        Rapport généré le {generatedAt} · Données au {new Date(d.period.to).toLocaleDateString("fr-FR")} · Gaméasù Analytics
+      </div>
+
     </div>
   );
 }
