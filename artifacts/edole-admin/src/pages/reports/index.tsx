@@ -33,6 +33,7 @@ import {
   BarChart2,
   Receipt,
   Building2,
+  BookOpen,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -586,9 +587,10 @@ type ManagementReport = {
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
   return (
     <Tabs defaultValue="billing" className="w-full">
-      <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-4 h-auto gap-px">
+      <TabsList className="grid grid-cols-4 md:grid-cols-8 mb-4 h-auto gap-px">
         <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
         <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
+        <TabsTrigger value="balance-gen" className="text-xs"><BookOpen className="w-3.5 h-3.5 mr-1" />Balance</TabsTrigger>
         <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
         <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
         <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
@@ -597,6 +599,7 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
       </TabsList>
       <TabsContent value="billing"><BillingSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="decaissements"><DecaissementSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="balance-gen"><BalanceGeneraleSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="income-statement"><IncomeStatementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="balance-sheet"><BalanceSheetSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="cash-flow"><CashFlowSubTab periodQuery={periodQuery} /></TabsContent>
@@ -1039,6 +1042,157 @@ function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Balance générale
+// ────────────────────────────────────────────────────────────────
+type BalanceRow = { code: string; label: string; classNum: number; totalDebit: number; totalCredit: number; soldDebit: number; soldCredit: number };
+type BalanceGenReport = { data: BalanceRow[]; totalDebit: number; totalCredit: number };
+
+const CLASS_LABELS: Record<number, string> = {
+  1: "Classe 1 — Capitaux", 2: "Classe 2 — Actif immobilisé",
+  3: "Classe 3 — Stocks", 4: "Classe 4 — Tiers",
+  5: "Classe 5 — Trésorerie", 6: "Classe 6 — Charges",
+  7: "Classe 7 — Produits", 8: "Classe 8 — Comptes spéciaux",
+};
+
+function BalanceGeneraleSubTab({ periodQuery }: { periodQuery: string }) {
+  const [classFilter, setClassFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const fromDate = useMemo(() => {
+    const m = periodQuery.match(/from=([^&]+)/);
+    return m ? m[1] : new Date().getFullYear() + "-01-01";
+  }, [periodQuery]);
+  const toDate = useMemo(() => {
+    const m = periodQuery.match(/to=([^&]+)/);
+    return m ? m[1] : new Date().getFullYear() + "-12-31";
+  }, [periodQuery]);
+
+  const { data, isLoading } = useQuery<BalanceGenReport>({
+    queryKey: ["balance-gen", fromDate, toDate],
+    queryFn: () => apiFetch(`/api/accounting/balance?from=${fromDate}&to=${toDate}`),
+  });
+
+  const rows = useMemo(() => {
+    if (!data) return [];
+    return data.data.filter(r => {
+      const matchClass = classFilter === "all" || String(r.classNum) === classFilter;
+      const matchSearch = !search || r.code.includes(search) || r.label.toLowerCase().includes(search.toLowerCase());
+      return matchClass && matchSearch;
+    });
+  }, [data, classFilter, search]);
+
+  const isBalanced = data ? Math.abs(data.totalDebit - data.totalCredit) < 0.01 : false;
+
+  if (isLoading) return <div className="space-y-3 pt-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>;
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="flex flex-wrap items-center gap-3 justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">Balance générale des comptes</h3>
+          <p className="text-xs text-muted-foreground">Cumuls débits/crédits et soldes SYSCOHADA · {fromDate} – {toDate}</p>
+        </div>
+        {data && (
+          <Badge variant={isBalanced ? "default" : "destructive"} className="text-xs">
+            {isBalanced ? "✓ Balance équilibrée" : "⚠ Déséquilibre détecté"}
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          type="text"
+          placeholder="Compte ou libellé…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="h-8 px-3 text-sm border rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-amber-400"
+        />
+        <select
+          value={classFilter}
+          onChange={e => setClassFilter(e.target.value)}
+          className="h-8 px-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
+        >
+          <option value="all">Toutes les classes</option>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(c => <option key={c} value={String(c)}>Classe {c}</option>)}
+        </select>
+        {(search || classFilter !== "all") && (
+          <button onClick={() => { setSearch(""); setClassFilter("all"); }} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground border rounded-md">
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr>
+                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-slate-500 w-24">Compte</th>
+                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-slate-500">Libellé</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Total débit</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Total crédit</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Solde débiteur</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Solde créditeur</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!data || rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-sm text-slate-400 italic">
+                      {!data ? "Aucun mouvement sur la période" : "Aucun compte ne correspond aux filtres"}
+                    </td>
+                  </tr>
+                ) : (
+                  (() => {
+                    const groups: Record<number, BalanceRow[]> = {};
+                    for (const r of rows) {
+                      if (!groups[r.classNum]) groups[r.classNum] = [];
+                      groups[r.classNum].push(r);
+                    }
+                    return Object.entries(groups).sort(([a], [b]) => Number(a) - Number(b)).map(([cls, items]) => (
+                      <React.Fragment key={cls}>
+                        <tr className="bg-amber-50 border-t border-amber-200">
+                          <td colSpan={6} className="py-1.5 px-4 text-xs font-bold text-amber-800 uppercase tracking-wide">
+                            {CLASS_LABELS[Number(cls)] ?? `Classe ${cls}`}
+                          </td>
+                        </tr>
+                        {items.map(r => (
+                          <tr key={r.code} className="border-t border-slate-100 hover:bg-slate-50">
+                            <td className="py-2 px-4 font-mono font-semibold text-slate-700">{r.code}</td>
+                            <td className="py-2 px-4 text-slate-600">{r.label}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-slate-700">{formatFCFA(r.totalDebit)}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-slate-700">{formatFCFA(r.totalCredit)}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-blue-700">{r.soldDebit ? formatFCFA(r.soldDebit) : "—"}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-red-600">{r.soldCredit ? formatFCFA(r.soldCredit) : "—"}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ));
+                  })()
+                )}
+              </tbody>
+              {data && rows.length > 0 && (
+                <tfoot className="bg-slate-100 border-t-2 border-amber-400">
+                  <tr>
+                    <td colSpan={2} className="py-2.5 px-4 text-sm font-bold text-slate-700 text-right">Totaux généraux</td>
+                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-slate-800">{formatFCFA(data.totalDebit)}</td>
+                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-slate-800">{formatFCFA(data.totalCredit)}</td>
+                    <td colSpan={2} className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">
+                      {isBalanced ? "✓ Équilibrée" : `Écart : ${formatFCFA(Math.abs(data.totalDebit - data.totalCredit))}`}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

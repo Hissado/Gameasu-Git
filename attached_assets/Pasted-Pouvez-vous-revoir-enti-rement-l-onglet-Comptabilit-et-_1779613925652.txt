@@ -1,0 +1,56 @@
+Pouvez-vous revoir entièrement l’onglet **Comptabilité** et le **réorganiser** afin qu’il soit beaucoup plus **fluide, clair, facile à naviguer et user-friendly** ?
+
+### Objectif
+Je veux que le module Comptabilité soit mieux structuré, avec une organisation plus logique et plus professionnelle, afin de rendre l’expérience utilisateur plus simple et plus agréable.
+
+### Ce qu’il faut améliorer
+Merci de :
+
+- revoir l’architecture de l’onglet Comptabilité
+- mieux organiser les sections et sous-sections
+- améliorer la hiérarchie des éléments
+- rendre la navigation plus fluide
+- éviter la surcharge inutile dans cet onglet
+- faire en sorte que le module soit plus intuitif pour l’utilisateur
+
+### Réorganisation attendue
+Je veux que tout ce qui relève plutôt du **reporting** ou des **états financiers** soit retiré de l’onglet Comptabilité et replacé dans l’onglet **Rapports** ou dans la section de reporting appropriée.
+
+Par exemple, les éléments comme :
+- balance
+- compte de résultat
+- bilan
+- flux de trésorerie
+- synthèse fiscale
+- et autres états ou rapports financiers similaires
+
+ne devraient pas encombrer directement l’onglet Comptabilité si leur logique naturelle est davantage liée à la consultation et à l’analyse des rapports.
+
+### Logique attendue
+L’onglet Comptabilité doit se concentrer davantage sur :
+- la gestion comptable
+- les écritures
+- les journaux
+- les comptes
+- les rapprochements
+- les opérations comptables
+- les traitements de gestion comptable
+
+Tandis que l’onglet **Rapports** doit regrouper :
+- les états financiers
+- les états fiscaux
+- les rapports analytiques
+- les balances
+- les synthèses
+- les indicateurs et états de pilotage
+
+### Résultat attendu
+Je veux une organisation beaucoup plus :
+- logique
+- fluide
+- propre
+- professionnelle
+- facile à comprendre
+- facile à naviguer
+
+L’objectif final est d’avoir un onglet Comptabilité plus opérationnel, et un onglet Rapports plus cohérent avec tous les états et analyses, afin d’améliorer fortement l’expérience utilisateur.
