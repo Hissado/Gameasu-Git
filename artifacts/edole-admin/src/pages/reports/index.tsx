@@ -588,18 +588,18 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
     <Tabs defaultValue="billing" className="w-full">
       <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-4 h-auto gap-px">
         <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
+        <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
         <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
         <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
         <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
-        <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
         <TabsTrigger value="reconciliation" className="text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement</TabsTrigger>
         <TabsTrigger value="management" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion</TabsTrigger>
       </TabsList>
       <TabsContent value="billing"><BillingSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="decaissements"><DecaissementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="income-statement"><IncomeStatementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="balance-sheet"><BalanceSheetSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="cash-flow"><CashFlowSubTab periodQuery={periodQuery} /></TabsContent>
-      <TabsContent value="decaissements"><DecaissementSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="reconciliation"><ReconciliationSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="management"><ManagementSubTab periodQuery={periodQuery} /></TabsContent>
     </Tabs>
