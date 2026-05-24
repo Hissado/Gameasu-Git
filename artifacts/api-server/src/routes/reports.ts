@@ -26,6 +26,8 @@ import {
   payslipsTable,
   payrollRunsTable,
   personnelMovementsTable,
+  supplierInvoicesTable,
+  suppliersTable,
 } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
@@ -1111,5 +1113,111 @@ router.get("/reports/aged-receivables", requireAuth, requireManagerOrAbove, asyn
   } catch (e) { next(e); }
 });
 
+// ────────────────────────────────────────────────────────────────
+// Balance âgée fournisseurs
+// ────────────────────────────────────────────────────────────────
+router.get("/aged-payables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.user!.organizationId;
+    const supplierSearch = typeof req.query.supplier === "string" ? req.query.supplier.toLowerCase() : "";
+    const statusFilter = typeof req.query.status === "string" ? req.query.status : "";
+
+    const invoices = await db
+      .select({
+        id: supplierInvoicesTable.id,
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        supplierId: supplierInvoicesTable.supplierId,
+        supplierName: suppliersTable.name,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        dueDate: supplierInvoicesTable.dueDate,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        status: supplierInvoicesTable.status,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+      .where(
+        and(
+          eq(supplierInvoicesTable.organizationId, orgId),
+          ne(supplierInvoicesTable.status, "cancelled"),
+          ne(supplierInvoicesTable.status, "paid"),
+          ne(supplierInvoicesTable.status, "draft"),
+        )
+      );
+
+    const buckets = {
+      current:  { label: "À échoir",  amount: 0, count: 0, items: [] as any[] },
+      "1-30":   { label: "1–30 j",    amount: 0, count: 0, items: [] as any[] },
+      "31-60":  { label: "31–60 j",   amount: 0, count: 0, items: [] as any[] },
+      "61-90":  { label: "61–90 j",   amount: 0, count: 0, items: [] as any[] },
+      "90+":    { label: "> 90 j",    amount: 0, count: 0, items: [] as any[] },
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let totalOutstanding = 0;
+
+    for (const inv of invoices) {
+      if (supplierSearch && !(inv.supplierName ?? "").toLowerCase().includes(supplierSearch)) continue;
+      if (statusFilter && inv.status !== statusFilter) continue;
+      const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+      if (outstanding <= 0) continue;
+      totalOutstanding += outstanding;
+
+      const dueDateStr = inv.dueDate ?? inv.invoiceDate;
+      let daysOverdue = 0;
+      if (dueDateStr) {
+        const due = new Date(dueDateStr);
+        due.setHours(0, 0, 0, 0);
+        daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      const item = {
+        id: inv.id,
+        reference: inv.referenceNumber,
+        supplier: inv.supplierName ?? "—",
+        outstanding,
+        dueDate: inv.dueDate,
+        daysOverdue,
+        status: inv.status,
+      };
+
+      let bucket: keyof typeof buckets;
+      if (daysOverdue <= 0)       bucket = "current";
+      else if (daysOverdue <= 30) bucket = "1-30";
+      else if (daysOverdue <= 60) bucket = "31-60";
+      else if (daysOverdue <= 90) bucket = "61-90";
+      else                        bucket = "90+";
+
+      buckets[bucket].amount += outstanding;
+      buckets[bucket].count++;
+      buckets[bucket].items.push(item);
+    }
+
+    // Par fournisseur
+    const bySupplier: Record<string, { supplier: string; total: number }> = {};
+    for (const [, bucket] of Object.entries(buckets)) {
+      for (const item of bucket.items) {
+        const s = item.supplier;
+        if (!bySupplier[s]) bySupplier[s] = { supplier: s, total: 0 };
+        bySupplier[s].total += item.outstanding;
+      }
+    }
+
+    res.json({
+      totalOutstanding,
+      buckets: Object.entries(buckets).map(([key, b]) => ({
+        key, label: b.label, amount: b.amount, count: b.count,
+        percent: totalOutstanding > 0 ? Math.round((b.amount / totalOutstanding) * 100) : 0,
+      })),
+      bySupplier: Object.values(bySupplier).sort((a, b) => b.total - a.total).slice(0, 20),
+      detail: Object.entries(buckets)
+        .flatMap(([bucket, b]) => b.items.map(i => ({ ...i, bucket })))
+        .sort((a, b) => b.daysOverdue - a.daysOverdue),
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;
+
 

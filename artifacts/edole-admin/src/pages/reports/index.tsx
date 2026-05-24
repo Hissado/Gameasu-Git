@@ -23,6 +23,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Search,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -196,6 +199,56 @@ function SectionTitle({ icon: Icon, children }: { icon: any; children: React.Rea
   );
 }
 
+function FilterBar({ children, onClear }: { children: React.ReactNode; onClear?: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl flex-1">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+        <SlidersHorizontal className="w-3 h-3" /> Filtres
+      </div>
+      {children}
+      {onClear && (
+        <button onClick={onClear} className="ml-auto flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-700 transition-colors px-1">
+          <X className="w-3 h-3" /> Réinitialiser
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FilterInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative">
+      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 pl-7 pr-6 w-44 text-xs"
+      />
+      {value && (
+        <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FilterSelect({ value, onChange, options, placeholder }: {
+  value: string; onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>; placeholder: string;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-7 w-44 text-xs"><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{placeholder}</SelectItem>
+        {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════
 // PAGE
 // ════════════════════════════════════════════════════════════════
@@ -340,21 +393,68 @@ type TurnoverReport = {
   byType: Record<string, number>;
 };
 
+type AgedPayables = {
+  totalOutstanding: number;
+  buckets: Array<{ key: string; label: string; amount: number; count: number; percent: number }>;
+  bySupplier: Array<{ supplier: string; total: number }>;
+  detail: Array<{ id: string; reference: string; supplier: string; outstanding: number; dueDate: string | null; daysOverdue: number; status: string; bucket: string }>;
+};
+
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
+  const [clientSearch, setClientSearch] = useState("");
+  const [invoiceStatus, setInvoiceStatus] = useState("all");
+  const [supplierSearch, setSupplierSearch] = useState("");
+
   const { data, isLoading } = useQuery<FinanceReport>({
     queryKey: ["report", "finance", periodQuery],
     queryFn: () => apiFetch(`/api/reports/finance?${periodQuery}`),
   });
-
   const { data: aged } = useQuery<AgedReceivables>({
     queryKey: ["report", "aged-receivables"],
     queryFn: () => apiFetch("/api/reports/aged-receivables"),
   });
+  const { data: agedPayables } = useQuery<AgedPayables>({
+    queryKey: ["report", "aged-payables"],
+    queryFn: () => apiFetch("/api/reports/aged-payables"),
+  });
+
+  const filteredTopClients = useMemo(() =>
+    (data?.topClients ?? []).filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())),
+    [data, clientSearch]);
+
+  const filteredOverdueList = useMemo(() =>
+    (data?.overdueList ?? []).filter(o =>
+      (!clientSearch || o.clientName.toLowerCase().includes(clientSearch.toLowerCase()) || o.reference.toLowerCase().includes(clientSearch.toLowerCase()))),
+    [data, clientSearch]);
+
+  const filteredByStatus = useMemo(() => {
+    if (!data) return {};
+    if (invoiceStatus === "all") return data.byStatus;
+    return Object.fromEntries(Object.entries(data.byStatus).filter(([s]) => s === invoiceStatus));
+  }, [data, invoiceStatus]);
+
+  const filteredAgedByClient = useMemo(() =>
+    (aged?.byClient ?? []).filter(c => !clientSearch || c.client.toLowerCase().includes(clientSearch.toLowerCase())),
+    [aged, clientSearch]);
+
+  const filteredAgedBySupplier = useMemo(() =>
+    (agedPayables?.bySupplier ?? []).filter(s => !supplierSearch || s.supplier.toLowerCase().includes(supplierSearch.toLowerCase())),
+    [agedPayables, supplierSearch]);
+
+  const hasFilters = !!(clientSearch || invoiceStatus !== "all" || supplierSearch);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => downloadAuthed(`/api/reports/finance/export.xlsx?${periodQuery}`, `rapport-finance-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90">
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterBar onClear={hasFilters ? () => { setClientSearch(""); setInvoiceStatus("all"); setSupplierSearch(""); } : undefined}>
+          <FilterInput placeholder="Client / référence…" value={clientSearch} onChange={setClientSearch} />
+          <FilterSelect placeholder="Tous les statuts" value={invoiceStatus} onChange={setInvoiceStatus} options={[
+            { value: "draft", label: "Brouillon" }, { value: "sent", label: "Envoyée" },
+            { value: "paid", label: "Payée" }, { value: "partial", label: "Partiellement payée" },
+            { value: "overdue", label: "En retard" }, { value: "cancelled", label: "Annulée" },
+          ]} />
+        </FilterBar>
+        <Button onClick={() => downloadAuthed(`/api/reports/finance/export.xlsx?${periodQuery}`, `rapport-finance-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
           <Download className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
@@ -391,13 +491,15 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle>Top clients (facturé)</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Top clients {clientSearch && <Badge variant="secondary" className="ml-2 text-xs font-normal">filtrés</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                {data.topClients.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune facturation sur la période.</p>
+                {filteredTopClients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{clientSearch ? "Aucun client ne correspond." : "Aucune facturation sur la période."}</p>
                 ) : (
                   <div className="space-y-2">
-                    {data.topClients.map((c) => (
+                    {filteredTopClients.map((c) => (
                       <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
                         <div>
                           <div className="font-semibold text-sm">{c.name}</div>
@@ -412,15 +514,17 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Répartition par statut</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Répartition par statut {invoiceStatus !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{INVOICE_STATUS_LABELS[invoiceStatus]}</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                {Object.keys(data.byStatus).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune facture sur la période.</p>
+                {Object.keys(filteredByStatus).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucune facture correspondant aux filtres.</p>
                 ) : (
                   <div className="space-y-2">
-                    {Object.entries(data.byStatus).map(([s, v]) => (
+                    {Object.entries(filteredByStatus).map(([s, v]) => (
                       <div key={s} className="flex items-center justify-between p-3 border rounded-md">
-                        <Badge variant="outline" className="capitalize">{INVOICE_STATUS_LABELS[s] || s}</Badge>
+                        <Badge variant="outline">{INVOICE_STATUS_LABELS[s] || s}</Badge>
                         <div className="text-sm"><strong>{v.count}</strong> · {formatFCFA(v.amount)}</div>
                       </div>
                     ))}
@@ -430,15 +534,18 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
             </Card>
           </div>
 
-          {data.overdueList.length > 0 && (
+          {filteredOverdueList.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500" /> Factures en retard</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" /> Factures en retard
+                  {clientSearch && <Badge variant="secondary" className="text-xs font-normal">filtrées</Badge>}
+                </CardTitle>
                 <CardDescription>10 plus gros restes dus.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {data.overdueList.map((o) => (
+                  {filteredOverdueList.map((o) => (
                     <div key={o.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-red-50/30">
                       <div>
                         <div className="font-semibold text-sm">{o.reference}</div>
@@ -458,13 +565,9 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-amber-500" /> Balance âgée — créances clients
               </CardTitle>
-              {aged && aged.totalOutstanding > 0 ? (
-                <CardDescription>
-                  Total encours : <strong>{formatFCFA(aged.totalOutstanding)}</strong> — répartition par ancienneté.
-                </CardDescription>
-              ) : (
-                <CardDescription>Répartition des factures impayées par ancienneté.</CardDescription>
-              )}
+              {aged && aged.totalOutstanding > 0
+                ? <CardDescription>Total encours : <strong>{formatFCFA(aged.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
+                : <CardDescription>Répartition des factures impayées par ancienneté.</CardDescription>}
             </CardHeader>
             <CardContent className="space-y-5">
               {!aged || aged.totalOutstanding === 0 ? (
@@ -475,7 +578,6 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                 </div>
               ) : (
                 <>
-                  {/* Barres de tranches */}
                   <div className="space-y-2">
                     {aged.buckets.map((b) => {
                       const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
@@ -491,17 +593,91 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                       );
                     })}
                   </div>
-                  {/* Top clients */}
-                  {aged.byClient.length > 0 && (
+                  {filteredAgedByClient.length > 0 && (
                     <div>
-                      <SectionTitle icon={Users}>Par client</SectionTitle>
+                      <SectionTitle icon={Users}>Par client {clientSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
                       <div className="space-y-1">
-                        {aged.byClient.slice(0, 8).map((c) => (
+                        {filteredAgedByClient.slice(0, 8).map((c) => (
                           <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-slate-50/50">
                             <span className="font-medium text-slate-800">{c.client}</span>
                             <span className="font-bold text-primary">{formatFCFA(c.total)}</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Balance âgée fournisseurs ─────────────────────── */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-500" /> Balance âgée — dettes fournisseurs
+                  </CardTitle>
+                  {agedPayables && agedPayables.totalOutstanding > 0
+                    ? <CardDescription className="mt-1">Total dû : <strong>{formatFCFA(agedPayables.totalOutstanding)}</strong> — répartition par ancienneté.</CardDescription>
+                    : <CardDescription className="mt-1">Répartition des factures fournisseurs impayées par ancienneté.</CardDescription>}
+                </div>
+                <FilterInput placeholder="Fournisseur…" value={supplierSearch} onChange={setSupplierSearch} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {!agedPayables || agedPayables.totalOutstanding === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
+                  <CheckCircle2 className="w-8 h-8 opacity-30 text-green-500" />
+                  <p className="text-sm font-medium">Aucune dette fournisseur en cours</p>
+                  <p className="text-xs">Toutes les factures fournisseurs sont réglées, ou aucune n'a encore été enregistrée.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {agedPayables.buckets.map((b) => {
+                      const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
+                      return (
+                        <div key={b.key} className="flex items-center gap-3">
+                          <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
+                          <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                            <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
+                          </div>
+                          <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
+                          <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {filteredAgedBySupplier.length > 0 && (
+                    <div>
+                      <SectionTitle icon={Users}>Par fournisseur {supplierSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
+                      <div className="space-y-1">
+                        {filteredAgedBySupplier.slice(0, 8).map((s) => (
+                          <div key={s.supplier} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-red-50/30">
+                            <span className="font-medium text-slate-800">{s.supplier}</span>
+                            <span className="font-bold text-red-600">{formatFCFA(s.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {agedPayables.detail.length > 0 && (
+                    <div>
+                      <SectionTitle icon={FileText}>Détail des factures</SectionTitle>
+                      <div className="space-y-1">
+                        {agedPayables.detail
+                          .filter(d => !supplierSearch || d.supplier.toLowerCase().includes(supplierSearch.toLowerCase()))
+                          .slice(0, 10)
+                          .map((d) => (
+                            <div key={d.id} className="grid grid-cols-4 items-center gap-2 p-2.5 border rounded-md text-xs hover:bg-slate-50/50">
+                              <span className="font-medium text-slate-800 truncate">{d.reference}</span>
+                              <span className="text-slate-500 truncate">{d.supplier}</span>
+                              <span className="text-slate-400">{d.dueDate ? new Date(d.dueDate).toLocaleDateString("fr-FR") : "—"} · {d.daysOverdue > 0 ? `${d.daysOverdue}j retard` : "À échoir"}</span>
+                              <span className="font-bold text-red-600 text-right">{formatFCFA(d.outstanding)}</span>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -520,15 +696,35 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
 // ────────────────────────────────────────────────────────────────
 
 function SalesTab({ periodQuery }: { periodQuery: string }) {
+  const [clientSearch, setClientSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+
   const { data, isLoading } = useQuery<SalesReport>({
     queryKey: ["report", "sales", periodQuery],
     queryFn: () => apiFetch(`/api/reports/sales?${periodQuery}`),
   });
 
+  const filteredTopClients = useMemo(() =>
+    (data?.topClients ?? []).filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())),
+    [data, clientSearch]);
+
+  const filteredPipeline = useMemo(() => {
+    if (!data) return {};
+    if (stageFilter === "all") return data.pipeline;
+    return Object.fromEntries(Object.entries(data.pipeline).filter(([s]) => s === stageFilter));
+  }, [data, stageFilter]);
+
+  const hasFilters = !!(clientSearch || stageFilter !== "all");
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => downloadAuthed(`/api/reports/sales/export.xlsx?${periodQuery}`, `rapport-ventes-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90">
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterBar onClear={hasFilters ? () => { setClientSearch(""); setStageFilter("all"); } : undefined}>
+          <FilterInput placeholder="Client…" value={clientSearch} onChange={setClientSearch} />
+          <FilterSelect placeholder="Toutes les étapes" value={stageFilter} onChange={setStageFilter}
+            options={Object.entries(PIPELINE_STAGE_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
+        </FilterBar>
+        <Button onClick={() => downloadAuthed(`/api/reports/sales/export.xlsx?${periodQuery}`, `rapport-ventes-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
           <Download className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
@@ -566,13 +762,15 @@ function SalesTab({ periodQuery }: { periodQuery: string }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle>Top clients (commandes)</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Top clients {clientSearch && <Badge variant="secondary" className="ml-2 text-xs font-normal">filtrés</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                {data.topClients.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune commande sur la période.</p>
+                {filteredTopClients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{clientSearch ? "Aucun client ne correspond." : "Aucune commande sur la période."}</p>
                 ) : (
                   <div className="space-y-2">
-                    {data.topClients.map((c) => (
+                    {filteredTopClients.map((c) => (
                       <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
                         <div>
                           <div className="font-semibold text-sm">{c.name}</div>
@@ -587,19 +785,21 @@ function SalesTab({ periodQuery }: { periodQuery: string }) {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Pipeline opportunités</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Pipeline {stageFilter !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{PIPELINE_STAGE_LABELS[stageFilter]}</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                {Object.keys(data.pipeline).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune opportunité.</p>
+                {Object.keys(filteredPipeline).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucune opportunité{stageFilter !== "all" ? " pour cette étape" : ""}.</p>
                 ) : (
                   <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={Object.entries(data.pipeline).map(([stage, v]) => ({ name: PIPELINE_STAGE_LABELS[stage] || stage, value: v.value, count: v.count }))}
+                          data={Object.entries(filteredPipeline).map(([stage, v]) => ({ name: PIPELINE_STAGE_LABELS[stage] || stage, value: v.value, count: v.count }))}
                           dataKey="value" nameKey="name" outerRadius={80} label={(e) => e.name}
                         >
-                          {Object.keys(data.pipeline).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                          {Object.keys(filteredPipeline).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(v: number) => formatFCFA(v)} />
                       </PieChart>
@@ -620,15 +820,36 @@ function SalesTab({ periodQuery }: { periodQuery: string }) {
 // ────────────────────────────────────────────────────────────────
 
 function ProjectsTab({ periodQuery }: { periodQuery: string }) {
+  const [projectSearch, setProjectSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const { data, isLoading } = useQuery<ProjectsReport>({
     queryKey: ["report", "projects", periodQuery],
     queryFn: () => apiFetch(`/api/reports/projects?${periodQuery}`),
   });
 
+  const filteredTopProjects = useMemo(() =>
+    (data?.topProjects ?? []).filter(p =>
+      (statusFilter === "all" || p.status === statusFilter) &&
+      (!projectSearch || p.name.toLowerCase().includes(projectSearch.toLowerCase()) || p.clientName.toLowerCase().includes(projectSearch.toLowerCase()))
+    ), [data, projectSearch, statusFilter]);
+
+  const filteredOverdueList = useMemo(() =>
+    (data?.overdueList ?? []).filter(p =>
+      !projectSearch || p.name.toLowerCase().includes(projectSearch.toLowerCase()) || p.clientName.toLowerCase().includes(projectSearch.toLowerCase())
+    ), [data, projectSearch]);
+
+  const hasFilters = !!(projectSearch || statusFilter !== "all");
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => downloadAuthed(`/api/reports/projects/export.xlsx?${periodQuery}`, `rapport-projets-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90">
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterBar onClear={hasFilters ? () => { setProjectSearch(""); setStatusFilter("all"); } : undefined}>
+          <FilterInput placeholder="Projet / client…" value={projectSearch} onChange={setProjectSearch} />
+          <FilterSelect placeholder="Tous les statuts" value={statusFilter} onChange={setStatusFilter}
+            options={Object.entries(PROJECT_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
+        </FilterBar>
+        <Button onClick={() => downloadAuthed(`/api/reports/projects/export.xlsx?${periodQuery}`, `rapport-projets-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
           <Download className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
@@ -645,13 +866,17 @@ function ProjectsTab({ periodQuery }: { periodQuery: string }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle>Répartition par statut</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Répartition par statut {statusFilter !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{PROJECT_STATUS_LABELS[statusFilter]}</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
                 <div className="h-60">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={Object.entries(data.byStatus).map(([s, n]) => ({ name: PROJECT_STATUS_LABELS[s] || s, value: n }))}
+                        data={Object.entries(data.byStatus)
+                          .filter(([s]) => statusFilter === "all" || s === statusFilter)
+                          .map(([s, n]) => ({ name: PROJECT_STATUS_LABELS[s] || s, value: n }))}
                         dataKey="value" nameKey="name" outerRadius={80} label={(e) => `${e.name} (${e.value})`}
                       >
                         {Object.keys(data.byStatus).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -664,34 +889,43 @@ function ProjectsTab({ periodQuery }: { periodQuery: string }) {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Top projets par budget</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Top projets {(projectSearch || statusFilter !== "all") && <Badge variant="secondary" className="ml-2 text-xs font-normal">filtrés</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {data.topProjects.slice(0, 6).map((p) => (
-                    <div key={p.id} className="p-3 border rounded-md">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <div className="font-semibold text-sm">{p.name}</div>
-                          <div className="text-xs text-muted-foreground">{p.clientName} · <Badge variant="outline" className="ml-1">{PROJECT_STATUS_LABELS[p.status] || p.status}</Badge></div>
+                {filteredTopProjects.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucun projet ne correspond aux filtres.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredTopProjects.slice(0, 6).map((p) => (
+                      <div key={p.id} className="p-3 border rounded-md">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="font-semibold text-sm">{p.name}</div>
+                            <div className="text-xs text-muted-foreground">{p.clientName} · <Badge variant="outline" className="ml-1">{PROJECT_STATUS_LABELS[p.status] || p.status}</Badge></div>
+                          </div>
+                          <div className="font-bold text-sm">{formatFCFA(p.budget)}</div>
                         </div>
-                        <div className="font-bold text-sm">{formatFCFA(p.budget)}</div>
+                        <Progress value={p.progress} className="h-1.5" />
                       </div>
-                      <Progress value={p.progress} className="h-1.5" />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {data.overdueList.length > 0 && (
+          {filteredOverdueList.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-500" /> Projets en retard</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" /> Projets en retard
+                  {projectSearch && <Badge variant="secondary" className="text-xs font-normal">filtrés</Badge>}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {data.overdueList.map((p) => (
+                  {filteredOverdueList.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-red-50/30">
                       <div>
                         <div className="font-semibold text-sm">{p.name}</div>
@@ -715,30 +949,62 @@ function ProjectsTab({ periodQuery }: { periodQuery: string }) {
 // ────────────────────────────────────────────────────────────────
 
 function HrTab({ periodQuery }: { periodQuery: string }) {
+  const [collabSearch, setCollabSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState("all");
+
   const { data, isLoading } = useQuery<HrReport>({
     queryKey: ["report", "hr", periodQuery],
     queryFn: () => apiFetch(`/api/reports/hr?${periodQuery}`),
   });
-
   const { data: workload } = useQuery<WorkloadEntry[]>({
     queryKey: ["report", "workload"],
     queryFn: () => apiFetch("/api/reports/workload"),
   });
-
   const { data: masseSal } = useQuery<MasseSalariale>({
     queryKey: ["report", "masse-salariale", periodQuery],
     queryFn: () => apiFetch(`/api/reports/hr/masse-salariale?${periodQuery}`),
   });
-
   const { data: turnover } = useQuery<TurnoverReport>({
     queryKey: ["report", "turnover", periodQuery],
     queryFn: () => apiFetch(`/api/reports/hr/turnover?${periodQuery}`),
   });
 
+  const deptOptions = useMemo(() =>
+    Object.keys(data?.byDepartment ?? {}).map(d => ({ value: d, label: d })),
+    [data]);
+
+  const filteredTopPerformers = useMemo(() =>
+    (data?.topPerformers ?? []).filter(p =>
+      (!collabSearch || p.name.toLowerCase().includes(collabSearch.toLowerCase())) &&
+      (deptFilter === "all")
+    ), [data, collabSearch, deptFilter]);
+
+  const filteredExpiringList = useMemo(() =>
+    (data?.expiringList ?? []).filter(c =>
+      !collabSearch || c.collaborator.toLowerCase().includes(collabSearch.toLowerCase())
+    ), [data, collabSearch]);
+
+  const filteredWorkload = useMemo(() =>
+    (workload ?? []).filter(u =>
+      !collabSearch || u.name.toLowerCase().includes(collabSearch.toLowerCase())
+    ), [workload, collabSearch]);
+
+  const filteredByDepartment = useMemo(() => {
+    if (!data) return {};
+    if (deptFilter === "all") return data.byDepartment;
+    return Object.fromEntries(Object.entries(data.byDepartment).filter(([d]) => d === deptFilter));
+  }, [data, deptFilter]);
+
+  const hasFilters = !!(collabSearch || deptFilter !== "all");
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => downloadAuthed(`/api/reports/hr/export.xlsx?${periodQuery}`, `rapport-rh-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90">
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterBar onClear={hasFilters ? () => { setCollabSearch(""); setDeptFilter("all"); } : undefined}>
+          <FilterInput placeholder="Collaborateur…" value={collabSearch} onChange={setCollabSearch} />
+          <FilterSelect placeholder="Tous les départements" value={deptFilter} onChange={setDeptFilter} options={deptOptions} />
+        </FilterBar>
+        <Button onClick={() => downloadAuthed(`/api/reports/hr/export.xlsx?${periodQuery}`, `rapport-rh-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
           <Download className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
@@ -757,14 +1023,16 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle>Effectif par département</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Effectif par département {deptFilter !== "all" && <Badge variant="secondary" className="ml-2 text-xs font-normal">{deptFilter}</Badge>}</CardTitle>
+              </CardHeader>
               <CardContent>
-                {Object.keys(data.byDepartment).length === 0 ? (
+                {Object.keys(filteredByDepartment).length === 0 ? (
                   <p className="text-sm text-muted-foreground">Aucun département renseigné.</p>
                 ) : (
                   <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={Object.entries(data.byDepartment).map(([d, n]) => ({ dept: d, effectif: n }))} layout="vertical">
+                      <BarChart data={Object.entries(filteredByDepartment).map(([d, n]) => ({ dept: d, effectif: n }))} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" />
                         <YAxis type="category" dataKey="dept" width={140} />
@@ -798,14 +1066,17 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> Top collaborateurs — heures pointées</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary" /> Top collaborateurs — heures pointées
+                {collabSearch && <Badge variant="secondary" className="text-xs font-normal">filtrés</Badge>}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {data.topPerformers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun pointage sur la période.</p>
+              {filteredTopPerformers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{collabSearch ? "Aucun collaborateur ne correspond." : "Aucun pointage sur la période."}</p>
               ) : (
                 <div className="space-y-2">
-                  {data.topPerformers.map((p) => (
+                  {filteredTopPerformers.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-3 border rounded-md">
                       <span className="font-semibold text-sm">{p.name}</span>
                       <Badge className="bg-primary/10 text-primary border-primary/30">{p.hours} h</Badge>
@@ -816,14 +1087,17 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
             </CardContent>
           </Card>
 
-          {data.expiringList.length > 0 && (
+          {filteredExpiringList.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" /> Contrats expirants (≤ 60 jours)</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" /> Contrats expirants (≤ 60 jours)
+                  {collabSearch && <Badge variant="secondary" className="text-xs font-normal">filtrés</Badge>}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {data.expiringList.map((c) => (
+                  {filteredExpiringList.map((c) => (
                     <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
                       <div>
                         <div className="font-semibold text-sm">{c.collaborator}</div>
@@ -837,15 +1111,18 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
             </Card>
           )}
 
-          {workload && workload.length > 0 && (
+          {filteredWorkload.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> Charge de travail (tâches & projets)</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" /> Charge de travail
+                  {collabSearch && <Badge variant="secondary" className="text-xs font-normal">filtrés</Badge>}
+                </CardTitle>
                 <CardDescription>Indicateur transversal, indépendant de la période.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {workload.map((u) => (
+                  {filteredWorkload.map((u) => (
                     <div key={u.userId} className="border rounded-md p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
