@@ -1725,4 +1725,151 @@ router.delete("/accounting/taxes/:id", requireAdmin, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// TABLEAU DE FLUX DE TRÉSORERIE — méthode indirecte (SYSCOHADA)
+// ════════════════════════════════════════════════════════════════
+
+router.get("/accounting/cash-flow-statement", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { from, to } = req.query as Record<string, string>;
+
+    if (!from || !to) { res.status(400).json({ error: "Paramètres 'from' et 'to' requis (YYYY-MM-DD)" }); return; }
+
+    // ── 1. Lignes d'écritures comptables sur la période ──────────────────
+    const lines = await db
+      .select({
+        accountNumber: chartOfAccountsTable.number,
+        accountName: chartOfAccountsTable.name,
+        accountType: chartOfAccountsTable.type,
+        debit: journalEntryLinesTable.debit,
+        credit: journalEntryLinesTable.credit,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.journalEntryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(
+        eq(journalEntryLinesTable.organizationId, orgId),
+        eq(journalEntriesTable.status, "posted"),
+        gte(journalEntriesTable.date, from),
+        lte(journalEntriesTable.date, to),
+      ));
+
+    // ── 2. Agrégation par préfixe de compte ──────────────────────────────
+    type AccBucket = { debit: number; credit: number; net: number };
+    const byPrefix: Record<string, AccBucket> = {};
+
+    for (const l of lines) {
+      const num = l.accountNumber ?? "";
+      const d = toNum(l.debit), cr = toNum(l.credit);
+
+      // Store per-account
+      if (!byPrefix[num]) byPrefix[num] = { debit: 0, credit: 0, net: 0 };
+      byPrefix[num].debit += d;
+      byPrefix[num].credit += cr;
+      byPrefix[num].net += d - cr;
+
+      // Store per-class (1 digit)
+      const cls = num.slice(0, 1);
+      if (!byPrefix[cls]) byPrefix[cls] = { debit: 0, credit: 0, net: 0 };
+      byPrefix[cls].debit += d;
+      byPrefix[cls].credit += cr;
+      byPrefix[cls].net += d - cr;
+
+      // Store per-2-digit prefix
+      const pfx2 = num.slice(0, 2);
+      if (!byPrefix[pfx2]) byPrefix[pfx2] = { debit: 0, credit: 0, net: 0 };
+      byPrefix[pfx2].debit += d;
+      byPrefix[pfx2].credit += cr;
+      byPrefix[pfx2].net += d - cr;
+    }
+
+    const net = (pfx: string) => byPrefix[pfx]?.net ?? 0;
+    const deb = (pfx: string) => byPrefix[pfx]?.debit ?? 0;
+    const crd = (pfx: string) => byPrefix[pfx]?.credit ?? 0;
+
+    // ── 3. Calculs SYSCOHADA méthode indirecte ────────────────────────────
+
+    // A — Résultat net
+    // Produits = credits classe 7 (normal credit), Charges = debits classe 6
+    // Net income = credits 7x - debits 7x - (debits 6x - credits 6x)
+    const produitsExpl = crd("7") - deb("7");
+    const chargesExpl = deb("6") - crd("6");
+    const resultatNet = produitsExpl - chargesExpl;
+
+    // B — Ajustements non-monétaires
+    const dotationsAmort = deb("68");           // Dotations amortissements & provisions (débit = charge)
+    const reprisesAmort = crd("78");            // Reprises sur provisions (crédit = produit)
+    const ajustements = dotationsAmort - reprisesAmort;
+
+    // C — Variation du BFR
+    // Augmentation créances = plus de débit 41 = - cash ; diminution = + cash
+    const varClients = -(net("41"));            // positive net debit = increase = uses cash
+    const varStocks = -(net("3"));              // positive net debit = inventory increase = uses cash
+    const varFournisseurs = net("40");          // positive net credit = payables increase = + cash (net = debit - credit, so invert)
+    const varAutresCreances = -(net("42") + net("43") + net("44") + net("45") + net("46"));
+    const varAutresDettes = net("47") + net("48") + net("49");
+    const varBFR = varClients + varStocks + varFournisseurs + varAutresCreances + varAutresDettes;
+
+    // Flux opérationnel total
+    const fluxOperationnel = resultatNet + ajustements + varBFR;
+
+    // D — Flux d'investissement
+    // Acquisitions = débits 2x (achats d'immobilisations) = cash sortant
+    const acquisitionsImmo = -(deb("2") - crd("2"));  // net debit = outflow
+    const fluxInvestissement = acquisitionsImmo;
+
+    // E — Flux de financement
+    // Nouveaux emprunts = crédit 16/17 (cash entrant)
+    const nouveauxEmprunts = crd("16") + crd("17") - deb("16") - deb("17");
+    // Dividendes = débit 11x/129 = cash sortant
+    const dividendes = -(deb("11") + deb("12") - crd("11") - crd("12"));
+    // Capital augmentation = crédit 10x = cash entrant
+    const augmentCapital = crd("10") - deb("10");
+    const fluxFinancement = nouveauxEmprunts + dividendes + augmentCapital;
+
+    // F — Variation nette de trésorerie
+    const variationNette = fluxOperationnel + fluxInvestissement + fluxFinancement;
+
+    // G — Solde de trésorerie ouverture/clôture
+    // Trésorerie = classe 5 (net)
+    const tresorerieFin = -(net("5"));     // cash increases with credit, decreases with debit
+    const tresorerieDebut = tresorerieFin - variationNette;
+
+    res.json({
+      period: { from, to },
+      operatingActivities: {
+        total: fluxOperationnel,
+        items: [
+          { label: "Résultat net de l'exercice", amount: resultatNet, type: "result" },
+          { label: "Dotations aux amortissements et provisions", amount: dotationsAmort, type: "adjustment" },
+          { label: "Reprises sur provisions", amount: -reprisesAmort, type: "adjustment" },
+          { label: "Variation des créances clients (41)", amount: varClients, type: "wc" },
+          { label: "Variation des stocks (3x)", amount: varStocks, type: "wc" },
+          { label: "Variation des dettes fournisseurs (40)", amount: varFournisseurs, type: "wc" },
+          { label: "Variation des autres créances (42-46)", amount: varAutresCreances, type: "wc" },
+          { label: "Variation des autres dettes (47-49)", amount: varAutresDettes, type: "wc" },
+        ],
+      },
+      investingActivities: {
+        total: fluxInvestissement,
+        items: [
+          { label: "Acquisitions / cessions nettes d'immobilisations (2x)", amount: acquisitionsImmo, type: "invest" },
+        ],
+      },
+      financingActivities: {
+        total: fluxFinancement,
+        items: [
+          { label: "Variation nette des emprunts et dettes financières (16-17)", amount: nouveauxEmprunts, type: "finance" },
+          { label: "Augmentation de capital (10x)", amount: augmentCapital, type: "finance" },
+          { label: "Dividendes et distributions (11-12)", amount: dividendes, type: "finance" },
+        ],
+      },
+      netCashChange: variationNette,
+      openingBalance: tresorerieDebut,
+      closingBalance: tresorerieFin,
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;

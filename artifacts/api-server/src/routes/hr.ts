@@ -1,4 +1,5 @@
 import { Router } from "express";
+import PDFDocument from "pdfkit";
 import { db } from "@workspace/db";
 import {
   departmentsTable,
@@ -17,8 +18,10 @@ import {
   trainingSessionsTable,
   trainingParticipantsTable,
   personnelMovementsTable,
+  payslipsTable,
+  payrollRunsTable,
 } from "@workspace/db";
-import { and, asc, eq, isNull, sql, desc, gte, lte } from "drizzle-orm";
+import { and, asc, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -1046,4 +1049,463 @@ router.patch("/hr/me/profile", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// SELF-SERVICE COLLABORATEUR — /hr/me/*
+// ════════════════════════════════════════════════════════════════
+
+async function getMyCollab(userId: string, orgId: string) {
+  const [collab] = await db.select().from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+    .limit(1);
+  return collab ?? null;
+}
+
+const toN = (v: unknown): number => (v == null ? 0 : Number(v));
+const fmtFCFA = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+
+/** GET /hr/me/payslips — bulletins de paie de l'employé connecté */
+router.get("/hr/me/payslips", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const payslips = await db.select({
+      id: payslipsTable.id,
+      period: payslipsTable.period,
+      baseSalary: payslipsTable.baseSalary,
+      grossSalary: payslipsTable.grossSalary,
+      netSalary: payslipsTable.netSalary,
+      cnssEmployee: payslipsTable.cnssEmployee,
+      cnssEmployer: payslipsTable.cnssEmployer,
+      irpp: payslipsTable.irpp,
+      ipts: payslipsTable.ipts,
+      status: payslipsTable.status,
+      paidAt: payslipsTable.paidAt,
+      runStatus: payrollRunsTable.status,
+    })
+      .from(payslipsTable)
+      .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
+      .where(and(eq(payslipsTable.collaboratorId, collab.id), eq(payslipsTable.organizationId, orgId)))
+      .orderBy(desc(payslipsTable.period));
+
+    res.json(payslips.map(p => ({
+      ...p,
+      baseSalary: toN(p.baseSalary), grossSalary: toN(p.grossSalary), netSalary: toN(p.netSalary),
+      cnssEmployee: toN(p.cnssEmployee), cnssEmployer: toN(p.cnssEmployer),
+      irpp: toN(p.irpp), ipts: toN(p.ipts),
+    })));
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/payslips/:id/pdf — télécharger son bulletin de paie en PDF */
+router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const [payslip] = await db.select().from(payslipsTable)
+      .where(and(eq(payslipsTable.id, req.params.id), eq(payslipsTable.collaboratorId, collab.id), eq(payslipsTable.organizationId, orgId)))
+      .limit(1);
+    if (!payslip) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
+
+    const fullName = `${collab.firstName} ${collab.lastName}`;
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="bulletin-${payslip.period}-${collab.lastName}.pdf"`);
+    doc.pipe(res);
+
+    // En-tête fond sombre
+    doc.rect(0, 0, 595, 80).fill("#0f172a");
+    doc.fillColor("white").fontSize(20).font("Helvetica-Bold").text("BULLETIN DE PAIE", 40, 18);
+    doc.fontSize(10).font("Helvetica").text(`Période : ${payslip.period}`, 40, 48);
+    doc.fontSize(9).text("Gaméasù Technology", 440, 18, { width: 115, align: "right" });
+    doc.fontSize(8).fillColor("#94a3b8").text("Document officiel", 440, 34, { width: 115, align: "right" });
+
+    // Bloc collaborateur
+    doc.fillColor("#0f172a").fontSize(11).font("Helvetica-Bold").text("Collaborateur", 40, 100);
+    doc.moveTo(40, 116).lineTo(555, 116).lineWidth(0.5).stroke("#e2e8f0");
+    doc.fillColor("#374151").fontSize(9).font("Helvetica");
+    doc.text(`Nom complet : ${fullName}`, 40, 124);
+    doc.text(`Poste : ${collab.jobTitle ?? "—"}`, 40, 140);
+    const period = payslip.period;
+    const [yr, mo] = period.split("-");
+    const moisFr = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    const moisLabel = moisFr[parseInt(mo, 10) - 1] ?? mo;
+    doc.text(`Période de paie : ${moisLabel} ${yr}`, 300, 124);
+    doc.text(`Statut : ${payslip.status === "validated" ? "Validé" : payslip.status === "paid" ? "Payé" : "En cours"}`, 300, 140);
+
+    // En-tête tableau
+    const tableTop = 180;
+    doc.rect(40, tableTop, 515, 22).fill("#1e293b");
+    doc.fillColor("white").fontSize(9).font("Helvetica-Bold");
+    doc.text("Élément de rémunération", 50, tableTop + 7);
+    doc.text("Montant (FCFA)", 430, tableTop + 7, { width: 115, align: "right" });
+
+    // Lignes
+    const gains: Array<[string, number]> = [
+      ["Salaire de base", toN(payslip.baseSalary)],
+    ];
+    if (payslip.additions && Array.isArray(payslip.additions)) {
+      for (const a of payslip.additions as Array<{ label: string; amount: number }>) {
+        gains.push([a.label ?? "Prime", toN(a.amount)]);
+      }
+    }
+    gains.push(["Salaire brut", toN(payslip.grossSalary)]);
+
+    let y = tableTop + 28;
+    let altRow = false;
+    for (const [label, amount] of gains) {
+      if (altRow) doc.rect(40, y - 2, 515, 18).fill("#f8fafc");
+      altRow = !altRow;
+      doc.fillColor(label === "Salaire brut" ? "#0f172a" : "#374151")
+        .font(label === "Salaire brut" ? "Helvetica-Bold" : "Helvetica")
+        .fontSize(9);
+      doc.text(label, 50, y);
+      doc.fillColor("#047857").text(fmtFCFA(amount), 430, y, { width: 115, align: "right" });
+      y += 18;
+    }
+
+    // Séparateur retenues
+    y += 4;
+    doc.rect(40, y, 515, 20).fill("#fef3c7");
+    doc.fillColor("#92400e").fontSize(8).font("Helvetica-Bold").text("RETENUES SALARIALES", 50, y + 6);
+    y += 26;
+
+    const retenues: Array<[string, number]> = [
+      ["CNSS salarié (4%)", toN(payslip.cnssEmployee)],
+      ["IPTS — Impôt sur salaires (2%)", toN(payslip.ipts)],
+      ["IRPP — Impôt sur le revenu", toN(payslip.irpp)],
+    ];
+    altRow = false;
+    let totalRetenues = 0;
+    for (const [label, amount] of retenues) {
+      if (altRow) doc.rect(40, y - 2, 515, 18).fill("#fef9f0");
+      altRow = !altRow;
+      doc.fillColor("#374151").font("Helvetica").fontSize(9).text(label, 50, y);
+      doc.fillColor("#dc2626").text(`- ${fmtFCFA(amount)}`, 430, y, { width: 115, align: "right" });
+      totalRetenues += amount;
+      y += 18;
+    }
+
+    // NET À PAYER
+    y += 8;
+    doc.rect(40, y, 515, 38).fill("#0f172a");
+    doc.fillColor("white").fontSize(13).font("Helvetica-Bold");
+    doc.text("NET À PAYER", 50, y + 12);
+    doc.text(fmtFCFA(toN(payslip.netSalary)), 350, y + 12, { width: 195, align: "right" });
+
+    // Charges patronales
+    y += 56;
+    doc.rect(40, y, 515, 30).fill("#f1f5f9");
+    doc.fillColor("#64748b").fontSize(8).font("Helvetica");
+    doc.text(`Charges patronales CNSS (16,4%) : ${fmtFCFA(toN(payslip.cnssEmployer))}`, 50, y + 6);
+    doc.text(`Coût total employeur : ${fmtFCFA(toN(payslip.grossSalary) + toN(payslip.cnssEmployer))}`, 50, y + 18);
+
+    // Pied de page
+    doc.moveTo(40, 770).lineTo(555, 770).lineWidth(0.5).stroke("#e2e8f0");
+    doc.fillColor("#94a3b8").fontSize(7).font("Helvetica")
+      .text("Document généré automatiquement par Gaméasù Technology. Ce bulletin est confidentiel.", 40, 776, { align: "center", width: 515 });
+
+    doc.end();
+  } catch (e) { next(e); }
+});
+
+/** GET /api/payroll/payslips/:id/pdf — export PDF admin (sans restriction collab) */
+router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [payslip] = await db.select().from(payslipsTable)
+      .where(and(eq(payslipsTable.id, req.params.id), eq(payslipsTable.organizationId, orgId)))
+      .limit(1);
+    if (!payslip) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
+
+    const [collab] = await db.select().from(collaboratorsTable)
+      .where(eq(collaboratorsTable.id, payslip.collaboratorId))
+      .limit(1);
+
+    const fullName = collab ? `${collab.firstName} ${collab.lastName}` : "Collaborateur";
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="bulletin-${payslip.period}-${collab?.lastName ?? "collab"}.pdf"`);
+    doc.pipe(res);
+
+    doc.rect(0, 0, 595, 80).fill("#0f172a");
+    doc.fillColor("white").fontSize(20).font("Helvetica-Bold").text("BULLETIN DE PAIE", 40, 18);
+    doc.fontSize(10).font("Helvetica").text(`Période : ${payslip.period}`, 40, 48);
+    doc.fontSize(9).text("Gaméasù Technology", 440, 18, { width: 115, align: "right" });
+
+    doc.fillColor("#374151").fontSize(9).font("Helvetica");
+    const period = payslip.period;
+    const [yr, mo] = period.split("-");
+    const moisFr = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    doc.text(`Collaborateur : ${fullName}`, 40, 104);
+    doc.text(`Poste : ${collab?.jobTitle ?? "—"}`, 40, 120);
+    doc.text(`Période : ${moisFr[parseInt(mo, 10) - 1] ?? mo} ${yr}`, 300, 104);
+    doc.text(`Statut : ${payslip.status === "validated" ? "Validé" : payslip.status === "paid" ? "Payé" : "Brouillon"}`, 300, 120);
+
+    const tableTop = 156;
+    doc.rect(40, tableTop, 515, 22).fill("#1e293b");
+    doc.fillColor("white").fontSize(9).font("Helvetica-Bold");
+    doc.text("Élément", 50, tableTop + 7);
+    doc.text("Montant (FCFA)", 430, tableTop + 7, { width: 115, align: "right" });
+
+    let y = tableTop + 28;
+    const items: Array<[string, number, boolean]> = [
+      ["Salaire de base", toN(payslip.baseSalary), false],
+      ["Salaire brut", toN(payslip.grossSalary), true],
+      ["- CNSS salarié (4%)", -toN(payslip.cnssEmployee), false],
+      ["- IPTS (2%)", -toN(payslip.ipts), false],
+      ["- IRPP", -toN(payslip.irpp), false],
+    ];
+    for (const [label, amount, bold] of items) {
+      doc.fillColor("#374151").font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9).text(label, 50, y);
+      doc.fillColor(amount >= 0 ? "#047857" : "#dc2626")
+        .text(fmtFCFA(Math.abs(amount)), 430, y, { width: 115, align: "right" });
+      y += 18;
+    }
+
+    y += 6;
+    doc.rect(40, y, 515, 36).fill("#0f172a");
+    doc.fillColor("white").fontSize(13).font("Helvetica-Bold");
+    doc.text("NET À PAYER", 50, y + 11);
+    doc.text(fmtFCFA(toN(payslip.netSalary)), 350, y + 11, { width: 195, align: "right" });
+
+    y += 52;
+    doc.fillColor("#64748b").fontSize(8).font("Helvetica");
+    doc.text(`Charges patronales CNSS (16,4%) : ${fmtFCFA(toN(payslip.cnssEmployer))}  |  Coût total employeur : ${fmtFCFA(toN(payslip.grossSalary) + toN(payslip.cnssEmployer))}`, 40, y, { width: 515, align: "center" });
+
+    doc.moveTo(40, 770).lineTo(555, 770).lineWidth(0.5).stroke("#e2e8f0");
+    doc.fillColor("#94a3b8").fontSize(7).text("Document généré par Gaméasù Technology — Confidentiel", 40, 776, { align: "center", width: 515 });
+    doc.end();
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/contract — contrat actif de l'employé connecté */
+router.get("/hr/me/contract", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const [contract] = await db.select().from(contractsTable)
+      .where(and(eq(contractsTable.collaboratorId, collab.id), eq(contractsTable.organizationId, orgId), eq(contractsTable.status, "active")))
+      .orderBy(desc(contractsTable.startDate))
+      .limit(1);
+    if (!contract) { res.status(404).json({ error: "Aucun contrat actif" }); return; }
+    res.json({ ...contract, monthlySalary: contract.monthlySalary ? Number(contract.monthlySalary) : null });
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/leave-requests */
+router.get("/hr/me/leave-requests", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+    const rows = await db.select().from(leaveRequestsTable)
+      .where(and(eq(leaveRequestsTable.collaboratorId, collab.id), eq(leaveRequestsTable.organizationId, orgId)))
+      .orderBy(desc(leaveRequestsTable.createdAt));
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+/** POST /hr/me/leave-requests — soumettre une demande de congé */
+router.post("/hr/me/leave-requests", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const { type, startDate, endDate, reason } = req.body as { type: string; startDate: string; endDate: string; reason?: string };
+    if (!type || !startDate || !endDate) {
+      res.status(400).json({ error: "type, startDate et endDate sont requis" }); return;
+    }
+    const s = new Date(startDate), e = new Date(endDate);
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) {
+      res.status(400).json({ error: "Dates invalides" }); return;
+    }
+    let days = 0;
+    const cur = new Date(s);
+    while (cur <= e) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    if (days <= 0) { res.status(400).json({ error: "Aucun jour ouvré dans la période sélectionnée" }); return; }
+
+    const [created] = await db.insert(leaveRequestsTable).values({
+      organizationId: orgId,
+      collaboratorId: collab.id,
+      type,
+      startDate,
+      endDate,
+      days,
+      reason: reason ?? null,
+      status: "pending",
+    }).returning();
+    res.status(201).json(created);
+  } catch (e) { next(e); }
+});
+
+/** PATCH /hr/me/leave-requests/:id/cancel — annuler sa propre demande de congé */
+router.patch("/hr/me/leave-requests/:id/cancel", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const [existing] = await db.select().from(leaveRequestsTable)
+      .where(and(eq(leaveRequestsTable.id, req.params.id), eq(leaveRequestsTable.collaboratorId, collab.id), eq(leaveRequestsTable.organizationId, orgId)))
+      .limit(1);
+    if (!existing) { res.status(404).json({ error: "Demande introuvable" }); return; }
+    if (!["pending"].includes(existing.status)) {
+      res.status(400).json({ error: "Seules les demandes en attente peuvent être annulées" }); return;
+    }
+    const [updated] = await db.update(leaveRequestsTable)
+      .set({ status: "cancelled" })
+      .where(eq(leaveRequestsTable.id, req.params.id))
+      .returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/leave-balance — solde de congés par type */
+router.get("/hr/me/leave-balance", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const year = new Date().getFullYear();
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+
+    const requests = await db.select({
+      type: leaveRequestsTable.type,
+      days: leaveRequestsTable.days,
+      status: leaveRequestsTable.status,
+    }).from(leaveRequestsTable).where(and(
+      eq(leaveRequestsTable.collaboratorId, collab.id),
+      eq(leaveRequestsTable.organizationId, orgId),
+      gte(leaveRequestsTable.startDate, yearStart),
+      lte(leaveRequestsTable.startDate, yearEnd),
+    ));
+
+    const annualRights: Record<string, number> = {
+      congé_payé: 26, RTT: 10, maladie: 15, maternité: 98,
+      paternité: 10, sans_solde: 0, formation: 5, exceptionnel: 3,
+    };
+
+    const byType: Record<string, { taken: number; pending: number; right: number; remaining: number }> = {};
+    for (const r of requests) {
+      const t = r.type ?? "autre";
+      if (!byType[t]) byType[t] = { taken: 0, pending: 0, right: annualRights[t] ?? 0, remaining: 0 };
+      if (r.status === "approved") byType[t].taken += r.days ?? 0;
+      else if (r.status === "pending") byType[t].pending += r.days ?? 0;
+    }
+    if (!byType["congé_payé"]) byType["congé_payé"] = { taken: 0, pending: 0, right: 26, remaining: 26 };
+    for (const t of Object.keys(byType)) {
+      byType[t].remaining = Math.max(0, byType[t].right - byType[t].taken);
+    }
+    res.json({ year, byType });
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/documents — documents RH de l'employé */
+router.get("/hr/me/documents", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+    const docs = await db.select().from(hrDocumentsTable)
+      .where(and(eq(hrDocumentsTable.collaboratorId, collab.id), eq(hrDocumentsTable.organizationId, orgId)))
+      .orderBy(desc(hrDocumentsTable.createdAt));
+    res.json(docs);
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/training — formations de l'employé connecté */
+router.get("/hr/me/training", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const sessions = await db.select({
+      sessionId: trainingSessionsTable.id,
+      title: trainingSessionsTable.title,
+      description: trainingSessionsTable.description,
+      startDate: trainingSessionsTable.startDate,
+      endDate: trainingSessionsTable.endDate,
+      location: trainingSessionsTable.location,
+      sessionStatus: trainingSessionsTable.status,
+      participantStatus: trainingParticipantsTable.status,
+      score: trainingParticipantsTable.score,
+      certificationDate: trainingParticipantsTable.certificationDate,
+    }).from(trainingParticipantsTable)
+      .innerJoin(trainingSessionsTable, eq(trainingParticipantsTable.trainingSessionId, trainingSessionsTable.id))
+      .where(and(
+        eq(trainingParticipantsTable.collaboratorId, collab.id),
+        eq(trainingSessionsTable.organizationId, orgId),
+      ))
+      .orderBy(desc(trainingSessionsTable.startDate));
+    res.json(sessions);
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/evaluations — évaluations de performance de l'employé */
+router.get("/hr/me/evaluations", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+    const evals = await db.select().from(performanceReviewsTable)
+      .where(and(eq(performanceReviewsTable.collaboratorId, collab.id), eq(performanceReviewsTable.organizationId, orgId)))
+      .orderBy(desc(performanceReviewsTable.reviewDate));
+    res.json(evals);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// ORGANIGRAMME VISUEL RH
+// ════════════════════════════════════════════════════════════════
+
+/** GET /hr/orgchart — arbre hiérarchique par département */
+router.get("/hr/orgchart", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [depts, collabs] = await Promise.all([
+      db.select().from(departmentsTable).where(eq(departmentsTable.organizationId, orgId)).orderBy(departmentsTable.name),
+      db.select({
+        id: collaboratorsTable.id,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        jobTitle: collaboratorsTable.jobTitle,
+        departmentId: collaboratorsTable.departmentId,
+        avatarUrl: collaboratorsTable.avatarUrl,
+        status: collaboratorsTable.status,
+      }).from(collaboratorsTable)
+        .where(and(
+          eq(collaboratorsTable.organizationId, orgId),
+          isNull(collaboratorsTable.deletedAt),
+          eq(collaboratorsTable.status, "active"),
+        )),
+    ]);
+    res.json({ departments: depts, collaborators: collabs });
+  } catch (e) { next(e); }
+});
+
 export default router;
+

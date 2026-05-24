@@ -23,6 +23,9 @@ import {
   attendanceFlagsTable,
   contractsTable,
   departmentsTable,
+  payslipsTable,
+  payrollRunsTable,
+  personnelMovementsTable,
 } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
@@ -883,4 +886,230 @@ router.get("/reports/overview", requireAuth, requireManagerOrAbove, async (req, 
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// MASSE SALARIALE — détail par mois / département
+// ════════════════════════════════════════════════════════════════
+
+router.get("/reports/hr/masse-salariale", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const orgId = req.authUser!.organizationId;
+
+    // Cycles de paie sur la période
+    const runs = await db.select({ id: payrollRunsTable.id, period: payrollRunsTable.period })
+      .from(payrollRunsTable)
+      .where(and(
+        eq(payrollRunsTable.organizationId, orgId),
+        gte(payrollRunsTable.period, period.from.toISOString().slice(0, 7)),
+        lte(payrollRunsTable.period, period.to.toISOString().slice(0, 7)),
+      ))
+      .orderBy(payrollRunsTable.period);
+
+    if (runs.length === 0) {
+      res.json({ period: { from: period.fromIso, to: period.toIso }, byMonth: [], byDepartment: [], kpi: { totalGross: 0, totalNet: 0, totalCnssEmployer: 0, totalIrpp: 0, employeeCount: 0 } });
+      return;
+    }
+
+    const runIds = runs.map(r => r.id);
+
+    const payslips = await db.select({
+      period: payslipsTable.period,
+      grossSalary: payslipsTable.grossSalary,
+      netSalary: payslipsTable.netSalary,
+      cnssEmployee: payslipsTable.cnssEmployee,
+      cnssEmployer: payslipsTable.cnssEmployer,
+      irpp: payslipsTable.irpp,
+      ipts: payslipsTable.ipts,
+      departmentId: collaboratorsTable.departmentId,
+      deptName: departmentsTable.name,
+    })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(departmentsTable, eq(collaboratorsTable.departmentId, departmentsTable.id))
+      .where(and(
+        eq(payslipsTable.organizationId, orgId),
+        inArray(payslipsTable.payrollRunId, runIds),
+      ));
+
+    const byMonth: Record<string, { period: string; gross: number; net: number; cnssEmployer: number; irpp: number; count: number }> = {};
+    const byDept: Record<string, { department: string; gross: number; net: number; count: number }> = {};
+
+    let totalGross = 0, totalNet = 0, totalCnssEmployer = 0, totalIrpp = 0;
+
+    for (const p of payslips) {
+      const mo = p.period ?? "—";
+      const gross = num(p.grossSalary), net = num(p.netSalary), cnssEr = num(p.cnssEmployer), ir = num(p.irpp);
+      totalGross += gross; totalNet += net; totalCnssEmployer += cnssEr; totalIrpp += ir;
+
+      if (!byMonth[mo]) byMonth[mo] = { period: mo, gross: 0, net: 0, cnssEmployer: 0, irpp: 0, count: 0 };
+      byMonth[mo].gross += gross;
+      byMonth[mo].net += net;
+      byMonth[mo].cnssEmployer += cnssEr;
+      byMonth[mo].irpp += ir;
+      byMonth[mo].count++;
+
+      const dname = p.deptName ?? "Sans département";
+      if (!byDept[dname]) byDept[dname] = { department: dname, gross: 0, net: 0, count: 0 };
+      byDept[dname].gross += gross;
+      byDept[dname].net += net;
+      byDept[dname].count++;
+    }
+
+    res.json({
+      period: { from: period.fromIso, to: period.toIso },
+      byMonth: Object.values(byMonth).sort((a, b) => a.period.localeCompare(b.period)),
+      byDepartment: Object.values(byDept).sort((a, b) => b.gross - a.gross),
+      kpi: { totalGross, totalNet, totalCnssEmployer, totalIrpp, employeeCount: payslips.length },
+    });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// TURNOVER — entrées / sorties / taux
+// ════════════════════════════════════════════════════════════════
+
+router.get("/reports/hr/turnover", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const orgId = req.authUser!.organizationId;
+    const fromDate = period.from.toISOString().slice(0, 10);
+    const toDate = period.to.toISOString().slice(0, 10);
+
+    const [collabs, movements] = await Promise.all([
+      db.select({ id: collaboratorsTable.id, status: collaboratorsTable.status, employmentStatus: collaboratorsTable.employmentStatus })
+        .from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt))),
+      db.select().from(personnelMovementsTable)
+        .where(and(
+          eq(personnelMovementsTable.organizationId, orgId),
+          gte(personnelMovementsTable.effectiveDate, fromDate),
+          lte(personnelMovementsTable.effectiveDate, toDate),
+        )).orderBy(personnelMovementsTable.effectiveDate),
+    ]);
+
+    const totalEffectif = collabs.length;
+    const exits = movements.filter(m => ["departure", "retirement"].includes(m.type));
+    const entries = movements.filter(m => m.type === "mutation" || m.type === "promotion"); // no hire type
+
+    const byType: Record<string, number> = {};
+    for (const m of movements) {
+      byType[m.type] = (byType[m.type] ?? 0) + 1;
+    }
+
+    const turnoverRate = totalEffectif > 0 ? Math.round((exits.length / totalEffectif) * 100 * 10) / 10 : 0;
+
+    res.json({
+      period: { from: period.fromIso, to: period.toIso },
+      kpi: {
+        totalEffectif,
+        exits: exits.length,
+        entries: entries.length,
+        turnoverRate,
+        activeCount: collabs.filter(c => c.employmentStatus === "active" || c.status === "active").length,
+      },
+      byType,
+      movements: movements.map(m => ({
+        id: m.id,
+        type: m.type,
+        effectiveDate: m.effectiveDate,
+        reason: m.reason,
+      })),
+    });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// BALANCE ÂGÉE — créances clients
+// ════════════════════════════════════════════════════════════════
+
+router.get("/reports/aged-receivables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const invoices = await db.select({
+      id: invoicesTable.id,
+      referenceNumber: invoicesTable.referenceNumber,
+      clientId: invoicesTable.clientId,
+      clientName: clientsTable.name,
+      status: invoicesTable.status,
+      totalAmount: invoicesTable.totalAmount,
+      paidAmount: invoicesTable.paidAmount,
+      dueDate: invoicesTable.dueDate,
+      issuedAt: invoicesTable.issuedAt,
+    })
+      .from(invoicesTable)
+      .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(and(
+        eq(invoicesTable.organizationId, orgId),
+        inArray(invoicesTable.status, ["pending", "overdue", "partially_paid"]),
+      ));
+
+    // Calcul des tranches
+    const buckets = {
+      current: { label: "Courant (non échu)", amount: 0, count: 0, items: [] as any[] },
+      "1-30": { label: "1 – 30 jours", amount: 0, count: 0, items: [] as any[] },
+      "31-60": { label: "31 – 60 jours", amount: 0, count: 0, items: [] as any[] },
+      "61-90": { label: "61 – 90 jours", amount: 0, count: 0, items: [] as any[] },
+      "90+": { label: "+ 90 jours", amount: 0, count: 0, items: [] as any[] },
+    };
+
+    let totalOutstanding = 0;
+
+    for (const inv of invoices) {
+      const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+      if (outstanding <= 0) continue;
+      totalOutstanding += outstanding;
+
+      const dueDateStr = inv.dueDate ?? inv.issuedAt;
+      let daysOverdue = 0;
+      if (dueDateStr) {
+        const due = new Date(dueDateStr);
+        due.setHours(0, 0, 0, 0);
+        daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      const item = { id: inv.id, reference: inv.referenceNumber, client: inv.clientName ?? "—", outstanding, dueDate: inv.dueDate, daysOverdue };
+
+      let bucket: keyof typeof buckets;
+      if (daysOverdue <= 0) bucket = "current";
+      else if (daysOverdue <= 30) bucket = "1-30";
+      else if (daysOverdue <= 60) bucket = "31-60";
+      else if (daysOverdue <= 90) bucket = "61-90";
+      else bucket = "90+";
+
+      buckets[bucket].amount += outstanding;
+      buckets[bucket].count++;
+      buckets[bucket].items.push(item);
+    }
+
+    // Balance âgée par client
+    const byClient: Record<string, { client: string; total: number; buckets: Record<string, number> }> = {};
+    for (const [key, bucket] of Object.entries(buckets)) {
+      for (const item of bucket.items) {
+        const c = item.client;
+        if (!byClient[c]) byClient[c] = { client: c, total: 0, buckets: { current: 0, "1-30": 0, "31-60": 0, "61-90": 0, "90+": 0 } };
+        byClient[c].total += item.outstanding;
+        byClient[c].buckets[key] = (byClient[c].buckets[key] ?? 0) + item.outstanding;
+      }
+    }
+
+    res.json({
+      totalOutstanding,
+      buckets: Object.entries(buckets).map(([key, b]) => ({
+        key,
+        label: b.label,
+        amount: b.amount,
+        count: b.count,
+        percent: totalOutstanding > 0 ? Math.round((b.amount / totalOutstanding) * 100) : 0,
+      })),
+      byClient: Object.values(byClient).sort((a, b) => b.total - a.total).slice(0, 20),
+      detail: Object.entries(buckets).flatMap(([bucket, b]) =>
+        b.items.map(i => ({ ...i, bucket }))
+      ).sort((a, b) => b.daysOverdue - a.daysOverdue),
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;
+

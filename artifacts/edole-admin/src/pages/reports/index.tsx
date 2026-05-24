@@ -320,10 +320,35 @@ function OverviewTab({ periodQuery }: { periodQuery: string }) {
 // Finance
 // ────────────────────────────────────────────────────────────────
 
+type AgedReceivables = {
+  totalOutstanding: number;
+  buckets: Array<{ key: string; label: string; amount: number; count: number; percent: number }>;
+  byClient: Array<{ client: string; total: number; buckets: Record<string, number> }>;
+  detail: Array<{ id: string; reference: string; client: string; outstanding: number; dueDate: string | null; daysOverdue: number; bucket: string }>;
+};
+
+type MasseSalariale = {
+  period: { from: string; to: string };
+  byMonth: Array<{ period: string; gross: number; net: number; cnssEmployer: number; irpp: number; count: number }>;
+  byDepartment: Array<{ department: string; gross: number; net: number; count: number }>;
+  kpi: { totalGross: number; totalNet: number; totalCnssEmployer: number; totalIrpp: number; employeeCount: number };
+};
+
+type TurnoverReport = {
+  period: { from: string; to: string };
+  kpi: { totalEffectif: number; exits: number; entries: number; turnoverRate: number; activeCount: number };
+  byType: Record<string, number>;
+};
+
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
   const { data, isLoading } = useQuery<FinanceReport>({
     queryKey: ["report", "finance", periodQuery],
     queryFn: () => apiFetch(`/api/reports/finance?${periodQuery}`),
+  });
+
+  const { data: aged } = useQuery<AgedReceivables>({
+    queryKey: ["report", "aged-receivables"],
+    queryFn: () => apiFetch("/api/reports/aged-receivables"),
   });
 
   return (
@@ -423,6 +448,52 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ── Balance âgée clients ─────────────────────────── */}
+          {aged && aged.totalOutstanding > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-500" /> Balance âgée — créances clients
+                </CardTitle>
+                <CardDescription>
+                  Total encours : <strong>{formatFCFA(aged.totalOutstanding)}</strong> — répartition par ancienneté.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Barres de tranches */}
+                <div className="space-y-2">
+                  {aged.buckets.map((b) => {
+                    const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
+                    return (
+                      <div key={b.key} className="flex items-center gap-3">
+                        <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
+                        <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                          <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
+                        </div>
+                        <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
+                        <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Top clients */}
+                {aged.byClient.length > 0 && (
+                  <div>
+                    <SectionTitle icon={Users}>Par client</SectionTitle>
+                    <div className="space-y-1">
+                      {aged.byClient.slice(0, 8).map((c) => (
+                        <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-slate-50/50">
+                          <span className="font-medium text-slate-800">{c.client}</span>
+                          <span className="font-bold text-primary">{formatFCFA(c.total)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -642,6 +713,16 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
     queryFn: () => apiFetch("/api/reports/workload"),
   });
 
+  const { data: masseSal } = useQuery<MasseSalariale>({
+    queryKey: ["report", "masse-salariale", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/hr/masse-salariale?${periodQuery}`),
+  });
+
+  const { data: turnover } = useQuery<TurnoverReport>({
+    queryKey: ["report", "turnover", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/hr/turnover?${periodQuery}`),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -771,6 +852,99 @@ function HrTab({ periodQuery }: { periodQuery: string }) {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ── Masse salariale ───────────────────────────────── */}
+          {masseSal && masseSal.kpi.employeeCount > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Banknote className="w-5 h-5 text-primary" /> Masse salariale
+                </CardTitle>
+                <CardDescription>
+                  Brut total : <strong>{formatFCFA(masseSal.kpi.totalGross)}</strong> · Net total : <strong>{formatFCFA(masseSal.kpi.totalNet)}</strong>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Kpi label="Brut total" value={formatFCFA(masseSal.kpi.totalGross)} hint={`${masseSal.kpi.employeeCount} bulletin(s)`} accent="primary" />
+                  <Kpi label="Net total" value={formatFCFA(masseSal.kpi.totalNet)} accent="success" />
+                  <Kpi label="Charges patronales" value={formatFCFA(masseSal.kpi.totalCnssEmployer)} accent="warning" />
+                  <Kpi label="IRPP total" value={formatFCFA(masseSal.kpi.totalIrpp)} />
+                </div>
+                {masseSal.byMonth.length > 0 && (
+                  <div>
+                    <SectionTitle icon={TrendingUp}>Évolution mensuelle</SectionTitle>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={masseSal.byMonth}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="period" />
+                          <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
+                          <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                          <Legend />
+                          <Bar dataKey="gross" name="Brut" fill="#F26B1F" radius={[3, 3, 0, 0]} />
+                          <Bar dataKey="net" name="Net" fill="#10B981" radius={[3, 3, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+                {masseSal.byDepartment.length > 0 && (
+                  <div>
+                    <SectionTitle icon={Users}>Par département</SectionTitle>
+                    <div className="space-y-1.5">
+                      {masseSal.byDepartment.map((d) => (
+                        <div key={d.department} className="flex items-center justify-between p-2.5 border rounded-md text-sm">
+                          <span className="font-medium">{d.department}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-500">{d.count} sal.</span>
+                            <span className="font-bold text-primary">{formatFCFA(d.gross)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ── Turnover ─────────────────────────────────────── */}
+          {turnover && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" /> Turnover & mouvements RH
+                </CardTitle>
+                <CardDescription>Analyse des entrées et sorties de personnel sur la période.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Kpi label="Effectif total" value={String(turnover.kpi.totalEffectif)} accent="primary" />
+                  <Kpi label="Taux de turnover" value={`${turnover.kpi.turnoverRate} %`} accent={turnover.kpi.turnoverRate > 15 ? "danger" : turnover.kpi.turnoverRate > 8 ? "warning" : "success"} />
+                  <Kpi label="Sorties (période)" value={String(turnover.kpi.exits)} accent={turnover.kpi.exits > 0 ? "warning" : "default"} />
+                  <Kpi label="Effectif actif" value={String(turnover.kpi.activeCount)} accent="success" />
+                </div>
+                {Object.keys(turnover.byType).length > 0 && (
+                  <div className="space-y-1.5">
+                    <SectionTitle icon={Users}>Mouvements par type</SectionTitle>
+                    {Object.entries(turnover.byType).map(([type, count]) => {
+                      const labels: Record<string, string> = {
+                        promotion: "Promotion", mutation: "Mutation", reclassification: "Reclassification",
+                        departure: "Départ", retirement: "Retraite", disciplinary: "Disciplinaire",
+                      };
+                      return (
+                        <div key={type} className="flex items-center justify-between p-2.5 border rounded-md text-sm">
+                          <span>{labels[type] ?? type}</span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

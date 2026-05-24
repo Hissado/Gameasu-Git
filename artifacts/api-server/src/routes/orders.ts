@@ -858,6 +858,89 @@ router.post("/invoices/:id/send-email", requireManagerOrAbove, async (req, res, 
   } catch (e) { next(e); }
 });
 
+// ─── RELANCE IMPAYÉS ──────────────────────────────────────────────────────────
+
+router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { to: toOverride, message } = (req.body ?? {}) as { to?: string; message?: string };
+
+    const rows = await db.select({
+      inv: invoicesTable,
+      clientName: clientsTable.name,
+      clientEmail: clientsTable.email,
+    })
+      .from(invoicesTable)
+      .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)))
+      .limit(1);
+
+    if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
+    const { inv, clientName, clientEmail } = rows[0];
+
+    const to = (toOverride?.trim() || clientEmail?.trim() || "");
+    if (!to) { res.status(400).json({ error: "Adresse email introuvable — renseignez le champ 'to'" }); return; }
+
+    if (!["pending", "overdue", "partially_paid", "sent"].includes(inv.status ?? "")) {
+      res.status(422).json({ error: "Seules les factures en attente ou en retard peuvent faire l'objet d'une relance." });
+      return;
+    }
+
+    const outstanding = toNum(inv.totalAmount) - toNum(inv.paidAmount);
+    const org = await getOrgBranding(orgId);
+    const orgName = org?.name ?? "Gaméasù";
+    const dueDateStr = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("fr-FR") : "—";
+    const daysOverdue = inv.dueDate
+      ? Math.max(0, Math.floor((Date.now() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    const emailMsg = {
+      to,
+      subject: `Relance de paiement — Facture ${inv.referenceNumber}`,
+      html: `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+  <div style="background:#0f172a;padding:24px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;color:#C8A24B;font-size:20px">${orgName}</h1>
+    <p style="margin:4px 0 0;color:#94a3b8;font-size:13px">Relance de paiement</p>
+  </div>
+  <div style="padding:28px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px">Bonjour${clientName ? ` ${clientName}` : ""},</p>
+    ${message ? `<p style="margin:0 0 16px">${message}</p>` : ""}
+    <p style="margin:0 0 16px">Sauf erreur de notre part, la facture suivante reste impayée&nbsp;:</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+      <tr style="background:#f8fafc">
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600">Référence</td>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0">${inv.referenceNumber}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600">Échéance</td>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;color:${daysOverdue > 0 ? "#dc2626" : "#1e293b"}">${dueDateStr}${daysOverdue > 0 ? ` (${daysOverdue} jour${daysOverdue > 1 ? "s" : ""} de retard)` : ""}</td>
+      </tr>
+      <tr style="background:#f8fafc">
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600">Reste à payer</td>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:700;color:#F37021">${new Intl.NumberFormat("fr-FR").format(outstanding)} FCFA</td>
+      </tr>
+    </table>
+    <p style="margin:0 0 24px">Nous vous serions reconnaissants de bien vouloir procéder au règlement dans les meilleurs délais.</p>
+    <p style="margin:0;color:#64748b;font-size:12px">Pour toute question, n'hésitez pas à nous contacter en répondant à cet email.<br>${orgName}</p>
+  </div>
+</div>`,
+      text: `Relance de paiement — Facture ${inv.referenceNumber}\n\nBonjour${clientName ? ` ${clientName}` : ""},\n${message ? "\n" + message + "\n" : ""}\nReste à payer : ${new Intl.NumberFormat("fr-FR").format(outstanding)} FCFA\nÉchéance : ${dueDateStr}${daysOverdue > 0 ? ` (${daysOverdue} jour(s) de retard)` : ""}\n\nMerci de procéder au règlement.\n${orgName}`,
+      category: "invoice_reminder",
+    };
+
+    const result = await sendEmail(emailMsg);
+
+    if (result.delivered) {
+      await writeAudit(req, "invoice_reminder_sent", "invoice", inv.id, {
+        to, daysOverdue, outstanding, provider: result.provider,
+      });
+    }
+
+    res.json({ ...result, to, daysOverdue, outstanding });
+  } catch (e) { next(e); }
+});
+
 // ─── CREDIT NOTES / AVOIRS ────────────────────────────────────────────────────
 
 router.get("/credit-notes", async (req, res, next) => {

@@ -463,6 +463,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <Link href="/billing"><CreditCard className="w-4 h-4 mr-2 text-muted-foreground" />Abonnement & facturation</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer py-2.5">
+                  <Link href="/mon-espace"><BarChart3 className="w-4 h-4 mr-2 text-muted-foreground" />Mon espace</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
                   <Link href="/profile"><UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />Mon profil</Link>
                 </DropdownMenuItem>
                 <div className="h-px bg-border my-1" />

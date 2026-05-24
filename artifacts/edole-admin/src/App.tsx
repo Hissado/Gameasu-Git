@@ -134,6 +134,9 @@ const UpgradeRequiredPage = lazy(() => import("@/pages/upgrade-required"));
 const IntelligenceCenter = lazy(() => import("@/pages/intelligence/index"));
 const AutomationsPage = lazy(() => import("@/pages/automations/index"));
 const AttendancePage = lazy(() => import("@/pages/attendance/index"));
+const MonEspace = lazy(() => import("@/pages/mon-espace/index"));
+const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
+const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -311,6 +314,9 @@ function AppRouter() {
                 <Route path="/intelligence" component={IntelligenceCenter} />
                 <Route path="/automations" component={AutomationsPage} />
                 <Route path="/attendance" component={AttendancePage} />
+                <Route path="/mon-espace" component={MonEspace} />
+                <Route path="/hr/orgchart" component={HrOrgchart} />
+                <Route path="/accounting/cash-flow" component={CashFlowStatement} />
 
                 <Route path="/admin" component={AdminHub} />
                 <Route path="/admin/roles" component={AdminRoles} />

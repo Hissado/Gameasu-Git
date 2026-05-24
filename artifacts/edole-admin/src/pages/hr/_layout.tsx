@@ -1,10 +1,11 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft } from "lucide-react";
+import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2 } from "lucide-react";
 
 const TABS = [
   { name: "Vue d'ensemble", path: "/hr", icon: UsersRound, exact: true },
   { name: "Collaborateurs", path: "/collaborators", icon: UsersRound },
+  { name: "Organigramme", path: "/hr/orgchart", icon: Share2 },
   { name: "Paie", path: "/hr/payroll", icon: Banknote },
   { name: "Recrutement", path: "/hr/recruitment", icon: Briefcase },
   { name: "Évaluations", path: "/hr/evaluations", icon: Star },

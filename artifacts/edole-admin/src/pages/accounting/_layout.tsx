@@ -19,6 +19,7 @@ const TABS = [
   { path: "/accounting/reconciliation", label: "Rapprochement" },
   { path: "/accounting/fixed-assets", label: "Immobilisations" },
   { path: "/accounting/analytical", label: "Analytique" },
+  { path: "/accounting/cash-flow", label: "Flux de trésorerie" },
 ];
 
 export function AccountingShell({ title, subtitle, actions, children }: {
