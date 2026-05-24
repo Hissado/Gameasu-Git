@@ -295,10 +295,70 @@ export const costCentersTable = pgTable("cost_centers", {
   typeIdx: index("cost_centers_type_idx").on(t.type),
 }));
 
-// Imputation analytique : lien entre une ligne d'écriture et un ou plusieurs centres de coût
-// Géré via costCenterId dans journalEntryLinesTable (à ajouter si besoin de profondeur)
-// Pour l'instant : les lignes d'écriture pointent vers projectId, et les centres de coût
-// peuvent être liés à des projets ou des départements pour l'agrégation analytique.
+// ────────────────────────────────────────────────────────────────
+// CAGE — COMPTABILITÉ ANALYTIQUE DE GESTION
+// ────────────────────────────────────────────────────────────────
+
+// Plan analytique CAGE (distinct du plan comptable SYSCOHADA)
+// Axes : produit | service | projet | client | activite | departement | nature | site | equipe
+export const analyticalAccountsTable = pgTable("analytical_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  axis: text("axis").notNull().default("nature"),
+  type: text("type").notNull().default("charges"), // charges | produits | mixte
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  codeOrgIdx: uniqueIndex("analytical_accounts_org_code_uidx").on(t.organizationId, t.code),
+  axisIdx: index("analytical_accounts_axis_idx").on(t.axis),
+}));
+
+// Imputations analytiques autonomes (saisie directe ou importées depuis la comptabilité générale)
+export const analyticalEntriesTable = pgTable("analytical_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  period: text("period").notNull(), // YYYY-MM
+  accountId: uuid("account_id").references(() => analyticalAccountsTable.id),
+  costCenterId: uuid("cost_center_id").references(() => costCentersTable.id),
+  // Positif = charge, négatif = produit (convention CAGE)
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  // fixe | variable | direct | indirect | investissement | fonctionnement | operationnel | administratif | support
+  costType: text("cost_type").notNull().default("direct"),
+  label: text("label").notNull(),
+  reference: text("reference"),
+  // Dimensions croisées optionnelles
+  projectId: uuid("project_id").references(() => projectsTable.id),
+  clientId: uuid("client_id").references(() => clientsTable.id),
+  // Lien optionnel vers l'écriture comptable source (pas de FK pour éviter les contraintes croisées)
+  journalEntryLineId: uuid("journal_entry_line_id"),
+  createdBy: uuid("created_by").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  periodIdx: index("analytical_entries_period_idx").on(t.period),
+  costCenterIdx: index("analytical_entries_cc_idx").on(t.costCenterId),
+  projectIdx: index("analytical_entries_project_idx").on(t.projectId),
+  orgIdx: index("analytical_entries_org_idx").on(t.organizationId),
+}));
+
+// Clés de répartition des charges indirectes entre centres de coût
+export const allocationRulesTable = pgTable("allocation_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  targetCostType: text("target_cost_type"), // type de coût ciblé (indirect | fixe | administratif…)
+  // [{costCenterId, label, percentage}]
+  allocations: jsonb("allocations").notNull().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
 
 // ────────────────────────────────────────────────────────────────
 // Zod & types
@@ -325,6 +385,14 @@ export const insertFixedAssetSchema = createInsertSchema(fixedAssetsTable).omit(
 export const insertCostCenterSchema = createInsertSchema(costCentersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type CostCenter = typeof costCentersTable.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+// CAGE — Types
+export const insertAnalyticalAccountSchema = createInsertSchema(analyticalAccountsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type AnalyticalAccount = typeof analyticalAccountsTable.$inferSelect;
+export const insertAnalyticalEntrySchema = createInsertSchema(analyticalEntriesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type AnalyticalEntry = typeof analyticalEntriesTable.$inferSelect;
+export const insertAllocationRuleSchema = createInsertSchema(allocationRulesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type AllocationRule = typeof allocationRulesTable.$inferSelect;
 
 // ─── Taxes / Référentiel fiscal ──────────────────────────────────────────────
 export const taxesTable = pgTable("taxes", {

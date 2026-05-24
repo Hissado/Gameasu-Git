@@ -1,0 +1,206 @@
+Pouvez-vous ajouter dans l’application un véritable module de **comptabilité analytique de gestion (CAGE)**, conçu comme un outil interne de pilotage destiné aux dirigeants, managers et responsables financiers ?
+
+### Objectif
+Je veux que ce module complète la comptabilité générale en permettant une lecture beaucoup plus fine de la performance de l’entreprise.
+
+Contrairement à la comptabilité générale, qui donne une vision globale, ce module doit permettre d’analyser :
+- les coûts
+- les marges
+- la rentabilité
+- les écarts
+- la performance par produit, service, projet, activité, département, client ou centre de coût
+
+L’objectif final est de transformer les données comptables brutes en **outil d’aide à la décision**.
+
+---
+
+## 1. Finalité du module
+Le module de comptabilité analytique doit permettre de :
+
+- calculer les coûts réels
+- déterminer les coûts de revient
+- analyser la rentabilité
+- identifier les activités, produits ou services les plus rentables
+- détecter les centres de coût déficitaires
+- aider à la fixation des prix
+- aider à la budgétisation
+- aider au pilotage stratégique et opérationnel
+
+Je veux que ce module soit pensé comme un **véritable outil de pilotage interne**, et non comme un simple rapport comptable supplémentaire.
+
+---
+
+## 2. Axes d’analyse à prévoir
+Je veux que la comptabilité analytique puisse fonctionner selon plusieurs axes, par exemple :
+
+- par **produit**
+- par **service**
+- par **projet**
+- par **client**
+- par **activité**
+- par **département**
+- par **centre de coût**
+- par **site / agence / point de service**
+- par **équipe**
+- par **nature de charge**
+- par **période**
+
+---
+
+## 3. Paramétrage des centres de coût
+Merci de prévoir la possibilité de configurer les **centres de coût**, par exemple :
+
+- Direction générale
+- Directions centrales
+- Agences
+- Points de service
+- Départements
+- Equipes
+- Unités opérationnelles
+- toute autre structure analytique utile
+
+Chaque centre de coût doit pouvoir recevoir :
+- des charges directes
+- des charges indirectes
+- des clés de répartition si nécessaire
+
+---
+
+## 4. Paramétrage des types de coûts
+Je veux que le module puisse distinguer plusieurs types de coûts, notamment :
+
+- coûts fixes
+- coûts variables
+- coûts directs
+- coûts indirects
+- coûts d’investissement
+- coûts de fonctionnement
+- coûts opérationnels
+- coûts administratifs
+- coûts de support
+
+---
+
+## 5. Méthodes analytiques à intégrer
+Merci de prévoir au minimum la possibilité d’exploiter ou de préparer les méthodes suivantes :
+
+### a. Coûts complets
+- prise en compte de l’ensemble des charges
+- calcul du coût de revient global
+
+### b. Coûts partiels / Direct costing
+- prise en compte des charges variables
+- calcul de la marge sur coût variable
+- calcul du seuil de rentabilité / point mort
+
+### c. Méthode ABC (Activity-Based Costing) si possible
+- logique par activités
+- consommation des ressources par activité
+- affectation des coûts aux produits / services via les activités
+
+Même si tout n’est pas complètement automatisé dès la première version, je veux que l’architecture soit prête pour évoluer dans ce sens.
+
+---
+
+## 6. Calculs et indicateurs attendus
+Le module doit permettre de produire des calculs et analyses comme :
+
+- coût de revient par produit
+- coût de revient par service
+- coût par projet
+- coût par client
+- coût par centre de coût
+- marge brute
+- marge nette si applicable
+- marge par produit / service / projet
+- contribution marginale
+- taux de rentabilité
+- seuil de rentabilité
+- point mort
+- écarts entre prévu et réalisé
+- comparaison entre périodes
+
+---
+
+## 7. Lien avec les autres modules
+La comptabilité analytique doit être bien reliée aux autres modules de l’application, notamment :
+
+- **Comptabilité générale**
+- **Commercial / Ventes**
+- **Produits / Services**
+- **Calculateur tarifaire**
+- **Projets**
+- **RH / Paie**
+- **Opérations / Logistique**
+- **Stocks / Inventaire**
+- **Immobilisations**
+- **Budgets / Planification financière**
+- **Rapports & Analytique**
+
+Je veux que les données issues de ces modules puissent alimenter automatiquement l’analytique lorsque cela est pertinent.
+
+Exemples :
+- les coûts de personnel doivent alimenter les coûts analytiques
+- les charges logistiques doivent être ventilées analytiquement
+- les produits et services vendus doivent pouvoir être comparés à leur coût réel
+- les budgets doivent pouvoir être confrontés aux coûts réels
+
+---
+
+## 8. Rapports et états analytiques
+Merci d’ajouter des rapports analytiques exploitables, par exemple :
+
+- compte de résultat analytique
+- rentabilité par produit
+- rentabilité par service
+- rentabilité par projet
+- rentabilité par client
+- tableau des coûts par centre de coût
+- répartition des charges directes et indirectes
+- marge par activité
+- seuil de rentabilité
+- analyse comparative par période
+- écarts budget vs réel
+- rapports de contribution
+
+Je veux que ces rapports soient **filtrables**, par exemple par :
+- période
+- produit
+- service
+- client
+- projet
+- centre de coût
+- département
+- site / agence
+- type de charge
+
+---
+
+## 9. Ergonomie / expérience utilisateur
+Je veux que ce module soit :
+- clair
+- structuré
+- professionnel
+- orienté pilotage
+- user-friendly
+- compréhensible par la direction et les managers
+
+Il ne doit pas être conçu uniquement pour des comptables techniques, mais aussi pour des décideurs qui veulent comprendre rapidement :
+- où l’entreprise gagne de l’argent
+- où elle en perd
+- quels coûts augmentent
+- quelles activités sont rentables ou non
+
+---
+
+## 10. Résultat attendu
+Je veux un véritable module de **comptabilité analytique de gestion**, capable de :
+- décortiquer les coûts
+- analyser la rentabilité
+- soutenir la décision
+- améliorer la tarification
+- aider au pilotage budgétaire
+- renforcer le contrôle de gestion
+
+### Objectif final
+L’objectif est d’avoir dans Nexora un module de **comptabilité analytique moderne, structuré et intégré**, qui serve de véritable tableau de bord de performance interne pour la direction, la finance et les managers.

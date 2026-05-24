@@ -49,6 +49,7 @@ import superAdminStructuresRouter, { publicOnboardingRouter } from "./superAdmin
 import orgTunerRouter from "./orgTuner";
 import operationsRouter from "./operations";
 import inventoryRouter from "./inventory";
+import analyticsManagementRouter from "./analyticsManagement";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
@@ -86,6 +87,7 @@ router.use(superAdminStructuresRouter);
 router.use(orgTunerRouter);
 router.use(operationsRouter);
 router.use(inventoryRouter);
+router.use(analyticsManagementRouter);
 router.use(payrollRouter);
 router.use(recruitmentRouter);
 router.use(usersRouter);
