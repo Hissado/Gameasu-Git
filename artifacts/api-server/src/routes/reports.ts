@@ -1488,6 +1488,364 @@ router.get("/reports/aged-payables", requireAuth, requireManagerOrAbove, async (
   } catch (e) { next(e); }
 });
 
+// ────────────────────────────────────────────────────────────────
+// Tableau des flux de trésorerie (méthode indirecte)
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/finance/cash-flow", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { fromIso, toIso } = parsePeriod(req);
+
+    // Toutes les lignes postées jusqu'à "to" pour balances cumulatives
+    const allPostedLines = await db
+      .select({
+        classNum: chartOfAccountsTable.classNum,
+        accountCode: chartOfAccountsTable.code,
+        accountLabel: chartOfAccountsTable.label,
+        accountType: chartOfAccountsTable.type,
+        debit: journalEntryLinesTable.debit,
+        credit: journalEntryLinesTable.credit,
+        entryDate: journalEntriesTable.entryDate,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted")));
+
+    // Lignes de la période uniquement
+    const periodLines = allPostedLines.filter(l => l.entryDate >= fromIso && l.entryDate <= toIso);
+    // Lignes avant la période (pour les soldes d'ouverture)
+    const prevLines = allPostedLines.filter(l => l.entryDate < fromIso);
+
+    // Calcule le solde net (débit - crédit) pour une liste de lignes filtrées par classe
+    const netByClass = (lines: typeof allPostedLines, classes: number[]) => {
+      let d = 0, c = 0;
+      for (const l of lines) {
+        if (classes.includes(l.classNum)) { d += num(l.debit); c += num(l.credit); }
+      }
+      return d - c; // positif = débiteur
+    };
+
+    // ── RÉSULTAT NET (classe 7 produits - classe 6 charges) ──────────
+    const periodRevenue = netByClass(periodLines, [7]); // créditeur → négatif car débit-crédit
+    const periodExpense = netByClass(periodLines, [6]); // débiteur → positif
+    // Produits nets = crédit - débit (classe 7 normale credit)
+    const revenues = periodLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+    const expenses = periodLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const netIncome = revenues - expenses;
+
+    // ── AMORTISSEMENTS (classe 68 - dotations aux amortissements) ────
+    const depreciation = periodLines.filter(l => l.accountCode?.startsWith("68")).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+
+    // ── VARIATIONS BFR ───────────────────────────────────────────────
+    // Class 3 (stocks): aug stocks = emploi cash (négatif), dim = source
+    const stockStart = prevLines.filter(l => l.classNum === 3).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const stockEnd = allPostedLines.filter(l => l.classNum === 3 && l.entryDate <= toIso).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const stockChange = -(stockEnd - stockStart); // augmentation = négatif
+
+    // Class 4 débiteur (créances clients): aug = emploi cash
+    const arStart = prevLines.filter(l => l.classNum === 4).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const arEnd = allPostedLines.filter(l => l.classNum === 4 && l.entryDate <= toIso).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    // arStart/arEnd peuvent être positifs (créances) ou négatifs (dettes)
+    const arChange = -(arEnd - arStart); // augmentation créances = négatif; augmentation dettes = positif
+
+    const operatingCashFlow = netIncome + depreciation + stockChange + arChange;
+
+    // ── INVESTISSEMENT (classe 2) ────────────────────────────────────
+    const investStart = prevLines.filter(l => l.classNum === 2).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const investEnd = allPostedLines.filter(l => l.classNum === 2 && l.entryDate <= toIso).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const investingCashFlow = -(investEnd - investStart); // augmentation immos = sortie de tréso
+
+    // ── FINANCEMENT (classe 1 sauf capitaux propres proprement dit) ──
+    const finStart = prevLines.filter(l => l.classNum === 1).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const finEnd = allPostedLines.filter(l => l.classNum === 1 && l.entryDate <= toIso).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const financingCashFlow = -(finEnd - finStart); // augmentation dettes fin = entrée de tréso (signe inversé car solde passif)
+
+    // ── TRÉSORERIE (classe 5) ────────────────────────────────────────
+    const cashStart = prevLines.filter(l => l.classNum === 5).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const cashEnd = allPostedLines.filter(l => l.classNum === 5 && l.entryDate <= toIso).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const netCashChange = cashEnd - cashStart;
+
+    // Série mensuelle des flux de trésorerie classe 5
+    const monthMap: Record<string, number> = {};
+    for (const l of periodLines.filter(ln => ln.classNum === 5)) {
+      const m = (l.entryDate || "").slice(0, 7);
+      if (!monthMap[m]) monthMap[m] = 0;
+      monthMap[m] += num(l.debit) - num(l.credit);
+    }
+    const series = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, netFlow]) => ({ month, netFlow }));
+
+    res.json({
+      hasData: allPostedLines.length > 0,
+      opening: {
+        cashAndEquivalents: cashStart,
+      },
+      closing: {
+        cashAndEquivalents: cashEnd,
+      },
+      operating: {
+        netIncome,
+        depreciation,
+        workingCapitalChanges: {
+          stocks: stockChange,
+          receivablesAndPayables: arChange,
+        },
+        total: operatingCashFlow,
+      },
+      investing: {
+        fixedAssetChanges: investingCashFlow,
+        total: investingCashFlow,
+      },
+      financing: {
+        debtChanges: financingCashFlow,
+        total: financingCashFlow,
+      },
+      netCashChange,
+      series,
+    });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Rapprochement bancaire
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/finance/reconciliation", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { fromIso, toIso } = parsePeriod(req);
+
+    // Comptes bancaires de l'organisation
+    const accounts = await db
+      .select({
+        id: bankAccountsTable.id,
+        name: bankAccountsTable.name,
+        type: bankAccountsTable.type,
+        bankName: bankAccountsTable.bankName,
+        accountNumber: bankAccountsTable.accountNumber,
+        openingBalance: bankAccountsTable.openingBalance,
+        currency: bankAccountsTable.currency,
+        isActive: bankAccountsTable.isActive,
+      })
+      .from(bankAccountsTable)
+      .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.isActive, true)));
+
+    // Mouvements bancaires sur la période
+    const transactions = await db
+      .select({
+        id: bankTransactionsTable.id,
+        bankAccountId: bankTransactionsTable.bankAccountId,
+        transactionDate: bankTransactionsTable.transactionDate,
+        label: bankTransactionsTable.label,
+        amount: bankTransactionsTable.amount,
+        reference: bankTransactionsTable.reference,
+        isReconciled: bankTransactionsTable.isReconciled,
+        reconciledLineId: bankTransactionsTable.reconciledLineId,
+      })
+      .from(bankTransactionsTable)
+      .where(
+        and(
+          eq(bankTransactionsTable.organizationId, orgId),
+          gte(bankTransactionsTable.transactionDate, fromIso),
+          lte(bankTransactionsTable.transactionDate, toIso),
+        )
+      );
+
+    // Statistiques globales
+    let totalReconciled = 0, totalUnreconciled = 0, reconciledCount = 0, unreconciledCount = 0;
+    let totalDebits = 0, totalCredits = 0;
+    for (const t of transactions) {
+      const amt = num(t.amount);
+      if (t.isReconciled) { totalReconciled += Math.abs(amt); reconciledCount++; }
+      else { totalUnreconciled += Math.abs(amt); unreconciledCount++; }
+      if (amt >= 0) totalCredits += amt;
+      else totalDebits += Math.abs(amt);
+    }
+
+    // Par compte bancaire
+    const byAccount: Record<string, {
+      name: string; bankName: string | null; accountNumber: string | null;
+      reconciledCount: number; unreconciledCount: number;
+      reconciledAmount: number; unreconciledAmount: number;
+      totalIn: number; totalOut: number;
+    }> = {};
+    for (const acc of accounts) {
+      byAccount[acc.id] = {
+        name: acc.name, bankName: acc.bankName, accountNumber: acc.accountNumber,
+        reconciledCount: 0, unreconciledCount: 0, reconciledAmount: 0, unreconciledAmount: 0,
+        totalIn: 0, totalOut: 0,
+      };
+    }
+    for (const t of transactions) {
+      if (!byAccount[t.bankAccountId]) continue;
+      const ba = byAccount[t.bankAccountId];
+      const amt = num(t.amount);
+      if (t.isReconciled) { ba.reconciledCount++; ba.reconciledAmount += Math.abs(amt); }
+      else { ba.unreconciledCount++; ba.unreconciledAmount += Math.abs(amt); }
+      if (amt >= 0) ba.totalIn += amt;
+      else ba.totalOut += Math.abs(amt);
+    }
+
+    // Transactions non rapprochées (liste détaillée)
+    const unreconciledList = transactions
+      .filter(t => !t.isReconciled)
+      .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
+      .slice(0, 50)
+      .map(t => ({
+        id: t.id,
+        bankAccountId: t.bankAccountId,
+        bankAccountName: accounts.find(a => a.id === t.bankAccountId)?.name ?? "—",
+        date: t.transactionDate,
+        label: t.label,
+        amount: num(t.amount),
+        reference: t.reference,
+      }));
+
+    const reconciliationRate = transactions.length > 0
+      ? Math.round((reconciledCount / transactions.length) * 100) : 100;
+
+    res.json({
+      period: { from: fromIso, to: toIso },
+      accounts: accounts.map(a => ({ ...a, ...byAccount[a.id] })),
+      kpi: {
+        totalTransactions: transactions.length,
+        reconciledCount, unreconciledCount, reconciliationRate,
+        totalReconciled, totalUnreconciled,
+        totalDebits, totalCredits,
+      },
+      unreconciledList,
+      hasData: transactions.length > 0,
+    });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Rapport de gestion (Management Report)
+// ────────────────────────────────────────────────────────────────
+router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { fromIso, toIso } = parsePeriod(req);
+
+    // ── Finance : produits/charges ───────────────────────────────────
+    const periodLines = await db
+      .select({
+        classNum: chartOfAccountsTable.classNum,
+        accountCode: chartOfAccountsTable.code,
+        debit: journalEntryLinesTable.debit,
+        credit: journalEntryLinesTable.credit,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(
+        eq(journalEntriesTable.organizationId, orgId),
+        eq(journalEntriesTable.status, "posted"),
+        gte(journalEntriesTable.entryDate, fromIso),
+        lte(journalEntriesTable.entryDate, toIso),
+      ));
+
+    const revenues = periodLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+    const expenses = periodLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const netResult = revenues - expenses;
+    const ebitda = netResult + periodLines.filter(l => l.accountCode?.startsWith("68")).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+
+    // ── Trésorerie ───────────────────────────────────────────────────
+    const cashLines = await db
+      .select({ debit: journalEntryLinesTable.debit, credit: journalEntryLinesTable.credit })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(
+        eq(journalEntriesTable.organizationId, orgId),
+        eq(journalEntriesTable.status, "posted"),
+        eq(chartOfAccountsTable.classNum, 5),
+        lte(journalEntriesTable.entryDate, toIso),
+      ));
+    const cashPosition = cashLines.reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+
+    // ── Créances clients & Dettes fournisseurs ───────────────────────
+    const clientInvoices = await db
+      .select({ totalAmount: invoicesTable.totalAmount, paidAmount: invoicesTable.paidAmount, status: invoicesTable.status, dueDate: invoicesTable.dueDate })
+      .from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), ne(invoicesTable.status, "cancelled"), ne(invoicesTable.status, "draft")));
+    let arOutstanding = 0, arOverdue = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    for (const inv of clientInvoices) {
+      const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+      arOutstanding += outstanding;
+      if (outstanding > 0 && inv.dueDate && inv.dueDate < today) arOverdue += outstanding;
+    }
+
+    const supplierInvoices = await db
+      .select({ totalAmount: supplierInvoicesTable.totalAmount, paidAmount: supplierInvoicesTable.paidAmount, dueDate: supplierInvoicesTable.dueDate })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled"), ne(supplierInvoicesTable.status, "draft")));
+    let apOutstanding = 0, apOverdue = 0;
+    for (const inv of supplierInvoices) {
+      const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+      apOutstanding += outstanding;
+      if (outstanding > 0 && inv.dueDate && inv.dueDate < today) apOverdue += outstanding;
+    }
+
+    // ── Projets ──────────────────────────────────────────────────────
+    const projects = await db.select({ status: projectsTable.status, budget: projectsTable.budget, progress: projectsTable.progress, endDate: projectsTable.endDate })
+      .from(projectsTable).where(and(eq(projectsTable.organizationId, orgId), isNull(projectsTable.deletedAt)));
+    const activeProjects = projects.filter(p => p.status === "active");
+    const overdueProjects = activeProjects.filter(p => p.endDate && p.endDate < today);
+    const totalBudget = activeProjects.reduce((s, p) => s + num(p.budget), 0);
+    const avgProgress = activeProjects.length > 0 ? Math.round(activeProjects.reduce((s, p) => s + (p.progress ?? 0), 0) / activeProjects.length) : 0;
+
+    // ── RH ───────────────────────────────────────────────────────────
+    const collaborators = await db.select({ employmentStatus: collaboratorsTable.employmentStatus })
+      .from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
+    const activeCollab = collaborators.filter(c => c.employmentStatus === "active").length;
+
+    const activeContracts = await db.select({ type: contractsTable.type })
+      .from(contractsTable)
+      .innerJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(eq(contractsTable.organizationId, orgId), eq(contractsTable.status, "active")));
+    const byContractType: Record<string, number> = {};
+    for (const c of activeContracts) {
+      byContractType[c.type] = (byContractType[c.type] || 0) + 1;
+    }
+
+    // ── Achats / Fournisseurs ─────────────────────────────────────────
+    const purchases = await db
+      .select({ totalAmount: supplierInvoicesTable.totalAmount })
+      .from(supplierInvoicesTable)
+      .where(and(
+        eq(supplierInvoicesTable.organizationId, orgId),
+        ne(supplierInvoicesTable.status, "cancelled"),
+        ne(supplierInvoicesTable.status, "draft"),
+        gte(supplierInvoicesTable.invoiceDate, fromIso),
+        lte(supplierInvoicesTable.invoiceDate, toIso),
+      ));
+    const totalPurchases = purchases.reduce((s, p) => s + num(p.totalAmount), 0);
+
+    res.json({
+      period: { from: fromIso, to: toIso },
+      finance: {
+        revenues, expenses, netResult, ebitda,
+        margin: revenues > 0 ? Math.round((netResult / revenues) * 100 * 10) / 10 : 0,
+        totalPurchases,
+      },
+      liquidity: {
+        cashPosition, arOutstanding, arOverdue, apOutstanding, apOverdue,
+        workingCapital: cashPosition + arOutstanding - apOutstanding,
+      },
+      operations: {
+        activeProjects: activeProjects.length, overdueProjects: overdueProjects.length,
+        totalBudget, avgProgress,
+      },
+      hr: {
+        activeCollab, byContractType,
+      },
+      hasData: true,
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;
 
 

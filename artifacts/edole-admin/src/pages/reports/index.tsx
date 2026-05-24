@@ -526,21 +526,87 @@ type BalanceSheet = {
   hasData: boolean;
 };
 
+type CashFlow = {
+  hasData: boolean;
+  opening: { cashAndEquivalents: number };
+  closing: { cashAndEquivalents: number };
+  operating: {
+    netIncome: number; depreciation: number;
+    workingCapitalChanges: { stocks: number; receivablesAndPayables: number };
+    total: number;
+  };
+  investing: { fixedAssetChanges: number; total: number };
+  financing: { debtChanges: number; total: number };
+  netCashChange: number;
+  series: Array<{ month: string; netFlow: number }>;
+};
+
+type ReconciliationReport = {
+  period: { from: string; to: string };
+  accounts: Array<{
+    id: string; name: string; bankName: string | null; accountNumber: string | null;
+    reconciledCount: number; unreconciledCount: number;
+    reconciledAmount: number; unreconciledAmount: number;
+    totalIn: number; totalOut: number;
+  }>;
+  kpi: {
+    totalTransactions: number; reconciledCount: number; unreconciledCount: number;
+    reconciliationRate: number; totalReconciled: number; totalUnreconciled: number;
+    totalDebits: number; totalCredits: number;
+  };
+  unreconciledList: Array<{
+    id: string; bankAccountId: string; bankAccountName: string;
+    date: string; label: string; amount: number; reference: string | null;
+  }>;
+  hasData: boolean;
+};
+
+type ManagementReport = {
+  period: { from: string; to: string };
+  finance: {
+    revenues: number; expenses: number; netResult: number; ebitda: number;
+    margin: number; totalPurchases: number;
+  };
+  liquidity: {
+    cashPosition: number; arOutstanding: number; arOverdue: number;
+    apOutstanding: number; apOverdue: number; workingCapital: number;
+  };
+  operations: { activeProjects: number; overdueProjects: number; totalBudget: number; avgProgress: number };
+  hr: { activeCollab: number; byContractType: Record<string, number> };
+  hasData: boolean;
+};
+
 function FinanceTab({ periodQuery }: { periodQuery: string }) {
+  return (
+    <Tabs defaultValue="billing" className="w-full">
+      <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4 h-auto gap-px">
+        <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
+        <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
+        <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
+        <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
+        <TabsTrigger value="reconciliation" className="text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement</TabsTrigger>
+        <TabsTrigger value="management" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion</TabsTrigger>
+      </TabsList>
+      <TabsContent value="billing"><BillingSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="income-statement"><IncomeStatementSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="balance-sheet"><BalanceSheetSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="cash-flow"><CashFlowSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="reconciliation"><ReconciliationSubTab periodQuery={periodQuery} /></TabsContent>
+      <TabsContent value="management"><ManagementSubTab periodQuery={periodQuery} /></TabsContent>
+    </Tabs>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Facturation clients
+// ────────────────────────────────────────────────────────────────
+function BillingSubTab({ periodQuery }: { periodQuery: string }) {
   const [clientSearch, setClientSearch] = useState("");
   const [invoiceStatus, setInvoiceStatus] = useState("all");
 
   const { data, isLoading } = useQuery<FinanceReport>({
     queryKey: ["report", "finance", periodQuery],
     queryFn: () => apiFetch(`/api/reports/finance?${periodQuery}`),
-  });
-  const { data: incomeStatement, isLoading: isLoadingIS } = useQuery<IncomeStatement>({
-    queryKey: ["report", "income-statement", periodQuery],
-    queryFn: () => apiFetch(`/api/reports/finance/income-statement?${periodQuery}`),
-  });
-  const { data: balanceSheet, isLoading: isLoadingBS } = useQuery<BalanceSheet>({
-    queryKey: ["report", "balance-sheet", periodQuery],
-    queryFn: () => apiFetch(`/api/reports/finance/balance-sheet?${periodQuery}`),
   });
 
   const filteredTopClients = useMemo(() =>
@@ -680,9 +746,22 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
         </>
       )}
 
-      {/* ── Section 2 : Compte de résultat ───────────────── */}
-      <SectionTitle icon={BarChart2}>Compte de résultat</SectionTitle>
-      {isLoadingIS ? <Skeleton className="h-64 w-full" /> : !incomeStatement?.hasData ? (
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Compte de résultat
+// ────────────────────────────────────────────────────────────────
+function IncomeStatementSubTab({ periodQuery }: { periodQuery: string }) {
+  const { data: incomeStatement, isLoading } = useQuery<IncomeStatement>({
+    queryKey: ["report", "income-statement", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/income-statement?${periodQuery}`),
+  });
+
+  return (
+    <div className="space-y-6 pt-4">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !incomeStatement?.hasData ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
           <BarChart2 className="w-8 h-8 opacity-30" />
           <p className="text-sm font-medium">Aucune écriture comptable validée sur la période</p>
@@ -691,19 +770,18 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Kpi label="Total produits (cl. 7)" value={formatFCFA(incomeStatement.totalRevenue)} accent="success" />
-            <Kpi label="Total charges (cl. 6)" value={formatFCFA(incomeStatement.totalExpense)} accent="danger" />
-            <Kpi label="Résultat net" value={formatFCFA(incomeStatement.netResult)} accent={incomeStatement.netResult >= 0 ? "success" : "danger"}
-              hint={incomeStatement.netResult >= 0 ? "Bénéfice" : "Perte"} />
+            <Kpi label="Total produits (cl. 7)" value={formatFCFA(incomeStatement!.totalRevenue)} accent="success" />
+            <Kpi label="Total charges (cl. 6)" value={formatFCFA(incomeStatement!.totalExpense)} accent="danger" />
+            <Kpi label="Résultat net" value={formatFCFA(incomeStatement!.netResult)} accent={incomeStatement!.netResult >= 0 ? "success" : "danger"}
+              hint={incomeStatement!.netResult >= 0 ? "Bénéfice" : "Perte"} />
           </div>
-
-          {incomeStatement.series.length > 0 && (
+          {incomeStatement!.series.length > 0 && (
             <Card>
               <CardHeader><CardTitle>Produits vs Charges — évolution mensuelle</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-60">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={incomeStatement.series}>
+                    <BarChart data={incomeStatement!.series}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
@@ -717,20 +795,19 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
               </CardContent>
             </Card>
           )}
-
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader><CardTitle className="text-base text-green-700">Produits (classe 7)</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-1.5">
-                  {incomeStatement.revenues.map(r => (
+                  {incomeStatement!.revenues.map(r => (
                     <div key={r.code} className="flex items-center justify-between p-2 border rounded text-sm">
                       <div><span className="font-mono text-xs text-slate-400 mr-2">{r.code}</span><span>{r.label}</span></div>
                       <span className="font-bold text-green-700 shrink-0 ml-2">{formatFCFA(r.amount)}</span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between p-2 bg-green-50 rounded text-sm font-bold border-t-2 border-green-200">
-                    <span>Total produits</span><span className="text-green-700">{formatFCFA(incomeStatement.totalRevenue)}</span>
+                    <span>Total produits</span><span className="text-green-700">{formatFCFA(incomeStatement!.totalRevenue)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -739,14 +816,14 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
               <CardHeader><CardTitle className="text-base text-red-700">Charges (classe 6)</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-1.5">
-                  {incomeStatement.expenses.map(e => (
+                  {incomeStatement!.expenses.map(e => (
                     <div key={e.code} className="flex items-center justify-between p-2 border rounded text-sm">
                       <div><span className="font-mono text-xs text-slate-400 mr-2">{e.code}</span><span>{e.label}</span></div>
                       <span className="font-bold text-red-700 shrink-0 ml-2">{formatFCFA(e.amount)}</span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between p-2 bg-red-50 rounded text-sm font-bold border-t-2 border-red-200">
-                    <span>Total charges</span><span className="text-red-700">{formatFCFA(incomeStatement.totalExpense)}</span>
+                    <span>Total charges</span><span className="text-red-700">{formatFCFA(incomeStatement!.totalExpense)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -754,10 +831,22 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
 
-      {/* ── Section 3 : Bilan ────────────────────────────── */}
-      <SectionTitle icon={Scale}>Bilan simplifié</SectionTitle>
-      {isLoadingBS ? <Skeleton className="h-64 w-full" /> : !balanceSheet?.hasData ? (
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Bilan
+// ────────────────────────────────────────────────────────────────
+function BalanceSheetSubTab({ periodQuery }: { periodQuery: string }) {
+  const { data: balanceSheet, isLoading } = useQuery<BalanceSheet>({
+    queryKey: ["report", "balance-sheet", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/balance-sheet?${periodQuery}`),
+  });
+
+  return (
+    <div className="space-y-6 pt-4">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !balanceSheet?.hasData ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
           <Scale className="w-8 h-8 opacity-30" />
           <p className="text-sm font-medium">Aucune écriture comptable validée</p>
@@ -766,24 +855,23 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4">
-            <Kpi label="Total actif" value={formatFCFA(balanceSheet.assets.total)} accent="primary" />
-            <Kpi label="Total passif" value={formatFCFA(balanceSheet.liabilities.total)} accent="default" />
+            <Kpi label="Total actif" value={formatFCFA(balanceSheet!.assets.total)} accent="primary" />
+            <Kpi label="Total passif" value={formatFCFA(balanceSheet!.liabilities.total)} accent="default" />
           </div>
-          {balanceSheet.balance !== 0 && (
+          {balanceSheet!.balance !== 0 && (
             <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-700">Déséquilibre actif / passif : <strong>{formatFCFA(Math.abs(balanceSheet.balance))}</strong> — vérifiez vos écritures.</p>
+              <p className="text-sm text-amber-700">Déséquilibre actif / passif : <strong>{formatFCFA(Math.abs(balanceSheet!.balance))}</strong> — vérifiez vos écritures.</p>
             </div>
           )}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* ACTIF */}
             <div className="space-y-4">
               <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-blue-500" /> ACTIF</h4>
               {[
-                { label: "Immobilisations (cl. 2)", items: balanceSheet.assets.fixedAssets, color: "blue" },
-                { label: "Stocks (cl. 3)", items: balanceSheet.assets.stocks, color: "indigo" },
-                { label: "Créances (cl. 4)", items: balanceSheet.assets.receivables, color: "amber" },
-                { label: "Trésorerie (cl. 5)", items: balanceSheet.assets.treasury, color: "green" },
+                { label: "Immobilisations (cl. 2)", items: balanceSheet!.assets.fixedAssets, color: "blue" },
+                { label: "Stocks (cl. 3)", items: balanceSheet!.assets.stocks, color: "indigo" },
+                { label: "Créances (cl. 4)", items: balanceSheet!.assets.receivables, color: "amber" },
+                { label: "Trésorerie (cl. 5)", items: balanceSheet!.assets.treasury, color: "green" },
               ].map(({ label, items, color }) => items.length > 0 && (
                 <Card key={label}>
                   <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
@@ -800,15 +888,14 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                 </Card>
               ))}
               <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg font-bold">
-                <span>Total actif</span><span className="text-blue-700">{formatFCFA(balanceSheet.assets.total)}</span>
+                <span>Total actif</span><span className="text-blue-700">{formatFCFA(balanceSheet!.assets.total)}</span>
               </div>
             </div>
-            {/* PASSIF */}
             <div className="space-y-4">
               <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-500" /> PASSIF</h4>
               {[
-                { label: "Capitaux propres & emprunts (cl. 1)", items: balanceSheet.liabilities.equity, color: "purple" },
-                { label: "Dettes fournisseurs (cl. 4)", items: balanceSheet.liabilities.payables, color: "red" },
+                { label: "Capitaux propres & emprunts (cl. 1)", items: balanceSheet!.liabilities.equity, color: "purple" },
+                { label: "Dettes fournisseurs (cl. 4)", items: balanceSheet!.liabilities.payables, color: "red" },
               ].map(({ label, items, color }) => items.length > 0 && (
                 <Card key={label}>
                   <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
@@ -825,9 +912,288 @@ function FinanceTab({ periodQuery }: { periodQuery: string }) {
                 </Card>
               ))}
               <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg font-bold">
-                <span>Total passif</span><span className="text-red-700">{formatFCFA(balanceSheet.liabilities.total)}</span>
+                <span>Total passif</span><span className="text-red-700">{formatFCFA(balanceSheet!.liabilities.total)}</span>
               </div>
             </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Flux de trésorerie
+// ────────────────────────────────────────────────────────────────
+function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
+  const { data, isLoading } = useQuery<CashFlow>({
+    queryKey: ["report", "cash-flow", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/cash-flow?${periodQuery}`),
+  });
+
+  const flowSign = (v: number) => v >= 0 ? "text-green-600" : "text-red-600";
+
+  return (
+    <div className="space-y-6 pt-4">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !data?.hasData ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <TrendingUp className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Aucune écriture comptable validée sur la période</p>
+          <p className="text-xs">Le tableau des flux de trésorerie apparaîtra ici une fois les écritures postées.</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Kpi label="Trésorerie ouverture" value={formatFCFA(data!.opening.cashAndEquivalents)} accent="default" />
+            <Kpi label="Flux opérationnel" value={formatFCFA(data!.operating.total)} accent={data!.operating.total >= 0 ? "success" : "danger"} />
+            <Kpi label="Variation nette" value={formatFCFA(data!.netCashChange)} accent={data!.netCashChange >= 0 ? "success" : "danger"} />
+            <Kpi label="Trésorerie clôture" value={formatFCFA(data!.closing.cashAndEquivalents)} accent="primary" />
+          </div>
+
+          {/* Tableau détaillé */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><TrendingUp className="w-4 h-4" />Tableau des flux (méthode indirecte)</CardTitle>
+              <CardDescription>Reconstitution à partir des écritures comptables postées.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700">
+                  <span>A — Activités opérationnelles</span>
+                  <span className={flowSign(data!.operating.total)}>{formatFCFA(data!.operating.total)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>Résultat net</span><span>{formatFCFA(data!.operating.netIncome)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>+ Dotations aux amortissements</span><span>{formatFCFA(data!.operating.depreciation)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>Variation stocks</span><span className={flowSign(data!.operating.workingCapitalChanges.stocks)}>{formatFCFA(data!.operating.workingCapitalChanges.stocks)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>Variation créances / dettes</span><span className={flowSign(data!.operating.workingCapitalChanges.receivablesAndPayables)}>{formatFCFA(data!.operating.workingCapitalChanges.receivablesAndPayables)}</span>
+                </div>
+
+                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700 mt-2">
+                  <span>B — Activités d'investissement</span>
+                  <span className={flowSign(data!.investing.total)}>{formatFCFA(data!.investing.total)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>Variation immobilisations nettes</span><span className={flowSign(data!.investing.fixedAssetChanges)}>{formatFCFA(data!.investing.fixedAssetChanges)}</span>
+                </div>
+
+                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700 mt-2">
+                  <span>C — Activités de financement</span>
+                  <span className={flowSign(data!.financing.total)}>{formatFCFA(data!.financing.total)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                  <span>Variation dettes financières</span><span className={flowSign(data!.financing.debtChanges)}>{formatFCFA(data!.financing.debtChanges)}</span>
+                </div>
+
+                <div className="flex justify-between py-2.5 px-3 rounded font-bold text-base border-t-2 border-slate-300 mt-2">
+                  <span>Variation nette de trésorerie (A+B+C)</span>
+                  <span className={flowSign(data!.netCashChange)}>{formatFCFA(data!.netCashChange)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-3 text-slate-600">
+                  <span>Trésorerie d'ouverture</span><span>{formatFCFA(data!.opening.cashAndEquivalents)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-3 bg-primary/10 rounded font-bold border border-primary/20">
+                  <span>Trésorerie de clôture</span>
+                  <span className="text-primary">{formatFCFA(data!.closing.cashAndEquivalents)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Graphique flux mensuels */}
+          {data!.series.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Flux de trésorerie mensuels (cl. 5)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data!.series}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
+                      <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                      <Bar dataKey="netFlow" name="Flux net" fill="#F37021" radius={[4, 4, 0, 0]}
+                        label={false}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Rapprochement bancaire
+// ────────────────────────────────────────────────────────────────
+function ReconciliationSubTab({ periodQuery }: { periodQuery: string }) {
+  const { data, isLoading } = useQuery<ReconciliationReport>({
+    queryKey: ["report", "reconciliation", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/finance/reconciliation?${periodQuery}`),
+  });
+
+  return (
+    <div className="space-y-6 pt-4">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !data?.hasData ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <CheckCircle2 className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Aucun mouvement bancaire sur la période</p>
+          <p className="text-xs">Importez des relevés bancaires pour démarrer le rapprochement.</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Kpi label="Total mouvements" value={String(data!.kpi.totalTransactions)} accent="default" hint="sur la période" />
+            <Kpi label="Taux rapprochement" value={`${data!.kpi.reconciliationRate}%`} accent={data!.kpi.reconciliationRate >= 90 ? "success" : data!.kpi.reconciliationRate >= 70 ? "warning" : "danger"} />
+            <Kpi label="Rapprochés" value={formatFCFA(data!.kpi.totalReconciled)} hint={`${data!.kpi.reconciledCount} opération(s)`} accent="success" />
+            <Kpi label="Non rapprochés" value={formatFCFA(data!.kpi.totalUnreconciled)} hint={`${data!.kpi.unreconciledCount} opération(s)`} accent={data!.kpi.unreconciledCount > 0 ? "danger" : "default"} />
+          </div>
+
+          {/* Par compte bancaire */}
+          {data!.accounts.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Synthèse par compte bancaire</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data!.accounts.map(acc => (
+                    <div key={acc.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <span className="font-semibold text-sm">{acc.name}</span>
+                          {acc.bankName && <span className="text-xs text-muted-foreground ml-2">{acc.bankName}</span>}
+                          {acc.accountNumber && <span className="font-mono text-xs text-slate-400 ml-2">{acc.accountNumber}</span>}
+                        </div>
+                        <Badge variant={acc.unreconciledCount === 0 ? "default" : "destructive"} className="text-xs">
+                          {acc.unreconciledCount === 0 ? "Équilibré" : `${acc.unreconciledCount} à traiter`}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 text-xs text-center">
+                        <div className="bg-green-50 p-2 rounded">
+                          <div className="font-bold text-green-700">{formatFCFA(acc.totalIn)}</div>
+                          <div className="text-slate-500">Entrées</div>
+                        </div>
+                        <div className="bg-red-50 p-2 rounded">
+                          <div className="font-bold text-red-700">{formatFCFA(acc.totalOut)}</div>
+                          <div className="text-slate-500">Sorties</div>
+                        </div>
+                        <div className="bg-emerald-50 p-2 rounded">
+                          <div className="font-bold text-emerald-700">{acc.reconciledCount}</div>
+                          <div className="text-slate-500">Rapprochés</div>
+                        </div>
+                        <div className={`p-2 rounded ${acc.unreconciledCount > 0 ? "bg-red-50" : "bg-slate-50"}`}>
+                          <div className={`font-bold ${acc.unreconciledCount > 0 ? "text-red-600" : "text-slate-400"}`}>{acc.unreconciledCount}</div>
+                          <div className="text-slate-500">En attente</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Liste des non-rapprochés */}
+          {data!.unreconciledList.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  Mouvements non rapprochés
+                  <Badge variant="secondary" className="text-xs ml-1">{data!.kpi.unreconciledCount}</Badge>
+                </CardTitle>
+                <CardDescription>Opérations bancaires sans écriture comptable correspondante.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {data!.unreconciledList.map(t => (
+                    <div key={t.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-amber-50/30">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm truncate">{t.label}</span>
+                          <Badge variant="outline" className="text-xs shrink-0">{t.bankAccountName}</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{t.date} {t.reference ? `· réf. ${t.reference}` : ""}</div>
+                      </div>
+                      <div className={`font-bold text-sm shrink-0 ml-4 ${t.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {t.amount >= 0 ? "+" : ""}{formatFCFA(t.amount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Sous-onglet : Rapport de gestion
+// ────────────────────────────────────────────────────────────────
+function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
+  const { data, isLoading } = useQuery<ManagementReport>({
+    queryKey: ["report", "management", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/management?${periodQuery}`),
+  });
+
+  return (
+    <div className="space-y-6 pt-4">
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !data ? (
+        <Card><CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+          <Briefcase className="w-8 h-8 opacity-30" />
+          <p className="text-sm font-medium">Données indisponibles</p>
+        </CardContent></Card>
+      ) : (
+        <>
+          {/* ── Finance ──────────────────────────── */}
+          <SectionTitle icon={BarChart2}>Synthèse financière</SectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Kpi label="Produits" value={formatFCFA(data.finance.revenues)} accent="success" />
+            <Kpi label="Charges" value={formatFCFA(data.finance.expenses)} accent="danger" />
+            <Kpi label="Résultat net" value={formatFCFA(data.finance.netResult)} accent={data.finance.netResult >= 0 ? "success" : "danger"} hint={`${data.finance.margin}% marge`} />
+            <Kpi label="EBITDA" value={formatFCFA(data.finance.ebitda)} accent="primary" />
+            <Kpi label="Achats" value={formatFCFA(data.finance.totalPurchases)} accent="default" />
+            <Kpi label="Position de tréso." value={formatFCFA(data.liquidity.cashPosition)} accent={data.liquidity.cashPosition >= 0 ? "success" : "danger"} />
+          </div>
+
+          {/* ── Liquidité ────────────────────────── */}
+          <SectionTitle icon={TrendingUp}>Liquidité & BFR</SectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Kpi label="Créances clients" value={formatFCFA(data.liquidity.arOutstanding)} hint={data.liquidity.arOverdue > 0 ? `dont ${formatFCFA(data.liquidity.arOverdue)} en retard` : undefined} accent={data.liquidity.arOverdue > 0 ? "warning" : "default"} />
+            <Kpi label="Dettes fournisseurs" value={formatFCFA(data.liquidity.apOutstanding)} hint={data.liquidity.apOverdue > 0 ? `dont ${formatFCFA(data.liquidity.apOverdue)} en retard` : undefined} accent={data.liquidity.apOverdue > 0 ? "warning" : "default"} />
+            <Kpi label="Fonds de roulement" value={formatFCFA(data.liquidity.workingCapital)} accent={data.liquidity.workingCapital >= 0 ? "success" : "danger"} hint="Tréso + créances - dettes" />
+          </div>
+
+          {/* ── Opérations ───────────────────────── */}
+          <SectionTitle icon={Receipt}>Projets & Opérations</SectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Kpi label="Projets actifs" value={String(data.operations.activeProjects)} accent="primary" />
+            <Kpi label="En retard" value={String(data.operations.overdueProjects)} accent={data.operations.overdueProjects > 0 ? "danger" : "default"} />
+            <Kpi label="Budget total" value={formatFCFA(data.operations.totalBudget)} accent="default" />
+            <Kpi label="Avancement moyen" value={`${data.operations.avgProgress}%`} accent={data.operations.avgProgress >= 75 ? "success" : data.operations.avgProgress >= 40 ? "warning" : "default"} />
+          </div>
+
+          {/* ── RH ───────────────────────────────── */}
+          <SectionTitle icon={Users}>Ressources humaines</SectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Kpi label="Effectif actif" value={String(data.hr.activeCollab)} accent="primary" />
+            {Object.entries(data.hr.byContractType).map(([type, count]) => (
+              <Kpi key={type} label={type.toUpperCase()} value={String(count)} accent="default" hint="contrats" />
+            ))}
           </div>
         </>
       )}
