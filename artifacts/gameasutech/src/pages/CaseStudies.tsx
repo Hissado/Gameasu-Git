@@ -101,8 +101,9 @@ export default function CaseStudies() {
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Réalisations" : "Case studies"}</p>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">{fr ? "Des résultats mesurables pour nos clients" : "Measurable results for our clients"}</h1>
             <p className="text-xl text-slate-500 mb-6">{fr ? "Des exemples représentatifs de nos solutions technologiques déployées dans des contextes réels." : "Representative examples of our technology solutions deployed in real contexts."}</p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-lg">
-              ℹ️ {fr ? "Exemples de solutions représentatives — données anonymisées" : "Representative solution examples — anonymized data"}
+            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-500 text-sm rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>{fr ? "Exemples de solutions représentatives — données anonymisées" : "Representative solution examples — anonymized data"}</span>
             </div>
           </motion.div>
         </div>
