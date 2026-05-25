@@ -52,13 +52,13 @@ const stats = [
 ];
 
 const presence = [
-  { flag: "🇺🇸", country: "United States", role: "HQ", city: "New Haven, CT", since: "2023" },
-  { flag: "🇨🇦", country: "Canada", city: "Montréal", since: "2026" },
-  { flag: "🇫🇷", country: "France", city: "Paris", since: "2026" },
-  { flag: "🇧🇪", country: "Belgique", city: "Bruxelles", since: "2026" },
-  { flag: "🇹🇬", country: "Togo", city: "Lomé", since: "2026" },
-  { flag: "🇨🇮", country: "Côte d'Ivoire", city: "Abidjan", since: "2026" },
-  { flag: "🇲🇱", country: "Mali", city: "Bamako", since: "2026" }
+  { code: "us", countryFr: "États-Unis", countryEn: "United States", hq: true },
+  { code: "ca", countryFr: "Canada", countryEn: "Canada" },
+  { code: "fr", countryFr: "France", countryEn: "France" },
+  { code: "be", countryFr: "Belgique", countryEn: "Belgium" },
+  { code: "tg", countryFr: "Togo", countryEn: "Togo" },
+  { code: "ci", countryFr: "Côte d'Ivoire", countryEn: "Côte d'Ivoire" },
+  { code: "ml", countryFr: "Mali", countryEn: "Mali" },
 ];
 
 export default function Home() {
@@ -213,11 +213,10 @@ export default function Home() {
 
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
               <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6">
                   <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">
                     {fr ? "Présence mondiale" : "Global presence"}
                   </p>
-                  <span className="text-xs text-primary font-semibold bg-primary/10 px-3 py-1 rounded-full">7 {fr ? "pays" : "countries"}</span>
                 </div>
                 <div className="space-y-2">
                   {presence.map((p, i) => (
@@ -227,14 +226,20 @@ export default function Home() {
                       viewport={{ once: true }} transition={{ delay: i * 0.07, duration: 0.4 }}
                       className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors"
                     >
-                      <span className="text-2xl flex-shrink-0">{p.flag}</span>
+                      <img
+                        src={`https://flagcdn.com/24x18/${p.code}.png`}
+                        srcSet={`https://flagcdn.com/48x36/${p.code}.png 2x`}
+                        width={24} height={18}
+                        alt={fr ? p.countryFr : p.countryEn}
+                        className="flex-shrink-0 rounded-sm shadow-sm"
+                      />
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 text-sm">{p.country}</div>
+                        <div className="font-semibold text-slate-900 text-sm">{fr ? p.countryFr : p.countryEn}</div>
                       </div>
-                      {p.role ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">{p.role}</span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium flex-shrink-0">{fr ? `Depuis ${p.since}` : `Since ${p.since}`}</span>
+                      {p.hq && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">
+                          {fr ? "Siège" : "HQ"}
+                        </span>
                       )}
                     </motion.div>
                   ))}
