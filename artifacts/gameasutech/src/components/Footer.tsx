@@ -13,13 +13,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-2">
             <div className="mb-5">
-              <div className="bg-white rounded-xl px-4 py-3 inline-flex items-center">
+              <Link href="/">
                 <img
                   src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
                   alt="Gaméasù"
-                  style={{ height: "34px", width: "auto", display: "block" }}
+                  className="cursor-pointer"
+                  style={{ height: "36px", width: "auto", display: "block", filter: "brightness(0) invert(1)" }}
                 />
-              </div>
+              </Link>
             </div>
             <p className="text-primary font-semibold text-sm mb-3 tracking-wide italic">
               {fr ? "Innover, Transformer, Sécuriser" : "Innovate, Transform, Secure"}
