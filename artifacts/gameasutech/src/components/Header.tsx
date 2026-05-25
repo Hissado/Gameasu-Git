@@ -134,7 +134,6 @@ export function Header() {
             </Link>
           </nav>
           <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-            <span className="text-xs text-slate-500 font-medium mr-2">Langue :</span>
             {(["fr", "en"] as const).map((lang) => (
               <button
                 key={lang}
