@@ -58,7 +58,7 @@ export default function AIAutomation() {
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
               <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200">
                 <img
-                  src="https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=700&q=75&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=700&q=75&auto=format&fit=crop"
                   alt="Intelligence Artificielle"
                   className="w-full h-80 object-cover"
                   loading="lazy"

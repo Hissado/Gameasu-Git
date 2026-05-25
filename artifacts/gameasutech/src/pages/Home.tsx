@@ -207,7 +207,7 @@ export default function Home() {
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
               <div className="rounded-2xl overflow-hidden shadow-lg mb-4">
                 <img
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=700&q=75&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&q=75&auto=format&fit=crop"
                   alt="Équipe internationale Gaméasù"
                   className="w-full h-52 object-cover"
                   loading="lazy"
@@ -357,9 +357,9 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { ...resources[0], img: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&q=70&auto=format&fit=crop" },
-              { ...resources[1], img: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&q=70&auto=format&fit=crop" },
-              { ...resources[2], img: "https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?w=500&q=70&auto=format&fit=crop" },
+              { ...resources[0], img: "https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=500&q=70&auto=format&fit=crop" },
+              { ...resources[1], img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&q=70&auto=format&fit=crop" },
+              { ...resources[2], img: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=500&q=70&auto=format&fit=crop" },
             ].map((r, i) => (
               <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
                 <Link href={r.href}>
