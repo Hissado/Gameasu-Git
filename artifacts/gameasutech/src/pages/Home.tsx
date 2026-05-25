@@ -69,13 +69,13 @@ export default function Home() {
     <div className="min-h-screen bg-background">
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
+      <section className="relative pt-24 pb-16 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
         <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
           style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
-        <div className="container mx-auto px-6 relative z-10 py-20">
+        <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
 
@@ -127,23 +127,24 @@ export default function Home() {
               initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
               className="hidden lg:flex flex-col gap-4"
             >
-              <div className="relative rounded-2xl overflow-hidden h-52 bg-slate-200 shadow-lg">
+              <div className="relative rounded-2xl overflow-hidden h-64 bg-slate-200 shadow-xl">
                 <img
                   src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&q=80&auto=format&fit=crop"
                   alt="Équipe technologique internationale Gaméasù"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
-                <div className="absolute bottom-4 left-5 text-white text-sm font-semibold tracking-wide">
-                  {fr ? "Une équipe internationale à votre service" : "An international team at your service"}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/55 to-transparent" />
+                <div className="absolute bottom-4 left-5 right-5">
+                  <p className="text-white text-sm font-semibold tracking-wide">{fr ? "Une équipe internationale à votre service" : "An international team at your service"}</p>
+                  <p className="text-white/70 text-xs mt-0.5">{fr ? "7 pays · 100+ missions" : "7 countries · 100+ missions"}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {stats.map((s, i) => (
-                  <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
-                    <div className="text-3xl font-bold text-slate-900 mb-1">{s.value}</div>
-                    <div className="text-sm text-slate-500 font-medium">{fr ? s.labelFr : s.labelEn}</div>
+                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                    <div className="text-2xl font-bold text-slate-900 mb-1">{s.value}</div>
+                    <div className="text-xs text-slate-500 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
                   </div>
                 ))}
               </div>
@@ -177,9 +178,9 @@ export default function Home() {
       </section>
 
       {/* ── WHO WE ARE ──────────────────────────────────────────── */}
-      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
                 {fr ? "Qui sommes-nous" : "Who we are"}
@@ -258,56 +259,50 @@ export default function Home() {
       </section>
 
       {/* ── WHAT WE DO ──────────────────────────────────────────── */}
-      <section className="py-28 bg-white border-y border-slate-100">
+      <section className="py-20 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
-              {fr ? "Ce que nous faisons" : "What we do"}
-            </p>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-              {fr ? "Des solutions de bout en bout" : "End-to-end technology solutions"}
-            </h2>
-            <p className="text-slate-500 text-lg">
-              {fr
-                ? "De l'infrastructure à l'intelligence artificielle, nous couvrons l'intégralité de votre écosystème technologique avec des équipes certifiées et une approche orientée résultats."
-                : "From infrastructure to artificial intelligence, we cover your entire technology ecosystem with certified teams and a results-driven approach."}
-            </p>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14">
+            <div className="max-w-2xl">
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
+                {fr ? "Ce que nous faisons" : "What we do"}
+              </p>
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900">
+                {fr ? "Des solutions de bout en bout" : "End-to-end technology solutions"}
+              </h2>
+            </div>
+            <Link href="/services">
+              <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm whitespace-nowrap border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors cursor-pointer flex-shrink-0">
+                {fr ? "Tous nos services" : "All services"}
+                <ChevronRight size={15} />
+              </div>
+            </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {whatWeDo.map((item, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className={i === 4 ? "md:col-span-2 lg:col-span-1" : ""}>
                 <Link href={item.href}>
-                  <div className="group flex items-start gap-6 p-6 md:p-8 bg-white border border-slate-200 rounded-xl hover:border-primary/40 hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <div className="flex-shrink-0 p-4 rounded-xl bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
-                      <item.icon size={26} />
+                  <div className="group h-full flex items-start gap-5 p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/40 hover:shadow-md transition-all duration-300 cursor-pointer">
+                    <div className="flex-shrink-0 p-3.5 rounded-xl bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                      <item.icon size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-4 mb-2">
-                        <h3 className="text-xl font-bold text-slate-900">{fr ? item.titleFr : item.titleEn}</h3>
-                        <ArrowUpRight size={18} className="text-slate-300 group-hover:text-primary flex-shrink-0 transition-colors" />
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <h3 className="text-base font-bold text-slate-900">{fr ? item.titleFr : item.titleEn}</h3>
+                        <ArrowUpRight size={16} className="text-slate-300 group-hover:text-primary flex-shrink-0 transition-colors" />
                       </div>
-                      <p className="text-slate-500 leading-relaxed">{fr ? item.descFr : item.descEn}</p>
+                      <p className="text-slate-500 text-sm leading-relaxed">{fr ? item.descFr : item.descEn}</p>
                     </div>
                   </div>
                 </Link>
               </motion.div>
             ))}
           </div>
-
-          <div className="text-center mt-12">
-            <Link href="/services">
-              <div className="inline-flex items-center gap-2 text-primary font-semibold hover:underline cursor-pointer">
-                {fr ? "Voir tous nos services" : "View all our services"}
-                <ChevronRight size={16} />
-              </div>
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* ── INDUSTRIES ──────────────────────────────────────────── */}
-      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 items-start">
             <div className="lg:sticky lg:top-32">
@@ -350,7 +345,7 @@ export default function Home() {
       </section>
 
       {/* ── RESOURCES ───────────────────────────────────────────── */}
-      <section className="py-28 bg-white border-t border-slate-100">
+      <section className="py-20 bg-white border-t border-slate-100">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">

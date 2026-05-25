@@ -23,7 +23,7 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
+      <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
@@ -38,7 +38,7 @@ export default function Services() {
         </div>
       </section>
 
-      <section className="pb-28 pt-8 bg-white">
+      <section className="py-14 bg-white">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {services.map((s, i) => (
@@ -69,7 +69,7 @@ export default function Services() {
         </div>
       </section>
 
-      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20 border-t border-slate-100">
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20 border-t border-slate-100">
         <div className="container mx-auto px-6">
           {/* Section header */}
           <div className="max-w-3xl mb-12">

@@ -51,7 +51,7 @@ export default function Careers() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
+      <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -87,7 +87,7 @@ export default function Careers() {
       </section>
 
       {/* Why join */}
-      <section className="py-28 bg-white border-b border-slate-100">
+      <section className="py-20 bg-white border-b border-slate-100">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Pourquoi nous rejoindre" : "Why join us"}</p>
@@ -110,7 +110,7 @@ export default function Careers() {
       </section>
 
       {/* Open positions */}
-      <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Postes ouverts" : "Open positions"}</p>
@@ -134,7 +134,7 @@ export default function Careers() {
       </section>
 
       {/* Application form */}
-      <section className="py-28 bg-white border-t border-slate-100">
+      <section className="py-20 bg-white border-t border-slate-100">
         <div className="container mx-auto px-6 max-w-2xl">
           <div className="text-center mb-12">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Candidature" : "Application"}</p>

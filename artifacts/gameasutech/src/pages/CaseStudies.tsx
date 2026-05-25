@@ -94,7 +94,7 @@ export default function CaseStudies() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
+      <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -108,11 +108,11 @@ export default function CaseStudies() {
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
                 <img
                   src={`${import.meta.env.BASE_URL}case-studies-banner.png`}
                   alt="Réalisations Gaméasù — missions technologiques en Afrique"
-                  className="w-full object-cover"
+                  className="w-full h-full object-cover object-center"
                   loading="lazy"
                 />
               </div>
