@@ -91,19 +91,25 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5">
               {[
-                { flag: "🇺🇸", label: "États-Unis", role: "HQ" },
-                { flag: "🇨🇦", label: "Canada" },
-                { flag: "🇫🇷", label: "France" },
-                { flag: "🇧🇪", label: "Belgique" },
-                { flag: "🇹🇬", label: "Togo" },
-                { flag: "🇨🇮", label: "Côte d'Ivoire" },
-                { flag: "🇲🇱", label: "Mali" },
+                { code: "us", labelFr: "États-Unis", labelEn: "United States", hq: true },
+                { code: "ca", labelFr: "Canada", labelEn: "Canada" },
+                { code: "fr", labelFr: "France", labelEn: "France" },
+                { code: "be", labelFr: "Belgique", labelEn: "Belgium" },
+                { code: "tg", labelFr: "Togo", labelEn: "Togo" },
+                { code: "ci", labelFr: "Côte d'Ivoire", labelEn: "Côte d'Ivoire" },
+                { code: "ml", labelFr: "Mali", labelEn: "Mali" },
               ].map((p, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
-                  <span className="text-lg">{p.flag}</span>
-                  <span>{p.label}</span>
-                  {p.role && (
-                    <span className="text-xs text-primary font-semibold">{p.role}</span>
+                  <img
+                    src={`https://flagcdn.com/20x15/${p.code}.png`}
+                    srcSet={`https://flagcdn.com/40x30/${p.code}.png 2x`}
+                    width={20} height={15}
+                    alt={fr ? p.labelFr : p.labelEn}
+                    className="flex-shrink-0 rounded-sm"
+                  />
+                  <span>{fr ? p.labelFr : p.labelEn}</span>
+                  {p.hq && (
+                    <span className="text-xs text-primary font-semibold">{fr ? "Siège" : "HQ"}</span>
                   )}
                 </li>
               ))}
