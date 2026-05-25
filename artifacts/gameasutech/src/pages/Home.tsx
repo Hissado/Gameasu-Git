@@ -122,17 +122,31 @@ export default function Home() {
               </motion.div>
             </div>
 
-            {/* Stats panel */}
+            {/* Stats panel + hero image */}
             <motion.div
               initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
-              className="hidden lg:grid grid-cols-2 gap-4"
+              className="hidden lg:flex flex-col gap-4"
             >
-              {stats.map((s, i) => (
-                <div key={i} className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
-                  <div className="text-4xl font-bold text-slate-900 mb-2">{s.value}</div>
-                  <div className="text-sm text-slate-500 font-medium">{fr ? s.labelFr : s.labelEn}</div>
+              <div className="relative rounded-2xl overflow-hidden h-52 bg-slate-200 shadow-lg">
+                <img
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&q=80&auto=format&fit=crop"
+                  alt="Équipe technologique internationale Gaméasù"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
+                <div className="absolute bottom-4 left-5 text-white text-sm font-semibold tracking-wide">
+                  {fr ? "Une équipe internationale à votre service" : "An international team at your service"}
                 </div>
-              ))}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {stats.map((s, i) => (
+                  <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                    <div className="text-3xl font-bold text-slate-900 mb-1">{s.value}</div>
+                    <div className="text-sm text-slate-500 font-medium">{fr ? s.labelFr : s.labelEn}</div>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           </div>
         </div>

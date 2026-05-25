@@ -32,24 +32,43 @@ export default function Cybersecurity() {
       <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold mb-6 uppercase tracking-wide">
-              <Shield size={14} />
-              {fr ? "Cybersécurité" : "Cybersecurity"}
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6 max-w-4xl">
-              {fr ? "Protégez votre organisation contre les menaces cyber de demain" : "Protect your organization against tomorrow's cyber threats"}
-            </h1>
-            <p className="text-xl text-slate-500 max-w-3xl mb-10">
-              {fr ? "Une approche holistique de la sécurité qui combine technologie de pointe, expertise humaine et processus éprouvés — pour une protection complète de vos systèmes, données et opérations." : "A holistic approach to security combining cutting-edge technology, human expertise, and proven processes — for complete protection of your systems, data, and operations."}
-            </p>
-            <Link href="/contact">
-              <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
-                {fr ? "Demander un audit gratuit" : "Request a free audit"}
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold mb-6 uppercase tracking-wide">
+                <Shield size={14} />
+                {fr ? "Cybersécurité" : "Cybersecurity"}
               </div>
-            </Link>
-          </motion.div>
+              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+                {fr ? "Protégez votre organisation contre les menaces cyber de demain" : "Protect your organization against tomorrow's cyber threats"}
+              </h1>
+              <p className="text-xl text-slate-500 mb-10">
+                {fr ? "Une approche holistique de la sécurité qui combine technologie de pointe, expertise humaine et processus éprouvés — pour une protection complète de vos systèmes, données et opérations." : "A holistic approach to security combining cutting-edge technology, human expertise, and proven processes — for complete protection of your systems, data, and operations."}
+              </p>
+              <Link href="/contact">
+                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
+                  {fr ? "Demander un audit gratuit" : "Request a free audit"}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden h-80 bg-slate-800 shadow-2xl">
+                <img
+                  src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&q=80&auto=format&fit=crop"
+                  alt="Cybersécurité et protection des données"
+                  className="w-full h-full object-cover opacity-80"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/60 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
+                    <Shield size={16} className="text-blue-300 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">{fr ? "Protection 24/7 — SOC managé" : "24/7 Protection — Managed SOC"}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

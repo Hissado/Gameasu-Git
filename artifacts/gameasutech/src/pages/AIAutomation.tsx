@@ -36,24 +36,43 @@ export default function AIAutomation() {
       <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-violet-50/20 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-100/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 border border-violet-200 text-violet-700 text-sm font-semibold mb-6 uppercase tracking-wide">
-              <Brain size={14} />
-              {fr ? "Intelligence Artificielle & Automatisation" : "AI & Automation"}
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6 max-w-4xl">
-              {fr ? "L'IA au service de vos opérations — aujourd'hui" : "AI powering your operations — today"}
-            </h1>
-            <p className="text-xl text-slate-500 max-w-3xl mb-10">
-              {fr ? "Des plateformes IA délivrant de l'analytique prédictive, de l'automatisation intelligente et des expériences personnalisées qui génèrent un avantage concurrentiel durable." : "AI platforms delivering predictive analytics, intelligent automation, and personalized experiences that drive lasting competitive advantage."}
-            </p>
-            <Link href="/contact">
-              <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
-                {fr ? "Explorer les solutions IA" : "Explore AI solutions"}
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 border border-violet-200 text-violet-700 text-sm font-semibold mb-6 uppercase tracking-wide">
+                <Brain size={14} />
+                {fr ? "Intelligence Artificielle & Automatisation" : "AI & Automation"}
               </div>
-            </Link>
-          </motion.div>
+              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+                {fr ? "L'IA au service de vos opérations — aujourd'hui" : "AI powering your operations — today"}
+              </h1>
+              <p className="text-xl text-slate-500 mb-10">
+                {fr ? "Des plateformes IA délivrant de l'analytique prédictive, de l'automatisation intelligente et des expériences personnalisées qui génèrent un avantage concurrentiel durable." : "AI platforms delivering predictive analytics, intelligent automation, and personalized experiences that drive lasting competitive advantage."}
+              </p>
+              <Link href="/contact">
+                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
+                  {fr ? "Explorer les solutions IA" : "Explore AI solutions"}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden h-80 bg-slate-900 shadow-2xl">
+                <img
+                  src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=900&q=80&auto=format&fit=crop"
+                  alt="Intelligence artificielle et automatisation"
+                  className="w-full h-full object-cover opacity-75"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/60 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
+                    <Brain size={16} className="text-violet-300 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">{fr ? "IA · RPA · Analytique prédictive" : "AI · RPA · Predictive analytics"}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

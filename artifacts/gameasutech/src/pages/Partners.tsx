@@ -57,18 +57,37 @@ export default function Partners() {
     <div className="min-h-screen bg-background">
       <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="container mx-auto px-6 relative z-10 max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Partenaires" : "Partners"}</p>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
-              {fr ? "Un écosystème de partenaires de classe mondiale" : "A world-class partner ecosystem"}
-            </h1>
-            <p className="text-xl text-slate-500">
-              {fr
-                ? "Gaméasù s'appuie sur les leaders technologiques mondiaux pour vous offrir des solutions de référence, implémentées par des ingénieurs certifiés et des équipes expertes."
-                : "Gaméasù relies on global technology leaders to offer you best-in-class solutions, implemented by certified engineers and expert teams."}
-            </p>
-          </motion.div>
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Partenaires" : "Partners"}</p>
+              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
+                {fr ? "Un écosystème de partenaires de classe mondiale" : "A world-class partner ecosystem"}
+              </h1>
+              <p className="text-xl text-slate-500">
+                {fr
+                  ? "Gaméasù s'appuie sur les leaders technologiques mondiaux pour vous offrir des solutions de référence, implémentées par des ingénieurs certifiés et des équipes expertes."
+                  : "Gaméasù relies on global technology leaders to offer you best-in-class solutions, implemented by certified engineers and expert teams."}
+              </p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
+                <img
+                  src="https://images.unsplash.com/photo-1556157382-97eda2d62296?w=900&q=80&auto=format&fit=crop"
+                  alt="Partenariat technologique international"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/50 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
+                    <Award size={15} className="text-yellow-300 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">{fr ? "Partenaires certifiés — AWS · Azure · GCP · Microsoft" : "Certified Partners — AWS · Azure · GCP · Microsoft"}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

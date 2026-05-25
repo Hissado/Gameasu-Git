@@ -32,24 +32,43 @@ export default function CloudInfrastructure() {
       <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-cyan-50/20 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-100/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-100 border border-cyan-200 text-cyan-700 text-sm font-semibold mb-6 uppercase tracking-wide">
-              <Cloud size={14} />
-              {fr ? "Cloud & Infrastructure" : "Cloud & Infrastructure"}
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6 max-w-4xl">
-              {fr ? "Une infrastructure solide, résiliente et prête pour la croissance" : "Solid, resilient infrastructure ready for growth"}
-            </h1>
-            <p className="text-xl text-slate-500 max-w-3xl mb-10">
-              {fr ? "Du réseau au cloud, en passant par la virtualisation et la supervision, nous construisons des fondations technologiques robustes sur lesquelles votre organisation peut compter." : "From network to cloud, through virtualization and monitoring, we build robust technology foundations your organization can rely on."}
-            </p>
-            <Link href="/contact">
-              <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
-                {fr ? "Évaluer votre infrastructure" : "Assess your infrastructure"}
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-100 border border-cyan-200 text-cyan-700 text-sm font-semibold mb-6 uppercase tracking-wide">
+                <Cloud size={14} />
+                {fr ? "Cloud & Infrastructure" : "Cloud & Infrastructure"}
               </div>
-            </Link>
-          </motion.div>
+              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+                {fr ? "Une infrastructure solide, résiliente et prête pour la croissance" : "Solid, resilient infrastructure ready for growth"}
+              </h1>
+              <p className="text-xl text-slate-500 mb-10">
+                {fr ? "Du réseau au cloud, en passant par la virtualisation et la supervision, nous construisons des fondations technologiques robustes sur lesquelles votre organisation peut compter." : "From network to cloud, through virtualization and monitoring, we build robust technology foundations your organization can rely on."}
+              </p>
+              <Link href="/contact">
+                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
+                  {fr ? "Évaluer votre infrastructure" : "Assess your infrastructure"}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden h-80 bg-slate-800 shadow-2xl">
+                <img
+                  src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=900&q=80&auto=format&fit=crop"
+                  alt="Infrastructure cloud et data center"
+                  className="w-full h-full object-cover opacity-85"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-cyan-900/50 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
+                    <Cloud size={16} className="text-cyan-300 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">{fr ? "AWS · Azure · GCP · Multi-cloud" : "AWS · Azure · GCP · Multi-cloud"}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

@@ -92,22 +92,33 @@ export default function Services() {
                 ))}
               </div>
             </div>
-            <div className="space-y-3">
-              {[
-                { fr: "Chef de projet dédié sur chaque engagement", en: "Dedicated project manager on every engagement" },
-                { fr: "Reporting de progression mensuel inclus", en: "Monthly progress reporting included" },
-                { fr: "Formation utilisateurs dans chaque déploiement", en: "User training in every deployment" },
-                { fr: "SLA garanti contractuellement", en: "Contractually guaranteed SLA" },
-                { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
-                { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
-              ].map((item, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
-                  <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
-                    <CheckCircle size={18} className="text-primary flex-shrink-0" />
-                    <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>
-                  </div>
-                </motion.div>
-              ))}
+            <div>
+              <div className="relative rounded-2xl overflow-hidden h-52 bg-slate-200 shadow-md mb-5">
+                <img
+                  src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=900&q=80&auto=format&fit=crop"
+                  alt="Équipe Gaméasù en session de travail"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
+              </div>
+              <div className="space-y-3">
+                {[
+                  { fr: "Chef de projet dédié sur chaque engagement", en: "Dedicated project manager on every engagement" },
+                  { fr: "Reporting de progression mensuel inclus", en: "Monthly progress reporting included" },
+                  { fr: "Formation utilisateurs dans chaque déploiement", en: "User training in every deployment" },
+                  { fr: "SLA garanti contractuellement", en: "Contractually guaranteed SLA" },
+                  { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
+                  { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
+                ].map((item, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
+                    <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
+                      <CheckCircle size={18} className="text-primary flex-shrink-0" />
+                      <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
