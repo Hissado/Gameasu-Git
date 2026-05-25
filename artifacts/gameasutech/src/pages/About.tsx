@@ -47,8 +47,8 @@ export default function About() {
             </p>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
               {fr
-                ? "Fondée en 2023, Gaméasù est une entreprise technologique à vision internationale, engagée à accompagner les entreprises, institutions et organisations en Afrique, en Amérique du Nord, en Europe et au-delà."
-                : "Founded in 2023, Gaméasù is a technology company with an international vision, committed to supporting businesses, institutions, and organizations in Africa, North America, Europe, and beyond."}
+                ? "Gaméasù transforme les ambitions digitales des entreprises en solutions technologiques concrètes, sécurisées et évolutives."
+                : "Gaméasù transforms companies' digital ambitions into concrete, secure, and scalable technology solutions."}
             </h1>
             <p className="text-base font-semibold text-primary tracking-widest mb-6 uppercase">
               {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
