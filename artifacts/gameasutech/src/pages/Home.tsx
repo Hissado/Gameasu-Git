@@ -78,13 +78,6 @@ export default function Home() {
         <div className="container mx-auto px-6 relative z-10 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-8 tracking-wide"
-              >
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                {fr ? "Partenaire technologique international" : "International Technology Partner"}
-              </motion.div>
 
               <motion.h1
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
