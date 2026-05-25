@@ -34,7 +34,7 @@ export default function AIAutomation() {
   return (
     <div className="min-h-screen bg-background">
       <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-violet-50/20 to-white overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-100/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+        <div className="blob-1 absolute top-0 right-0 w-[500px] h-[500px] bg-violet-100/30 rounded-full blur-3xl pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>

@@ -16,9 +16,11 @@ export function CTASection({
 }) {
   return (
     <section className="relative overflow-hidden bg-slate-900 py-24">
-      {/* Subtle blue glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,rgba(37,99,235,0.25)_0%,transparent_70%)] pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+      {/* Animated orbs */}
+      <div className="cta-orb-1 absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-blue-600/15 blur-3xl pointer-events-none" />
+      <div className="cta-orb-2 absolute -bottom-32 -right-32 w-[400px] h-[400px] rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+      {/* Subtle grid */}
+      <div className="grid-pulse absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "50px 50px" }} />
 
       <div className="container mx-auto px-6 relative z-10 text-center">
