@@ -200,55 +200,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Team */}
-      <section className="py-20 bg-white border-y border-slate-100">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
-              {fr ? "Notre équipe" : "Our team"}
-            </p>
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              {fr ? "Des experts certifiés à votre service" : "Certified experts at your service"}
-            </h2>
-            <p className="text-slate-500 text-lg">
-              {fr
-                ? "Ingénieurs, consultants et spécialistes déployés partout où vous avez besoin d'eux, avec les certifications qui comptent."
-                : "Engineers, consultants and specialists deployed wherever you need them, with the certifications that matter."}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {team.map((member, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <div className="group h-full bg-white border border-slate-200 rounded-2xl p-7 hover:border-primary/40 hover:shadow-md transition-all duration-300 flex flex-col">
-                  <div className="flex items-center gap-4 mb-5">
-                    <div className={`w-14 h-14 rounded-full ${member.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                      <span className="text-white font-bold text-lg">{member.initials}</span>
-                    </div>
-                    <img
-                      src={`https://flagcdn.com/24x18/${member.country}.png`}
-                      srcSet={`https://flagcdn.com/48x36/${member.country}.png 2x`}
-                      width={24} height={18}
-                      alt=""
-                      className="rounded-sm shadow-sm"
-                    />
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-base mb-0.5">{fr ? member.nameFr : member.nameEn}</h3>
-                  <p className="text-primary text-xs font-semibold mb-3">{fr ? member.roleFr : member.roleEn}</p>
-                  <p className="text-slate-500 text-sm leading-relaxed flex-1">{fr ? member.bioFr : member.bioEn}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-4">
-                    {member.certs.map((cert, ci) => (
-                      <span key={ci} className="text-xs px-2 py-0.5 rounded-full bg-primary/8 text-primary font-semibold border border-primary/15">
-                        {cert}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Commitments */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
