@@ -8,6 +8,9 @@ import {
   Building2, Landmark, GraduationCap, HeartPulse, Banknote, Factory
 } from "lucide-react";
 import { CTASection } from "@/components/CTASection";
+import { Testimonials } from "@/components/Testimonials";
+import { ProcessSteps } from "@/components/ProcessSteps";
+import { Newsletter } from "@/components/Newsletter";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -301,6 +304,42 @@ export default function Home() {
         </div>
       </section>
 
+      <ProcessSteps />
+
+      {/* ── WHY GAMÉASÙ ─────────────────────────────────────────── */}
+      <section className="py-14 bg-slate-50 border-y border-slate-100">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-10">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
+              {fr ? "Pourquoi Gaméasù" : "Why Gaméasù"}
+            </p>
+            <h2 className="text-3xl font-bold text-slate-900">
+              {fr ? "Ce qui nous distingue" : "What sets us apart"}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              { icon: "🌍", titleFr: "Ancrage africain, standards mondiaux", titleEn: "African roots, global standards", descFr: "Nés pour servir les marchés africains francophones avec les exigences techniques des leaders américains et européens.", descEn: "Built to serve French-speaking African markets with the technical standards of US and European leaders." },
+              { icon: "🎓", titleFr: "Équipe 100% certifiée", titleEn: "100% certified team", descFr: "Microsoft, AWS, Google Cloud, Cisco, Fortinet — chaque expert est certifié sur les technologies qu'il déploie chez vous.", descEn: "Microsoft, AWS, Google Cloud, Cisco, Fortinet — every expert is certified on the technologies they deploy for you." },
+              { icon: "🌐", titleFr: "7 pays, 1 seule équipe", titleEn: "7 countries, 1 team", descFr: "Présents en Amérique du Nord, en Europe et en Afrique de l'Ouest pour une réponse locale avec une vision internationale.", descEn: "Present in North America, Europe, and West Africa for a local response with an international vision." },
+              { icon: "💬", titleFr: "Multilingue par nature", titleEn: "Multilingual by nature", descFr: "Support en français, anglais et langues locales — parce que la technologie doit parler votre langue.", descEn: "Support in French, English, and local languages — because technology must speak your language." },
+              { icon: "⚡", titleFr: "Réactivité garantie 24/7", titleEn: "24/7 guaranteed responsiveness", descFr: "Réponse sous 4h pour tout incident critique, avec un chef de projet dédié à chaque mission.", descEn: "Response within 4 hours for any critical incident, with a dedicated project manager for every engagement." },
+              { icon: "🤝", titleFr: "Partenariat long terme", titleEn: "Long-term partnership", descFr: "Nous ne livrons pas des projets, nous construisons des relations durables. Votre succès est notre succès.", descEn: "We don't just deliver projects — we build lasting relationships. Your success is our success." },
+            ].map((item, i) => (
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                <div className="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-300">
+                  <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm mb-1.5">{fr ? item.titleFr : item.titleEn}</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed">{fr ? item.descFr : item.descEn}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── INDUSTRIES ──────────────────────────────────────────── */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
@@ -343,6 +382,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Testimonials />
+
+      <Newsletter />
 
       {/* ── RESOURCES ───────────────────────────────────────────── */}
       <section className="py-20 bg-white border-t border-slate-100">

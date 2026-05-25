@@ -78,6 +78,7 @@ export function Footer() {
                 { href: "/partners", label: fr ? "Partenaires" : "Partners" },
                 { href: "/careers", label: fr ? "Carrières" : "Careers" },
                 { href: "/blog", label: fr ? "Ressources" : "Resources" },
+                { href: "/faq", label: fr ? "FAQ" : "FAQ" },
               ].map((item) => (
                 <li key={item.href + item.label}>
                   <Link href={item.href}>
@@ -134,7 +135,9 @@ export function Footer() {
             </span>
           </p>
           <div className="flex items-center gap-6 text-xs text-slate-500">
-            <span className="hover:text-slate-300 cursor-pointer transition-colors">{fr ? "Politique de confidentialité" : "Privacy Policy"}</span>
+            <Link href="/privacy">
+              <span className="hover:text-slate-300 cursor-pointer transition-colors">{fr ? "Politique de confidentialité" : "Privacy Policy"}</span>
+            </Link>
             <span className="hover:text-slate-300 cursor-pointer transition-colors">{fr ? "Conditions d'utilisation" : "Terms of Use"}</span>
             <Link href="/support">
               <span className="hover:text-slate-300 cursor-pointer transition-colors">{t.nav.support}</span>

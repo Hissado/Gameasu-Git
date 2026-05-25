@@ -22,6 +22,57 @@ const milestones = [
   { year: "2026", eventFr: "Lancement de la practice IA & Automatisation et présence dans 7 pays", eventEn: "AI & Automation practice launched — presence in 7 countries" },
 ];
 
+const team = [
+  {
+    initials: "JK",
+    color: "bg-blue-700",
+    nameFr: "Jean-Pierre Koffi",
+    nameEn: "Jean-Pierre Koffi",
+    roleFr: "Fondateur & CEO",
+    roleEn: "Founder & CEO",
+    bioFr: "Architecte Cloud certifié AWS & Azure, plus de 12 ans d'expérience en transformation digitale. Fondateur de Gaméasù depuis New Haven, Connecticut.",
+    bioEn: "AWS & Azure Certified Cloud Architect with over 12 years of experience in digital transformation. Founder of Gaméasù from New Haven, Connecticut.",
+    country: "tg",
+    certs: ["AWS", "Azure", "GCP"],
+  },
+  {
+    initials: "AT",
+    color: "bg-indigo-700",
+    nameFr: "Amina Traoré",
+    nameEn: "Amina Traoré",
+    roleFr: "Directrice Technique (CTO)",
+    roleEn: "Chief Technology Officer",
+    bioFr: "Experte en cybersécurité certifiée CISSP & Microsoft Security. Architecte des plateformes SOC et des dispositifs de sécurité de nos clients institutionnels.",
+    bioEn: "CISSP & Microsoft Security certified cybersecurity expert. Architect of SOC platforms and security solutions for our institutional clients.",
+    country: "ci",
+    certs: ["CISSP", "MS Security"],
+  },
+  {
+    initials: "DM",
+    color: "bg-violet-700",
+    nameFr: "David Mensah",
+    nameEn: "David Mensah",
+    roleFr: "Directeur Opérations Afrique",
+    roleEn: "Africa Operations Director",
+    bioFr: "Spécialiste des déploiements terrain en Afrique de l'Ouest, coordinateur de nos bureaux au Togo, en Côte d'Ivoire et au Mali. Expert réseau et infrastructure locale.",
+    bioEn: "Field deployment specialist in West Africa, coordinator of our offices in Togo, Côte d'Ivoire, and Mali. Network and local infrastructure expert.",
+    country: "tg",
+    certs: ["Cisco", "Fortinet"],
+  },
+  {
+    initials: "SK",
+    color: "bg-sky-700",
+    nameFr: "Sarah Kowalski",
+    nameEn: "Sarah Kowalski",
+    roleFr: "Responsable Solutions IA",
+    roleEn: "AI Solutions Lead",
+    bioFr: "Data scientist et ML engineer, spécialiste de l'automatisation intelligente et des solutions analytiques prédictives pour les secteurs finance et santé.",
+    bioEn: "Data scientist and ML engineer, specialist in intelligent automation and predictive analytics solutions for the finance and healthcare sectors.",
+    country: "ca",
+    certs: ["Google ML", "Azure AI"],
+  },
+];
+
 const commitments = [
   { fr: "Réponse en moins de 4h pour tout incident critique", en: "Response within 4 hours for any critical incident" },
   { fr: "Chef de projet dédié pour chaque engagement", en: "Dedicated project manager for every engagement" },
@@ -149,6 +200,55 @@ export default function About() {
         </div>
       </section>
 
+      {/* Team */}
+      <section className="py-20 bg-white border-y border-slate-100">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
+              {fr ? "Notre équipe" : "Our team"}
+            </p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              {fr ? "Des experts certifiés à votre service" : "Certified experts at your service"}
+            </h2>
+            <p className="text-slate-500 text-lg">
+              {fr
+                ? "Ingénieurs, consultants et spécialistes déployés partout où vous avez besoin d'eux, avec les certifications qui comptent."
+                : "Engineers, consultants and specialists deployed wherever you need them, with the certifications that matter."}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {team.map((member, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                <div className="group h-full bg-white border border-slate-200 rounded-2xl p-7 hover:border-primary/40 hover:shadow-md transition-all duration-300 flex flex-col">
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className={`w-14 h-14 rounded-full ${member.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                      <span className="text-white font-bold text-lg">{member.initials}</span>
+                    </div>
+                    <img
+                      src={`https://flagcdn.com/24x18/${member.country}.png`}
+                      srcSet={`https://flagcdn.com/48x36/${member.country}.png 2x`}
+                      width={24} height={18}
+                      alt=""
+                      className="rounded-sm shadow-sm"
+                    />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base mb-0.5">{fr ? member.nameFr : member.nameEn}</h3>
+                  <p className="text-primary text-xs font-semibold mb-3">{fr ? member.roleFr : member.roleEn}</p>
+                  <p className="text-slate-500 text-sm leading-relaxed flex-1">{fr ? member.bioFr : member.bioEn}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-4">
+                    {member.certs.map((cert, ci) => (
+                      <span key={ci} className="text-xs px-2 py-0.5 rounded-full bg-primary/8 text-primary font-semibold border border-primary/15">
+                        {cert}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Commitments */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
@@ -183,6 +283,72 @@ export default function About() {
               />
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Africa Engagement */}
+      <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-hidden">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
+                {fr ? "Notre engagement africain" : "Our African commitment"}
+              </p>
+              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-8">
+                {fr
+                  ? <>L'Afrique au cœur de <span className="text-primary">notre mission.</span></>
+                  : <>Africa at the heart of <span className="text-primary">our mission.</span></>}
+              </h2>
+              <p className="text-slate-300 text-lg leading-relaxed mb-6">
+                {fr
+                  ? "Gaméasù est né d'une conviction profonde : les organisations africaines méritent le même niveau d'excellence technologique que leurs homologues nord-américains ou européens. La géographie ne peut pas être un obstacle à la transformation numérique."
+                  : "Gaméasù was born from a deep conviction: African organizations deserve the same level of technological excellence as their North American or European counterparts. Geography cannot be a barrier to digital transformation."}
+              </p>
+              <p className="text-slate-300 text-lg leading-relaxed mb-10">
+                {fr
+                  ? "Notre présence terrain au Togo, en Côte d'Ivoire et au Mali nous permet d'intervenir rapidement, avec une compréhension fine des contraintes locales — connectivité, réglementation, langues, culture — tout en maintenant des standards internationaux."
+                  : "Our field presence in Togo, Côte d'Ivoire, and Mali allows us to intervene quickly, with a deep understanding of local constraints — connectivity, regulation, languages, culture — while maintaining international standards."}
+              </p>
+              <div className="grid grid-cols-3 gap-6">
+                {[
+                  { value: "3", labelFr: "Pays d'Afrique de l'Ouest", labelEn: "West African countries" },
+                  { value: "FR/EN", labelFr: "Support multilingue", labelEn: "Multilingual support" },
+                  { value: "100%", labelFr: "Standards internationaux", labelEn: "International standards" },
+                ].map((s, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-2xl font-bold text-primary mb-1">{s.value}</div>
+                    <div className="text-xs text-slate-400 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+              <div className="grid grid-cols-1 gap-4">
+                {[
+                  { flag: "tg", cityFr: "Lomé, Togo", cityEn: "Lomé, Togo", descFr: "Bureau opérationnel et équipe terrain pour l'Afrique de l'Ouest.", descEn: "Operational office and field team for West Africa." },
+                  { flag: "ci", cityFr: "Abidjan, Côte d'Ivoire", cityEn: "Abidjan, Côte d'Ivoire", descFr: "Hub commercial pour les marchés ivoirien et sous-régional.", descEn: "Commercial hub for Ivorian and sub-regional markets." },
+                  { flag: "ml", cityFr: "Bamako, Mali", cityEn: "Bamako, Mali", descFr: "Équipe locale pour les institutions publiques et ONGs au Mali.", descEn: "Local team for public institutions and NGOs in Mali." },
+                ].map((office, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                    <div className="flex items-start gap-5 p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/8 transition-colors">
+                      <img
+                        src={`https://flagcdn.com/32x24/${office.flag}.png`}
+                        srcSet={`https://flagcdn.com/64x48/${office.flag}.png 2x`}
+                        width={32} height={24}
+                        alt=""
+                        className="rounded flex-shrink-0 mt-0.5 shadow"
+                      />
+                      <div>
+                        <div className="font-bold text-white mb-1">{fr ? office.cityFr : office.cityEn}</div>
+                        <div className="text-slate-400 text-sm leading-relaxed">{fr ? office.descFr : office.descEn}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

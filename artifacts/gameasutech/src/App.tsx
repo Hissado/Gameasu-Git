@@ -18,6 +18,8 @@ import Partners from "@/pages/Partners";
 import Careers from "@/pages/Careers";
 import Contact from "@/pages/Contact";
 import Support from "@/pages/Support";
+import FAQ from "@/pages/FAQ";
+import Privacy from "@/pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ function Router() {
         <Route path="/careers" component={Careers} />
         <Route path="/contact" component={Contact} />
         <Route path="/support" component={Support} />
+        <Route path="/faq" component={FAQ} />
+        <Route path="/privacy" component={Privacy} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
