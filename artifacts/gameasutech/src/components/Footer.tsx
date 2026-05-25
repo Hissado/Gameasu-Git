@@ -49,7 +49,7 @@ export function Footer() {
             <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-widest">{t.nav.services}</h4>
             <ul className="space-y-3">
               {[
-                { href: "/services", label: "Modern Workplace" },
+                { href: "/services", label: fr ? "Modern Workplace" : "Modern Workplace" },
                 { href: "/cloud-infrastructure", label: fr ? "Cloud & Infrastructure" : "Cloud & Infrastructure" },
                 { href: "/cybersecurity", label: fr ? "Cybersécurité" : "Cybersecurity" },
                 { href: "/ai-automation", label: fr ? "Intelligence Artificielle" : "AI & Automation" },
@@ -57,7 +57,10 @@ export function Footer() {
               ].map((item) => (
                 <li key={item.href + item.label}>
                   <Link href={item.href}>
-                    <div className="text-sm text-slate-400 hover:text-white cursor-pointer transition-colors">{item.label}</div>
+                    <div className="group flex items-center gap-1 text-sm text-slate-400 hover:text-primary cursor-pointer transition-all duration-200">
+                      <span className="group-hover:translate-x-0.5 transition-transform duration-200">{item.label}</span>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-primary text-xs">→</span>
+                    </div>
                   </Link>
                 </li>
               ))}
@@ -68,16 +71,19 @@ export function Footer() {
             <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-widest">{fr ? "Entreprise" : "Company"}</h4>
             <ul className="space-y-3">
               {[
-                { href: "/about", label: t.nav.about },
-                { href: "/industries", label: t.nav.industries },
-                { href: "/case-studies", label: t.nav.caseStudies },
-                { href: "/partners", label: t.nav.partners },
-                { href: "/careers", label: t.nav.careers },
-                { href: "/blog", label: t.nav.blog },
+                { href: "/about", label: fr ? "À propos" : "About" },
+                { href: "/industries", label: fr ? "Secteurs" : "Industries" },
+                { href: "/case-studies", label: fr ? "Réalisations" : "Case Studies" },
+                { href: "/partners", label: fr ? "Partenaires" : "Partners" },
+                { href: "/careers", label: fr ? "Carrières" : "Careers" },
+                { href: "/blog", label: fr ? "Ressources" : "Resources" },
               ].map((item) => (
-                <li key={item.href}>
+                <li key={item.href + item.label}>
                   <Link href={item.href}>
-                    <div className="text-sm text-slate-400 hover:text-white cursor-pointer transition-colors">{item.label}</div>
+                    <div className="group flex items-center gap-1 text-sm text-slate-400 hover:text-primary cursor-pointer transition-all duration-200">
+                      <span className="group-hover:translate-x-0.5 transition-transform duration-200">{item.label}</span>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-primary text-xs">→</span>
+                    </div>
                   </Link>
                 </li>
               ))}
