@@ -54,7 +54,7 @@ export function Footer() {
                 { href: "/cloud-infrastructure", label: fr ? "Cloud & Infrastructure" : "Cloud & Infrastructure" },
                 { href: "/cybersecurity", label: fr ? "Cybersécurité" : "Cybersecurity" },
                 { href: "/ai-automation", label: fr ? "Intelligence Artificielle" : "AI & Automation" },
-                { href: "/services", label: fr ? "Services Managés" : "Managed Services" },
+                { href: "/support", label: fr ? "Services Managés" : "Managed Services" },
               ].map((item) => (
                 <li key={item.href + item.label}>
                   <Link href={item.href}>
