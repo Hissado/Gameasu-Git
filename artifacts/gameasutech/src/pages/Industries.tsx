@@ -37,14 +37,13 @@ export default function Industries() {
               </p>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden shadow-xl">
                 <img
-                  src="https://images.unsplash.com/photo-1573497620053-ea5300f94f21?w=900&q=80&auto=format&fit=crop"
-                  alt="Professionnels africains en environnement technologique"
-                  className="w-full h-full object-cover"
+                  src={`${import.meta.env.BASE_URL}industries-banner.png`}
+                  alt="Solutions technologiques pour les secteurs africains"
+                  className="w-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/40 to-transparent" />
               </div>
             </motion.div>
           </div>
