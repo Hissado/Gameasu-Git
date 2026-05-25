@@ -152,24 +152,15 @@ export default function About() {
       {/* Commitments */}
       <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mb-14">
             <div>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre engagement" : "Our commitment"}</p>
               <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
-              <p className="text-slate-500 text-lg leading-relaxed mb-8">
+              <p className="text-slate-500 text-lg leading-relaxed">
                 {fr
                   ? "Chaque client — qu'il soit en Amérique du Nord, en Europe ou en Afrique — reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales. La géographie ne doit jamais être un obstacle à l'excellence."
                   : "Every client — whether in North America, Europe, or Africa — receives service comparable to the world's largest technology firms. Geography should never be a barrier to excellence."}
               </p>
-              <div className="relative rounded-2xl overflow-hidden h-56 bg-slate-200 shadow-md">
-                <img
-                  src="https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=900&q=80&auto=format&fit=crop"
-                  alt="Professionnels en transformation digitale"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent" />
-              </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
               {commitments.map((c, i) => (
@@ -180,6 +171,18 @@ export default function About() {
               ))}
             </div>
           </div>
+
+          {/* Commitment banner */}
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <img
+                src={`${import.meta.env.BASE_URL}commitment-banner.png`}
+                alt="Notre engagement mondial — Amérique du Nord, Europe, Afrique"
+                className="w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </motion.div>
         </div>
       </section>
 
