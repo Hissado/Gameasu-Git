@@ -112,12 +112,12 @@ export function Header() {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg py-4 px-6">
-          <nav className="flex flex-col gap-1 mb-4">
+        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg pb-4 px-4">
+          <nav className="flex flex-col">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <div
-                  className={`px-4 py-3 rounded-lg text-sm font-medium cursor-pointer ${
+                  className={`px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
                     isActive(link.href)
                       ? "text-primary bg-primary/8 font-semibold"
                       : "text-slate-700 hover:bg-slate-50"
@@ -127,26 +127,28 @@ export function Header() {
                 </div>
               </Link>
             ))}
+          </nav>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
             <Link href="/contact">
-              <div className="px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">
+              <div className="inline-flex items-center px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg cursor-pointer">
                 {t.nav.contact}
               </div>
             </Link>
-          </nav>
-          <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-            {(["fr", "en"] as const).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => setLanguage(lang)}
-                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-                  language === lang
-                    ? "bg-primary text-white"
-                    : "bg-slate-100 text-slate-600"
-                }`}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
+            <div className="flex items-center gap-1 border border-slate-200 rounded-lg overflow-hidden">
+              {(["fr", "en"] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                    language === lang
+                      ? "bg-primary text-white"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
