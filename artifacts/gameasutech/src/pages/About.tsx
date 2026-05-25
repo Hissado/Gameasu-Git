@@ -164,7 +164,7 @@ export default function About() {
               <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
                 <div className="rounded-2xl overflow-hidden shadow-lg">
                   <img
-                    src="https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=700&q=75&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1573164713988-8665fc963095?w=700&q=75&auto=format&fit=crop"
                     alt="Équipe Gaméasù en action"
                     className="w-full h-52 object-cover"
                     loading="lazy"

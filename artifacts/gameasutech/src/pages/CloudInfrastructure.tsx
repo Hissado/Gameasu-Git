@@ -54,7 +54,7 @@ export default function CloudInfrastructure() {
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
               <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200">
                 <img
-                  src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=700&q=75&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1573497491208-6b1acb260507?w=700&q=75&auto=format&fit=crop"
                   alt="Cloud & Infrastructure"
                   className="w-full h-80 object-cover"
                   loading="lazy"

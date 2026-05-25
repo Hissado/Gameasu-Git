@@ -54,7 +54,7 @@ export default function Cybersecurity() {
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
               <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200">
                 <img
-                  src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=700&q=75&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1573164713988-8665fc963095?w=700&q=75&auto=format&fit=crop"
                   alt="Cybersécurité"
                   className="w-full h-80 object-cover"
                   loading="lazy"
