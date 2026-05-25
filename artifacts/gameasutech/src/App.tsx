@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { Layout } from "@/components/Layout";
+import { ChatBot } from "@/components/ChatBot";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
@@ -55,6 +56,7 @@ function App() {
         <LanguageProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
+            <ChatBot />
           </WouterRouter>
           <Toaster />
         </LanguageProvider>

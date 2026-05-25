@@ -1,0 +1,125 @@
+Veuillez ajouter au site web de Gaméasù un chatbot intelligent nommé Anne.
+
+Le chatbot doit être intégré de manière professionnelle au site, avec un design moderne, discret, premium et cohérent avec l’identité visuelle de Gaméasù. Il doit apparaître sous forme de bouton flottant en bas à droite de l’écran, avec une interface propre, responsive et facile à utiliser sur desktop, tablette et mobile.
+
+Objectif du chatbot
+
+Anne doit agir comme une assistante virtuelle intelligente capable d’aider les visiteurs, prospects et clients à mieux comprendre Gaméasù, ses services et ses solutions.
+
+Elle doit pouvoir répondre aux questions concernant :
+
+* Gaméasù
+* Les services proposés
+* La transformation digitale
+* La cybersécurité
+* Le cloud et l’infrastructure
+* L’intelligence artificielle et l’automatisation
+* Les services IT managés
+* Le support client
+* Les secteurs accompagnés
+* La présence internationale
+* Les coordonnées de l’entreprise
+* Les demandes de consultation
+* Les prises de rendez-vous
+* Les demandes de support
+* Les opportunités de partenariat
+* Les candidatures ou demandes de carrière
+
+Informations officielles à connaître
+
+Le chatbot doit connaître les informations suivantes :
+
+* Nom de l’entreprise : Gaméasù
+* Slogan : Innover, Transformer, Sécuriser
+* Création : 2023
+* Siège social : 195 Church Street, New Haven, CT, USA
+* Téléphone : +1 (203) 626-2309
+* Email : info@gameasu.tech
+* Présence internationale : États-Unis, Canada, France, Belgique, Togo, Côte d’Ivoire et Mali
+
+Fonctionnalités attendues
+
+Le chatbot Anne doit pouvoir :
+
+* Répondre en français et en anglais
+* Détecter automatiquement la langue de l’utilisateur
+* Donner des réponses professionnelles, claires et naturelles
+* Présenter les services de Gaméasù de manière commerciale et convaincante
+* Orienter l’utilisateur vers la bonne page ou section du site
+* Proposer une prise de rendez-vous ou une consultation
+* Collecter les informations du visiteur : nom, email, téléphone, entreprise, pays, service recherché et message
+* Créer une demande de contact ou de rendez-vous
+* Rediriger vers le formulaire de contact si nécessaire
+* Escalader vers l’équipe humaine lorsque la demande est complexe
+* Afficher un message de confirmation après une demande envoyée
+
+Prise de rendez-vous
+
+Anne doit pouvoir aider l’utilisateur à demander un rendez-vous.
+
+Elle doit demander progressivement :
+
+* Nom complet
+* Email
+* Téléphone
+* Pays
+* Entreprise
+* Service souhaité
+* Date ou période préférée
+* Message ou besoin spécifique
+
+Après collecte, afficher un message professionnel du type :
+
+Français :
+“Merci. Votre demande de rendez-vous a bien été enregistrée. L’équipe Gaméasù vous contactera rapidement pour confirmer les disponibilités.”
+
+Anglais :
+“Thank you. Your appointment request has been received. The Gaméasù team will contact you shortly to confirm availability.”
+
+Design du chatbot
+
+Le chatbot doit être :
+
+* Élégant
+* Moderne
+* Corporate
+* Rapide
+* Responsive
+* Facile à fermer et rouvrir
+* Cohérent avec les couleurs de Gaméasù
+* Non intrusif
+* Accessible sur toutes les pages du site
+
+Utiliser un ton professionnel, chaleureux et rassurant.
+
+Comportement attendu
+
+Anne ne doit pas inventer d’informations non disponibles. Si elle ne connaît pas une réponse, elle doit répondre de manière professionnelle et proposer de mettre l’utilisateur en relation avec l’équipe Gaméasù.
+
+Exemple :
+
+Français :
+“Je n’ai pas encore cette information précise, mais je peux transmettre votre demande à notre équipe afin qu’elle vous réponde rapidement.”
+
+Anglais :
+“I do not have that specific information yet, but I can forward your request to our team so they can respond as soon as possible.”
+
+Exigences techniques
+
+Veuillez implémenter le chatbot directement dans le projet existant sans modifier le design général du site.
+
+À faire :
+
+* Créer un composant chatbot réutilisable
+* L’intégrer sur toutes les pages
+* Prévoir une base de connaissances interne sur Gaméasù
+* Ajouter les réponses en français et en anglais
+* Ajouter une logique simple de conversation
+* Ajouter un formulaire conversationnel pour les rendez-vous
+* Prévoir une architecture évolutive pour connecter plus tard le chatbot à une API IA, un CRM, une base de données ou un système de calendrier
+* Ne pas casser la navigation existante
+* Ne pas modifier les sections actuelles du site
+
+Résultat attendu
+
+Le site doit maintenant inclure un chatbot nommé Anne, capable d’assister les visiteurs de manière intelligente, professionnelle et bilingue, tout en renforçant l’image premium, moderne et internationale de Gaméasù.
