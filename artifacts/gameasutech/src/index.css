@@ -111,40 +111,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* ── BACKGROUND ANIMATIONS ──────────────────────────────────── */
-@keyframes blob-float {
-  0%, 100% { transform: translate(-33%, -33%) scale(1); }
-  33%       { transform: translate(-33%, -33%) scale(1.06) translate(12px, -14px); }
-  66%       { transform: translate(-33%, -33%) scale(0.96) translate(-8px, 10px); }
-}
-@keyframes blob-float-alt {
-  0%, 100% { transform: translate(33%, 33%) scale(1); }
-  33%       { transform: translate(33%, 33%) scale(0.94) translate(-12px, 10px); }
-  66%       { transform: translate(33%, 33%) scale(1.05) translate(8px, -8px); }
-}
-@keyframes grid-pulse {
-  0%, 100% { opacity: 0.28; }
-  50%       { opacity: 0.42; }
-}
-@keyframes cta-orb-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(30px, -20px) scale(1.1); }
-}
-@keyframes cta-orb-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-25px, 15px) scale(0.9); }
-}
-@keyframes shimmer-text {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-.blob-1 { animation: blob-float 9s ease-in-out infinite; }
-.blob-2 { animation: blob-float-alt 11s ease-in-out infinite; }
-.grid-pulse { animation: grid-pulse 5s ease-in-out infinite; }
-.cta-orb-1 { animation: cta-orb-1 10s ease-in-out infinite; }
-.cta-orb-2 { animation: cta-orb-2 13s ease-in-out infinite; }
-
 /* ── SCROLLBAR ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: hsl(213, 27%, 96%); }

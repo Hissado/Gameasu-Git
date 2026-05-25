@@ -30,38 +30,26 @@ export default function Cybersecurity() {
   return (
     <div className="min-h-screen bg-background">
       <section className="relative pt-32 pb-24 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
-        <div className="blob-1 absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold mb-6 uppercase tracking-wide">
-                <Shield size={14} />
-                {fr ? "Cybersécurité" : "Cybersecurity"}
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold mb-6 uppercase tracking-wide">
+              <Shield size={14} />
+              {fr ? "Cybersécurité" : "Cybersecurity"}
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6 max-w-4xl">
+              {fr ? "Protégez votre organisation contre les menaces cyber de demain" : "Protect your organization against tomorrow's cyber threats"}
+            </h1>
+            <p className="text-xl text-slate-500 max-w-3xl mb-10">
+              {fr ? "Une approche holistique de la sécurité qui combine technologie de pointe, expertise humaine et processus éprouvés — pour une protection complète de vos systèmes, données et opérations." : "A holistic approach to security combining cutting-edge technology, human expertise, and proven processes — for complete protection of your systems, data, and operations."}
+            </p>
+            <Link href="/contact">
+              <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
+                {fr ? "Demander un audit gratuit" : "Request a free audit"}
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
-                {fr ? "Protégez votre organisation contre les menaces cyber de demain" : "Protect your organization against tomorrow's cyber threats"}
-              </h1>
-              <p className="text-xl text-slate-500 mb-10">
-                {fr ? "Une approche holistique de la sécurité qui combine technologie de pointe, expertise humaine et processus éprouvés — pour une protection complète de vos systèmes, données et opérations." : "A holistic approach to security combining cutting-edge technology, human expertise, and proven processes — for complete protection of your systems, data, and operations."}
-              </p>
-              <Link href="/contact">
-                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-primary/25">
-                  {fr ? "Demander un audit gratuit" : "Request a free audit"}
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200">
-                <img
-                  src="https://images.unsplash.com/photo-1573164713988-8665fc963095?w=700&q=75&auto=format&fit=crop"
-                  alt="Cybersécurité"
-                  className="w-full h-80 object-cover"
-                  loading="lazy"
-                />
-              </div>
-            </motion.div>
-          </div>
+            </Link>
+          </motion.div>
         </div>
       </section>
 

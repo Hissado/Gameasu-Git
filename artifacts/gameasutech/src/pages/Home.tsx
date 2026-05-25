@@ -70,8 +70,10 @@ export default function Home() {
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
-        <div className="blob-1 absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl pointer-events-none" />
-        <div className="blob-2 absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+        <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
+          style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         <div className="container mx-auto px-6 relative z-10 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -203,14 +205,6 @@ export default function Home() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
-              <div className="rounded-2xl overflow-hidden shadow-lg mb-4">
-                <img
-                  src="https://images.unsplash.com/photo-1573497491765-dccce02b29df?w=700&q=75&auto=format&fit=crop"
-                  alt="Équipe internationale Gaméasù"
-                  className="w-full h-52 object-cover"
-                  loading="lazy"
-                />
-              </div>
               <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                 <div className="mb-6">
                   <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">
@@ -354,25 +348,18 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { ...resources[0], img: "https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=500&q=70&auto=format&fit=crop" },
-              { ...resources[1], img: "https://images.unsplash.com/photo-1573497491208-6b1acb260507?w=500&q=70&auto=format&fit=crop" },
-              { ...resources[2], img: "https://images.unsplash.com/photo-1611432579699-484f7990b127?w=500&q=70&auto=format&fit=crop" },
-            ].map((r, i) => (
+            {resources.map((r, i) => (
               <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
                 <Link href={r.href}>
-                  <div className={`group relative h-full bg-gradient-to-br ${r.gradient} rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
-                    <div className="relative h-40 overflow-hidden">
-                      <img src={r.img} alt={fr ? r.labelFr : r.labelEn} className="w-full h-full object-cover opacity-30 group-hover:opacity-40 group-hover:scale-105 transition-all duration-500" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40" />
+                  <div className={`group relative h-full bg-gradient-to-br ${r.gradient} rounded-2xl p-8 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <TrendingUp size={80} />
                     </div>
-                    <div className="p-8">
-                      <h3 className="text-2xl font-bold text-white mb-4">{fr ? r.labelFr : r.labelEn}</h3>
-                      <p className="text-white/75 leading-relaxed mb-8 text-sm">{fr ? r.descFr : r.descEn}</p>
-                      <div className="inline-flex items-center gap-2 text-white font-semibold text-sm border-b border-white/40 pb-0.5 group-hover:border-white transition-colors">
-                        {fr ? r.ctaFr : r.ctaEn}
-                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </div>
+                    <h3 className="text-2xl font-bold text-white mb-4 relative z-10">{fr ? r.labelFr : r.labelEn}</h3>
+                    <p className="text-white/75 leading-relaxed mb-8 relative z-10 text-sm">{fr ? r.descFr : r.descEn}</p>
+                    <div className="inline-flex items-center gap-2 text-white font-semibold text-sm border-b border-white/40 pb-0.5 group-hover:border-white transition-colors relative z-10">
+                      {fr ? r.ctaFr : r.ctaEn}
+                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </Link>
