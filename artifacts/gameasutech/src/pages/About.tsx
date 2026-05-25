@@ -45,7 +45,7 @@ export default function About() {
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "À propos de nous" : "About us"}
             </p>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+            <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold text-slate-900 leading-tight mb-6">
               {fr
                 ? "Gaméasù transforme les ambitions digitales des entreprises en solutions technologiques concrètes, sécurisées et évolutives."
                 : "Gaméasù transforms companies' digital ambitions into concrete, secure, and scalable technology solutions."}
