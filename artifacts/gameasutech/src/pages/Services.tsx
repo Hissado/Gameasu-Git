@@ -71,55 +71,44 @@ export default function Services() {
 
       <section className="py-28 bg-gradient-to-br from-slate-50 to-blue-50/20 border-t border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre approche" : "Our approach"}</p>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "De la stratégie à l'opération, sans rupture" : "From strategy to operations, seamlessly"}</h2>
-              <p className="text-slate-500 leading-relaxed text-lg mb-10">
-                {fr ? "Nous ne livrons pas des projets — nous construisons des partenariats durables. Chaque engagement démarre par une compréhension approfondie de votre contexte métier." : "We don't just deliver projects — we build lasting partnerships. Every engagement starts with a deep understanding of your business context."}
-              </p>
-              <div className="space-y-5">
-                {[
-                  { fr: "Audit & diagnostic de l'existant", en: "Audit & assessment of current state" },
-                  { fr: "Définition de la roadmap et priorisation", en: "Roadmap definition and prioritization" },
-                  { fr: "Déploiement agile et formation des équipes", en: "Agile deployment and team training" },
-                  { fr: "Support continu et amélioration itérative", en: "Ongoing support and iterative improvement" }
-                ].map((step, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-primary/20 text-primary text-sm font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
-                    <span className="text-slate-700 font-medium">{fr ? step.fr : step.en}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Section header */}
+          <div className="max-w-3xl mb-12">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre approche" : "Our approach"}</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-5">{fr ? "De la stratégie à l'opération, sans rupture" : "From strategy to operations, seamlessly"}</h2>
+            <p className="text-slate-500 leading-relaxed text-lg">
+              {fr ? "Nous ne livrons pas des projets — nous construisons des partenariats durables. Chaque engagement démarre par une compréhension approfondie de votre contexte métier." : "We don't just deliver projects — we build lasting partnerships. Every engagement starts with a deep understanding of your business context."}
+            </p>
+          </div>
+
+          {/* Approach banner */}
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="mb-12">
+            <div className="rounded-3xl overflow-hidden shadow-2xl">
+              <img
+                src={`${import.meta.env.BASE_URL}approach-banner.png`}
+                alt="Notre approche — de la stratégie à l'opération en 4 étapes"
+                className="w-full object-cover"
+                loading="lazy"
+              />
             </div>
-            <div>
-              <div className="relative rounded-2xl overflow-hidden h-52 bg-slate-200 shadow-md mb-5">
-                <img
-                  src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=900&q=80&auto=format&fit=crop"
-                  alt="Équipe Gaméasù en session de travail"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
-              </div>
-              <div className="space-y-3">
-                {[
-                  { fr: "Chef de projet dédié sur chaque engagement", en: "Dedicated project manager on every engagement" },
-                  { fr: "Reporting de progression mensuel inclus", en: "Monthly progress reporting included" },
-                  { fr: "Formation utilisateurs dans chaque déploiement", en: "User training in every deployment" },
-                  { fr: "SLA garanti contractuellement", en: "Contractually guaranteed SLA" },
-                  { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
-                  { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
-                ].map((item, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
-                    <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
-                      <CheckCircle size={18} className="text-primary flex-shrink-0" />
-                      <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+          </motion.div>
+
+          {/* Guarantees grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { fr: "Chef de projet dédié sur chaque engagement", en: "Dedicated project manager on every engagement" },
+              { fr: "Reporting de progression mensuel inclus", en: "Monthly progress reporting included" },
+              { fr: "Formation utilisateurs dans chaque déploiement", en: "User training in every deployment" },
+              { fr: "SLA garanti contractuellement", en: "Contractually guaranteed SLA" },
+              { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
+              { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
+            ].map((item, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
+                <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
+                  <CheckCircle size={18} className="text-primary flex-shrink-0" />
+                  <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
