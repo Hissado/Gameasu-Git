@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HeadphonesIcon, Clock, CheckCircle, Phone, Mail, MessageSquare } from "lucide-react";
 
 const slaLevels = [
-  { level: "P1", colorBg: "bg-red-50 border-red-200", colorText: "text-red-700", labelFr: "Critique", labelEn: "Critical", descFr: "Système en panne totale — production arrêtée", descEn: "Total system outage — production stopped", slaFr: "Réponse < 30 min / Résolution < 4h", slaEn: "Response < 30 min / Resolution < 4h" },
-  { level: "P2", colorBg: "bg-orange-50 border-orange-200", colorText: "text-orange-700", labelFr: "Élevé", labelEn: "High", descFr: "Dégradation significative des performances", descEn: "Significant performance degradation", slaFr: "Réponse < 2h / Résolution < 8h", slaEn: "Response < 2h / Resolution < 8h" },
-  { level: "P3", colorBg: "bg-yellow-50 border-yellow-200", colorText: "text-yellow-700", labelFr: "Modéré", labelEn: "Moderate", descFr: "Impact limité, contournement disponible", descEn: "Limited impact, workaround available", slaFr: "Réponse < 4h / Résolution < 24h", slaEn: "Response < 4h / Resolution < 24h" },
-  { level: "P4", colorBg: "bg-blue-50 border-blue-200", colorText: "text-blue-700", labelFr: "Faible", labelEn: "Low", descFr: "Demande de service, conseil ou amélioration", descEn: "Service request, advice, or enhancement", slaFr: "Réponse < 8h / Résolution < 5j", slaEn: "Response < 8h / Resolution < 5d" }
+  { level: "P1", colorBg: "bg-red-50 border-red-200", colorText: "text-red-700", labelFr: "Critique", labelEn: "Critical", descFr: "Système en panne totale — production arrêtée, impact majeur sur l'activité", descEn: "Total system outage — production stopped, major business impact", slaFr: "Réponse < 30 min / Résolution < 4h", slaEn: "Response < 30 min / Resolution < 4h" },
+  { level: "P2", colorBg: "bg-orange-50 border-orange-200", colorText: "text-orange-700", labelFr: "Élevé", labelEn: "High", descFr: "Dégradation significative des performances ou perte partielle de fonctionnalités", descEn: "Significant performance degradation or partial loss of functionality", slaFr: "Réponse < 2h / Résolution < 8h", slaEn: "Response < 2h / Resolution < 8h" },
+  { level: "P3", colorBg: "bg-yellow-50 border-yellow-200", colorText: "text-yellow-700", labelFr: "Modéré", labelEn: "Moderate", descFr: "Impact limité sur les opérations, contournement disponible", descEn: "Limited operational impact, workaround available", slaFr: "Réponse < 4h / Résolution < 24h", slaEn: "Response < 4h / Resolution < 24h" },
+  { level: "P4", colorBg: "bg-blue-50 border-blue-200", colorText: "text-blue-700", labelFr: "Faible", labelEn: "Low", descFr: "Demande de service, conseil ou demande d'amélioration sans urgence", descEn: "Non-urgent service request, advice, or enhancement", slaFr: "Réponse < 8h / Résolution < 5j", slaEn: "Response < 8h / Resolution < 5d" }
 ];
 
 const schema = z.object({
@@ -53,7 +53,9 @@ export default function Support() {
               {fr ? "Un support expert, disponible quand vous en avez besoin" : "Expert support, available when you need it"}
             </h1>
             <p className="text-xl text-slate-500">
-              {fr ? "Nos ingénieurs certifiés assurent le support de vos systèmes 24h/24, 7j/7, avec des engagements de niveau de service contractuels." : "Our certified engineers support your systems 24/7, with contractual service level agreements and a root-cause resolution approach."}
+              {fr
+                ? "Nos ingénieurs certifiés assurent le support de vos systèmes critiques 24h/24, 7j/7, avec des niveaux de service contractuels mesurés et reportés chaque mois."
+                : "Our certified engineers support your critical systems 24/7, with contractual service levels measured and reported monthly."}
             </p>
           </motion.div>
         </div>
@@ -64,9 +66,9 @@ export default function Support() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { icon: Phone, labelFr: "Téléphone (urgences)", labelEn: "Phone (emergencies)", value: "+1 (555) 123-4567", note24x7: true },
-              { icon: Mail, labelFr: "Email support", labelEn: "Email support", value: "support@gameasutech.com", note24x7: false },
-              { icon: MessageSquare, labelFr: "Portail web", labelEn: "Web portal", value: "support.gameasutech.com", note24x7: false }
+              { icon: Phone, labelFr: "Téléphone (urgences P1/P2)", labelEn: "Phone (P1/P2 emergencies)", value: "+1 (203) 626-2309", note24x7: true },
+              { icon: Mail, labelFr: "Email support", labelEn: "Email support", value: "support@gameasu.tech", note24x7: false },
+              { icon: MessageSquare, labelFr: "Portail de tickets", labelEn: "Ticket portal", value: "support.gameasu.tech", note24x7: false }
             ].map((ch, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
                 <div className="flex items-center gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
@@ -89,14 +91,14 @@ export default function Support() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Niveaux de priorité" : "Priority levels"}</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Des SLA clairs, contractuels et respectés" : "Clear, contractual, and respected SLAs"}</h2>
-            <p className="text-slate-500 text-lg">{fr ? "Nos engagements sont mesurés en continu et reportés chaque mois." : "Our commitments are continuously measured and reported to clients monthly."}</p>
+            <p className="text-slate-500 text-lg">{fr ? "Nos engagements sont mesurés en continu et reportés mensuellement à chaque client." : "Our commitments are continuously measured and reported to each client monthly."}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {slaLevels.map((s, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
                 <div className={`h-full border-2 ${s.colorBg} rounded-xl p-8`}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className={`text-sm font-bold px-3 py-1 rounded-lg ${s.colorText} ${s.colorBg} border-0`}>{s.level}</div>
+                    <div className={`text-sm font-bold px-3 py-1 rounded-lg ${s.colorText}`}>{s.level}</div>
                     <h3 className="text-lg font-bold text-slate-900">{fr ? s.labelFr : s.labelEn}</h3>
                   </div>
                   <p className="text-slate-600 mb-4 text-sm">{fr ? s.descFr : s.descEn}</p>
@@ -116,14 +118,14 @@ export default function Support() {
         <div className="container mx-auto px-6 max-w-2xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Ouvrir un ticket de support" : "Open a support ticket"}</h2>
-            <p className="text-slate-500 text-lg">{fr ? "Décrivez votre incident. Nos ingénieurs vous répondront selon le SLA de votre priorité." : "Describe your incident. Our engineers will respond according to your priority SLA."}</p>
+            <p className="text-slate-500 text-lg">{fr ? "Décrivez votre incident. Nos ingénieurs vous répondront selon le SLA correspondant à votre niveau de priorité." : "Describe your incident. Our engineers will respond according to the SLA for your priority level."}</p>
           </div>
 
           {submitted ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16 bg-primary/5 border border-primary/20 rounded-2xl">
               <CheckCircle size={56} className="text-primary mx-auto mb-6" />
               <h3 className="text-2xl font-bold text-slate-900 mb-3">{fr ? "Ticket créé !" : "Ticket created!"}</h3>
-              <p className="text-slate-500">{fr ? "Vous recevrez un email de confirmation. Notre équipe vous contactera selon le SLA." : "You will receive a confirmation email. Our team will contact you per your SLA."}</p>
+              <p className="text-slate-500">{fr ? "Vous recevrez un email de confirmation. Notre équipe vous contactera conformément à votre SLA." : "You will receive a confirmation email. Our team will contact you in accordance with your SLA."}</p>
             </motion.div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
@@ -138,7 +140,7 @@ export default function Support() {
                     )} />
                   </div>
                   <FormField control={form.control} name="company" render={({ field }) => (
-                    <FormItem><FormLabel>{fr ? "Entreprise" : "Company"}</FormLabel><FormControl><Input placeholder="Mon Entreprise" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>{fr ? "Entreprise / Organisation" : "Company / Organization"}</FormLabel><FormControl><Input placeholder="Mon Entreprise" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField control={form.control} name="priority" render={({ field }) => (
@@ -159,8 +161,8 @@ export default function Support() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder={fr ? "Choisir" : "Choose"} /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="network">{fr ? "Réseau" : "Network"}</SelectItem>
-                            <SelectItem value="security">{fr ? "Sécurité" : "Security"}</SelectItem>
+                            <SelectItem value="network">{fr ? "Réseau & Connectivité" : "Network & Connectivity"}</SelectItem>
+                            <SelectItem value="security">{fr ? "Cybersécurité" : "Cybersecurity"}</SelectItem>
                             <SelectItem value="cloud">{fr ? "Cloud / Infrastructure" : "Cloud / Infrastructure"}</SelectItem>
                             <SelectItem value="endpoint">{fr ? "Postes utilisateurs" : "User endpoints"}</SelectItem>
                             <SelectItem value="app">{fr ? "Applications" : "Applications"}</SelectItem>
@@ -175,7 +177,7 @@ export default function Support() {
                   )} />
                   <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem><FormLabel>{fr ? "Description détaillée" : "Detailed description"}</FormLabel>
-                      <FormControl><Textarea rows={5} placeholder={fr ? "Symptômes, utilisateurs impactés, heure de début..." : "Symptoms, impacted users, start time..."} {...field} /></FormControl>
+                      <FormControl><Textarea rows={5} placeholder={fr ? "Symptômes observés, utilisateurs impactés, heure de début, étapes de reproduction..." : "Observed symptoms, impacted users, start time, steps to reproduce..."} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

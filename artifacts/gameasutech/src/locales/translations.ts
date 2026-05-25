@@ -13,9 +13,9 @@ export const translations = {
       support: "Support"
     },
     hero: {
-      title: "Accélérez votre transformation digitale",
-      subtitle: "Solutions technologiques modernes, sécurisées et évolutives pour les entreprises ambitieuses.",
-      cta: "Planifier une consultation"
+      title: "Accélérez votre transformation numérique",
+      subtitle: "Des solutions technologiques fiables, sécurisées et évolutives pour les entreprises, institutions et organisations du monde entier.",
+      cta: "Demander une consultation"
     },
     common: {
       readMore: "Lire la suite",
@@ -26,7 +26,7 @@ export const translations = {
     },
     services: {
       title: "Nos Services",
-      subtitle: "Des solutions complètes pour votre transformation",
+      subtitle: "Des solutions complètes pour votre transformation digitale",
       s1: { title: "Modern Workplace", desc: "Collaboration digitale, productivité, communication unifiée, hybride" },
       s2: { title: "Infrastructure, Réseau & Cloud", desc: "Architecture réseau, cloud, migration, connectivité" },
       s3: { title: "Transformation Digitale", desc: "Digitalisation, modernisation, automatisation, conseil IT" },
@@ -38,12 +38,12 @@ export const translations = {
       s9: { title: "Data, Cloud & Expérience", desc: "Gestion données, tableaux de bord, apps digitales" }
     },
     about: {
-      title: "À propos de Gameasu",
-      subtitle: "L'intersection d'un cabinet de conseil mondial et d'une entreprise technologique africaine ambitieuse."
+      title: "À propos de Gaméasù",
+      subtitle: "Fondée aux États-Unis en 2023, Gaméasù accompagne les organisations dans leur transformation numérique à l'échelle internationale."
     },
     contact: {
       title: "Contactez-nous",
-      subtitle: "Prêt à transformer votre entreprise ?",
+      subtitle: "Prêt à accélérer votre transformation numérique ?",
       form: {
         name: "Nom complet",
         email: "Email professionnel",
@@ -67,8 +67,8 @@ export const translations = {
     },
     hero: {
       title: "Accelerate your digital transformation",
-      subtitle: "Modern, secure, and scalable technology solutions for ambitious companies.",
-      cta: "Schedule a consultation"
+      subtitle: "Reliable, secure, and scalable technology solutions for businesses, institutions, and organizations worldwide.",
+      cta: "Request a consultation"
     },
     common: {
       readMore: "Read more",
@@ -79,7 +79,7 @@ export const translations = {
     },
     services: {
       title: "Our Services",
-      subtitle: "Comprehensive solutions for your transformation",
+      subtitle: "Comprehensive solutions for your digital transformation",
       s1: { title: "Modern Workplace", desc: "Digital collaboration, productivity, unified communication, hybrid" },
       s2: { title: "Infrastructure, Network & Cloud", desc: "Network architecture, cloud, migration, connectivity" },
       s3: { title: "Digital Transformation", desc: "Digitalization, modernization, automation, IT consulting" },
@@ -91,12 +91,12 @@ export const translations = {
       s9: { title: "Data, Cloud & Digital Experience", desc: "Data management, dashboards, digital apps" }
     },
     about: {
-      title: "About Gameasu",
-      subtitle: "The intersection of a world-class IT consultancy and an ambitious African tech firm."
+      title: "About Gaméasù",
+      subtitle: "Founded in the United States in 2023, Gaméasù supports organizations in their digital transformation on an international scale."
     },
     contact: {
       title: "Contact Us",
-      subtitle: "Ready to transform your business?",
+      subtitle: "Ready to accelerate your digital transformation?",
       form: {
         name: "Full Name",
         email: "Work Email",

@@ -33,13 +33,13 @@ export default function Contact() {
   function onSubmit() { setIsSubmitted(true); }
 
   const offices = [
-    { flag: "🇺🇸", city: "New York", role: "HQ", detail: "United States" },
-    { flag: "🇨🇦", city: "Montréal", detail: "Canada" },
-    { flag: "🇫🇷", city: "Paris", detail: "France" },
-    { flag: "🇧🇪", city: "Bruxelles", detail: "Belgique" },
-    { flag: "🇹🇬", city: "Lomé", detail: "Togo" },
-    { flag: "🇨🇮", city: "Abidjan", detail: "Côte d'Ivoire" },
-    { flag: "🇲🇱", city: "Bamako", detail: "Mali" },
+    { flag: "🇺🇸", city: "New Haven, CT", role: "HQ", detail: "United States — Siège social", since: null },
+    { flag: "🇨🇦", city: "Montréal", detail: "Canada", since: "2026" },
+    { flag: "🇫🇷", city: "Paris", detail: "France", since: "2026" },
+    { flag: "🇧🇪", city: "Bruxelles", detail: "Belgique", since: "2026" },
+    { flag: "🇹🇬", city: "Lomé", detail: "Togo", since: "2026" },
+    { flag: "🇨🇮", city: "Abidjan", detail: "Côte d'Ivoire", since: "2026" },
+    { flag: "🇲🇱", city: "Bamako", detail: "Mali", since: "2026" },
   ];
 
   return (
@@ -51,7 +51,7 @@ export default function Contact() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{t.nav.contact}</p>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">{t.contact.title}</h1>
-            <p className="text-xl text-slate-500">{t.contact.subtitle}</p>
+            <p className="text-xl text-slate-500 max-w-2xl">{t.contact.subtitle}</p>
           </motion.div>
         </div>
       </section>
@@ -65,24 +65,43 @@ export default function Contact() {
               <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                 <h3 className="text-lg font-bold text-slate-900 mb-6">{fr ? "Informations de contact" : "Contact Information"}</h3>
                 <div className="space-y-5">
-                  <a href="mailto:contact@gameasutech.com" className="flex items-start gap-3 hover:text-primary transition-colors group">
+                  <a href="mailto:info@gameasu.tech" className="flex items-start gap-3 hover:text-primary transition-colors group">
                     <div className="p-2 rounded-lg bg-primary/8 text-primary flex-shrink-0 group-hover:bg-primary group-hover:text-white transition-colors"><Mail size={16} /></div>
-                    <div><div className="text-xs text-slate-400 mb-0.5">Email</div><div className="font-medium text-slate-800 text-sm">contact@gameasutech.com</div></div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-0.5">Email</div>
+                      <div className="font-medium text-slate-800 text-sm">info@gameasu.tech</div>
+                    </div>
                   </a>
-                  <a href="tel:+15551234567" className="flex items-start gap-3 hover:text-primary transition-colors group">
+                  <a href="tel:+12036262309" className="flex items-start gap-3 hover:text-primary transition-colors group">
                     <div className="p-2 rounded-lg bg-primary/8 text-primary flex-shrink-0 group-hover:bg-primary group-hover:text-white transition-colors"><Phone size={16} /></div>
-                    <div><div className="text-xs text-slate-400 mb-0.5">{fr ? "Téléphone" : "Phone"}</div><div className="font-medium text-slate-800 text-sm">+1 (555) 123-4567</div></div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-0.5">{fr ? "Téléphone" : "Phone"}</div>
+                      <div className="font-medium text-slate-800 text-sm">+1 (203) 626-2309</div>
+                    </div>
                   </a>
                   <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/8 text-primary flex-shrink-0"><MapPin size={16} /></div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-0.5">{fr ? "Siège social" : "Headquarters"}</div>
+                      <div className="font-medium text-slate-800 text-sm">195 Church Street<br />New Haven, CT — USA</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-primary/8 text-primary flex-shrink-0"><Clock size={16} /></div>
-                    <div><div className="text-xs text-slate-400 mb-0.5">{fr ? "Disponibilité" : "Availability"}</div><div className="font-medium text-slate-800 text-sm">{fr ? "Lun–Ven 8h–18h (UTC+0)" : "Mon–Fri 8am–6pm (UTC+0)"}</div></div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-0.5">{fr ? "Disponibilité" : "Availability"}</div>
+                      <div className="font-medium text-slate-800 text-sm">{fr ? "Lun–Ven 9h–18h (ET)" : "Mon–Fri 9am–6pm (ET)"}</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Offices */}
               <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 mb-5">{fr ? "Nos bureaux" : "Our offices"}</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{fr ? "Nos bureaux" : "Our offices"}</h3>
+                <p className="text-xs text-slate-400 mb-5">
+                  {fr ? "Fondée aux États-Unis en 2023 · Expansion internationale dès 2026" : "Founded in the USA in 2023 · International expansion from 2026"}
+                </p>
                 <div className="space-y-2">
                   {offices.map((o, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
@@ -110,7 +129,9 @@ export default function Contact() {
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-4">{t.common.success}</h3>
                     <p className="text-slate-500 mb-8 max-w-sm">
-                      {fr ? "Merci pour votre message. Notre équipe vous contactera dans les plus brefs délais." : "Thank you for your message. Our team will contact you shortly."}
+                      {fr
+                        ? "Merci pour votre message. Un expert Gaméasù vous contactera dans les 24 heures ouvrées."
+                        : "Thank you for your message. A Gaméasù expert will contact you within 24 business hours."}
                     </p>
                     <Button onClick={() => setIsSubmitted(false)} variant="outline">
                       {fr ? "Nouveau message" : "New message"}
@@ -118,6 +139,14 @@ export default function Contact() {
                   </motion.div>
                 ) : (
                   <Form {...form}>
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                        {fr ? "Décrivez votre projet" : "Describe your project"}
+                      </h2>
+                      <p className="text-slate-500 text-sm">
+                        {fr ? "Nos experts analyseront votre demande et reviendront vers vous sous 24h." : "Our experts will analyze your request and get back to you within 24 hours."}
+                      </p>
+                    </div>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <FormField control={form.control} name="name" render={({ field }) => (
@@ -127,14 +156,14 @@ export default function Contact() {
                           <FormItem><FormLabel>{t.contact.form.email}</FormLabel><FormControl><Input placeholder="jean@company.com" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="phone" render={({ field }) => (
-                          <FormItem><FormLabel>{fr ? "Téléphone" : "Phone"}</FormLabel><FormControl><Input placeholder="+1 234 567 890" {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>{fr ? "Téléphone" : "Phone"}</FormLabel><FormControl><Input placeholder="+1 203 626 2309" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="company" render={({ field }) => (
-                          <FormItem><FormLabel>{fr ? "Entreprise" : "Company"}</FormLabel><FormControl><Input placeholder="Acme Inc." {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>{fr ? "Entreprise / Organisation" : "Company / Organization"}</FormLabel><FormControl><Input placeholder="Acme Corp" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                       </div>
                       <FormField control={form.control} name="subject" render={({ field }) => (
-                        <FormItem><FormLabel>{fr ? "Sujet" : "Subject"}</FormLabel>
+                        <FormItem><FormLabel>{fr ? "Domaine d'intervention" : "Area of interest"}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder={fr ? "Choisir votre besoin" : "Choose your need"} /></SelectTrigger></FormControl>
                             <SelectContent>
@@ -142,7 +171,8 @@ export default function Contact() {
                               <SelectItem value="cloud">{fr ? "Cloud & Infrastructure" : "Cloud & Infrastructure"}</SelectItem>
                               <SelectItem value="ai">{fr ? "IA & Automatisation" : "AI & Automation"}</SelectItem>
                               <SelectItem value="workplace">{fr ? "Modern Workplace" : "Modern Workplace"}</SelectItem>
-                              <SelectItem value="consulting">{fr ? "Conseil IT" : "IT Consulting"}</SelectItem>
+                              <SelectItem value="transformation">{fr ? "Transformation Digitale" : "Digital Transformation"}</SelectItem>
+                              <SelectItem value="consulting">{fr ? "Conseil IT stratégique" : "Strategic IT Consulting"}</SelectItem>
                               <SelectItem value="other">{fr ? "Autre" : "Other"}</SelectItem>
                             </SelectContent>
                           </Select><FormMessage />
@@ -150,7 +180,7 @@ export default function Contact() {
                       )} />
                       <FormField control={form.control} name="message" render={({ field }) => (
                         <FormItem><FormLabel>{t.contact.form.message}</FormLabel>
-                          <FormControl><Textarea rows={5} placeholder={fr ? "Décrivez votre besoin..." : "Describe your need..."} {...field} className="resize-none" /></FormControl>
+                          <FormControl><Textarea rows={5} placeholder={fr ? "Décrivez votre projet, vos défis et vos objectifs..." : "Describe your project, challenges, and goals..."} {...field} className="resize-none" /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />

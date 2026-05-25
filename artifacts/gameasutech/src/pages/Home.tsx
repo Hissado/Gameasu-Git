@@ -16,17 +16,17 @@ const fadeUp = {
 
 const painPoints = [
   { icon: Shield, titleFr: "Menaces de sécurité ?", titleEn: "Security threats?", descFr: "Protégez votre organisation avec une cybersécurité avancée et une surveillance 24/7.", descEn: "Protect your organization with advanced cybersecurity and 24/7 monitoring.", href: "/cybersecurity", accent: "text-blue-700 bg-blue-100", border: "hover:border-blue-300" },
-  { icon: Globe, titleFr: "Travail hybride difficile ?", titleEn: "Struggling with hybrid work?", descFr: "Activez une collaboration fluide avec des solutions de travail moderne.", descEn: "Enable seamless collaboration with modern workplace solutions.", href: "/services", accent: "text-indigo-700 bg-indigo-100", border: "hover:border-indigo-300" },
-  { icon: Zap, titleFr: "Prêt à vous transformer ?", titleEn: "Ready to transform?", descFr: "Modernisez votre écosystème technologique de bout en bout.", descEn: "Modernize your entire technology ecosystem end-to-end.", href: "/ai-automation", accent: "text-violet-700 bg-violet-100", border: "hover:border-violet-300" },
-  { icon: Brain, titleFr: "Par où commencer ?", titleEn: "Not sure where to start?", descFr: "Obtenez une consultation gratuite pour identifier vos priorités critiques.", descEn: "Get a free consultation to identify your critical priorities.", href: "/contact", accent: "text-sky-700 bg-sky-100", border: "hover:border-sky-300" }
+  { icon: Globe, titleFr: "Travail hybride difficile ?", titleEn: "Struggling with hybrid work?", descFr: "Activez une collaboration fluide avec des solutions de travail moderne et sécurisées.", descEn: "Enable seamless, secure collaboration with modern workplace solutions.", href: "/services", accent: "text-indigo-700 bg-indigo-100", border: "hover:border-indigo-300" },
+  { icon: Zap, titleFr: "Prêt à vous transformer ?", titleEn: "Ready to transform?", descFr: "Modernisez votre écosystème technologique de bout en bout, de la stratégie au déploiement.", descEn: "Modernize your entire technology ecosystem end-to-end, from strategy to deployment.", href: "/ai-automation", accent: "text-violet-700 bg-violet-100", border: "hover:border-violet-300" },
+  { icon: Brain, titleFr: "Par où commencer ?", titleEn: "Not sure where to start?", descFr: "Obtenez une consultation pour identifier vos priorités et construire une feuille de route claire.", descEn: "Get a consultation to identify your priorities and build a clear technology roadmap.", href: "/contact", accent: "text-sky-700 bg-sky-100", border: "hover:border-sky-300" }
 ];
 
 const whatWeDo = [
-  { icon: Monitor, titleFr: "Modern Workplace", titleEn: "Modern Workplace", descFr: "Plateformes de communication unifiée, outils de collaboration et intégrations qui transforment la façon dont vos équipes travaillent.", descEn: "Unified communication platforms, collaboration tools, and seamless integrations that transform how your teams work.", href: "/services" },
-  { icon: Cloud, titleFr: "Infrastructure & Cloud", titleEn: "Infrastructure & Cloud", descFr: "Réseau haute performance, cloud hybride et supervision intelligente pour une connectivité résiliente et des performances optimisées.", descEn: "High-performance networking, hybrid cloud infrastructure, and intelligent monitoring for resilient connectivity and optimized performance.", href: "/cloud-infrastructure" },
-  { icon: Shield, titleFr: "Cybersécurité & Sécurité Physique", titleEn: "Cyber & Physical Security", descFr: "Protection intégrée : cybersécurité avancée, contrôle d'accès, vidéosurveillance et surveillance des menaces.", descEn: "Integrated protection: advanced cybersecurity, access control, surveillance, and threat monitoring across digital & physical.", href: "/cybersecurity" },
-  { icon: Zap, titleFr: "Transformation Digitale", titleEn: "Digital Transformation", descFr: "Migration cloud, automatisation des processus et modernisation complète de votre SI — de la stratégie au déploiement.", descEn: "Cloud migration, process automation, and complete IS modernization — from strategy to deployment.", href: "/services" },
-  { icon: Brain, titleFr: "Intelligence Artificielle", titleEn: "AI for Business", descFr: "Analytique prédictive, automatisation intelligente et expériences personnalisées qui génèrent des opérations plus intelligentes.", descEn: "Predictive analytics, intelligent automation, and personalized experiences that drive smarter operations.", href: "/ai-automation" }
+  { icon: Monitor, titleFr: "Modern Workplace", titleEn: "Modern Workplace", descFr: "Plateformes de communication unifiée, outils de collaboration et intégrations qui transforment la façon dont vos équipes travaillent, où qu'elles soient.", descEn: "Unified communication platforms, collaboration tools, and seamless integrations that transform how your teams work, anywhere.", href: "/services" },
+  { icon: Cloud, titleFr: "Infrastructure & Cloud", titleEn: "Infrastructure & Cloud", descFr: "Réseau haute performance, cloud hybride et supervision intelligente pour une connectivité résiliente et des performances optimisées.", descEn: "High-performance networking, hybrid cloud infrastructure, and intelligent monitoring for resilient connectivity and peak performance.", href: "/cloud-infrastructure" },
+  { icon: Shield, titleFr: "Cybersécurité & Sécurité Physique", titleEn: "Cyber & Physical Security", descFr: "Protection intégrée : cybersécurité avancée, contrôle d'accès, vidéosurveillance et surveillance des menaces en temps réel.", descEn: "Integrated protection: advanced cybersecurity, access control, surveillance, and real-time threat monitoring across digital & physical.", href: "/cybersecurity" },
+  { icon: Zap, titleFr: "Transformation Digitale", titleEn: "Digital Transformation", descFr: "Migration cloud, automatisation des processus et modernisation complète de votre SI — de la stratégie jusqu'au déploiement opérationnel.", descEn: "Cloud migration, process automation, and complete IS modernization — from strategy to operational deployment.", href: "/services" },
+  { icon: Brain, titleFr: "Intelligence Artificielle", titleEn: "AI for Business", descFr: "Analytique prédictive, automatisation intelligente et expériences personnalisées qui génèrent des opérations plus rapides, plus intelligentes.", descEn: "Predictive analytics, intelligent automation, and personalized experiences that drive faster, smarter business operations.", href: "/ai-automation" }
 ];
 
 const industries = [
@@ -39,26 +39,26 @@ const industries = [
 ];
 
 const resources = [
-  { labelFr: "Nos Réalisations", labelEn: "Our Work", descFr: "Partenaire de confiance livrant des solutions qui améliorent l'efficacité et l'expérience client.", descEn: "Trusted partner delivering solutions that enhance efficiency and client experience.", href: "/case-studies", ctaFr: "Voir nos projets", ctaEn: "See our work", gradient: "from-blue-700 to-blue-800" },
-  { labelFr: "Ressources & Blog", labelEn: "Our Blog", descFr: "Découvrez l'expertise de nos consultants sur les grandes tendances technologiques.", descEn: "Hear directly from our experts on leading technology trends and industry insights.", href: "/blog", ctaFr: "Lire le blog", ctaEn: "Go to the blog", gradient: "from-indigo-700 to-indigo-800" },
-  { labelFr: "Partenaires Technologiques", labelEn: "Our Partners", descFr: "Des partenariats stratégiques avec les leaders technologiques mondiaux.", descEn: "Strategic partnerships with global technology leaders for best-in-class solutions.", href: "/partners", ctaFr: "Nos partenaires", ctaEn: "Our partners", gradient: "from-slate-700 to-slate-800" }
+  { labelFr: "Nos Réalisations", labelEn: "Our Work", descFr: "Partenaire de confiance, nous livrons des solutions qui améliorent la performance opérationnelle et l'expérience client.", descEn: "Trusted partner delivering solutions that enhance operational performance and client experience.", href: "/case-studies", ctaFr: "Voir nos projets", ctaEn: "See our work", gradient: "from-blue-700 to-blue-800" },
+  { labelFr: "Ressources & Blog", labelEn: "Our Blog", descFr: "Découvrez l'expertise de nos consultants sur les grandes tendances technologiques mondiales.", descEn: "Hear directly from our experts on leading technology trends and industry insights.", href: "/blog", ctaFr: "Lire le blog", ctaEn: "Go to the blog", gradient: "from-indigo-700 to-indigo-800" },
+  { labelFr: "Partenaires Technologiques", labelEn: "Our Partners", descFr: "Des partenariats stratégiques avec les leaders technologiques mondiaux pour des solutions de premier plan.", descEn: "Strategic partnerships with global technology leaders for best-in-class solutions.", href: "/partners", ctaFr: "Nos partenaires", ctaEn: "Our partners", gradient: "from-slate-700 to-slate-800" }
 ];
 
 const stats = [
-  { value: "500+", labelFr: "Projets livrés", labelEn: "Projects delivered" },
+  { value: "100+", labelFr: "Missions réalisées", labelEn: "Missions delivered" },
   { value: "7", labelFr: "Pays de présence", labelEn: "Countries" },
   { value: "98%", labelFr: "Satisfaction client", labelEn: "Client satisfaction" },
-  { value: "15+", labelFr: "Ans d'expertise", labelEn: "Years of expertise" }
+  { value: "2023", labelFr: "Fondée aux États-Unis", labelEn: "Founded in the USA" }
 ];
 
 const presence = [
-  { flag: "🇺🇸", country: "United States", role: "HQ", city: "New York" },
-  { flag: "🇨🇦", country: "Canada", city: "Montréal" },
-  { flag: "🇫🇷", country: "France", city: "Paris" },
-  { flag: "🇧🇪", country: "Belgique", city: "Bruxelles" },
-  { flag: "🇹🇬", country: "Togo", city: "Lomé" },
-  { flag: "🇨🇮", country: "Côte d'Ivoire", city: "Abidjan" },
-  { flag: "🇲🇱", country: "Mali", city: "Bamako" }
+  { flag: "🇺🇸", country: "United States", role: "HQ", city: "New Haven, CT", since: "2023" },
+  { flag: "🇨🇦", country: "Canada", city: "Montréal", since: "2026" },
+  { flag: "🇫🇷", country: "France", city: "Paris", since: "2026" },
+  { flag: "🇧🇪", country: "Belgique", city: "Bruxelles", since: "2026" },
+  { flag: "🇹🇬", country: "Togo", city: "Lomé", since: "2026" },
+  { flag: "🇨🇮", country: "Côte d'Ivoire", city: "Abidjan", since: "2026" },
+  { flag: "🇲🇱", country: "Mali", city: "Bamako", since: "2026" }
 ];
 
 export default function Home() {
@@ -70,10 +70,8 @@ export default function Home() {
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
-        {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
-        {/* Subtle dot grid */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
           style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
@@ -90,20 +88,27 @@ export default function Home() {
 
               <motion.h1
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
-                className="text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-8"
+                className="text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-6"
               >
                 {fr
-                  ? <>Nous faisons travailler <span className="text-primary">la technologie</span> pour vous.</>
-                  : <>We make <span className="text-primary">technology</span> work for people.</>}
+                  ? <>Accélérez votre <span className="text-primary">transformation</span> numérique.</>
+                  : <>Accelerate your <span className="text-primary">digital</span> transformation.</>}
               </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6 }}
+                className="text-base font-semibold text-primary tracking-widest mb-4 uppercase"
+              >
+                {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
+              </motion.p>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
                 className="text-xl text-slate-500 leading-relaxed mb-12 max-w-xl"
               >
                 {fr
-                  ? "Solutions technologiques modernes, sécurisées et évolutives — de l'infrastructure physique au digital, pour les entreprises ambitieuses du monde entier."
-                  : "Modern, secure, and scalable technology solutions — from physical infrastructure to digital, for ambitious companies worldwide."}
+                  ? "Depuis les États-Unis, Gaméasù accompagne les entreprises, institutions et organisations dans la modernisation de leurs systèmes, la sécurisation de leurs opérations et l'adoption de technologies innovantes."
+                  : "From the United States, Gaméasù helps businesses, institutions, and organizations modernize their systems, secure their operations, and adopt innovative technologies."}
               </motion.p>
 
               <motion.div
@@ -112,13 +117,13 @@ export default function Home() {
               >
                 <Link href="/contact">
                   <div className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-primary/40 cursor-pointer">
-                    {fr ? "Planifier une consultation" : "Schedule a consultation"}
+                    {fr ? "Demander une consultation" : "Request a consultation"}
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Link>
                 <Link href="/services">
                   <div className="inline-flex items-center gap-3 px-8 py-4 bg-white text-slate-800 font-semibold rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-300 cursor-pointer shadow-sm">
-                    {fr ? "Nos services" : "Our services"}
+                    {fr ? "Découvrir nos services" : "Discover our services"}
                   </div>
                 </Link>
               </motion.div>
@@ -179,16 +184,19 @@ export default function Home() {
               </h2>
               <p className="text-slate-500 text-lg leading-relaxed mb-6">
                 {fr
-                  ? "Gaméasù Technology délivre des solutions technologiques de bout en bout avec une équipe d'experts certifiés dédiés à votre réussite. Nous collaborons de la stratégie initiale au déploiement, en passant par la formation et le support continu."
-                  : "Gaméasù Technology delivers end-to-end technology solutions with a team of certified experts dedicated to your success. We collaborate from initial strategy through deployment, training, and ongoing support."}
+                  ? "Fondée aux États-Unis en 2023, Gaméasù délivre des solutions technologiques de bout en bout grâce à une équipe d'experts certifiés dédiés à votre réussite — de la stratégie initiale au déploiement, en passant par la formation et le support continu."
+                  : "Founded in the United States in 2023, Gaméasù delivers end-to-end technology solutions through a team of certified experts dedicated to your success — from initial strategy through deployment, training, and ongoing support."}
               </p>
               <p className="text-slate-500 text-lg leading-relaxed mb-10">
                 {fr
-                  ? "Fondée sur l'ambition d'une Afrique connectée et ancrée dans les standards mondiaux, notre entreprise incarne l'innovation internationale au service des marchés émergents."
-                  : "Built on the ambition of a connected Africa and anchored in global standards, our company embodies international innovation in service of emerging markets."}
+                  ? "À partir de 2026, nous avons étendu notre présence internationale au Canada, en France, en Belgique et en Afrique de l'Ouest, pour mieux servir les organisations à chaque étape de leur transformation numérique."
+                  : "From 2026, we expanded our international presence to Canada, France, Belgium, and West Africa, to better serve organizations at every stage of their digital transformation."}
               </p>
               <div className="flex flex-wrap gap-5 mb-10">
-                {["Excellence", "Intégrité", "Innovation", "Partenariat"].map((v, i) => (
+                {(fr
+                  ? ["Excellence", "Intégrité", "Innovation", "Partenariat"]
+                  : ["Excellence", "Integrity", "Innovation", "Partnership"]
+                ).map((v, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                     <CheckCircle size={16} className="text-primary" />
                     {v}
@@ -224,8 +232,10 @@ export default function Home() {
                         <div className="font-semibold text-slate-900 text-sm">{p.country}</div>
                         <div className="text-xs text-slate-500">{p.city}</div>
                       </div>
-                      {p.role && (
+                      {p.role ? (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">{p.role}</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium flex-shrink-0">{fr ? `Depuis ${p.since}` : `Since ${p.since}`}</span>
                       )}
                     </motion.div>
                   ))}
@@ -248,8 +258,8 @@ export default function Home() {
             </h2>
             <p className="text-slate-500 text-lg">
               {fr
-                ? "De l'infrastructure à l'intelligence artificielle, nous couvrons l'intégralité de votre écosystème technologique."
-                : "From infrastructure to artificial intelligence, we cover your entire technology ecosystem."}
+                ? "De l'infrastructure à l'intelligence artificielle, nous couvrons l'intégralité de votre écosystème technologique avec des équipes certifiées et une approche orientée résultats."
+                : "From infrastructure to artificial intelligence, we cover your entire technology ecosystem with certified teams and a results-driven approach."}
             </p>
           </div>
 
@@ -294,12 +304,12 @@ export default function Home() {
                 {fr ? "Où nous excellons" : "Where we thrive"}
               </p>
               <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                {fr ? "Des solutions sur-mesure pour chaque secteur" : "Custom solutions for every industry"}
+                {fr ? "Des solutions sur-mesure pour chaque secteur" : "Tailored solutions for every industry"}
               </h2>
               <p className="text-slate-500 leading-relaxed mb-8">
                 {fr
-                  ? "Grâce à notre expérience transversale, nous déployons des solutions créatives et adaptées aux spécificités de chaque secteur."
-                  : "Leveraging our cross-industry experience, we deploy creative solutions adapted to each sector's specifics."}
+                  ? "Grâce à notre expérience transversale, nous déployons des solutions créatives et adaptées aux spécificités et aux enjeux réglementaires de chaque secteur d'activité."
+                  : "Leveraging our cross-industry experience, we deploy creative, compliant solutions adapted to the specific needs and regulatory requirements of each sector."}
               </p>
               <Link href="/industries">
                 <div className="group inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors cursor-pointer shadow-md shadow-primary/20">
@@ -363,11 +373,11 @@ export default function Home() {
       </section>
 
       <CTASection
-        title={fr ? "Prêt à démarrer ?" : "Ready to get started?"}
+        title={fr ? "Parlez à un expert Gaméasù" : "Talk to a Gaméasù expert"}
         subtitle={fr
-          ? "Discutons de la façon dont Gaméasù Technology peut transformer votre organisation avec les bonnes solutions technologiques."
-          : "Let's discuss how Gaméasù Technology can transform your organization with the right technology solutions."}
-        btnText={fr ? "Démarrer une conversation" : "Start a conversation"}
+          ? "Décrivez votre projet et recevez une analyse personnalisée. Nos équipes répondent sous 24 heures."
+          : "Describe your project and receive a personalized analysis. Our teams respond within 24 hours."}
+        btnText={fr ? "Demander une consultation" : "Request a consultation"}
         href="/contact"
       />
     </div>

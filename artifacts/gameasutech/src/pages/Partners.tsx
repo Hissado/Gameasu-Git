@@ -9,35 +9,35 @@ const partnerCategories = [
     icon: Shield,
     labelFr: "Partenaires Cybersécurité",
     labelEn: "Cybersecurity Partners",
-    descFr: "Les leaders mondiaux de la cybersécurité pour protéger votre organisation.",
-    descEn: "Global cybersecurity leaders to protect your organization.",
+    descFr: "Les leaders mondiaux de la cybersécurité pour protéger les systèmes et données de vos organisations.",
+    descEn: "Global cybersecurity leaders to protect the systems and data of your organizations.",
     partners: ["CrowdStrike", "Palo Alto Networks", "Fortinet", "SentinelOne", "Qualys", "Darktrace"]
   },
   {
     icon: Globe,
     labelFr: "Partenaires Cloud & Infrastructure",
     labelEn: "Cloud & Infrastructure Partners",
-    descFr: "Les principales plateformes cloud et solutions d'infrastructure.",
-    descEn: "Leading cloud platforms and infrastructure solutions.",
+    descFr: "Les principales plateformes cloud et solutions d'infrastructure pour des déploiements fiables et évolutifs.",
+    descEn: "Leading cloud platforms and infrastructure solutions for reliable, scalable deployments.",
     partners: ["Amazon Web Services", "Microsoft Azure", "Google Cloud", "VMware", "Cisco", "Juniper Networks"]
   },
   {
     icon: Award,
     labelFr: "Partenaires Modern Workplace",
     labelEn: "Modern Workplace Partners",
-    descFr: "Solutions de collaboration et productivité pour les équipes modernes.",
-    descEn: "Collaboration and productivity solutions for modern teams.",
+    descFr: "Solutions de collaboration, productivité et communication pour les équipes modernes et hybrides.",
+    descEn: "Collaboration, productivity, and communication solutions for modern and hybrid teams.",
     partners: ["Microsoft 365", "Google Workspace", "Zoom", "Poly", "Logitech", "Jabra"]
   }
 ];
 
 const certifications = [
-  { name: "Microsoft Gold Partner", year: "2019" },
-  { name: "AWS Select Consulting Partner", year: "2020" },
-  { name: "Google Cloud Partner", year: "2021" },
-  { name: "Fortinet Authorized Partner", year: "2018" },
-  { name: "Cisco Select Partner", year: "2017" },
-  { name: "CrowdStrike Partner", year: "2022" }
+  { name: "Microsoft Solutions Partner", year: "2024" },
+  { name: "AWS Select Consulting Partner", year: "2024" },
+  { name: "Google Cloud Partner", year: "2025" },
+  { name: "Fortinet Authorized Partner", year: "2024" },
+  { name: "Cisco Select Partner", year: "2025" },
+  { name: "CrowdStrike Partner", year: "2025" }
 ];
 
 const partnerBenefits = [
@@ -64,7 +64,9 @@ export default function Partners() {
               {fr ? "Un écosystème de partenaires de classe mondiale" : "A world-class partner ecosystem"}
             </h1>
             <p className="text-xl text-slate-500">
-              {fr ? "Nous travaillons avec les leaders technologiques mondiaux pour vous offrir les meilleures solutions, implémentées par des experts certifiés." : "We work with global technology leaders to offer you the best solutions, implemented by certified experts."}
+              {fr
+                ? "Gaméasù s'appuie sur les leaders technologiques mondiaux pour vous offrir des solutions de référence, implémentées par des ingénieurs certifiés et des équipes expertes."
+                : "Gaméasù relies on global technology leaders to offer you best-in-class solutions, implemented by certified engineers and expert teams."}
             </p>
           </motion.div>
         </div>
@@ -80,7 +82,7 @@ export default function Partners() {
                 <div className="bg-white border border-slate-200 rounded-xl px-6 py-3 flex items-center gap-3 hover:border-primary/40 hover:shadow-sm transition-all shadow-sm">
                   <Award size={16} className="text-primary flex-shrink-0" />
                   <span className="text-sm font-semibold text-slate-800">{cert.name}</span>
-                  <span className="text-xs text-slate-400">depuis {cert.year}</span>
+                  <span className="text-xs text-slate-400">{fr ? `depuis ${cert.year}` : `since ${cert.year}`}</span>
                 </div>
               </motion.div>
             ))}
@@ -94,7 +96,7 @@ export default function Partners() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Nos partenaires" : "Our partners"}</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Technologie de premier plan" : "Best-in-class technology"}</h2>
-            <p className="text-slate-500 text-lg">{fr ? "Chaque partenaire est sélectionné pour son excellence technologique et son alignement avec nos valeurs de qualité." : "Each partner is selected for technological excellence and alignment with our quality values."}</p>
+            <p className="text-slate-500 text-lg">{fr ? "Chaque partenaire est sélectionné pour son excellence technologique, sa fiabilité et son alignement avec nos exigences de qualité." : "Each partner is selected for technological excellence, reliability, and alignment with our quality standards."}</p>
           </div>
           <div className="space-y-8">
             {partnerCategories.map((cat, i) => (
@@ -134,9 +136,11 @@ export default function Partners() {
                 </div>
               </div>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Programme partenaire" : "Partner program"}</p>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "Devenez partenaire Gaméasù Technology" : "Become a Gaméasù Technology partner"}</h2>
+              <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "Devenez partenaire Gaméasù" : "Become a Gaméasù partner"}</h2>
               <p className="text-slate-500 leading-relaxed text-lg mb-10">
-                {fr ? "Nous cherchons des partenaires technologiques, des intégrateurs et des revendeurs partageant nos valeurs d'excellence et notre engagement envers la transformation digitale en Afrique et à l'international." : "We seek technology partners, integrators, and resellers who share our values of excellence and commitment to digital transformation in Africa and internationally."}
+                {fr
+                  ? "Nous recherchons des partenaires technologiques, des intégrateurs et des revendeurs qui partagent nos valeurs d'excellence et notre engagement pour l'innovation, la transformation digitale et la sécurité des organisations."
+                  : "We are looking for technology partners, integrators, and resellers who share our values of excellence and our commitment to innovation, digital transformation, and organizational security."}
               </p>
             </div>
             <div className="space-y-3">
@@ -155,7 +159,9 @@ export default function Partners() {
 
       <CTASection
         title={fr ? "Construisons ensemble" : "Let's build together"}
-        subtitle={fr ? "Contactez notre équipe partenaires pour discuter d'une collaboration mutuellement bénéfique." : "Contact our partner team to discuss a mutually beneficial collaboration."}
+        subtitle={fr
+          ? "Contactez notre équipe partenaires pour discuter d'une collaboration stratégique et mutuellement bénéfique."
+          : "Contact our partner team to discuss a strategic, mutually beneficial collaboration."}
         btnText={fr ? "Devenir partenaire" : "Become a partner"}
         href="/contact"
       />

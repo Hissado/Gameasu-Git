@@ -5,21 +5,21 @@ import { CTASection } from "@/components/CTASection";
 import { CheckCircle, Globe, Users, Award, Target, Heart, Lightbulb, Shield } from "lucide-react";
 
 const values = [
-  { icon: Award, keyFr: "Excellence", keyEn: "Excellence", descFr: "Nous maintenons les plus hauts standards de qualité dans chaque projet, chaque livraison et chaque interaction client.", descEn: "We maintain the highest standards of quality in every project, delivery, and client interaction." },
-  { icon: Heart, keyFr: "Intégrité", keyEn: "Integrity", descFr: "La transparence et l'honnêteté guident chacune de nos décisions. Nous tenons nos engagements, toujours.", descEn: "Transparency and honesty guide every decision we make. We keep our commitments, always." },
-  { icon: Lightbulb, keyFr: "Innovation", keyEn: "Innovation", descFr: "Nous investissons continuellement dans les nouvelles technologies pour offrir des solutions modernes et compétitives.", descEn: "We continuously invest in emerging technologies to offer modern, competitive solutions." },
-  { icon: Users, keyFr: "Partenariat", keyEn: "Partnership", descFr: "Nous nous positionnons comme des partenaires de long terme, pas seulement des prestataires. Votre succès est notre succès.", descEn: "We position ourselves as long-term partners, not just vendors. Your success is our success." },
-  { icon: Globe, keyFr: "Diversité", keyEn: "Diversity", descFr: "Enracinés en Afrique et connectés au monde, nous valorisons les perspectives multiculturelles comme force d'innovation.", descEn: "Rooted in Africa and connected to the world, we value multicultural perspectives as an innovation strength." },
-  { icon: Shield, keyFr: "Fiabilité", keyEn: "Reliability", descFr: "Nos clients comptent sur nous pour des systèmes critiques. Nous prenons cette responsabilité au sérieux.", descEn: "Our clients rely on us for critical systems. We take this responsibility seriously." },
+  { icon: Award, keyFr: "Excellence", keyEn: "Excellence", descFr: "Nous maintenons les plus hauts standards de qualité dans chaque projet, chaque livraison et chaque interaction client. L'excellence n'est pas une option, c'est notre engagement.", descEn: "We maintain the highest standards of quality in every project, delivery, and client interaction. Excellence is not optional — it is our commitment." },
+  { icon: Heart, keyFr: "Intégrité", keyEn: "Integrity", descFr: "La transparence et l'honnêteté guident chacune de nos décisions. Nous tenons nos engagements, toujours, sans exception.", descEn: "Transparency and honesty guide every decision we make. We keep our commitments, always, without exception." },
+  { icon: Lightbulb, keyFr: "Innovation", keyEn: "Innovation", descFr: "Nous investissons continuellement dans les technologies émergentes pour offrir des solutions modernes, compétitives et pérennes à nos clients.", descEn: "We continuously invest in emerging technologies to deliver modern, competitive, and future-proof solutions to our clients." },
+  { icon: Users, keyFr: "Partenariat", keyEn: "Partnership", descFr: "Nous nous positionnons comme des partenaires stratégiques de long terme, pas seulement des prestataires. Votre succès est notre succès, sans compromis.", descEn: "We position ourselves as long-term strategic partners, not just vendors. Your success is our success — no compromises." },
+  { icon: Globe, keyFr: "Présence internationale", keyEn: "Global Reach", descFr: "Fondés aux États-Unis, déployés à l'international dès 2026 — nous connectons les standards technologiques mondiaux aux réalités de chaque marché.", descEn: "Founded in the USA, deployed internationally from 2026 — we connect global technology standards to the realities of every market." },
+  { icon: Shield, keyFr: "Fiabilité", keyEn: "Reliability", descFr: "Nos clients nous confient leurs systèmes critiques. Nous prenons cette responsabilité au sérieux et répondons présents à chaque moment qui compte.", descEn: "Our clients entrust us with their critical systems. We take this responsibility seriously and show up every time it matters." },
 ];
 
 const milestones = [
-  { year: "2010", eventFr: "Fondation de Gaméasù Technology aux États-Unis", eventEn: "Gaméasù Technology founded in the United States" },
-  { year: "2013", eventFr: "Expansion en France et en Belgique", eventEn: "Expansion to France and Belgium" },
-  { year: "2016", eventFr: "Ouverture du bureau Afrique à Lomé, Togo", eventEn: "Opening of Africa office in Lomé, Togo" },
-  { year: "2018", eventFr: "Lancement au Canada et en Côte d'Ivoire", eventEn: "Launch in Canada and Côte d'Ivoire" },
-  { year: "2021", eventFr: "Expansion au Mali — 500 projets livrés", eventEn: "Expansion to Mali — 500 projects delivered" },
-  { year: "2024", eventFr: "Lancement de la practice IA & Automatisation", eventEn: "Launch of AI & Automation practice" },
+  { year: "2023", eventFr: "Fondation de Gaméasù aux États-Unis — New Haven, CT", eventEn: "Gaméasù founded in the United States — New Haven, CT" },
+  { year: "2024", eventFr: "Structuration de l'offre de services et constitution de l'équipe internationale", eventEn: "Service offering structured and international team built" },
+  { year: "2025", eventFr: "Certifications technologiques clés : Microsoft, AWS, Google Cloud", eventEn: "Key technology certifications: Microsoft, AWS, Google Cloud" },
+  { year: "2026", eventFr: "Expansion internationale : Canada, France, Belgique", eventEn: "International expansion: Canada, France, Belgium" },
+  { year: "2026", eventFr: "Ouverture des bureaux Afrique de l'Ouest : Togo, Côte d'Ivoire, Mali", eventEn: "West Africa offices opened: Togo, Côte d'Ivoire, Mali" },
+  { year: "2026", eventFr: "Lancement de la practice IA & Automatisation et présence dans 7 pays", eventEn: "AI & Automation practice launched — presence in 7 countries" },
 ];
 
 const commitments = [
@@ -27,7 +27,7 @@ const commitments = [
   { fr: "Chef de projet dédié pour chaque engagement", en: "Dedicated project manager for every engagement" },
   { fr: "Reporting de transparence mensuel", en: "Monthly transparency reporting" },
   { fr: "Formation incluse dans chaque déploiement", en: "Training included in every deployment" },
-  { fr: "Support multilingue FR / EN / locales", en: "Multilingual support FR / EN / local languages" },
+  { fr: "Support multilingue FR / EN / langues locales", en: "Multilingual support FR / EN / local languages" },
   { fr: "SLA garanti contractuellement", en: "Contractually guaranteed SLA" },
 ];
 
@@ -45,15 +45,18 @@ export default function About() {
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "À propos de nous" : "About us"}
             </p>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-8">
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
               {fr
-                ? "Une entreprise née d'une ambition : connecter l'Afrique au monde technologique."
-                : "A company born from one ambition: connecting Africa to the technology world."}
+                ? "Une entreprise américaine fondée en 2023, avec une mission résolument internationale."
+                : "An American company founded in 2023, with a resolutely international mission."}
             </h1>
+            <p className="text-base font-semibold text-primary tracking-widest mb-6 uppercase">
+              {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
+            </p>
             <p className="text-xl text-slate-500 leading-relaxed max-w-3xl">
               {fr
-                ? "Gaméasù Technology est à l'intersection d'un cabinet de conseil IT mondial et d'une entreprise technologique africaine ambitieuse — précise, fiable, et résolument tournée vers l'avenir."
-                : "Gaméasù Technology stands at the intersection of a world-class IT consultancy and an ambitious African tech firm — precise, reliable, and firmly forward-looking."}
+                ? "Gaméasù se positionne à l'intersection d'un cabinet de conseil IT de premier plan et d'une entreprise technologique internationale ambitieuse — précise, fiable et résolument tournée vers l'avenir. Depuis New Haven (Connecticut), nous accompagnons les organisations dans leur transformation numérique à l'échelle mondiale."
+                : "Gaméasù stands at the intersection of a leading IT consulting firm and an ambitious international technology company — precise, reliable, and firmly forward-looking. From New Haven, Connecticut, we support organizations in their digital transformation on a global scale."}
             </p>
           </motion.div>
         </div>
@@ -81,8 +84,8 @@ export default function About() {
               </div>
               <p className="text-slate-600 leading-relaxed text-lg">
                 {fr
-                  ? "Devenir le partenaire technologique de référence en Afrique francophone et dans la diaspora internationale, en bâtissant un pont entre les standards technologiques mondiaux et les réalités des marchés émergents."
-                  : "To become the reference technology partner in French-speaking Africa and the international diaspora, building a bridge between global technology standards and emerging market realities."}
+                  ? "Devenir le partenaire technologique de référence pour les organisations francophones et leurs diasporas à l'international, en bâtissant un pont entre les standards technologiques mondiaux et les réalités des marchés locaux."
+                  : "To become the reference technology partner for French-speaking organizations and their international diasporas, building a bridge between global technology standards and local market realities."}
               </p>
             </motion.div>
           </div>
@@ -95,7 +98,7 @@ export default function About() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Ce qui nous guide" : "What guides us"}</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Nos valeurs fondamentales" : "Our core values"}</h2>
-            <p className="text-slate-500 text-lg">{fr ? "Les principes qui définissent notre façon de travailler et de nous engager." : "The principles that define how we work and engage with our clients."}</p>
+            <p className="text-slate-500 text-lg">{fr ? "Les principes qui définissent notre façon de travailler et de nous engager auprès de chaque client." : "The principles that define how we work and engage with every client."}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {values.map((v, i) => (
@@ -119,14 +122,19 @@ export default function About() {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre parcours" : "Our journey"}</p>
-              <h2 className="text-4xl font-bold text-slate-900">{fr ? "15 ans d'innovation" : "15 years of innovation"}</h2>
+              <h2 className="text-4xl font-bold text-slate-900">{fr ? "Fondée en 2023, déployée à l'international" : "Founded in 2023, deployed internationally"}</h2>
+              <p className="text-slate-500 mt-4 text-lg">
+                {fr
+                  ? "De New Haven à l'Afrique de l'Ouest, une trajectoire de croissance claire et maîtrisée."
+                  : "From New Haven to West Africa, a clear and controlled growth trajectory."}
+              </p>
             </div>
             <div className="relative">
               <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-200" />
               <div className="space-y-8">
                 {milestones.map((m, i) => (
                   <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="flex gap-8 relative">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center flex-shrink-0 relative z-10 bg-white">
+                    <div className="w-12 h-12 rounded-full bg-white border-2 border-primary flex items-center justify-center flex-shrink-0 relative z-10">
                       <span className="text-xs font-bold text-primary">{m.year.slice(2)}</span>
                     </div>
                     <div className="flex-1 pb-2 pt-2">
@@ -150,8 +158,8 @@ export default function About() {
               <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
               <p className="text-slate-500 text-lg leading-relaxed mb-10">
                 {fr
-                  ? "Chaque client reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales — peu importe la taille du projet ou la géographie."
-                  : "Every client receives service comparable to the world's largest technology firms — regardless of project size or geography."}
+                  ? "Chaque client — qu'il soit en Amérique du Nord, en Europe ou en Afrique — reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales. La géographie ne doit jamais être un obstacle à l'excellence."
+                  : "Every client — whether in North America, Europe, or Africa — receives service comparable to the world's largest technology firms. Geography should never be a barrier to excellence."}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3">
@@ -168,8 +176,10 @@ export default function About() {
 
       <CTASection
         title={fr ? "Démarrons ensemble" : "Let's get started"}
-        subtitle={fr ? "Prêt à collaborer avec une équipe dédiée à votre succès technologique ?" : "Ready to work with a team dedicated to your technology success?"}
-        btnText={fr ? "Nous contacter" : "Contact us"}
+        subtitle={fr
+          ? "Prêt à collaborer avec une équipe internationale dédiée à votre succès technologique ?"
+          : "Ready to work with an international team dedicated to your technology success?"}
+        btnText={fr ? "Parler à un expert" : "Talk to an expert"}
         href="/contact"
       />
     </div>

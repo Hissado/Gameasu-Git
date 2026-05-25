@@ -9,12 +9,10 @@ export function Footer() {
 
   return (
     <footer className="bg-slate-900 text-white">
-      {/* Main footer content */}
       <div className="container mx-auto px-6 pt-16 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
-          {/* Brand */}
           <div className="lg:col-span-2">
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="bg-white rounded-xl px-4 py-3 inline-flex items-center">
                 <img
                   src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
@@ -23,28 +21,30 @@ export function Footer() {
                 />
               </div>
             </div>
+            <p className="text-primary font-semibold text-sm mb-3 tracking-wide italic">
+              {fr ? "Innover, Transformer, Sécuriser" : "Innovate, Transform, Secure"}
+            </p>
             <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
               {fr
-                ? "Solutions IT globales pour les entreprises ambitieuses. Modernes, sécurisées, évolutives — de l'Afrique au monde."
-                : "Global IT solutions for ambitious enterprises. Modern, secure, scalable — from Africa to the world."}
+                ? "Fondée aux États-Unis en 2023, Gaméasù accompagne les entreprises, institutions et organisations dans leur transformation numérique à l'échelle mondiale."
+                : "Founded in the United States in 2023, Gaméasù supports businesses, institutions, and organizations in their digital transformation worldwide."}
             </p>
             <div className="space-y-3">
-              <a href="mailto:contact@gameasutech.com" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors">
+              <a href="mailto:info@gameasu.tech" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors">
                 <Mail size={15} className="text-primary flex-shrink-0" />
-                contact@gameasutech.com
+                info@gameasu.tech
               </a>
-              <a href="tel:+15551234567" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors">
+              <a href="tel:+12036262309" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors">
                 <Phone size={15} className="text-primary flex-shrink-0" />
-                +1 (555) 123-4567
+                +1 (203) 626-2309
               </a>
               <div className="flex items-start gap-3 text-sm text-slate-400">
                 <MapPin size={15} className="text-primary flex-shrink-0 mt-0.5" />
-                <span>New York, NY — United States (HQ)</span>
+                <span>195 Church Street, New Haven, CT — USA</span>
               </div>
             </div>
           </div>
 
-          {/* Services */}
           <div>
             <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-widest">{t.nav.services}</h4>
             <ul className="space-y-3">
@@ -64,7 +64,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
           <div>
             <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-widest">{fr ? "Entreprise" : "Company"}</h4>
             <ul className="space-y-3">
@@ -85,7 +84,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Presence */}
           <div>
             <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-widest">
               <Globe size={14} className="inline mr-2 text-primary" />
@@ -93,13 +91,13 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5">
               {[
-                { flag: "🇺🇸", city: "New York", role: "HQ" },
-                { flag: "🇨🇦", city: "Montréal" },
-                { flag: "🇫🇷", city: "Paris" },
-                { flag: "🇧🇪", city: "Bruxelles" },
-                { flag: "🇹🇬", city: "Lomé" },
-                { flag: "🇨🇮", city: "Abidjan" },
-                { flag: "🇲🇱", city: "Bamako" },
+                { flag: "🇺🇸", city: "New Haven, CT", role: "HQ", note: "2023" },
+                { flag: "🇨🇦", city: "Montréal", note: "2026" },
+                { flag: "🇫🇷", city: "Paris", note: "2026" },
+                { flag: "🇧🇪", city: "Bruxelles", note: "2026" },
+                { flag: "🇹🇬", city: "Lomé", note: "2026" },
+                { flag: "🇨🇮", city: "Abidjan", note: "2026" },
+                { flag: "🇲🇱", city: "Bamako", note: "2026" },
               ].map((p, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
                   <span>{p.flag}</span>
@@ -114,11 +112,13 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
       <div className="border-t border-slate-800">
         <div className="container mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} Gaméasù Technology. {fr ? "Tous droits réservés." : "All rights reserved."}
+            © {new Date().getFullYear()} Gaméasù. {fr ? "Tous droits réservés." : "All rights reserved."}
+            <span className="ml-3 text-slate-600 italic">
+              {fr ? "Innover, Transformer, Sécuriser" : "Innovate, Transform, Secure"}
+            </span>
           </p>
           <div className="flex items-center gap-6 text-xs text-slate-500">
             <span className="hover:text-slate-300 cursor-pointer transition-colors">{fr ? "Politique de confidentialité" : "Privacy Policy"}</span>
