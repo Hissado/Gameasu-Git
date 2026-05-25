@@ -107,8 +107,8 @@ export default function Home() {
                 className="text-xl text-slate-500 leading-relaxed mb-12 max-w-xl"
               >
                 {fr
-                  ? "Depuis les États-Unis, Gaméasù accompagne les entreprises, institutions et organisations dans la modernisation de leurs systèmes, la sécurisation de leurs opérations et l'adoption de technologies innovantes."
-                  : "From the United States, Gaméasù helps businesses, institutions, and organizations modernize their systems, secure their operations, and adopt innovative technologies."}
+                  ? "Fondée en 2023, Gaméasù est une entreprise technologique à vision internationale, engagée à accompagner les entreprises, institutions et organisations en Afrique, en Amérique du Nord, en Europe et au-delà."
+                  : "Founded in 2023, Gaméasù is a technology company with an international vision, committed to supporting businesses, institutions, and organizations in Africa, North America, Europe, and beyond."}
               </motion.p>
 
               <motion.div
@@ -230,7 +230,6 @@ export default function Home() {
                       <span className="text-2xl flex-shrink-0">{p.flag}</span>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-slate-900 text-sm">{p.country}</div>
-                        <div className="text-xs text-slate-500">{p.city}</div>
                       </div>
                       {p.role ? (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">{p.role}</span>

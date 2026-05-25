@@ -1,0 +1,42 @@
+Veuillez conserver le design actuel du site, car la direction visuelle générale est bonne. Il ne faut pas refaire complètement l’interface, mais plutôt améliorer certains éléments de contenu, de présentation et de branding.
+
+Merci d’apporter les modifications suivantes :
+
+Remplacer les villes par des drapeaux
+Dans la section présentant les bureaux ou la présence internationale, veuillez retirer l’affichage des noms de villes.
+Remplacer ces informations par les drapeaux des pays concernés afin de donner une présentation plus visuelle, moderne et internationale.
+Les pays à afficher sont :
+États-Unis
+Canada
+France
+Belgique
+Togo
+Côte d’Ivoire
+Mali
+Supprimer le wording “Depuis les États-Unis”
+Veuillez retirer l’expression “Depuis les États-Unis” partout où elle apparaît.
+L’objectif est d’éviter que l’image de Gaméasù donne l’impression d’une entreprise uniquement américaine.
+Le positionnement doit plutôt refléter une entreprise internationale, multiculturelle et tournée vers plusieurs marchés, notamment l’Afrique.
+
+Remplacer le wording actuel
+
+Veuillez remplacer la phrase suivante :
+
+“Une entreprise américaine fondée en 2023, avec une mission résolument internationale.”
+
+Par un wording plus inclusif, plus diversifié et plus adapté à l’identité de Gaméasù.
+
+Proposition de remplacement :
+
+“Fondée en 2023, Gaméasù est une entreprise technologique à vision internationale, engagée à accompagner les entreprises, institutions et organisations en Afrique, en Amérique du Nord, en Europe et au-delà.”
+
+Renforcer l’image de diversité
+Le branding doit refléter une entreprise moderne, internationale, inclusive et multiculturelle.
+Même si Gaméasù a été créée aux États-Unis, son image doit clairement montrer une ouverture vers l’Afrique, la diaspora et les marchés internationaux.
+Le ton doit rester premium, professionnel et technologique, tout en étant plus humain, accessible et représentatif de la diversité des marchés ciblés.
+Conserver la cohérence visuelle
+Ne changez pas le design global actuel.
+Gardez les couleurs, la structure, les animations et l’organisation générale du site.
+Ajustez uniquement les éléments nécessaires pour rendre le branding plus professionnel, plus inclusif et mieux aligné avec l’identité internationale de Gaméasù.
+
+Le résultat final doit présenter Gaméasù comme une entreprise technologique fondée en 2023, avec une vision globale, une forte connexion avec l’Afrique et une capacité à servir des clients dans plusieurs régions du monde.

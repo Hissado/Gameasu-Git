@@ -47,16 +47,16 @@ export default function About() {
             </p>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
               {fr
-                ? "Une entreprise américaine fondée en 2023, avec une mission résolument internationale."
-                : "An American company founded in 2023, with a resolutely international mission."}
+                ? "Fondée en 2023, Gaméasù est une entreprise technologique à vision internationale, engagée à accompagner les entreprises, institutions et organisations en Afrique, en Amérique du Nord, en Europe et au-delà."
+                : "Founded in 2023, Gaméasù is a technology company with an international vision, committed to supporting businesses, institutions, and organizations in Africa, North America, Europe, and beyond."}
             </h1>
             <p className="text-base font-semibold text-primary tracking-widest mb-6 uppercase">
               {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
             </p>
             <p className="text-xl text-slate-500 leading-relaxed max-w-3xl">
               {fr
-                ? "Gaméasù se positionne à l'intersection d'un cabinet de conseil IT de premier plan et d'une entreprise technologique internationale ambitieuse — précise, fiable et résolument tournée vers l'avenir. Depuis New Haven (Connecticut), nous accompagnons les organisations dans leur transformation numérique à l'échelle mondiale."
-                : "Gaméasù stands at the intersection of a leading IT consulting firm and an ambitious international technology company — precise, reliable, and firmly forward-looking. From New Haven, Connecticut, we support organizations in their digital transformation on a global scale."}
+                ? "Gaméasù se positionne à l'intersection d'un cabinet de conseil IT de premier plan et d'une entreprise technologique internationale ambitieuse — précise, fiable et résolument tournée vers l'avenir. Nous accompagnons les organisations dans leur transformation numérique à l'échelle mondiale, avec une forte connexion à l'Afrique et à sa diaspora."
+                : "Gaméasù stands at the intersection of a leading IT consulting firm and an ambitious international technology company — precise, reliable, and firmly forward-looking. We support organizations in their digital transformation globally, with a strong connection to Africa and its diaspora."}
             </p>
           </motion.div>
         </div>
@@ -125,8 +125,8 @@ export default function About() {
               <h2 className="text-4xl font-bold text-slate-900">{fr ? "Fondée en 2023, déployée à l'international" : "Founded in 2023, deployed internationally"}</h2>
               <p className="text-slate-500 mt-4 text-lg">
                 {fr
-                  ? "De New Haven à l'Afrique de l'Ouest, une trajectoire de croissance claire et maîtrisée."
-                  : "From New Haven to West Africa, a clear and controlled growth trajectory."}
+                  ? "Des États-Unis à l'Afrique de l'Ouest, en passant par l'Europe — une trajectoire de croissance internationale claire et maîtrisée."
+                  : "From the United States to West Africa and Europe — a clear and controlled international growth trajectory."}
               </p>
             </div>
             <div className="relative">

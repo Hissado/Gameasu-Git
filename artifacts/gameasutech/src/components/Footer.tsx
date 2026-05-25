@@ -91,17 +91,17 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5">
               {[
-                { flag: "🇺🇸", city: "New Haven, CT", role: "HQ", note: "2023" },
-                { flag: "🇨🇦", city: "Montréal", note: "2026" },
-                { flag: "🇫🇷", city: "Paris", note: "2026" },
-                { flag: "🇧🇪", city: "Bruxelles", note: "2026" },
-                { flag: "🇹🇬", city: "Lomé", note: "2026" },
-                { flag: "🇨🇮", city: "Abidjan", note: "2026" },
-                { flag: "🇲🇱", city: "Bamako", note: "2026" },
+                { flag: "🇺🇸", label: "États-Unis", role: "HQ" },
+                { flag: "🇨🇦", label: "Canada" },
+                { flag: "🇫🇷", label: "France" },
+                { flag: "🇧🇪", label: "Belgique" },
+                { flag: "🇹🇬", label: "Togo" },
+                { flag: "🇨🇮", label: "Côte d'Ivoire" },
+                { flag: "🇲🇱", label: "Mali" },
               ].map((p, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
-                  <span>{p.flag}</span>
-                  <span>{p.city}</span>
+                  <span className="text-lg">{p.flag}</span>
+                  <span>{p.label}</span>
                   {p.role && (
                     <span className="text-xs text-primary font-semibold">{p.role}</span>
                   )}
