@@ -108,20 +108,13 @@ export default function CaseStudies() {
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden shadow-xl">
                 <img
-                  src="https://images.unsplash.com/photo-1551836022-4c4c79ecde51?w=900&q=80&auto=format&fit=crop"
-                  alt="Résultats et performance client Gaméasù"
-                  className="w-full h-full object-cover"
+                  src={`${import.meta.env.BASE_URL}case-studies-banner.png`}
+                  alt="Réalisations Gaméasù — missions technologiques en Afrique"
+                  className="w-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/50 to-transparent" />
-                <div className="absolute bottom-5 left-5 right-5">
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
-                    <TrendingUp size={15} className="text-green-300 flex-shrink-0" />
-                    <span className="text-white text-sm font-medium">{fr ? "100+ missions · 98% satisfaction client" : "100+ missions · 98% client satisfaction"}</span>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
