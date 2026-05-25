@@ -72,8 +72,6 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
         <div className="blob-1 absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl pointer-events-none" />
         <div className="blob-2 absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="grid-pulse absolute inset-0 pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         <div className="container mx-auto px-6 relative z-10 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
