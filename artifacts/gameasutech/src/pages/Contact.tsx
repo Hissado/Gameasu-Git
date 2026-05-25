@@ -33,13 +33,13 @@ export default function Contact() {
   function onSubmit() { setIsSubmitted(true); }
 
   const offices = [
-    { flag: "🇺🇸", city: "New Haven, CT", role: "HQ", detail: "United States — Siège social", since: null },
-    { flag: "🇨🇦", city: "Montréal", detail: "Canada", since: "2026" },
-    { flag: "🇫🇷", city: "Paris", detail: "France", since: "2026" },
-    { flag: "🇧🇪", city: "Bruxelles", detail: "Belgique", since: "2026" },
-    { flag: "🇹🇬", city: "Lomé", detail: "Togo", since: "2026" },
-    { flag: "🇨🇮", city: "Abidjan", detail: "Côte d'Ivoire", since: "2026" },
-    { flag: "🇲🇱", city: "Bamako", detail: "Mali", since: "2026" },
+    { code: "us", city: "New Haven, CT", detailFr: "États-Unis — Siège social", detailEn: "United States — Headquarters", hq: true },
+    { code: "ca", city: "Montréal", detailFr: "Canada", detailEn: "Canada" },
+    { code: "fr", city: "Paris", detailFr: "France", detailEn: "France" },
+    { code: "be", city: "Bruxelles", detailFr: "Belgique", detailEn: "Belgium" },
+    { code: "tg", city: "Lomé", detailFr: "Togo", detailEn: "Togo" },
+    { code: "ci", city: "Abidjan", detailFr: "Côte d'Ivoire", detailEn: "Côte d'Ivoire" },
+    { code: "ml", city: "Bamako", detailFr: "Mali", detailEn: "Mali" },
   ];
 
   return (
@@ -105,13 +105,19 @@ export default function Contact() {
                 <div className="space-y-2">
                   {offices.map((o, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                      <span className="text-xl">{o.flag}</span>
+                      <img
+                        src={`https://flagcdn.com/24x18/${o.code}.png`}
+                        srcSet={`https://flagcdn.com/48x36/${o.code}.png 2x`}
+                        width={24} height={18}
+                        alt={fr ? o.detailFr : o.detailEn}
+                        className="flex-shrink-0 rounded-sm shadow-sm"
+                      />
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-slate-800 text-sm">{o.city}</span>
-                          {o.role && <span className="text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">{o.role}</span>}
+                          {o.hq && <span className="text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">{fr ? "Siège" : "HQ"}</span>}
                         </div>
-                        <div className="text-xs text-slate-400">{o.detail}</div>
+                        <div className="text-xs text-slate-400">{fr ? o.detailFr : o.detailEn}</div>
                       </div>
                     </div>
                   ))}
