@@ -45,7 +45,7 @@ export default function Support() {
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10 max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-6 uppercase tracking-wide">
               <HeadphonesIcon size={14} />{fr ? "Support Client" : "Client Support"}
             </div>
@@ -70,7 +70,7 @@ export default function Support() {
               { icon: Mail, labelFr: "Email support", labelEn: "Email support", value: "support@gameasu.tech", note24x7: false },
               { icon: MessageSquare, labelFr: "Portail de tickets", labelEn: "Ticket portal", value: "support.gameasu.tech", note24x7: false }
             ].map((ch, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
+              <motion.div key={i} initial={{ y: 16 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
                 <div className="flex items-center gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
                   <div className="p-3 rounded-lg bg-primary/8 text-primary flex-shrink-0"><ch.icon size={20} /></div>
                   <div>
@@ -95,7 +95,7 @@ export default function Support() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {slaLevels.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
+              <motion.div key={i} initial={{ y: 20 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
                 <div className={`h-full border-2 ${s.colorBg} rounded-xl p-8`}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`text-sm font-bold px-3 py-1 rounded-lg ${s.colorText}`}>{s.level}</div>

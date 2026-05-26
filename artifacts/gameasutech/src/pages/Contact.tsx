@@ -48,7 +48,7 @@ export default function Contact() {
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10 max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div initial={{ y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{t.nav.contact}</p>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-6">{t.contact.title}</h1>
             <p className="text-xl text-slate-500 max-w-2xl">{t.contact.subtitle}</p>

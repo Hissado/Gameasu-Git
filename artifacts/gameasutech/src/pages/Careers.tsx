@@ -55,7 +55,7 @@ export default function Careers() {
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Carrières" : "Careers"}</p>
               <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
                 {fr ? "Rejoignez une entreprise technologique internationale en pleine croissance" : "Join a fast-growing international technology company"}
@@ -66,7 +66,7 @@ export default function Careers() {
                   : "Gaméasù recruits passionate experts who want to contribute to the digital transformation of organizations on a global scale — from the USA to West Africa."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="hidden lg:block">
+            <motion.div initial={{ x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
                 <img
                   src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop"
@@ -95,7 +95,7 @@ export default function Careers() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reasons.map((r, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+              <motion.div key={i} initial={{ y: 20 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all">
                   <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <r.icon size={24} />
@@ -118,7 +118,7 @@ export default function Careers() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {openings.map((o, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+              <motion.div key={i} initial={{ y: 20 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group bg-white border border-slate-200 rounded-xl p-7 hover:border-primary/40 hover:shadow-md transition-all">
                   <h3 className="text-lg font-bold text-slate-900 mb-4">{fr ? o.titleFr : o.titleEn}</h3>
                   <div className="flex flex-wrap gap-2">

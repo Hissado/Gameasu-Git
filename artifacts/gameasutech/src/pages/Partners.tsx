@@ -59,7 +59,7 @@ export default function Partners() {
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Partenaires" : "Partners"}</p>
               <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
                 {fr ? "Un écosystème de partenaires de classe mondiale" : "A world-class partner ecosystem"}
@@ -70,7 +70,7 @@ export default function Partners() {
                   : "Gaméasù relies on global technology leaders to offer you best-in-class solutions, implemented by certified engineers and expert teams."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="w-full">
+            <motion.div initial={{ x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="w-full">
               <div className="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
                 <img
                   src={`${import.meta.env.BASE_URL}partners-banner.webp`}
@@ -90,7 +90,7 @@ export default function Partners() {
           <p className="text-center text-sm text-slate-500 font-semibold uppercase tracking-widest mb-8">{fr ? "Certifications & accréditations" : "Certifications & accreditations"}</p>
           <div className="flex flex-wrap justify-center gap-4">
             {certifications.map((cert, i) => (
-              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+              <motion.div key={i} initial={{ scale: 0.97 }} whileInView={{ scale: 1 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="bg-white border border-slate-200 rounded-xl px-6 py-3 flex items-center gap-3 hover:border-primary/40 hover:shadow-sm transition-all shadow-sm">
                   <Award size={16} className="text-primary flex-shrink-0" />
                   <span className="text-sm font-semibold text-slate-800">{cert.name}</span>
@@ -112,7 +112,7 @@ export default function Partners() {
           </div>
           <div className="space-y-8">
             {partnerCategories.map((cat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
+              <motion.div key={i} initial={{ y: 20 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
                 <div className="bg-white border border-slate-200 rounded-2xl p-8 hover:border-primary/30 transition-colors shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="p-3 rounded-xl bg-primary/8 text-primary flex-shrink-0">
@@ -157,7 +157,7 @@ export default function Partners() {
             </div>
             <div className="space-y-3">
               {partnerBenefits.map((b, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+                <motion.div key={i} initial={{ x: 20 }} whileInView={{ x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                   <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
                     <CheckCircle size={18} className="text-primary flex-shrink-0" />
                     <span className="text-slate-700 text-sm font-medium">{fr ? b.fr : b.en}</span>

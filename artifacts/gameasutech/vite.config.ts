@@ -61,9 +61,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom"],
+          vendor: ["react", "react-dom", "wouter", "@tanstack/react-query"],
           motion: ["framer-motion"],
-          router: ["wouter"],
           ui: ["lucide-react"],
         },
       },

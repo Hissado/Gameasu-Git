@@ -24,8 +24,8 @@ export function Newsletter() {
     <section className="py-16 bg-primary/5 border-y border-primary/10">
       <div className="container mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="max-w-2xl mx-auto text-center"

@@ -210,7 +210,7 @@ export default function Solutions() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-100/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
+          <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "Nos Solutions" : "Our Solutions"}
             </p>
@@ -273,8 +273,8 @@ export default function Solutions() {
               return (
                 <motion.div
                   key={sol.nameFr}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ y: 20 }}
+                  whileInView={{ y: 0 }}
                   viewport={{ once: true, amount: 0.05 }}
                   transition={{ delay: i * 0.025 }}
                 >
@@ -366,8 +366,8 @@ export default function Solutions() {
             ].map((item, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ y: 16 }}
+                whileInView={{ y: 0 }}
                 viewport={{ once: true, amount: 0.05 }}
                 transition={{ delay: i * 0.12 }}
               >

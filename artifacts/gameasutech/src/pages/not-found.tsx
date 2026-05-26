@@ -11,7 +11,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white flex items-center justify-center px-6 pt-20">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22 }}
         className="text-center max-w-lg"

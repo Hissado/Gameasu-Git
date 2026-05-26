@@ -191,7 +191,7 @@ export default function CaseStudies() {
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
+          <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "Réalisations" : "Case studies"}
             </p>
@@ -239,8 +239,8 @@ export default function CaseStudies() {
             {filtered.map((c, i) => (
               <motion.div
                 key={c.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ y: 20 }}
+                whileInView={{ y: 0 }}
                 viewport={{ once: true, amount: 0.05 }}
                 transition={{ delay: i * 0.02 }}
               >

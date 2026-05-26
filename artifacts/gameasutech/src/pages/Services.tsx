@@ -26,7 +26,7 @@ export default function Services() {
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }}>
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Nos services" : "Our services"}</p>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6 max-w-4xl">
               {fr ? "Des solutions de bout en bout pour chaque défi IT" : "End-to-end solutions for every IT challenge"}
@@ -42,7 +42,7 @@ export default function Services() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {services.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+              <motion.div key={i} initial={{ y: 20 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <Link href={s.href}>
                   <div className="group h-full bg-white border border-slate-200 rounded-2xl p-8 hover:border-primary/40 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <div className="flex items-start justify-between mb-6">
@@ -81,7 +81,7 @@ export default function Services() {
           </div>
 
           {/* Approach banner */}
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }} className="mb-12">
+          <motion.div initial={{ y: 24 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }} className="mb-12">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
                 src={`${import.meta.env.BASE_URL}approach-banner.webp`}
@@ -102,7 +102,7 @@ export default function Services() {
               { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
               { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
             ].map((item, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
+              <motion.div key={i} initial={{ y: 16 }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
                   <CheckCircle size={18} className="text-primary flex-shrink-0" />
                   <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>

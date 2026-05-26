@@ -10,8 +10,8 @@ import {
 import { CTASection } from "@/components/CTASection";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.03, duration: 0.22 } })
+  hidden: { y: 20 },
+  visible: (i = 0) => ({ y: 0, transition: { delay: i * 0.03, duration: 0.22 } })
 };
 
 const stats = [
@@ -68,14 +68,14 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <motion.p
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02, duration: 0.2 }}
+                initial={{ y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02, duration: 0.2 }}
                 className="text-base font-semibold text-primary tracking-widest mb-5 uppercase"
               >
                 {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
               </motion.p>
 
               <motion.h1
-                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04, duration: 0.28 }}
+                initial={{ y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04, duration: 0.28 }}
                 className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-6"
               >
                 {fr
@@ -84,7 +84,7 @@ export default function Home() {
               </motion.h1>
 
               <motion.p
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.25 }}
+                initial={{ y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.25 }}
                 className="text-xl text-slate-500 leading-relaxed mb-10 max-w-xl"
               >
                 {fr
@@ -93,7 +93,7 @@ export default function Home() {
               </motion.p>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.2 }}
+                initial={{ y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.2 }}
                 className="flex flex-wrap gap-4"
               >
                 <Link href="/contact">
@@ -111,7 +111,7 @@ export default function Home() {
 
               {/* Stats — visible on mobile only */}
               <motion.div
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10, duration: 0.25 }}
+                initial={{ y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10, duration: 0.25 }}
                 className="grid grid-cols-2 gap-3 mt-8 lg:hidden"
               >
                 {stats.map((s, i) => (
@@ -125,7 +125,7 @@ export default function Home() {
 
             {/* Hero image + stats — desktop only */}
             <motion.div
-              initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.10, duration: 0.3 }}
+              initial={{ x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.10, duration: 0.3 }}
               className="hidden lg:flex flex-col gap-4"
             >
               <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
@@ -196,7 +196,7 @@ export default function Home() {
       <section className="py-16 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}>
+            <motion.div initial={{ x: -24 }} whileInView={{ x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
                 {fr ? "Qui sommes-nous" : "Who we are"}
               </p>
@@ -230,7 +230,7 @@ export default function Home() {
             </motion.div>
 
             {/* Why us — 3 items */}
-            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}
+            <motion.div initial={{ x: 24 }} whileInView={{ x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}
               className="flex flex-col gap-4">
               {whyUs.map((item, i) => (
                 <div key={i} className="flex items-start gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-300">
