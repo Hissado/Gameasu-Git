@@ -19,6 +19,7 @@ import Partners from "@/pages/Partners";
 import Careers from "@/pages/Careers";
 import Contact from "@/pages/Contact";
 import Support from "@/pages/Support";
+import Solutions from "@/pages/Solutions";
 import FAQ from "@/pages/FAQ";
 import Privacy from "@/pages/Privacy";
 
@@ -35,6 +36,7 @@ function Router() {
         <Route path="/cybersecurity" component={Cybersecurity} />
         <Route path="/ai-automation" component={AIAutomation} />
         <Route path="/cloud-infrastructure" component={CloudInfrastructure} />
+        <Route path="/solutions" component={Solutions} />
         <Route path="/case-studies" component={CaseStudies} />
         <Route path="/blog" component={Blog} />
         <Route path="/partners" component={Partners} />

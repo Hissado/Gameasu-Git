@@ -55,6 +55,7 @@ export function Header() {
 
   const navLinks = [
     { href: "/about", label: t.nav.about },
+    { href: "/solutions", label: t.nav.solutions },
     { href: "/industries", label: t.nav.industries },
     { href: "/case-studies", label: t.nav.caseStudies },
     { href: "/blog", label: t.nav.blog },
@@ -245,6 +246,14 @@ export function Header() {
                 </div>
               )}
             </div>
+
+            <Link href="/solutions">
+              <div className={`px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
+                isActive("/solutions") ? "text-primary bg-primary/8 font-semibold" : "text-slate-700 hover:bg-slate-50"
+              }`}>
+                {t.nav.solutions}
+              </div>
+            </Link>
 
             <Link href="/industries">
               <div className={`px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${

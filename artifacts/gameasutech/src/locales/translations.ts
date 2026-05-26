@@ -10,7 +10,8 @@ export const translations = {
       partners: "Partenaires",
       careers: "Carrières",
       contact: "Contact",
-      support: "Support"
+      support: "Support",
+      solutions: "Solutions"
     },
     hero: {
       title: "Accélérez votre transformation numérique",
@@ -63,7 +64,8 @@ export const translations = {
       partners: "Partners",
       careers: "Careers",
       contact: "Contact",
-      support: "Support"
+      support: "Support",
+      solutions: "Solutions"
     },
     hero: {
       title: "Accelerate your digital transformation",
