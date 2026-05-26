@@ -1,0 +1,190 @@
+Veuillez mettre à jour la section Réalisations / Case Studies / Projets réalisés du site web de Gaméasù afin de la rendre plus crédible, professionnelle, réaliste et orientée résultats.
+
+L’objectif est de présenter des projets concrets et représentatifs des solutions technologiques livrées par Gaméasù, tout en évitant des références trop irréalistes ou trop ambitieuses pour le positionnement actuel de l’entreprise.
+
+Merci de conserver le design actuel du site et d’intégrer ces réalisations de façon cohérente avec l’identité visuelle existante. Ne modifiez pas le branding, les couleurs principales, le logo ou la structure générale du site.
+
+1. Réviser les réalisations déjà présentes sur le site
+
+Veuillez d’abord revoir les réalisations actuellement affichées sur le site web.
+
+Certaines entreprises, noms de clients ou exemples déjà cités semblent trop ambitieux, trop “grandes entreprises” ou peu réalistes pour le positionnement actuel de Gaméasù. Merci de les remplacer par des exemples plus sobres, crédibles et adaptés à une entreprise technologique en croissance.
+
+Merci de respecter les consignes suivantes :
+
+Ne pas utiliser de noms de grandes entreprises internationales fictives.
+Ne pas inventer de clients trop prestigieux ou irréalistes.
+Remplacer les noms d’entreprises par des formulations plus neutres, par exemple :
+“Une organisation multi-sites”
+“Une structure résidentielle”
+“Une organisation à but non lucratif”
+“Une PME en croissance”
+“Une institution locale”
+“Une entreprise de services”
+“Une organisation opérant sur plusieurs sites”
+Présenter les projets comme des exemples représentatifs de solutions déployées, sans donner l’impression de références clients exagérées.
+Garder un ton crédible, professionnel, mesuré et orienté résultats.
+Mettre l’accent sur le problème, la solution, l’impact et les résultats mesurables.
+Harmoniser les réalisations déjà existantes avec les nouvelles réalisations ci-dessous.
+
+L’objectif est de rendre la section Réalisations / Case Studies plus crédible, plus professionnelle et plus cohérente avec l’image actuelle de Gaméasù, tout en montrant clairement notre capacité à livrer des solutions technologiques concrètes et utiles.
+
+2. Ajouter les nouvelles réalisations suivantes
+
+Veuillez ajouter les trois réalisations suivantes au site web.
+
+Chaque réalisation doit inclure :
+
+Titre du projet
+Catégorie
+Durée du projet en français et en anglais
+Résumé court
+Contexte
+Défi
+Solution déployée
+Résultats mesurables
+Indicateurs clés
+Bouton CTA du type :
+Voir le projet
+Découvrir la solution
+En savoir plus
+
+Le contenu doit être disponible en français et en anglais.
+
+Le français doit être naturel, professionnel et marketing.
+L’anglais doit être corporate, fluide et crédible.
+Ne pas faire de traduction automatique mot à mot.
+
+Réalisation 1 — Plateforme de planification du personnel et des opérations résidentielles
+
+Catégorie : Gestion opérationnelle
+Durée : 6 mois / 6 months
+
+Résumé court
+
+Digitalisation complète de la planification du personnel pour une structure multi-sites.
+
+Contexte
+
+Une organisation opérant plusieurs maisons résidentielles devait gérer les horaires du personnel, les postes ouverts, les remplacements, les rendez-vous médicaux et les permissions utilisateurs à partir de fichiers séparés et de processus manuels.
+
+Défi
+
+Centraliser la planification mensuelle, réduire les erreurs d’affectation, améliorer la visibilité par maison et permettre aux responsables de suivre les équipes, les shifts, les absences et les besoins de couverture en temps réel.
+
+Solution déployée
+
+Création d’une application web responsive avec calendrier mensuel imprimable, gestion des rôles, permissions par maison, staff certifié, postes ouverts, rendez-vous médicaux, affectations récurrentes, export PDF et interface optimisée pour mobile.
+
+Indicateurs clés
+78 % — Réduction des erreurs de planning
+12+ — Types de shifts gérés
+100 % — Vue mensuelle imprimable
+6 mois — Délai de conception
+Réalisation 2 — Portail de gestion des demandes de réparation et interventions
+
+Catégorie : Gestion des opérations
+Durée : 4 mois / 4 months
+
+Résumé court
+
+Mise en place d’un portail de suivi des demandes techniques et réparations.
+
+Contexte
+
+Une organisation devait améliorer la gestion des demandes de réparation provenant de bénéficiaires, avec des informations dispersées entre emails, appels, photos, notes internes et suivis manuels.
+
+Défi
+
+Structurer le processus de soumission, qualifier l’urgence des demandes, transmettre les informations aux bonnes équipes et assurer un suivi clair depuis la demande initiale jusqu’à la résolution.
+
+Solution déployée
+
+Développement d’un portail permettant la soumission des demandes avec photos, vidéos, coordonnées, description du problème, niveau d’urgence, suivi interne, assignation aux équipes concernées, notifications et historique complet des interventions.
+
+Indicateurs clés
+65 % — Gain de temps dans le traitement
+3 niveaux — Priorisation des urgences
+100 % — Suivi centralisé des demandes
+4 mois — Délai de livraison
+Réalisation 3 — Application d’intelligence financière et suivi des marchés
+
+Catégorie : Finance digitale
+Durée : 5 mois / 5 months
+
+Résumé court
+
+Création d’une plateforme premium d’analyse financière et d’aide à la décision.
+
+Contexte
+
+Des utilisateurs avaient besoin d’un outil moderne pour suivre les marchés financiers, consulter des indicateurs clés, organiser les idées d’investissement et accéder à des analyses structurées dans une interface claire.
+
+Défi
+
+Transformer des données financières complexes en tableaux de bord lisibles, avec une expérience utilisateur premium, une gestion des accès, des contenus différenciés et une présentation adaptée aux utilisateurs non techniques.
+
+Solution déployée
+
+Conception d’une application bilingue avec tableaux de bord financiers, suivi des actifs, idées quotidiennes, alertes, espace premium, gestion des abonnements, interface administrateur et architecture évolutive pour contenus financiers.
+
+Indicateurs clés
+40+ — Indicateurs suivis
+2 langues — Interface bilingue
+24/7 — Accès aux données clés
+5 mois — Délai de développement
+3. Exigences de présentation
+
+Merci de présenter les réalisations avec un rendu :
+
+Premium
+Moderne
+Corporate
+Technologique
+Clair
+Responsive
+Facile à lire
+Orienté résultats
+
+Chaque carte projet doit avoir une bonne hiérarchie visuelle avec :
+
+Un titre fort
+Une courte description
+Une catégorie
+Une durée
+Des métriques visibles
+Un bouton d’action
+Une page ou section détaillée au clic
+
+Les réalisations doivent renforcer la crédibilité de Gaméasù sans paraître exagérées.
+
+4. Exigences techniques
+
+Merci d’intégrer ces réalisations proprement dans le projet existant :
+
+Ajouter ou mettre à jour les données dans un fichier structuré si le site utilise des fichiers de contenu.
+Créer ou réutiliser un composant CaseStudyCard.
+Ajouter ou mettre à jour la section CaseStudies.
+Relier les boutons aux bonnes pages ou sections.
+S’assurer que la navigation fonctionne correctement.
+Optimiser l’affichage desktop, tablette et mobile.
+Ne pas casser la logique bilingue existante.
+Ne pas modifier les autres sections du site sans nécessité.
+Ne pas supprimer le contenu utile déjà présent, mais le reformuler et le rendre plus réaliste si nécessaire.
+5. Résultat attendu
+
+Le site doit maintenant présenter une section Réalisations / Case Studies plus crédible, plus claire et plus professionnelle.
+
+Les projets doivent démontrer la capacité de Gaméasù à concevoir et déployer des solutions technologiques concrètes dans des contextes réels ou représentatifs, notamment :
+
+Gestion opérationnelle
+Digitalisation de processus
+Applications web métiers
+Portails clients ou bénéficiaires
+Suivi des demandes
+Intelligence financière
+Tableaux de bord
+Solutions bilingues
+Automatisation et amélioration de la performance
+
+Le résultat final doit renforcer la confiance des prospects, améliorer la crédibilité du site et encourager les visiteurs à demander une consultation.

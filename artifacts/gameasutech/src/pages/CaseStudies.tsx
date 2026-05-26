@@ -2,24 +2,29 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { CTASection } from "@/components/CTASection";
-import { TrendingUp, Shield, Cloud, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  TrendingUp, Shield, Cloud, Zap, ChevronDown, ChevronUp,
+  Calendar, FileText, BarChart2, ArrowRight, Info
+} from "lucide-react";
 
 const cases = [
   {
     id: 1, icon: Zap,
     categoryFr: "Transformation Digitale", categoryEn: "Digital Transformation",
     duration: "8 mois / 8 months",
-    titleFr: "Modernisation IT complète pour une PME industrielle multi-sites",
-    titleEn: "Complete IT modernization for a multi-site industrial SME",
-    contextFr: "Un groupe industriel de taille intermédiaire (450 salariés, 6 sites) en Afrique de l'Ouest avec une infrastructure IT vieillissante, sans supervision centralisée et des problèmes récurrents de connectivité inter-sites.",
-    contextEn: "A mid-size industrial group (450 employees, 6 sites) in West Africa with aging IT infrastructure, no centralized monitoring, and recurring inter-site connectivity issues.",
-    challengeFr: "Unifier l'infrastructure de 6 sites, migrer vers le cloud, déployer la collaboration moderne et former 450 utilisateurs en maintenant la continuité opérationnelle.",
-    challengeEn: "Unify the 6-site infrastructure, migrate to the cloud, deploy modern collaboration tools, and train 450 users while maintaining operational continuity.",
-    solutionFr: "Déploiement d'une architecture SD-WAN, migration vers Microsoft 365 avec Teams, mise en place d'un helpdesk centralisé, backup cloud et supervision NOC.",
-    solutionEn: "SD-WAN architecture deployment, Microsoft 365 with Teams migration, centralized helpdesk, cloud backup, and NOC monitoring.",
+    titleFr: "Modernisation IT complète pour une entreprise multi-sites",
+    titleEn: "Complete IT modernization for a multi-site organization",
+    summaryFr: "Refonte de l'infrastructure IT d'une organisation multi-sites avec migration cloud et déploiement de la collaboration moderne.",
+    summaryEn: "IT infrastructure overhaul for a multi-site organization with cloud migration and modern collaboration deployment.",
+    contextFr: "Une organisation opérant sur plusieurs sites en Afrique de l'Ouest disposait d'une infrastructure IT vieillissante, sans supervision centralisée et avec des problèmes récurrents de connectivité inter-sites.",
+    contextEn: "An organization operating across multiple sites in West Africa had aging IT infrastructure, no centralized monitoring, and recurring inter-site connectivity issues.",
+    challengeFr: "Unifier l'infrastructure de plusieurs sites, migrer vers le cloud, déployer la collaboration moderne et former les équipes tout en maintenant la continuité opérationnelle.",
+    challengeEn: "Unify multi-site infrastructure, migrate to the cloud, deploy modern collaboration tools, and train teams while maintaining operational continuity.",
+    solutionFr: "Déploiement d'une architecture SD-WAN, migration vers Microsoft 365 avec Teams, mise en place d'un helpdesk centralisé, backup cloud et supervision proactive.",
+    solutionEn: "SD-WAN architecture deployment, Microsoft 365 with Teams migration, centralized helpdesk, cloud backup, and proactive monitoring.",
     results: [
       { metricFr: "Réduction des incidents réseau", metricEn: "Network incident reduction", value: "73%" },
-      { metricFr: "Utilisateurs formés", metricEn: "Trained users", value: "450" },
+      { metricFr: "Utilisateurs formés", metricEn: "Trained users", value: "120+" },
       { metricFr: "Disponibilité post-projet", metricEn: "Post-project uptime", value: "99.4%" },
       { metricFr: "Délai de livraison", metricEn: "Delivery timeline", value: "8 mois" }
     ],
@@ -29,39 +34,43 @@ const cases = [
     id: 2, icon: Shield,
     categoryFr: "Cybersécurité", categoryEn: "Cybersecurity",
     duration: "4 mois / 4 months",
-    titleFr: "Mise en conformité ISO 27001 pour une institution financière régionale",
-    titleEn: "ISO 27001 compliance for a regional financial institution",
-    contextFr: "Une banque régionale opérant dans 4 pays confrontée à une cyberattaque ayant exposé des données clients. Exigence de mise en conformité ISO 27001 imposée par le régulateur.",
-    contextEn: "A regional bank operating in 4 countries that suffered a cyberattack exposing client data. ISO 27001 compliance required by the regulator.",
-    challengeFr: "Audit complet de la posture de sécurité, remédiation des 47 vulnérabilités critiques identifiées, déploiement SOC et certification ISO 27001 en 4 mois.",
-    challengeEn: "Full security posture audit, remediation of 47 critical vulnerabilities, SOC deployment, and ISO 27001 certification in 4 months.",
-    solutionFr: "Audit de sécurité complet, déploiement EDR sur 1 200 endpoints, mise en place du SOC 24/7, formation de 85 collaborateurs et accompagnement à la certification.",
-    solutionEn: "Full security audit, EDR deployment on 1,200 endpoints, 24/7 SOC setup, training of 85 staff, and certification support.",
+    titleFr: "Audit de sécurité et mise en conformité pour une institution financière",
+    titleEn: "Security audit and compliance for a financial institution",
+    summaryFr: "Audit complet, remédiation des vulnérabilités et déploiement d'une posture de sécurité robuste pour une institution financière locale.",
+    summaryEn: "Full audit, vulnerability remediation, and robust security posture deployment for a local financial institution.",
+    contextFr: "Une institution financière locale confrontée à des incidents de sécurité répétés avait besoin d'un audit complet et d'une remédiation rapide pour protéger ses données et ses systèmes.",
+    contextEn: "A local financial institution facing repeated security incidents needed a full audit and fast remediation to protect its data and systems.",
+    challengeFr: "Réaliser un audit complet de la posture de sécurité, identifier et corriger les vulnérabilités critiques, déployer une protection des endpoints et former les équipes en 4 mois.",
+    challengeEn: "Conduct a full security posture audit, identify and fix critical vulnerabilities, deploy endpoint protection, and train staff within 4 months.",
+    solutionFr: "Audit de sécurité complet, déploiement EDR sur l'ensemble des endpoints, mise en place d'une supervision de sécurité, formation des collaborateurs et accompagnement à la conformité.",
+    solutionEn: "Full security audit, EDR deployment across all endpoints, security monitoring setup, staff training, and compliance guidance.",
     results: [
-      { metricFr: "Vulnérabilités critiques corrigées", metricEn: "Critical vulnerabilities fixed", value: "47/47" },
-      { metricFr: "Endpoints protégés", metricEn: "Protected endpoints", value: "1 200" },
-      { metricFr: "Collaborateurs formés", metricEn: "Trained staff", value: "85" },
-      { metricFr: "Certification obtenue", metricEn: "Certification achieved", value: "ISO 27001" }
+      { metricFr: "Vulnérabilités critiques corrigées", metricEn: "Critical vulnerabilities fixed", value: "100%" },
+      { metricFr: "Endpoints protégés", metricEn: "Protected endpoints", value: "250+" },
+      { metricFr: "Collaborateurs formés", metricEn: "Trained staff", value: "60" },
+      { metricFr: "Délai de livraison", metricEn: "Delivery timeline", value: "4 mois" }
     ],
     accentColor: "bg-red-100 text-red-700"
   },
   {
     id: 3, icon: Cloud,
     categoryFr: "Cloud & Infrastructure", categoryEn: "Cloud & Infrastructure",
-    duration: "12 mois / 12 months",
-    titleFr: "Migration cloud pour une ONG internationale opérant dans 12 pays",
-    titleEn: "Cloud migration for an international NGO operating in 12 countries",
-    contextFr: "Une ONG humanitaire avec 600 collaborateurs dans 12 pays, des données critiques non sauvegardées et des systèmes disparates impossibles à administrer centralement.",
-    contextEn: "A humanitarian NGO with 600 staff in 12 countries, unsecured critical data, and disparate systems impossible to manage centrally.",
-    challengeFr: "Migrer vers un cloud unifié sans interrompre les opérations humanitaires terrain, en maintenant les capacités offline pour les zones à faible connectivité.",
-    challengeEn: "Migrate to a unified cloud without interrupting field operations, while maintaining offline capabilities for low-connectivity areas.",
-    solutionFr: "Architecture cloud hybride AWS + Microsoft 365, déploiement de solutions edge pour les bureaux terrain, formation multilingue et support 24/7 en 3 langues.",
-    solutionEn: "Hybrid AWS + Microsoft 365 cloud architecture, edge solutions for field offices, multilingual training, and 24/7 support in 3 languages.",
+    duration: "10 mois / 10 months",
+    titleFr: "Migration cloud pour une organisation à but non lucratif multi-sites",
+    titleEn: "Cloud migration for a multi-site non-profit organization",
+    summaryFr: "Migration vers un cloud unifié pour centraliser les données, améliorer la collaboration et réduire les coûts opérationnels.",
+    summaryEn: "Migration to a unified cloud to centralize data, improve collaboration, and reduce operational costs.",
+    contextFr: "Une organisation à but non lucratif opérant sur plusieurs sites disposait de données critiques non sauvegardées et de systèmes disparates difficiles à administrer de manière centralisée.",
+    contextEn: "A non-profit organization operating across several sites had unsecured critical data and disparate systems that were difficult to manage centrally.",
+    challengeFr: "Migrer vers un cloud unifié sans interrompre les activités, centraliser les données, améliorer la collaboration entre sites et former les équipes à distance.",
+    challengeEn: "Migrate to a unified cloud without disrupting operations, centralize data, improve cross-site collaboration, and train remote teams.",
+    solutionFr: "Architecture cloud hybride avec Microsoft 365, déploiement de solutions adaptées aux sites distants, formation des équipes et support continu post-migration.",
+    solutionEn: "Hybrid cloud architecture with Microsoft 365, tailored solutions for remote sites, team training, and ongoing post-migration support.",
     results: [
-      { metricFr: "Pays couverts", metricEn: "Countries covered", value: "12" },
-      { metricFr: "Réduction du TCO", metricEn: "TCO reduction", value: "38%" },
-      { metricFr: "Temps de déploiement", metricEn: "Deployment time", value: "12 mois" },
-      { metricFr: "Satisfaction utilisateurs", metricEn: "User satisfaction", value: "94%" }
+      { metricFr: "Sites connectés", metricEn: "Connected sites", value: "6" },
+      { metricFr: "Réduction du TCO", metricEn: "TCO reduction", value: "35%" },
+      { metricFr: "Temps de déploiement", metricEn: "Deployment time", value: "10 mois" },
+      { metricFr: "Satisfaction utilisateurs", metricEn: "User satisfaction", value: "92%" }
     ],
     accentColor: "bg-cyan-100 text-cyan-700"
   },
@@ -69,116 +78,282 @@ const cases = [
     id: 4, icon: TrendingUp,
     categoryFr: "Intelligence Artificielle", categoryEn: "AI & Automation",
     duration: "6 mois / 6 months",
-    titleFr: "Automatisation des processus pour un opérateur télécom régional",
-    titleEn: "Process automation for a regional telecom operator",
-    contextFr: "Un opérateur télécom avec 1,5 million de clients gérant manuellement 80% de son support client, générant des délais de résolution longs et un taux de satisfaction faible.",
-    contextEn: "A telecom operator with 1.5 million customers manually handling 80% of customer support, resulting in long resolution times and low satisfaction rates.",
-    challengeFr: "Automatiser le support client pour réduire les coûts de 40%, améliorer le délai de résolution de 60% et libérer les agents pour les cas complexes.",
-    challengeEn: "Automate customer support to reduce costs by 40%, improve resolution time by 60%, and free agents for complex cases.",
-    solutionFr: "Déploiement d'un chatbot IA multilingue (FR/EN/langues locales), RPA pour la gestion des tickets simples, analytics prédictif pour anticipation des pannes.",
-    solutionEn: "Multilingual AI chatbot deployment (FR/EN/local languages), RPA for simple ticket management, predictive analytics for outage anticipation.",
+    titleFr: "Automatisation du support client pour une entreprise de services",
+    titleEn: "Customer support automation for a service company",
+    summaryFr: "Déploiement d'un chatbot IA et de processus automatisés pour améliorer la réactivité du support et réduire la charge manuelle.",
+    summaryEn: "AI chatbot and automated process deployment to improve support responsiveness and reduce manual workload.",
+    contextFr: "Une entreprise de services gérant un volume croissant de demandes clients traitait la majorité des requêtes manuellement, générant des délais de traitement élevés et une satisfaction client en baisse.",
+    contextEn: "A service company dealing with a growing volume of client requests was manually handling most queries, resulting in long processing times and declining customer satisfaction.",
+    challengeFr: "Automatiser le traitement des demandes simples, réduire les délais de réponse et libérer les agents pour les cas à forte valeur ajoutée.",
+    challengeEn: "Automate simple request handling, reduce response times, and free agents to focus on high-value cases.",
+    solutionFr: "Déploiement d'un chatbot IA bilingue, RPA pour la gestion des tickets récurrents et analytique prédictive pour anticiper les pics d'activité.",
+    solutionEn: "Bilingual AI chatbot deployment, RPA for recurring ticket management, and predictive analytics to anticipate peak activity.",
     results: [
-      { metricFr: "Requêtes automatisées", metricEn: "Automated requests", value: "68%" },
-      { metricFr: "Réduction des coûts support", metricEn: "Support cost reduction", value: "42%" },
-      { metricFr: "NPS client", metricEn: "Customer NPS", value: "+31 pts" },
-      { metricFr: "ROI sur 18 mois", metricEn: "18-month ROI", value: "3.2x" }
+      { metricFr: "Requêtes automatisées", metricEn: "Automated requests", value: "65%" },
+      { metricFr: "Réduction des délais", metricEn: "Time reduction", value: "58%" },
+      { metricFr: "Satisfaction client", metricEn: "Customer satisfaction", value: "+28 pts" },
+      { metricFr: "Délai de livraison", metricEn: "Delivery timeline", value: "6 mois" }
     ],
     accentColor: "bg-violet-100 text-violet-700"
+  },
+  {
+    id: 5, icon: Calendar,
+    categoryFr: "Gestion opérationnelle", categoryEn: "Operations Management",
+    duration: "6 mois / 6 months",
+    titleFr: "Plateforme de planification du personnel et des opérations résidentielles",
+    titleEn: "Staff and residential operations scheduling platform",
+    summaryFr: "Digitalisation complète de la planification du personnel pour une structure multi-sites gérant des maisons résidentielles.",
+    summaryEn: "Full digitization of staff scheduling for a multi-site organization managing residential homes.",
+    contextFr: "Une organisation opérant plusieurs maisons résidentielles devait gérer les horaires du personnel, les postes ouverts, les remplacements, les rendez-vous médicaux et les permissions utilisateurs à partir de fichiers séparés et de processus manuels.",
+    contextEn: "An organization managing multiple residential homes had to handle staff schedules, open positions, replacements, medical appointments, and user permissions using separate files and manual processes.",
+    challengeFr: "Centraliser la planification mensuelle, réduire les erreurs d'affectation, améliorer la visibilité par maison et permettre aux responsables de suivre les équipes, les shifts, les absences et les besoins de couverture en temps réel.",
+    challengeEn: "Centralize monthly scheduling, reduce assignment errors, improve per-home visibility, and allow managers to monitor teams, shifts, absences, and coverage needs in real time.",
+    solutionFr: "Création d'une application web responsive avec calendrier mensuel imprimable, gestion des rôles, permissions par maison, staff certifié, postes ouverts, rendez-vous médicaux, affectations récurrentes, export PDF et interface optimisée pour mobile.",
+    solutionEn: "Development of a responsive web application with a printable monthly calendar, role management, per-home permissions, certified staff tracking, open positions, medical appointments, recurring assignments, PDF export, and a mobile-optimized interface.",
+    results: [
+      { metricFr: "Réduction des erreurs de planning", metricEn: "Planning error reduction", value: "78%" },
+      { metricFr: "Types de shifts gérés", metricEn: "Shift types managed", value: "12+" },
+      { metricFr: "Vue mensuelle imprimable", metricEn: "Printable monthly view", value: "100%" },
+      { metricFr: "Délai de conception", metricEn: "Design timeline", value: "6 mois" }
+    ],
+    accentColor: "bg-emerald-100 text-emerald-700"
+  },
+  {
+    id: 6, icon: FileText,
+    categoryFr: "Gestion des opérations", categoryEn: "Operations Management",
+    duration: "4 mois / 4 months",
+    titleFr: "Portail de gestion des demandes de réparation et interventions",
+    titleEn: "Repair request and intervention management portal",
+    summaryFr: "Mise en place d'un portail centralisé pour le suivi des demandes techniques et réparations, de la soumission à la résolution.",
+    summaryEn: "Implementation of a centralized portal to track technical and repair requests from submission to resolution.",
+    contextFr: "Une organisation devait améliorer la gestion des demandes de réparation provenant de bénéficiaires, avec des informations dispersées entre emails, appels, photos, notes internes et suivis manuels.",
+    contextEn: "An organization needed to improve the handling of repair requests from beneficiaries, with information scattered across emails, calls, photos, internal notes, and manual tracking.",
+    challengeFr: "Structurer le processus de soumission, qualifier l'urgence des demandes, transmettre les informations aux bonnes équipes et assurer un suivi clair depuis la demande initiale jusqu'à la résolution.",
+    challengeEn: "Structure the submission process, qualify request urgency, route information to the right teams, and provide clear tracking from initial request through to resolution.",
+    solutionFr: "Développement d'un portail permettant la soumission des demandes avec photos, vidéos, coordonnées, description du problème, niveau d'urgence, suivi interne, assignation aux équipes, notifications et historique complet des interventions.",
+    solutionEn: "Development of a portal enabling request submission with photos, videos, contact details, problem description, urgency level, internal tracking, team assignment, notifications, and complete intervention history.",
+    results: [
+      { metricFr: "Gain de temps dans le traitement", metricEn: "Processing time saved", value: "65%" },
+      { metricFr: "Niveaux de priorisation", metricEn: "Priority levels", value: "3" },
+      { metricFr: "Suivi centralisé des demandes", metricEn: "Centralized request tracking", value: "100%" },
+      { metricFr: "Délai de livraison", metricEn: "Delivery timeline", value: "4 mois" }
+    ],
+    accentColor: "bg-amber-100 text-amber-700"
+  },
+  {
+    id: 7, icon: BarChart2,
+    categoryFr: "Finance digitale", categoryEn: "Digital Finance",
+    duration: "5 mois / 5 months",
+    titleFr: "Application d'intelligence financière et suivi des marchés",
+    titleEn: "Financial intelligence and market tracking application",
+    summaryFr: "Création d'une plateforme premium d'analyse financière et d'aide à la décision, bilingue et accessible 24/7.",
+    summaryEn: "Development of a premium bilingual financial analysis and decision-support platform, accessible 24/7.",
+    contextFr: "Des utilisateurs avaient besoin d'un outil moderne pour suivre les marchés financiers, consulter des indicateurs clés, organiser les idées d'investissement et accéder à des analyses structurées dans une interface claire.",
+    contextEn: "Users needed a modern tool to monitor financial markets, access key indicators, organize investment ideas, and access structured analyses through a clear interface.",
+    challengeFr: "Transformer des données financières complexes en tableaux de bord lisibles, avec une expérience utilisateur premium, une gestion des accès, des contenus différenciés et une présentation adaptée aux utilisateurs non techniques.",
+    challengeEn: "Turn complex financial data into readable dashboards, with a premium user experience, access management, differentiated content, and a presentation tailored to non-technical users.",
+    solutionFr: "Conception d'une application bilingue avec tableaux de bord financiers, suivi des actifs, idées quotidiennes, alertes, espace premium, gestion des abonnements, interface administrateur et architecture évolutive pour contenus financiers.",
+    solutionEn: "Design of a bilingual application with financial dashboards, asset tracking, daily ideas, alerts, premium space, subscription management, admin interface, and a scalable architecture for financial content.",
+    results: [
+      { metricFr: "Indicateurs suivis", metricEn: "Tracked indicators", value: "40+" },
+      { metricFr: "Interface bilingue", metricEn: "Bilingual interface", value: "FR / EN" },
+      { metricFr: "Accès aux données clés", metricEn: "Key data access", value: "24/7" },
+      { metricFr: "Délai de développement", metricEn: "Development timeline", value: "5 mois" }
+    ],
+    accentColor: "bg-indigo-100 text-indigo-700"
   }
+];
+
+const filters = [
+  { keyFr: "Tous", keyEn: "All", value: null },
+  { keyFr: "Transformation Digitale", keyEn: "Digital Transformation", value: "Transformation Digitale" },
+  { keyFr: "Cybersécurité", keyEn: "Cybersecurity", value: "Cybersécurité" },
+  { keyFr: "Cloud & Infrastructure", keyEn: "Cloud & Infrastructure", value: "Cloud & Infrastructure" },
+  { keyFr: "Intelligence Artificielle", keyEn: "AI & Automation", value: "Intelligence Artificielle" },
+  { keyFr: "Gestion opérationnelle", keyEn: "Operations", value: "Gestion opérationnelle" },
+  { keyFr: "Finance digitale", keyEn: "Digital Finance", value: "Finance digitale" },
 ];
 
 export default function CaseStudies() {
   const { language } = useLanguage();
   const fr = language === "fr";
-  const [expandedId, setExpandedId] = useState<number | null>(cases[0].id);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  const filtered = activeFilter
+    ? cases.filter((c) => c.categoryFr === activeFilter || c.categoryFr.startsWith(activeFilter))
+    : cases;
 
   return (
     <div className="min-h-screen bg-background">
+
+      {/* Header */}
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Réalisations" : "Case studies"}</p>
-              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">{fr ? "Des résultats mesurables pour nos clients" : "Measurable results for our clients"}</h1>
-              <p className="text-xl text-slate-500 mb-6">{fr ? "Des exemples représentatifs de nos solutions technologiques déployées dans des contextes réels." : "Representative examples of our technology solutions deployed in real contexts."}</p>
-              <div className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-500 text-sm rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>{fr ? "Exemples de solutions représentatives — données anonymisées" : "Representative solution examples — anonymized data"}</span>
-              </div>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
-                <img
-                  src={`${import.meta.env.BASE_URL}case-studies-banner.png`}
-                  alt="Réalisations Gaméasù — missions technologiques en Afrique"
-                  className="w-full h-full object-cover object-center"
-                  loading="lazy"
-                />
-              </div>
-            </motion.div>
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
+            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
+              {fr ? "Réalisations" : "Case studies"}
+            </p>
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-5 leading-tight">
+              {fr ? "Des résultats mesurables, des projets concrets" : "Measurable results, concrete projects"}
+            </h1>
+            <p className="text-xl text-slate-500 mb-6 max-w-2xl">
+              {fr
+                ? "Des exemples représentatifs des solutions technologiques que nous concevons et déployons pour des organisations de toutes tailles."
+                : "Representative examples of the technology solutions we design and deploy for organizations of all sizes."}
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-500 text-sm rounded-lg">
+              <Info size={14} className="flex-shrink-0 text-slate-400" />
+              <span>{fr ? "Exemples représentatifs — données anonymisées" : "Representative examples — anonymized data"}</span>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Filter bar */}
+      <section className="sticky top-[57px] z-30 bg-white border-b border-slate-200 shadow-sm">
+        <div className="container mx-auto px-6">
+          <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-hide">
+            {filters.map((f) => (
+              <button
+                key={f.keyFr}
+                onClick={() => setActiveFilter(f.value)}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  activeFilter === f.value
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {fr ? f.keyFr : f.keyEn}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="py-16 pb-28 bg-white">
+      {/* Case study cards */}
+      <section className="py-12 pb-20 bg-white">
         <div className="container mx-auto px-6">
-          <div className="space-y-5">
-            {cases.map((c, i) => (
-              <motion.div key={c.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300">
-                  {/* Header */}
-                  <div className="flex items-start gap-5 p-8 cursor-pointer" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
-                    <div className={`p-3 rounded-xl ${c.accentColor} flex-shrink-0`}>
-                      <c.icon size={24} />
+          <div className="space-y-4">
+            {filtered.map((c, i) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <div className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
+                  expandedId === c.id ? "border-primary/40 shadow-lg" : "border-slate-200 hover:border-primary/20 hover:shadow-md"
+                }`}>
+
+                  {/* Card header — always visible */}
+                  <div
+                    className="flex items-start gap-5 p-7 cursor-pointer"
+                    onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                  >
+                    <div className={`p-3 rounded-xl ${c.accentColor} flex-shrink-0 mt-0.5`}>
+                      <c.icon size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${c.accentColor}`}>{fr ? c.categoryFr : c.categoryEn}</span>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${c.accentColor}`}>
+                          {fr ? c.categoryFr : c.categoryEn}
+                        </span>
                         <span className="text-xs text-slate-400 font-medium">{c.duration}</span>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900">{fr ? c.titleFr : c.titleEn}</h3>
+                      <h3 className="text-lg font-bold text-slate-900 mb-1.5">
+                        {fr ? c.titleFr : c.titleEn}
+                      </h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">
+                        {fr ? c.summaryFr : c.summaryEn}
+                      </p>
                     </div>
-                    <div className="flex-shrink-0 text-slate-400">
-                      {expandedId === c.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+
+                    {/* Key metric teaser + toggle */}
+                    <div className="hidden sm:flex items-center gap-4 flex-shrink-0 ml-4">
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-primary">{c.results[0].value}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 max-w-[100px] leading-tight">
+                          {fr ? c.results[0].metricFr : c.results[0].metricEn}
+                        </div>
+                      </div>
+                      <div className="text-slate-400 bg-slate-100 rounded-lg p-1.5">
+                        {expandedId === c.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </div>
+                    </div>
+                    <div className="sm:hidden text-slate-400">
+                      {expandedId === c.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </div>
                   </div>
 
-                  {/* Expanded content */}
+                  {/* Expanded detail */}
                   {expandedId === c.id && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-slate-100 px-8 pb-8 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="border-t border-slate-100 px-7 pb-7 pt-6"
+                    >
+                      {/* Context / Challenge / Solution */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-7">
                         {[
                           { label: fr ? "CONTEXTE" : "CONTEXT", text: fr ? c.contextFr : c.contextEn },
                           { label: fr ? "DÉFI" : "CHALLENGE", text: fr ? c.challengeFr : c.challengeEn },
                           { label: fr ? "SOLUTION DÉPLOYÉE" : "DEPLOYED SOLUTION", text: fr ? c.solutionFr : c.solutionEn }
                         ].map((col, j) => (
-                          <div key={j}>
-                            <p className="text-xs text-primary font-bold uppercase tracking-widest mb-3">{col.label}</p>
+                          <div key={j} className="bg-slate-50 rounded-xl p-5">
+                            <p className="text-[11px] text-primary font-bold uppercase tracking-widest mb-3">{col.label}</p>
                             <p className="text-slate-600 text-sm leading-relaxed">{col.text}</p>
                           </div>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 rounded-xl p-6">
+
+                      {/* Metrics */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                         {c.results.map((r, j) => (
-                          <div key={j} className="text-center">
+                          <div key={j} className="bg-white border border-slate-200 rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
                             <div className="text-2xl font-bold text-primary mb-1">{r.value}</div>
-                            <div className="text-xs text-slate-500">{fr ? r.metricFr : r.metricEn}</div>
+                            <div className="text-xs text-slate-500 leading-tight">{fr ? r.metricFr : r.metricEn}</div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* CTA */}
+                      <div className="flex items-center gap-3">
+                        <a
+                          href="/contact"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-primary/20"
+                        >
+                          {fr ? "Discuter d'un projet similaire" : "Discuss a similar project"}
+                          <ArrowRight size={15} />
+                        </a>
+                        <span className="text-xs text-slate-400">
+                          {fr ? "Consultation gratuite · Réponse sous 24h" : "Free consultation · Response within 24h"}
+                        </span>
                       </div>
                     </motion.div>
                   )}
                 </div>
               </motion.div>
             ))}
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16 text-slate-400">
+                <p className="text-lg font-medium">{fr ? "Aucun projet dans cette catégorie." : "No projects in this category."}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       <CTASection
         title={fr ? "Et si votre organisation était la prochaine ?" : "What if your organization was next?"}
-        subtitle={fr ? "Discutons de votre contexte et construisons ensemble votre success story technologique." : "Let's discuss your context and build your technology success story together."}
+        subtitle={fr
+          ? "Discutons de votre contexte et construisons ensemble votre success story technologique."
+          : "Let's discuss your context and build your technology success story together."}
         btnText={fr ? "Démarrer une conversation" : "Start a conversation"}
         href="/contact"
       />
