@@ -3,49 +3,16 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
 import {
-  ArrowRight, ArrowUpRight, Shield, Cloud, Brain, Monitor, Zap,
-  Globe, TrendingUp, CheckCircle, ChevronRight,
+  ArrowRight, Shield, Cloud, Brain, Monitor, Zap,
+  TrendingUp, CheckCircle, ChevronRight, ArrowUpRight,
   Building2, Landmark, GraduationCap, HeartPulse, Banknote, Factory
 } from "lucide-react";
 import { CTASection } from "@/components/CTASection";
-import { Testimonials } from "@/components/Testimonials";
-import { ProcessSteps } from "@/components/ProcessSteps";
-import { Newsletter } from "@/components/Newsletter";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.55 } })
+  hidden: { opacity: 0, y: 20 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.09, duration: 0.5 } })
 };
-
-const painPoints = [
-  { icon: Shield, titleFr: "Menaces de sécurité ?", titleEn: "Security threats?", descFr: "Protégez votre organisation avec une cybersécurité avancée et une surveillance 24/7.", descEn: "Protect your organization with advanced cybersecurity and 24/7 monitoring.", href: "/cybersecurity", accent: "text-blue-700 bg-blue-100", border: "hover:border-blue-300" },
-  { icon: Globe, titleFr: "Travail hybride difficile ?", titleEn: "Struggling with hybrid work?", descFr: "Activez une collaboration fluide avec des solutions de travail moderne et sécurisées.", descEn: "Enable seamless, secure collaboration with modern workplace solutions.", href: "/services", accent: "text-indigo-700 bg-indigo-100", border: "hover:border-indigo-300" },
-  { icon: Zap, titleFr: "Prêt à vous transformer ?", titleEn: "Ready to transform?", descFr: "Modernisez votre écosystème technologique de bout en bout, de la stratégie au déploiement.", descEn: "Modernize your entire technology ecosystem end-to-end, from strategy to deployment.", href: "/ai-automation", accent: "text-violet-700 bg-violet-100", border: "hover:border-violet-300" },
-  { icon: Brain, titleFr: "Par où commencer ?", titleEn: "Not sure where to start?", descFr: "Obtenez une consultation pour identifier vos priorités et construire une feuille de route claire.", descEn: "Get a consultation to identify your priorities and build a clear technology roadmap.", href: "/contact", accent: "text-sky-700 bg-sky-100", border: "hover:border-sky-300" }
-];
-
-const whatWeDo = [
-  { icon: Monitor, titleFr: "Modern Workplace", titleEn: "Modern Workplace", descFr: "Plateformes de communication unifiée, outils de collaboration et intégrations qui transforment la façon dont vos équipes travaillent, où qu'elles soient.", descEn: "Unified communication platforms, collaboration tools, and seamless integrations that transform how your teams work, anywhere.", href: "/services" },
-  { icon: Cloud, titleFr: "Infrastructure & Cloud", titleEn: "Infrastructure & Cloud", descFr: "Réseau haute performance, cloud hybride et supervision intelligente pour une connectivité résiliente et des performances optimisées.", descEn: "High-performance networking, hybrid cloud infrastructure, and intelligent monitoring for resilient connectivity and peak performance.", href: "/cloud-infrastructure" },
-  { icon: Shield, titleFr: "Cybersécurité & Sécurité Physique", titleEn: "Cyber & Physical Security", descFr: "Protection intégrée : cybersécurité avancée, contrôle d'accès, vidéosurveillance et surveillance des menaces en temps réel.", descEn: "Integrated protection: advanced cybersecurity, access control, surveillance, and real-time threat monitoring across digital & physical.", href: "/cybersecurity" },
-  { icon: Zap, titleFr: "Transformation Digitale", titleEn: "Digital Transformation", descFr: "Migration cloud, automatisation des processus et modernisation complète de votre SI — de la stratégie jusqu'au déploiement opérationnel.", descEn: "Cloud migration, process automation, and complete IS modernization — from strategy to operational deployment.", href: "/services" },
-  { icon: Brain, titleFr: "Intelligence Artificielle", titleEn: "AI for Business", descFr: "Analytique prédictive, automatisation intelligente et expériences personnalisées qui génèrent des opérations plus rapides, plus intelligentes.", descEn: "Predictive analytics, intelligent automation, and personalized experiences that drive faster, smarter business operations.", href: "/ai-automation" }
-];
-
-const industries = [
-  { icon: Building2, labelFr: "Grandes Entreprises", labelEn: "Large Enterprises" },
-  { icon: Banknote, labelFr: "Finance & Banque", labelEn: "Banking & Finance" },
-  { icon: HeartPulse, labelFr: "Santé", labelEn: "Healthcare" },
-  { icon: GraduationCap, labelFr: "Éducation", labelEn: "Education" },
-  { icon: Landmark, labelFr: "Institutions Publiques", labelEn: "Government" },
-  { icon: Factory, labelFr: "Industrie & Commerce", labelEn: "Industry & Retail" }
-];
-
-const resources = [
-  { labelFr: "Nos Réalisations", labelEn: "Our Work", descFr: "Partenaire de confiance, nous livrons des solutions qui améliorent la performance opérationnelle et l'expérience client.", descEn: "Trusted partner delivering solutions that enhance operational performance and client experience.", href: "/case-studies", ctaFr: "Voir nos projets", ctaEn: "See our work", gradient: "from-blue-700 to-blue-800" },
-  { labelFr: "Ressources & Blog", labelEn: "Our Blog", descFr: "Découvrez l'expertise de nos consultants sur les grandes tendances technologiques mondiales.", descEn: "Hear directly from our experts on leading technology trends and industry insights.", href: "/blog", ctaFr: "Lire le blog", ctaEn: "Go to the blog", gradient: "from-indigo-700 to-indigo-800" },
-  { labelFr: "Partenaires Technologiques", labelEn: "Our Partners", descFr: "Des partenariats stratégiques avec les leaders technologiques mondiaux pour des solutions de premier plan.", descEn: "Strategic partnerships with global technology leaders for best-in-class solutions.", href: "/partners", ctaFr: "Nos partenaires", ctaEn: "Our partners", gradient: "from-slate-700 to-slate-800" }
-];
 
 const stats = [
   { value: "100+", labelFr: "Missions réalisées", labelEn: "Missions delivered" },
@@ -54,14 +21,33 @@ const stats = [
   { value: "2023", labelFr: "Fondée aux États-Unis", labelEn: "Founded in the USA" }
 ];
 
-const presence = [
-  { code: "us", countryFr: "États-Unis", countryEn: "United States", hq: true },
-  { code: "ca", countryFr: "Canada", countryEn: "Canada" },
-  { code: "fr", countryFr: "France", countryEn: "France" },
-  { code: "be", countryFr: "Belgique", countryEn: "Belgium" },
-  { code: "tg", countryFr: "Togo", countryEn: "Togo" },
-  { code: "ci", countryFr: "Côte d'Ivoire", countryEn: "Côte d'Ivoire" },
-  { code: "ml", countryFr: "Mali", countryEn: "Mali" },
+const services = [
+  { icon: Shield, titleFr: "Cybersécurité", titleEn: "Cybersecurity", descFr: "SOC 24/7, audit de sécurité et protection des endpoints.", descEn: "24/7 SOC, security audit and endpoint protection.", href: "/cybersecurity" },
+  { icon: Cloud, titleFr: "Cloud & Infrastructure", titleEn: "Cloud & Infrastructure", descFr: "Migration cloud, réseau SD-WAN et infrastructure hybride.", descEn: "Cloud migration, SD-WAN network and hybrid infrastructure.", href: "/cloud-infrastructure" },
+  { icon: Brain, titleFr: "Intelligence Artificielle", titleEn: "Artificial Intelligence", descFr: "Automatisation, RPA, chatbots et analytique prédictive.", descEn: "Automation, RPA, chatbots and predictive analytics.", href: "/ai-automation" },
+  { icon: Monitor, titleFr: "Modern Workplace", titleEn: "Modern Workplace", descFr: "Microsoft 365, Teams et solutions de collaboration hybride.", descEn: "Microsoft 365, Teams and hybrid collaboration solutions.", href: "/services" },
+  { icon: Zap, titleFr: "Services Managés", titleEn: "Managed IT Services", descFr: "Helpdesk, supervision et maintenance proactive 24/7.", descEn: "Helpdesk, monitoring and proactive maintenance 24/7.", href: "/support" },
+];
+
+const whyUs = [
+  { icon: "🌍", titleFr: "Ancrage africain, standards mondiaux", titleEn: "African roots, global standards", descFr: "Nés pour servir les marchés africains francophones avec les exigences techniques des leaders américains et européens.", descEn: "Built to serve French-speaking African markets with the technical standards of US and European leaders." },
+  { icon: "🎓", titleFr: "Équipe 100% certifiée", titleEn: "100% certified team", descFr: "Microsoft, AWS, Cisco, Fortinet — chaque expert est certifié sur les technologies qu'il déploie.", descEn: "Microsoft, AWS, Cisco, Fortinet — every expert is certified on the technologies they deploy." },
+  { icon: "⚡", titleFr: "Réactivité garantie 24/7", titleEn: "24/7 guaranteed response", descFr: "Réponse sous 4h pour tout incident critique, avec un chef de projet dédié à chaque mission.", descEn: "Response within 4 hours for any critical incident, with a dedicated project manager." },
+];
+
+const industries = [
+  { icon: Building2, labelFr: "Grandes entreprises", labelEn: "Large enterprises" },
+  { icon: Banknote, labelFr: "Finance & Banque", labelEn: "Banking & Finance" },
+  { icon: HeartPulse, labelFr: "Santé", labelEn: "Healthcare" },
+  { icon: GraduationCap, labelFr: "Éducation", labelEn: "Education" },
+  { icon: Landmark, labelFr: "Secteur public", labelEn: "Government" },
+  { icon: Factory, labelFr: "Industrie & Commerce", labelEn: "Industry & Retail" },
+];
+
+const resources = [
+  { labelFr: "Nos Réalisations", labelEn: "Our Work", descFr: "Partenaire de confiance, nous livrons des solutions qui améliorent la performance opérationnelle.", descEn: "Trusted partner delivering solutions that enhance operational performance.", href: "/case-studies", ctaFr: "Voir nos projets", ctaEn: "See our work", gradient: "from-blue-700 to-blue-800" },
+  { labelFr: "Ressources & Blog", labelEn: "Blog & Resources", descFr: "Découvrez l'expertise de nos consultants sur les grandes tendances technologiques.", descEn: "Explore insights from our consultants on major technology trends.", href: "/blog", ctaFr: "Lire le blog", ctaEn: "Read the blog", gradient: "from-indigo-700 to-indigo-800" },
+  { labelFr: "Partenaires Technologiques", labelEn: "Technology Partners", descFr: "Des partenariats stratégiques avec les leaders technologiques mondiaux.", descEn: "Strategic partnerships with global technology leaders.", href: "/partners", ctaFr: "Nos partenaires", ctaEn: "Our partners", gradient: "from-slate-700 to-slate-800" },
 ];
 
 export default function Home() {
@@ -75,12 +61,18 @@ export default function Home() {
       <section className="relative pt-24 pb-16 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
-        <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
+        <div className="absolute inset-0 pointer-events-none opacity-[0.3]"
           style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.5 }}
+                className="text-base font-semibold text-primary tracking-widest mb-5 uppercase"
+              >
+                {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
+              </motion.p>
 
               <motion.h1
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
@@ -92,19 +84,12 @@ export default function Home() {
               </motion.h1>
 
               <motion.p
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6 }}
-                className="text-base font-semibold text-primary tracking-widest mb-4 uppercase"
-              >
-                {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
-              </motion.p>
-
-              <motion.p
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
-                className="text-xl text-slate-500 leading-relaxed mb-12 max-w-xl"
+                className="text-xl text-slate-500 leading-relaxed mb-10 max-w-xl"
               >
                 {fr
-                  ? "Fondée en 2023, Gaméasù est une entreprise technologique à vision internationale, engagée à accompagner les entreprises, institutions et organisations en Afrique, en Amérique du Nord, en Europe et au-delà."
-                  : "Founded in 2023, Gaméasù is a technology company with an international vision, committed to supporting businesses, institutions, and organizations in Africa, North America, Europe, and beyond."}
+                  ? "Gaméasù accompagne les entreprises, institutions et organisations en Afrique, en Amérique du Nord et en Europe avec des solutions technologiques fiables, sécurisées et évolutives."
+                  : "Gaméasù supports businesses, institutions and organizations across Africa, North America and Europe with reliable, secure and scalable technology solutions."}
               </motion.p>
 
               <motion.div
@@ -125,24 +110,24 @@ export default function Home() {
               </motion.div>
             </div>
 
-            {/* Stats panel + hero image */}
+            {/* Hero image + stats */}
             <motion.div
               initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
               className="hidden lg:flex flex-col gap-4"
             >
-              <div className="relative rounded-2xl overflow-hidden h-64 bg-slate-200 shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
                 <img
                   src={`${import.meta.env.BASE_URL}hero-meeting.png`}
-                  alt="Équipe technologique internationale Gaméasù"
+                  alt="Équipe Gaméasù en réunion"
                   className="w-full h-full object-cover"
                   loading="eager"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 {stats.map((s, i) => (
-                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
-                    <div className="text-2xl font-bold text-slate-900 mb-1">{s.value}</div>
-                    <div className="text-xs text-slate-500 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
+                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-center shadow-sm">
+                    <div className="text-xl font-bold text-slate-900 mb-0.5">{s.value}</div>
+                    <div className="text-[11px] text-slate-500 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
                   </div>
                 ))}
               </div>
@@ -151,22 +136,39 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PAIN-POINT CARDS ────────────────────────────────────── */}
-      <section className="py-6 border-y border-slate-200 bg-white">
+      {/* ── SERVICES APERÇU ──────────────────────────────────────── */}
+      <section className="py-16 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {painPoints.map((p, i) => (
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+            <div>
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-2">
+                {fr ? "Nos expertises" : "Our expertise"}
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
+                {fr ? "Des solutions de bout en bout" : "End-to-end technology solutions"}
+              </h2>
+            </div>
+            <Link href="/services">
+              <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors cursor-pointer flex-shrink-0">
+                {fr ? "Tous les services" : "All services"}
+                <ChevronRight size={15} />
+              </div>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {services.map((s, i) => (
               <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                <Link href={p.href}>
-                  <div className={`group h-full bg-white border border-slate-200 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${p.border}`}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-lg ${p.accent}`}>
-                        <p.icon size={22} />
+                <Link href={s.href}>
+                  <div className="group h-full bg-white border border-slate-200 rounded-xl p-5 hover:border-primary/40 hover:shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-2.5 rounded-lg bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                        <s.icon size={20} />
                       </div>
-                      <ArrowUpRight size={16} className="text-slate-300 group-hover:text-primary transition-colors mt-1" />
+                      <ArrowUpRight size={14} className="text-slate-300 group-hover:text-primary transition-colors" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-2">{fr ? p.titleFr : p.titleEn}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{fr ? p.descFr : p.descEn}</p>
+                    <h3 className="font-bold text-slate-900 text-sm mb-1.5">{fr ? s.titleFr : s.titleEn}</h3>
+                    <p className="text-slate-500 text-xs leading-relaxed">{fr ? s.descFr : s.descEn}</p>
                   </div>
                 </Link>
               </motion.div>
@@ -175,36 +177,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── WHO WE ARE ──────────────────────────────────────────── */}
-      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      {/* ── QUI SOMMES-NOUS ──────────────────────────────────────── */}
+      <section className="py-16 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
-              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
                 {fr ? "Qui sommes-nous" : "Who we are"}
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight mb-5">
                 {fr
                   ? <>Ingénieurs. Architectes. <span className="text-primary">Partenaires</span> de confiance.</>
                   : <>Engineers. Architects. <span className="text-primary">Trusted</span> Partners.</>}
               </h2>
-              <p className="text-slate-500 text-lg leading-relaxed mb-6">
+              <p className="text-slate-500 text-lg leading-relaxed mb-7">
                 {fr
-                  ? "Fondée aux États-Unis en 2023, Gaméasù délivre des solutions technologiques de bout en bout grâce à une équipe d'experts certifiés dédiés à votre réussite — de la stratégie initiale au déploiement, en passant par la formation et le support continu."
-                  : "Founded in the United States in 2023, Gaméasù delivers end-to-end technology solutions through a team of certified experts dedicated to your success — from initial strategy through deployment, training, and ongoing support."}
+                  ? "Fondée en 2023 aux États-Unis, Gaméasù délivre des solutions technologiques de bout en bout grâce à une équipe d'experts certifiés, présente dans 7 pays sur 3 continents."
+                  : "Founded in 2023 in the United States, Gaméasù delivers end-to-end technology solutions through a team of certified experts, present in 7 countries across 3 continents."}
               </p>
-              <p className="text-slate-500 text-lg leading-relaxed mb-10">
-                {fr
-                  ? "À partir de 2026, nous avons étendu notre présence internationale au Canada, en France, en Belgique et en Afrique de l'Ouest, pour mieux servir les organisations à chaque étape de leur transformation numérique."
-                  : "From 2026, we expanded our international presence to Canada, France, Belgium, and West Africa, to better serve organizations at every stage of their digital transformation."}
-              </p>
-              <div className="flex flex-wrap gap-5 mb-10">
+              <div className="flex flex-wrap gap-5 mb-8">
                 {(fr
                   ? ["Excellence", "Intégrité", "Innovation", "Partenariat"]
                   : ["Excellence", "Integrity", "Innovation", "Partnership"]
-                ).map((v, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <CheckCircle size={16} className="text-primary" />
+                ).map((v) => (
+                  <div key={v} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <CheckCircle size={15} className="text-primary" />
                     {v}
                   </div>
                 ))}
@@ -212,85 +209,57 @@ export default function Home() {
               <Link href="/about">
                 <div className="group inline-flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all cursor-pointer">
                   {fr ? "En savoir plus sur nous" : "Learn more about us"}
-                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight size={17} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
-              <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-                <div className="mb-6">
-                  <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">
-                    {fr ? "Présence mondiale" : "Global presence"}
-                  </p>
+            {/* Why us — 3 items */}
+            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
+              className="flex flex-col gap-4">
+              {whyUs.map((item, i) => (
+                <div key={i} className="flex items-start gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-300">
+                  <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm mb-1">{fr ? item.titleFr : item.titleEn}</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed">{fr ? item.descFr : item.descEn}</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {presence.map((p, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }} transition={{ delay: i * 0.07, duration: 0.4 }}
-                      className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors"
-                    >
-                      <img
-                        src={`https://flagcdn.com/24x18/${p.code}.png`}
-                        srcSet={`https://flagcdn.com/48x36/${p.code}.png 2x`}
-                        width={24} height={18}
-                        alt={fr ? p.countryFr : p.countryEn}
-                        className="flex-shrink-0 rounded-sm shadow-sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 text-sm">{fr ? p.countryFr : p.countryEn}</div>
-                      </div>
-                      {p.hq && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">
-                          {fr ? "Siège" : "HQ"}
-                        </span>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ── WHAT WE DO ──────────────────────────────────────────── */}
-      <section className="py-20 bg-white border-y border-slate-100">
+      {/* ── SECTEURS ─────────────────────────────────────────────── */}
+      <section className="py-12 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14">
-            <div className="max-w-2xl">
-              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
-                {fr ? "Ce que nous faisons" : "What we do"}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div>
+              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-1">
+                {fr ? "Secteurs" : "Industries"}
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold text-slate-900">
-                {fr ? "Des solutions de bout en bout" : "End-to-end technology solutions"}
+              <h2 className="text-2xl font-bold text-slate-900">
+                {fr ? "Solutions sur-mesure pour chaque secteur" : "Tailored solutions for every industry"}
               </h2>
             </div>
-            <Link href="/services">
-              <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm whitespace-nowrap border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors cursor-pointer flex-shrink-0">
-                {fr ? "Tous nos services" : "All services"}
-                <ChevronRight size={15} />
+            <Link href="/industries">
+              <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors cursor-pointer flex-shrink-0">
+                {fr ? "Voir tous les secteurs" : "All industries"}
+                <ChevronRight size={14} />
               </div>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {whatWeDo.map((item, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className={i === 4 ? "md:col-span-2 lg:col-span-1" : ""}>
-                <Link href={item.href}>
-                  <div className="group h-full flex items-start gap-5 p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/40 hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <div className="flex-shrink-0 p-3.5 rounded-xl bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                      <item.icon size={22} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {industries.map((ind, i) => (
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                <Link href="/industries">
+                  <div className="group flex flex-col items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all duration-300 text-center">
+                    <div className="p-2.5 rounded-lg bg-white text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 shadow-sm">
+                      <ind.icon size={20} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-3 mb-1.5">
-                        <h3 className="text-base font-bold text-slate-900">{fr ? item.titleFr : item.titleEn}</h3>
-                        <ArrowUpRight size={16} className="text-slate-300 group-hover:text-primary flex-shrink-0 transition-colors" />
-                      </div>
-                      <p className="text-slate-500 text-sm leading-relaxed">{fr ? item.descFr : item.descEn}</p>
-                    </div>
+                    <span className="text-xs font-semibold text-slate-700 group-hover:text-primary transition-colors leading-tight">{fr ? ind.labelFr : ind.labelEn}</span>
                   </div>
                 </Link>
               </motion.div>
@@ -299,114 +268,30 @@ export default function Home() {
         </div>
       </section>
 
-      <ProcessSteps />
-
-      {/* ── WHY GAMÉASÙ ─────────────────────────────────────────── */}
-      <section className="py-14 bg-slate-50 border-y border-slate-100">
+      {/* ── RESSOURCES ───────────────────────────────────────────── */}
+      <section className="py-16 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-10">
+          <div className="text-center max-w-xl mx-auto mb-10">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
-              {fr ? "Pourquoi Gaméasù" : "Why Gaméasù"}
+              {fr ? "Aller plus loin" : "Go further"}
             </p>
             <h2 className="text-3xl font-bold text-slate-900">
-              {fr ? "Ce qui nous distingue" : "What sets us apart"}
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { icon: "🌍", titleFr: "Ancrage africain, standards mondiaux", titleEn: "African roots, global standards", descFr: "Nés pour servir les marchés africains francophones avec les exigences techniques des leaders américains et européens.", descEn: "Built to serve French-speaking African markets with the technical standards of US and European leaders." },
-              { icon: "🎓", titleFr: "Équipe 100% certifiée", titleEn: "100% certified team", descFr: "Microsoft, AWS, Google Cloud, Cisco, Fortinet — chaque expert est certifié sur les technologies qu'il déploie chez vous.", descEn: "Microsoft, AWS, Google Cloud, Cisco, Fortinet — every expert is certified on the technologies they deploy for you." },
-              { icon: "🌐", titleFr: "7 pays, 1 seule équipe", titleEn: "7 countries, 1 team", descFr: "Présents en Amérique du Nord, en Europe et en Afrique de l'Ouest pour une réponse locale avec une vision internationale.", descEn: "Present in North America, Europe, and West Africa for a local response with an international vision." },
-              { icon: "💬", titleFr: "Multilingue par nature", titleEn: "Multilingual by nature", descFr: "Support en français, anglais et langues locales — parce que la technologie doit parler votre langue.", descEn: "Support in French, English, and local languages — because technology must speak your language." },
-              { icon: "⚡", titleFr: "Réactivité garantie 24/7", titleEn: "24/7 guaranteed responsiveness", descFr: "Réponse sous 4h pour tout incident critique, avec un chef de projet dédié à chaque mission.", descEn: "Response within 4 hours for any critical incident, with a dedicated project manager for every engagement." },
-              { icon: "🤝", titleFr: "Partenariat long terme", titleEn: "Long-term partnership", descFr: "Nous ne livrons pas des projets, nous construisons des relations durables. Votre succès est notre succès.", descEn: "We don't just deliver projects — we build lasting relationships. Your success is our success." },
-            ].map((item, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                <div className="flex items-start gap-4 p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-300">
-                  <span className="text-2xl flex-shrink-0">{item.icon}</span>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1.5">{fr ? item.titleFr : item.titleEn}</h3>
-                    <p className="text-slate-500 text-sm leading-relaxed">{fr ? item.descFr : item.descEn}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── INDUSTRIES ──────────────────────────────────────────── */}
-      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 items-start">
-            <div className="lg:sticky lg:top-32">
-              <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
-                {fr ? "Où nous excellons" : "Where we thrive"}
-              </p>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                {fr ? "Des solutions sur-mesure pour chaque secteur" : "Tailored solutions for every industry"}
-              </h2>
-              <p className="text-slate-500 leading-relaxed mb-8">
-                {fr
-                  ? "Grâce à notre expérience transversale, nous déployons des solutions créatives et adaptées aux spécificités et aux enjeux réglementaires de chaque secteur d'activité."
-                  : "Leveraging our cross-industry experience, we deploy creative, compliant solutions adapted to the specific needs and regulatory requirements of each sector."}
-              </p>
-              <Link href="/industries">
-                <div className="group inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors cursor-pointer shadow-md shadow-primary/20">
-                  {fr ? "Tous les secteurs" : "All industries"}
-                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            </div>
-
-            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {industries.map((ind, i) => (
-                <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                  <Link href="/industries">
-                    <div className="group flex items-center gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/40 hover:shadow-md cursor-pointer transition-all duration-300">
-                      <div className="p-3 rounded-lg bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 flex-shrink-0">
-                        <ind.icon size={20} />
-                      </div>
-                      <div className="font-semibold text-slate-800 text-sm">{fr ? ind.labelFr : ind.labelEn}</div>
-                      <ChevronRight size={15} className="text-slate-300 group-hover:text-primary ml-auto transition-colors" />
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Testimonials />
-
-      <Newsletter />
-
-      {/* ── RESOURCES ───────────────────────────────────────────── */}
-      <section className="py-20 bg-white border-t border-slate-100">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
-              {fr ? "Ressources" : "Resources"}
-            </p>
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
               {fr ? "Expertise et réalisations" : "Expertise & achievements"}
             </h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {resources.map((r, i) => (
               <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
                 <Link href={r.href}>
-                  <div className={`group relative h-full bg-gradient-to-br ${r.gradient} rounded-2xl p-8 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <TrendingUp size={80} />
+                  <div className={`group relative h-full bg-gradient-to-br ${r.gradient} rounded-2xl p-7 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+                    <div className="absolute top-0 right-0 p-5 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <TrendingUp size={70} />
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-4 relative z-10">{fr ? r.labelFr : r.labelEn}</h3>
-                    <p className="text-white/75 leading-relaxed mb-8 relative z-10 text-sm">{fr ? r.descFr : r.descEn}</p>
+                    <h3 className="text-xl font-bold text-white mb-3 relative z-10">{fr ? r.labelFr : r.labelEn}</h3>
+                    <p className="text-white/70 leading-relaxed mb-6 relative z-10 text-sm">{fr ? r.descFr : r.descEn}</p>
                     <div className="inline-flex items-center gap-2 text-white font-semibold text-sm border-b border-white/40 pb-0.5 group-hover:border-white transition-colors relative z-10">
                       {fr ? r.ctaFr : r.ctaEn}
-                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </Link>
