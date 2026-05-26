@@ -70,21 +70,14 @@ export default function Partners() {
                   : "Gaméasù relies on global technology leaders to offer you best-in-class solutions, implemented by certified engineers and expert teams."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
                 <img
-                  src="https://images.unsplash.com/photo-1556157382-97eda2d62296?w=900&q=80&auto=format&fit=crop"
-                  alt="Partenariat technologique international"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  src={`${import.meta.env.BASE_URL}partners-banner.png`}
+                  alt="Écosystème de partenaires technologiques Gaméasù — Microsoft, AWS, Google Cloud, Cisco, IBM, Fortinet et plus"
+                  className="w-full h-auto object-cover"
+                  loading="eager"
                 />
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/50 to-transparent" />
-                <div className="absolute bottom-5 left-5 right-5">
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3">
-                    <Award size={15} className="text-yellow-300 flex-shrink-0" />
-                    <span className="text-white text-sm font-medium">{fr ? "Partenaires certifiés — AWS · Azure · GCP · Microsoft" : "Certified Partners — AWS · Azure · GCP · Microsoft"}</span>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
