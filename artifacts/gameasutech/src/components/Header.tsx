@@ -83,6 +83,14 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          <Link href="/">
+            <div className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${
+              location === "/" ? "text-primary bg-primary/8 font-semibold" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}>
+              {t.nav.home}
+            </div>
+          </Link>
+
           <Link href="/about">
             <div className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${
               isActive("/about") ? "text-primary bg-primary/8 font-semibold" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
@@ -197,6 +205,14 @@ export function Header() {
       {isMobileMenuOpen && (
         <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg pb-4 px-4">
           <nav className="flex flex-col">
+            <Link href="/">
+              <div className={`px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
+                location === "/" ? "text-primary bg-primary/8 font-semibold" : "text-slate-700 hover:bg-slate-50"
+              }`}>
+                {t.nav.home}
+              </div>
+            </Link>
+
             <Link href="/about">
               <div className={`px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
                 isActive("/about") ? "text-primary bg-primary/8 font-semibold" : "text-slate-700 hover:bg-slate-50"
