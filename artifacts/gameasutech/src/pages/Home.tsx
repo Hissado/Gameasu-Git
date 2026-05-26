@@ -132,10 +132,10 @@ export default function Home() {
             >
               <div className="relative rounded-2xl overflow-hidden h-64 bg-slate-200 shadow-xl">
                 <img
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&q=80&auto=format&fit=crop"
+                  src={`${import.meta.env.BASE_URL}hero-meeting.png`}
                   alt="Équipe technologique internationale Gaméasù"
                   className="w-full h-full object-cover"
-                  loading="lazy"
+                  loading="eager"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/55 to-transparent" />
                 <div className="absolute bottom-4 left-5 right-5">
