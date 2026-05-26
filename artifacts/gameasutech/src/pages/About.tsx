@@ -114,21 +114,21 @@ export default function About() {
       </section>
 
       {/* Mission / Vision */}
-      <section className="py-20 bg-white border-y border-slate-100">
+      <section className="py-12 md:py-20 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-primary/5 border border-primary/15 rounded-2xl p-10">
-              <div className="flex items-center gap-3 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-primary/5 border border-primary/15 rounded-2xl p-6 md:p-10">
+              <div className="flex items-center gap-3 mb-5 md:mb-6">
                 <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Target size={24} /></div>
-                <h2 className="text-2xl font-bold text-slate-900">{fr ? "Notre Mission" : "Our Mission"}</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">{fr ? "Notre Mission" : "Our Mission"}</h2>
               </div>
-              <p className="text-slate-600 leading-relaxed text-lg">
+              <p className="text-slate-600 leading-relaxed text-base md:text-lg">
                 {fr
                   ? "Accompagner les entreprises, institutions et organisations dans leur transformation numérique grâce à des solutions technologiques modernes, sécurisées et évolutives — en maintenant les plus hauts standards de qualité, partout dans le monde."
                   : "To support businesses, institutions, and organizations in their digital transformation through modern, secure, and scalable technology solutions — maintaining the highest quality standards everywhere in the world."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-2xl p-10 hover:border-primary/30 transition-colors shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-10 hover:border-primary/30 transition-colors shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Globe size={24} /></div>
                 <h2 className="text-2xl font-bold text-slate-900">{fr ? "Notre Vision" : "Our Vision"}</h2>
@@ -144,11 +144,11 @@ export default function About() {
       </section>
 
       {/* Values */}
-      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Ce qui nous guide" : "What guides us"}</p>
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">{fr ? "Nos valeurs fondamentales" : "Our core values"}</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">{fr ? "Nos valeurs fondamentales" : "Our core values"}</h2>
             <p className="text-slate-500 text-lg">{fr ? "Les principes qui définissent notre façon de travailler et de nous engager auprès de chaque client." : "The principles that define how we work and engage with every client."}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -168,12 +168,12 @@ export default function About() {
       </section>
 
       {/* Timeline */}
-      <section className="py-20 bg-white border-y border-slate-100">
+      <section className="py-12 md:py-20 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10 md:mb-16">
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre parcours" : "Our journey"}</p>
-              <h2 className="text-4xl font-bold text-slate-900">{fr ? "Fondée en 2023, déployée à l'international" : "Founded in 2023, deployed internationally"}</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">{fr ? "Fondée en 2023, déployée à l'international" : "Founded in 2023, deployed internationally"}</h2>
               <p className="text-slate-500 mt-4 text-lg">
                 {fr
                   ? "Des États-Unis à l'Afrique de l'Ouest, en passant par l'Europe — une trajectoire de croissance internationale claire et maîtrisée."
@@ -201,12 +201,12 @@ export default function About() {
       </section>
 
       {/* Commitments */}
-      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mb-14">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-start mb-10 md:mb-14">
             <div>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{fr ? "Notre engagement" : "Our commitment"}</p>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-6">{fr ? "La qualité est une promesse, pas une option." : "Quality is a promise, not an option."}</h2>
               <p className="text-slate-500 text-lg leading-relaxed">
                 {fr
                   ? "Chaque client — qu'il soit en Amérique du Nord, en Europe ou en Afrique — reçoit un niveau de service comparable aux plus grandes entreprises technologiques mondiales. La géographie ne doit jamais être un obstacle à l'excellence."
@@ -238,14 +238,14 @@ export default function About() {
       </section>
 
       {/* Africa Engagement */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-hidden">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-hidden">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
                 {fr ? "Notre engagement africain" : "Our African commitment"}
               </p>
-              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-8">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-bold text-white leading-tight mb-8">
                 {fr
                   ? <>L'Afrique au cœur de <span className="text-primary">notre mission.</span></>
                   : <>Africa at the heart of <span className="text-primary">our mission.</span></>}

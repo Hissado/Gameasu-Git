@@ -76,7 +76,7 @@ export default function Home() {
 
               <motion.h1
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
-                className="text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-6"
+                className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-6"
               >
                 {fr
                   ? <>Accélérez votre <span className="text-primary">transformation</span> numérique.</>
@@ -103,14 +103,27 @@ export default function Home() {
                   </div>
                 </Link>
                 <Link href="/services">
-                  <div className="inline-flex items-center gap-3 px-8 py-4 bg-white text-slate-800 font-semibold rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-300 cursor-pointer shadow-sm">
+                  <div className="inline-flex items-center gap-3 px-6 py-3.5 sm:px-8 sm:py-4 bg-white text-slate-800 font-semibold rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-300 cursor-pointer shadow-sm">
                     {fr ? "Découvrir nos services" : "Discover our services"}
                   </div>
                 </Link>
               </motion.div>
+
+              {/* Stats — visible on mobile only */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }}
+                className="grid grid-cols-2 gap-3 mt-8 lg:hidden"
+              >
+                {stats.map((s, i) => (
+                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <div className="text-xl font-bold text-slate-900 mb-0.5">{s.value}</div>
+                    <div className="text-xs text-slate-500 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
+                  </div>
+                ))}
+              </motion.div>
             </div>
 
-            {/* Hero image + stats */}
+            {/* Hero image + stats — desktop only */}
             <motion.div
               initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
               className="hidden lg:flex flex-col gap-4"

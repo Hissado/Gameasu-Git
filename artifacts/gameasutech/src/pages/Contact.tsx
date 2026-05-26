@@ -50,7 +50,7 @@ export default function Contact() {
         <div className="container mx-auto px-6 relative z-10 max-w-4xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">{t.nav.contact}</p>
-            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">{t.contact.title}</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-6">{t.contact.title}</h1>
             <p className="text-xl text-slate-500 max-w-2xl">{t.contact.subtitle}</p>
           </motion.div>
         </div>
@@ -127,7 +127,7 @@ export default function Contact() {
 
             {/* Form */}
             <div className="lg:col-span-2">
-              <div className="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-8 md:p-10 shadow-sm">
                 {isSubmitted ? (
                   <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
                     <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">

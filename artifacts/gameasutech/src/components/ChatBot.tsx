@@ -478,13 +478,13 @@ export function ChatBot() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onClick={handleOpen}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 pl-4 pr-5 py-3 bg-primary text-white rounded-full shadow-xl hover:shadow-2xl hover:bg-primary/90 transition-all duration-300 group"
+            className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-0 sm:gap-2.5 p-0 sm:pl-4 sm:pr-5 sm:py-3 w-14 h-14 sm:w-auto sm:h-auto justify-center bg-primary text-white rounded-full shadow-xl hover:shadow-2xl hover:bg-primary/90 transition-all duration-300 group"
             aria-label="Ouvrir le chat avec Anne"
           >
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 text-sm font-bold">
+            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 text-sm font-bold">
               A
             </div>
-            <div className="flex flex-col items-start leading-none">
+            <div className="hidden sm:flex flex-col items-start leading-none">
               <span className="text-sm font-bold">Anne</span>
               <span className="text-[10px] text-white/70 font-medium">
                 {fr ? "Assistante Gaméasù" : "Gaméasù Assistant"}
@@ -503,8 +503,8 @@ export function ChatBot() {
             animate={isMinimized ? { opacity: 1, y: 0, scale: 1, height: "auto" } : { opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="fixed bottom-6 right-6 z-50 w-[370px] max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
-            style={{ maxHeight: "calc(100vh - 80px)" }}
+            className="fixed bottom-5 right-2 left-2 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[370px] z-50 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
+            style={{ maxHeight: "calc(100vh - 72px)" }}
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3.5 bg-primary text-white flex-shrink-0">

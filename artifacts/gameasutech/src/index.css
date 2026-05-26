@@ -116,3 +116,28 @@ html {
 ::-webkit-scrollbar-track { background: hsl(213, 27%, 96%); }
 ::-webkit-scrollbar-thumb { background: hsl(214, 32%, 78%); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(214, 82%, 42%); }
+
+/* ── SCROLLBAR HIDE ────────────────────────────────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── MOBILE TOUCH ──────────────────────────────────────────── */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Ensure minimum touch target size */
+@media (max-width: 640px) {
+  button, a {
+    min-height: 44px;
+  }
+  input, select, textarea {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+}
