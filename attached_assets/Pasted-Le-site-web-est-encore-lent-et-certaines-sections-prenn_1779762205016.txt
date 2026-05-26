@@ -1,0 +1,31 @@
+Le site web est encore lent, et certaines sections prennent trop de temps à charger. Merci de revoir l’ensemble du site afin d’identifier précisément les causes de ces lenteurs et de les corriger.
+
+Merci de porter une attention particulière aux points suivants :
+
+analyser les sections qui chargent lentement
+identifier les causes du ralentissement côté frontend, backend, base de données, images, scripts ou appels API
+corriger les problèmes de performance qui affectent la vitesse de chargement
+optimiser le rendu des pages, les composants, les animations et les transitions
+réduire les temps de chargement, les blocages et toute latence visible
+améliorer la réactivité globale du site sur desktop et mobile
+s’assurer que la navigation soit fluide, rapide et premium sur toutes les pages
+
+Objectif :
+Obtenir un site beaucoup plus rapide, plus fluide et plus réactif, avec des sections qui se chargent presque instantanément et une expérience utilisateur de très haut niveau.
+
+Voici une version encore plus agressive, orientée exécution Replit :
+
+Le website reste trop lent. Certaines sections prennent encore du temps à charger. Merci de faire un audit technique complet des performances du site et de corriger immédiatement tout ce qui ralentit le chargement ou dégrade la fluidité. Je veux un site ultra rapide, très réactif et parfaitement fluide.
+
+Merci de :
+
+inspecter chaque page et chaque section une par une
+identifier les composants lourds, appels inutiles, images non optimisées, scripts bloquants, re-renders inutiles, requêtes lentes ou problèmes de cache
+corriger directement le code et optimiser toute la logique de chargement
+améliorer la vitesse d’affichage initial, la navigation entre les pages et la fluidité générale
+optimiser le site pour desktop et mobile
+supprimer toute latence visible ou sensation de lourdeur
+garantir une expérience premium, rapide et moderne sur l’ensemble du website
+
+Résultat attendu :
+Un site nettement plus rapide, fluide, stable et professionnel, avec des temps de chargement minimaux sur toutes les sections.

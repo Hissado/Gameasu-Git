@@ -42,7 +42,7 @@ export default function Services() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {services.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <Link href={s.href}>
                   <div className="group h-full bg-white border border-slate-200 rounded-2xl p-8 hover:border-primary/40 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <div className="flex items-start justify-between mb-6">
@@ -81,10 +81,10 @@ export default function Services() {
           </div>
 
           {/* Approach banner */}
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="mb-12">
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }} className="mb-12">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src={`${import.meta.env.BASE_URL}approach-banner.png`}
+                src={`${import.meta.env.BASE_URL}approach-banner.webp`}
                 alt="Notre approche — de la stratégie à l'opération en 4 étapes"
                 className="w-full object-cover"
                 loading="lazy"
@@ -102,7 +102,7 @@ export default function Services() {
               { fr: "Accès à notre base de connaissances 24/7", en: "24/7 access to our knowledge base" },
               { fr: "Équipes certifiées par les éditeurs", en: "Vendor-certified teams" }
             ].map((item, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
                   <CheckCircle size={18} className="text-primary flex-shrink-0" />
                   <span className="text-slate-700 text-sm font-medium">{fr ? item.fr : item.en}</span>

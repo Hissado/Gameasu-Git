@@ -275,8 +275,8 @@ export default function Solutions() {
                   key={sol.nameFr}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
+                  viewport={{ once: true, amount: 0.05 }}
+                  transition={{ delay: i * 0.025 }}
                 >
                   <div className={`group h-full flex flex-col bg-white border-2 ${sol.highlightColor} rounded-2xl p-7 transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}>
                     {/* Header */}
@@ -368,7 +368,7 @@ export default function Solutions() {
                 key={i}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.05 }}
                 transition={{ delay: i * 0.12 }}
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary flex items-center justify-center mx-auto mb-4">

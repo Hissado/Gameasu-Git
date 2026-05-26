@@ -15,7 +15,7 @@ export function Footer() {
             <div className="mb-5">
               <Link href="/">
                 <img
-                  src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
+                  src={`${import.meta.env.BASE_URL}gameasutech-mark.webp`}
                   alt="Gaméasù"
                   className="cursor-pointer"
                   style={{ height: "36px", width: "auto", display: "block", filter: "brightness(0) invert(1)" }}

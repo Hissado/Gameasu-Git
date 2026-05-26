@@ -66,7 +66,7 @@ export default function Careers() {
                   : "Gaméasù recruits passionate experts who want to contribute to the digital transformation of organizations on a global scale — from the USA to West Africa."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
                 <img
                   src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop"
@@ -95,7 +95,7 @@ export default function Careers() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reasons.map((r, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all">
                   <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <r.icon size={24} />
@@ -118,7 +118,7 @@ export default function Careers() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {openings.map((o, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group bg-white border border-slate-200 rounded-xl p-7 hover:border-primary/40 hover:shadow-md transition-all">
                   <h3 className="text-lg font-bold text-slate-900 mb-4">{fr ? o.titleFr : o.titleEn}</h3>
                   <div className="flex flex-wrap gap-2">

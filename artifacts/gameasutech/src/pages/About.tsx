@@ -92,7 +92,7 @@ export default function About() {
       <section className="relative pt-24 pb-12 bg-gradient-to-br from-slate-50 via-blue-50/30 to-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-4xl">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="max-w-4xl">
             <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
               {fr ? "À propos de nous" : "About us"}
             </p>
@@ -117,7 +117,7 @@ export default function About() {
       <section className="py-12 md:py-20 bg-white border-y border-slate-100">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-primary/5 border border-primary/15 rounded-2xl p-6 md:p-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} className="bg-primary/5 border border-primary/15 rounded-2xl p-6 md:p-10">
               <div className="flex items-center gap-3 mb-5 md:mb-6">
                 <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Target size={24} /></div>
                 <h2 className="text-xl md:text-2xl font-bold text-slate-900">{fr ? "Notre Mission" : "Our Mission"}</h2>
@@ -128,7 +128,7 @@ export default function About() {
                   : "To support businesses, institutions, and organizations in their digital transformation through modern, secure, and scalable technology solutions — maintaining the highest quality standards everywhere in the world."}
               </p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-10 hover:border-primary/30 transition-colors shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-10 hover:border-primary/30 transition-colors shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Globe size={24} /></div>
                 <h2 className="text-2xl font-bold text-slate-900">{fr ? "Notre Vision" : "Our Vision"}</h2>
@@ -153,7 +153,7 @@ export default function About() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {values.map((v, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all duration-300">
                   <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <v.icon size={24} />
@@ -184,7 +184,7 @@ export default function About() {
               <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-200" />
               <div className="space-y-8">
                 {milestones.map((m, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="flex gap-8 relative">
+                  <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }} className="flex gap-8 relative">
                     <div className="w-12 h-12 rounded-full bg-white border-2 border-primary flex items-center justify-center flex-shrink-0 relative z-10">
                       <span className="text-xs font-bold text-primary">{m.year.slice(2)}</span>
                     </div>
@@ -215,7 +215,7 @@ export default function About() {
             </div>
             <div className="grid grid-cols-1 gap-3">
               {commitments.map((c, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/30 transition-colors shadow-sm">
+                <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }} className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/30 transition-colors shadow-sm">
                   <CheckCircle size={20} className="text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-slate-700 font-medium text-sm">{fr ? c.fr : c.en}</span>
                 </motion.div>
@@ -224,10 +224,10 @@ export default function About() {
           </div>
 
           {/* Commitment banner */}
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }}>
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src={`${import.meta.env.BASE_URL}commitment-banner.png`}
+                src={`${import.meta.env.BASE_URL}commitment-banner.webp`}
                 alt="Notre engagement mondial — Amérique du Nord, Europe, Afrique"
                 className="w-full object-cover"
                 loading="lazy"
@@ -241,7 +241,7 @@ export default function About() {
       <section className="py-12 md:py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-hidden">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-4">
                 {fr ? "Notre engagement africain" : "Our African commitment"}
               </p>
@@ -274,14 +274,14 @@ export default function About() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.28 }}>
               <div className="grid grid-cols-1 gap-4">
                 {[
                   { flag: "tg", cityFr: "Lomé, Togo", cityEn: "Lomé, Togo", descFr: "Bureau opérationnel et équipe terrain pour l'Afrique de l'Ouest.", descEn: "Operational office and field team for West Africa." },
                   { flag: "ci", cityFr: "Abidjan, Côte d'Ivoire", cityEn: "Abidjan, Côte d'Ivoire", descFr: "Hub commercial pour les marchés ivoirien et sous-régional.", descEn: "Commercial hub for Ivorian and sub-regional markets." },
                   { flag: "ml", cityFr: "Bamako, Mali", cityEn: "Bamako, Mali", descFr: "Équipe locale pour les institutions publiques et ONGs au Mali.", descEn: "Local team for public institutions and NGOs in Mali." },
                 ].map((office, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }}>
                     <div className="flex items-start gap-5 p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/8 transition-colors">
                       <img
                         src={`https://flagcdn.com/32x24/${office.flag}.png`}

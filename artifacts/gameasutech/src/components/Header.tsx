@@ -74,10 +74,12 @@ export function Header() {
         <Link href="/">
           <div className="cursor-pointer flex-shrink-0">
             <img
-              src={`${import.meta.env.BASE_URL}gameasutech-mark.png`}
+              src={`${import.meta.env.BASE_URL}gameasutech-mark.webp`}
               alt="Gaméasù"
               className="h-9 w-auto"
               style={{ maxWidth: "160px" }}
+              decoding="async"
+              fetchPriority="high"
             />
           </div>
         </Link>

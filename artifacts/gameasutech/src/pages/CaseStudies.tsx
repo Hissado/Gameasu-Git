@@ -241,8 +241,8 @@ export default function CaseStudies() {
                 key={c.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
+                viewport={{ once: true, amount: 0.05 }}
+                transition={{ delay: i * 0.02 }}
               >
                 <div className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
                   expandedId === c.id ? "border-primary/40 shadow-lg" : "border-slate-200 hover:border-primary/20 hover:shadow-md"

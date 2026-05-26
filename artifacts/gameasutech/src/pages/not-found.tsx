@@ -13,7 +13,7 @@ export default function NotFound() {
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.22 }}
         className="text-center max-w-lg"
       >
         <div className="relative inline-block mb-8">

@@ -11,7 +11,7 @@ import { CTASection } from "@/components/CTASection";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.09, duration: 0.5 } })
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.03, duration: 0.22 } })
 };
 
 const stats = [
@@ -68,14 +68,14 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <motion.p
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.5 }}
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02, duration: 0.2 }}
                 className="text-base font-semibold text-primary tracking-widest mb-5 uppercase"
               >
                 {fr ? "Innover · Transformer · Sécuriser" : "Innovate · Transform · Secure"}
               </motion.p>
 
               <motion.h1
-                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
+                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04, duration: 0.28 }}
                 className="text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-bold leading-[1.06] tracking-tight text-slate-900 mb-6"
               >
                 {fr
@@ -84,7 +84,7 @@ export default function Home() {
               </motion.h1>
 
               <motion.p
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.25 }}
                 className="text-xl text-slate-500 leading-relaxed mb-10 max-w-xl"
               >
                 {fr
@@ -93,7 +93,7 @@ export default function Home() {
               </motion.p>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.2 }}
                 className="flex flex-wrap gap-4"
               >
                 <Link href="/contact">
@@ -111,7 +111,7 @@ export default function Home() {
 
               {/* Stats — visible on mobile only */}
               <motion.div
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }}
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10, duration: 0.25 }}
                 className="grid grid-cols-2 gap-3 mt-8 lg:hidden"
               >
                 {stats.map((s, i) => (
@@ -125,15 +125,17 @@ export default function Home() {
 
             {/* Hero image + stats — desktop only */}
             <motion.div
-              initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
+              initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.10, duration: 0.3 }}
               className="hidden lg:flex flex-col gap-4"
             >
               <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
                 <img
-                  src={`${import.meta.env.BASE_URL}hero-meeting.png`}
+                  src={`${import.meta.env.BASE_URL}hero-meeting.webp`}
                   alt="Équipe Gaméasù en réunion"
                   className="w-full h-full object-cover"
                   loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               </div>
               <div className="grid grid-cols-4 gap-3">
@@ -171,7 +173,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {services.map((s, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.05 }}>
                 <Link href={s.href}>
                   <div className="group h-full bg-white border border-slate-200 rounded-xl p-5 hover:border-primary/40 hover:shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-0.5">
                     <div className="flex items-center justify-between mb-4">
@@ -194,7 +196,7 @@ export default function Home() {
       <section className="py-16 bg-gradient-to-br from-slate-50 to-blue-50/20">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}>
               <p className="text-primary font-semibold uppercase tracking-widest text-sm mb-3">
                 {fr ? "Qui sommes-nous" : "Who we are"}
               </p>
@@ -228,7 +230,7 @@ export default function Home() {
             </motion.div>
 
             {/* Why us — 3 items */}
-            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
+            <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ duration: 0.25 }}
               className="flex flex-col gap-4">
               {whyUs.map((item, i) => (
                 <div key={i} className="flex items-start gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all duration-300">
@@ -266,7 +268,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {industries.map((ind, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.05 }}>
                 <Link href="/industries">
                   <div className="group flex flex-col items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all duration-300 text-center">
                     <div className="p-2.5 rounded-lg bg-white text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 shadow-sm">
@@ -294,7 +296,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {resources.map((r, i) => (
-              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              <motion.div key={i} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.05 }}>
                 <Link href={r.href}>
                   <div className={`group relative h-full bg-gradient-to-br ${r.gradient} rounded-2xl p-7 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
                     <div className="absolute top-0 right-0 p-5 opacity-10 group-hover:opacity-20 transition-opacity">

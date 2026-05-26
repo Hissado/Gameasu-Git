@@ -78,7 +78,7 @@ export default function Blog() {
       {/* Featured */}
       <section className="py-12 bg-white border-b border-slate-100">
         <div className="container mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }}>
             <div className="bg-gradient-to-br from-primary/5 to-blue-50/40 border border-primary/15 rounded-2xl p-8 md:p-12 cursor-pointer hover:border-primary/30 transition-all"
               onClick={() => setExpandedId(expandedId === featured.id ? null : featured.id)}>
               <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -109,7 +109,7 @@ export default function Blog() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {rest.map((article, i) => (
-              <motion.div key={article.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+              <motion.div key={article.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="h-full bg-white border border-slate-200 rounded-2xl p-8 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
                   onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}>
                   <div className="flex flex-wrap items-center gap-2 mb-4">

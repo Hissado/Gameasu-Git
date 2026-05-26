@@ -51,7 +51,7 @@ export default function Cybersecurity() {
                 </div>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="hidden lg:block">
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.28 }} className="hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden h-80 bg-slate-800 shadow-2xl">
                 <img
                   src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&q=80&auto=format&fit=crop"
@@ -76,7 +76,7 @@ export default function Cybersecurity() {
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center p-6 bg-slate-50 rounded-xl border border-slate-100">
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.03 }} className="text-center p-6 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="text-3xl md:text-4xl font-bold text-slate-900 mb-1">{s.value}</div>
                 <div className="text-sm text-slate-500">{fr ? s.labelFr : s.labelEn}</div>
               </motion.div>
@@ -94,7 +94,7 @@ export default function Cybersecurity() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.025 }}>
                 <div className="group h-full bg-white border border-slate-200 rounded-xl p-8 hover:border-primary/40 hover:shadow-md transition-all duration-300">
                   <div className="p-3 rounded-lg bg-primary/8 text-primary inline-flex mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <s.icon size={24} />
@@ -116,7 +116,7 @@ export default function Cybersecurity() {
           </div>
           <div className="flex flex-wrap justify-center gap-3">
             {frameworks.map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.05 }} transition={{ delay: i * 0.02 }}>
                 <div className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-primary/40 hover:text-primary transition-colors shadow-sm">
                   {f}
                 </div>
