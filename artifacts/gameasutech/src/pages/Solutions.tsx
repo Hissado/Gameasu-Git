@@ -382,7 +382,14 @@ export default function Solutions() {
         </div>
       </section>
 
-      <CTASection />
+      <CTASection
+        title={fr ? "Prêt à déployer votre solution ?" : "Ready to deploy your solution?"}
+        subtitle={fr
+          ? "Nos experts vous accompagnent de la démo à la mise en production. Réponse garantie sous 24 heures."
+          : "Our experts guide you from demo to production. Response guaranteed within 24 hours."}
+        btnText={fr ? "Demander une consultation" : "Request a consultation"}
+        href="/contact"
+      />
     </div>
   );
 }

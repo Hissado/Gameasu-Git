@@ -73,6 +73,7 @@ export function Footer() {
             <ul className="space-y-3">
               {[
                 { href: "/about", label: fr ? "À propos" : "About" },
+                { href: "/solutions", label: fr ? "Solutions" : "Solutions" },
                 { href: "/industries", label: fr ? "Secteurs" : "Industries" },
                 { href: "/case-studies", label: fr ? "Réalisations" : "Case Studies" },
                 { href: "/partners", label: fr ? "Partenaires" : "Partners" },

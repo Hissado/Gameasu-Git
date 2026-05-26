@@ -1,0 +1,202 @@
+Act as a senior full-stack engineer, QA lead, and performance optimization specialist. Perform a complete end-to-end technical audit of the entire application and then actively fix the issues you find. Do not give only a high-level review—inspect, debug, optimize, and improve the app directly across the full codebase.
+
+Mission
+
+Bring the application to a production-grade standard by identifying and fixing all critical and non-critical issues related to:
+
+bugs
+broken logic
+code errors
+sync issues
+unstable behaviors
+slow performance
+UI lag
+unnecessary re-renders
+poor responsiveness
+inefficient queries or API calls
+bad state handling
+unreliable real-time updates
+weak mobile performance
+any architectural weakness that affects speed, fluidity, or stability
+
+The final result must feel:
+
+extremely fast
+smooth and fluid
+reliable
+polished
+responsive
+modern
+premium
+stable under real usage
+optimized for both desktop and mobile
+Execution Requirements
+
+Do not stop at identifying problems.
+You must:
+
+review the full app end to end
+find issues across frontend, backend, database, integrations, and sync flows
+fix the problems directly in code
+optimize the app for speed, smoothness, and responsiveness
+remove bottlenecks and poor implementation patterns
+test the app after fixes
+summarize what was found, what was fixed, and what was improved
+Scope of Review
+1. Full Functional Audit
+
+Review every major page, workflow, module, and interactive feature. Check for:
+
+broken buttons, forms, links, and actions
+failing API calls
+bad validation
+incorrect conditional logic
+edge case failures
+inconsistent UI behavior
+failed redirects
+stale or missing data
+permission issues
+race conditions
+incomplete saves or updates
+sync failures between client and server
+state inconsistencies after refresh, navigation, or login/logout
+2. Code Quality and Stability Review
+
+Inspect the codebase for:
+
+hidden runtime errors
+TypeScript or JavaScript issues
+duplicated logic
+dead code
+poor component structure
+improper async handling
+memory leaks
+missing cleanup in effects/listeners
+poor error handling
+unoptimized state updates
+improper caching patterns
+inefficient hooks or lifecycle usage
+unnecessary renders and re-renders
+fragile logic that may break in production
+
+Refactor where necessary to improve maintainability, reliability, and performance without breaking functionality.
+
+3. Data Flow and Sync Review
+
+Review all data-related flows, including:
+
+frontend to backend communication
+API request/response handling
+database read/write logic
+optimistic updates
+real-time updates
+background sync behavior
+cache invalidation
+auth/session persistence
+multi-user consistency
+loading/error states
+retry/failure handling
+
+Make sure data is always accurate, current, and consistent across screens and devices.
+
+4. Performance Optimization
+
+Aggressively optimize the app for speed and fluidity. Focus on:
+
+initial page load speed
+route transitions
+interaction responsiveness
+rendering performance
+database/query performance
+API latency
+large list rendering
+component mount/unmount cost
+bundle size reduction
+lazy loading where appropriate
+memoization where appropriate
+asset optimization
+image loading optimization
+script and dependency cleanup
+avoiding blocking operations on the main thread
+
+The app should feel instant wherever realistically possible.
+
+5. UI/UX Fluidity Optimization
+
+Improve the experience so the app feels premium and highly polished:
+
+smooth navigation
+fast state changes
+crisp interactions
+consistent feedback states
+better loading states
+no freezing, stuttering, or lag
+no visual jank
+no clunky transitions
+responsive layouts across device sizes
+touch-friendly and mobile-optimized interactions
+
+The fluidness of the experience should be top-tier.
+
+6. Mobile and Responsive Review
+
+Audit the app on mobile and tablet as seriously as desktop. Ensure:
+
+layout does not break on smaller screens
+text is readable
+buttons are easy to tap
+modals/forms/tables behave properly
+performance remains strong on mobile devices
+scrolling is smooth
+mobile navigation is clean and reliable
+no overflow, cut-off, or broken spacing issues
+7. Error Handling and Resilience
+
+Strengthen reliability by improving:
+
+fallback UI
+form error handling
+API error feedback
+empty states
+loading states
+timeout handling
+offline or weak-network behavior where relevant
+defensive coding for invalid or incomplete data
+
+The app should fail gracefully and never feel unstable.
+
+Performance Standard
+
+Target an application that feels:
+
+near-instant in navigation
+highly responsive to user actions
+smooth under repeated usage
+stable during login, save, edit, delete, sync, and refresh flows
+visually polished with no noticeable lag
+ready for real-world production deployment
+Working Method
+
+Proceed in this order:
+
+audit the application page by page and workflow by workflow
+identify all bugs, code issues, sync problems, and bottlenecks
+fix the issues directly
+optimize performance and responsiveness
+retest the app thoroughly
+provide a final report with:
+issues found
+fixes implemented
+performance improvements made
+remaining risks or recommendations, if any
+Important Instructions
+Do not make superficial changes only
+Do not just list problems without fixing them
+Do not leave obvious performance issues unaddressed
+Do not degrade existing working functionality
+Preserve the current business logic unless it is clearly broken or inefficient
+Make improvements that are clean, scalable, and production-ready
+Ensure the final app feels materially better, faster, and more stable than before
+Final Goal
+
+Deliver a fully reviewed, debugged, optimized, and polished application that feels fast, fluid, reliable, premium, and production-ready, with minimal latency, seamless responsiveness, and strong overall stability.
