@@ -137,11 +137,6 @@ export default function Home() {
                   className="w-full h-full object-cover"
                   loading="eager"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/55 to-transparent" />
-                <div className="absolute bottom-4 left-5 right-5">
-                  <p className="text-white text-sm font-semibold tracking-wide">{fr ? "Une équipe internationale à votre service" : "An international team at your service"}</p>
-                  <p className="text-white/70 text-xs mt-0.5">{fr ? "7 pays · 100+ missions" : "7 countries · 100+ missions"}</p>
-                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {stats.map((s, i) => (
