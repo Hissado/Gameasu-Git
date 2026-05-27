@@ -18,7 +18,7 @@ localPort = 20127
 run = "pnpm --filter @workspace/gameasutech run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/gameasutech", "run", "build" ]
+build = [ "bash", "-c", "BASE_PATH=/ pnpm --filter @workspace/gameasutech run build" ]
 publicDir = "artifacts/gameasutech/dist/public"
 serve = "static"
 
