@@ -42,6 +42,12 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
+function detectLang(text: string, fallback: Lang): Lang {
+  const frPattern =
+    /\b(bonjour|salut|merci|oui|non|s'il|vous|nous|est|une|pour|avec|votre|notre|des|les|sur|par|que|qui|comment|quand|o[uù]|quel|quelle|je|il|elle|ils|elles|mais|donc|aussi|tr[eè]s|bien|bonne|avoir|être|faire|service|s[eé]curit[eé]|entreprise|rendez|vos|mes|mon|ma|plus|sans|tout|cette|cela|c'est|je suis|pouvez|voulez|besoin|pouvons|avons)\b/i;
+  return frPattern.test(text) ? "fr" : fallback;
+}
+
 function isEmailValid(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 }
@@ -291,38 +297,12 @@ export function ChatBot() {
   const [hasGreeted, setHasGreeted] = useState(false);
   const [bookingStep, setBookingStep] = useState<BookingStep>("idle");
   const [bookingData, setBookingData] = useState<BookingData>({});
+  const [detectedLang, setDetectedLang] = useState<Lang>(language as Lang);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const isOpenRef = useRef(false);
 
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
-
-  // Réinitialise la conversation quand la langue du site change
   useEffect(() => {
-    setMessages([]);
-    setBookingStep("idle");
-    setBookingData({});
-    setIsTyping(false);
-    setInput("");
-
-    const lang = language as Lang;
-    const k = KNOWLEDGE.greeting;
-
-    if (isOpenRef.current) {
-      // Chat ouvert : afficher directement le message de bienvenue dans la nouvelle langue
-      setHasGreeted(true);
-      setTimeout(() => {
-        setMessages([
-          botMessage(
-            lang === "fr" ? k.fr : k.en,
-            lang === "fr" ? k.suggestions_fr : k.suggestions_en
-          ),
-        ]);
-      }, 350);
-    } else {
-      // Chat fermé : réinitialiser pour que le prochain open soit dans la bonne langue
-      setHasGreeted(false);
-    }
+    setDetectedLang(language as Lang);
   }, [language]);
 
   useEffect(() => {
@@ -406,7 +386,8 @@ export function ChatBot() {
       const trimmed = text.trim();
       if (!trimmed || isTyping) return;
 
-      const lang = language as Lang;
+      const lang = detectLang(trimmed, detectedLang);
+      setDetectedLang(lang);
 
       setMessages((prev) => [...prev, userMessage(trimmed)]);
       setInput("");
@@ -471,7 +452,7 @@ export function ChatBot() {
           : ["Book a meeting", "Contact us", "See our services"]
       );
     },
-    [bookingStep, bookingData, language, isTyping, processBookingStep, pushBot]
+    [bookingStep, bookingData, detectedLang, isTyping, processBookingStep, pushBot]
   );
 
   const handleSuggestion = (suggestion: string) => {
