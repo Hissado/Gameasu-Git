@@ -96,7 +96,7 @@ export default function LoginPage() {
 
           {/* ── Logo dans un cadre blanc flottant ── */}
           <div
-            className="rounded-2xl mb-10 px-7 py-5"
+            className="rounded-2xl mb-10 px-8 py-7 flex items-center justify-center"
             style={{
               background: "linear-gradient(145deg, #FFFFFF 0%, #F8F5EE 100%)",
               boxShadow: "0 20px 60px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)",
@@ -107,10 +107,7 @@ export default function LoginPage() {
               alt={BRANDING.appName}
               draggable={false}
               className="h-auto object-contain select-none block"
-              style={{
-                width: "340px",
-                filter: "drop-shadow(0 2px 8px rgba(15,26,58,0.06))",
-              }}
+              style={{ width: "300px", maxWidth: "100%" }}
             />
           </div>
 

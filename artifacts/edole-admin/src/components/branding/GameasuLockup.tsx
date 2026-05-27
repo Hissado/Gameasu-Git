@@ -13,10 +13,10 @@ type Size = "sm" | "md" | "lg" | "xl";
 type Variant = "dark" | "light";
 
 const SIZES: Record<Size, { h: string }> = {
-  sm: { h: "h-14" },
-  md: { h: "h-20" },
-  lg: { h: "h-32" },
-  xl: { h: "h-48" },
+  sm: { h: "h-7" },
+  md: { h: "h-9" },
+  lg: { h: "h-12" },
+  xl: { h: "h-16" },
 };
 
 export function GaméasùLockup({

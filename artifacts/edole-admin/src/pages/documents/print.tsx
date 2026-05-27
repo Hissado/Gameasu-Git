@@ -204,7 +204,7 @@ export default function PrintDocumentPage() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <img
-              src="/branding/gameasu-logo.png"
+              src="/branding/gameasu-mark-web.webp"
               alt="Gaméasù"
               style={{ height: "40px", objectFit: "contain" }}
               onError={(e) => {

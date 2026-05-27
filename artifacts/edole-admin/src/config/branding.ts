@@ -11,9 +11,9 @@ export const BRANDING = {
   defaultPlanCode: import.meta.env.VITE_DEFAULT_PLAN_CODE ?? "STARTER",
   primaryColor: "#C8A24B",
   secondaryColor: "#0F1A3A",
-  logoFull: "/branding/gameasu-logo.png",
-  logoFullTransparent: "/branding/gameasu-logo-transparent.png",
-  logoMark: "/branding/gameasu-logo-transparent.png",
+  logoFull: "/branding/gameasu-mark-web.webp",
+  logoFullTransparent: "/branding/gameasu-mark-web.webp",
+  logoMark: "/branding/gameasu-mark-web.webp",
   legalName: "Gaméasù Technology",
   marketBaseline: "Conçu pour les organisations du Togo et d'Afrique de l'Ouest francophone",
 } as const;

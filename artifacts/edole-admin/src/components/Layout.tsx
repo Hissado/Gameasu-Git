@@ -177,23 +177,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {/* ── Logo area ─────────────────────────────────────────────── */}
       <div className="shrink-0 h-16 flex items-center px-5 border-b border-white/[0.07] relative">
-        <Link href="/" aria-label={BRANDING.appName} className="flex items-center gap-3 group/logo min-w-0 flex-1" onClick={() => setMobileOpen(false)}>
-          {/* Mark */}
-          <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.10] flex items-center justify-center shrink-0 overflow-hidden group-hover/logo:bg-white/[0.12] transition-colors duration-200">
-            <img
-              src={BRANDING.logoMark}
-              alt=""
-              draggable={false}
-              aria-hidden="true"
-              className="w-5 h-5 object-contain select-none"
-              style={{ filter: "brightness(0) invert(1)", opacity: 0.9 }}
-            />
-          </div>
-          {/* Wordmark */}
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <p className="text-[15px] font-bold text-white leading-none tracking-tight overflow-hidden whitespace-nowrap text-ellipsis">{BRANDING.appName}</p>
-            <p className="text-[10px] text-white mt-0.5 tracking-wide overflow-hidden whitespace-nowrap text-ellipsis">Gérer aujourd'hui · Construire demain</p>
-          </div>
+        <Link href="/" aria-label={BRANDING.appName} className="flex items-center min-w-0 flex-1 group/logo" onClick={() => setMobileOpen(false)}>
+          <img
+            src={BRANDING.logoFull}
+            alt={BRANDING.appName}
+            draggable={false}
+            className="h-8 w-auto object-contain select-none max-w-[160px] group-hover/logo:opacity-90 transition-opacity duration-200"
+            style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }}
+          />
         </Link>
         <button
           type="button"
