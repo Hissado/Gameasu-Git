@@ -392,14 +392,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <Menu className="w-6 h-6" />
             </button>
             {/* Mobile logo */}
-            <span className="lg:hidden inline-flex items-center gap-2">
+            <span className="lg:hidden inline-flex items-center">
               <img
                 src={BRANDING.logoMark}
                 alt={BRANDING.appName}
-                className="h-7 w-7 object-contain"
+                className="h-7 w-auto object-contain"
+                style={{ maxWidth: "130px" }}
                 draggable={false}
               />
-              <span className="text-[15px] font-bold text-foreground">{BRANDING.appName}</span>
             </span>
 
             {/* Search bar */}
