@@ -11,6 +11,10 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
+  PeriodFilter, usePeriodFilter, CompareBanner, DeltaBadge,
+  type DateRange, type CompareMode,
+} from "@/components/period-filter";
+import {
   Download,
   FileText,
   Wrench,
@@ -52,25 +56,7 @@ import {
   Cell,
 } from "recharts";
 
-// ────────────────────────────────────────────────────────────────
-// Sélecteur de période
-// ────────────────────────────────────────────────────────────────
-
-type PeriodPreset = "month" | "quarter" | "year" | "custom";
-
-function computePeriod(preset: PeriodPreset, customFrom: string, customTo: string): { from: string; to: string } {
-  const now = new Date();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  if (preset === "custom" && customFrom && customTo) return { from: customFrom, to: customTo };
-  if (preset === "year") {
-    return { from: fmt(new Date(now.getFullYear(), 0, 1)), to: fmt(new Date(now.getFullYear(), 11, 31)) };
-  }
-  if (preset === "quarter") {
-    const q = Math.floor(now.getMonth() / 3);
-    return { from: fmt(new Date(now.getFullYear(), q * 3, 1)), to: fmt(new Date(now.getFullYear(), q * 3 + 3, 0)) };
-  }
-  return { from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)), to: fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
-}
+// Sélecteur de période — logique déplacée dans src/components/period-filter.tsx
 
 function downloadAuthed(url: string, filename: string) {
   const token = localStorage.getItem("auth_token");
@@ -271,12 +257,7 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 // ════════════════════════════════════════════════════════════════
 
 export default function ReportsPage() {
-  const [preset, setPreset] = useState<PeriodPreset>("month");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
-  const period = useMemo(() => computePeriod(preset, customFrom, customTo), [preset, customFrom, customTo]);
-  const periodQuery = `from=${period.from}&to=${period.to}`;
-  const periodLabel = `${new Date(period.from).toLocaleDateString("fr-FR")} → ${new Date(period.to).toLocaleDateString("fr-FR")}`;
+  const pf = usePeriodFilter("month");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -288,26 +269,23 @@ export default function ReportsPage() {
             Pilotage transversal : finance, ventes, projets, RH et parc — exports PDF/Excel inclus.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={preset} onValueChange={(v) => setPreset(v as PeriodPreset)}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Mois en cours</SelectItem>
-              <SelectItem value="quarter">Trimestre en cours</SelectItem>
-              <SelectItem value="year">Année en cours</SelectItem>
-              <SelectItem value="custom">Période personnalisée</SelectItem>
-            </SelectContent>
-          </Select>
-          {preset === "custom" && (
-            <>
-              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[150px]" />
-              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[150px]" />
-            </>
-          )}
-          <Badge variant="outline" className="text-xs px-3 py-1.5 border-primary/30 text-primary bg-primary/5">
-            <Calendar className="w-3 h-3 mr-1.5" /> {periodLabel}
-          </Badge>
-        </div>
+        <PeriodFilter
+          preset={pf.preset}
+          onPresetChange={pf.setPreset}
+          customFrom={pf.customFrom}
+          onCustomFromChange={pf.setCustomFrom}
+          customTo={pf.customTo}
+          onCustomToChange={pf.setCustomTo}
+          compareMode={pf.compareMode}
+          onCompareModeChange={pf.setCompareMode}
+          customCompareFrom={pf.customCompareFrom}
+          onCustomCompareFromChange={pf.setCustomCompareFrom}
+          customCompareTo={pf.customCompareTo}
+          onCustomCompareToChange={pf.setCustomCompareTo}
+          period={pf.period}
+          comparePeriod={pf.comparePeriod}
+          showCompare
+        />
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
@@ -321,12 +299,54 @@ export default function ReportsPage() {
           <TabsTrigger value="parc" className="text-xs"><Wrench className="w-3.5 h-3.5 mr-1" />Parc</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview"><OverviewTab periodQuery={periodQuery} /></TabsContent>
-        <TabsContent value="finance"><FinanceTab periodQuery={periodQuery} /></TabsContent>
-        <TabsContent value="sales"><SalesTab periodQuery={periodQuery} /></TabsContent>
-        <TabsContent value="purchases"><PurchasesTab periodQuery={periodQuery} /></TabsContent>
-        <TabsContent value="projects"><ProjectsTab periodQuery={periodQuery} /></TabsContent>
-        <TabsContent value="hr"><HrTab periodQuery={periodQuery} /></TabsContent>
+        <TabsContent value="overview">
+          <OverviewTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
+        <TabsContent value="finance">
+          <FinanceTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
+        <TabsContent value="sales">
+          <SalesTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
+        <TabsContent value="purchases">
+          <PurchasesTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
+        <TabsContent value="projects">
+          <ProjectsTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
+        <TabsContent value="hr">
+          <HrTab
+            periodQuery={pf.periodQuery}
+            comparePeriod={pf.comparePeriod}
+            compareMode={pf.compareMode}
+            period={pf.period}
+          />
+        </TabsContent>
         <TabsContent value="parc"><ParcTab /></TabsContent>
       </Tabs>
     </div>
@@ -337,7 +357,9 @@ export default function ReportsPage() {
 // Vue d'ensemble
 // ────────────────────────────────────────────────────────────────
 
-function OverviewTab({ periodQuery }: { periodQuery: string }) {
+type TabProps = { periodQuery: string; period: DateRange; comparePeriod?: DateRange | null; compareMode?: CompareMode };
+
+function OverviewTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   const { data, isLoading } = useQuery<{
     finance: { kpi: FinanceReport["kpi"]; series: FinanceReport["series"] };
     sales: { kpi: SalesReport["kpi"]; series: SalesReport["series"] };
@@ -360,6 +382,9 @@ function OverviewTab({ periodQuery }: { periodQuery: string }) {
 
   return (
     <div className="space-y-6">
+      {comparePeriod && compareMode !== "none" && (
+        <CompareBanner period={period} comparePeriod={comparePeriod} compareMode={compareMode} />
+      )}
       {/* ── Bloc 1 : Revenus & recouvrements ────────────────── */}
       <div>
         <SectionTitle icon={ArrowUpRight}>Revenus & recouvrements</SectionTitle>
@@ -585,7 +610,7 @@ type ManagementReport = {
   hasData: boolean;
 };
 
-function FinanceTab({ periodQuery }: { periodQuery: string }) {
+function FinanceTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   return (
     <Tabs defaultValue="billing" className="w-full">
       <TabsList className="grid grid-cols-3 md:grid-cols-9 mb-4 h-auto gap-px">
@@ -2309,7 +2334,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
 // Ventes
 // ────────────────────────────────────────────────────────────────
 
-function SalesTab({ periodQuery }: { periodQuery: string }) {
+function SalesTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   const [clientSearch, setClientSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
 
@@ -2503,7 +2528,7 @@ function AgedReceivablesSection({ clientSearch }: { clientSearch: string }) {
 // Achats / Fournisseurs
 // ────────────────────────────────────────────────────────────────
 
-function PurchasesTab({ periodQuery }: { periodQuery: string }) {
+function PurchasesTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   const [supplierSearch, setSupplierSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -2740,7 +2765,7 @@ function PurchasesTab({ periodQuery }: { periodQuery: string }) {
 // Projets
 // ────────────────────────────────────────────────────────────────
 
-function ProjectsTab({ periodQuery }: { periodQuery: string }) {
+function ProjectsTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   const [projectSearch, setProjectSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -2869,7 +2894,7 @@ function ProjectsTab({ periodQuery }: { periodQuery: string }) {
 // RH
 // ────────────────────────────────────────────────────────────────
 
-function HrTab({ periodQuery }: { periodQuery: string }) {
+function HrTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   const [collabSearch, setCollabSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [contractTypeFilter, setContractTypeFilter] = useState("all");

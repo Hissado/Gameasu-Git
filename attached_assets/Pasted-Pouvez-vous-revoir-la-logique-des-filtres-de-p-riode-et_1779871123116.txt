@@ -1,0 +1,72 @@
+Pouvez-vous revoir la logique des **filtres de période** et des **filtres de comparaison** dans les rapports et analyses, afin qu’elle soit plus complète, plus cohérente et plus utile pour le pilotage ?
+
+### 1. Formats de périodes à respecter
+Merci de configurer correctement les filtres standards de période selon la logique suivante :
+
+- **Année en cours** : du **01/01/2026** au **12/31/2026**
+- **Mois en cours** : du **05/01/2026** au **05/31/2026**
+- **Year to Date (YTD)** : du **01/01/2026** jusqu’à **la date du jour**
+- **Month to Date (MTD)** : du **05/01/2026** jusqu’à **la date du jour**
+
+### 2. Ajouter d’autres filtres de période utiles
+Merci d’ajouter également d’autres filtres standards pour faciliter l’analyse, par exemple :
+
+- hebdomadaire si pertinent
+- mensuel
+- trimestriel
+- semestriel
+- annuel
+- mois précédent
+- trimestre précédent
+- semestre précédent
+- année précédente
+- rolling periods si utile
+- période personnalisée
+
+### 3. Ajouter les périodes multiples et personnalisées
+Je veux aussi pouvoir travailler avec :
+
+- **multiple periods**
+- **custom periods**
+
+Par exemple :
+- comparer plusieurs mois sélectionnés
+- comparer plusieurs trimestres
+- analyser plusieurs périodes non continues
+- sélectionner librement plusieurs plages de dates
+- construire des analyses sur mesure selon les besoins métier
+
+L’objectif est de ne pas être limité uniquement aux filtres standards, mais d’avoir aussi une vraie flexibilité d’analyse.
+
+### 4. Ajouter des filtres de comparaison
+Je veux également que les rapports et analyses permettent de faire facilement des comparaisons comme :
+
+- **Month over Month (MoM)**
+- **Year over Year (YoY)**
+- **Last Month vs This Month**
+- **Last Year vs This Year**
+- **Quarter over Quarter**
+- **Current Period vs Previous Period**
+- **YTD vs Prior YTD**
+- **MTD vs Prior MTD**
+- **Custom Period vs Custom Period**
+- **Multiple Periods Comparison**
+
+### 5. Objectif attendu
+Je veux que l’application propose tous les filtres et comparaisons utiles pour :
+- faciliter les analyses
+- rendre les rapports plus dynamiques
+- aider à la prise de décision
+- permettre des comparaisons rapides et pertinentes
+- offrir une vraie flexibilité d’analyse selon les besoins utilisateur
+
+### Résultat attendu
+Je veux un système de filtres :
+- plus complet
+- plus professionnel
+- plus flexible
+- plus pratique
+- plus orienté analyse
+- capable de gérer les périodes standards, personnalisées et multiples
+
+L’objectif final est que l’utilisateur puisse naviguer facilement entre les périodes, comparer les performances et exploiter les données de manière beaucoup plus fluide, intelligente et professionnelle.
