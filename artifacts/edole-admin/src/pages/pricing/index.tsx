@@ -51,7 +51,9 @@ interface TaxBracket {
 
 interface CorporateTaxConfig {
   enabled: boolean;
-  ytdProfitBeforeTax: number;
+  ytdProfitBeforeTax: number;  // résultat avant IS, depuis comptabilité
+  ytdEstimatedTax: number;     // IS estimé sur le YTD actuel
+  ytdNetProfit: number;        // résultat net YTD (= ytdProfitBeforeTax - ytdEstimatedTax)
   brackets: TaxBracket[];
 }
 
@@ -659,9 +661,15 @@ export default function PricingCalculator() {
     staleTime: 5 * 60_000,
   });
 
-  const { data: ytdProfitData } = useQuery<{
+  const { data: ytdProfitData, isLoading: loadingYtd } = useQuery<{
     ytdProfitBeforeTax: number;
+    ytdEstimatedTax: number;
+    ytdNetProfit: number;
+    ytdRevenues: number;
+    ytdCharges: number;
     period: { from: string | null; to: string | null };
+    isEnabled: boolean;
+    hasFiscalSettings: boolean;
   }>({
     queryKey: ["ytd-profit"],
     queryFn: () => apiFetch("/api/accounting/ytd-profit"),
@@ -671,6 +679,8 @@ export default function PricingCalculator() {
   const fiscalConfig = useMemo<CorporateTaxConfig>(() => ({
     enabled: fiscalSettingsData?.corporateTaxEnabled ?? false,
     ytdProfitBeforeTax: ytdProfitData?.ytdProfitBeforeTax ?? 0,
+    ytdEstimatedTax: ytdProfitData?.ytdEstimatedTax ?? 0,
+    ytdNetProfit: ytdProfitData?.ytdNetProfit ?? 0,
     brackets: fiscalSettingsData?.corporateTaxBrackets?.length
       ? fiscalSettingsData.corporateTaxBrackets
       : DEFAULT_TAX_BRACKETS,
@@ -1060,7 +1070,7 @@ export default function PricingCalculator() {
                     <Tooltip>
                       <TooltipTrigger asChild><Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs">
-                        L'IS est calculé automatiquement depuis les paramètres fiscaux de votre organisation. Configurez le barème dans Comptabilité → Fiscal.
+                        Le bénéfice YTD projeté = résultat net YTD actuel (comptabilité) + résultat net estimé de ce deal. L'IS incrémental est calculé automatiquement depuis le barème configuré dans Comptabilité → Fiscal.
                       </TooltipContent>
                     </Tooltip>
                   </CardTitle>
@@ -1081,62 +1091,142 @@ export default function PricingCalculator() {
                 <div className="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-lg p-3 text-xs">
                   <Info className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
                   <div className="text-orange-800">
-                    Paramètres lus depuis <strong>Comptabilité → Fiscal → Impôt société</strong>.
-                    {" "}<a href="/accounting/taxes" className="underline font-semibold hover:text-orange-900">Configurer le barème IS →</a>
+                    Paramètres lus depuis <strong>Comptabilité → Fiscal → Impôt société</strong>.{" "}
+                    <a href="/accounting/taxes" className="underline font-semibold hover:text-orange-900">Configurer le barème IS →</a>
                   </div>
                 </div>
 
-                {/* Bénéfice YTD auto-calculé */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground mb-1">Bénéfice YTD (comptabilité)</div>
-                    <div className={`font-bold text-sm ${(fiscalConfig.ytdProfitBeforeTax ?? 0) < 0 ? "text-red-600" : "text-slate-800"}`}>
-                      {ytdProfitData ? formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax)) : "—"}
+                {/* ── Décomposition YTD projeté ── */}
+                <div className="space-y-1.5">
+
+                  {/* Bloc A — Résultat net YTD actuel (comptabilité) */}
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                        Résultat net YTD actuel — comptabilité
+                      </span>
+                      {ytdProfitData?.period?.from && (
+                        <span className="text-[10px] text-muted-foreground">
+                          depuis {ytdProfitData.period.from}
+                        </span>
+                      )}
                     </div>
-                    {ytdProfitData?.period?.from && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
-                        Depuis {ytdProfitData.period.from}
+                    {loadingYtd ? (
+                      <div className="text-xs text-muted-foreground">Calcul…</div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <div className="text-muted-foreground mb-0.5">Résultat brut</div>
+                          <div className={`font-bold text-sm ${fiscalConfig.ytdProfitBeforeTax < 0 ? "text-red-600" : "text-slate-800"}`}>
+                            {formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-0.5">IS actuel estimé</div>
+                          <div className="font-bold text-sm text-orange-600">
+                            {fiscalConfig.enabled
+                              ? `− ${formatFCFA(Math.round(fiscalConfig.ytdEstimatedTax))}`
+                              : <span className="text-slate-400">non activé</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-0.5">Résultat net</div>
+                          <div className={`font-bold text-sm ${fiscalConfig.ytdNetProfit < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                            {formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground mb-1">Barème IS</div>
-                    <div className="text-xs font-medium text-slate-700">
-                      {fiscalConfig.brackets.length} tranche{fiscalConfig.brackets.length > 1 ? "s" : ""}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Résultat IS si activé */}
-                {fiscalConfig.enabled && result.corporateTax > 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                      <div>
-                        <div className="text-muted-foreground">IS incrémental</div>
-                        <div className="font-bold text-orange-700 text-sm">{formatFCFA(Math.round(result.corporateTax))}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Taux effectif</div>
-                        <div className="font-bold text-orange-700 text-sm">{result.effectiveTaxRate.toFixed(1)}%</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Taux marginal</div>
-                        <div className="font-bold text-orange-700 text-sm">{result.marginalTaxRate.toFixed(1)}%</div>
-                      </div>
-                    </div>
-                    {fiscalConfig.ytdProfitBeforeTax > 0 && (
-                      <p className="text-xs text-muted-foreground text-center mt-2">
-                        Bénéfice projeté après ce deal : {formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax + result.profitBeforeTax))}
+                    {!loadingYtd && fiscalConfig.ytdProfitBeforeTax === 0 && (
+                      <p className="text-[10px] text-muted-foreground mt-1.5">
+                        Aucune écriture comptabilisée trouvée — les écritures de statut « postées » (classes 6 & 7) alimentent ce calcul.
                       </p>
                     )}
                   </div>
-                )}
+
+                  {/* Séparateur + */}
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="h-px flex-1 bg-slate-100" />
+                    <span className="text-slate-400 font-bold text-sm">+</span>
+                    <div className="h-px flex-1 bg-slate-100" />
+                  </div>
+
+                  {/* Bloc B — Résultat net deal simulé */}
+                  <div className={`border rounded-lg p-3 ${result.netProfit < 0 ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                    <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-2">
+                      Résultat net deal simulé
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <div className="text-muted-foreground mb-0.5">Marge brute</div>
+                        <div className={`font-bold text-sm ${result.grossMargin < 0 ? "text-red-600" : "text-slate-700"}`}>
+                          {result.totalCost > 0 ? formatFCFA(Math.round(result.grossMargin)) : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-0.5">IS incrémental</div>
+                        <div className="font-bold text-sm text-orange-600">
+                          {fiscalConfig.enabled && result.corporateTax > 0
+                            ? `− ${formatFCFA(Math.round(result.corporateTax))}`
+                            : <span className="text-slate-400">—</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-0.5">Résultat net</div>
+                        <div className={`font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-blue-700"}`}>
+                          {result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"}
+                        </div>
+                      </div>
+                    </div>
+                    {fiscalConfig.enabled && result.corporateTax > 0 && (
+                      <div className="flex gap-4 mt-2 text-[10px] text-muted-foreground">
+                        <span>Taux effectif : <strong className="text-orange-700">{result.effectiveTaxRate.toFixed(1)}%</strong></span>
+                        <span>Taux marginal : <strong className="text-orange-700">{result.marginalTaxRate.toFixed(1)}%</strong></span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Séparateur = */}
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="h-px flex-1 bg-slate-100" />
+                    <span className="text-slate-400 font-bold text-sm">=</span>
+                    <div className="h-px flex-1 bg-slate-100" />
+                  </div>
+
+                  {/* Bloc C — Bénéfice YTD projeté (résultat clé) */}
+                  {(() => {
+                    const projectedYtdNet = fiscalConfig.ytdNetProfit + result.netProfit;
+                    const isPositive = projectedYtdNet >= 0;
+                    return (
+                      <div className={`rounded-lg p-3 border-2 ${isPositive ? "bg-amber-50 border-amber-300" : "bg-red-50 border-red-300"}`}>
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">
+                          Bénéfice YTD projeté
+                        </div>
+                        <div className={`text-xl font-black ${isPositive ? "text-amber-700" : "text-red-700"}`}>
+                          {result.totalCost > 0
+                            ? formatFCFA(Math.round(projectedYtdNet))
+                            : <span className="text-base font-semibold text-slate-400">Saisir un coût pour calculer</span>}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          = Résultat net YTD actuel ({formatFCFA(Math.round(fiscalConfig.ytdNetProfit))})
+                          {" + "}Résultat net deal ({result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"})
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Barème IS */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] text-muted-foreground">Barème IS :</span>
+                    <span className="text-[10px] font-medium text-slate-700">
+                      {fiscalConfig.brackets.length} tranche{fiscalConfig.brackets.length > 1 ? "s" : ""} —{" "}
+                      {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}
+                    </span>
+                  </div>
+                </div>
 
                 {fiscalConfig.enabled && result.corporateTax === 0 && result.totalCost > 0 && (
-                  <p className="text-xs text-muted-foreground text-center">Aucun IS incrémental sur ce deal (marge insuffisante ou bénéfice nul)</p>
+                  <p className="text-xs text-muted-foreground text-center">Aucun IS incrémental sur ce deal (marge nulle ou résultat YTD insuffisant)</p>
                 )}
               </CardContent>
             </Card>
