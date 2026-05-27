@@ -109,26 +109,14 @@ export default function Home() {
                 </Link>
               </motion.div>
 
-              {/* Stats — visible on mobile only */}
-              <motion.div
-                initial={{ y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10, duration: 0.25 }}
-                className="grid grid-cols-2 gap-3 mt-8 lg:hidden"
-              >
-                {stats.map((s, i) => (
-                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                    <div className="text-xl font-bold text-slate-900 mb-0.5">{s.value}</div>
-                    <div className="text-xs text-slate-500 font-medium leading-snug">{fr ? s.labelFr : s.labelEn}</div>
-                  </div>
-                ))}
-              </motion.div>
             </div>
 
-            {/* Hero image + stats — desktop only */}
+            {/* Hero image + stats — tous écrans */}
             <motion.div
               initial={{ x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.10, duration: 0.3 }}
-              className="hidden lg:flex flex-col gap-4"
+              className="flex flex-col gap-4"
             >
-              <div className="relative rounded-2xl overflow-hidden h-72 bg-slate-200 shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden h-56 sm:h-72 bg-slate-200 shadow-xl">
                 <img
                   src={`${import.meta.env.BASE_URL}hero-meeting.webp`}
                   alt="Équipe Gaméasù en réunion"
@@ -138,7 +126,7 @@ export default function Home() {
                   fetchPriority="high"
                 />
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {stats.map((s, i) => (
                   <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-center shadow-sm">
                     <div className="text-xl font-bold text-slate-900 mb-0.5">{s.value}</div>
