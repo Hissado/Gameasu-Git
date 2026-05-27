@@ -107,7 +107,7 @@ export default function LoginPage() {
               alt={BRANDING.appName}
               draggable={false}
               className="h-auto object-contain select-none block"
-              style={{ width: "300px", maxWidth: "100%" }}
+              style={{ width: "380px", maxWidth: "100%" }}
             />
           </div>
 

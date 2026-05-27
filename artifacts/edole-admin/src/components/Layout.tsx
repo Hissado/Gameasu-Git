@@ -182,7 +182,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             src={BRANDING.logoFull}
             alt={BRANDING.appName}
             draggable={false}
-            className="h-8 w-auto object-contain select-none max-w-[160px] group-hover/logo:opacity-90 transition-opacity duration-200"
+            className="h-11 w-auto object-contain select-none max-w-[200px] group-hover/logo:opacity-90 transition-opacity duration-200"
             style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }}
           />
         </Link>
