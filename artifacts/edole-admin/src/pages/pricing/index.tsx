@@ -20,7 +20,7 @@ import {
   RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck,
   Users, Wrench, DollarSign, ArrowRight, Search, BookOpen, X, Clock, HardHat,
   Calculator, ChevronDown, ChevronUp, Lightbulb, Target, Brain, Landmark,
-  TrendingDown, AlertTriangle, Zap, Shield,
+  TrendingDown, AlertTriangle, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,7 +68,6 @@ interface Scenario {
   taxRate: number;
   taxMode: TaxMode;
   quantity: number;
-  corporateTax: CorporateTaxConfig;
 }
 
 // ─── Catalog types ────────────────────────────────────────────────────────────
@@ -128,12 +127,12 @@ const CHART_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#6B7280", "#E
 
 const DEFAULT_LABOR_SETTINGS: LaborSettings = { employerChargeRate: 18.4, weeklyHours: 40 };
 
-// Barème IS Togo (BIC) — configurable
+// Barème IS Togo (BIC) — configurable (fallback si l'API n'est pas encore chargée)
 const DEFAULT_TAX_BRACKETS: TaxBracket[] = [
-  { id: "b1", label: "Exonération",           min: 0,          max: 2_000_000,  rate: 0 },
-  { id: "b2", label: "Tranche 1 (2M–10M)",    min: 2_000_001,  max: 10_000_000, rate: 15 },
-  { id: "b3", label: "Tranche 2 (10M–50M)",   min: 10_000_001, max: 50_000_000, rate: 25 },
-  { id: "b4", label: "Tranche supérieure",    min: 50_000_001, max: null,        rate: 29 },
+  { id: "b1", label: "Exonération",          min: 0,          max: 2_000_000,  rate: 0 },
+  { id: "b2", label: "Tranche 1 (2M–10M)",   min: 2_000_001,  max: 10_000_000, rate: 15 },
+  { id: "b3", label: "Tranche 2 (10M–50M)",  min: 10_000_001, max: 50_000_000, rate: 25 },
+  { id: "b4", label: "Tranche supérieure",   min: 50_000_001, max: null,        rate: 29 },
 ];
 
 // ─── PricingResult ────────────────────────────────────────────────────────────
@@ -185,11 +184,6 @@ const DEFAULT_SCENARIO: Scenario = {
   taxRate: 18,
   taxMode: "on_top",
   quantity: 1,
-  corporateTax: {
-    enabled: false,
-    ytdProfitBeforeTax: 0,
-    brackets: DEFAULT_TAX_BRACKETS,
-  },
 };
 
 // ─── Calcul IS ────────────────────────────────────────────────────────────────
@@ -266,7 +260,7 @@ function computeLaborLineCost(line: LaborLineItem) {
   return { hourlyRate, totalCost, monthlyCostEmployeur };
 }
 
-function calculate(scenario: Scenario): PricingResult {
+function calculate(scenario: Scenario, fiscalConfig: CorporateTaxConfig): PricingResult {
   const qty = Math.max(1, scenario.quantity);
   const byCategory: Record<CostCategory, number> = {
     direct: 0, labor: 0, indirect: 0, logistics: 0, purchase: 0, tax_input: 0, other: 0,
@@ -319,8 +313,8 @@ function calculate(scenario: Scenario): PricingResult {
   const grossMarginPct = priceHT > 0 ? (grossMargin / priceHT) * 100 : 0;
   const markupPct = totalCost > 0 ? (grossMargin / totalCost) * 100 : 0;
 
-  // 4. Impôt société incrémental
-  const ct = scenario.corporateTax;
+  // 4. Impôt société incrémental (config centralisée)
+  const ct = fiscalConfig;
   const { incrementalTax, effectiveRate, marginalRate } = ct.enabled
     ? computeCorporateTax(ct.ytdProfitBeforeTax, grossMargin, ct.brackets)
     : { incrementalTax: 0, effectiveRate: 0, marginalRate: 0 };
@@ -361,7 +355,7 @@ const AUTO_SCENARIOS = [
 
 // ─── Recommandations automatiques ────────────────────────────────────────────
 
-function generateRecommendations(result: PricingResult, scenario: Scenario): Recommendation[] {
+function generateRecommendations(result: PricingResult, scenario: Scenario, fiscalConfig: CorporateTaxConfig): Recommendation[] {
   const recs: Recommendation[] = [];
   const { priceHT, totalCost, grossMarginPct, netMarginPct, netProfit, grossMargin, corporateTax, marginalTaxRate } = result;
 
@@ -378,7 +372,7 @@ function generateRecommendations(result: PricingResult, scenario: Scenario): Rec
     recs.push({ type: "warning", title: "Marge faible", msg: "Ce prix couvre les coûts directs mais la marge reste fragile face aux charges opérationnelles non comptabilisées." });
   }
 
-  if (scenario.corporateTax.enabled) {
+  if (fiscalConfig.enabled) {
     if (grossMargin > 0 && netProfit <= 0) {
       recs.push({ type: "warning", title: "Rentable avant IS, déficitaire après", msg: "Ce prix génère un bénéfice avant impôt mais la charge d'IS le rend déficitaire. Augmentez votre prix ou renégociez les coûts." });
     }
@@ -394,11 +388,11 @@ function generateRecommendations(result: PricingResult, scenario: Scenario): Rec
   }
 
   if (netMarginPct >= scenario.marginTarget && scenario.marginMode === "net") {
-    recs.push({ type: "success", title: "Objectif atteint", msg: `Ce prix atteint votre marge nette cible de ${scenario.marginTarget}% ${scenario.corporateTax.enabled ? "après IS" : ""}.` });
+    recs.push({ type: "success", title: "Objectif atteint", msg: `Ce prix atteint votre marge nette cible de ${scenario.marginTarget}% ${fiscalConfig.enabled ? "après IS" : ""}.` });
   }
 
   if (result.recommendedPriceHT > priceHT && priceHT > 0) {
-    recs.push({ type: "info", title: "Prix recommandé disponible", msg: `Pour atteindre ${scenario.marginTarget}% de marge nette après IS, appliquez ${formatFCFA(Math.round(result.recommendedPriceHT))} HT (actuellement ${formatFCFA(Math.round(priceHT))} HT).` });
+    recs.push({ type: "info", title: "Prix recommandé disponible", msg: `Pour atteindre ${scenario.marginTarget}% de marge nette${fiscalConfig.enabled ? " après IS" : ""}, appliquez ${formatFCFA(Math.round(result.recommendedPriceHT))} HT (actuellement ${formatFCFA(Math.round(priceHT))} HT).` });
   }
 
   if (grossMarginPct > 80) {
@@ -439,7 +433,7 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
           clientId,
           totalAmount: Math.round(amount),
           currency: "XOF",
-          notes: `[Calculateur tarifaire] ${scenario.productName || "Prestation"} — Coût : ${formatFCFA(result.totalCost)}, Marge brute : ${result.grossMarginPct.toFixed(1)}%, Marge nette : ${result.netMarginPct.toFixed(1)}%, TVA ${scenario.taxRate}%${scenario.corporateTax.enabled ? `, IS : ${formatFCFA(Math.round(result.corporateTax))}` : ""}`,
+          notes: `[Calculateur tarifaire] ${scenario.productName || "Prestation"} — Coût : ${formatFCFA(result.totalCost)}, Marge brute : ${result.grossMarginPct.toFixed(1)}%, Marge nette : ${result.netMarginPct.toFixed(1)}%, TVA ${scenario.taxRate}%${result.corporateTax > 0 ? `, IS : ${formatFCFA(Math.round(result.corporateTax))}` : ""}`,
         }),
       });
       toast.success(docType === "proforma" ? "Devis créé avec succès" : "Commande créée avec succès");
@@ -464,7 +458,7 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
             <div className="font-semibold text-slate-700">{scenario.productName || "Prestation non nommée"}</div>
             <div className="flex justify-between"><span className="text-muted-foreground">Prix HT :</span><span className="font-semibold">{formatFCFA(result.priceHT)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">TVA ({scenario.taxRate}%) :</span><span>{formatFCFA(result.taxAmount)}</span></div>
-            {scenario.corporateTax.enabled && result.corporateTax > 0 && (
+            {result.corporateTax > 0 && (
               <div className="flex justify-between text-orange-700"><span>IS incrémental :</span><span className="font-semibold">{formatFCFA(Math.round(result.corporateTax))}</span></div>
             )}
             <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B] text-base">{formatFCFA(result.priceTTC)}</span></div>
@@ -653,26 +647,41 @@ export default function PricingCalculator() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   const scenario = useMemo(() => scenarios.find(s => s.id === activeId) ?? scenarios[0], [scenarios, activeId]);
-  const result = useMemo(() => calculate(scenario), [scenario]);
-  const recommendations = useMemo(() => generateRecommendations(result, scenario), [result, scenario]);
+
+  // ── Config IS centralisée — lue depuis Comptabilité > Fiscal
+  const { data: fiscalSettingsData, isLoading: fiscalLoading } = useQuery<{
+    corporateTaxEnabled: boolean;
+    corporateTaxBrackets: TaxBracket[];
+    updatedAt: string | null;
+  }>({
+    queryKey: ["fiscal-settings"],
+    queryFn: () => apiFetch("/api/accounting/fiscal-settings"),
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: ytdProfitData } = useQuery<{
+    ytdProfitBeforeTax: number;
+    period: { from: string | null; to: string | null };
+  }>({
+    queryKey: ["ytd-profit"],
+    queryFn: () => apiFetch("/api/accounting/ytd-profit"),
+    staleTime: 5 * 60_000,
+  });
+
+  const fiscalConfig = useMemo<CorporateTaxConfig>(() => ({
+    enabled: fiscalSettingsData?.corporateTaxEnabled ?? false,
+    ytdProfitBeforeTax: ytdProfitData?.ytdProfitBeforeTax ?? 0,
+    brackets: fiscalSettingsData?.corporateTaxBrackets?.length
+      ? fiscalSettingsData.corporateTaxBrackets
+      : DEFAULT_TAX_BRACKETS,
+  }), [fiscalSettingsData, ytdProfitData]);
+
+  const result = useMemo(() => calculate(scenario, fiscalConfig), [scenario, fiscalConfig]);
+  const recommendations = useMemo(() => generateRecommendations(result, scenario, fiscalConfig), [result, scenario, fiscalConfig]);
 
   const updateScenario = useCallback((patch: Partial<Scenario>) => {
     setScenarios(prev => prev.map(s => s.id === activeId ? { ...s, ...patch } : s));
   }, [activeId]);
-
-  const updateCorporateTax = useCallback((patch: Partial<CorporateTaxConfig>) => {
-    setScenarios(prev => prev.map(s => s.id === activeId ? { ...s, corporateTax: { ...s.corporateTax, ...patch } } : s));
-  }, [activeId]);
-
-  // ── FP&A: YTD profit auto-fetch
-  const { data: fpaData } = useQuery<{ profitBeforeTax?: number }>({
-    queryKey: ["fpa-summary"],
-    queryFn: () => apiFetch("/api/fpa/summary"),
-    staleTime: 10 * 60_000,
-    retry: false,
-  });
-
-  const fpaYtdProfit = fpaData?.profitBeforeTax;
 
   // ── Catalogue
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -771,9 +780,9 @@ export default function PricingCalculator() {
   // Auto-scenarios (4 fixed)
   const autoScenarios = useMemo(() => AUTO_SCENARIOS.map(as => {
     const s = { ...scenario, marginMode: "net" as MarginMode, marginTarget: as.margin };
-    const r = calculate(s);
+    const r = calculate(s, fiscalConfig);
     return { ...as, priceHT: r.priceHT, priceTTC: r.priceTTC, grossMarginPct: r.grossMarginPct, netMarginPct: r.netMarginPct, netProfit: r.netProfit, corporateTax: r.corporateTax };
-  }), [scenario]);
+  }), [scenario, fiscalConfig]);
 
   // Pie chart data
   const pieData = useMemo(() => {
@@ -788,9 +797,9 @@ export default function PricingCalculator() {
   }, [result, scenario.taxRate]);
 
   const compareData = useMemo(() => scenarios.map(s => {
-    const r = calculate(s);
+    const r = calculate(s, fiscalConfig);
     return { name: s.name, coût: Math.round(r.totalCost), prixHT: Math.round(r.priceHT), prixTTC: Math.round(r.priceTTC), margeNette: Math.round(r.netMarginPct) };
-  }), [scenarios]);
+  }), [scenarios, fiscalConfig]);
 
   const warnings = useMemo(() => {
     const w: string[] = [];
@@ -1041,8 +1050,8 @@ export default function PricingCalculator() {
               </CardContent>
             </Card>
 
-            {/* ── Impôt société (IS) ── */}
-            <Card className={`shadow-sm ${scenario.corporateTax.enabled ? "border-orange-200" : ""}`}>
+            {/* ── Impôt société (IS) — lecture seule, config dans Comptabilité > Fiscal ── */}
+            <Card className={`shadow-sm ${fiscalConfig.enabled ? "border-orange-200" : ""}`}>
               <CardHeader className="pb-3 border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -1051,123 +1060,85 @@ export default function PricingCalculator() {
                     <Tooltip>
                       <TooltipTrigger asChild><Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs">
-                        Calcule l'impôt IS incrémental généré par ce deal, en tenant compte du bénéfice YTD déjà réalisé et du barème progressif applicable.
+                        L'IS est calculé automatiquement depuis les paramètres fiscaux de votre organisation. Configurez le barème dans Comptabilité → Fiscal.
                       </TooltipContent>
                     </Tooltip>
                   </CardTitle>
-                  <button
-                    type="button"
-                    onClick={() => updateCorporateTax({ enabled: !scenario.corporateTax.enabled })}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${scenario.corporateTax.enabled ? "bg-orange-500" : "bg-slate-200"}`}
-                  >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${scenario.corporateTax.enabled ? "translate-x-4.5" : "translate-x-0.5"}`} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {fiscalLoading ? (
+                      <span className="text-xs text-muted-foreground">Chargement…</span>
+                    ) : (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${fiscalConfig.enabled ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}>
+                        {fiscalConfig.enabled ? "Activé" : "Désactivé"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
 
-              {scenario.corporateTax.enabled && (
-                <CardContent className="pt-4 space-y-4">
-                  {/* YTD Profit */}
-                  <div className="space-y-1.5">
-                    <Label className="flex items-center gap-1.5">
-                      Bénéfice YTD avant IS (FCFA)
-                      <Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                        <TooltipContent className="max-w-xs text-xs">Bénéfice cumulé de l'exercice en cours avant IS. Ce deal s'additionne à ce montant pour recalculer l'IS global.</TooltipContent>
-                      </Tooltip>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number" min="0" step="100000"
-                        placeholder="0"
-                        value={scenario.corporateTax.ytdProfitBeforeTax || ""}
-                        onChange={e => updateCorporateTax({ ytdProfitBeforeTax: parseFloat(e.target.value) || 0 })}
-                        className="flex-1"
-                      />
-                      {fpaYtdProfit !== undefined && fpaYtdProfit !== null && (
-                        <Button size="sm" variant="outline" className="text-xs gap-1.5 border-orange-200 text-orange-700 hover:bg-orange-50 whitespace-nowrap"
-                          onClick={() => updateCorporateTax({ ytdProfitBeforeTax: fpaYtdProfit })}>
-                          <Zap className="w-3 h-3" />
-                          Depuis FP&A ({formatFCFA(Math.round(fpaYtdProfit))})
-                        </Button>
-                      )}
+              <CardContent className="pt-4 space-y-3">
+                {/* Info provenance */}
+                <div className="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-lg p-3 text-xs">
+                  <Info className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
+                  <div className="text-orange-800">
+                    Paramètres lus depuis <strong>Comptabilité → Fiscal → Impôt société</strong>.
+                    {" "}<a href="/accounting/taxes" className="underline font-semibold hover:text-orange-900">Configurer le barème IS →</a>
+                  </div>
+                </div>
+
+                {/* Bénéfice YTD auto-calculé */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Bénéfice YTD (comptabilité)</div>
+                    <div className={`font-bold text-sm ${(fiscalConfig.ytdProfitBeforeTax ?? 0) < 0 ? "text-red-600" : "text-slate-800"}`}>
+                      {ytdProfitData ? formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax)) : "—"}
                     </div>
-                    {scenario.corporateTax.ytdProfitBeforeTax > 0 && (
-                      <p className="text-xs text-muted-foreground">Bénéfice projeté après ce deal : {formatFCFA(Math.round(scenario.corporateTax.ytdProfitBeforeTax + result.profitBeforeTax))}</p>
+                    {ytdProfitData?.period?.from && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        Depuis {ytdProfitData.period.from}
+                      </div>
                     )}
                   </div>
-
-                  {/* Barème IS */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Barème IS (Togo BIC — configurable)</Label>
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Barème IS</div>
+                    <div className="text-xs font-medium text-slate-700">
+                      {fiscalConfig.brackets.length} tranche{fiscalConfig.brackets.length > 1 ? "s" : ""}
                     </div>
-                    <div className="space-y-1.5">
-                      {scenario.corporateTax.brackets.map((bracket, i) => (
-                        <div key={bracket.id} className="grid grid-cols-[1fr_1fr_80px_32px] gap-2 items-center">
-                          <div className="space-y-0.5">
-                            <div className="text-[10px] text-muted-foreground font-medium">Minimum (XOF)</div>
-                            <Input type="number" min="0" step="100000" className="h-7 text-xs" value={bracket.min} onChange={e => {
-                              const updated = [...scenario.corporateTax.brackets];
-                              updated[i] = { ...bracket, min: parseFloat(e.target.value) || 0 };
-                              updateCorporateTax({ brackets: updated });
-                            }} />
-                          </div>
-                          <div className="space-y-0.5">
-                            <div className="text-[10px] text-muted-foreground font-medium">Maximum (XOF, vide = illimité)</div>
-                            <Input type="number" min="0" step="100000" className="h-7 text-xs" placeholder="illimité" value={bracket.max ?? ""} onChange={e => {
-                              const updated = [...scenario.corporateTax.brackets];
-                              updated[i] = { ...bracket, max: e.target.value === "" ? null : parseFloat(e.target.value) || 0 };
-                              updateCorporateTax({ brackets: updated });
-                            }} />
-                          </div>
-                          <div className="space-y-0.5">
-                            <div className="text-[10px] text-muted-foreground font-medium">Taux (%)</div>
-                            <div className="flex items-center gap-1">
-                              <Input type="number" min="0" max="100" step="0.5" className="h-7 text-xs" value={bracket.rate} onChange={e => {
-                                const updated = [...scenario.corporateTax.brackets];
-                                updated[i] = { ...bracket, rate: parseFloat(e.target.value) || 0 };
-                                updateCorporateTax({ brackets: updated });
-                              }} />
-                              <span className="text-xs text-muted-foreground">%</span>
-                            </div>
-                          </div>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 mt-4 text-red-400 hover:text-red-600" onClick={() => updateCorporateTax({ brackets: scenario.corporateTax.brackets.filter(b => b.id !== bracket.id) })} disabled={scenario.corporateTax.brackets.length <= 1}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button size="sm" variant="outline" className="text-xs gap-1.5 border-dashed border-orange-300 text-orange-700 hover:bg-orange-50" onClick={() => updateCorporateTax({ brackets: [...scenario.corporateTax.brackets, { id: uid(), label: "Nouvelle tranche", min: 0, max: null, rate: 29 }] })}>
-                        <Plus className="w-3 h-3" /> Ajouter une tranche
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs gap-1.5 text-slate-500 hover:bg-slate-50" onClick={() => updateCorporateTax({ brackets: DEFAULT_TAX_BRACKETS })}>
-                        <RotateCcw className="w-3 h-3" /> Réinitialiser (Togo BIC)
-                      </Button>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}
                     </div>
                   </div>
+                </div>
 
-                  {/* Résultat IS */}
-                  {result.corporateTax > 0 && (
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                      <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                        <div>
-                          <div className="text-muted-foreground">IS incrémental</div>
-                          <div className="font-bold text-orange-700 text-sm">{formatFCFA(Math.round(result.corporateTax))}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Taux effectif</div>
-                          <div className="font-bold text-orange-700 text-sm">{result.effectiveTaxRate.toFixed(1)}%</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Taux marginal</div>
-                          <div className="font-bold text-orange-700 text-sm">{result.marginalTaxRate.toFixed(1)}%</div>
-                        </div>
+                {/* Résultat IS si activé */}
+                {fiscalConfig.enabled && result.corporateTax > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                      <div>
+                        <div className="text-muted-foreground">IS incrémental</div>
+                        <div className="font-bold text-orange-700 text-sm">{formatFCFA(Math.round(result.corporateTax))}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Taux effectif</div>
+                        <div className="font-bold text-orange-700 text-sm">{result.effectiveTaxRate.toFixed(1)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Taux marginal</div>
+                        <div className="font-bold text-orange-700 text-sm">{result.marginalTaxRate.toFixed(1)}%</div>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              )}
+                    {fiscalConfig.ytdProfitBeforeTax > 0 && (
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        Bénéfice projeté après ce deal : {formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax + result.profitBeforeTax))}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {fiscalConfig.enabled && result.corporateTax === 0 && result.totalCost > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">Aucun IS incrémental sur ce deal (marge insuffisante ou bénéfice nul)</p>
+                )}
+              </CardContent>
             </Card>
           </div>
 
@@ -1230,7 +1201,7 @@ export default function PricingCalculator() {
                       <td className={`px-4 py-2.5 text-right font-bold ${result.grossMargin < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(result.grossMargin)}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold ${result.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</td>
                     </tr>
-                    {scenario.corporateTax.enabled && (
+                    {fiscalConfig.enabled && (
                       <>
                         <tr className="border-b border-slate-100 hover:bg-orange-50/30">
                           <td className="px-4 py-2 text-slate-600 font-medium">Résultat avant IS</td>
@@ -1246,7 +1217,7 @@ export default function PricingCalculator() {
                     )}
                     <tr className="bg-[#C8A24B]/10">
                       <td className="px-4 py-3 font-bold text-[#8a6b2a]">
-                        {scenario.corporateTax.enabled ? "Bénéfice net après IS" : "Marge nette"}
+                        {fiscalConfig.enabled ? "Bénéfice net après IS" : "Marge nette"}
                       </td>
                       <td className={`px-4 py-3 text-right font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{formatFCFA(result.netProfit)}</td>
                       <td className={`px-4 py-3 text-right font-bold ${result.netMarginPct < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{result.netMarginPct.toFixed(1)}%</td>
@@ -1313,7 +1284,7 @@ export default function PricingCalculator() {
                       <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Prix HT</th>
                       <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Marge brute</th>
                       <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Marge nette</th>
-                      {scenario.corporateTax.enabled && <th className="px-3 py-2 text-right text-muted-foreground font-semibold">IS</th>}
+                      {fiscalConfig.enabled && <th className="px-3 py-2 text-right text-muted-foreground font-semibold">IS</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1329,7 +1300,7 @@ export default function PricingCalculator() {
                         <td className="px-3 py-2.5 text-right font-semibold">{as.priceHT > 0 ? formatFCFA(Math.round(as.priceHT)) : "—"}</td>
                         <td className={`px-3 py-2.5 text-right font-semibold ${as.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{as.grossMarginPct.toFixed(1)}%</td>
                         <td className={`px-3 py-2.5 text-right font-bold ${as.netMarginPct < 0 ? "text-red-500" : as.netMarginPct < 10 ? "text-amber-500" : "text-emerald-600"}`}>{as.netMarginPct.toFixed(1)}%</td>
-                        {scenario.corporateTax.enabled && <td className="px-3 py-2.5 text-right text-orange-600">{as.corporateTax > 0 ? formatFCFA(Math.round(as.corporateTax)) : "—"}</td>}
+                        {fiscalConfig.enabled && <td className="px-3 py-2.5 text-right text-orange-600">{as.corporateTax > 0 ? formatFCFA(Math.round(as.corporateTax)) : "—"}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -1415,7 +1386,7 @@ export default function PricingCalculator() {
             <CardContent className="pt-4">
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
                 {scenarios.map(s => {
-                  const r = calculate(s);
+                  const r = calculate(s, fiscalConfig);
                   return (
                     <div key={s.id} className={`rounded-lg border p-3 cursor-pointer transition-all ${s.id === activeId ? "border-[#C8A24B] bg-amber-50/30" : "border-slate-200 hover:border-[#C8A24B]/40"}`} onClick={() => setActiveId(s.id)}>
                       <div className="text-sm font-bold truncate">{s.name}</div>

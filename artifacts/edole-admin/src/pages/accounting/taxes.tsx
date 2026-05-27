@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA } from "@/lib/format";
@@ -23,7 +23,8 @@ import { toast } from "sonner";
 import {
   TrendingUp, Receipt, Building2, Users, Percent, AlertCircle,
   Plus, Pencil, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle,
-  ShieldCheck, Landmark, Briefcase, Banknote,
+  ShieldCheck, Landmark, Briefcase, Banknote, RotateCcw, Info, Save,
+  TrendingDown, ExternalLink,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -49,6 +50,26 @@ type FiscalSummary = {
   tva: { collectee: number; deductible: number; due: number };
   irpp: number; aib: number; ipts: number; cnss: number;
   resultatFiscal: number; revenus: number; charges: number;
+};
+
+type TaxBracket = { id: string; label: string; min: number; max: number | null; rate: number };
+
+type FiscalSettings = {
+  id: string | null;
+  organizationId: string;
+  corporateTaxEnabled: boolean;
+  corporateTaxBrackets: TaxBracket[];
+  updatedAt: string | null;
+};
+
+type YtdProfit = {
+  period: { from: string | null; to: string | null };
+  ytdRevenues: number;
+  ytdCharges: number;
+  ytdProfitBeforeTax: number;
+  ytdEstimatedTax: number;
+  ytdNetProfit: number;
+  isEnabled: boolean;
 };
 
 type TvaLine = {
@@ -312,10 +333,16 @@ export default function TaxesPage() {
 
   const [from, setFrom] = useState(firstDay);
   const [to, setTo] = useState(lastDay);
-  const [tab, setTab] = useState<"referentiel" | "schedule" | "tva-detail">("referentiel");
+  const [tab, setTab] = useState<"referentiel" | "schedule" | "tva-detail" | "impot-societe">("referentiel");
   const [formOpen, setFormOpen] = useState(false);
   const [editTax, setEditTax] = useState<Tax | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── Paramètres IS (impôt société)
+  const [isBrackets, setIsBrackets] = useState<TaxBracket[]>([]);
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEdited, setIsEdited] = useState(false);
 
   const qc = useQueryClient();
   const params = new URLSearchParams({ from, to });
@@ -325,6 +352,71 @@ export default function TaxesPage() {
     queryFn: () => apiFetch("/api/accounting/taxes"),
   });
   const taxes = taxesRes?.data ?? [];
+
+  // ── Fetch config IS
+  const { data: fiscalSettings, isLoading: loadingFiscal } = useQuery<FiscalSettings>({
+    queryKey: ["fiscal-settings"],
+    queryFn: () => apiFetch("/api/accounting/fiscal-settings"),
+    enabled: tab === "impot-societe",
+  });
+
+  const { data: ytdProfit, isLoading: loadingYtd } = useQuery<YtdProfit>({
+    queryKey: ["ytd-profit"],
+    queryFn: () => apiFetch("/api/accounting/ytd-profit"),
+    enabled: tab === "impot-societe",
+  });
+
+  // Sync local state when data arrives
+  React.useEffect(() => {
+    if (fiscalSettings && !isEdited) {
+      setIsEnabled(fiscalSettings.corporateTaxEnabled);
+      setIsBrackets(fiscalSettings.corporateTaxBrackets ?? []);
+    }
+  }, [fiscalSettings, isEdited]);
+
+  const DEFAULT_BRACKETS: TaxBracket[] = [
+    { id: "b1", label: "Exonération",          min: 0,          max: 2_000_000,  rate: 0 },
+    { id: "b2", label: "Tranche 1 (2M–10M)",   min: 2_000_001,  max: 10_000_000, rate: 15 },
+    { id: "b3", label: "Tranche 2 (10M–50M)",  min: 10_000_001, max: 50_000_000, rate: 25 },
+    { id: "b4", label: "Tranche supérieure",   min: 50_000_001, max: null,        rate: 29 },
+  ];
+
+  const uid = () => crypto.randomUUID().slice(0, 8);
+
+  const updateBracket = (idx: number, patch: Partial<TaxBracket>) => {
+    setIsEdited(true);
+    setIsBrackets(prev => prev.map((b, i) => i === idx ? { ...b, ...patch } : b));
+  };
+  const addBracket = () => {
+    setIsEdited(true);
+    setIsBrackets(prev => [...prev, { id: uid(), label: "Nouvelle tranche", min: 0, max: null, rate: 0 }]);
+  };
+  const removeBracket = (id: string) => {
+    setIsEdited(true);
+    setIsBrackets(prev => prev.filter(b => b.id !== id));
+  };
+  const resetBrackets = () => {
+    setIsEdited(true);
+    setIsBrackets(DEFAULT_BRACKETS);
+  };
+
+  const saveFiscalSettings = async () => {
+    setIsSaving(true);
+    try {
+      await apiFetch("/api/accounting/fiscal-settings", {
+        method: "PUT",
+        body: JSON.stringify({ corporateTaxEnabled: isEnabled, corporateTaxBrackets: isBrackets }),
+      });
+      qc.invalidateQueries({ queryKey: ["fiscal-settings"] });
+      qc.invalidateQueries({ queryKey: ["ytd-profit"] });
+      setIsEdited(false);
+      toast.success("Paramètres IS enregistrés");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const { data: tvaDetail, isLoading: loadingTva } = useQuery<{ data: TvaLine[] }>({
     queryKey: ["tva-detail", from, to],
@@ -376,9 +468,10 @@ export default function TaxesPage() {
     .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime());
 
   const tabs = [
-    { key: "referentiel",  label: "Référentiel fiscal" },
-    { key: "schedule",     label: "Échéancier" },
-    { key: "tva-detail",   label: "Détail TVA" },
+    { key: "referentiel",    label: "Référentiel fiscal" },
+    { key: "schedule",       label: "Échéancier" },
+    { key: "tva-detail",     label: "Détail TVA" },
+    { key: "impot-societe",  label: "Impôt société (IS)" },
   ] as const;
 
   return (
@@ -660,6 +753,197 @@ export default function TaxesPage() {
                 ))}
               </>
             )}
+          </div>
+        )}
+
+        {/* ── Impôt société (IS) ── */}
+        {tab === "impot-societe" && (
+          <div className="space-y-5">
+            {/* Header avec bouton Enregistrer */}
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="font-semibold text-base">Impôt sur les sociétés (IS) — Barème progressif</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configurez ici le taux progressif IS applicable à votre organisation (Togo BIC par défaut).
+                  Ce barème est utilisé automatiquement par le <strong>Calculateur tarifaire</strong>.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {isEdited && (
+                  <span className="text-xs text-amber-600 font-medium">Modifications non enregistrées</span>
+                )}
+                <Button
+                  onClick={saveFiscalSettings}
+                  disabled={isSaving || !isEdited}
+                  className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "Enregistrement…" : "Enregistrer"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Toggle activation */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-sm">Activer le calcul IS dans le calculateur tarifaire</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Si activé, le calculateur tarifaire intégrera l'IS incrémental dans le waterfall de marge.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setIsEnabled(v => !v); setIsEdited(true); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isEnabled ? "bg-orange-500" : "bg-slate-200"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${isEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bénéfice YTD automatique */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  Bénéfice YTD — calculé depuis la comptabilité
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 p-4">
+                {loadingYtd ? (
+                  <div className="text-sm text-muted-foreground">Calcul en cours…</div>
+                ) : ytdProfit ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Produits (cl. 7)</div>
+                      <div className="font-bold text-emerald-700 text-sm">{formatFCFA(ytdProfit.ytdRevenues)}</div>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Charges (cl. 6)</div>
+                      <div className="font-bold text-red-600 text-sm">{formatFCFA(ytdProfit.ytdCharges)}</div>
+                    </div>
+                    <div className={`rounded-lg p-3 ${ytdProfit.ytdProfitBeforeTax < 0 ? "bg-red-50" : "bg-amber-50"}`}>
+                      <div className="text-xs text-muted-foreground mb-1">Résultat avant IS</div>
+                      <div className={`font-bold text-sm ${ytdProfit.ytdProfitBeforeTax < 0 ? "text-red-700" : "text-amber-700"}`}>
+                        {formatFCFA(ytdProfit.ytdProfitBeforeTax)}
+                      </div>
+                    </div>
+                    <div className="bg-orange-50 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground mb-1">IS estimé (barème)</div>
+                      <div className="font-bold text-orange-700 text-sm">
+                        {isEnabled ? formatFCFA(ytdProfit.ytdEstimatedTax) : <span className="text-slate-400">—</span>}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    Aucune écriture comptable disponible. Saisissez des journaux pour calculer le bénéfice YTD.
+                  </div>
+                )}
+                {ytdProfit?.period?.from && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Période analysée : du {ytdProfit.period.from} au {ytdProfit.period.to ?? "aujourd'hui"} — écritures comptabilisées uniquement.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Barème IS éditeur */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Landmark className="w-4 h-4 text-orange-500" />
+                    Barème progressif IS
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={resetBrackets}>
+                      <RotateCcw className="w-3 h-3" /> Togo BIC par défaut
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2">
+                {loadingFiscal ? (
+                  <div className="text-sm text-muted-foreground">Chargement…</div>
+                ) : (
+                  <>
+                    {/* En-tête colonnes */}
+                    <div className="grid grid-cols-[1fr_1fr_90px_90px_32px] gap-2 items-center mb-1">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Libellé tranche</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Minimum (XOF)</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Maximum (XOF)</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Taux (%)</div>
+                      <div />
+                    </div>
+
+                    {isBrackets.map((bracket, i) => (
+                      <div key={bracket.id} className="grid grid-cols-[1fr_1fr_90px_90px_32px] gap-2 items-center">
+                        <Input
+                          className="h-8 text-sm"
+                          value={bracket.label}
+                          onChange={e => updateBracket(i, { label: e.target.value })}
+                          placeholder="Libellé"
+                        />
+                        <Input
+                          type="number" min="0" step="100000" className="h-8 text-sm"
+                          value={bracket.min}
+                          onChange={e => updateBracket(i, { min: parseFloat(e.target.value) || 0 })}
+                        />
+                        <Input
+                          type="number" min="0" step="100000" className="h-8 text-sm"
+                          placeholder="illimité"
+                          value={bracket.max ?? ""}
+                          onChange={e => updateBracket(i, { max: e.target.value === "" ? null : parseFloat(e.target.value) || 0 })}
+                        />
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number" min="0" max="100" step="0.5" className="h-8 text-sm"
+                            value={bracket.rate}
+                            onChange={e => updateBracket(i, { rate: parseFloat(e.target.value) || 0 })}
+                          />
+                          <span className="text-xs text-muted-foreground shrink-0">%</span>
+                        </div>
+                        <Button
+                          size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeBracket(bracket.id)}
+                          disabled={isBrackets.length <= 1}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <Button
+                      size="sm" variant="outline"
+                      className="text-xs gap-1.5 border-dashed border-orange-300 text-orange-700 hover:bg-orange-50 mt-2"
+                      onClick={addBracket}
+                    >
+                      <Plus className="w-3 h-3" /> Ajouter une tranche
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Note légale */}
+            <Card className="border-dashed">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-[#C8A24B] mt-0.5 shrink-0" />
+                  <div className="text-sm text-muted-foreground">
+                    <strong className="text-foreground">Barème Togo BIC (référence 2024) :</strong>{" "}
+                    0% jusqu'à 2 000 000 XOF · 15% de 2 à 10 M · 25% de 10 à 50 M · 29% au-delà.
+                    Ces paramètres sont utilisés exclusivement dans le <strong>Calculateur tarifaire</strong> pour estimer l'IS incrémental sur un deal.
+                    Ils ne remplacent pas une comptabilisation formelle de la charge d'impôt.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

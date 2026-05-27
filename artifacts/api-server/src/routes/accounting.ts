@@ -20,6 +20,7 @@ import {
   costCentersTable,
   taxesTable,
   updateTaxSchema,
+  orgFiscalSettingsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
@@ -1870,6 +1871,141 @@ router.get("/accounting/cash-flow-statement", requireAuth, requireManagerOrAbove
       closingBalance: tresorerieFin,
     });
   } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// PARAMÈTRES FISCAUX ORGANISATION (Impôt Société — IS)
+// ════════════════════════════════════════════════════════════════
+
+const DEFAULT_BRACKETS = [
+  { id: "b1", label: "Exonération",          min: 0,          max: 2_000_000,  rate: 0 },
+  { id: "b2", label: "Tranche 1 (2M–10M)",   min: 2_000_001,  max: 10_000_000, rate: 15 },
+  { id: "b3", label: "Tranche 2 (10M–50M)",  min: 10_000_001, max: 50_000_000, rate: 25 },
+  { id: "b4", label: "Tranche supérieure",   min: 50_000_001, max: null,        rate: 29 },
+];
+
+/** Retourne les paramètres IS de l'organisation (crée l'entrée par défaut si absente). */
+router.get("/accounting/fiscal-settings", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const [row] = await db.select().from(orgFiscalSettingsTable)
+    .where(eq(orgFiscalSettingsTable.organizationId, orgId)).limit(1);
+  if (row) return res.json(row);
+  // Premier accès : retourne valeurs par défaut sans créer de ligne
+  return res.json({
+    id: null,
+    organizationId: orgId,
+    corporateTaxEnabled: false,
+    corporateTaxBrackets: DEFAULT_BRACKETS,
+    updatedAt: null,
+    updatedById: null,
+  });
+});
+
+/** Sauvegarde les paramètres IS (admin). Upsert sur organizationId. */
+router.put("/accounting/fiscal-settings", requireAdmin, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { corporateTaxEnabled, corporateTaxBrackets } = req.body || {};
+
+  if (typeof corporateTaxEnabled !== "boolean") return res.status(400).json({ error: "corporateTaxEnabled (boolean) requis" });
+  if (!Array.isArray(corporateTaxBrackets)) return res.status(400).json({ error: "corporateTaxBrackets (array) requis" });
+
+  const [existing] = await db.select({ id: orgFiscalSettingsTable.id })
+    .from(orgFiscalSettingsTable).where(eq(orgFiscalSettingsTable.organizationId, orgId)).limit(1);
+
+  let row;
+  if (existing) {
+    [row] = await db.update(orgFiscalSettingsTable)
+      .set({ corporateTaxEnabled, corporateTaxBrackets, updatedById: req.authUser!.id })
+      .where(eq(orgFiscalSettingsTable.id, existing.id))
+      .returning();
+  } else {
+    [row] = await db.insert(orgFiscalSettingsTable)
+      .values({ organizationId: orgId, corporateTaxEnabled, corporateTaxBrackets, updatedById: req.authUser!.id })
+      .returning();
+  }
+  return res.json(row);
+});
+
+/**
+ * Bénéfice YTD automatique à partir des écritures comptables (classes 6 & 7).
+ * Calcule revenus – charges depuis le début de l'exercice en cours (ou période fournie).
+ * Applique également les brackets IS pour estimer l'impôt.
+ */
+router.get("/accounting/ytd-profit", async (req, res) => {
+  const { from, to } = req.query as Record<string, string>;
+  const orgId = req.authUser!.organizationId;
+
+  // Période par défaut : exercice en cours (fiscalPeriod open)
+  let periodFrom = from || null;
+  let periodTo   = to   || null;
+
+  if (!periodFrom) {
+    const [openPeriod] = await db.select()
+      .from(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.status, "open")))
+      .orderBy(desc(fiscalPeriodsTable.startDate))
+      .limit(1);
+    if (openPeriod) { periodFrom = openPeriod.startDate; periodTo = openPeriod.endDate; }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const effectiveTo = periodTo && periodTo < today ? periodTo : today;
+
+  const conds: any[] = [
+    eq(journalEntriesTable.organizationId, orgId),
+    eq(journalEntriesTable.status, "posted"),
+    sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
+  ];
+  if (periodFrom) conds.push(gte(journalEntriesTable.entryDate, periodFrom));
+  if (effectiveTo) conds.push(lte(journalEntriesTable.entryDate, effectiveTo));
+
+  const rows = await db.select({
+    classNum: chartOfAccountsTable.classNum,
+    totalDebit:  sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
+    totalCredit: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
+  })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+    .where(and(...conds))
+    .groupBy(chartOfAccountsTable.classNum);
+
+  let ytdRevenues = 0;
+  let ytdCharges  = 0;
+  for (const r of rows) {
+    const debit  = toNum(r.totalDebit);
+    const credit = toNum(r.totalCredit);
+    if (r.classNum === 7) ytdRevenues += credit - debit;  // produits : sens crédit
+    if (r.classNum === 6) ytdCharges  += debit - credit;  // charges  : sens débit
+  }
+  const ytdProfitBeforeTax = ytdRevenues - ytdCharges;
+
+  // Appliquer les brackets IS pour estimer l'impôt
+  const [fsRow] = await db.select().from(orgFiscalSettingsTable)
+    .where(eq(orgFiscalSettingsTable.organizationId, orgId)).limit(1);
+  const brackets = fsRow?.corporateTaxBrackets?.length ? fsRow.corporateTaxBrackets : DEFAULT_BRACKETS;
+  const isEnabled = fsRow?.corporateTaxEnabled ?? false;
+
+  let ytdEstimatedTax = 0;
+  if (isEnabled && ytdProfitBeforeTax > 0) {
+    const sorted = [...brackets].sort((a, b) => a.min - b.min);
+    for (const b of sorted) {
+      if (ytdProfitBeforeTax <= b.min) break;
+      const upper = b.max === null ? ytdProfitBeforeTax : Math.min(ytdProfitBeforeTax, b.max);
+      ytdEstimatedTax += (upper - b.min) * (b.rate / 100);
+    }
+  }
+
+  return res.json({
+    period: { from: periodFrom, to: effectiveTo },
+    ytdRevenues:          Math.round(ytdRevenues),
+    ytdCharges:           Math.round(ytdCharges),
+    ytdProfitBeforeTax:   Math.round(ytdProfitBeforeTax),
+    ytdEstimatedTax:      Math.round(ytdEstimatedTax),
+    ytdNetProfit:         Math.round(ytdProfitBeforeTax - ytdEstimatedTax),
+    isEnabled,
+    hasFiscalSettings:    !!fsRow,
+  });
 });
 
 export default router;

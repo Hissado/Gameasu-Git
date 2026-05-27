@@ -421,3 +421,22 @@ export type Tax = typeof taxesTable.$inferSelect;
 export const insertTaxSchema = createInsertSchema(taxesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const updateTaxSchema = insertTaxSchema.partial().omit({ organizationId: true });
 export type InsertTax = z.infer<typeof insertTaxSchema>;
+
+// ─── Paramètres fiscaux organisationnels (IS / Corporate Tax) ─────────────────
+// Un seul enregistrement par organisation (upsert).
+// Stocke le barème progressif IS configurable + flag d'activation.
+export const orgFiscalSettingsTable = pgTable("org_fiscal_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  corporateTaxEnabled: boolean("corporate_tax_enabled").notNull().default(false),
+  // Tableau de tranches : [{ id, label, min, max (null=illimité), rate }]
+  corporateTaxBrackets: jsonb("corporate_tax_brackets").$type<Array<{
+    id: string; label: string; min: number; max: number | null; rate: number;
+  }>>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  updatedById: uuid("updated_by_id").references(() => usersTable.id),
+}, (t) => ({
+  orgIdx: uniqueIndex("org_fiscal_settings_org_uidx").on(t.organizationId),
+}));
+
+export type OrgFiscalSettings = typeof orgFiscalSettingsTable.$inferSelect;
