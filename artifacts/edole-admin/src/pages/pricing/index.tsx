@@ -1,89 +1,54 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { PieChart, Pie, Cell, Tooltip as RechartTooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Switch } from "@/components/ui/switch";
+import { PieChart, Pie, Cell, Tooltip as RechartTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { formatFCFA } from "@/lib/format";
 import {
-  Plus, Trash2, Tag, Info, Copy, FileSignature, ShoppingCart, Save, Download,
-  RotateCcw, TrendingUp, AlertCircle, CheckCircle2, Percent, Package, Truck,
-  Users, Wrench, DollarSign, ArrowRight, Search, BookOpen, X, Clock, HardHat,
-  Calculator, ChevronDown, ChevronUp, Lightbulb, Target, Brain, Landmark,
-  TrendingDown, AlertTriangle, Shield,
+  Plus, Trash2, Info, FileSignature, ShoppingCart, Download,
+  TrendingUp, CheckCircle2, Package, Truck, Users, Wrench, DollarSign,
+  Calculator, Lightbulb, Target, Landmark, AlertTriangle, Shield,
+  Building2, Megaphone, Banknote, HardHat, Settings2, ChevronDown, ChevronUp,
+  AlertCircle, RefreshCw, ArrowRight, Clock, Percent, Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const uid = () => crypto.randomUUID().slice(0, 8);
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-type CostCategory = "direct" | "labor" | "indirect" | "logistics" | "purchase" | "tax_input" | "other";
-type MarginMode = "net" | "gross" | "markup";
-type TaxMode = "on_top" | "included";
+type CostCategory =
+  | "direct" | "purchase" | "logistics" | "tax_input" | "other"
+  | "labor"
+  | "operational" | "depreciation"
+  | "admin"
+  | "commercial"
+  | "financial"
+  | "risk";
+
+type AllocMethod = "fixed" | "pct" | "per_unit";
+type MarginMode  = "net" | "gross" | "markup";
+type TaxMode     = "on_top" | "included";
 
 interface CostItem {
   id: string;
   label: string;
   category: CostCategory;
-  amount: number;
-  isPercent?: boolean;
-  baseRef?: "cost" | "ht";
-}
-
-interface TaxBracket {
-  id: string;
-  label: string;
-  min: number;
-  max: number | null;
-  rate: number;
-}
-
-interface CorporateTaxConfig {
-  enabled: boolean;
-  ytdProfitBeforeTax: number;  // résultat avant IS, depuis comptabilité
-  ytdEstimatedTax: number;     // IS estimé sur le YTD actuel
-  ytdNetProfit: number;        // résultat net YTD (= ytdProfitBeforeTax - ytdEstimatedTax)
-  brackets: TaxBracket[];
-}
-
-interface Scenario {
-  id: string;
-  name: string;
-  description: string;
-  productName: string;
-  costItems: CostItem[];
-  laborLines: LaborLineItem[];
-  laborSettings: LaborSettings;
-  marginMode: MarginMode;
-  marginTarget: number;
-  taxRate: number;
-  taxMode: TaxMode;
-  quantity: number;
-}
-
-// ─── Catalog types ────────────────────────────────────────────────────────────
-
-type CatalogProduct = { id: string; sku: string; name: string; unit: string; sellingPriceFcfa: string; taxRatePct: string; isActive: boolean; categoryName?: string };
-type CatalogService = { id: string; code: string; name: string; unit: string; unitPrice: string; category: string | null; isActive: boolean };
-type CatalogEntry   = { id: string; name: string; ref: string; unit: string; price: number; taxRate: number; kind: "product" | "service" };
-type CatalogCollab  = { id: string; firstName: string; lastName: string; position?: string | null; department?: string | null; baseSalary?: string | null; employmentStatus: string };
-
-// ─── Main-d'œuvre types ───────────────────────────────────────────────────────
-
-interface LaborSettings {
-  employerChargeRate: number;
-  weeklyHours: number;
+  alloc: AllocMethod;
+  amount: number;           // FCFA fixe | taux % | coût unitaire (FCFA/h, /j, /u)
+  qty?: number;             // heures / jours / unités (pour per_unit)
+  qtyUnit?: string;         // "h" | "j" | "u" pour affichage
+  baseRef?: "cost" | "ht"; // base de calcul pour pct
+  notes?: string;
 }
 
 interface LaborLineItem {
@@ -98,97 +63,146 @@ interface LaborLineItem {
   allocatedHours: number;
 }
 
-// ─── Recommendation type ──────────────────────────────────────────────────────
-
-type RecType = "danger" | "warning" | "success" | "info";
-interface Recommendation {
-  type: RecType;
-  title: string;
-  msg: string;
+interface LaborSettings {
+  employerChargeRate: number;
+  weeklyHours: number;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+interface TaxBracket {
+  id: string; label: string; min: number; max: number | null; rate: number;
+}
 
-const CATEGORIES: Record<CostCategory, { label: string; icon: React.FC<any>; color: string }> = {
-  direct:    { label: "Coûts directs",     icon: Package,      color: "#3B82F6" },
-  labor:     { label: "Main d'œuvre",      icon: Users,        color: "#8B5CF6" },
-  logistics: { label: "Logistique",        icon: Truck,        color: "#F59E0B" },
-  purchase:  { label: "Achats & approv.",  icon: ShoppingCart, color: "#10B981" },
-  indirect:  { label: "Frais indirects",   icon: Wrench,       color: "#6B7280" },
-  tax_input: { label: "Taxes & droits",    icon: Percent,      color: "#EF4444" },
-  other:     { label: "Autres frais",      icon: DollarSign,   color: "#EC4899" },
+interface CorporateTaxConfig {
+  enabled: boolean;
+  ytdProfitBeforeTax: number;
+  ytdEstimatedTax: number;
+  ytdNetProfit: number;
+  brackets: TaxBracket[];
+}
+
+interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+  productName: string;
+  clientId?: string;
+  category: string;
+  unit: string;
+  quantity: number;
+  period: string;
+  costItems: CostItem[];
+  laborLines: LaborLineItem[];
+  laborSettings: LaborSettings;
+  operationalItems: CostItem[];
+  adminItems: CostItem[];
+  commercialItems: CostItem[];
+  financialItems: CostItem[];
+  riskItems: CostItem[];
+  depreciationItems: CostItem[];
+  marginMode: MarginMode;
+  marginTarget: number;
+  taxRate: number;
+  taxMode: TaxMode;
+}
+
+interface PricingResult {
+  totalCost: number;
+  byCategory: Record<CostCategory, number>;
+  priceHT: number; priceTTC: number; taxAmount: number;
+  unitCost: number; unitHT: number; unitTTC: number;
+  grossMargin: number; grossMarginPct: number;
+  operatingMargin: number; operatingMarginPct: number;
+  profitBeforeTax: number;
+  corporateTax: number; effectiveTaxRate: number; marginalTaxRate: number;
+  netProfit: number; netMarginPct: number;
+  netMargin: number; markupPct: number;
+  minimumPriceHT: number; recommendedPriceHT: number;
+  breakdownLabels: { label: string; value: number; color: string }[];
+}
+
+type RecType = "danger" | "warning" | "success" | "info";
+interface Recommendation { type: RecType; title: string; msg: string; }
+
+type CatalogCollab = { id: string; firstName: string; lastName: string; position?: string | null; department?: string | null; baseSalary?: string | null; employerChargeRate: string; weeklyHours: string; employmentStatus: string };
+type CatalogEquipment = { id: string; name: string; code: string; dailyRate: number; categoryName?: string };
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const CATEGORIES: Record<CostCategory, { label: string; icon: React.FC<any>; color: string; bg: string }> = {
+  direct:      { label: "Coûts directs",         icon: Package,    color: "#3B82F6", bg: "bg-blue-50" },
+  purchase:    { label: "Achats & approv.",       icon: ShoppingCart,color:"#10B981", bg: "bg-emerald-50" },
+  logistics:   { label: "Logistique",             icon: Truck,      color: "#F59E0B", bg: "bg-amber-50" },
+  tax_input:   { label: "Taxes & droits",         icon: Percent,    color: "#EF4444", bg: "bg-red-50" },
+  other:       { label: "Autres frais directs",   icon: DollarSign, color: "#EC4899", bg: "bg-pink-50" },
+  labor:       { label: "Main-d'œuvre",           icon: Users,      color: "#8B5CF6", bg: "bg-purple-50" },
+  operational: { label: "Charges opérat.",        icon: Wrench,     color: "#0EA5E9", bg: "bg-sky-50" },
+  depreciation:{ label: "Amortissements",         icon: HardHat,    color: "#84CC16", bg: "bg-lime-50" },
+  admin:       { label: "Admin & structure",      icon: Building2,  color: "#64748B", bg: "bg-slate-50" },
+  commercial:  { label: "Frais commerciaux",      icon: Megaphone,  color: "#A855F7", bg: "bg-purple-50" },
+  financial:   { label: "Frais financiers",       icon: Banknote,   color: "#EF4444", bg: "bg-red-50" },
+  risk:        { label: "Provisions & risques",   icon: Shield,     color: "#F97316", bg: "bg-orange-50" },
+};
+
+const ALLOC_LABELS: Record<AllocMethod, string> = {
+  fixed:    "Montant fixe",
+  pct:      "Pourcentage",
+  per_unit: "Par unité (h/j/u)",
 };
 
 const MARGIN_MODES: Record<MarginMode, { label: string; desc: string }> = {
-  net:    { label: "Marge nette souhaitée",      desc: "% du prix de vente HT restant après tous les coûts" },
-  gross:  { label: "Marge brute souhaitée",      desc: "% du prix de vente HT avant charges indirectes" },
-  markup: { label: "Coefficient de majoration",  desc: "Multiplicateur appliqué au prix de revient (ex. ×1.4 = +40%)" },
+  net:    { label: "Marge nette cible",         desc: "% du prix HT restant après tous les coûts" },
+  gross:  { label: "Marge brute cible",         desc: "% du prix HT avant charges indirectes" },
+  markup: { label: "Coefficient de majoration", desc: "Multiplicateur (ex. 40 = ×1.4 sur le coût)" },
 };
 
-const CHART_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#6B7280", "#EF4444", "#EC4899", "#C8A24B"];
-
-const DEFAULT_LABOR_SETTINGS: LaborSettings = { employerChargeRate: 18.4, weeklyHours: 40 };
-
-// Barème IS Togo (BIC) — configurable (fallback si l'API n'est pas encore chargée)
 const DEFAULT_TAX_BRACKETS: TaxBracket[] = [
-  { id: "b1", label: "Exonération",          min: 0,          max: 2_000_000,  rate: 0 },
-  { id: "b2", label: "Tranche 1 (2M–10M)",   min: 2_000_001,  max: 10_000_000, rate: 15 },
-  { id: "b3", label: "Tranche 2 (10M–50M)",  min: 10_000_001, max: 50_000_000, rate: 25 },
-  { id: "b4", label: "Tranche supérieure",   min: 50_000_001, max: null,        rate: 29 },
+  { id: "b1", label: "Exonération",         min: 0,          max: 2_000_000,  rate: 0 },
+  { id: "b2", label: "Tranche 1 (2M–10M)",  min: 2_000_001,  max: 10_000_000, rate: 15 },
+  { id: "b3", label: "Tranche 2 (10M–50M)", min: 10_000_001, max: 50_000_000, rate: 25 },
+  { id: "b4", label: "Tranche supérieure",  min: 50_000_001, max: null,        rate: 29 },
 ];
 
-// ─── PricingResult ────────────────────────────────────────────────────────────
-
-interface PricingResult {
-  // Coûts
-  totalCost: number;
-  byCategory: Record<CostCategory, number>;
-  // Prix
-  priceHT: number;
-  priceTTC: number;
-  taxAmount: number;           // TVA
-  unitCost: number;
-  unitHT: number;
-  unitTTC: number;
-  // Marges
-  grossMargin: number;          // CA - coûts totaux
-  grossMarginPct: number;
-  operatingMargin: number;      // = grossMargin (simplifié)
-  operatingMarginPct: number;
-  profitBeforeTax: number;      // = grossMargin
-  // IS
-  corporateTax: number;         // IS incrémental sur ce deal
-  effectiveTaxRate: number;     // % effectif (IS/profitBeforeTax)
-  marginalTaxRate: number;      // taux marginal applicable
-  // Net
-  netProfit: number;
-  netMarginPct: number;
-  // Marges synthétiques (legacy)
-  netMargin: number;
-  markupPct: number;
-  // Prix cibles
-  minimumPriceHT: number;       // prix min pour couvrir coûts + IS
-  recommendedPriceHT: number;   // prix pour atteindre marginTarget net after IS
-}
-
-// ─── Default scenario ─────────────────────────────────────────────────────────
+const DEFAULT_LABOR: LaborSettings = { employerChargeRate: 18.4, weeklyHours: 40 };
 
 const DEFAULT_SCENARIO: Scenario = {
-  id: "default",
-  name: "Scénario 1",
-  description: "",
-  productName: "",
-  costItems: [{ id: "c1", label: "Matériaux / Fournitures", category: "direct", amount: 0 }],
-  laborLines: [],
-  laborSettings: { ...DEFAULT_LABOR_SETTINGS },
-  marginMode: "net",
-  marginTarget: 25,
-  taxRate: 18,
-  taxMode: "on_top",
-  quantity: 1,
+  id: "default", name: "Scénario 1", description: "",
+  productName: "", clientId: "", category: "", unit: "unité", quantity: 1, period: "",
+  costItems: [{ id: uid(), label: "Matériaux / Fournitures", category: "direct", alloc: "fixed", amount: 0 }],
+  laborLines: [], laborSettings: { ...DEFAULT_LABOR },
+  operationalItems: [], adminItems: [], commercialItems: [],
+  financialItems: [], riskItems: [], depreciationItems: [],
+  marginMode: "net", marginTarget: 25, taxRate: 18, taxMode: "on_top",
 };
 
-// ─── Calcul IS ────────────────────────────────────────────────────────────────
+const CHART_COLORS = ["#3B82F6","#8B5CF6","#F59E0B","#10B981","#0EA5E9","#64748B","#A855F7","#EF4444","#F97316","#84CC16","#EC4899","#6366F1"];
+
+// ─── Auto-scenarios ─────────────────────────────────────────────────────────
+
+const AUTO_SCENARIOS = [
+  { key: "minimum",    label: "Minimum viable", margin: 0,  color: "#EF4444", bg: "bg-red-50",     border: "border-red-200",     text: "text-red-700" },
+  { key: "prudent",    label: "Prudent",        margin: 10, color: "#F59E0B", bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-700" },
+  { key: "recommande", label: "Recommandé",     margin: 25, color: "#10B981", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  { key: "premium",    label: "Premium",        margin: 40, color: "#6366F1", bg: "bg-indigo-50",  border: "border-indigo-200",  text: "text-indigo-700" },
+];
+
+// ─── Calculation functions ───────────────────────────────────────────────────
+
+function computeLaborLineCost(line: LaborLineItem) {
+  const monthlyHours = (line.weeklyHours * 52) / 12;
+  const monthlyCostEmployeur = line.monthlySalaryBrut * (1 + line.employerChargeRate / 100) + line.benefitsMonthly;
+  const hourlyRate = monthlyHours > 0 ? monthlyCostEmployeur / monthlyHours : 0;
+  return { hourlyRate, totalCost: hourlyRate * line.allocatedHours, monthlyCostEmployeur };
+}
+
+function computeItemCost(item: CostItem, baseCost: number, baseHT: number): number {
+  if (item.alloc === "fixed")    return Math.max(0, item.amount);
+  if (item.alloc === "per_unit") return Math.max(0, item.amount) * Math.max(0, item.qty ?? 0);
+  if (item.alloc === "pct") {
+    const base = item.baseRef === "ht" ? baseHT : baseCost;
+    return Math.max(0, base) * (Math.max(0, item.amount) / 100);
+  }
+  return 0;
+}
 
 function computeTaxOnProfit(profit: number, brackets: TaxBracket[]): number {
   if (profit <= 0) return 0;
@@ -197,136 +211,152 @@ function computeTaxOnProfit(profit: number, brackets: TaxBracket[]): number {
   for (const b of sorted) {
     if (profit <= b.min) break;
     const upper = b.max === null ? profit : Math.min(profit, b.max);
-    const taxable = upper - b.min;
-    tax += taxable * (b.rate / 100);
+    tax += (upper - b.min) * (b.rate / 100);
   }
   return tax;
 }
 
-function computeCorporateTax(
-  ytdProfit: number,
-  newProfit: number,
-  brackets: TaxBracket[],
-): { incrementalTax: number; effectiveRate: number; marginalRate: number } {
+function computeCorporateTax(ytdProfit: number, newProfit: number, brackets: TaxBracket[]) {
   const taxBefore = computeTaxOnProfit(Math.max(0, ytdProfit), brackets);
   const taxAfter  = computeTaxOnProfit(Math.max(0, ytdProfit + newProfit), brackets);
   const incrementalTax = Math.max(0, taxAfter - taxBefore);
   const effectiveRate  = newProfit > 0 ? (incrementalTax / newProfit) * 100 : 0;
-
-  // Taux marginal = tranche dans laquelle tombe le résultat projeté
   const totalProfit = ytdProfit + newProfit;
   const sorted = [...brackets].sort((a, b) => a.min - b.min);
   let marginalRate = sorted[sorted.length - 1]?.rate ?? 0;
   for (const b of sorted) {
-    if (totalProfit >= b.min && (b.max === null || totalProfit <= b.max)) {
-      marginalRate = b.rate;
-      break;
-    }
+    if (totalProfit >= b.min && (b.max === null || totalProfit <= b.max)) { marginalRate = b.rate; break; }
   }
   return { incrementalTax, effectiveRate, marginalRate };
 }
 
-/** Recherche dichotomique : prix HT pour atteindre une marge nette cible après IS */
-function findPriceForNetMargin(
-  totalCost: number,
-  targetNetMarginPct: number,
-  ytdProfit: number,
-  brackets: TaxBracket[],
-  taxEnabled: boolean,
-): number {
+function findPriceForNetMargin(totalCost: number, targetPct: number, ytdProfit: number, brackets: TaxBracket[], taxEnabled: boolean): number {
   if (totalCost <= 0) return 0;
-  let lo = totalCost;
-  let hi = totalCost * 20;
+  let lo = totalCost, hi = totalCost * 20;
   for (let i = 0; i < 80; i++) {
     const mid = (lo + hi) / 2;
     const grossMargin = mid - totalCost;
-    const isTax = taxEnabled
-      ? computeCorporateTax(ytdProfit, grossMargin, brackets).incrementalTax
-      : 0;
-    const netProfit = grossMargin - isTax;
-    const netMarginPct = mid > 0 ? (netProfit / mid) * 100 : 0;
-    if (Math.abs(netMarginPct - targetNetMarginPct) < 0.01) break;
-    if (netMarginPct < targetNetMarginPct) lo = mid;
-    else hi = mid;
+    const isTax = taxEnabled ? computeCorporateTax(ytdProfit, grossMargin, brackets).incrementalTax : 0;
+    const netPct = mid > 0 ? ((grossMargin - isTax) / mid) * 100 : 0;
+    if (Math.abs(netPct - targetPct) < 0.01) break;
+    if (netPct < targetPct) lo = mid; else hi = mid;
   }
   return (lo + hi) / 2;
 }
 
-// ─── Calculate ────────────────────────────────────────────────────────────────
-
-function computeLaborLineCost(line: LaborLineItem) {
-  const monthlyHours = (line.weeklyHours * 52) / 12;
-  const monthlyCostEmployeur = line.monthlySalaryBrut * (1 + line.employerChargeRate / 100) + line.benefitsMonthly;
-  const hourlyRate = monthlyHours > 0 ? monthlyCostEmployeur / monthlyHours : 0;
-  const totalCost  = hourlyRate * line.allocatedHours;
-  return { hourlyRate, totalCost, monthlyCostEmployeur };
-}
-
-function calculate(scenario: Scenario, fiscalConfig: CorporateTaxConfig): PricingResult {
+function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
   const qty = Math.max(1, scenario.quantity);
   const byCategory: Record<CostCategory, number> = {
-    direct: 0, labor: 0, indirect: 0, logistics: 0, purchase: 0, tax_input: 0, other: 0,
+    direct: 0, purchase: 0, logistics: 0, tax_input: 0, other: 0,
+    labor: 0, operational: 0, depreciation: 0,
+    admin: 0, commercial: 0, financial: 0, risk: 0,
   };
 
-  // 0. Main-d'œuvre
-  for (const line of (scenario.laborLines ?? [])) {
+  // 1. Labor
+  let laborTotal = 0;
+  for (const line of scenario.laborLines ?? []) {
     const { totalCost } = computeLaborLineCost(line);
-    byCategory.labor += Math.max(0, totalCost);
+    laborTotal += Math.max(0, totalCost);
+  }
+  byCategory.labor = laborTotal;
+
+  // 2. Direct cost items (fixed + per_unit)
+  let baseCost = laborTotal;
+  const allDirect = scenario.costItems ?? [];
+  for (const item of allDirect.filter(i => i.alloc !== "pct")) {
+    const c = computeItemCost(item, 0, 0);
+    byCategory[item.category] = (byCategory[item.category] ?? 0) + c;
+    baseCost += c;
+  }
+  for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc !== "pct")) {
+    const c = computeItemCost(item, 0, 0);
+    byCategory.operational += c; baseCost += c;
+  }
+  for (const item of (scenario.depreciationItems ?? []).filter(i => i.alloc !== "pct")) {
+    const c = computeItemCost(item, 0, 0);
+    byCategory.depreciation += c; baseCost += c;
+  }
+  for (const item of (scenario.adminItems ?? []).filter(i => i.alloc !== "pct")) {
+    const c = computeItemCost(item, 0, 0);
+    byCategory.admin += c; baseCost += c;
+  }
+  for (const item of (scenario.financialItems ?? []).filter(i => i.alloc !== "pct")) {
+    const c = computeItemCost(item, 0, 0);
+    byCategory.financial += c; baseCost += c;
   }
 
-  // 1. Coûts fixes
-  let fixedCost = byCategory.labor;
-  for (const item of scenario.costItems.filter(i => !i.isPercent)) {
-    const amt = Math.max(0, item.amount);
-    byCategory[item.category] += amt;
-    fixedCost += amt;
+  // 3. Preliminary price (for pct-of-HT items)
+  const prelimHT = scenario.marginMode === "markup"
+    ? baseCost * (1 + scenario.marginTarget / 100)
+    : baseCost / Math.max(0.001, 1 - Math.min(scenario.marginTarget / 100, 0.999));
+
+  // 4. Pct items on base cost
+  for (const item of allDirect.filter(i => i.alloc === "pct")) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory[item.category] = (byCategory[item.category] ?? 0) + c;
+    baseCost += c;
+  }
+  for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc === "pct")) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory.operational += c; baseCost += c;
+  }
+  for (const item of (scenario.adminItems ?? []).filter(i => i.alloc === "pct")) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory.admin += c; baseCost += c;
+  }
+  for (const item of (scenario.financialItems ?? []).filter(i => i.alloc === "pct")) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory.financial += c; baseCost += c;
   }
 
-  // 2. Coûts en %
-  let percentCost = 0;
-  for (const item of scenario.costItems.filter(i => i.isPercent)) {
-    const base = item.baseRef === "ht"
-      ? (scenario.marginMode === "markup"
-          ? fixedCost * (1 + scenario.marginTarget / 100)
-          : fixedCost / Math.max(0.01, 1 - scenario.marginTarget / 100))
-      : fixedCost;
-    const amt = base * (item.amount / 100);
-    byCategory[item.category] += amt;
-    percentCost += amt;
+  // 5. Commercial & risk (may reference HT)
+  for (const item of (scenario.commercialItems ?? [])) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory.commercial += c; baseCost += c;
+  }
+  for (const item of (scenario.riskItems ?? [])) {
+    const c = computeItemCost(item, baseCost, prelimHT);
+    byCategory.risk += c; baseCost += c;
   }
 
-  const totalCost = fixedCost + percentCost;
+  const totalCost = baseCost;
 
-  // 3. Prix HT selon mode
+  // 6. Final price HT
   let priceHT = 0;
   if (scenario.marginMode === "markup") {
     priceHT = totalCost * (1 + scenario.marginTarget / 100);
   } else {
-    const margin = Math.min(scenario.marginTarget / 100, 0.999);
-    priceHT = totalCost / Math.max(0.001, 1 - margin);
+    priceHT = totalCost / Math.max(0.001, 1 - Math.min(scenario.marginTarget / 100, 0.999));
   }
 
   const taxAmount = scenario.taxMode === "on_top"
     ? priceHT * (scenario.taxRate / 100)
     : priceHT * (scenario.taxRate / (100 + scenario.taxRate));
   const priceTTC = scenario.taxMode === "on_top" ? priceHT + taxAmount : priceHT;
-
   const grossMargin = priceHT - totalCost;
   const grossMarginPct = priceHT > 0 ? (grossMargin / priceHT) * 100 : 0;
   const markupPct = totalCost > 0 ? (grossMargin / totalCost) * 100 : 0;
 
-  // 4. Impôt société incrémental (config centralisée)
-  const ct = fiscalConfig;
-  const { incrementalTax, effectiveRate, marginalRate } = ct.enabled
-    ? computeCorporateTax(ct.ytdProfitBeforeTax, grossMargin, ct.brackets)
+  // 7. IS incrémental
+  const { incrementalTax, effectiveRate, marginalRate } = fc.enabled
+    ? computeCorporateTax(fc.ytdProfitBeforeTax, grossMargin, fc.brackets)
     : { incrementalTax: 0, effectiveRate: 0, marginalRate: 0 };
 
   const netProfit = grossMargin - incrementalTax;
   const netMarginPct = priceHT > 0 ? (netProfit / priceHT) * 100 : 0;
 
-  // 5. Prix cibles
-  const minimumPriceHT = findPriceForNetMargin(totalCost, 0, ct.ytdProfitBeforeTax, ct.brackets, ct.enabled);
-  const recommendedPriceHT = findPriceForNetMargin(totalCost, scenario.marginTarget, ct.ytdProfitBeforeTax, ct.brackets, ct.enabled);
+  // 8. Prix cibles
+  const minimumPriceHT    = findPriceForNetMargin(totalCost, 0, fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
+  const recommendedPriceHT = findPriceForNetMargin(totalCost, scenario.marginTarget, fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
+
+  // 9. Breakdown for chart (only non-zero categories)
+  const breakdownLabels = Object.entries(byCategory)
+    .filter(([, v]) => v > 0)
+    .map(([k, v], i) => ({
+      label: CATEGORIES[k as CostCategory]?.label ?? k,
+      value: Math.round(v),
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    }));
 
   return {
     totalCost, byCategory,
@@ -335,141 +365,404 @@ function calculate(scenario: Scenario, fiscalConfig: CorporateTaxConfig): Pricin
     grossMargin, grossMarginPct,
     operatingMargin: grossMargin, operatingMarginPct: grossMarginPct,
     profitBeforeTax: grossMargin,
-    corporateTax: incrementalTax,
-    effectiveTaxRate: effectiveRate,
-    marginalTaxRate: marginalRate,
+    corporateTax: incrementalTax, effectiveTaxRate: effectiveRate, marginalTaxRate: marginalRate,
     netProfit, netMarginPct,
-    netMargin: netProfit,
-    markupPct,
-    minimumPriceHT,
-    recommendedPriceHT,
+    netMargin: netProfit, markupPct,
+    minimumPriceHT, recommendedPriceHT,
+    breakdownLabels,
   };
 }
 
-// ─── Scénarios automatiques ───────────────────────────────────────────────────
+// ─── Recommendations ─────────────────────────────────────────────────────────
 
-const AUTO_SCENARIOS = [
-  { key: "minimum",     label: "Minimum viable", margin: 0,  color: "#EF4444", bg: "bg-red-50",     border: "border-red-200",     text: "text-red-700" },
-  { key: "prudent",     label: "Prudent",         margin: 10, color: "#F59E0B", bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-700" },
-  { key: "recommande",  label: "Recommandé",      margin: 25, color: "#10B981", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
-  { key: "premium",     label: "Premium",         margin: 40, color: "#6366F1", bg: "bg-indigo-50",  border: "border-indigo-200",  text: "text-indigo-700" },
-];
-
-// ─── Recommandations automatiques ────────────────────────────────────────────
-
-function generateRecommendations(result: PricingResult, scenario: Scenario, fiscalConfig: CorporateTaxConfig): Recommendation[] {
+function generateRecommendations(result: PricingResult, scenario: Scenario, fc: CorporateTaxConfig): Recommendation[] {
   const recs: Recommendation[] = [];
-  const { priceHT, totalCost, grossMarginPct, netMarginPct, netProfit, grossMargin, corporateTax, marginalTaxRate } = result;
-
+  const { priceHT, totalCost, grossMarginPct, netMarginPct, netProfit, grossMargin, corporateTax, marginalTaxRate, recommendedPriceHT } = result;
   if (totalCost === 0) {
-    recs.push({ type: "info", title: "Aucun coût saisi", msg: "Renseignez vos coûts pour obtenir des recommandations pertinentes." });
+    recs.push({ type: "info", title: "Aucun coût saisi", msg: "Renseignez vos coûts pour obtenir des recommandations." });
     return recs;
   }
-
   if (priceHT < totalCost) {
-    recs.push({ type: "danger", title: "Vente à perte", msg: "Ce prix est inférieur au coût de revient — vous vendez à perte. Augmentez immédiatement votre prix ou réduisez vos coûts." });
+    recs.push({ type: "danger", title: "Vente à perte", msg: "Ce prix est inférieur au coût de revient complet. Vous vendez à perte. Augmentez votre prix ou réduisez vos coûts." });
   } else if (grossMarginPct < 5) {
-    recs.push({ type: "danger", title: "Marge critique", msg: "Ce prix couvre à peine les coûts directs. La marge est insuffisante pour absorber les aléas et les charges indirectes." });
+    recs.push({ type: "danger", title: "Marge critique (< 5%)", msg: "La marge brute est insuffisante pour absorber les aléas et charges non comptabilisées." });
   } else if (grossMarginPct < 15) {
-    recs.push({ type: "warning", title: "Marge faible", msg: "Ce prix couvre les coûts directs mais la marge reste fragile face aux charges opérationnelles non comptabilisées." });
+    recs.push({ type: "warning", title: "Marge faible (< 15%)", msg: "Ce prix couvre les coûts mais la marge reste fragile face aux imprévus opérationnels." });
   }
-
-  if (fiscalConfig.enabled) {
+  if (fc.enabled) {
     if (grossMargin > 0 && netProfit <= 0) {
-      recs.push({ type: "warning", title: "Rentable avant IS, déficitaire après", msg: "Ce prix génère un bénéfice avant impôt mais la charge d'IS le rend déficitaire. Augmentez votre prix ou renégociez les coûts." });
+      recs.push({ type: "warning", title: "Rentable avant IS, déficitaire après", msg: "L'impôt société absorbe toute la marge. Augmentez votre prix ou optimisez les coûts déductibles." });
     }
-    if (corporateTax > 0 && grossMargin > 0) {
-      const taxBurden = (corporateTax / grossMargin) * 100;
-      if (taxBurden > 40) {
-        recs.push({ type: "warning", title: "Fort impact fiscal", msg: `L'impôt société absorbe ${taxBurden.toFixed(0)}% de votre marge brute sur ce deal. Envisagez des optimisations fiscales.` });
-      }
+    if (corporateTax > 0 && grossMargin > 0 && (corporateTax / grossMargin) * 100 > 40) {
+      recs.push({ type: "warning", title: "Fort impact fiscal", msg: `L'IS absorbe ${((corporateTax / grossMargin) * 100).toFixed(0)}% de votre marge brute. Vérifiez l'éligibilité de vos charges à la déduction.` });
     }
     if (marginalTaxRate > 0) {
-      recs.push({ type: "info", title: `Taux marginal IS : ${marginalTaxRate}%`, msg: `Ce deal est soumis au taux marginal de ${marginalTaxRate}%. Toute hausse de prix supplémentaire sera taxée à ce taux.` });
+      recs.push({ type: "info", title: `Taux marginal IS : ${marginalTaxRate}%`, msg: `Ce deal est imposé au taux marginal de ${marginalTaxRate}%. Toute hausse de prix sera taxée à ce taux.` });
     }
   }
-
   if (netMarginPct >= scenario.marginTarget && scenario.marginMode === "net") {
-    recs.push({ type: "success", title: "Objectif atteint", msg: `Ce prix atteint votre marge nette cible de ${scenario.marginTarget}% ${fiscalConfig.enabled ? "après IS" : ""}.` });
+    recs.push({ type: "success", title: "Objectif de marge nette atteint ✓", msg: `Ce prix atteint votre marge nette cible de ${scenario.marginTarget}%${fc.enabled ? " après IS" : ""}.` });
   }
-
-  if (result.recommendedPriceHT > priceHT && priceHT > 0) {
-    recs.push({ type: "info", title: "Prix recommandé disponible", msg: `Pour atteindre ${scenario.marginTarget}% de marge nette${fiscalConfig.enabled ? " après IS" : ""}, appliquez ${formatFCFA(Math.round(result.recommendedPriceHT))} HT (actuellement ${formatFCFA(Math.round(priceHT))} HT).` });
+  if (recommendedPriceHT > priceHT && priceHT > 0) {
+    recs.push({ type: "info", title: "Prix recommandé disponible", msg: `Pour atteindre ${scenario.marginTarget}% de marge nette${fc.enabled ? " après IS" : ""}, appliquez ${formatFCFA(Math.round(recommendedPriceHT))} HT (actuellement ${formatFCFA(Math.round(priceHT))} HT).` });
   }
-
-  if (grossMarginPct > 80) {
-    recs.push({ type: "warning", title: "Marge exceptionnellement élevée", msg: "Une marge supérieure à 80% est inhabituellement haute. Vérifiez que tous les coûts sont bien pris en compte." });
+  if (result.byCategory.risk === 0 && totalCost > 500_000) {
+    recs.push({ type: "info", title: "Aucune provision pour risque", msg: "Pour une prestation de cette taille, prévoyez une provision risques (invendus, garanties, impayés) de 2–5%." });
   }
-
+  if (result.byCategory.admin === 0 && totalCost > 1_000_000) {
+    recs.push({ type: "info", title: "Charges admin non allouées", msg: "Aucune quote-part de charges admin/structure n'est imputée à ce produit. Vérifiez votre clé d'allocation." });
+  }
+  if (grossMarginPct > 85) {
+    recs.push({ type: "warning", title: "Marge anormalement élevée (> 85%)", msg: "Une marge aussi haute est inhabituelle. Vérifiez que tous les coûts réels sont bien pris en compte." });
+  }
   return recs;
+}
+
+// ─── CostItemRow ─────────────────────────────────────────────────────────────
+
+function CostItemRow({
+  item, onUpdate, onRemove, baseCost, baseHT, showCategory,
+}: {
+  item: CostItem;
+  onUpdate: (u: Partial<CostItem>) => void;
+  onRemove: () => void;
+  baseCost?: number;
+  baseHT?: number;
+  showCategory?: boolean;
+}) {
+  const computed = computeItemCost(item, baseCost ?? 0, baseHT ?? 0);
+
+  return (
+    <div className="grid gap-x-2 gap-y-1" style={{ gridTemplateColumns: "1fr 100px 80px 80px 28px" }}>
+      <Input
+        value={item.label}
+        onChange={e => onUpdate({ label: e.target.value })}
+        placeholder="Libellé"
+        className="h-8 text-xs"
+      />
+      <Select value={item.alloc} onValueChange={(v) => onUpdate({ alloc: v as AllocMethod })}>
+        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fixed">Fixe (FCFA)</SelectItem>
+          <SelectItem value="pct">% coût</SelectItem>
+          <SelectItem value="per_unit">Par unité</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input
+        type="number" min="0" step="any"
+        value={item.amount}
+        onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
+        className="h-8 text-xs text-right"
+        placeholder={item.alloc === "pct" ? "%" : "FCFA"}
+      />
+      {item.alloc === "per_unit" ? (
+        <div className="flex gap-1">
+          <Input
+            type="number" min="0" step="any"
+            value={item.qty ?? 0}
+            onChange={e => onUpdate({ qty: parseFloat(e.target.value) || 0 })}
+            className="h-8 text-xs text-right w-12"
+            placeholder="qté"
+          />
+        </div>
+      ) : (
+        <div className="h-8 flex items-center text-xs text-right text-emerald-700 font-semibold px-1 truncate">
+          {formatFCFA(Math.round(computed))}
+        </div>
+      )}
+      <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+      {item.alloc === "per_unit" && (
+        <div className="col-span-5 text-xs text-right text-emerald-700 font-semibold pr-8">
+          = {formatFCFA(Math.round(computed))} ({item.amount > 0 ? `${formatFCFA(item.amount)} × ${item.qty ?? 0} ${item.qtyUnit ?? "u"}` : "—"})
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LaborLineRow ─────────────────────────────────────────────────────────────
+
+function LaborLineRow({ line, onUpdate, onRemove }: {
+  line: LaborLineItem;
+  onUpdate: (u: Partial<LaborLineItem>) => void;
+  onRemove: () => void;
+}) {
+  const { hourlyRate, totalCost, monthlyCostEmployeur } = computeLaborLineCost(line);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border border-purple-100 rounded-lg bg-purple-50/40 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-purple-500" />
+          <Input
+            value={line.name}
+            onChange={e => onUpdate({ name: e.target.value })}
+            className="h-7 text-sm font-semibold bg-transparent border-0 border-b border-purple-200 rounded-none p-0 w-48 focus-visible:ring-0"
+          />
+          {line.collaboratorId && <Badge variant="outline" className="text-xs text-purple-700 border-purple-300">Importé</Badge>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-purple-700">{formatFCFA(Math.round(totalCost))}</span>
+          <button onClick={() => setOpen(!open)} className="text-slate-400 hover:text-slate-600">
+            {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={onRemove} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+        </div>
+      </div>
+      {open && (
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <div>
+            <Label className="text-xs text-muted-foreground">Salaire brut mensuel (FCFA)</Label>
+            <Input type="number" min="0" value={line.monthlySalaryBrut} onChange={e => onUpdate({ monthlySalaryBrut: parseFloat(e.target.value) || 0 })} className="h-7 text-xs mt-0.5" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Charges patronales (%)</Label>
+            <Input type="number" min="0" value={line.employerChargeRate} onChange={e => onUpdate({ employerChargeRate: parseFloat(e.target.value) || 0 })} className="h-7 text-xs mt-0.5" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Avantages mensuels (FCFA)</Label>
+            <Input type="number" min="0" value={line.benefitsMonthly} onChange={e => onUpdate({ benefitsMonthly: parseFloat(e.target.value) || 0 })} className="h-7 text-xs mt-0.5" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Heures/semaine</Label>
+            <Input type="number" min="1" value={line.weeklyHours} onChange={e => onUpdate({ weeklyHours: parseFloat(e.target.value) || 40 })} className="h-7 text-xs mt-0.5" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Heures affectées à ce produit</Label>
+            <Input type="number" min="0" value={line.allocatedHours} onChange={e => onUpdate({ allocatedHours: parseFloat(e.target.value) || 0 })} className="h-7 text-xs mt-0.5" />
+          </div>
+          <div className="bg-purple-50 border border-purple-100 rounded p-2 text-xs space-y-0.5">
+            <div className="flex justify-between"><span className="text-muted-foreground">Coût employeur/mois</span><span className="font-semibold">{formatFCFA(Math.round(monthlyCostEmployeur))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Taux horaire réel</span><span className="font-semibold">{formatFCFA(Math.round(hourlyRate))}/h</span></div>
+            <div className="flex justify-between border-t border-purple-100 pt-0.5 mt-0.5"><span className="font-bold text-purple-800">Coût affecté</span><span className="font-bold text-purple-800">{formatFCFA(Math.round(totalCost))}</span></div>
+          </div>
+        </div>
+      )}
+      {!open && (
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <span>Taux horaire : <strong>{formatFCFA(Math.round(hourlyRate))}/h</strong></span>
+          <span>Heures : <strong>{line.allocatedHours}h</strong></span>
+          <span>Charges : <strong>{line.employerChargeRate}%</strong></span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LoadFromHRDialog ─────────────────────────────────────────────────────────
+
+function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
+  open: boolean; onClose: () => void;
+  onSelect: (lines: LaborLineItem[]) => void;
+  laborSettings: LaborSettings;
+}) {
+  const { data: collabsRes } = useQuery<{ data: CatalogCollab[] }>({
+    queryKey: ["collabs-pricing"], queryFn: () => apiFetch("/api/collaborators?limit=200"), enabled: open,
+  });
+  const collabs = collabsRes?.data ?? [];
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [hours, setHours] = useState<Record<string, number>>({});
+
+  const toggle = (id: string) => {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  const handleConfirm = () => {
+    const lines: LaborLineItem[] = collabs
+      .filter(c => selected.has(c.id))
+      .map(c => ({
+        id: uid(),
+        name: `${c.firstName} ${c.lastName}`,
+        collaboratorId: c.id,
+        contractType: c.employmentStatus ?? "CDI",
+        monthlySalaryBrut: parseFloat(c.baseSalary ?? "0") || 0,
+        employerChargeRate: parseFloat(c.employerChargeRate) || laborSettings.employerChargeRate,
+        benefitsMonthly: 0,
+        weeklyHours: parseFloat(c.weeklyHours) || laborSettings.weeklyHours,
+        allocatedHours: hours[c.id] ?? 8,
+      }));
+    onSelect(lines);
+    setSelected(new Set()); setHours({});
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-purple-500" />Importer depuis les Ressources Humaines</DialogTitle>
+          <DialogDescription>Sélectionnez les collaborateurs intervenant sur ce produit/service.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {collabs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucun collaborateur trouvé</p>}
+          {collabs.map(c => {
+            const sel = selected.has(c.id);
+            const salary = parseFloat(c.baseSalary ?? "0") || 0;
+            return (
+              <div key={c.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-purple-300 bg-purple-50" : "border-slate-200 hover:bg-slate-50"}`} onClick={() => toggle(c.id)}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-sm">{c.firstName} {c.lastName}</div>
+                    <div className="text-xs text-muted-foreground">{c.position ?? "—"} · {c.department ?? "—"}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Salaire brut : {salary > 0 ? formatFCFA(salary) : "non renseigné"} /mois
+                    </div>
+                  </div>
+                  <input type="checkbox" checked={sel} readOnly className="w-4 h-4" />
+                </div>
+                {sel && (
+                  <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <Label className="text-xs text-purple-700 shrink-0">Heures affectées :</Label>
+                    <Input type="number" min="0" value={hours[c.id] ?? 8}
+                      onChange={e => setHours(prev => ({ ...prev, [c.id]: parseFloat(e.target.value) || 0 }))}
+                      className="h-7 text-xs w-20" />
+                    <span className="text-xs text-muted-foreground">h</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleConfirm} disabled={selected.size === 0} className="bg-purple-600 hover:bg-purple-700 text-white">
+            Importer {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── LoadFromEquipmentDialog ──────────────────────────────────────────────────
+
+function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
+  open: boolean; onClose: () => void;
+  onSelect: (items: CostItem[]) => void;
+}) {
+  const { data: eqRes } = useQuery<{ data: CatalogEquipment[] }>({
+    queryKey: ["equipment-pricing"], queryFn: () => apiFetch("/api/equipment?limit=200"), enabled: open,
+  });
+  const equipment = eqRes?.data ?? [];
+  const [days, setDays] = useState<Record<string, number>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) => { setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); };
+
+  const handleConfirm = () => {
+    const items: CostItem[] = equipment.filter(e => selected.has(e.id)).map(e => ({
+      id: uid(),
+      label: `${e.name} (${e.code})`,
+      category: "depreciation" as CostCategory,
+      alloc: "per_unit" as AllocMethod,
+      amount: e.dailyRate ?? 0,
+      qty: days[e.id] ?? 1,
+      qtyUnit: "j",
+      notes: e.categoryName,
+    }));
+    onSelect(items); setSelected(new Set()); setDays({}); onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><HardHat className="w-5 h-5 text-lime-600" />Importer depuis les Équipements</DialogTitle>
+          <DialogDescription>Sélectionnez les équipements utilisés et le nombre de jours d'usage.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {equipment.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucun équipement trouvé</p>}
+          {equipment.map(e => {
+            const sel = selected.has(e.id);
+            return (
+              <div key={e.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-lime-300 bg-lime-50" : "border-slate-200 hover:bg-slate-50"}`} onClick={() => toggle(e.id)}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-sm">{e.name}</div>
+                    <div className="text-xs text-muted-foreground">{e.code} · {e.categoryName ?? "—"}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Tarif journalier : {formatFCFA(e.dailyRate ?? 0)}/j</div>
+                  </div>
+                  <input type="checkbox" checked={sel} readOnly className="w-4 h-4" />
+                </div>
+                {sel && (
+                  <div className="mt-2 flex items-center gap-2" onClick={ev => ev.stopPropagation()}>
+                    <Label className="text-xs text-lime-700 shrink-0">Jours d'usage :</Label>
+                    <Input type="number" min="0" step="0.5" value={days[e.id] ?? 1}
+                      onChange={ev => setDays(prev => ({ ...prev, [e.id]: parseFloat(ev.target.value) || 0 }))}
+                      className="h-7 text-xs w-20" />
+                    <span className="text-xs text-muted-foreground">j → {formatFCFA((e.dailyRate ?? 0) * (days[e.id] ?? 1))}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleConfirm} disabled={selected.size === 0} className="bg-lime-600 hover:bg-lime-700 text-white">
+            Importer {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ─── SendToDocDialog ──────────────────────────────────────────────────────────
 
-type DocType = "proforma" | "order";
-
 function SendToDocDialog({ open, onClose, result, scenario, docType }: {
-  open: boolean; onClose: () => void; result: PricingResult; scenario: Scenario; docType: DocType;
+  open: boolean; onClose: () => void; result: PricingResult; scenario: Scenario; docType: "proforma" | "order";
 }) {
   const { data: clientsRes } = useQuery<{ data: { id: string; name: string }[] }>({
-    queryKey: ["clients-list"],
-    queryFn: () => apiFetch("/api/clients?limit=100"),
-    enabled: open,
+    queryKey: ["clients-list"], queryFn: () => apiFetch("/api/clients?limit=100"), enabled: open,
   });
   const clients = clientsRes?.data ?? [];
-  const [clientId, setClientId] = useState("");
+  const [clientId, setClientId] = useState(scenario.clientId ?? "");
   const [useUnit, setUseUnit] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const amount = useUnit ? result.unitTTC : result.priceTTC;
-  const label = docType === "proforma" ? "Créer le devis" : "Créer la commande";
-  const endpoint = docType === "proforma" ? "/api/proformas" : "/api/orders";
 
   const handleCreate = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
     setSaving(true);
     try {
-      await apiFetch(endpoint, {
+      await apiFetch(docType === "proforma" ? "/api/proformas" : "/api/orders", {
         method: "POST",
         body: JSON.stringify({
-          clientId,
-          totalAmount: Math.round(amount),
-          currency: "XOF",
-          notes: `[Calculateur tarifaire] ${scenario.productName || "Prestation"} — Coût : ${formatFCFA(result.totalCost)}, Marge brute : ${result.grossMarginPct.toFixed(1)}%, Marge nette : ${result.netMarginPct.toFixed(1)}%, TVA ${scenario.taxRate}%${result.corporateTax > 0 ? `, IS : ${formatFCFA(Math.round(result.corporateTax))}` : ""}`,
+          clientId, totalAmount: Math.round(amount), currency: "XOF",
+          notes: `[Calculateur tarifaire] ${scenario.productName || "Prestation"} — Coût : ${formatFCFA(result.totalCost)}, Marge brute : ${result.grossMarginPct.toFixed(1)}%, Marge nette : ${result.netMarginPct.toFixed(1)}%${result.corporateTax > 0 ? `, IS : ${formatFCFA(Math.round(result.corporateTax))}` : ""}`,
         }),
       });
       toast.success(docType === "proforma" ? "Devis créé avec succès" : "Commande créée avec succès");
       onClose();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erreur lors de la création");
-    } finally { setSaving(false); }
+    } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {docType === "proforma" ? <FileSignature className="w-5 h-5 text-[#C8A24B]" /> : <ShoppingCart className="w-5 h-5 text-[#C8A24B]" />}
-            {docType === "proforma" ? "Créer un devis depuis ce calcul" : "Créer une commande depuis ce calcul"}
+            {docType === "proforma" ? "Créer un devis" : "Créer une commande"}
           </DialogTitle>
-          <DialogDescription>Les données du calculateur seront reportées dans le document commercial.</DialogDescription>
+          <DialogDescription>Les données du calculateur seront reportées dans le document.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">
-            <div className="font-semibold text-slate-700">{scenario.productName || "Prestation non nommée"}</div>
+            <div className="font-semibold">{scenario.productName || "Prestation non nommée"}</div>
             <div className="flex justify-between"><span className="text-muted-foreground">Prix HT :</span><span className="font-semibold">{formatFCFA(result.priceHT)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">TVA ({scenario.taxRate}%) :</span><span>{formatFCFA(result.taxAmount)}</span></div>
-            {result.corporateTax > 0 && (
-              <div className="flex justify-between text-orange-700"><span>IS incrémental :</span><span className="font-semibold">{formatFCFA(Math.round(result.corporateTax))}</span></div>
-            )}
-            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B] text-base">{formatFCFA(result.priceTTC)}</span></div>
-            <div className="flex justify-between text-xs text-muted-foreground"><span>Marge nette :</span><span className="font-semibold text-emerald-600">{result.netMarginPct.toFixed(1)}%</span></div>
+            {result.corporateTax > 0 && <div className="flex justify-between text-orange-700"><span>IS incrémental :</span><span className="font-semibold">{formatFCFA(Math.round(result.corporateTax))}</span></div>}
+            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B]">{formatFCFA(result.priceTTC)}</span></div>
           </div>
-          <div className="space-y-1">
+          <div>
             <Label>Client *</Label>
             <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
               <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -486,697 +779,614 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
-            {saving ? "Création…" : label}
-          </Button>
+          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : label(docType)}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+function label(d: "proforma"|"order") { return d === "proforma" ? "Créer le devis" : "Créer la commande"; }
 
-// ─── ScenarioSaveDialog ───────────────────────────────────────────────────────
+// ─── ScenarioCard ─────────────────────────────────────────────────────────────
 
-function ScenarioSaveDialog({ scenario, onSave, onClose }: { scenario: Scenario; onSave: (s: Scenario) => void; onClose: () => void }) {
-  const [name, setName] = useState(scenario.name);
-  const [desc, setDesc] = useState(scenario.description);
+function ScenarioCard({ def, scenario, fc }: { def: typeof AUTO_SCENARIOS[0]; scenario: Scenario; fc: CorporateTaxConfig }) {
+  const sc = { ...scenario, marginTarget: def.margin };
+  const r = calculate(sc, fc);
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Enregistrer le scénario</DialogTitle>
-          <DialogDescription>Donnez un nom à ce scénario pour le retrouver facilement.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="space-y-1"><Label>Nom *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="space-y-1"><Label>Description</Label><Textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
+    <div className={`rounded-xl border ${def.border} ${def.bg} p-4 space-y-2`}>
+      <div className={`font-bold text-sm ${def.text}`}>{def.label}</div>
+      <div className={`text-2xl font-black ${def.text}`}>{formatFCFA(Math.round(r.priceHT))}<span className="text-xs font-normal ml-1">HT</span></div>
+      <div className="space-y-1 text-xs">
+        <div className="flex justify-between"><span className="text-muted-foreground">Coût total</span><span className="font-semibold">{formatFCFA(Math.round(r.totalCost))}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Marge brute</span><span className={`font-semibold ${def.text}`}>{r.grossMarginPct.toFixed(1)}%</span></div>
+        {fc.enabled && <div className="flex justify-between"><span className="text-muted-foreground">IS incrémental</span><span className="font-semibold text-orange-700">{formatFCFA(Math.round(r.corporateTax))}</span></div>}
+        <div className={`flex justify-between font-bold border-t border-current/20 pt-1 ${def.text}`}>
+          <span>Marge nette</span><span>{r.netMarginPct.toFixed(1)}%</span>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={() => { if (!name.trim()) { toast.error("Nom requis"); return; } onSave({ ...scenario, name, description: desc }); onClose(); }} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">Enregistrer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── CostItemRow ──────────────────────────────────────────────────────────────
-
-function CostItemRow({ item, onUpdate, onRemove }: { item: CostItem; onUpdate: (i: CostItem) => void; onRemove: () => void }) {
-  const cat = CATEGORIES[item.category];
-  return (
-    <div className="grid grid-cols-[1fr_140px_120px_80px_40px] items-center gap-2 py-1.5 border-b border-slate-100 last:border-0 group">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <cat.icon className="w-3.5 h-3.5 shrink-0" style={{ color: cat.color }} />
-        <Input className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-0 font-medium" placeholder="Libellé du coût…" value={item.label} onChange={(e) => onUpdate({ ...item, label: e.target.value })} />
       </div>
-      <Select value={item.category} onValueChange={(v) => onUpdate({ ...item, category: v as CostCategory })}>
-        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>{Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k} className="text-xs"><span style={{ color: v.color }}>■</span> {v.label}</SelectItem>)}</SelectContent>
-      </Select>
-      <div className="flex items-center gap-1">
-        <Input type="number" min="0" step="any" className="h-7 text-xs w-full text-right" value={item.amount || ""} onChange={(e) => onUpdate({ ...item, amount: parseFloat(e.target.value) || 0 })} />
-        <span className="text-xs text-muted-foreground shrink-0">{item.isPercent ? "%" : "XOF"}</span>
-      </div>
-      <Button size="sm" variant="ghost" className="h-6 w-8 p-0 text-xs text-muted-foreground hover:text-slate-700 border-0 rounded" onClick={() => onUpdate({ ...item, isPercent: !item.isPercent })} title={item.isPercent ? "Passer en montant fixe" : "Passer en pourcentage"}>
-        {item.isPercent ? "%" : "F"}
-      </Button>
-      <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}><Trash2 className="w-3.5 h-3.5" /></Button>
+      <div className="text-[10px] text-muted-foreground">{formatFCFA(Math.round(r.priceTTC))} TTC</div>
     </div>
   );
 }
 
-// ─── Custom Tooltip for Pie ───────────────────────────────────────────────────
+// ─── CostSection ──────────────────────────────────────────────────────────────
 
-function PieTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0];
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-sm">
-      <div className="font-semibold">{p.name}</div>
-      <div className="text-[#C8A24B] font-bold">{formatFCFA(p.value)}</div>
-      <div className="text-muted-foreground text-xs">{p.payload.pct?.toFixed(1)}%</div>
-    </div>
-  );
-}
-
-// ─── LaborLineRow ─────────────────────────────────────────────────────────────
-
-const CONTRACT_TYPES = ["CDI", "CDD", "Prestation", "Freelance", "Autre"];
-
-function LaborLineRow({ line, onUpdate, onRemove }: { line: LaborLineItem; onUpdate: (l: LaborLineItem) => void; onRemove: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const { hourlyRate, totalCost, monthlyCostEmployeur } = computeLaborLineCost(line);
+function CostSection({
+  title, icon: Icon, color, items, onAdd, onUpdate, onRemove,
+  defaultCategory, baseCost, baseHT, children,
+  defaultAlloc = "fixed", defaultQtyUnit,
+}: {
+  title: string; icon: React.FC<any>; color: string;
+  items: CostItem[]; onAdd: () => void;
+  onUpdate: (id: string, u: Partial<CostItem>) => void;
+  onRemove: (id: string) => void;
+  defaultCategory: CostCategory;
+  baseCost?: number; baseHT?: number;
+  children?: React.ReactNode;
+  defaultAlloc?: AllocMethod;
+  defaultQtyUnit?: string;
+}) {
+  const total = items.reduce((sum, item) => sum + computeItemCost(item, baseCost ?? 0, baseHT ?? 0), 0);
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-purple-200 transition-colors">
-      <div className="flex items-center gap-2 px-3 py-2 group">
-        <HardHat className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-        <Input className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-0 font-medium flex-1 min-w-0" placeholder="Nom / poste" value={line.name} onChange={e => onUpdate({ ...line, name: e.target.value })} />
-        <div className="flex items-center gap-3 shrink-0 text-xs">
-          <span className="hidden sm:flex items-center gap-1 text-muted-foreground"><Clock className="w-3 h-3" /> {line.allocatedHours}h</span>
-          <span className="text-purple-700 font-semibold">{formatFCFA(Math.round(hourlyRate))}/h</span>
-          <span className="font-bold text-slate-800">{formatFCFA(Math.round(totalCost))}</span>
-        </div>
-        <button onClick={() => setExpanded(e => !e)} className="p-1 rounded hover:bg-slate-100 text-muted-foreground">
-          {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-        <button onClick={onRemove} className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+    <div className="space-y-2">
+      {children}
+      <div className="text-[11px] text-slate-500 grid font-medium mb-1" style={{ gridTemplateColumns: "1fr 100px 80px 80px 28px" }}>
+        <span>Libellé</span><span>Méthode</span><span className="text-right">Montant</span><span className="text-right">Qté / Total</span><span />
       </div>
-      {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Type de contrat</label>
-            <Select value={line.contractType} onValueChange={v => onUpdate({ ...line, contractType: v })}>
-              <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>{CONTRACT_TYPES.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Salaire brut mensuel (XOF)</label>
-            <Input type="number" min="0" step="5000" className="h-7 text-xs" placeholder="300 000" value={line.monthlySalaryBrut || ""} onChange={e => onUpdate({ ...line, monthlySalaryBrut: parseFloat(e.target.value) || 0 })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              Charges patronales (%)
-              <Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">Togo : CNSS patronal 16,4% + IPTS 2% = 18,4% par défaut.</TooltipContent></Tooltip>
-            </label>
-            <div className="flex items-center gap-1">
-              <Input type="number" min="0" max="100" step="0.1" className="h-7 text-xs" value={line.employerChargeRate} onChange={e => onUpdate({ ...line, employerChargeRate: parseFloat(e.target.value) || 0 })} />
-              <span className="text-xs text-muted-foreground shrink-0">%</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Avantages mensuels (XOF)</label>
-            <Input type="number" min="0" step="1000" className="h-7 text-xs" placeholder="50 000" value={line.benefitsMonthly || ""} onChange={e => onUpdate({ ...line, benefitsMonthly: parseFloat(e.target.value) || 0 })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Heures / semaine</label>
-            <Input type="number" min="1" max="80" step="0.5" className="h-7 text-xs" value={line.weeklyHours} onChange={e => onUpdate({ ...line, weeklyHours: parseFloat(e.target.value) || 40 })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              Heures allouées
-              <Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="text-xs">Heures de travail effectif sur ce projet/mission.</TooltipContent></Tooltip>
-            </label>
-            <Input type="number" min="0" step="1" className="h-7 text-xs" placeholder="80" value={line.allocatedHours || ""} onChange={e => onUpdate({ ...line, allocatedHours: parseFloat(e.target.value) || 0 })} />
-          </div>
-          <div className="sm:col-span-2 lg:col-span-3 bg-purple-50 border border-purple-100 rounded-md px-3 py-2">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div><div className="text-muted-foreground">Heures/mois</div><div className="font-semibold">{((line.weeklyHours * 52) / 12).toFixed(1)} h</div></div>
-              <div><div className="text-muted-foreground">Coût employeur/mois</div><div className="font-semibold">{formatFCFA(Math.round(monthlyCostEmployeur))}</div></div>
-              <div><div className="text-muted-foreground">Taux horaire réel</div><div className="font-bold text-purple-700">{formatFCFA(Math.round(hourlyRate))} / h</div></div>
-              <div><div className="text-muted-foreground">Coût total alloué</div><div className="font-bold text-slate-800">{formatFCFA(Math.round(totalCost))}</div></div>
-            </div>
+      {items.length === 0 ? (
+        <div className="text-center py-5 text-muted-foreground text-xs border border-dashed border-slate-200 rounded-lg">
+          <Icon className="w-6 h-6 mx-auto mb-1.5 opacity-30" />
+          Aucun poste — cliquez « Ajouter »
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {items.map(item => (
+            <CostItemRow
+              key={item.id} item={item}
+              onUpdate={u => onUpdate(item.id, u)}
+              onRemove={() => onRemove(item.id)}
+              baseCost={baseCost} baseHT={baseHT}
+            />
+          ))}
+          <div className="flex justify-between text-xs border-t border-slate-100 pt-2 mt-1" style={{ paddingRight: "36px" }}>
+            <span className="text-muted-foreground font-medium flex items-center gap-1"><Calculator className="w-3 h-3" />Total {title}</span>
+            <span className="font-bold" style={{ color }}>{formatFCFA(Math.round(total))}</span>
           </div>
         </div>
       )}
+      <Button size="sm" variant="outline" onClick={onAdd} className="w-full h-7 text-xs border-dashed mt-1">
+        <Plus className="w-3.5 h-3.5 mr-1" />Ajouter un poste
+      </Button>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PricingCalculator() {
-  const [, navigate] = useLocation();
   const [scenarios, setScenarios] = useState<Scenario[]>([{ ...DEFAULT_SCENARIO, id: uid() }]);
-  const [activeId, setActiveId] = useState(scenarios[0].id);
-  const [sendDocOpen, setSendDocOpen] = useState<DocType | null>(null);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [activeScenarioId, setActiveScenarioId] = useState<string>(scenarios[0].id);
+  const [showHRDialog, setShowHRDialog] = useState(false);
+  const [showEquipDialog, setShowEquipDialog] = useState(false);
+  const [sendDocType, setSendDocType] = useState<"proforma" | "order" | null>(null);
+  const [activeTab, setActiveTab] = useState("directs");
 
-  const scenario = useMemo(() => scenarios.find(s => s.id === activeId) ?? scenarios[0], [scenarios, activeId]);
+  const scenario = scenarios.find(s => s.id === activeScenarioId) ?? scenarios[0];
 
-  // ── Config IS centralisée — lue depuis Comptabilité > Fiscal
-  const { data: fiscalSettingsData, isLoading: fiscalLoading } = useQuery<{
-    corporateTaxEnabled: boolean;
-    corporateTaxBrackets: TaxBracket[];
-    updatedAt: string | null;
-  }>({
-    queryKey: ["fiscal-settings"],
-    queryFn: () => apiFetch("/api/accounting/fiscal-settings"),
-    staleTime: 5 * 60_000,
-  });
+  // ─── Fiscal config ────────────────────────────────────────────────────────
+  const { data: ytdData, isLoading: loadingYtd } = useQuery<{
+    ytdRevenues: number; ytdCharges: number; ytdProfitBeforeTax: number;
+    ytdEstimatedTax: number; ytdNetProfit: number; isEnabled: boolean;
+    period: { from: string; to?: string };
+  }>({ queryKey: ["ytd-profit"], queryFn: () => apiFetch("/api/accounting/ytd-profit") });
 
-  const { data: ytdProfitData, isLoading: loadingYtd } = useQuery<{
-    ytdProfitBeforeTax: number;
-    ytdEstimatedTax: number;
-    ytdNetProfit: number;
-    ytdRevenues: number;
-    ytdCharges: number;
-    period: { from: string | null; to: string | null };
-    isEnabled: boolean;
-    hasFiscalSettings: boolean;
-  }>({
-    queryKey: ["ytd-profit"],
-    queryFn: () => apiFetch("/api/accounting/ytd-profit"),
-    staleTime: 5 * 60_000,
-  });
+  const { data: fiscalSettings } = useQuery<{
+    corporateTaxEnabled: boolean; corporateTaxBrackets: TaxBracket[];
+  }>({ queryKey: ["fiscal-settings"], queryFn: () => apiFetch("/api/accounting/fiscal-settings") });
 
-  const fiscalConfig = useMemo<CorporateTaxConfig>(() => ({
-    enabled: fiscalSettingsData?.corporateTaxEnabled ?? false,
-    ytdProfitBeforeTax: ytdProfitData?.ytdProfitBeforeTax ?? 0,
-    ytdEstimatedTax: ytdProfitData?.ytdEstimatedTax ?? 0,
-    ytdNetProfit: ytdProfitData?.ytdNetProfit ?? 0,
-    brackets: fiscalSettingsData?.corporateTaxBrackets?.length
-      ? fiscalSettingsData.corporateTaxBrackets
+  const fiscalConfig: CorporateTaxConfig = useMemo(() => ({
+    enabled: fiscalSettings?.corporateTaxEnabled ?? false,
+    ytdProfitBeforeTax: ytdData?.ytdProfitBeforeTax ?? 0,
+    ytdEstimatedTax:    ytdData?.ytdEstimatedTax ?? 0,
+    ytdNetProfit:       ytdData?.ytdNetProfit ?? 0,
+    brackets: fiscalSettings?.corporateTaxBrackets?.length
+      ? fiscalSettings.corporateTaxBrackets
       : DEFAULT_TAX_BRACKETS,
-  }), [fiscalSettingsData, ytdProfitData]);
+  }), [ytdData, fiscalSettings]);
 
+  // ─── Clients ──────────────────────────────────────────────────────────────
+  const { data: clientsRes } = useQuery<{ data: { id: string; name: string }[] }>({
+    queryKey: ["clients-list-pricing"], queryFn: () => apiFetch("/api/clients?limit=100"),
+  });
+  const clients = clientsRes?.data ?? [];
+
+  // ─── Mutation helpers ─────────────────────────────────────────────────────
+  const updateScenario = useCallback((patch: Partial<Scenario>) => {
+    setScenarios(prev => prev.map(s => s.id === activeScenarioId ? { ...s, ...patch } : s));
+  }, [activeScenarioId]);
+
+  const addItem = (field: keyof Scenario, cat: CostCategory, alloc: AllocMethod = "fixed", qtyUnit?: string) => {
+    const newItem: CostItem = { id: uid(), label: "", category: cat, alloc, amount: 0, qty: alloc === "per_unit" ? 1 : undefined, qtyUnit };
+    updateScenario({ [field]: [...((scenario[field] as CostItem[]) ?? []), newItem] });
+  };
+
+  const updateItem = (field: keyof Scenario, id: string, patch: Partial<CostItem>) => {
+    updateScenario({ [field]: (scenario[field] as CostItem[]).map(i => i.id === id ? { ...i, ...patch } : i) });
+  };
+
+  const removeItem = (field: keyof Scenario, id: string) => {
+    updateScenario({ [field]: (scenario[field] as CostItem[]).filter(i => i.id !== id) });
+  };
+
+  const addLaborLine = () => {
+    const line: LaborLineItem = {
+      id: uid(), name: "Collaborateur", contractType: "CDI",
+      monthlySalaryBrut: 0, employerChargeRate: scenario.laborSettings.employerChargeRate,
+      benefitsMonthly: 0, weeklyHours: scenario.laborSettings.weeklyHours, allocatedHours: 8,
+    };
+    updateScenario({ laborLines: [...(scenario.laborLines ?? []), line] });
+  };
+
+  const updateLaborLine = (id: string, patch: Partial<LaborLineItem>) => {
+    updateScenario({ laborLines: (scenario.laborLines ?? []).map(l => l.id === id ? { ...l, ...patch } : l) });
+  };
+
+  const removeLaborLine = (id: string) => {
+    updateScenario({ laborLines: (scenario.laborLines ?? []).filter(l => l.id !== id) });
+  };
+
+  const addScenario = () => {
+    const ns: Scenario = { ...scenario, id: uid(), name: `Scénario ${scenarios.length + 1}` };
+    setScenarios(prev => [...prev, ns]);
+    setActiveScenarioId(ns.id);
+  };
+
+  // ─── Compute ──────────────────────────────────────────────────────────────
   const result = useMemo(() => calculate(scenario, fiscalConfig), [scenario, fiscalConfig]);
   const recommendations = useMemo(() => generateRecommendations(result, scenario, fiscalConfig), [result, scenario, fiscalConfig]);
 
-  const updateScenario = useCallback((patch: Partial<Scenario>) => {
-    setScenarios(prev => prev.map(s => s.id === activeId ? { ...s, ...patch } : s));
-  }, [activeId]);
+  // ─── Cost totals per section ──────────────────────────────────────────────
+  const totalLaborCost = useMemo(() => (scenario.laborLines ?? []).reduce((sum, l) => sum + computeLaborLineCost(l).totalCost, 0), [scenario.laborLines]);
+  const totalDirectCost = useMemo(() => (scenario.costItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
+  const totalOperational = useMemo(() => (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.operationalItems, result]);
+  const totalAdmin = useMemo(() => (scenario.adminItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.adminItems, result]);
+  const totalCommercial = useMemo(() => (scenario.commercialItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.commercialItems, result]);
+  const totalFinancial = useMemo(() => (scenario.financialItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.financialItems, result]);
+  const totalRisk = useMemo(() => (scenario.riskItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.riskItems, result]);
+  const totalDepr = useMemo(() => (scenario.depreciationItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.depreciationItems, result]);
 
-  // ── Catalogue
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const [catalogTab, setCatalogTab] = useState<"product" | "service" | "labor">("product");
-  const [catalogSearch, setCatalogSearch] = useState("");
-
-  const { data: productsRaw } = useQuery<CatalogProduct[]>({
-    queryKey: ["catalog-products"],
-    queryFn: () => apiFetch("/api/inventory/products?activeOnly=true"),
-    staleTime: 5 * 60_000,
-    enabled: catalogOpen && catalogTab !== "labor",
-  });
-  const { data: servicesRaw } = useQuery<{ data: CatalogService[] }>({
-    queryKey: ["catalog-services"],
-    queryFn: () => apiFetch("/api/services?active=true"),
-    staleTime: 5 * 60_000,
-    enabled: catalogOpen && catalogTab !== "labor",
-  });
-  const { data: collabsRaw } = useQuery<{ data: CatalogCollab[] }>({
-    queryKey: ["catalog-collabs"],
-    queryFn: () => apiFetch("/api/collaborators?limit=200"),
-    staleTime: 5 * 60_000,
-    enabled: catalogOpen && catalogTab === "labor",
-  });
-
-  const catalogEntries = useMemo((): CatalogEntry[] => {
-    if (catalogTab === "labor") return [];
-    if (catalogTab === "product") {
-      return (productsRaw ?? []).filter(p => p.isActive !== false).map(p => ({
-        id: p.id, name: p.name, ref: p.sku, unit: p.unit, price: Number(p.sellingPriceFcfa), taxRate: Number(p.taxRatePct), kind: "product" as const,
-      }));
-    }
-    return (servicesRaw?.data ?? []).filter(s => s.isActive !== false).map(s => ({
-      id: s.id, name: s.name, ref: s.code, unit: s.unit, price: Number(s.unitPrice), taxRate: 18, kind: "service" as const,
-    }));
-  }, [catalogTab, productsRaw, servicesRaw]);
-
-  const filteredEntries = useMemo(() =>
-    catalogSearch ? catalogEntries.filter(e => e.name.toLowerCase().includes(catalogSearch.toLowerCase()) || e.ref.toLowerCase().includes(catalogSearch.toLowerCase()))
-    : catalogEntries, [catalogEntries, catalogSearch]);
-
-  const filteredCollabs = useMemo(() => {
-    const list = collabsRaw?.data ?? [];
-    return catalogSearch ? list.filter(c => `${c.firstName} ${c.lastName}`.toLowerCase().includes(catalogSearch.toLowerCase()) || (c.position ?? "").toLowerCase().includes(catalogSearch.toLowerCase())) : list;
-  }, [collabsRaw, catalogSearch]);
-
-  const applyCatalogItem = useCallback((entry: CatalogEntry) => {
-    updateScenario({ productName: entry.name, taxRate: entry.taxRate, costItems: [...scenario.costItems.filter(c => !c.label.startsWith("[Catalogue]")), { id: uid(), label: `[Catalogue] ${entry.name}`, category: entry.kind === "product" ? ("purchase" as const) : ("direct" as const), amount: entry.price }] });
-    setCatalogOpen(false); setCatalogSearch("");
-    toast.success(`${entry.name} chargé depuis le catalogue`);
-  }, [scenario.costItems, updateScenario]);
-
-  const applyCollabToLabor = useCallback(async (collab: CatalogCollab) => {
-    const collabName = `${collab.firstName} ${collab.lastName}${collab.position ? ` — ${collab.position}` : ""}`;
-    try {
-      const cost = await apiFetch(`/api/collaborators/${collab.id}/employer-cost`) as { baseSalary: number; weeklyHours: number; employerChargeRate: number; totalBenefitsMonthly: number; hourlyRate: number; contractType: string | null };
-      const newLine: LaborLineItem = { id: uid(), name: collabName, collaboratorId: collab.id, contractType: cost.contractType ?? "CDI", monthlySalaryBrut: cost.baseSalary ?? Number(collab.baseSalary ?? 0), employerChargeRate: cost.employerChargeRate ?? scenario.laborSettings.employerChargeRate, benefitsMonthly: cost.totalBenefitsMonthly ?? 0, weeklyHours: cost.weeklyHours ?? scenario.laborSettings.weeklyHours, allocatedHours: 80 };
-      updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
-      const hrRate = Math.round(cost.hourlyRate ?? 0);
-      toast.success(hrRate > 0 ? `${collab.firstName} ${collab.lastName} — taux horaire : ${hrRate.toLocaleString("fr-FR")} FCFA/h` : `${collab.firstName} ${collab.lastName} ajouté`);
-    } catch {
-      const newLine: LaborLineItem = { id: uid(), name: collabName, collaboratorId: collab.id, contractType: "CDI", monthlySalaryBrut: Number(collab.baseSalary ?? 0), employerChargeRate: scenario.laborSettings.employerChargeRate, benefitsMonthly: 0, weeklyHours: scenario.laborSettings.weeklyHours, allocatedHours: 80 };
-      updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
-      toast.success(`${collab.firstName} ${collab.lastName} ajouté`);
-    }
-    setCatalogSearch("");
-  }, [scenario.laborLines, scenario.laborSettings, updateScenario]);
-
-  const addCostItem    = () => updateScenario({ costItems: [...scenario.costItems, { id: uid(), label: "", category: "direct", amount: 0 }] });
-  const updateCostItem = (id: string, item: CostItem) => updateScenario({ costItems: scenario.costItems.map(c => c.id === id ? item : c) });
-  const removeCostItem = (id: string) => updateScenario({ costItems: scenario.costItems.filter(c => c.id !== id) });
-
-  const addLaborLine = () => {
-    const newLine: LaborLineItem = { id: uid(), name: "", contractType: "CDI", monthlySalaryBrut: 0, employerChargeRate: scenario.laborSettings.employerChargeRate, benefitsMonthly: 0, weeklyHours: scenario.laborSettings.weeklyHours, allocatedHours: 0 };
-    updateScenario({ laborLines: [...(scenario.laborLines ?? []), newLine] });
-  };
-  const updateLaborLine = (id: string, line: LaborLineItem) => updateScenario({ laborLines: (scenario.laborLines ?? []).map(l => l.id === id ? line : l) });
-  const removeLaborLine = (id: string) => updateScenario({ laborLines: (scenario.laborLines ?? []).filter(l => l.id !== id) });
-
-  const totalLaborCost = useMemo(() => (scenario.laborLines ?? []).reduce((acc, l) => acc + computeLaborLineCost(l).totalCost, 0), [scenario.laborLines]);
-
-  const addScenario = () => {
-    const newS: Scenario = { ...scenario, id: uid(), name: `Scénario ${scenarios.length + 1}`, costItems: scenario.costItems.map(c => ({ ...c, id: uid() })) };
-    setScenarios(prev => [...prev, newS]);
-    setActiveId(newS.id);
-  };
-  const removeScenario = (id: string) => {
-    if (scenarios.length <= 1) { toast.error("Au moins un scénario requis"); return; }
-    const remaining = scenarios.filter(s => s.id !== id);
-    setScenarios(remaining);
-    setActiveId(remaining[0].id);
-  };
-  const saveScenario = (updated: Scenario) => { setScenarios(prev => prev.map(s => s.id === activeId ? updated : s)); toast.success("Scénario enregistré"); };
-  const resetScenario = () => { if (!confirm("Réinitialiser ce scénario ?")) return; setScenarios(prev => prev.map(s => s.id === activeId ? { ...DEFAULT_SCENARIO, id: s.id, name: s.name } : s)); };
-
-  // Auto-scenarios (4 fixed)
-  const autoScenarios = useMemo(() => AUTO_SCENARIOS.map(as => {
-    const s = { ...scenario, marginMode: "net" as MarginMode, marginTarget: as.margin };
-    const r = calculate(s, fiscalConfig);
-    return { ...as, priceHT: r.priceHT, priceTTC: r.priceTTC, grossMarginPct: r.grossMarginPct, netMarginPct: r.netMarginPct, netProfit: r.netProfit, corporateTax: r.corporateTax };
-  }), [scenario, fiscalConfig]);
-
-  // Pie chart data
-  const pieData = useMemo(() => {
-    const total = result.priceTTC;
-    const entries: { name: string; value: number; pct: number }[] = [];
-    for (const [k, v] of Object.entries(result.byCategory)) {
-      if (v > 0) entries.push({ name: CATEGORIES[k as CostCategory].label, value: Math.round(v), pct: (v / total) * 100 });
-    }
-    if (result.grossMargin > 0) entries.push({ name: "Marge brute", value: Math.round(result.grossMargin), pct: (result.grossMargin / total) * 100 });
-    if (result.taxAmount > 0) entries.push({ name: `TVA (${scenario.taxRate}%)`, value: Math.round(result.taxAmount), pct: (result.taxAmount / total) * 100 });
-    return entries;
-  }, [result, scenario.taxRate]);
-
-  const compareData = useMemo(() => scenarios.map(s => {
-    const r = calculate(s, fiscalConfig);
-    return { name: s.name, coût: Math.round(r.totalCost), prixHT: Math.round(r.priceHT), prixTTC: Math.round(r.priceTTC), margeNette: Math.round(r.netMarginPct) };
-  }), [scenarios, fiscalConfig]);
-
-  const warnings = useMemo(() => {
-    const w: string[] = [];
-    if (result.netMarginPct < 5 && result.totalCost > 0) w.push("Marge nette inférieure à 5% — risque élevé");
-    if (result.netMarginPct > 80) w.push("Marge supérieure à 80% — vérifier la cohérence");
-    if (result.totalCost === 0) w.push("Aucun coût saisi");
-    if (!scenario.productName) w.push("Produit / service non nommé");
-    return w;
-  }, [result, scenario.productName]);
-
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <TooltipProvider>
-      <div className="space-y-5 animate-in fade-in duration-500">
+      <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
 
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Tag className="w-7 h-7 text-[#C8A24B]" />
-              Calculateur tarifaire stratégique
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Coûts complets · Marge brute & nette · Impôt société · Scénarios & recommandations</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#C8A24B]/15 flex items-center justify-center">
+              <Calculator className="w-5 h-5 text-[#C8A24B]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Calculateur tarifaire</h1>
+              <p className="text-xs text-muted-foreground">Pricing stratégique · coût complet · impact IS</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={resetScenario} className="gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Réinitialiser</Button>
-            <Button variant="outline" size="sm" onClick={() => setSaveDialogOpen(true)} className="gap-1.5"><Save className="w-3.5 h-3.5" /> Enregistrer</Button>
-            <Button variant="outline" size="sm" onClick={addScenario} className="gap-1.5"><Copy className="w-3.5 h-3.5" /> Dupliquer</Button>
-          </div>
-        </div>
-
-        {/* ── Warnings ── */}
-        {warnings.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {warnings.map((w, i) => (
-              <div key={i} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-full">
-                <AlertCircle className="w-3 h-3 shrink-0" /> {w}
-              </div>
+          <div className="flex items-center gap-2">
+            {scenarios.map(s => (
+              <Button key={s.id} size="sm" variant={s.id === activeScenarioId ? "default" : "outline"}
+                className={s.id === activeScenarioId ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}
+                onClick={() => setActiveScenarioId(s.id)}>
+                {s.name}
+              </Button>
             ))}
+            <Button size="sm" variant="outline" onClick={addScenario} className="gap-1"><Plus className="w-3.5 h-3.5" />Scénario</Button>
           </div>
-        )}
-
-        {/* ── Scenario tabs ── */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {scenarios.map(s => (
-            <button key={s.id} onClick={() => setActiveId(s.id)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${s.id === activeId ? "bg-[#C8A24B] text-white border-[#C8A24B] shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:border-[#C8A24B]/50"}`}>
-              {s.name}
-              {scenarios.length > 1 && s.id === activeId && (
-                <span className="ml-2 opacity-60 hover:opacity-100 cursor-pointer" onClick={(e) => { e.stopPropagation(); removeScenario(s.id); }}>×</span>
-              )}
-            </button>
-          ))}
-          <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-[#C8A24B] hover:bg-amber-50" onClick={addScenario}><Plus className="w-3 h-3" /> Nouveau scénario</Button>
         </div>
 
-        {/* ── Main layout ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_440px] gap-6">
+        <div className="grid grid-cols-12 gap-4">
 
-          {/* ══ LEFT: Inputs ══ */}
-          <div className="space-y-4">
+          {/* ══ LEFT PANEL ══ */}
+          <div className="col-span-12 lg:col-span-7 space-y-4">
 
-            {/* Produit / Service */}
+            {/* General info */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2"><Package className="w-4 h-4 text-[#C8A24B]" /> Produit / Service tarifé</CardTitle>
-                  <Button size="sm" variant="outline" className={`h-7 text-xs gap-1.5 ${catalogOpen ? "bg-[#C8A24B] text-white border-[#C8A24B]" : "text-[#C8A24B] border-[#C8A24B]/40 hover:bg-amber-50"}`} onClick={() => { setCatalogOpen(o => !o); setCatalogSearch(""); }}>
-                    <BookOpen className="w-3.5 h-3.5" />
-                    {catalogOpen ? "Fermer le catalogue" : "Charger depuis le catalogue"}
-                  </Button>
-                </div>
+                <CardTitle className="text-sm flex items-center gap-2"><Tag className="w-4 h-4 text-[#C8A24B]" />Informations générales</CardTitle>
               </CardHeader>
-
-              {catalogOpen && (
-                <div className="border-b bg-slate-50/70 px-4 py-3 space-y-3">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {([{ key: "product", label: "Produits" }, { key: "service", label: "Services" }, { key: "labor", label: "Personnel" }] as const).map(({ key, label }) => (
-                      <button key={key} onClick={() => { setCatalogTab(key); setCatalogSearch(""); }}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${catalogTab === key ? (key === "labor" ? "bg-purple-700 text-white border-purple-700" : "bg-[#1a1a2e] text-white border-[#1a1a2e]") : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"}`}>
-                        {label}
-                      </button>
-                    ))}
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {catalogTab === "labor" ? `${filteredCollabs.length} personne(s)` : `${filteredEntries.length} article(s)`}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input className="pl-8 h-8 text-xs" placeholder="Rechercher…" value={catalogSearch} onChange={e => setCatalogSearch(e.target.value)} />
-                    {catalogSearch && <button onClick={() => setCatalogSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"><X className="w-3.5 h-3.5" /></button>}
-                  </div>
-
-                  {catalogTab !== "labor" && (
-                    <div className="max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
-                      {filteredEntries.length === 0 && <div className="py-6 text-center text-xs text-muted-foreground">{catalogSearch ? "Aucun résultat" : "Catalogue vide"}</div>}
-                      {filteredEntries.map(entry => (
-                        <button key={entry.id} onClick={() => applyCatalogItem(entry)} className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-amber-50 transition-colors group">
-                          <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-slate-800 truncate">{entry.name}</div><div className="text-[10px] text-muted-foreground font-mono">{entry.ref} · {entry.unit}</div></div>
-                          <div className="ml-3 flex items-center gap-2 shrink-0">
-                            <div className="text-right"><div className="text-xs font-bold text-[#C8A24B]">{formatFCFA(entry.price)}</div>{entry.taxRate > 0 && <div className="text-[10px] text-muted-foreground">TVA {entry.taxRate}%</div>}</div>
-                            <div className="w-5 h-5 rounded-full bg-[#C8A24B]/10 group-hover:bg-[#C8A24B] flex items-center justify-center transition-colors"><Plus className="w-3 h-3 text-[#C8A24B] group-hover:text-white" /></div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {catalogTab === "labor" && (
-                    <div className="max-h-52 overflow-y-auto rounded-md border border-purple-100 bg-white divide-y divide-slate-100">
-                      {filteredCollabs.length === 0 && <div className="py-6 text-center text-xs text-muted-foreground">Aucun collaborateur</div>}
-                      {filteredCollabs.map(c => {
-                        const baseSalary = Number(c.baseSalary ?? 0);
-                        const monthlyHours = (scenario.laborSettings.weeklyHours * 52) / 12;
-                        const employerCost = baseSalary * (1 + scenario.laborSettings.employerChargeRate / 100);
-                        const hourlyRate = monthlyHours > 0 && baseSalary > 0 ? employerCost / monthlyHours : null;
-                        return (
-                          <button key={c.id} onClick={() => applyCollabToLabor(c)} className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-purple-50 group">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center shrink-0 text-purple-700 text-[10px] font-bold">{c.firstName[0]}{c.lastName[0]}</div>
-                              <div className="min-w-0"><div className="text-xs font-semibold text-slate-800 truncate">{c.firstName} {c.lastName}</div><div className="text-[10px] text-muted-foreground truncate">{c.position ?? "—"}{c.department ? ` · ${c.department}` : ""}</div></div>
-                            </div>
-                            <div className="ml-3 flex items-center gap-2 shrink-0">
-                              {hourlyRate !== null ? <div className="text-xs font-bold text-purple-700">{formatFCFA(Math.round(hourlyRate))}/h</div> : <div className="text-[10px] text-muted-foreground">non renseigné</div>}
-                              <div className="w-5 h-5 rounded-full bg-purple-100 group-hover:bg-purple-600 flex items-center justify-center transition-colors"><Plus className="w-3 h-3 text-purple-600 group-hover:text-white" /></div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground">{catalogTab === "labor" ? "Cliquer ajoute la personne dans la section Main-d'œuvre." : "Cliquer charge le nom, TVA et prix comme poste de coût."}</p>
-                </div>
-              )}
-
               <CardContent className="pt-4">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1"><Label>Désignation *</Label><Input placeholder="Ex. Étude technique, Formation, Lot électricité…" value={scenario.productName} onChange={(e) => updateScenario({ productName: e.target.value })} /></div>
-                  <div className="space-y-1"><Label>Quantité</Label><Input type="number" min="1" step="1" placeholder="1" value={scenario.quantity} onChange={(e) => updateScenario({ quantity: parseInt(e.target.value) || 1 })} /></div>
-                  <div className="sm:col-span-2 space-y-1"><Label>Description / Périmètre</Label><Textarea rows={2} placeholder="Contexte, hypothèses retenues…" value={scenario.description} onChange={(e) => updateScenario({ description: e.target.value })} /></div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Structure des coûts */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3 border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-4 h-4 text-[#C8A24B]" /> Structure des coûts</CardTitle>
-                  <div className="text-xs text-muted-foreground">{scenario.costItems.length} poste(s) · {formatFCFA(result.totalCost)}</div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <div className="grid grid-cols-[1fr_140px_120px_80px_40px] gap-2 text-xs text-muted-foreground font-medium mb-1 pb-1 border-b border-slate-100">
-                  <span>Libellé</span><span>Catégorie</span><span className="text-right">Montant</span><span className="text-center">Type</span><span />
-                </div>
-                {scenario.costItems.length === 0 && (
-                  <div className="text-center py-6 text-muted-foreground text-sm"><DollarSign className="w-8 h-8 mx-auto text-slate-200 mb-2" />Aucun poste de coût</div>
-                )}
-                {scenario.costItems.map(item => (
-                  <CostItemRow key={item.id} item={item} onUpdate={(updated) => updateCostItem(item.id, updated)} onRemove={() => removeCostItem(item.id)} />
-                ))}
-                <Button variant="outline" size="sm" className="mt-3 w-full gap-1.5 text-xs border-dashed text-[#C8A24B] border-[#C8A24B]/40 hover:bg-amber-50" onClick={addCostItem}>
-                  <Plus className="w-3.5 h-3.5" /> Ajouter un poste de coût
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Personnel / Main-d'œuvre */}
-            <Card className="shadow-sm border-purple-100">
-              <CardHeader className="pb-3 border-b border-purple-100">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <HardHat className="w-4 h-4 text-purple-600" />
-                    Personnel / Main-d'œuvre
-                    {(scenario.laborLines ?? []).length > 0 && (
-                      <span className="text-xs font-normal text-purple-600 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">
-                        {(scenario.laborLines ?? []).length} ligne(s) · {formatFCFA(Math.round(totalLaborCost))}
-                      </span>
-                    )}
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 text-purple-600 border-purple-200 hover:bg-purple-50" onClick={() => { setCatalogOpen(true); setCatalogTab("labor"); setCatalogSearch(""); }}><BookOpen className="w-3.5 h-3.5" /> Collaborateurs</Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 text-purple-600 border-purple-200 hover:bg-purple-50" onClick={addLaborLine}><Plus className="w-3.5 h-3.5" /> Ajouter</Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-xs">Produit / Prestation *</Label>
+                    <Input value={scenario.productName} onChange={e => updateScenario({ productName: e.target.value })} placeholder="Nom du produit ou service…" className="h-8 mt-1 text-sm font-semibold" />
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-3">
-                {(scenario.laborLines ?? []).length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm"><HardHat className="w-8 h-8 mx-auto text-slate-200 mb-2" /><p>Aucune ressource — cliquez « Ajouter » ou chargez depuis les collaborateurs</p><p className="text-xs mt-1 text-muted-foreground/60">Salaire brut + charges patronales + avantages → coût employeur réel</p></div>
-                ) : (
-                  <div className="space-y-2">
-                    {(scenario.laborLines ?? []).map(line => (
-                      <LaborLineRow key={line.id} line={line} onUpdate={(updated) => updateLaborLine(line.id, updated)} onRemove={() => removeLaborLine(line.id)} />
-                    ))}
-                    <div className="flex items-center justify-between pt-2 border-t border-purple-100 text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1.5"><Calculator className="w-3.5 h-3.5 text-purple-500" />Total Main-d'œuvre</span>
-                      <span className="font-bold text-purple-700">{formatFCFA(Math.round(totalLaborCost))}</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Paramétrage marge & TVA */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" /> Marge cible & TVA</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-5">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">Mode de calcul du prix<Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent className="max-w-xs text-xs"><strong>Marge nette</strong> : % du prix HT restant après coûts.<br /><strong>Coefficient</strong> : multiplicateur sur le coût.</TooltipContent></Tooltip></Label>
-                    <Select value={scenario.marginMode} onValueChange={(v) => updateScenario({ marginMode: v as MarginMode })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(MARGIN_MODES).map(([k, v]) => <SelectItem key={k} value={k}><div><div className="font-medium text-sm">{v.label}</div><div className="text-xs text-muted-foreground">{v.desc}</div></div></SelectItem>)}</SelectContent>
+                  <div>
+                    <Label className="text-xs">Client</Label>
+                    <Select value={scenario.clientId || "__none__"} onValueChange={v => updateScenario({ clientId: v === "__none__" ? "" : v })}>
+                      <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{scenario.marginMode === "markup" ? "Coefficient (%)" : scenario.marginMode === "net" ? "Marge nette cible (%)" : "Marge brute cible (%)"}</Label>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" min="0" step="0.5" value={scenario.marginTarget} onChange={(e) => updateScenario({ marginTarget: parseFloat(e.target.value) || 0 })} className="flex-1" />
+                  <div>
+                    <Label className="text-xs">Catégorie</Label>
+                    <Input value={scenario.category} onChange={e => updateScenario({ category: e.target.value })} placeholder="BTP, Génie civil, IT…" className="h-8 mt-1 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Quantité</Label>
+                    <Input type="number" min="1" value={scenario.quantity} onChange={e => updateScenario({ quantity: parseInt(e.target.value) || 1 })} className="h-8 mt-1 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Unité</Label>
+                    <Input value={scenario.unit} onChange={e => updateScenario({ unit: e.target.value })} placeholder="unité, m², h, j…" className="h-8 mt-1 text-xs" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Période / description</Label>
+                    <Input value={scenario.period} onChange={e => updateScenario({ period: e.target.value })} placeholder="Ex : Janvier 2026 — Chantier Lomé Nord" className="h-8 mt-1 text-xs" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cost tabs */}
+            <Card className="shadow-sm">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <CardHeader className="pb-0 border-b">
+                  <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-transparent p-0 pb-3">
+                    {[
+                      { value: "directs",     label: "Coûts directs",  badge: totalDirectCost,   color: "bg-blue-100 text-blue-700" },
+                      { value: "labor",       label: "Main-d'œuvre",   badge: totalLaborCost,    color: "bg-purple-100 text-purple-700" },
+                      { value: "operations",  label: "Opérations",     badge: totalOperational + totalDepr, color: "bg-sky-100 text-sky-700" },
+                      { value: "generaux",    label: "Frais généraux", badge: totalAdmin + totalCommercial + totalFinancial + totalRisk, color: "bg-slate-100 text-slate-700" },
+                    ].map(t => (
+                      <button key={t.value} onClick={() => setActiveTab(t.value)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                        {t.label}
+                        {t.badge > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === t.value ? "bg-white/20 text-white" : t.color}`}>{formatFCFA(Math.round(t.badge))}</span>}
+                      </button>
+                    ))}
+                  </TabsList>
+                </CardHeader>
+
+                <CardContent className="pt-4">
+
+                  {/* ── Tab: Coûts directs ── */}
+                  <TabsContent value="directs" className="mt-0">
+                    <CostSection title="directs" icon={Package} color="#3B82F6"
+                      items={scenario.costItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                      onAdd={() => addItem("costItems", "direct")}
+                      onUpdate={(id, u) => updateItem("costItems", id, u)}
+                      onRemove={(id) => removeItem("costItems", id)}
+                      defaultCategory="direct">
+                      <div className="flex gap-2 mb-3">
+                        {(["direct","purchase","logistics","tax_input","other"] as CostCategory[]).map(cat => (
+                          <button key={cat} onClick={() => addItem("costItems", cat)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed hover:bg-slate-50 transition-colors"
+                            style={{ borderColor: CATEGORIES[cat].color, color: CATEGORIES[cat].color }}>
+                            <Plus className="w-3 h-3" />{CATEGORIES[cat].label}
+                          </button>
+                        ))}
+                      </div>
+                    </CostSection>
+                  </TabsContent>
+
+                  {/* ── Tab: Main-d'œuvre ── */}
+                  <TabsContent value="labor" className="mt-0 space-y-3">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={addLaborLine} className="text-xs gap-1 border-purple-200 text-purple-700 hover:bg-purple-50">
+                        <Plus className="w-3.5 h-3.5" />Ajouter manuellement
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowHRDialog(true)} className="text-xs gap-1 border-purple-200 text-purple-700 hover:bg-purple-50">
+                        <Users className="w-3.5 h-3.5" />Importer depuis les RH
+                      </Button>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-xs text-purple-800">
+                      <strong>Méthode de calcul :</strong> Coût RH = (Salaire brut × (1 + charges patronales%) + avantages) / heures mensuelles × heures affectées
+                    </div>
+                    {(scenario.laborLines ?? []).length === 0 ? (
+                      <div className="text-center py-8 border border-dashed border-slate-200 rounded-lg text-muted-foreground text-xs">
+                        <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        Aucune ligne RH — ajoutez manuellement ou importez depuis les collaborateurs
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(scenario.laborLines ?? []).map(line => (
+                          <LaborLineRow key={line.id} line={line} onUpdate={p => updateLaborLine(line.id, p)} onRemove={() => removeLaborLine(line.id)} />
+                        ))}
+                        <div className="flex justify-between items-center text-sm border-t border-purple-100 pt-2">
+                          <span className="text-muted-foreground font-medium flex items-center gap-1"><Calculator className="w-3.5 h-3.5" />Total Main-d'œuvre</span>
+                          <span className="font-bold text-purple-700">{formatFCFA(Math.round(totalLaborCost))}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="border-t border-slate-100 pt-3">
+                      <Label className="text-xs text-muted-foreground">Paramètres par défaut (nouveaux collaborateurs)</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-1.5">
+                        <div>
+                          <Label className="text-[10px]">Charges patronales (%)</Label>
+                          <Input type="number" min="0" value={scenario.laborSettings.employerChargeRate}
+                            onChange={e => updateScenario({ laborSettings: { ...scenario.laborSettings, employerChargeRate: parseFloat(e.target.value) || 0 } })}
+                            className="h-7 text-xs mt-0.5" />
+                        </div>
+                        <div>
+                          <Label className="text-[10px]">Heures hebdomadaires</Label>
+                          <Input type="number" min="1" value={scenario.laborSettings.weeklyHours}
+                            onChange={e => updateScenario({ laborSettings: { ...scenario.laborSettings, weeklyHours: parseFloat(e.target.value) || 40 } })}
+                            className="h-7 text-xs mt-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* ── Tab: Opérations ── */}
+                  <TabsContent value="operations" className="mt-0 space-y-5">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Wrench className="w-4 h-4 text-sky-500" />
+                        <span className="font-semibold text-sm text-sky-800">Charges opérationnelles</span>
+                        {totalOperational > 0 && <span className="text-xs font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalOperational))}</span>}
+                      </div>
+                      <div className="bg-sky-50 border border-sky-100 rounded-lg p-2.5 mb-3 text-xs text-sky-800">
+                        Carburant, véhicules, maintenance, logistique, énergie, internet, téléphone, consommables, frais terrain, déplacement, supervision…
+                        <br />Méthodes : montant fixe · % du coût direct · par heure · par jour · par unité
+                      </div>
+                      <CostSection title="opérationnelles" icon={Wrench} color="#0EA5E9"
+                        items={scenario.operationalItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => addItem("operationalItems", "operational")}
+                        onUpdate={(id, u) => updateItem("operationalItems", id, u)}
+                        onRemove={(id) => removeItem("operationalItems", id)}
+                        defaultCategory="operational">
+                        <div className="flex gap-1 mb-2 flex-wrap">
+                          {[
+                            { label: "Carburant (fix.)", alloc: "fixed" as AllocMethod },
+                            { label: "Carburant (%)", alloc: "pct" as AllocMethod },
+                            { label: "Par heure", alloc: "per_unit" as AllocMethod, unit: "h" },
+                            { label: "Par jour", alloc: "per_unit" as AllocMethod, unit: "j" },
+                          ].map((t, i) => (
+                            <button key={i} onClick={() => { const item: CostItem = { id: uid(), label: t.label === "Par heure" ? "Ressource/h" : t.label === "Par jour" ? "Ressource/j" : t.label, category: "operational", alloc: t.alloc, amount: 0, qty: t.alloc === "per_unit" ? 1 : undefined, qtyUnit: t.unit }; updateScenario({ operationalItems: [...(scenario.operationalItems ?? []), item] }); }}
+                              className="text-[10px] px-2 py-1 border border-dashed border-sky-300 rounded text-sky-700 hover:bg-sky-50">
+                              <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </CostSection>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <HardHat className="w-4 h-4 text-lime-600" />
+                          <span className="font-semibold text-sm text-lime-800">Amortissements & équipements</span>
+                          {totalDepr > 0 && <span className="text-xs font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalDepr))}</span>}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => setShowEquipDialog(true)} className="text-xs gap-1 border-lime-200 text-lime-700 hover:bg-lime-50 h-7">
+                          <HardHat className="w-3.5 h-3.5" />Importer depuis Équipements
+                        </Button>
+                      </div>
+                      <div className="bg-lime-50 border border-lime-100 rounded-lg p-2.5 mb-3 text-xs text-lime-800">
+                        Machines, véhicules, ordinateurs, outils, mobilier, licences longue durée… La quote-part = tarif journalier × jours d'usage, ou amortissement mensuel × taux d'utilisation.
+                      </div>
+                      <CostSection title="amortissements" icon={HardHat} color="#84CC16"
+                        items={scenario.depreciationItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => addItem("depreciationItems", "depreciation", "per_unit", "j")}
+                        onUpdate={(id, u) => updateItem("depreciationItems", id, u)}
+                        onRemove={(id) => removeItem("depreciationItems", id)}
+                        defaultCategory="depreciation" defaultAlloc="per_unit" defaultQtyUnit="j" />
+                    </div>
+                  </TabsContent>
+
+                  {/* ── Tab: Frais généraux ── */}
+                  <TabsContent value="generaux" className="mt-0 space-y-5">
+
+                    {/* Admin */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Building2 className="w-4 h-4 text-slate-500" />
+                        <span className="font-semibold text-sm text-slate-700">Charges administratives & structure</span>
+                        {totalAdmin > 0 && <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalAdmin))}</span>}
+                      </div>
+                      <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 mb-2 text-xs text-slate-600">
+                        Loyer, logiciels, comptabilité, frais juridiques, bancaires, assurances, salaires admin, abonnements…
+                        Clé d'allocation : % du coût direct ou % du prix HT recommandé.
+                      </div>
+                      <CostSection title="admin" icon={Building2} color="#64748B"
+                        items={scenario.adminItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => { const item: CostItem = { id: uid(), label: "Quote-part admin", category: "admin", alloc: "pct", amount: 5, baseRef: "cost" }; updateScenario({ adminItems: [...(scenario.adminItems ?? []), item] }); }}
+                        onUpdate={(id, u) => updateItem("adminItems", id, u)}
+                        onRemove={(id) => removeItem("adminItems", id)}
+                        defaultCategory="admin">
+                        <div className="flex gap-1 mb-2 flex-wrap">
+                          {[
+                            { label: "% coût direct", item: { label: "Quote-part admin", category: "admin" as CostCategory, alloc: "pct" as AllocMethod, amount: 5, baseRef: "cost" as "cost"|"ht" } },
+                            { label: "% prix HT", item: { label: "Quote-part admin", category: "admin" as CostCategory, alloc: "pct" as AllocMethod, amount: 3, baseRef: "ht" as "cost"|"ht" } },
+                            { label: "Montant fixe", item: { label: "Loyer mensuel", category: "admin" as CostCategory, alloc: "fixed" as AllocMethod, amount: 0 } },
+                          ].map((t, i) => (
+                            <button key={i} onClick={() => updateScenario({ adminItems: [...(scenario.adminItems ?? []), { id: uid(), ...t.item }] })}
+                              className="text-[10px] px-2 py-1 border border-dashed border-slate-300 rounded text-slate-600 hover:bg-slate-50">
+                              <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </CostSection>
+                    </div>
+
+                    {/* Commercial */}
+                    <div className="border-t border-slate-100 pt-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Megaphone className="w-4 h-4 text-purple-500" />
+                        <span className="font-semibold text-sm text-purple-700">Frais commerciaux & marketing</span>
+                        {totalCommercial > 0 && <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalCommercial))}</span>}
+                      </div>
+                      <div className="bg-purple-50 border border-purple-100 rounded-lg p-2.5 mb-2 text-xs text-purple-700">
+                        Publicité, marketing digital, commissions commerciales, prospection, représentation, remises, coût d'acquisition client, frais de plateforme, transactions…
+                      </div>
+                      <CostSection title="commerciaux" icon={Megaphone} color="#A855F7"
+                        items={scenario.commercialItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => { const item: CostItem = { id: uid(), label: "Commission commerciale", category: "commercial", alloc: "pct", amount: 5, baseRef: "ht" }; updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), item] }); }}
+                        onUpdate={(id, u) => updateItem("commercialItems", id, u)}
+                        onRemove={(id) => removeItem("commercialItems", id)}
+                        defaultCategory="commercial">
+                        <div className="flex gap-1 mb-2 flex-wrap">
+                          {[
+                            { label: "% prix HT", item: { label: "Commission", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 5, baseRef: "ht" as "cost"|"ht" } },
+                            { label: "% coût", item: { label: "Marketing", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 3, baseRef: "cost" as "cost"|"ht" } },
+                            { label: "Fixe", item: { label: "Frais prospection", category: "commercial" as CostCategory, alloc: "fixed" as AllocMethod, amount: 0 } },
+                          ].map((t, i) => (
+                            <button key={i} onClick={() => updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), { id: uid(), ...t.item }] })}
+                              className="text-[10px] px-2 py-1 border border-dashed border-purple-200 rounded text-purple-600 hover:bg-purple-50">
+                              <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </CostSection>
+                    </div>
+
+                    {/* Financial */}
+                    <div className="border-t border-slate-100 pt-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Banknote className="w-4 h-4 text-red-500" />
+                        <span className="font-semibold text-sm text-red-700">Frais financiers</span>
+                        {totalFinancial > 0 && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalFinancial))}</span>}
+                      </div>
+                      <div className="bg-red-50 border border-red-100 rounded-lg p-2.5 mb-2 text-xs text-red-700">
+                        Intérêts bancaires, agios, frais de financement, frais de change, commissions bancaires, frais de paiement électronique, coût du crédit fournisseur…
+                      </div>
+                      <CostSection title="financiers" icon={Banknote} color="#EF4444"
+                        items={scenario.financialItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => { const item: CostItem = { id: uid(), label: "Frais financiers", category: "financial", alloc: "pct", amount: 1, baseRef: "cost" }; updateScenario({ financialItems: [...(scenario.financialItems ?? []), item] }); }}
+                        onUpdate={(id, u) => updateItem("financialItems", id, u)}
+                        onRemove={(id) => removeItem("financialItems", id)}
+                        defaultCategory="financial" />
+                    </div>
+
+                    {/* Risk */}
+                    <div className="border-t border-slate-100 pt-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="w-4 h-4 text-orange-500" />
+                        <span className="font-semibold text-sm text-orange-700">Provisions & risques</span>
+                        {totalRisk > 0 && <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalRisk))}</span>}
+                      </div>
+                      <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 mb-2 text-xs text-orange-700">
+                        Produits abîmés/invendus, retours clients, garanties, erreurs de production, impayés, annulations, pertes de stock, marge de sécurité…
+                        <br /><strong>Formule :</strong> Provision = coût total × % risque
+                      </div>
+                      <CostSection title="risques" icon={Shield} color="#F97316"
+                        items={scenario.riskItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                        onAdd={() => { const item: CostItem = { id: uid(), label: "Provision risques", category: "risk", alloc: "pct", amount: 3, baseRef: "cost" }; updateScenario({ riskItems: [...(scenario.riskItems ?? []), item] }); }}
+                        onUpdate={(id, u) => updateItem("riskItems", id, u)}
+                        onRemove={(id) => removeItem("riskItems", id)}
+                        defaultCategory="risk">
+                        <div className="flex gap-1 mb-2 flex-wrap">
+                          {[2, 3, 5, 10].map(pct => (
+                            <button key={pct} onClick={() => updateScenario({ riskItems: [...(scenario.riskItems ?? []), { id: uid(), label: `Provision risques (${pct}%)`, category: "risk", alloc: "pct", amount: pct, baseRef: "cost" }] })}
+                              className="text-[10px] px-2 py-1 border border-dashed border-orange-200 rounded text-orange-600 hover:bg-orange-50">
+                              <Plus className="w-3 h-3 inline mr-0.5" />+{pct}% risque
+                            </button>
+                          ))}
+                        </div>
+                      </CostSection>
+                    </div>
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            </Card>
+
+            {/* Marge & TVA */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" />Marge cible & TVA</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Mode de calcul du prix</Label>
+                    <Select value={scenario.marginMode} onValueChange={v => updateScenario({ marginMode: v as MarginMode })}>
+                      <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(MARGIN_MODES).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>
+                            <div><div className="font-medium text-xs">{v.label}</div><div className="text-[10px] text-muted-foreground">{v.desc}</div></div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">{scenario.marginMode === "markup" ? "Coefficient (%)" : scenario.marginMode === "net" ? "Marge nette cible (%)" : "Marge brute cible (%)"}</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input type="number" min="0" step="0.5" value={scenario.marginTarget} onChange={e => updateScenario({ marginTarget: parseFloat(e.target.value) || 0 })} className="flex-1 h-8 text-xs" />
                       <span className="text-sm font-semibold text-muted-foreground">%</span>
                     </div>
-                    <div className="flex gap-1 flex-wrap">
-                      {(scenario.marginMode === "markup" ? [20, 30, 40, 50] : [10, 20, 25, 33]).map(v => (
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
+                      {(scenario.marginMode === "markup" ? [20,30,40,50] : [10,15,20,25,33]).map(v => (
                         <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.marginTarget === v ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ marginTarget: v })}>{v}%</Button>
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Taux de TVA (%)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" min="0" max="50" step="0.5" value={scenario.taxRate} onChange={(e) => updateScenario({ taxRate: parseFloat(e.target.value) || 0 })} className="flex-1" />
+                  <div>
+                    <Label className="text-xs">Taux de TVA (%)</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input type="number" min="0" max="50" step="0.5" value={scenario.taxRate} onChange={e => updateScenario({ taxRate: parseFloat(e.target.value) || 0 })} className="flex-1 h-8 text-xs" />
                       <span className="text-sm font-semibold text-muted-foreground">%</span>
                     </div>
-                    <div className="flex gap-1">
-                      {[0, 10, 18, 20].map(v => <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.taxRate === v ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ taxRate: v })}>{v === 0 ? "Exonéré" : `${v}%`}</Button>)}
+                    <div className="flex gap-1 mt-1.5">
+                      {[0,10,18,20].map(v => <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.taxRate === v ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ taxRate: v })}>{v === 0 ? "Exonéré" : `${v}%`}</Button>)}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">Application de la TVA<Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent>En sus = TVA ajoutée au prix HT. Incluse = TVA déjà dans le prix.</TooltipContent></Tooltip></Label>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant={scenario.taxMode === "on_top" ? "default" : "outline"} className={`flex-1 text-xs ${scenario.taxMode === "on_top" ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ taxMode: "on_top" })}>TVA en sus</Button>
-                      <Button size="sm" variant={scenario.taxMode === "included" ? "default" : "outline"} className={`flex-1 text-xs ${scenario.taxMode === "included" ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ taxMode: "included" })}>TVA incluse</Button>
+                  <div>
+                    <Label className="text-xs">Application de la TVA</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Button size="sm" variant={scenario.taxMode === "on_top" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "on_top" ? "bg-[#C8A24B] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "on_top" })}>TVA en sus</Button>
+                      <Button size="sm" variant={scenario.taxMode === "included" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "included" ? "bg-[#C8A24B] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "included" })}>TVA incluse</Button>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* ── Impôt société (IS) — lecture seule, config dans Comptabilité > Fiscal ── */}
+            {/* IS */}
             <Card className={`shadow-sm ${fiscalConfig.enabled ? "border-orange-200" : ""}`}>
               <CardHeader className="pb-3 border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Landmark className="w-4 h-4 text-orange-500" />
-                    Impôt sur les sociétés (IS)
-                    <Tooltip>
-                      <TooltipTrigger asChild><Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs">
-                        Le bénéfice YTD projeté = résultat net YTD actuel (comptabilité) + résultat net estimé de ce deal. L'IS incrémental est calculé automatiquement depuis le barème configuré dans Comptabilité → Fiscal.
-                      </TooltipContent>
+                    <Landmark className="w-4 h-4 text-orange-500" />Impôt sur les sociétés (IS)
+                    <Tooltip><TooltipTrigger asChild><Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">IS calculé depuis le barème configuré dans Comptabilité → Fiscal. Bénéfice YTD projeté = résultat net YTD + résultat net estimé de ce deal.</TooltipContent>
                     </Tooltip>
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {fiscalLoading ? (
-                      <span className="text-xs text-muted-foreground">Chargement…</span>
-                    ) : (
+                    {loadingYtd ? <span className="text-xs text-muted-foreground">Chargement…</span> :
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${fiscalConfig.enabled ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}>
                         {fiscalConfig.enabled ? "Activé" : "Désactivé"}
-                      </span>
-                    )}
+                      </span>}
+                    <a href="/accounting/taxes" className="text-xs text-orange-600 underline hover:text-orange-800">Configurer →</a>
                   </div>
                 </div>
               </CardHeader>
-
               <CardContent className="pt-4 space-y-3">
-                {/* Info provenance */}
-                <div className="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-lg p-3 text-xs">
-                  <Info className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
-                  <div className="text-orange-800">
-                    Paramètres lus depuis <strong>Comptabilité → Fiscal → Impôt société</strong>.{" "}
-                    <a href="/accounting/taxes" className="underline font-semibold hover:text-orange-900">Configurer le barème IS →</a>
-                  </div>
-                </div>
-
-                {/* ── Décomposition YTD projeté ── */}
                 <div className="space-y-1.5">
-
-                  {/* Bloc A — Résultat net YTD actuel (comptabilité) */}
                   <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                        Résultat net YTD actuel — comptabilité
-                      </span>
-                      {ytdProfitData?.period?.from && (
-                        <span className="text-[10px] text-muted-foreground">
-                          depuis {ytdProfitData.period.from}
-                        </span>
-                      )}
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">A — Résultat net YTD actuel (comptabilité)</span>
+                      {ytdData?.period?.from && <span className="text-[10px] text-muted-foreground">depuis {ytdData.period.from}</span>}
                     </div>
-                    {loadingYtd ? (
-                      <div className="text-xs text-muted-foreground">Calcul…</div>
-                    ) : (
+                    {loadingYtd ? <div className="text-xs text-muted-foreground">Calcul…</div> : (
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div>
-                          <div className="text-muted-foreground mb-0.5">Résultat brut</div>
-                          <div className={`font-bold text-sm ${fiscalConfig.ytdProfitBeforeTax < 0 ? "text-red-600" : "text-slate-800"}`}>
-                            {formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax))}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground mb-0.5">IS actuel estimé</div>
-                          <div className="font-bold text-sm text-orange-600">
-                            {fiscalConfig.enabled
-                              ? `− ${formatFCFA(Math.round(fiscalConfig.ytdEstimatedTax))}`
-                              : <span className="text-slate-400">non activé</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground mb-0.5">Résultat net</div>
-                          <div className={`font-bold text-sm ${fiscalConfig.ytdNetProfit < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                            {formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}
-                          </div>
-                        </div>
+                        <div><div className="text-muted-foreground mb-0.5">Résultat brut</div><div className={`font-bold text-sm ${fiscalConfig.ytdProfitBeforeTax < 0 ? "text-red-600" : "text-slate-800"}`}>{formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax))}</div></div>
+                        <div><div className="text-muted-foreground mb-0.5">IS actuel estimé</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled ? `− ${formatFCFA(Math.round(fiscalConfig.ytdEstimatedTax))}` : <span className="text-slate-400">—</span>}</div></div>
+                        <div><div className="text-muted-foreground mb-0.5">Résultat net</div><div className={`font-bold text-sm ${fiscalConfig.ytdNetProfit < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}</div></div>
                       </div>
                     )}
-                    {!loadingYtd && fiscalConfig.ytdProfitBeforeTax === 0 && (
-                      <p className="text-[10px] text-muted-foreground mt-1.5">
-                        Aucune écriture comptabilisée trouvée — les écritures de statut « postées » (classes 6 & 7) alimentent ce calcul.
-                      </p>
-                    )}
                   </div>
-
-                  {/* Séparateur + */}
-                  <div className="flex items-center gap-2 px-1">
-                    <div className="h-px flex-1 bg-slate-100" />
-                    <span className="text-slate-400 font-bold text-sm">+</span>
-                    <div className="h-px flex-1 bg-slate-100" />
-                  </div>
-
-                  {/* Bloc B — Résultat net deal simulé */}
+                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-slate-100"/><span className="text-slate-400 font-bold text-sm">+</span><div className="h-px flex-1 bg-slate-100"/></div>
                   <div className={`border rounded-lg p-3 ${result.netProfit < 0 ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
-                    <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-2">
-                      Résultat net deal simulé
-                    </div>
+                    <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-2">B — Résultat net deal simulé</div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <div className="text-muted-foreground mb-0.5">Marge brute</div>
-                        <div className={`font-bold text-sm ${result.grossMargin < 0 ? "text-red-600" : "text-slate-700"}`}>
-                          {result.totalCost > 0 ? formatFCFA(Math.round(result.grossMargin)) : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground mb-0.5">IS incrémental</div>
-                        <div className="font-bold text-sm text-orange-600">
-                          {fiscalConfig.enabled && result.corporateTax > 0
-                            ? `− ${formatFCFA(Math.round(result.corporateTax))}`
-                            : <span className="text-slate-400">—</span>}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground mb-0.5">Résultat net</div>
-                        <div className={`font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-blue-700"}`}>
-                          {result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"}
-                        </div>
-                      </div>
+                      <div><div className="text-muted-foreground mb-0.5">Marge brute</div><div className={`font-bold text-sm ${result.grossMargin < 0 ? "text-red-600" : "text-slate-700"}`}>{result.totalCost > 0 ? formatFCFA(Math.round(result.grossMargin)) : "—"}</div></div>
+                      <div><div className="text-muted-foreground mb-0.5">IS incrémental</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled && result.corporateTax > 0 ? `− ${formatFCFA(Math.round(result.corporateTax))}` : <span className="text-slate-400">—</span>}</div></div>
+                      <div><div className="text-muted-foreground mb-0.5">Résultat net</div><div className={`font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-blue-700"}`}>{result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"}</div></div>
                     </div>
                     {fiscalConfig.enabled && result.corporateTax > 0 && (
                       <div className="flex gap-4 mt-2 text-[10px] text-muted-foreground">
@@ -1185,60 +1395,38 @@ export default function PricingCalculator() {
                       </div>
                     )}
                   </div>
-
-                  {/* Séparateur = */}
-                  <div className="flex items-center gap-2 px-1">
-                    <div className="h-px flex-1 bg-slate-100" />
-                    <span className="text-slate-400 font-bold text-sm">=</span>
-                    <div className="h-px flex-1 bg-slate-100" />
-                  </div>
-
-                  {/* Bloc C — Bénéfice YTD projeté (résultat clé) */}
+                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-slate-100"/><span className="text-slate-400 font-bold text-sm">=</span><div className="h-px flex-1 bg-slate-100"/></div>
                   {(() => {
-                    const projectedYtdNet = fiscalConfig.ytdNetProfit + result.netProfit;
-                    const isPositive = projectedYtdNet >= 0;
+                    const proj = fiscalConfig.ytdNetProfit + result.netProfit;
+                    const pos = proj >= 0;
                     return (
-                      <div className={`rounded-lg p-3 border-2 ${isPositive ? "bg-amber-50 border-amber-300" : "bg-red-50 border-red-300"}`}>
-                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">
-                          Bénéfice YTD projeté
-                        </div>
-                        <div className={`text-xl font-black ${isPositive ? "text-amber-700" : "text-red-700"}`}>
-                          {result.totalCost > 0
-                            ? formatFCFA(Math.round(projectedYtdNet))
-                            : <span className="text-base font-semibold text-slate-400">Saisir un coût pour calculer</span>}
+                      <div className={`rounded-lg p-3 border-2 ${pos ? "bg-amber-50 border-amber-300" : "bg-red-50 border-red-300"}`}>
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">C — Bénéfice YTD projeté</div>
+                        <div className={`text-2xl font-black ${pos ? "text-amber-700" : "text-red-700"}`}>
+                          {result.totalCost > 0 ? formatFCFA(Math.round(proj)) : <span className="text-base font-semibold text-slate-400">Saisir un coût pour calculer</span>}
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-1">
-                          = Résultat net YTD actuel ({formatFCFA(Math.round(fiscalConfig.ytdNetProfit))})
-                          {" + "}Résultat net deal ({result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"})
+                          = Résultat net YTD ({formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}) + Résultat net deal ({result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"})
                         </div>
                       </div>
                     );
                   })()}
-
-                  {/* Barème IS */}
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] text-muted-foreground">Barème IS :</span>
-                    <span className="text-[10px] font-medium text-slate-700">
-                      {fiscalConfig.brackets.length} tranche{fiscalConfig.brackets.length > 1 ? "s" : ""} —{" "}
-                      {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}
-                    </span>
+                    <span className="text-[10px] font-medium text-slate-700">{fiscalConfig.brackets.length} tranches — {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}</span>
                   </div>
                 </div>
-
-                {fiscalConfig.enabled && result.corporateTax === 0 && result.totalCost > 0 && (
-                  <p className="text-xs text-muted-foreground text-center">Aucun IS incrémental sur ce deal (marge nulle ou résultat YTD insuffisant)</p>
-                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* ══ RIGHT: Results ══ */}
-          <div className="space-y-4">
+          {/* ══ RIGHT PANEL ══ */}
+          <div className="col-span-12 lg:col-span-5 space-y-4">
 
             {/* KPI cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-xl p-4 shadow">
-                <div className="text-xs text-slate-400 font-medium mb-1">Coût de revient</div>
+                <div className="text-xs text-slate-400 font-medium mb-1">Coût de revient complet</div>
                 <div className="text-xl font-bold">{formatFCFA(result.totalCost)}</div>
                 {scenario.quantity > 1 && <div className="text-xs text-slate-400 mt-0.5">Unit. : {formatFCFA(result.unitCost)}</div>}
               </div>
@@ -1258,7 +1446,51 @@ export default function PricingCalculator() {
               </div>
             </div>
 
-            {/* Compte de résultat synthétique */}
+            {/* Cost breakdown chart */}
+            {result.totalCost > 0 && (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2 border-b">
+                  <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4 text-[#C8A24B]" />Décomposition du coût</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <ResponsiveContainer width="100%" height={160}>
+                      <PieChart>
+                        <Pie data={result.breakdownLabels} dataKey="value" cx="50%" cy="50%" outerRadius={65} innerRadius={30}>
+                          {result.breakdownLabels.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                        </Pie>
+                        <RechartTooltip formatter={(v: number) => formatFCFA(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="space-y-1 py-2 overflow-y-auto max-h-40">
+                      {result.breakdownLabels.map((e, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: e.color }} />
+                            <span className="truncate max-w-[90px] text-slate-600">{e.label}</span>
+                          </span>
+                          <span className="font-semibold text-slate-700">{result.priceHT > 0 ? `${((e.value / result.priceHT) * 100).toFixed(1)}%` : "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Bar breakdown */}
+                  <div className="mt-2 space-y-1.5">
+                    {result.breakdownLabels.map((e, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-28 truncate shrink-0">{e.label}</span>
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${result.totalCost > 0 ? (e.value / result.totalCost) * 100 : 0}%`, backgroundColor: e.color }} />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700 w-20 text-right shrink-0">{formatFCFA(e.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Income statement */}
             <Card className="shadow-sm">
               <CardHeader className="pb-2 border-b">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" />Compte de résultat synthétique</CardTitle>
@@ -1271,44 +1503,41 @@ export default function PricingCalculator() {
                       <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatFCFA(result.priceHT)}</td>
                       <td className="px-4 py-2.5 text-right text-muted-foreground">100%</td>
                     </tr>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="px-4 py-2 text-slate-500 pl-6">— Coûts directs</td>
-                      <td className="px-4 py-2 text-right text-red-600">{formatFCFA(result.byCategory.direct + result.byCategory.purchase)}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? (((result.byCategory.direct + result.byCategory.purchase) / result.priceHT) * 100).toFixed(1) + "%" : "—"}</td>
-                    </tr>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="px-4 py-2 text-slate-500 pl-6">— Main-d'œuvre</td>
-                      <td className="px-4 py-2 text-right text-red-600">{formatFCFA(result.byCategory.labor)}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? ((result.byCategory.labor / result.priceHT) * 100).toFixed(1) + "%" : "—"}</td>
-                    </tr>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="px-4 py-2 text-slate-500 pl-6">— Logistique & autres</td>
-                      <td className="px-4 py-2 text-right text-red-600">{formatFCFA(result.byCategory.logistics + result.byCategory.indirect + result.byCategory.tax_input + result.byCategory.other)}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? (((result.byCategory.logistics + result.byCategory.indirect + result.byCategory.tax_input + result.byCategory.other) / result.priceHT) * 100).toFixed(1) + "%" : "—"}</td>
-                    </tr>
+                    {[
+                      { label: "— Coûts directs", val: result.byCategory.direct + result.byCategory.purchase + result.byCategory.logistics + result.byCategory.tax_input + result.byCategory.other },
+                      { label: "— Main-d'œuvre", val: result.byCategory.labor },
+                      { label: "— Charges opérat.", val: result.byCategory.operational },
+                      { label: "— Amortissements", val: result.byCategory.depreciation },
+                      { label: "— Admin & structure", val: result.byCategory.admin },
+                      { label: "— Frais commerciaux", val: result.byCategory.commercial },
+                      { label: "— Frais financiers", val: result.byCategory.financial },
+                      { label: "— Provisions/risques", val: result.byCategory.risk },
+                    ].filter(r => r.val > 0).map((row, i) => (
+                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/30">
+                        <td className="px-4 py-1.5 text-slate-500 pl-6">{row.label}</td>
+                        <td className="px-4 py-1.5 text-right text-red-600">{formatFCFA(Math.round(row.val))}</td>
+                        <td className="px-4 py-1.5 text-right text-muted-foreground">{result.priceHT > 0 ? `${((row.val / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
+                      </tr>
+                    ))}
                     <tr className="border-b border-slate-200 bg-slate-50">
                       <td className="px-4 py-2.5 font-bold text-slate-700">Marge brute</td>
                       <td className={`px-4 py-2.5 text-right font-bold ${result.grossMargin < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(result.grossMargin)}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold ${result.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</td>
                     </tr>
-                    {fiscalConfig.enabled && (
-                      <>
-                        <tr className="border-b border-slate-100 hover:bg-orange-50/30">
-                          <td className="px-4 py-2 text-slate-600 font-medium">Résultat avant IS</td>
-                          <td className="px-4 py-2 text-right font-semibold">{formatFCFA(result.profitBeforeTax)}</td>
-                          <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? (result.operatingMarginPct.toFixed(1) + "%") : "—"}</td>
-                        </tr>
-                        <tr className="border-b border-slate-100 hover:bg-orange-50/30">
-                          <td className="px-4 py-2 text-orange-700 pl-6">— IS incrémental ({result.effectiveTaxRate.toFixed(1)}% effectif)</td>
-                          <td className="px-4 py-2 text-right text-orange-700 font-semibold">{formatFCFA(Math.round(result.corporateTax))}</td>
-                          <td className="px-4 py-2 text-right text-orange-500">{result.priceHT > 0 ? ((result.corporateTax / result.priceHT) * 100).toFixed(1) + "%" : "—"}</td>
-                        </tr>
-                      </>
-                    )}
+                    {fiscalConfig.enabled && (<>
+                      <tr className="border-b border-slate-100 hover:bg-orange-50/20">
+                        <td className="px-4 py-2 text-slate-600">Résultat avant IS</td>
+                        <td className="px-4 py-2 text-right font-semibold">{formatFCFA(result.profitBeforeTax)}</td>
+                        <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? `${result.operatingMarginPct.toFixed(1)}%` : "—"}</td>
+                      </tr>
+                      <tr className="border-b border-slate-100 hover:bg-orange-50/20">
+                        <td className="px-4 py-2 text-orange-700 pl-6">— IS incrémental ({result.effectiveTaxRate.toFixed(1)}% effectif / {result.marginalTaxRate.toFixed(0)}% marginal)</td>
+                        <td className="px-4 py-2 text-right text-orange-700 font-semibold">{formatFCFA(Math.round(result.corporateTax))}</td>
+                        <td className="px-4 py-2 text-right text-orange-500">{result.priceHT > 0 ? `${((result.corporateTax / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
+                      </tr>
+                    </>)}
                     <tr className="bg-[#C8A24B]/10">
-                      <td className="px-4 py-3 font-bold text-[#8a6b2a]">
-                        {fiscalConfig.enabled ? "Bénéfice net après IS" : "Marge nette"}
-                      </td>
+                      <td className="px-4 py-3 font-bold text-[#8a6b2a]">{fiscalConfig.enabled ? "Bénéfice net après IS" : "Marge nette"}</td>
                       <td className={`px-4 py-3 text-right font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{formatFCFA(result.netProfit)}</td>
                       <td className={`px-4 py-3 text-right font-bold ${result.netMarginPct < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{result.netMarginPct.toFixed(1)}%</td>
                     </tr>
@@ -1317,193 +1546,188 @@ export default function PricingCalculator() {
               </CardContent>
             </Card>
 
-            {/* Indicateurs de marge */}
+            {/* Key metrics */}
             <Card className="shadow-sm">
-              <CardContent className="p-4">
+              <CardHeader className="pb-2 border-b">
+                <CardTitle className="text-sm flex items-center gap-2"><Target className="w-4 h-4 text-[#C8A24B]" />Indicateurs clés</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
+                  <div className="bg-slate-50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Marge brute</div>
-                    <div className={`text-2xl font-bold ${result.grossMarginPct < 10 ? "text-red-500" : result.grossMarginPct < 20 ? "text-amber-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</div>
+                    <div className={`text-xl font-bold ${result.grossMarginPct < 10 ? "text-red-500" : result.grossMarginPct < 20 ? "text-amber-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</div>
                   </div>
-                  <div>
+                  <div className="bg-slate-50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Marge nette</div>
-                    <div className={`text-2xl font-bold ${result.netMarginPct < 0 ? "text-red-500" : result.netMarginPct < 10 ? "text-amber-500" : "text-emerald-600"}`}>{result.netMarginPct.toFixed(1)}%</div>
+                    <div className={`text-xl font-bold ${result.netMarginPct < 0 ? "text-red-500" : result.netMarginPct < 10 ? "text-amber-500" : "text-emerald-600"}`}>{result.netMarginPct.toFixed(1)}%</div>
                   </div>
-                  <div>
+                  <div className="bg-slate-50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Coefficient</div>
-                    <div className="text-2xl font-bold text-slate-700">{result.totalCost > 0 ? (result.priceHT / result.totalCost).toFixed(2) : "—"}</div>
+                    <div className="text-xl font-bold text-slate-700">{result.totalCost > 0 ? (result.priceHT / result.totalCost).toFixed(2) : "—"}</div>
                   </div>
                 </div>
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Santé de la marge nette</span>
+
+                {fiscalConfig.enabled && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-orange-600 mb-1">Taux effectif IS</div>
+                      <div className="text-lg font-bold text-orange-700">{result.effectiveTaxRate.toFixed(1)}%</div>
+                      <div className="text-[10px] text-muted-foreground">IS / marge brute deal</div>
+                    </div>
+                    <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-orange-600 mb-1">Taux marginal IS</div>
+                      <div className="text-lg font-bold text-orange-700">{result.marginalTaxRate.toFixed(0)}%</div>
+                      <div className="text-[10px] text-muted-foreground">Tranche projetée YTD</div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Santé de la marge nette</span>
                     <span className={result.netMarginPct < 0 ? "text-red-500 font-semibold" : result.netMarginPct < 10 ? "text-amber-500 font-semibold" : "text-emerald-600 font-semibold"}>
                       {result.netMarginPct < 0 ? "⚠ Déficitaire" : result.netMarginPct < 5 ? "⚠ Critique" : result.netMarginPct < 15 ? "⚠ Faible" : result.netMarginPct < 30 ? "✓ Acceptable" : "✓✓ Bonne"}
                     </span>
                   </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-700 ${result.netMarginPct < 0 ? "bg-red-500" : result.netMarginPct < 10 ? "bg-amber-500" : "bg-emerald-500"}`}
-                      style={{ width: `${Math.min(100, Math.max(0, result.netMarginPct * 2))}%` }} />
+                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${result.netMarginPct < 0 ? "bg-red-500" : result.netMarginPct < 15 ? "bg-amber-400" : "bg-emerald-500"}`}
+                      style={{ width: `${Math.min(100, Math.max(0, result.netMarginPct))}%` }} />
                   </div>
                 </div>
-                {result.minimumPriceHT > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-slate-50 rounded-lg p-2">
-                      <div className="text-muted-foreground mb-0.5">Prix minimum (seuil de rentabilité)</div>
-                      <div className="font-bold text-slate-800">{formatFCFA(Math.round(result.minimumPriceHT))} HT</div>
+
+                {/* Prix cibles */}
+                <div className="border-t border-slate-100 pt-3 space-y-2">
+                  <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><Target className="w-3.5 h-3.5 text-[#C8A24B]" />Prix cibles</div>
+                  <div className="flex justify-between text-xs bg-red-50 border border-red-100 rounded-lg p-2.5">
+                    <span className="text-red-700 font-medium">Prix minimum (seuil de rentabilité)</span>
+                    <span className="font-bold text-red-700">{formatFCFA(Math.round(result.minimumPriceHT))} HT</span>
+                  </div>
+                  <div className="flex justify-between text-xs bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
+                    <span className="text-emerald-700 font-medium">Prix recommandé ({scenario.marginTarget}% marge nette{fiscalConfig.enabled ? " après IS" : ""})</span>
+                    <span className="font-bold text-emerald-700">{formatFCFA(Math.round(result.recommendedPriceHT))} HT</span>
+                  </div>
+                  {result.priceHT > 0 && result.minimumPriceHT > 0 && (
+                    <div className="text-xs text-muted-foreground text-center">
+                      Marge de sécurité : <strong className={result.priceHT >= result.minimumPriceHT ? "text-emerald-600" : "text-red-600"}>
+                        {formatFCFA(Math.round(result.priceHT - result.minimumPriceHT))}
+                      </strong> par rapport au seuil
                     </div>
-                    <div className="bg-emerald-50 rounded-lg p-2">
-                      <div className="text-muted-foreground mb-0.5">Prix recommandé ({scenario.marginTarget}% net)</div>
-                      <div className="font-bold text-emerald-700">{formatFCFA(Math.round(result.recommendedPriceHT))} HT</div>
-                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setSendDocType("proforma")} className="gap-1.5 text-xs flex-1">
+                <FileSignature className="w-3.5 h-3.5" />Créer un devis
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setSendDocType("order")} className="gap-1.5 text-xs flex-1">
+                <ShoppingCart className="w-3.5 h-3.5" />Créer commande
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ══ SCENARIOS & RECOMMENDATIONS ══ */}
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 lg:col-span-8">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4 text-[#C8A24B]" />Scénarios de pricing automatiques</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {AUTO_SCENARIOS.map(def => <ScenarioCard key={def.key} def={def} scenario={scenario} fc={fiscalConfig} />)}
+                </div>
+                {result.totalCost > 0 && (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left px-3 py-2 text-muted-foreground font-medium">Scénario</th>
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prix HT</th>
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prix TTC</th>
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Marge brute</th>
+                          {fiscalConfig.enabled && <th className="text-right px-3 py-2 text-muted-foreground font-medium">IS</th>}
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Marge nette</th>
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Bénéfice net</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {AUTO_SCENARIOS.map(def => {
+                          const sc = { ...scenario, marginTarget: def.margin };
+                          const r = calculate(sc, fiscalConfig);
+                          return (
+                            <tr key={def.key} className="border-b border-slate-100 hover:bg-slate-50">
+                              <td className="px-3 py-2 font-semibold" style={{ color: def.color }}>{def.label}</td>
+                              <td className="px-3 py-2 text-right font-semibold">{formatFCFA(Math.round(r.priceHT))}</td>
+                              <td className="px-3 py-2 text-right">{formatFCFA(Math.round(r.priceTTC))}</td>
+                              <td className="px-3 py-2 text-right" style={{ color: def.color }}>{r.grossMarginPct.toFixed(1)}%</td>
+                              {fiscalConfig.enabled && <td className="px-3 py-2 text-right text-orange-600">{formatFCFA(Math.round(r.corporateTax))}</td>}
+                              <td className="px-3 py-2 text-right font-bold" style={{ color: def.color }}>{r.netMarginPct.toFixed(1)}%</td>
+                              <td className="px-3 py-2 text-right font-bold">{formatFCFA(Math.round(r.netProfit))}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
             </Card>
+          </div>
 
-            {/* ── 4 Scénarios automatiques ── */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2"><Target className="w-4 h-4 text-[#C8A24B]" />Grille de prix automatique</CardTitle>
+          <div className="col-span-12 lg:col-span-4">
+            <Card className="shadow-sm h-full">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base flex items-center gap-2"><Lightbulb className="w-4 h-4 text-[#C8A24B]" />Recommandations</CardTitle>
               </CardHeader>
-              <CardContent className="pt-3 p-0">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
-                      <th className="px-4 py-2 text-left text-muted-foreground font-semibold">Scénario</th>
-                      <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Prix HT</th>
-                      <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Marge brute</th>
-                      <th className="px-3 py-2 text-right text-muted-foreground font-semibold">Marge nette</th>
-                      {fiscalConfig.enabled && <th className="px-3 py-2 text-right text-muted-foreground font-semibold">IS</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {autoScenarios.map(as => (
-                      <tr key={as.key} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: as.color }} />
-                            <span className="font-semibold text-slate-700">{as.label}</span>
-                            <span className="text-muted-foreground">({as.margin}%)</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-semibold">{as.priceHT > 0 ? formatFCFA(Math.round(as.priceHT)) : "—"}</td>
-                        <td className={`px-3 py-2.5 text-right font-semibold ${as.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{as.grossMarginPct.toFixed(1)}%</td>
-                        <td className={`px-3 py-2.5 text-right font-bold ${as.netMarginPct < 0 ? "text-red-500" : as.netMarginPct < 10 ? "text-amber-500" : "text-emerald-600"}`}>{as.netMarginPct.toFixed(1)}%</td>
-                        {fiscalConfig.enabled && <td className="px-3 py-2.5 text-right text-orange-600">{as.corporateTax > 0 ? formatFCFA(Math.round(as.corporateTax)) : "—"}</td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            {/* ── Recommandations automatiques ── */}
-            {recommendations.length > 0 && (
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2 border-b">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2"><Brain className="w-4 h-4 text-purple-600" />Recommandations automatiques</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-3 space-y-2.5">
-                  {recommendations.map((rec, i) => {
-                    const styles: Record<RecType, { bg: string; border: string; icon: React.ReactNode }> = {
-                      danger:  { bg: "bg-red-50",     border: "border-red-200",     icon: <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" /> },
-                      warning: { bg: "bg-amber-50",   border: "border-amber-200",   icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" /> },
-                      success: { bg: "bg-emerald-50", border: "border-emerald-200", icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" /> },
-                      info:    { bg: "bg-blue-50",    border: "border-blue-200",    icon: <Lightbulb className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" /> },
-                    };
-                    const s = styles[rec.type];
-                    return (
-                      <div key={i} className={`rounded-lg border p-3 flex gap-2.5 ${s.bg} ${s.border}`}>
-                        {s.icon}
+              <CardContent className="pt-4 space-y-2.5">
+                {recommendations.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-xs">
+                    <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-300" />Aucune alerte — pricing optimal
+                  </div>
+                ) : recommendations.map((rec, i) => {
+                  const colors: Record<RecType, string> = {
+                    danger:  "bg-red-50 border-red-200 text-red-800",
+                    warning: "bg-amber-50 border-amber-200 text-amber-800",
+                    success: "bg-emerald-50 border-emerald-200 text-emerald-800",
+                    info:    "bg-blue-50 border-blue-200 text-blue-800",
+                  };
+                  const icons: Record<RecType, React.ReactNode> = {
+                    danger:  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />,
+                    warning: <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />,
+                    success: <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />,
+                    info:    <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />,
+                  };
+                  return (
+                    <div key={i} className={`border rounded-lg p-3 text-xs ${colors[rec.type]}`}>
+                      <div className="flex gap-2">
+                        {icons[rec.type]}
                         <div>
-                          <div className="text-xs font-bold text-slate-700 mb-0.5">{rec.title}</div>
-                          <div className="text-xs text-slate-600 leading-relaxed">{rec.msg}</div>
+                          <div className="font-bold mb-0.5">{rec.title}</div>
+                          <div className="opacity-90">{rec.msg}</div>
                         </div>
                       </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Graphique structure du prix */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2 border-b"><CardTitle className="text-sm font-semibold">Structure du prix TTC</CardTitle></CardHeader>
-              <CardContent className="pt-2 pb-3">
-                {result.priceTTC > 0 ? (
-                  <ResponsiveContainer width="100%" height={210}>
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2} dataKey="value">
-                        {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <RechartTooltip content={<PieTooltip />} />
-                      <Legend formatter={(value) => <span className="text-xs text-slate-600">{value}</span>} wrapperStyle={{ fontSize: "11px" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[210px] flex items-center justify-center text-muted-foreground text-sm">Saisir des coûts pour voir la structure tarifaire</div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Boutons d'action */}
-            <Card className="shadow-sm border-[#C8A24B]/30 bg-amber-50/30">
-              <CardHeader className="pb-3 border-b border-[#C8A24B]/20">
-                <CardTitle className="text-sm font-semibold text-[#8a6b2a]">Utiliser ce tarif dans un document commercial</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3 space-y-2">
-                <div className="text-xs text-muted-foreground mb-2">
-                  Prix calculé : <strong className="text-[#C8A24B]">{formatFCFA(result.priceTTC)} TTC</strong> · Marge nette : <strong className={result.netMarginPct < 0 ? "text-red-500" : "text-emerald-600"}>{result.netMarginPct.toFixed(1)}%</strong>
-                </div>
-                <Button className="w-full gap-2 bg-[#C8A24B] hover:bg-[#b8922b] text-white" disabled={result.priceTTC <= 0} onClick={() => setSendDocOpen("proforma")}>
-                  <FileSignature className="w-4 h-4" /> Créer un devis (proforma)<ArrowRight className="w-3 h-3 ml-auto" />
-                </Button>
-                <Button variant="outline" className="w-full gap-2 border-[#C8A24B]/50 text-[#8a6b2a] hover:bg-amber-50" disabled={result.priceTTC <= 0} onClick={() => setSendDocOpen("order")}>
-                  <ShoppingCart className="w-4 h-4" /> Créer une commande<ArrowRight className="w-3 h-3 ml-auto" />
-                </Button>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Comparaison de scénarios manuels */}
-        {scenarios.length > 1 && (
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" /> Comparaison des scénarios</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-                {scenarios.map(s => {
-                  const r = calculate(s, fiscalConfig);
-                  return (
-                    <div key={s.id} className={`rounded-lg border p-3 cursor-pointer transition-all ${s.id === activeId ? "border-[#C8A24B] bg-amber-50/30" : "border-slate-200 hover:border-[#C8A24B]/40"}`} onClick={() => setActiveId(s.id)}>
-                      <div className="text-sm font-bold truncate">{s.name}</div>
-                      <div className="text-lg font-bold text-[#C8A24B] mt-1">{formatFCFA(r.priceTTC)}</div>
-                      <div className="text-xs text-muted-foreground">Marge nette : <span className={`font-semibold ${r.netMarginPct < 0 ? "text-red-500" : "text-emerald-600"}`}>{r.netMarginPct.toFixed(1)}%</span></div>
-                    </div>
-                  );
-                })}
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={compareData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10 }} />
-                  <RechartTooltip formatter={(v: number) => formatFCFA(v)} />
-                  <Bar dataKey="coût" name="Coût revient" fill="#6B7280" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="prixHT" name="Prix HT" fill="#C8A24B" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="prixTTC" name="Prix TTC" fill="#10B981" radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* ── Dialogs ── */}
+        <LoadFromHRDialog open={showHRDialog} onClose={() => setShowHRDialog(false)}
+          laborSettings={scenario.laborSettings}
+          onSelect={lines => updateScenario({ laborLines: [...(scenario.laborLines ?? []), ...lines] })} />
+        <LoadFromEquipmentDialog open={showEquipDialog} onClose={() => setShowEquipDialog(false)}
+          onSelect={items => updateScenario({ depreciationItems: [...(scenario.depreciationItems ?? []), ...items] })} />
+        {sendDocType && (
+          <SendToDocDialog open={true} onClose={() => setSendDocType(null)} result={result} scenario={scenario} docType={sendDocType} />
         )}
       </div>
-
-      {sendDocOpen && <SendToDocDialog open={true} onClose={() => setSendDocOpen(null)} result={result} scenario={scenario} docType={sendDocOpen} />}
-      {saveDialogOpen && <ScenarioSaveDialog scenario={scenario} onSave={saveScenario} onClose={() => setSaveDialogOpen(false)} />}
     </TooltipProvider>
   );
 }
