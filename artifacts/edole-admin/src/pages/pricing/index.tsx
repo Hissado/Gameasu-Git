@@ -710,6 +710,199 @@ function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
   );
 }
 
+// ─── LoadFromInventoryDialog ──────────────────────────────────────────────────
+
+type CatalogProduct = {
+  id: string; sku: string; name: string; unit: string;
+  purchasePriceFcfa: string; sellingPriceFcfa: string;
+  stockOnHand: number; isLowStock: boolean;
+  categoryId?: string | null; description?: string | null;
+};
+
+function LoadFromInventoryDialog({ open, onClose, onSelect }: {
+  open: boolean; onClose: () => void;
+  onSelect: (items: CostItem[]) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<Map<string, { qty: number; price: number }>>(new Map());
+
+  const { data: products = [], isLoading } = useQuery<CatalogProduct[]>({
+    queryKey: ["inventory-products-pricing"],
+    queryFn: () => apiFetch("/api/inventory/products?limit=500&activeOnly=1"),
+    enabled: open,
+  });
+
+  const filtered = useMemo(() => {
+    if (!q.trim()) return products;
+    const lq = q.toLowerCase();
+    return products.filter(p => p.name.toLowerCase().includes(lq) || p.sku.toLowerCase().includes(lq));
+  }, [products, q]);
+
+  const toggle = (p: CatalogProduct) => {
+    setSelected(prev => {
+      const n = new Map(prev);
+      if (n.has(p.id)) { n.delete(p.id); }
+      else { n.set(p.id, { qty: 1, price: parseFloat(p.purchasePriceFcfa) || 0 }); }
+      return n;
+    });
+  };
+
+  const setQty = (id: string, qty: number) => {
+    setSelected(prev => { const n = new Map(prev); const e = n.get(id); if (e) n.set(id, { ...e, qty }); return n; });
+  };
+  const setPrice = (id: string, price: number) => {
+    setSelected(prev => { const n = new Map(prev); const e = n.get(id); if (e) n.set(id, { ...e, price }); return n; });
+  };
+
+  const totalSel = selected.size;
+  const totalCost = [...selected.values()].reduce((sum, e) => sum + e.price * e.qty, 0);
+
+  const handleConfirm = () => {
+    const items: CostItem[] = [];
+    for (const [id, { qty, price }] of selected.entries()) {
+      const p = products.find(x => x.id === id);
+      if (!p) continue;
+      items.push({
+        id: uid(),
+        label: `${p.name} (${p.sku})`,
+        category: "purchase",
+        alloc: qty !== 1 ? "per_unit" : "fixed",
+        amount: qty !== 1 ? price : price * qty,
+        qty: qty !== 1 ? qty : undefined,
+        qtyUnit: qty !== 1 ? p.unit : undefined,
+        notes: p.description ?? undefined,
+      });
+    }
+    onSelect(items);
+    setSelected(new Map()); setQ("");
+    onClose();
+  };
+
+  const handleClose = () => { setSelected(new Map()); setQ(""); onClose(); };
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) handleClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-emerald-600" />
+            Importer depuis Produits / Stock
+          </DialogTitle>
+          <DialogDescription>
+            Sélectionnez les produits du catalogue — le prix d'achat est automatiquement renseigné.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Search */}
+        <div className="px-6 py-3 border-b shrink-0">
+          <div className="relative">
+            <Package className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
+            <input
+              value={q} onChange={e => setQ(e.target.value)}
+              placeholder="Rechercher par nom ou SKU…"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+        </div>
+
+        {/* Product list */}
+        <div className="flex-1 overflow-y-auto px-6 py-3 space-y-2">
+          {isLoading && (
+            <div className="text-center py-10 text-muted-foreground text-sm flex flex-col items-center gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin opacity-50" />Chargement du catalogue…
+            </div>
+          )}
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              <Package className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              {q ? "Aucun produit correspondant à votre recherche" : "Aucun produit actif dans le catalogue"}
+            </div>
+          )}
+          {filtered.map(p => {
+            const sel = selected.get(p.id);
+            const isSel = !!sel;
+            const purchasePrice = parseFloat(p.purchasePriceFcfa) || 0;
+            return (
+              <div key={p.id}
+                className={`border rounded-xl p-3 cursor-pointer transition-all ${isSel ? "border-emerald-400 bg-emerald-50 shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`}
+                onClick={() => toggle(p)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <input type="checkbox" checked={isSel} readOnly className="w-4 h-4 shrink-0 accent-emerald-600 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-sm truncate">{p.name}</div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{p.sku}</span>
+                        <span className="text-xs text-muted-foreground">Unité : {p.unit}</span>
+                        {p.isLowStock && (
+                          <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            <AlertTriangle className="w-3 h-3" />Stock faible ({p.stockOnHand})
+                          </span>
+                        )}
+                        {!p.isLowStock && p.stockOnHand > 0 && (
+                          <span className="text-[10px] text-slate-500">Stock : {p.stockOnHand} {p.unit}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold text-emerald-700">{formatFCFA(purchasePrice)}</div>
+                    <div className="text-[10px] text-muted-foreground">/ {p.unit} · prix d'achat</div>
+                  </div>
+                </div>
+
+                {isSel && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200 grid grid-cols-2 gap-3" onClick={e => e.stopPropagation()}>
+                    <div>
+                      <label className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wide mb-1 block">Quantité ({p.unit})</label>
+                      <Input
+                        type="number" min="0" step="any"
+                        value={sel!.qty}
+                        onChange={e => setQty(p.id, parseFloat(e.target.value) || 1)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wide mb-1 block">Prix d'achat unitaire (FCFA)</label>
+                      <Input
+                        type="number" min="0" step="any"
+                        value={sel!.price}
+                        onChange={e => setPrice(p.id, parseFloat(e.target.value) || 0)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2 bg-white rounded-lg border border-emerald-200 px-3 py-1.5 flex justify-between text-xs">
+                      <span className="text-muted-foreground">Coût total pour ce produit</span>
+                      <span className="font-bold text-emerald-700">{formatFCFA(Math.round(sel!.price * sel!.qty))}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-slate-50 shrink-0">
+          {totalSel > 0 && (
+            <div className="flex items-center justify-between mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
+              <span className="text-emerald-800 font-medium">{totalSel} produit{totalSel > 1 ? "s" : ""} sélectionné{totalSel > 1 ? "s" : ""}</span>
+              <span className="font-bold text-emerald-700">Total : {formatFCFA(Math.round(totalCost))}</span>
+            </div>
+          )}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={handleClose}>Annuler</Button>
+            <Button onClick={handleConfirm} disabled={totalSel === 0} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+              <ShoppingCart className="w-4 h-4" />
+              Importer {totalSel > 0 ? `${totalSel} produit${totalSel > 1 ? "s" : ""}` : ""}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── SendToDocDialog ──────────────────────────────────────────────────────────
 
 function SendToDocDialog({ open, onClose, result, scenario, docType }: {
@@ -869,6 +1062,7 @@ export default function PricingCalculator() {
   const [activeScenarioId, setActiveScenarioId] = useState<string>(scenarios[0].id);
   const [showHRDialog, setShowHRDialog] = useState(false);
   const [showEquipDialog, setShowEquipDialog] = useState(false);
+  const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   const [sendDocType, setSendDocType] = useState<"proforma" | "order" | null>(null);
   const [activeTab, setActiveTab] = useState("directs");
 
@@ -1060,7 +1254,7 @@ export default function PricingCalculator() {
                       onUpdate={(id, u) => updateItem("costItems", id, u)}
                       onRemove={(id) => removeItem("costItems", id)}
                       defaultCategory="direct">
-                      <div className="flex gap-2 mb-3">
+                      <div className="flex flex-wrap gap-2 mb-3">
                         {(["direct","purchase","logistics","tax_input","other"] as CostCategory[]).map(cat => (
                           <button key={cat} onClick={() => addItem("costItems", cat)}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed hover:bg-slate-50 transition-colors"
@@ -1068,6 +1262,30 @@ export default function PricingCalculator() {
                             <Plus className="w-3 h-3" />{CATEGORIES[cat].label}
                           </button>
                         ))}
+                      </div>
+                      <div className="border border-emerald-200 rounded-xl bg-emerald-50/60 p-3 mb-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-start gap-2">
+                            <ShoppingCart className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-xs font-semibold text-emerald-800">Achats &amp; Approvisionnement — synchronisé avec Produits / Stock</div>
+                              <div className="text-[10px] text-emerald-700 mt-0.5">
+                                Sélectionnez des produits du catalogue : le prix d'achat est récupéré automatiquement depuis la fiche produit.
+                              </div>
+                            </div>
+                          </div>
+                          <Button size="sm" onClick={() => setShowInventoryDialog(true)}
+                            className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5 h-8">
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            Importer depuis le catalogue
+                          </Button>
+                        </div>
+                        {scenario.costItems.some(i => i.category === "purchase") && (
+                          <div className="mt-2 pt-2 border-t border-emerald-200 text-[10px] text-emerald-700 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            {scenario.costItems.filter(i => i.category === "purchase").length} article{scenario.costItems.filter(i => i.category === "purchase").length > 1 ? "s" : ""} du catalogue intégrés dans le calcul
+                          </div>
+                        )}
                       </div>
                     </CostSection>
                   </TabsContent>
@@ -1724,6 +1942,8 @@ export default function PricingCalculator() {
           onSelect={lines => updateScenario({ laborLines: [...(scenario.laborLines ?? []), ...lines] })} />
         <LoadFromEquipmentDialog open={showEquipDialog} onClose={() => setShowEquipDialog(false)}
           onSelect={items => updateScenario({ depreciationItems: [...(scenario.depreciationItems ?? []), ...items] })} />
+        <LoadFromInventoryDialog open={showInventoryDialog} onClose={() => setShowInventoryDialog(false)}
+          onSelect={items => updateScenario({ costItems: [...(scenario.costItems ?? []), ...items] })} />
         {sendDocType && (
           <SendToDocDialog open={true} onClose={() => setSendDocType(null)} result={result} scenario={scenario} docType={sendDocType} />
         )}
