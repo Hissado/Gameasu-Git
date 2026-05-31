@@ -247,6 +247,55 @@ function computeStructureCosts(cfg: StructureCostConfig): {
   return { operational: op, admin: adm, commercial: com, financial: fin, total: op + adm + com + fin, effectivePct };
 }
 
+// ─── Class 6 burn rate mapping ────────────────────────────────────────────────
+
+type BalanceRow = {
+  code: string; label: string; classNum: number;
+  totalDebit: number; totalCredit: number; soldDebit: number; soldCredit: number;
+};
+
+type RealBurnRates = {
+  operational: number; admin: number; commercial: number; financial: number;
+  total: number; hasData: boolean;
+  /** Raw YTD totals per section (for display) */
+  ytdOperational: number; ytdAdmin: number; ytdCommercial: number; ytdFinancial: number;
+};
+
+/** Maps SYSCOHADA class 6 balance rows to the 4 structure sections (monthly average). */
+function mapClass6ToSections(rows: BalanceRow[], months: number): RealBurnRates {
+  const sums = { operational: 0, admin: 0, commercial: 0, financial: 0 };
+  for (const r of rows) {
+    const net = r.soldDebit; // class 6: normal balance is debit
+    if (net <= 0) continue;
+    const p3 = r.code.slice(0, 3);
+    const p2 = r.code.slice(0, 2);
+    // Commercial: 627 (Publicité, marketing, relations publiques)
+    if (p3 === "627") { sums.commercial += net; continue; }
+    // Financial: 631 (Frais bancaires), 671 (Intérêts), 681 (Dotations amortissements)
+    if (p3 === "631" || p3 === "671" || p3 === "681") { sums.financial += net; continue; }
+    // Admin: 622 (Loyer), 625 (Assurances), 628 (Télécom), 64x (Impôts/taxes), 66x (Salaires/charges)
+    if (p3 === "622" || p3 === "625" || p3 === "628" || p2 === "64" || p2 === "66") { sums.admin += net; continue; }
+    // Operational: 60x (Achats), 61x (Transports), 624 (Entretien/maintenance)
+    if (p2 === "60" || p2 === "61" || p3 === "624") { sums.operational += net; continue; }
+    // Default fallback → admin
+    sums.admin += net;
+  }
+  const m = Math.max(1, months);
+  const totalYtd = sums.operational + sums.admin + sums.commercial + sums.financial;
+  return {
+    operational: Math.round(sums.operational / m),
+    admin:        Math.round(sums.admin / m),
+    commercial:   Math.round(sums.commercial / m),
+    financial:    Math.round(sums.financial / m),
+    total:        Math.round(totalYtd / m),
+    hasData:      totalYtd > 0,
+    ytdOperational: Math.round(sums.operational),
+    ytdAdmin:       Math.round(sums.admin),
+    ytdCommercial:  Math.round(sums.commercial),
+    ytdFinancial:   Math.round(sums.financial),
+  };
+}
+
 function computeLaborLineCost(line: LaborLineItem) {
   const monthlyHours = (line.weeklyHours * 52) / 12;
   const monthlyCostEmployeur = line.monthlySalaryBrut * (1 + line.employerChargeRate / 100) + line.benefitsMonthly;
@@ -1127,29 +1176,54 @@ function CostSection({
 // ─── UnifiedStructurePanel ────────────────────────────────────────────────────
 
 function UnifiedStructurePanel({
-  config, onUpdate, ytdCharges, ytdMonthsElapsed,
+  config, onUpdate, ytdCharges, ytdMonthsElapsed, realBurnRates, ytdRevenues, priceHT,
 }: {
   config: StructureCostConfig;
   onUpdate: (patch: Partial<StructureCostConfig>) => void;
   ytdCharges: number;
   ytdMonthsElapsed: number;
+  realBurnRates: RealBurnRates | null;
+  ytdRevenues: number;
+  priceHT: number;
 }) {
-  const monthlyOverhead = ytdMonthsElapsed > 0 ? Math.round(ytdCharges / ytdMonthsElapsed) : 0;
   const sc = computeStructureCosts(config);
   const totalMonthly = config.operational.monthlyBudget + config.admin.monthlyBudget +
     config.commercial.monthlyBudget + config.financial.monthlyBudget;
 
+  // Auto deal-share: priceHT / monthly_revenue_rate * 100
+  const monthlyRevenue = ytdRevenues > 0 && ytdMonthsElapsed > 0 ? ytdRevenues / ytdMonthsElapsed : 0;
+  const autoSharePct = monthlyRevenue > 0 && priceHT > 0 && config.dealDurationMonths > 0
+    ? Math.min(100, (priceHT / config.dealDurationMonths) / monthlyRevenue * 100)
+    : 0;
+
   const autoFill = () => {
-    if (monthlyOverhead <= 0) return;
-    onUpdate({
-      operational: { monthlyBudget: Math.round(monthlyOverhead * 0.40) },
-      admin:        { monthlyBudget: Math.round(monthlyOverhead * 0.35) },
-      commercial:   { monthlyBudget: Math.round(monthlyOverhead * 0.15) },
-      financial:    { monthlyBudget: Math.round(monthlyOverhead * 0.10) },
-    });
-    toast.success("Budgets estimés depuis le compte de résultat !", {
-      description: `Base : ${formatFCFA(monthlyOverhead)}/mois — répartis selon les poids standards`,
-    });
+    if (realBurnRates?.hasData) {
+      onUpdate({
+        operational: { monthlyBudget: realBurnRates.operational },
+        admin:        { monthlyBudget: realBurnRates.admin },
+        commercial:   { monthlyBudget: realBurnRates.commercial },
+        financial:    { monthlyBudget: realBurnRates.financial },
+      });
+      toast.success("Burn rates réels importés depuis la comptabilité !", {
+        description: `Total : ${formatFCFA(realBurnRates.total)}/mois · Source : Classe 6 SYSCOHADA`,
+      });
+    } else if (ytdCharges > 0) {
+      const monthly = Math.round(ytdCharges / Math.max(1, ytdMonthsElapsed));
+      onUpdate({
+        operational: { monthlyBudget: Math.round(monthly * 0.40) },
+        admin:        { monthlyBudget: Math.round(monthly * 0.35) },
+        commercial:   { monthlyBudget: Math.round(monthly * 0.15) },
+        financial:    { monthlyBudget: Math.round(monthly * 0.10) },
+      });
+      toast.success("Budgets estimés depuis le compte de résultat", {
+        description: "Aucune donnée détaillée disponible — répartition proportionnelle appliquée",
+      });
+    }
+  };
+
+  const syncSection = (sec: "operational" | "admin" | "commercial" | "financial") => {
+    if (!realBurnRates) return;
+    onUpdate({ [sec]: { monthlyBudget: realBurnRates[sec] } });
   };
 
   const updateSection = (sec: "operational" | "admin" | "commercial" | "financial", val: number) => {
@@ -1159,18 +1233,51 @@ function UnifiedStructurePanel({
   const sections: Array<{
     key: "operational" | "admin" | "commercial" | "financial";
     label: string; icon: React.FC<{ className?: string; style?: React.CSSProperties }>;
-    color: string; desc: string; autoPct: number;
+    color: string; syscohadaHint: string;
   }> = [
-    { key: "operational", label: "Charges opérationnelles", icon: Wrench,    color: "#0EA5E9", autoPct: 40, desc: "Carburant, énergie, maintenance, déplacements…" },
-    { key: "admin",       label: "Admin & structure",        icon: Building2, color: "#64748B", autoPct: 35, desc: "Loyer, logiciels, salaires admin, assurances…" },
-    { key: "commercial",  label: "Commercial & marketing",   icon: Megaphone, color: "#A855F7", autoPct: 15, desc: "Publicité, commissions, prospection…" },
-    { key: "financial",   label: "Frais financiers",         icon: Banknote,  color: "#EF4444", autoPct: 10, desc: "Intérêts bancaires, agios, frais bancaires…" },
+    { key: "operational", label: "Charges opérationnelles", icon: Wrench,    color: "#0EA5E9", syscohadaHint: "60x · 61x · 624 — Achats, transports, maintenance" },
+    { key: "admin",       label: "Admin & structure",        icon: Building2, color: "#64748B", syscohadaHint: "622 · 625 · 628 · 64x · 66x — Loyer, salaires, télécom, impôts" },
+    { key: "commercial",  label: "Commercial & marketing",   icon: Megaphone, color: "#A855F7", syscohadaHint: "627 — Publicité, marketing, relations publiques" },
+    { key: "financial",   label: "Frais financiers",         icon: Banknote,  color: "#EF4444", syscohadaHint: "631 · 671 · 681 — Frais bancaires, intérêts, dotations" },
   ];
+
+  const hasRealData = !!realBurnRates?.hasData;
 
   return (
     <div className="space-y-4">
-      {/* Auto-import from P&L */}
-      {ytdCharges > 0 && (
+
+      {/* Source banner */}
+      {hasRealData ? (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                  Burn rates réels disponibles
+                  <span className="bg-emerald-200 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">SYSCOHADA Classe 6</span>
+                </div>
+                <div className="text-[10px] text-emerald-700 mt-0.5">
+                  Total <strong>{formatFCFA(realBurnRates!.total)}/mois</strong> · calculé sur {ytdMonthsElapsed} mois de données réelles · {ytdCharges > 0 && `YTD : ${formatFCFA(ytdCharges)}`}
+                </div>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={autoFill}
+              className="shrink-0 text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-100 gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />Sync comptabilité
+            </Button>
+          </div>
+          <div className="mt-2 text-[10px] text-emerald-600 flex gap-3 flex-wrap">
+            {sections.map(s => (
+              <span key={s.key}>
+                {s.label.split(" ")[0]} : <strong>{formatFCFA(realBurnRates![s.key])}/m</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : ytdCharges > 0 ? (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3.5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1178,9 +1285,9 @@ function UnifiedStructurePanel({
                 <TrendingUp className="w-4 h-4 text-amber-600" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-amber-800">Données du compte de résultat disponibles</div>
+                <div className="text-xs font-semibold text-amber-800">Données globales disponibles (pas de détail par compte)</div>
                 <div className="text-[10px] text-amber-700 mt-0.5">
-                  {formatFCFA(ytdCharges)} de charges sur {ytdMonthsElapsed} mois → <strong>{formatFCFA(monthlyOverhead)}/mois</strong> de charges de structure estimées
+                  {formatFCFA(ytdCharges)} de charges sur {ytdMonthsElapsed} mois → <strong>{formatFCFA(Math.round(ytdCharges / Math.max(1, ytdMonthsElapsed)))}/mois</strong> estimé
                 </div>
               </div>
             </div>
@@ -1189,15 +1296,15 @@ function UnifiedStructurePanel({
               <RefreshCw className="w-3.5 h-3.5" />Auto-remplir
             </Button>
           </div>
-          <div className="mt-2 text-[10px] text-amber-600">
-            Répartition proposée : Opérationnel {sections[0].autoPct}% · Admin {sections[1].autoPct}% · Commercial {sections[2].autoPct}% · Financier {sections[3].autoPct}% (ajustable ci-dessous)
+          <div className="mt-1.5 text-[10px] text-amber-600">
+            Aucun mouvement comptable détaillé trouvé — répartition proportionnelle 40/35/15/10% appliquée. Saisissez des écritures comptables pour obtenir la répartition réelle.
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Shared allocation parameters */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-0">
+        <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-500" />
           <span className="text-sm font-semibold text-slate-700">Paramètres d'allocation</span>
           <span className="text-[10px] text-muted-foreground">(communs à toutes les sections)</span>
@@ -1216,13 +1323,11 @@ function UnifiedStructurePanel({
           <div>
             <Label className="text-xs font-medium mb-1.5 block">Mode d'allocation</Label>
             <div className="flex gap-1.5">
-              <button
-                onClick={() => onUpdate({ allocationMode: "pct" })}
+              <button onClick={() => onUpdate({ allocationMode: "pct" })}
                 className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "pct" ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
                 <Percent className="w-3 h-3 inline mr-0.5" />% direct
               </button>
-              <button
-                onClick={() => onUpdate({ allocationMode: "capacity" })}
+              <button onClick={() => onUpdate({ allocationMode: "capacity" })}
                 className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "capacity" ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
                 <Target className="w-3 h-3 inline mr-0.5" />Capacité
               </button>
@@ -1231,23 +1336,39 @@ function UnifiedStructurePanel({
         </div>
 
         {config.allocationMode === "pct" ? (
-          <div>
-            <Label className="text-xs font-medium mb-1.5 block">Part de votre activité représentée par ce deal (%)</Label>
-            <div className="flex items-center gap-3">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium block">Part de votre activité représentée par ce deal (%)</Label>
+            <div className="flex items-center gap-2">
               <Input type="number" min="0" max="100" step="0.5"
                 value={config.dealAllocationPct || ""}
                 placeholder="ex. 20"
                 onChange={e => onUpdate({ dealAllocationPct: parseFloat(e.target.value) || 0 })}
                 className="h-9 text-sm w-32" />
-              <span className="text-xs text-muted-foreground flex-1">
-                Ex. ce deal représente 20% de votre activité ce mois
-              </span>
               {config.dealAllocationPct > 0 && (
-                <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg shrink-0">
+                <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg">
                   {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} mois
                 </span>
               )}
+              {/* Auto-suggest deal share from priceHT */}
+              {autoSharePct > 0 && Math.abs(autoSharePct - config.dealAllocationPct) > 0.5 && (
+                <button
+                  onClick={() => {
+                    onUpdate({ dealAllocationPct: Math.round(autoSharePct * 10) / 10 });
+                    toast.success("Part du deal calculée automatiquement", {
+                      description: `${(Math.round(autoSharePct * 10) / 10).toFixed(1)}% = Prix HT (${formatFCFA(Math.round(priceHT))}) ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))})`,
+                    });
+                  }}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors shrink-0">
+                  <Calculator className="w-3 h-3" />
+                  Auto : {(Math.round(autoSharePct * 10) / 10).toFixed(1)}%
+                </button>
+              )}
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              {autoSharePct > 0
+                ? `Suggestion calculée : prix HT du deal ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))}/mois) = ${(Math.round(autoSharePct * 10) / 10).toFixed(1)}%`
+                : "Ex. ce deal représente 20% de votre activité ce mois. Saisissez un prix HT pour obtenir une suggestion automatique."}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1293,45 +1414,85 @@ function UnifiedStructurePanel({
       {/* Per-section budget rows */}
       <div className="border border-slate-200 rounded-xl overflow-hidden">
         <div className="bg-slate-100 px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-600">
-          <span>Budgets mensuels par section</span>
-          {totalMonthly > 0 && (
-            <span className="text-slate-700 font-bold">Total : {formatFCFA(totalMonthly)}/mois</span>
-          )}
+          <span>Burn rates mensuels par section</span>
+          <div className="flex items-center gap-3">
+            {hasRealData && (
+              <span className="text-emerald-700 text-[10px] font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />Comptabilité disponible
+              </span>
+            )}
+            {totalMonthly > 0 && (
+              <span className="text-slate-700 font-bold">Total : {formatFCFA(totalMonthly)}/mois</span>
+            )}
+          </div>
         </div>
 
         {sections.map((sec, i) => {
           const monthly = config[sec.key].monthlyBudget;
           const allocated = monthly * Math.max(0, config.dealDurationMonths) * (sc.effectivePct / 100);
-          const pctOfTotal = totalMonthly > 0 ? (monthly / totalMonthly) * 100 : sec.autoPct;
+          const realMonthly = realBurnRates?.[sec.key] ?? 0;
+          const diff = monthly > 0 && realMonthly > 0 ? monthly - realMonthly : 0;
+          const diffPct = realMonthly > 0 && diff !== 0 ? (diff / realMonthly) * 100 : 0;
           return (
-            <div key={sec.key} className={`px-4 py-3 flex items-center gap-3 bg-white ${i > 0 ? "border-t border-slate-100" : ""}`}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: sec.color + "18" }}>
-                <sec.icon className="w-3.5 h-3.5" style={{ color: sec.color }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-slate-700">{sec.label}</div>
-                <div className="text-[10px] text-muted-foreground">{sec.desc}</div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <Input type="number" min="0" step="10000"
-                    value={monthly || ""}
-                    placeholder="0"
-                    onChange={e => updateSection(sec.key, parseFloat(e.target.value) || 0)}
-                    className="h-8 text-sm w-36 text-right" />
-                  <div className="text-[10px] text-muted-foreground mt-0.5 text-right">
-                    FCFA/mois {totalMonthly > 0 ? `· ${pctOfTotal.toFixed(0)}%` : `· poids suggéré ${sec.autoPct}%`}
-                  </div>
+            <div key={sec.key} className={`px-4 py-3.5 bg-white ${i > 0 ? "border-t border-slate-100" : ""}`}>
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: sec.color + "18" }}>
+                  <sec.icon className="w-3.5 h-3.5" style={{ color: sec.color }} />
                 </div>
-                <div className="w-24 text-right">
-                  {allocated > 0 ? (
-                    <>
-                      <div className="text-xs font-bold" style={{ color: sec.color }}>{formatFCFA(Math.round(allocated))}</div>
-                      <div className="text-[10px] text-muted-foreground">alloué au deal</div>
-                    </>
-                  ) : (
-                    <div className="text-[10px] text-muted-foreground italic">—</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-semibold text-slate-700">{sec.label}</span>
+                    {realMonthly > 0 && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        Réel : {formatFCFA(realMonthly)}/m
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">{sec.syscohadaHint}</div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Sync button */}
+                  {hasRealData && realMonthly > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button onClick={() => syncSection(sec.key)}
+                          className={`h-8 w-8 rounded-lg flex items-center justify-center border transition-colors ${monthly === realMonthly ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600"}`}>
+                          <RefreshCw className="w-3 h-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">
+                        {monthly === realMonthly ? "Synchronisé avec la comptabilité" : `Synchroniser avec la valeur réelle (${formatFCFA(realMonthly)}/mois)`}
+                      </TooltipContent>
+                    </Tooltip>
                   )}
+                  {/* Manual input */}
+                  <div className="text-right">
+                    <Input type="number" min="0" step="10000"
+                      value={monthly || ""}
+                      placeholder={realMonthly > 0 ? String(realMonthly) : "0"}
+                      onChange={e => updateSection(sec.key, parseFloat(e.target.value) || 0)}
+                      className={`h-8 text-sm w-36 text-right ${monthly > 0 && realMonthly > 0 && monthly !== realMonthly ? "border-amber-300 bg-amber-50/50" : ""}`} />
+                    <div className="text-[10px] mt-0.5 text-right">
+                      {diff !== 0 && realMonthly > 0 && monthly > 0 ? (
+                        <span className={diff > 0 ? "text-amber-600" : "text-emerald-600"}>
+                          {diff > 0 ? "+" : ""}{formatFCFA(Math.round(diff))} vs réel ({diffPct > 0 ? "+" : ""}{diffPct.toFixed(0)}%)
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">FCFA/mois</span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Allocated */}
+                  <div className="w-24 text-right">
+                    {allocated > 0 ? (
+                      <>
+                        <div className="text-xs font-bold" style={{ color: sec.color }}>{formatFCFA(Math.round(allocated))}</div>
+                        <div className="text-[10px] text-muted-foreground">alloué</div>
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-muted-foreground italic">—</div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1351,8 +1512,8 @@ function UnifiedStructurePanel({
           <div className="px-4 py-3 bg-amber-50 border-t border-amber-100 text-xs text-amber-700 flex items-center gap-2">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             {totalMonthly === 0
-              ? "Renseignez les budgets mensuels par section (ou utilisez « Auto-remplir » depuis le compte de résultat)."
-              : "Renseignez le taux d'allocation pour calculer la quote-part de ce deal."}
+              ? `Cliquez sur « ${hasRealData ? "Sync comptabilité" : "Auto-remplir"} » pour importer les burn rates ${hasRealData ? "réels" : "estimés"}, ou saisissez-les manuellement.`
+              : "Renseignez le taux d'allocation (ou la part du deal) pour calculer la quote-part."}
           </div>
         )}
       </div>
@@ -1446,6 +1607,25 @@ export default function PricingCalculator() {
     const ms = Date.now() - new Date(from).getTime();
     return Math.max(1, Math.round(ms / (30.44 * 24 * 60 * 60 * 1000)));
   }, [ytdData?.period?.from]);
+
+  // Real burn rates from SYSCOHADA class 6 balance
+  const { data: class6Balance } = useQuery<{ data: BalanceRow[] }>({
+    queryKey: ["class6-balance-ytd", ytdData?.period?.from, ytdData?.period?.to],
+    queryFn: () => {
+      const qs = new URLSearchParams({ classNum: "6" });
+      if (ytdData?.period?.from) qs.set("from", ytdData.period.from);
+      if (ytdData?.period?.to)   qs.set("to",   ytdData.period.to);
+      return apiFetch(`/api/accounting/balance?${qs}`);
+    },
+    enabled: !!ytdData?.period?.from,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const realBurnRates = useMemo<RealBurnRates | null>(() => {
+    if (!class6Balance?.data?.length) return null;
+    const rates = mapClass6ToSections(class6Balance.data, ytdMonthsElapsed);
+    return rates.hasData ? rates : null;
+  }, [class6Balance, ytdMonthsElapsed]);
 
   const addScenario = () => {
     const ns: Scenario = { ...scenario, id: uid(), name: `Scénario ${scenarios.length + 1}` };
@@ -1719,6 +1899,9 @@ export default function PricingCalculator() {
                         onUpdate={updateStructureCosts}
                         ytdCharges={ytdData?.ytdCharges ?? 0}
                         ytdMonthsElapsed={ytdMonthsElapsed}
+                        realBurnRates={realBurnRates}
+                        ytdRevenues={ytdData?.ytdRevenues ?? 0}
+                        priceHT={result.priceHT}
                       />
                     ) : (
                       <div className="space-y-5">

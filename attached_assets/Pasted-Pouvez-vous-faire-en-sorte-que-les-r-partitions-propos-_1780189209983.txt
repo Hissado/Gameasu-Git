@@ -1,0 +1,51 @@
+Pouvez-vous faire en sorte que les **répartitions proposées dans le calculateur tarifaire soient calculées automatiquement** en fonction de la **vraie allocation des dépenses** ?
+
+### Objectif
+Je veux éviter une logique trop théorique ou trop manuelle.
+Les répartitions doivent être basées autant que possible sur les **dépenses réelles de l’entreprise**, afin que le calcul soit plus fiable, plus professionnel et plus proche de la réalité.
+
+### 1. Répartition automatique selon l’allocation réelle des dépenses
+Merci de faire en sorte que :
+- les répartitions proposées ne soient pas simplement fixes ou arbitraires
+- elles soient calculées automatiquement à partir de la **structure réelle des dépenses**
+- le système puisse suggérer une allocation cohérente selon les charges réellement constatées
+- la logique de répartition soit plus intelligente et plus exploitable
+
+### 2. Utiliser le burn rate réel au lieu du budget mensuel
+Je ne veux pas utiliser les **budgets mensuels par section** comme base principale de calcul.
+
+Je veux plutôt utiliser le **burn rate mensuel réel des dépenses**, c’est-à-dire :
+- les dépenses effectivement constatées
+- les charges réellement consommées
+- la moyenne réelle mensuelle des dépenses par section si pertinent
+
+Autrement dit :
+- utiliser les **dépenses réelles**
+- pas seulement le **budget prévisionnel**
+- afin que le calcul du pricing repose sur une base plus réaliste
+
+### 3. Part de l’activité représentée par le deal
+Je veux aussi que la **part de l’activité représentée par le deal** soit **calculée automatiquement**.
+
+Par exemple, le système doit pouvoir estimer automatiquement :
+- le poids de cette affaire dans le volume global d’activité
+- la part du chiffre d’affaires représentée
+- ou toute autre logique pertinente de répartition selon le deal
+
+Cette donnée doit servir à mieux répartir les charges indirectes lorsque c’est pertinent.
+
+### 4. Logique attendue
+Merci de structurer cela de manière à ce que :
+- le calcul soit automatique autant que possible
+- les suggestions de répartition soient basées sur les données réelles
+- le burn rate mensuel réel soit privilégié
+- la part représentée par le deal soit calculée automatiquement
+- l’ensemble reste clair, compréhensible et user-friendly
+
+### Résultat attendu
+Je veux un calculateur tarifaire où :
+- les répartitions sont plus intelligentes
+- les allocations se basent sur les dépenses réelles
+- le burn rate réel remplace la logique budgétaire lorsque c’est plus pertinent
+- la part d’activité représentée par le deal est calculée automatiquement
+- le résultat final soit plus réaliste, plus fiable et plus professionnel
