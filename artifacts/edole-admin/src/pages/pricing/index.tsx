@@ -68,6 +68,18 @@ interface LaborSettings {
   weeklyHours: number;
 }
 
+// Burn rate config for an overhead section
+interface BurnRateConfig {
+  enabled: boolean;
+  monthlyBudget: number;       // budget mensuel total de cette catégorie (FCFA/mois)
+  durationMonths: number;      // durée d'engagement du deal (mois)
+  allocationMode: "capacity" | "pct"; // par capacité ou % direct
+  monthlyCapacity: number;     // capacité mensuelle totale (en capacityUnit)
+  dealConsumption: number;     // part consommée par ce deal (en capacityUnit)
+  directAllocationPct: number; // % direct si mode pct
+  capacityUnit: string;        // unité de capacité (h, projets, m², ...)
+}
+
 interface TaxBracket {
   id: string; label: string; min: number; max: number | null; rate: number;
 }
@@ -99,6 +111,11 @@ interface Scenario {
   financialItems: CostItem[];
   riskItems: CostItem[];
   depreciationItems: CostItem[];
+  // Burn rate configs per section
+  operationalBurnRate: BurnRateConfig;
+  adminBurnRate: BurnRateConfig;
+  commercialBurnRate: BurnRateConfig;
+  financialBurnRate: BurnRateConfig;
   marginMode: MarginMode;
   marginTarget: number;
   taxRate: number;
@@ -164,6 +181,17 @@ const DEFAULT_TAX_BRACKETS: TaxBracket[] = [
 
 const DEFAULT_LABOR: LaborSettings = { employerChargeRate: 18.4, weeklyHours: 40 };
 
+const DEFAULT_BURN_RATE: BurnRateConfig = {
+  enabled: false,
+  monthlyBudget: 0,
+  durationMonths: 1,
+  allocationMode: "pct",
+  monthlyCapacity: 160,
+  dealConsumption: 0,
+  directAllocationPct: 0,
+  capacityUnit: "h",
+};
+
 const DEFAULT_SCENARIO: Scenario = {
   id: "default", name: "Scénario 1", description: "",
   productName: "", clientId: "", category: "", unit: "unité", quantity: 1, period: "",
@@ -171,6 +199,10 @@ const DEFAULT_SCENARIO: Scenario = {
   laborLines: [], laborSettings: { ...DEFAULT_LABOR },
   operationalItems: [], adminItems: [], commercialItems: [],
   financialItems: [], riskItems: [], depreciationItems: [],
+  operationalBurnRate: { ...DEFAULT_BURN_RATE, capacityUnit: "h", monthlyCapacity: 160 },
+  adminBurnRate:       { ...DEFAULT_BURN_RATE, capacityUnit: "projets", monthlyCapacity: 10 },
+  commercialBurnRate:  { ...DEFAULT_BURN_RATE, capacityUnit: "projets", monthlyCapacity: 10 },
+  financialBurnRate:   { ...DEFAULT_BURN_RATE, capacityUnit: "FCFA CA", monthlyCapacity: 10_000_000 },
   marginMode: "net", marginTarget: 25, taxRate: 18, taxMode: "on_top",
 };
 
@@ -186,6 +218,21 @@ const AUTO_SCENARIOS = [
 ];
 
 // ─── Calculation functions ───────────────────────────────────────────────────
+
+function computeBurnRateCost(cfg: BurnRateConfig): { allocated: number; effectivePct: number } {
+  if (!cfg.enabled || cfg.monthlyBudget <= 0) return { allocated: 0, effectivePct: 0 };
+  const months = Math.max(0, cfg.durationMonths);
+  let effectivePct = 0;
+  if (cfg.allocationMode === "capacity") {
+    effectivePct = cfg.monthlyCapacity > 0
+      ? Math.min(100, (cfg.dealConsumption / cfg.monthlyCapacity) * 100)
+      : 0;
+  } else {
+    effectivePct = Math.min(100, Math.max(0, cfg.directAllocationPct));
+  }
+  const allocated = cfg.monthlyBudget * months * (effectivePct / 100);
+  return { allocated, effectivePct };
+}
 
 function computeLaborLineCost(line: LaborLineItem) {
   const monthlyHours = (line.weeklyHours * 52) / 12;
@@ -268,52 +315,82 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
     byCategory[item.category] = (byCategory[item.category] ?? 0) + c;
     baseCost += c;
   }
-  for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc !== "pct")) {
-    const c = computeItemCost(item, 0, 0);
-    byCategory.operational += c; baseCost += c;
+
+  // 3. Operational — burn rate OU lignes détaillées
+  const opBR = computeBurnRateCost(scenario.operationalBurnRate ?? DEFAULT_BURN_RATE);
+  if ((scenario.operationalBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    byCategory.operational += opBR.allocated; baseCost += opBR.allocated;
+  } else {
+    for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc !== "pct")) {
+      const c = computeItemCost(item, 0, 0);
+      byCategory.operational += c; baseCost += c;
+    }
   }
+
   for (const item of (scenario.depreciationItems ?? []).filter(i => i.alloc !== "pct")) {
     const c = computeItemCost(item, 0, 0);
     byCategory.depreciation += c; baseCost += c;
   }
-  for (const item of (scenario.adminItems ?? []).filter(i => i.alloc !== "pct")) {
-    const c = computeItemCost(item, 0, 0);
-    byCategory.admin += c; baseCost += c;
-  }
-  for (const item of (scenario.financialItems ?? []).filter(i => i.alloc !== "pct")) {
-    const c = computeItemCost(item, 0, 0);
-    byCategory.financial += c; baseCost += c;
+
+  // 4. Admin — burn rate OU lignes détaillées
+  const adminBR = computeBurnRateCost(scenario.adminBurnRate ?? DEFAULT_BURN_RATE);
+  if ((scenario.adminBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    byCategory.admin += adminBR.allocated; baseCost += adminBR.allocated;
+  } else {
+    for (const item of (scenario.adminItems ?? []).filter(i => i.alloc !== "pct")) {
+      const c = computeItemCost(item, 0, 0); byCategory.admin += c; baseCost += c;
+    }
   }
 
-  // 3. Preliminary price (for pct-of-HT items)
+  // 5. Financial — burn rate OU lignes détaillées
+  const finBR = computeBurnRateCost(scenario.financialBurnRate ?? DEFAULT_BURN_RATE);
+  if ((scenario.financialBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    byCategory.financial += finBR.allocated; baseCost += finBR.allocated;
+  } else {
+    for (const item of (scenario.financialItems ?? []).filter(i => i.alloc !== "pct")) {
+      const c = computeItemCost(item, 0, 0); byCategory.financial += c; baseCost += c;
+    }
+  }
+
+  // 6. Preliminary price (for pct-of-HT items)
   const prelimHT = scenario.marginMode === "markup"
     ? baseCost * (1 + scenario.marginTarget / 100)
     : baseCost / Math.max(0.001, 1 - Math.min(scenario.marginTarget / 100, 0.999));
 
-  // 4. Pct items on base cost
+  // 7. Pct items on base cost (détail mode only)
   for (const item of allDirect.filter(i => i.alloc === "pct")) {
     const c = computeItemCost(item, baseCost, prelimHT);
     byCategory[item.category] = (byCategory[item.category] ?? 0) + c;
     baseCost += c;
   }
-  for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc === "pct")) {
-    const c = computeItemCost(item, baseCost, prelimHT);
-    byCategory.operational += c; baseCost += c;
+  if (!(scenario.operationalBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc === "pct")) {
+      const c = computeItemCost(item, baseCost, prelimHT);
+      byCategory.operational += c; baseCost += c;
+    }
   }
-  for (const item of (scenario.adminItems ?? []).filter(i => i.alloc === "pct")) {
-    const c = computeItemCost(item, baseCost, prelimHT);
-    byCategory.admin += c; baseCost += c;
+  if (!(scenario.adminBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    for (const item of (scenario.adminItems ?? []).filter(i => i.alloc === "pct")) {
+      const c = computeItemCost(item, baseCost, prelimHT); byCategory.admin += c; baseCost += c;
+    }
   }
-  for (const item of (scenario.financialItems ?? []).filter(i => i.alloc === "pct")) {
-    const c = computeItemCost(item, baseCost, prelimHT);
-    byCategory.financial += c; baseCost += c;
+  if (!(scenario.financialBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    for (const item of (scenario.financialItems ?? []).filter(i => i.alloc === "pct")) {
+      const c = computeItemCost(item, baseCost, prelimHT); byCategory.financial += c; baseCost += c;
+    }
   }
 
-  // 5. Commercial & risk (may reference HT)
-  for (const item of (scenario.commercialItems ?? [])) {
-    const c = computeItemCost(item, baseCost, prelimHT);
-    byCategory.commercial += c; baseCost += c;
+  // 8. Commercial — burn rate OU lignes détaillées (may reference HT)
+  const commBR = computeBurnRateCost(scenario.commercialBurnRate ?? DEFAULT_BURN_RATE);
+  if ((scenario.commercialBurnRate ?? DEFAULT_BURN_RATE).enabled) {
+    byCategory.commercial += commBR.allocated; baseCost += commBR.allocated;
+  } else {
+    for (const item of (scenario.commercialItems ?? [])) {
+      const c = computeItemCost(item, baseCost, prelimHT); byCategory.commercial += c; baseCost += c;
+    }
   }
+
+  // 9. Risk provisions
   for (const item of (scenario.riskItems ?? [])) {
     const c = computeItemCost(item, baseCost, prelimHT);
     byCategory.risk += c; baseCost += c;
@@ -1055,6 +1132,206 @@ function CostSection({
   );
 }
 
+// ─── BurnRatePanel ────────────────────────────────────────────────────────────
+
+function BurnRatePanel({
+  title, icon: Icon, color, accentBg, accentBorder, accentText,
+  config, onUpdate, children,
+  hint,
+}: {
+  title: string;
+  icon: React.FC<any>;
+  color: string;
+  accentBg: string; accentBorder: string; accentText: string;
+  config: BurnRateConfig;
+  onUpdate: (u: Partial<BurnRateConfig>) => void;
+  children?: React.ReactNode;
+  hint?: string;
+}) {
+  const { allocated, effectivePct } = computeBurnRateCost(config);
+  const capacityPct = config.allocationMode === "capacity" && config.monthlyCapacity > 0
+    ? Math.min(100, (config.dealConsumption / config.monthlyCapacity) * 100)
+    : 0;
+
+  return (
+    <div className="space-y-3">
+      {/* Header + Toggle */}
+      <div className={`flex items-center justify-between p-3 rounded-xl border ${accentBorder} ${accentBg}`}>
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4" style={{ color }} />
+          <span className="font-semibold text-sm" style={{ color }}>{title}</span>
+          {config.enabled && allocated > 0 && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: color + "22", color }}>
+              {formatFCFA(Math.round(allocated))}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium ${config.enabled ? accentText : "text-muted-foreground"}`}>
+            {config.enabled ? "Burn rate actif" : "Mode détail"}
+          </span>
+          <Switch
+            checked={config.enabled}
+            onCheckedChange={v => onUpdate({ enabled: v })}
+          />
+        </div>
+      </div>
+
+      {config.enabled ? (
+        <div className={`rounded-xl border ${accentBorder} ${accentBg} p-4 space-y-4`}>
+          {/* Explain */}
+          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-white/60 rounded-lg p-2.5 border border-white">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color }} />
+            <span>
+              {hint ?? "Renseignez le coût mensuel réel de ce poste dans votre entreprise, puis indiquez la part que représente ce deal. Le calculateur déduira automatiquement la quote-part à intégrer dans votre prix de vente."}
+            </span>
+          </div>
+
+          {/* Row 1: Budget mensuel + Durée */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-semibold mb-1.5 block">Budget mensuel réel (FCFA)</Label>
+              <Input
+                type="number" min="0" step="1000"
+                value={config.monthlyBudget || ""}
+                placeholder="ex. 2 500 000"
+                onChange={e => onUpdate({ monthlyBudget: parseFloat(e.target.value) || 0 })}
+                className="h-9 text-sm"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Charge mensuelle totale de cette section dans votre structure</p>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold mb-1.5 block">Durée du deal (mois)</Label>
+              <Input
+                type="number" min="0.1" step="0.5"
+                value={config.durationMonths || ""}
+                placeholder="ex. 1"
+                onChange={e => onUpdate({ durationMonths: parseFloat(e.target.value) || 1 })}
+                className="h-9 text-sm"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Combien de mois ce deal mobilise-t-il vos ressources ?</p>
+            </div>
+          </div>
+
+          {/* Row 2: Mode d'allocation */}
+          <div>
+            <Label className="text-xs font-semibold mb-2 block">Mode d'allocation</Label>
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => onUpdate({ allocationMode: "capacity" })}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "capacity" ? `border-current ${accentText} ${accentBg} border-2` : "border-slate-200 text-muted-foreground hover:bg-slate-50"}`}
+                style={config.allocationMode === "capacity" ? { color } : undefined}>
+                <Target className="w-3.5 h-3.5 inline mr-1" />Par capacité
+              </button>
+              <button
+                onClick={() => onUpdate({ allocationMode: "pct" })}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "pct" ? `border-current ${accentText} ${accentBg} border-2` : "border-slate-200 text-muted-foreground hover:bg-slate-50"}`}
+                style={config.allocationMode === "pct" ? { color } : undefined}>
+                <Percent className="w-3.5 h-3.5 inline mr-1" />Pourcentage direct
+              </button>
+            </div>
+
+            {config.allocationMode === "capacity" ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div className="col-span-2">
+                    <Label className="text-[10px] text-muted-foreground mb-1 block">Capacité mensuelle totale</Label>
+                    <div className="flex gap-1.5">
+                      <Input
+                        type="number" min="1"
+                        value={config.monthlyCapacity || ""}
+                        placeholder="ex. 160"
+                        onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
+                        className="h-8 text-sm flex-1"
+                      />
+                      <Input
+                        value={config.capacityUnit}
+                        placeholder="h"
+                        onChange={e => onUpdate({ capacityUnit: e.target.value })}
+                        className="h-8 text-sm w-20"
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Capacité totale de votre structure par mois (ex. 160h, 10 projets…)</p>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground mb-1 block">Part de ce deal</Label>
+                    <Input
+                      type="number" min="0"
+                      value={config.dealConsumption || ""}
+                      placeholder="ex. 40"
+                      onChange={e => onUpdate({ dealConsumption: parseFloat(e.target.value) || 0 })}
+                      className="h-8 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{config.capacityUnit || "unités"} consommées</p>
+                  </div>
+                </div>
+                {config.monthlyCapacity > 0 && config.dealConsumption > 0 && (
+                  <div className="bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">
+                      {config.dealConsumption} / {config.monthlyCapacity} {config.capacityUnit} = <strong style={{ color }}>{capacityPct.toFixed(1)}%</strong> de votre capacité mensuelle
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label className="text-[10px] text-muted-foreground mb-1 block">Pourcentage d'allocation à ce deal (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number" min="0" max="100" step="0.5"
+                    value={config.directAllocationPct || ""}
+                    placeholder="ex. 15"
+                    onChange={e => onUpdate({ directAllocationPct: parseFloat(e.target.value) || 0 })}
+                    className="h-8 text-sm w-32"
+                  />
+                  <span className="text-xs text-muted-foreground">% de votre charge mensuelle est attribuée à ce deal</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Result box */}
+          {config.monthlyBudget > 0 && effectivePct > 0 && (
+            <div className="rounded-xl border-2 p-4 space-y-2" style={{ borderColor: color + "44", background: color + "08" }}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold" style={{ color }}>Quote-part calculée</span>
+                <span className="text-lg font-black" style={{ color }}>{formatFCFA(Math.round(allocated))}</span>
+              </div>
+              <div className="text-[10px] text-muted-foreground space-y-0.5 border-t border-current/10 pt-2" style={{ borderColor: color + "22" }}>
+                <div className="flex justify-between">
+                  <span>Budget mensuel ×</span>
+                  <span className="font-semibold">{formatFCFA(config.monthlyBudget)} × {config.durationMonths} mois</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Part affectée</span>
+                  <span className="font-semibold" style={{ color }}>{effectivePct.toFixed(2)}%</span>
+                </div>
+                <div className="flex justify-between border-t mt-1 pt-1 text-xs font-bold" style={{ borderColor: color + "22", color }}>
+                  <span>= {formatFCFA(config.monthlyBudget)} × {config.durationMonths} × {effectivePct.toFixed(2)}%</span>
+                  <span>{formatFCFA(Math.round(allocated))}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {config.monthlyBudget > 0 && effectivePct === 0 && (
+            <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {config.allocationMode === "capacity"
+                ? "Saisissez la consommation de ce deal pour calculer la quote-part."
+                : "Saisissez un pourcentage d'allocation pour calculer la quote-part."}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PricingCalculator() {
@@ -1128,6 +1405,10 @@ export default function PricingCalculator() {
 
   const removeLaborLine = (id: string) => {
     updateScenario({ laborLines: (scenario.laborLines ?? []).filter(l => l.id !== id) });
+  };
+
+  const updateBurnRate = (field: "operationalBurnRate" | "adminBurnRate" | "commercialBurnRate" | "financialBurnRate", patch: Partial<BurnRateConfig>) => {
+    updateScenario({ [field]: { ...(scenario[field] ?? DEFAULT_BURN_RATE), ...patch } });
   };
 
   const addScenario = () => {
@@ -1340,12 +1621,16 @@ export default function PricingCalculator() {
 
                   {/* ── Tab: Opérations ── */}
                   <TabsContent value="operations" className="mt-0 space-y-5">
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Wrench className="w-4 h-4 text-sky-500" />
-                        <span className="font-semibold text-sm text-sky-800">Charges opérationnelles</span>
-                        {totalOperational > 0 && <span className="text-xs font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalOperational))}</span>}
-                      </div>
+
+                    {/* Charges opérationnelles — burn rate ou détail */}
+                    <BurnRatePanel
+                      title="Charges opérationnelles"
+                      icon={Wrench} color="#0EA5E9"
+                      accentBg="bg-sky-50" accentBorder="border-sky-200" accentText="text-sky-700"
+                      config={scenario.operationalBurnRate ?? DEFAULT_BURN_RATE}
+                      onUpdate={p => updateBurnRate("operationalBurnRate", p)}
+                      hint="Renseignez vos dépenses opérationnelles mensuelles réelles (carburant, énergie, maintenance, déplacements…) puis indiquez la part que mobilise ce deal. Le montant alloué sera automatiquement intégré dans votre coût de revient.">
+                      {/* Mode Détail */}
                       <div className="bg-sky-50 border border-sky-100 rounded-lg p-2.5 mb-3 text-xs text-sky-800">
                         Carburant, véhicules, maintenance, logistique, énergie, internet, téléphone, consommables, frais terrain, déplacement, supervision…
                         <br />Méthodes : montant fixe · % du coût direct · par heure · par jour · par unité
@@ -1370,8 +1655,9 @@ export default function PricingCalculator() {
                           ))}
                         </div>
                       </CostSection>
-                    </div>
+                    </BurnRatePanel>
 
+                    {/* Amortissements — toujours en mode détail (spécifique par équipement) */}
                     <div className="border-t border-slate-100 pt-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -1398,13 +1684,22 @@ export default function PricingCalculator() {
                   {/* ── Tab: Frais généraux ── */}
                   <TabsContent value="generaux" className="mt-0 space-y-5">
 
-                    {/* Admin */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building2 className="w-4 h-4 text-slate-500" />
-                        <span className="font-semibold text-sm text-slate-700">Charges administratives & structure</span>
-                        {totalAdmin > 0 && <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalAdmin))}</span>}
+                    {/* Intro burn rate */}
+                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 flex gap-2">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" />
+                      <div>
+                        <strong className="text-slate-700">Méthode des coûts de structure par burn rate</strong> — chaque section peut être calculée en <em>mode Burn rate</em> (budget mensuel réel × part affectée à ce deal) ou en <em>mode Détail</em> (lignes manuelles). Le burn rate permet d'obtenir une quote-part de vos frais fixes proportionnelle à l'activité réelle du deal, pour un prix de vente plus précis et plus rentable.
                       </div>
+                    </div>
+
+                    {/* Admin — burn rate ou détail */}
+                    <BurnRatePanel
+                      title="Charges administratives & structure"
+                      icon={Building2} color="#64748B"
+                      accentBg="bg-slate-50" accentBorder="border-slate-200" accentText="text-slate-600"
+                      config={scenario.adminBurnRate ?? DEFAULT_BURN_RATE}
+                      onUpdate={p => updateBurnRate("adminBurnRate", p)}
+                      hint="Loyer, salaires admin, logiciels, comptabilité, assurances, abonnements… Renseignez le total mensuel de vos frais de structure, puis la part que représente ce deal (en % de votre activité, en heures occupées, en projets traités…).">
                       <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 mb-2 text-xs text-slate-600">
                         Loyer, logiciels, comptabilité, frais juridiques, bancaires, assurances, salaires admin, abonnements…
                         Clé d'allocation : % du coût direct ou % du prix HT recommandé.
@@ -1428,58 +1723,64 @@ export default function PricingCalculator() {
                           ))}
                         </div>
                       </CostSection>
-                    </div>
+                    </BurnRatePanel>
 
-                    {/* Commercial */}
+                    {/* Commercial — burn rate ou détail */}
                     <div className="border-t border-slate-100 pt-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Megaphone className="w-4 h-4 text-purple-500" />
-                        <span className="font-semibold text-sm text-purple-700">Frais commerciaux & marketing</span>
-                        {totalCommercial > 0 && <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalCommercial))}</span>}
-                      </div>
-                      <div className="bg-purple-50 border border-purple-100 rounded-lg p-2.5 mb-2 text-xs text-purple-700">
-                        Publicité, marketing digital, commissions commerciales, prospection, représentation, remises, coût d'acquisition client, frais de plateforme, transactions…
-                      </div>
-                      <CostSection title="commerciaux" icon={Megaphone} color="#A855F7"
-                        items={scenario.commercialItems} baseCost={result.totalCost} baseHT={result.priceHT}
-                        onAdd={() => { const item: CostItem = { id: uid(), label: "Commission commerciale", category: "commercial", alloc: "pct", amount: 5, baseRef: "ht" }; updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), item] }); }}
-                        onUpdate={(id, u) => updateItem("commercialItems", id, u)}
-                        onRemove={(id) => removeItem("commercialItems", id)}
-                        defaultCategory="commercial">
-                        <div className="flex gap-1 mb-2 flex-wrap">
-                          {[
-                            { label: "% prix HT", item: { label: "Commission", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 5, baseRef: "ht" as "cost"|"ht" } },
-                            { label: "% coût", item: { label: "Marketing", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 3, baseRef: "cost" as "cost"|"ht" } },
-                            { label: "Fixe", item: { label: "Frais prospection", category: "commercial" as CostCategory, alloc: "fixed" as AllocMethod, amount: 0 } },
-                          ].map((t, i) => (
-                            <button key={i} onClick={() => updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), { id: uid(), ...t.item }] })}
-                              className="text-[10px] px-2 py-1 border border-dashed border-purple-200 rounded text-purple-600 hover:bg-purple-50">
-                              <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
-                            </button>
-                          ))}
+                      <BurnRatePanel
+                        title="Frais commerciaux & marketing"
+                        icon={Megaphone} color="#A855F7"
+                        accentBg="bg-purple-50" accentBorder="border-purple-200" accentText="text-purple-700"
+                        config={scenario.commercialBurnRate ?? DEFAULT_BURN_RATE}
+                        onUpdate={p => updateBurnRate("commercialBurnRate", p)}
+                        hint="Budget marketing mensuel, salaires commerciaux, frais de prospection, commissions… Indiquez la part de ce deal dans votre portefeuille d'activités commerciales (ex. 1 projet sur 10 traités ce mois = 10%).">
+                        <div className="bg-purple-50 border border-purple-100 rounded-lg p-2.5 mb-2 text-xs text-purple-700">
+                          Publicité, marketing digital, commissions commerciales, prospection, représentation, remises, coût d'acquisition client, frais de plateforme, transactions…
                         </div>
-                      </CostSection>
+                        <CostSection title="commerciaux" icon={Megaphone} color="#A855F7"
+                          items={scenario.commercialItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                          onAdd={() => { const item: CostItem = { id: uid(), label: "Commission commerciale", category: "commercial", alloc: "pct", amount: 5, baseRef: "ht" }; updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), item] }); }}
+                          onUpdate={(id, u) => updateItem("commercialItems", id, u)}
+                          onRemove={(id) => removeItem("commercialItems", id)}
+                          defaultCategory="commercial">
+                          <div className="flex gap-1 mb-2 flex-wrap">
+                            {[
+                              { label: "% prix HT", item: { label: "Commission", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 5, baseRef: "ht" as "cost"|"ht" } },
+                              { label: "% coût", item: { label: "Marketing", category: "commercial" as CostCategory, alloc: "pct" as AllocMethod, amount: 3, baseRef: "cost" as "cost"|"ht" } },
+                              { label: "Fixe", item: { label: "Frais prospection", category: "commercial" as CostCategory, alloc: "fixed" as AllocMethod, amount: 0 } },
+                            ].map((t, i) => (
+                              <button key={i} onClick={() => updateScenario({ commercialItems: [...(scenario.commercialItems ?? []), { id: uid(), ...t.item }] })}
+                                className="text-[10px] px-2 py-1 border border-dashed border-purple-200 rounded text-purple-600 hover:bg-purple-50">
+                                <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
+                              </button>
+                            ))}
+                          </div>
+                        </CostSection>
+                      </BurnRatePanel>
                     </div>
 
-                    {/* Financial */}
+                    {/* Financial — burn rate ou détail */}
                     <div className="border-t border-slate-100 pt-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Banknote className="w-4 h-4 text-red-500" />
-                        <span className="font-semibold text-sm text-red-700">Frais financiers</span>
-                        {totalFinancial > 0 && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(totalFinancial))}</span>}
-                      </div>
-                      <div className="bg-red-50 border border-red-100 rounded-lg p-2.5 mb-2 text-xs text-red-700">
-                        Intérêts bancaires, agios, frais de financement, frais de change, commissions bancaires, frais de paiement électronique, coût du crédit fournisseur…
-                      </div>
-                      <CostSection title="financiers" icon={Banknote} color="#EF4444"
-                        items={scenario.financialItems} baseCost={result.totalCost} baseHT={result.priceHT}
-                        onAdd={() => { const item: CostItem = { id: uid(), label: "Frais financiers", category: "financial", alloc: "pct", amount: 1, baseRef: "cost" }; updateScenario({ financialItems: [...(scenario.financialItems ?? []), item] }); }}
-                        onUpdate={(id, u) => updateItem("financialItems", id, u)}
-                        onRemove={(id) => removeItem("financialItems", id)}
-                        defaultCategory="financial" />
+                      <BurnRatePanel
+                        title="Frais financiers"
+                        icon={Banknote} color="#EF4444"
+                        accentBg="bg-red-50" accentBorder="border-red-200" accentText="text-red-700"
+                        config={scenario.financialBurnRate ?? DEFAULT_BURN_RATE}
+                        onUpdate={p => updateBurnRate("financialBurnRate", p)}
+                        hint="Intérêts bancaires mensuels, agios, frais de financement récurrents… Pour les frais financiers liés à votre encours global, indiquez la part de CA que représente ce deal pour obtenir une quote-part cohérente.">
+                        <div className="bg-red-50 border border-red-100 rounded-lg p-2.5 mb-2 text-xs text-red-700">
+                          Intérêts bancaires, agios, frais de financement, frais de change, commissions bancaires, frais de paiement électronique, coût du crédit fournisseur…
+                        </div>
+                        <CostSection title="financiers" icon={Banknote} color="#EF4444"
+                          items={scenario.financialItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                          onAdd={() => { const item: CostItem = { id: uid(), label: "Frais financiers", category: "financial", alloc: "pct", amount: 1, baseRef: "cost" }; updateScenario({ financialItems: [...(scenario.financialItems ?? []), item] }); }}
+                          onUpdate={(id, u) => updateItem("financialItems", id, u)}
+                          onRemove={(id) => removeItem("financialItems", id)}
+                          defaultCategory="financial" />
+                      </BurnRatePanel>
                     </div>
 
-                    {/* Risk */}
+                    {/* Risk — toujours en mode détail (provision spécifique au deal) */}
                     <div className="border-t border-slate-100 pt-5">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className="w-4 h-4 text-orange-500" />
@@ -1488,7 +1789,7 @@ export default function PricingCalculator() {
                       </div>
                       <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 mb-2 text-xs text-orange-700">
                         Produits abîmés/invendus, retours clients, garanties, erreurs de production, impayés, annulations, pertes de stock, marge de sécurité…
-                        <br /><strong>Formule :</strong> Provision = coût total × % risque
+                        <br /><strong>Formule :</strong> Provision = coût total × % risque. Ces provisions sont spécifiques à chaque deal, c'est pourquoi elles restent en mode détail.
                       </div>
                       <CostSection title="risques" icon={Shield} color="#F97316"
                         items={scenario.riskItems} baseCost={result.totalCost} baseHT={result.priceHT}
