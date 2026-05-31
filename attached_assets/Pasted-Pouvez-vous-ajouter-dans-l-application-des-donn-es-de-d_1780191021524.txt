@@ -1,0 +1,59 @@
+Pouvez-vous ajouter dans l’application des **données de démonstration réalistes, complètes et cohérentes**, afin qu’elle reflète beaucoup mieux la réalité d’un environnement d’entreprise ?
+
+### Objectif
+Je veux que l’application paraisse plus :
+- réaliste
+- vivante
+- crédible
+- complète
+- professionnelle
+- prête pour les démonstrations, tests et présentations
+
+### Ce que j’attends
+Merci d’ajouter des **données demo / mock data** dans l’ensemble des modules, notamment pour illustrer correctement :
+
+- les **frais d’opérations**
+- les **achats**
+- la **logistique**
+- les **taxes**
+- la **comptabilité analytique**
+- les **salaires alloués par section**
+- les **charges par département**
+- les **coûts par projet / service**
+- les **budgets et dépenses réelles**
+- les **centres de coûts**
+- les **affectations RH**
+- les **produits / services**
+- les **stocks**
+- les **clients**
+- les **factures / paiements**
+- les **rapports**
+- et toute autre donnée utile pour rendre l’application plus crédible
+
+### Qualité attendue des données
+Je veux des données :
+- réalistes
+- bien liées entre elles
+- cohérentes d’un module à l’autre
+- suffisamment détaillées
+- représentatives d’une vraie activité d’entreprise
+
+Par exemple :
+- des frais d’opérations crédibles
+- des charges logistiques cohérentes
+- des taxes bien appliquées
+- des coûts analytiques ventilés correctement
+- des salaires alloués par section / département / projet
+- des données RH liées aux coûts
+- des rapports alimentés par ces données réelles de démonstration
+
+### Résultat attendu
+Je veux que lorsqu’on ouvre l’application, elle donne l’impression d’être déjà utilisée par une vraie organisation, avec :
+- des données financières réalistes
+- des données opérationnelles crédibles
+- des données RH cohérentes
+- des analyses et rapports plus parlants
+- une expérience globale beaucoup plus convaincante
+
+### Objectif final
+Je veux une application beaucoup plus réaliste et plus riche, grâce à des données de démonstration bien construites, couvrant notamment les frais d’opérations, la comptabilité analytique, les salaires alloués par section et tous les autres éléments qui renforcent la crédibilité du produit.

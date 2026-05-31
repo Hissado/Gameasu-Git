@@ -10,7 +10,11 @@
     "./seed-intelligence": "./src/seed-intelligence.ts",
     "./seed-operations": "./src/seed-operations.ts",
     "./seed-inventory": "./src/seed-inventory.ts",
-    "./seed-rich": "./src/seed-rich.ts"
+    "./seed-rich": "./src/seed-rich.ts",
+    "./seed-demo-accounting": "./src/seed-demo-accounting.ts",
+    "./seed-demo-hr": "./src/seed-demo-hr.ts",
+    "./seed-demo-hr-supplement": "./src/seed-demo-hr-supplement.ts",
+    "./seed-demo-all": "./src/seed-demo-all.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
