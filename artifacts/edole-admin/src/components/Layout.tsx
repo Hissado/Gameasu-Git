@@ -59,6 +59,8 @@ const NAV_GROUPS: NavGroup[] = [
     icon: FolderKanban,
     items: [
       { name: "Projets",                path: "/projects",   icon: FolderKanban, moduleKey: "projects" },
+      { name: "Portefeuille",           path: "/portfolio",  icon: TrendingUp,   moduleKey: "projects" },
+      { name: "Charge équipe",          path: "/workload",   icon: Users2,       moduleKey: "projects" },
       { name: "Tâches",                 path: "/tasks",      icon: CheckSquare,  moduleKey: "tasks" },
       { name: "Services",               path: "/services",   icon: Briefcase,    moduleKey: "services" },
       { name: "Opérations & Logistique",path: "/operations", icon: Truck,        moduleKey: "operations" },

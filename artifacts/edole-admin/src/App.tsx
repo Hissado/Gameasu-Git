@@ -118,6 +118,8 @@ const FpaBudgetDetail = lazy(() => import("@/pages/fpa/budget-detail"));
 const FpaVariance = lazy(() => import("@/pages/fpa/variance"));
 const FpaForecast = lazy(() => import("@/pages/fpa/forecast"));
 const FpaReports = lazy(() => import("@/pages/fpa/reports"));
+const PortfolioPage = lazy(() => import("@/pages/projects/portfolio"));
+const WorkloadPage = lazy(() => import("@/pages/projects/workload"));
 const AdminHub = lazy(() => import("@/pages/admin/index"));
 const AdminRoles = lazy(() => import("@/pages/admin/roles"));
 const AdminPermissions = lazy(() => import("@/pages/admin/permissions"));
@@ -195,6 +197,8 @@ function AppRouter() {
 
                 <Route path="/projects" component={ProjectsList} />
                 <Route path="/projects/:id" component={ProjectDetail} />
+                <Route path="/portfolio" component={PortfolioPage} />
+                <Route path="/workload" component={WorkloadPage} />
 
                 <Route path="/tasks/focus" component={TasksHub} />
                 <Route path="/tasks/:id" component={TaskDetail} />
