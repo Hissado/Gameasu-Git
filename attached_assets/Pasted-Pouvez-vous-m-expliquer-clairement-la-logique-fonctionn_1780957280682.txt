@@ -1,0 +1,66 @@
+Pouvez-vous m’expliquer clairement la **logique fonctionnelle** de l’application concernant les modules **Projets**, **Portefeuille**, **Charge d’équipe**, **Tâches** et **Services** ?
+
+### Objectif
+Je veux comprendre précisément :
+- comment ces modules fonctionnent individuellement
+- comment ils interagissent entre eux
+- comment les données sont liées
+- comment les éléments sont assignés
+- et quelle est la logique métier globale derrière leur organisation
+
+### Points à expliquer
+Merci de détailler notamment :
+
+#### 1. Projets
+- quel est le rôle exact du module **Projets**
+- à quoi sert un projet dans l’application
+- comment il est créé
+- à quoi il peut être relié
+- qui peut y être affecté
+- comment il se connecte aux tâches, aux équipes, aux ressources, aux clients ou aux services
+
+#### 2. Portefeuille
+- quel est le rôle exact du module **Portefeuille**
+- en quoi il est différent du module Projets
+- s’il regroupe plusieurs projets, services ou initiatives
+- comment il doit être utilisé dans la logique globale de pilotage
+- comment il se relie aux autres modules
+
+#### 3. Charge d’équipe
+- comment la **charge d’équipe** est calculée
+- à partir de quelles données elle est alimentée
+- comment elle se relie aux projets, tâches et services
+- comment sont mesurés la disponibilité, la surcharge ou la sous-charge
+- comment les affectations influencent la charge
+
+#### 4. Tâches
+- comment les tâches sont créées
+- à quoi elles peuvent être rattachées
+- comment elles sont assignées
+- si elles dépendent d’un projet, d’un service, d’un portefeuille ou d’un autre élément
+- comment elles impactent la charge d’équipe et le suivi opérationnel
+
+#### 5. Services
+- quel est le rôle exact du module **Services**
+- comment il se distingue des projets
+- dans quels cas il faut utiliser un service plutôt qu’un projet
+- comment les services se lient aux tâches, aux clients, aux équipes et au pilotage
+
+### Logique d’ensemble
+Je veux surtout comprendre :
+- comment **Projets**, **Portefeuille**, **Charge d’équipe**, **Tâches** et **Services** fonctionnent **ensemble**
+- comment tout est lié dans l’application
+- comment les assignations se font
+- quelle est la logique de circulation des données
+- et quelle est la meilleure manière d’utiliser ces modules dans un flux métier cohérent
+
+### Résultat attendu
+Je veux une explication claire, structurée et professionnelle qui me permette de comprendre :
+- la logique métier
+- l’architecture fonctionnelle
+- les liens entre les modules
+- les règles d’assignation
+- la logique d’utilisation recommandée
+
+### Objectif final
+Je veux avoir une vision claire de la manière dont ces modules s’articulent ensemble, afin de mieux comprendre l’application et de m’assurer que leur organisation est cohérente, intuitive et efficace.
