@@ -1,57 +1,190 @@
 import React, { useState, useMemo } from "react";
-import { useListTasks } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
+import { useListTasks, useCreateTask, useListProjects, useListUsers } from "@workspace/api-client-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, CheckSquare, Clock, AlertCircle, List, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, CheckSquare, Clock, AlertCircle, List, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
+import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "calendar";
 
 const STATUS_COLUMNS: Array<{ key: string; label: string; cls: string }> = [
-  { key: "todo", label: "À faire", cls: "bg-slate-50 border-slate-200" },
-  { key: "in_progress", label: "En cours", cls: "bg-amber-50 border-amber-200" },
-  { key: "review", label: "En revue", cls: "bg-blue-50 border-blue-200" },
-  { key: "done", label: "Terminé", cls: "bg-green-50 border-green-200" },
+  { key: "todo",        label: "À faire",   cls: "bg-slate-50 border-slate-200" },
+  { key: "in_progress", label: "En cours",  cls: "bg-amber-50 border-amber-200" },
+  { key: "review",      label: "En revue",  cls: "bg-blue-50 border-blue-200" },
+  { key: "done",        label: "Terminé",   cls: "bg-green-50 border-green-200" },
 ];
 
 const PRIORITY_DOT: Record<string, string> = {
-  low: "bg-slate-400",
-  medium: "bg-blue-500",
-  high: "bg-amber-500",
-  urgent: "bg-red-500",
+  low: "bg-slate-400", medium: "bg-blue-500", high: "bg-amber-500", urgent: "bg-red-500",
 };
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "todo":        return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">À faire</Badge>;
+    case "in_progress": return <Badge className="bg-primary text-primary-foreground">En cours</Badge>;
+    case "review":      return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En révision</Badge>;
+    case "done":        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Terminé</Badge>;
+    case "cancelled":   return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Annulé</Badge>;
+    default:            return <Badge variant="outline">Inconnu</Badge>;
+  }
+}
+
+function getPriorityBadge(priority: string) {
+  switch (priority) {
+    case "low":    return <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded">Basse</span>;
+    case "medium": return <span className="text-blue-600 text-xs font-medium px-2 py-1 bg-blue-50 rounded">Moyenne</span>;
+    case "high":   return <span className="text-amber-700 text-xs font-medium px-2 py-1 bg-amber-50 rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Haute</span>;
+    case "urgent": return <span className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded border border-red-200 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgente</span>;
+    default:       return <span className="text-slate-500 text-xs font-medium">Normale</span>;
+  }
+}
+
+// ── Create Task Dialog ─────────────────────────────────────────────────────────
+
+const EMPTY_TASK = { title: "", description: "", status: "todo", priority: "medium", projectId: "", assigneeId: "", dueDate: "" };
+
+function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: projectsData } = useListProjects();
+  const { data: usersData } = useListUsers();
+  const [form, setForm] = useState(EMPTY_TASK);
+
+  React.useEffect(() => { if (open) setForm(EMPTY_TASK); }, [open]);
+
+  const createMut = useCreateTask({ mutation: {
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listTasks"] });
+      toast.success("Tâche créée avec succès");
+      onClose();
+    },
+    onError: () => toast.error("Erreur lors de la création"),
+  }});
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const payload: any = {
+      title: form.title.trim(),
+      status: form.status,
+      priority: form.priority,
+      ...(form.description && { description: form.description }),
+      ...(form.projectId && { projectId: form.projectId }),
+      ...(form.assigneeId && { assigneeId: form.assigneeId }),
+      ...(form.dueDate && { dueDate: form.dueDate }),
+    };
+    createMut.mutate({ data: payload });
+  }
+
+  const projects = (projectsData as any)?.data || [];
+  const users = (usersData as any)?.data || [];
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nouvelle tâche</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label>Intitulé de la tâche *</Label>
+            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ex. Préparer le rapport mensuel" required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Priorité *</Label>
+              <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Basse</SelectItem>
+                  <SelectItem value="medium">Normale</SelectItem>
+                  <SelectItem value="high">Haute</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Statut</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">À faire</SelectItem>
+                  <SelectItem value="in_progress">En cours</SelectItem>
+                  <SelectItem value="review">En révision</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Projet</Label>
+              <Select value={form.projectId || "_none"} onValueChange={v => setForm(f => ({ ...f, projectId: v === "_none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Sans projet —</SelectItem>
+                  {projects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assigné à</Label>
+              <Select value={form.assigneeId || "_none"} onValueChange={v => setForm(f => ({ ...f, assigneeId: v === "_none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Non assigné —</SelectItem>
+                  {users.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Échéance</Label>
+            <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Contexte, objectifs…" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={!form.title.trim() || createMut.isPending}>
+              {createMut.isPending ? "Création…" : "Créer la tâche"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function TasksList() {
   const { data, isLoading } = useListTasks();
   const [view, setView] = useState<ViewMode>("list");
+  const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "todo": return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">À faire</Badge>;
-      case "in_progress": return <Badge className="bg-primary text-primary-foreground">En cours</Badge>;
-      case "review": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En révision</Badge>;
-      case "done": return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Terminé</Badge>;
-      case "cancelled": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Annulé</Badge>;
-      default: return <Badge variant="outline">Inconnu</Badge>;
-    }
-  };
+  const allTasks = data?.data || [];
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "low": return <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded">Basse</span>;
-      case "medium": return <span className="text-blue-600 text-xs font-medium px-2 py-1 bg-blue-50 rounded">Moyenne</span>;
-      case "high": return <span className="text-amber-700 text-xs font-medium px-2 py-1 bg-amber-50 rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Haute</span>;
-      case "urgent": return <span className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded border border-red-200 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgente</span>;
-      default: return <span className="text-slate-500 text-xs font-medium">Normale</span>;
-    }
-  };
-
-  const tasks = data?.data || [];
+  const tasks = useMemo(() => {
+    if (!search.trim()) return allTasks;
+    const q = search.toLowerCase();
+    return allTasks.filter((t: any) =>
+      t.title?.toLowerCase().includes(q) ||
+      t.projectName?.toLowerCase().includes(q) ||
+      t.assigneeName?.toLowerCase().includes(q)
+    );
+  }, [allTasks, search]);
 
   const calendarBuckets = useMemo(() => {
     const today = new Date();
@@ -74,9 +207,14 @@ export default function TasksList() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Tâches</h1>
-          <p className="text-sm text-muted-foreground mt-1">Liste · Kanban · Calendrier</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {allTasks.length} tâche{allTasks.length !== 1 ? "s" : ""} · Liste · Kanban · Calendrier
+          </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
+        >
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
           Nouvelle tâche
         </Button>
@@ -96,15 +234,15 @@ export default function TasksList() {
                 <CalendarIcon className="w-3.5 h-3.5" /> Calendrier
               </button>
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Rechercher une tâche..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
-              </div>
-              <Button variant="outline" size="sm" className="h-9">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtres
-              </Button>
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher une tâche…"
+                className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+              />
             </div>
           </div>
         </CardHeader>
@@ -126,14 +264,21 @@ export default function TasksList() {
               </TableHeader>
               <TableBody>
                 {tasks.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <CheckSquare className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">Aucune tâche trouvée</p>
+                        <p className="text-lg font-medium text-slate-600">
+                          {search ? "Aucune tâche ne correspond à la recherche" : "Aucune tâche"}
+                        </p>
+                        {!search && (
+                          <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5" onClick={() => setShowCreate(true)}>
+                            <Plus className="w-4 h-4 mr-2" /> Créer une tâche
+                          </Button>
+                        )}
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   tasks.map((task: any) => (
                     <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors">
@@ -141,11 +286,16 @@ export default function TasksList() {
                         <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors">{task.title}</Link>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-sm font-medium">{task.projectName || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{task.assigneeName || "Non affecté"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{task.assigneeName || <span className="text-slate-400 italic">Non affecté</span>}</TableCell>
                       <TableCell>{getStatusBadge(task.status)}</TableCell>
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(task.dueDate)}</span>
+                        {task.dueDate
+                          ? <span className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() && task.status !== "done" ? "text-red-600" : ""}`}>
+                              <Clock className="w-3 h-3" /> {formatDate(task.dueDate)}
+                            </span>
+                          : <span className="text-slate-400 italic text-xs">—</span>
+                        }
                       </TableCell>
                     </TableRow>
                   ))
@@ -172,7 +322,7 @@ export default function TasksList() {
                             </div>
                             <div className="text-xs text-muted-foreground ml-4">{t.projectName || "Sans projet"}</div>
                             {t.dueDate && (
-                              <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1 ml-4">
+                              <div className={`text-xs mt-2 flex items-center gap-1 ml-4 ${new Date(t.dueDate) < new Date() ? "text-red-500" : "text-muted-foreground"}`}>
                                 <Clock className="w-3 h-3" /> {formatDate(t.dueDate)}
                               </div>
                             )}
@@ -192,25 +342,32 @@ export default function TasksList() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-              {calendarBuckets.map((b, i) => (
-                <div key={i} className="border border-border rounded-md p-2 min-h-[120px] bg-white">
-                  <div className="text-[10px] font-bold uppercase text-slate-500 mb-2 pb-1 border-b">{b.label}</div>
-                  <div className="space-y-1.5">
-                    {b.tasks.map((t: any) => (
-                      <Link key={t.id} href={`/tasks/${t.id}`}>
-                        <div className="text-xs bg-primary/10 text-primary border-l-2 border-primary px-2 py-1 rounded-sm hover:bg-primary/20 cursor-pointer truncate">
-                          {t.title}
-                        </div>
-                      </Link>
-                    ))}
-                    {b.tasks.length === 0 && <div className="text-[10px] text-slate-300 text-center py-2">—</div>}
+              {calendarBuckets.map((b, i) => {
+                const isToday = i === 0;
+                return (
+                  <div key={i} className={`border rounded-md p-2 min-h-[120px] ${isToday ? "bg-primary/5 border-primary/30" : "bg-white border-border"}`}>
+                    <div className={`text-[10px] font-bold uppercase mb-2 pb-1 border-b ${isToday ? "text-primary border-primary/20" : "text-slate-500"}`}>
+                      {b.label}
+                    </div>
+                    <div className="space-y-1.5">
+                      {b.tasks.map((t: any) => (
+                        <Link key={t.id} href={`/tasks/${t.id}`}>
+                          <div className="text-xs bg-primary/10 text-primary border-l-2 border-primary px-2 py-1 rounded-sm hover:bg-primary/20 cursor-pointer truncate">
+                            {t.title}
+                          </div>
+                        </Link>
+                      ))}
+                      {b.tasks.length === 0 && <div className="text-[10px] text-slate-300 text-center py-2">—</div>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <CreateTaskDialog open={showCreate} onClose={() => setShowCreate(false)} />
     </div>
   );
 }

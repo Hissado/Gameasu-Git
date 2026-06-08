@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useListTasks, useListCollaborators } from "@workspace/api-client-react";
+import { useListTasks } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,10 +63,9 @@ function dateInWeek(dateStr: string | null | undefined, weekStart: Date) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function WorkloadPage() {
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekOffset, setWeekOffset] = useState(-1); // start 1 week back to see recent tasks
   const [weeksCount, setWeeksCount] = useState(6);
   const { data: tasksData, isLoading: loadingTasks } = useListTasks();
-  const { data: collabsData, isLoading: loadingCollabs } = useListCollaborators();
 
   const weekStarts = useMemo(
     () => Array.from({ length: weeksCount }, (_, i) => getWeekStart(weekOffset + i)),
@@ -74,14 +73,24 @@ export default function WorkloadPage() {
   );
 
   const tasks = tasksData?.data || [];
-  const collabs = collabsData?.data || [];
 
-  // Build workload matrix: collab → week → tasks
+  // Build unique assignees directly from tasks (avoids collaborator.userId = null issue)
+  const assignees = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    tasks.forEach((t: any) => {
+      if (t.assigneeId && t.assigneeName && !map.has(t.assigneeId)) {
+        map.set(t.assigneeId, { id: t.assigneeId, name: t.assigneeName });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tasks]);
+
+  // Build workload matrix: assignee → week → tasks
   const matrix = useMemo(() => {
-    return collabs.map((collab: any) => {
+    return assignees.map((assignee) => {
       const weeks = weekStarts.map(weekStart => {
         const weekTasks = tasks.filter((t: any) =>
-          t.assigneeId === collab.userId &&
+          t.assigneeId === assignee.id &&
           t.status !== "done" && t.status !== "cancelled" &&
           dateInWeek(t.dueDate, weekStart)
         );
@@ -90,13 +99,13 @@ export default function WorkloadPage() {
         return { tasks: weekTasks, hours, pct };
       });
       const totalTasks = tasks.filter((t: any) =>
-        t.assigneeId === collab.userId && t.status !== "done" && t.status !== "cancelled"
+        t.assigneeId === assignee.id && t.status !== "done" && t.status !== "cancelled"
       );
-      return { collab, weeks, totalActive: totalTasks.length };
+      return { assignee, weeks, totalActive: totalTasks.length };
     });
-  }, [collabs, tasks, weekStarts]);
+  }, [assignees, tasks, weekStarts]);
 
-  const isLoading = loadingTasks || loadingCollabs;
+  const isLoading = loadingTasks;
 
   const kpis = useMemo(() => {
     const all = matrix.flatMap(r => r.weeks);
@@ -234,21 +243,21 @@ export default function WorkloadPage() {
                 </tr>
               </thead>
               <tbody>
-                {matrix.map(({ collab, weeks, totalActive }) => (
-                  <tr key={collab.id} className="border-b border-border/30 hover:bg-slate-50/50 transition-colors">
+                {matrix.map(({ assignee, weeks, totalActive }) => (
+                  <tr key={assignee.id} className="border-b border-border/30 hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3 border-r border-border">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="w-8 h-8 shrink-0">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                            {initials(`${collab.firstName || ""} ${collab.lastName || ""}`)}
+                            {initials(assignee.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
                           <div className="font-semibold text-xs text-foreground truncate">
-                            {collab.firstName} {collab.lastName}
+                            {assignee.name}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">
-                            {collab.jobTitle || collab.position || "—"}
+                            {totalActive} tâche{totalActive !== 1 ? "s" : ""} actives
                           </div>
                         </div>
                       </div>

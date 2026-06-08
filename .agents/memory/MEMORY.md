@@ -1,0 +1,1 @@
+- [Workload assignee fix](workload-assignee-fix.md) — use task-derived assignees (not collaborators) in workload matrix; most collabs have userId=null

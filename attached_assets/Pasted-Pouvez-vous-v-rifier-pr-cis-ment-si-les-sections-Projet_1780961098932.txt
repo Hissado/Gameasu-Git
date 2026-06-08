@@ -1,0 +1,80 @@
+Pouvez-vous vérifier précisément si les sections **Projets**, **Portefeuille**, **Charge d’équipe**, **Tâches** et **Services** fonctionnent correctement ?
+
+Je veux un **audit fonctionnel ciblé**, section par section, uniquement sur ces modules, afin de confirmer que leur logique, leurs liens et leurs fonctionnalités marchent réellement comme prévu.
+
+### Sections à tester
+- Projets
+- Portefeuille
+- Charge d’équipe
+- Tâches
+- Services
+
+### Ce qu’il faut faire
+Merci de :
+
+- tester chaque section une par une
+- vérifier tous les boutons
+- vérifier toutes les actions
+- vérifier les formulaires
+- vérifier les assignations
+- vérifier les redirections
+- vérifier les liens entre ces modules
+- vérifier comment les données circulent entre eux
+- vérifier si les vues, filtres, tableaux et interactions fonctionnent correctement
+
+### Points à contrôler
+Je veux notamment que vous vérifiiez :
+
+#### Projets
+- création
+- modification
+- assignation
+- rattachement aux tâches, équipes, clients ou services
+- affichage et navigation
+
+#### Portefeuille
+- logique de regroupement
+- liens avec projets et services
+- affichage
+- navigation
+- cohérence fonctionnelle
+
+#### Charge d’équipe
+- calcul de la charge
+- remontée des données depuis tâches / projets / services
+- affichage des surcharges ou disponibilités
+- cohérence des affectations
+
+#### Tâches
+- création
+- assignation
+- rattachement
+- statut
+- échéances
+- impact sur la charge d’équipe
+- lien avec projets et services
+
+#### Services
+- création
+- modification
+- assignation
+- rattachement aux clients, tâches et équipes
+- différence fonctionnelle avec projets
+- cohérence d’utilisation
+
+### Tests avec données
+Vous pouvez :
+- utiliser les données déjà présentes
+- ajouter des **mock data réalistes** si nécessaire
+- compléter les données de démonstration pour confirmer les tests
+
+### Résultat attendu
+Je veux que vous :
+1. testiez uniquement ces sections
+2. identifiiez les bugs, incohérences ou logiques cassées
+3. corrigiez ce qui ne fonctionne pas
+4. ajoutiez si nécessaire les données utiles pour valider les parcours
+5. confirmiez que ces modules fonctionnent correctement ensemble
+
+### Objectif final
+Je veux m’assurer que les sections **Projets, Portefeuille, Charge d’équipe, Tâches et Services** sont réellement opérationnelles, bien liées entre elles, cohérentes, fluides et professionnelles.

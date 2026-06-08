@@ -1,21 +1,30 @@
 import React, { useMemo, useState } from "react";
-import { useListProjects } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useListProjects, useCreateProject, useUpdateProject, useDeleteProject,
+  useListClients, useListUsers,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Plus, Search, Filter, MoreHorizontal, Eye, Edit, Trash2, FolderKanban,
+  Plus, Search, MoreHorizontal, Eye, Edit, Trash2, FolderKanban,
   LayoutGrid, List, CheckCircle2, AlertTriangle, Clock, CircleDot,
   TrendingUp, ChevronRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 // ── RAG ───────────────────────────────────────────────────────────────────────
 
@@ -63,20 +72,186 @@ function RAGBadge({ project }: { project: any }) {
           {cfg.label}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        Statut RAG : {cfg.label}
-      </TooltipContent>
+      <TooltipContent side="top" className="text-xs">Statut RAG : {cfg.label}</TooltipContent>
     </Tooltip>
   );
 }
 
 const STATUS_BADGE: Record<string, React.ReactNode> = {
-  active:    <Badge className="bg-primary text-primary-foreground hover:bg-primary/80">En cours</Badge>,
-  planning:  <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">Planifié</Badge>,
-  on_hold:   <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">En attente</Badge>,
-  completed: <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Terminé</Badge>,
-  cancelled: <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Annulé</Badge>,
+  active:      <Badge className="bg-primary text-primary-foreground hover:bg-primary/80">En cours</Badge>,
+  in_progress: <Badge className="bg-primary text-primary-foreground hover:bg-primary/80">En cours</Badge>,
+  planning:    <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">Planifié</Badge>,
+  on_hold:     <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">En attente</Badge>,
+  completed:   <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Terminé</Badge>,
+  cancelled:   <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Annulé</Badge>,
 };
+
+// ── Create / Edit Dialog ───────────────────────────────────────────────────────
+
+const EMPTY_FORM = { name: "", description: "", status: "planning", clientId: "", managerId: "", startDate: "", endDate: "", budget: "" };
+
+function ProjectFormDialog({
+  open, onClose, project,
+}: {
+  open: boolean;
+  onClose: () => void;
+  project?: any;
+}) {
+  const isEdit = !!project;
+  const qc = useQueryClient();
+  const { data: clientsData } = useListClients();
+  const { data: usersData } = useListUsers();
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  React.useEffect(() => {
+    if (open) {
+      setForm(isEdit ? {
+        name: project.name || "",
+        description: project.description || "",
+        status: project.status || "planning",
+        clientId: project.clientId || "",
+        managerId: project.managerId || "",
+        startDate: project.startDate || "",
+        endDate: project.endDate || "",
+        budget: project.budget ? String(project.budget) : "",
+      } : EMPTY_FORM);
+    }
+  }, [open, project, isEdit]);
+
+  const createMut = useCreateProject({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet créé avec succès"); onClose(); },
+    onError: () => toast.error("Erreur lors de la création"),
+  }});
+  const updateMut = useUpdateProject({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet mis à jour"); onClose(); },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
+  }});
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const payload: any = {
+      name: form.name.trim(),
+      status: form.status,
+      ...(form.description && { description: form.description }),
+      ...(form.clientId && { clientId: form.clientId }),
+      ...(form.managerId && { managerId: form.managerId }),
+      ...(form.startDate && { startDate: form.startDate }),
+      ...(form.endDate && { endDate: form.endDate }),
+      ...(form.budget && { budget: parseFloat(form.budget) }),
+    };
+    if (isEdit) updateMut.mutate({ id: project.id, data: payload });
+    else createMut.mutate({ data: payload });
+  }
+
+  const clients = (clientsData as any)?.data || [];
+  const users = (usersData as any)?.data || [];
+  const isPending = createMut.isPending || updateMut.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Modifier le projet" : "Nouveau projet"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label>Nom du projet *</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex. Construction entrepôt Lomé" required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Statut *</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planning">Planification</SelectItem>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="on_hold">En attente</SelectItem>
+                  <SelectItem value="completed">Terminé</SelectItem>
+                  <SelectItem value="cancelled">Annulé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Budget (FCFA)</Label>
+              <Input type="number" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} placeholder="Ex. 5000000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Client</Label>
+              <Select value={form.clientId || "_none"} onValueChange={v => setForm(f => ({ ...f, clientId: v === "_none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Aucun client —</SelectItem>
+                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Responsable</Label>
+              <Select value={form.managerId || "_none"} onValueChange={v => setForm(f => ({ ...f, managerId: v === "_none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Aucun —</SelectItem>
+                  {users.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Date de début</Label>
+              <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date de fin prévue</Label>
+              <Input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Contexte, objectifs, périmètre…" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={!form.name.trim() || isPending}>
+              {isPending ? "Enregistrement…" : isEdit ? "Mettre à jour" : "Créer le projet"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteProjectDialog({ project, onClose }: { project: any; onClose: () => void }) {
+  const qc = useQueryClient();
+  const deleteMut = useDeleteProject({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet supprimé"); onClose(); },
+    onError: () => toast.error("Erreur lors de la suppression"),
+  }});
+  return (
+    <Dialog open={!!project} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">Supprimer le projet ?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Cette action est irréversible. Le projet <span className="font-semibold text-foreground">"{project?.name}"</span> et toutes ses phases seront définitivement supprimés.
+        </p>
+        <DialogFooter className="gap-2 mt-2">
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button variant="destructive" disabled={deleteMut.isPending} onClick={() => deleteMut.mutate({ id: project.id })}>
+            {deleteMut.isPending ? "Suppression…" : "Supprimer définitivement"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 type ViewMode = "list" | "cards";
 
@@ -84,6 +259,9 @@ export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
   const [search, setSearch] = useState("");
   const [view, setView] = useState<ViewMode>("list");
+  const [showCreate, setShowCreate] = useState(false);
+  const [editProject, setEditProject] = useState<any>(null);
+  const [deleteProject, setDeleteProject] = useState<any>(null);
 
   const projects = useMemo(() => {
     const all = data?.data || [];
@@ -101,7 +279,7 @@ export default function ProjectsList() {
     const withRag = all.map((p: any) => ({ ...p, _rag: computeRAG(p) }));
     return {
       total: all.length,
-      active: all.filter((p: any) => p.status === "active").length,
+      active: all.filter((p: any) => ["active", "in_progress"].includes(p.status)).length,
       atRisk: withRag.filter((p: any) => p._rag === "at_risk" || p._rag === "off_track").length,
       avgProgress: all.length ? Math.round(all.reduce((s: number, p: any) => s + (p.progress || 0), 0) / all.length) : 0,
     };
@@ -127,21 +305,23 @@ export default function ProjectsList() {
               <span className="hidden sm:inline">Charge équipe</span>
             </Button>
           </Link>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9">
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9"
+          >
             <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
             Nouveau Projet
           </Button>
         </div>
       </div>
 
-      {/* Quick KPI strip */}
-      {!isLoading && projects.length > 0 && (
+      {!isLoading && (data?.data || []).length > 0 && (
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: "Total projets", value: kpis.total, cls: "text-foreground" },
-            { label: "En cours", value: kpis.active, cls: "text-primary" },
-            { label: "À surveiller", value: kpis.atRisk, cls: kpis.atRisk > 0 ? "text-amber-600" : "text-emerald-600" },
-            { label: "Avancement moy.", value: `${kpis.avgProgress}%`, cls: "text-foreground" },
+            { label: "Total projets",    value: kpis.total,           cls: "text-foreground" },
+            { label: "En cours",         value: kpis.active,          cls: "text-primary" },
+            { label: "À surveiller",     value: kpis.atRisk,          cls: kpis.atRisk > 0 ? "text-amber-600" : "text-emerald-600" },
+            { label: "Avancement moy.",  value: `${kpis.avgProgress}%`, cls: "text-foreground" },
           ].map(kpi => (
             <Card key={kpi.label} className="shadow-sm">
               <CardContent className="p-3.5 text-center">
@@ -164,7 +344,7 @@ export default function ProjectsList() {
                   type="search"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Rechercher un projet..."
+                  placeholder="Rechercher un projet…"
                   className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
                 />
               </div>
@@ -196,7 +376,7 @@ export default function ProjectsList() {
               <FolderKanban className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
               <p className="text-lg font-medium text-slate-600">Aucun projet trouvé</p>
               <p className="text-sm">Commencez par créer un nouveau projet.</p>
-              <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5">
+              <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5" onClick={() => setShowCreate(true)}>
                 <Plus className="w-4 h-4 mr-2" /> Créer un projet
               </Button>
             </div>
@@ -231,10 +411,7 @@ export default function ProjectsList() {
                         <div className="flex justify-between text-xs">
                           <span className="font-medium text-slate-600">{project.progress || 0}%</span>
                         </div>
-                        <Progress
-                          value={project.progress || 0}
-                          className={`h-2 ${project.progress === 100 ? "[&>div]:bg-green-500" : ""}`}
-                        />
+                        <Progress value={project.progress || 0} className={`h-2 ${project.progress === 100 ? "[&>div]:bg-green-500" : ""}`} />
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell font-medium">{formatFCFA(project.budget)}</TableCell>
@@ -257,10 +434,13 @@ export default function ProjectsList() {
                               <TrendingUp className="mr-2 h-4 w-4" /> Timeline Gantt
                             </DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => setEditProject(project)}>
                             <Edit className="mr-2 h-4 w-4" /> Modifier
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive focus:text-destructive"
+                            onClick={() => setDeleteProject(project)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -271,44 +451,54 @@ export default function ProjectsList() {
               </TableBody>
             </Table>
           ) : (
-            /* Cards view */
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {projects.map((project: any) => {
                 const rag = computeRAG(project);
                 const ragCfg = RAG_CONFIG[rag];
                 return (
-                  <Link key={project.id} href={`/projects/${project.id}`}>
-                    <Card className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer group h-full">
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">{project.name}</h3>
-                            {project.clientName && <p className="text-xs text-muted-foreground truncate">{project.clientName}</p>}
+                  <div key={project.id} className="relative group">
+                    <Link href={`/projects/${project.id}`}>
+                      <Card className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer h-full">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">{project.name}</h3>
+                              {project.clientName && <p className="text-xs text-muted-foreground truncate">{project.clientName}</p>}
+                            </div>
+                            <Badge variant="outline" className={`text-[10px] shrink-0 flex items-center gap-1 ${ragCfg.cls}`}>
+                              {ragCfg.icon}{ragCfg.label}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className={`text-[10px] shrink-0 flex items-center gap-1 ${ragCfg.cls}`}>
-                            {ragCfg.icon}{ragCfg.label}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Avancement</span>
-                            <span className="font-bold">{project.progress || 0}%</span>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">Avancement</span>
+                              <span className="font-bold">{project.progress || 0}%</span>
+                            </div>
+                            <Progress value={project.progress || 0} className="h-1.5" />
                           </div>
-                          <Progress value={project.progress || 0} className="h-1.5" />
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-muted-foreground font-medium">{formatFCFA(project.budget)}</span>
-                          {STATUS_BADGE[project.status]}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground font-medium">{formatFCFA(project.budget)}</span>
+                            {STATUS_BADGE[project.status]}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 bg-white shadow-sm border" onClick={e => { e.preventDefault(); setEditProject(project); }}>
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <ProjectFormDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      <ProjectFormDialog open={!!editProject} onClose={() => setEditProject(null)} project={editProject} />
+      {deleteProject && <DeleteProjectDialog project={deleteProject} onClose={() => setDeleteProject(null)} />}
     </div>
   );
 }
