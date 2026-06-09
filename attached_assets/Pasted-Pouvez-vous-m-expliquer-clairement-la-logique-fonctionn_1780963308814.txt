@@ -1,0 +1,94 @@
+Pouvez-vous m’expliquer clairement la **logique fonctionnelle** entre les modules suivants :
+
+- **Opérations & Logistique**
+- **Parc & Équipements**
+- **Produits & Stocks**
+- **Locations**
+- **Inspections**
+- **Documents**
+
+### Objectif
+Je veux comprendre précisément :
+- le rôle exact de chaque module
+- comment ils fonctionnent individuellement
+- comment ils interagissent entre eux
+- comment les données sont liées
+- comment les ressources, éléments ou responsabilités sont assignés
+- et quelle est la logique métier globale derrière leur organisation
+
+### Points à expliquer
+Merci de détailler notamment :
+
+---
+
+## 1. Opérations & Logistique
+- quel est le rôle exact du module **Opérations & Logistique**
+- à quoi sert-il concrètement dans l’application
+- quelles activités il pilote
+- comment il se relie aux missions, aux équipes, aux équipements, aux produits, aux locations et aux inspections
+- comment les éléments y sont assignés
+
+---
+
+## 2. Parc & Équipements
+- quel est le rôle exact du module **Parc & Équipements**
+- comment les équipements sont enregistrés, suivis et affectés
+- comment ils se relient aux opérations, locations, inspections et documents
+- comment on sait quel équipement est affecté à quel usage, mission ou utilisateur
+
+---
+
+## 3. Produits & Stocks
+- quel est le rôle exact du module **Produits & Stocks**
+- comment les produits ou articles sont gérés dans l’application
+- comment ils se relient aux opérations, aux approvisionnements, aux locations ou aux inspections si applicable
+- comment les mouvements de stock sont pris en compte dans la logique globale
+
+---
+
+## 4. Locations
+- quel est le rôle exact du module **Locations**
+- comment une location est créée
+- à quels éléments elle peut être reliée
+- comment elle se connecte aux équipements, produits, clients, opérations, inspections et documents
+- comment les disponibilités, affectations et retours sont gérés
+
+---
+
+## 5. Inspections
+- quel est le rôle exact du module **Inspections**
+- dans quels cas une inspection intervient
+- comment elle se relie aux locations, équipements, opérations ou produits
+- comment sont gérés les états de départ, retour, conformité, dommages ou anomalies
+- qui est responsable de l’inspection et comment elle est assignée
+
+---
+
+## 6. Documents
+- quel est le rôle exact du module **Documents**
+- comment les documents se rattachent aux autres modules
+- comment les documents sont liés aux opérations, équipements, locations, inspections, produits ou stocks
+- comment ils sont classés, retrouvés et utilisés dans les workflows
+
+---
+
+## 7. Logique d’ensemble
+Je veux surtout comprendre :
+
+- comment **Opérations & Logistique**, **Parc & Équipements**, **Produits & Stocks**, **Locations**, **Inspections** et **Documents** fonctionnent **ensemble**
+- comment tout est lié dans l’application
+- comment les éléments sont assignés
+- comment les données circulent entre ces modules
+- quelle est la logique métier globale
+- et quelle est la meilleure manière d’utiliser ces modules dans un flux cohérent
+
+### Résultat attendu
+Je veux une explication claire, structurée et professionnelle qui me permette de comprendre :
+- la logique métier
+- l’architecture fonctionnelle
+- les liens entre les modules
+- les règles d’assignation
+- la logique d’utilisation recommandée
+
+### Objectif final
+Je veux avoir une vision claire de la manière dont ces modules s’articulent ensemble, afin de mieux comprendre l’application et de m’assurer que leur organisation est cohérente, intuitive et efficace.
