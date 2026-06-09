@@ -191,7 +191,7 @@ export default function CashflowPage() {
             </div>
             <Link href="/fpa">
               <Button variant="secondary" size="sm" className="bg-white/10 text-white hover:bg-white/20 border-0">
-                <BarChart3 className="w-4 h-4 mr-1.5" />Dashboard
+                <BarChart3 className="w-4 h-4 mr-1.5" />Tableau de bord
               </Button>
             </Link>
             <Link href="/fpa/budgets">
@@ -207,9 +207,9 @@ export default function CashflowPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
             {[
               { label: "Solde disponible", value: toFCFA(kpis.currentBalance), hint: `Ouverture : ${toFCFA(kpis.openingBalance)}`, accent: "bg-cyan-500/20 text-cyan-200", icon: Landmark },
-              { label: "Cash Runway", value: fmtRunway(kpis.runwayMonths), hint: kpis.runwayMonths === null ? "Burn rate positif ✓" : `Zero cash : ${kpis.zeroCashDate ?? "—"}`, accent: kpis.runwayMonths === null || (kpis.runwayMonths ?? 0) > 12 ? "bg-emerald-500/20 text-emerald-200" : "bg-red-500/20 text-red-200", icon: Shield },
+              { label: "Cash Runway", value: fmtRunway(kpis.runwayMonths), hint: kpis.runwayMonths === null ? "Trésorerie positive ✓" : `Rupture estimée : ${kpis.zeroCashDate ?? "—"}`, accent: kpis.runwayMonths === null || (kpis.runwayMonths ?? 0) > 12 ? "bg-emerald-500/20 text-emerald-200" : "bg-red-500/20 text-red-200", icon: Shield },
               { label: "Burn Rate moyen/mois", value: toFCFA(kpis.burnRate), hint: `Entrées moy. : ${toFCFA(kpis.avgMonthlyInflows)}`, accent: kpis.burnRate >= 0 ? "bg-emerald-500/20 text-emerald-200" : "bg-amber-500/20 text-amber-200", icon: Flame },
-              { label: "Position nette (AR−AP)", value: toFCFA(kpis.netPosition), hint: `AR : ${toFCFA(kpis.totalAR)} · AP : ${toFCFA(kpis.totalAP)}`, accent: kpis.netPosition >= 0 ? "bg-violet-500/20 text-violet-200" : "bg-rose-500/20 text-rose-200", icon: Wallet },
+              { label: "Position nette créances/dettes", value: toFCFA(kpis.netPosition), hint: `Créances : ${toFCFA(kpis.totalAR)} · Dettes : ${toFCFA(kpis.totalAP)}`, accent: kpis.netPosition >= 0 ? "bg-violet-500/20 text-violet-200" : "bg-rose-500/20 text-rose-200", icon: Wallet },
             ].map((k) => (
               <div key={k.label} className="bg-white/5 backdrop-blur rounded-lg p-3 border border-white/10">
                 <div className="flex items-start justify-between gap-2">
@@ -251,7 +251,7 @@ export default function CashflowPage() {
               <KpiCard label="Sorties moy./mois" value={toFCFA(kpis.avgMonthlyOutflows)} hint="Sur l'exercice" icon={ArrowUpCircle} iconBg="bg-red-100 text-red-600" valueColor="text-red-600" />
               <KpiCard label="Burn Rate" value={toFCFA(kpis.burnRate)} hint="Net mensuel moy." icon={Flame} iconBg={kpis.burnRate >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"} valueColor={kpis.burnRate >= 0 ? "text-emerald-700" : "text-amber-700"} />
               <KpiCard label="Cash Runway" value={fmtRunway(kpis.runwayMonths)} hint={kpis.runwayMonths === null ? "Trésorerie stable" : "Avant tension"} icon={Clock} iconBg={(kpis.runwayMonths ?? 999) > 12 ? "bg-emerald-100 text-emerald-700" : (kpis.runwayMonths ?? 999) > 3 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"} valueColor={(kpis.runwayMonths ?? 999) > 12 ? "text-foreground" : (kpis.runwayMonths ?? 999) > 3 ? "text-amber-700" : "text-red-600"} />
-              <KpiCard label="Zero Cash Date" value={kpis.zeroCashDate ?? "N/A"} hint={kpis.zeroCashDate ? "Date estimée de rupture" : "Burn rate positif"} icon={AlertCircle} iconBg={!kpis.zeroCashDate ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"} valueColor={!kpis.zeroCashDate ? "text-emerald-700" : "text-red-600"} border={kpis.zeroCashDate && !hasCritical ? "border-amber-300" : undefined} />
+              <KpiCard label="Date de rupture estimée" value={kpis.zeroCashDate ?? "N/A"} hint={kpis.zeroCashDate ? "Date estimée d'épuisement du cash" : "Burn rate positif"} icon={AlertCircle} iconBg={!kpis.zeroCashDate ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"} valueColor={!kpis.zeroCashDate ? "text-emerald-700" : "text-red-600"} border={kpis.zeroCashDate && !hasCritical ? "border-amber-300" : undefined} />
             </div>
           )}
 
@@ -349,7 +349,7 @@ export default function CashflowPage() {
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
                     <ArrowDownCircle className="w-4 h-4 text-emerald-500" />
-                    Encaissements attendus (AR)
+                    Encaissements attendus
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{ar.length} facture(s) · Total : {toFCFA(kpis?.totalAR ?? 0)}</p>
                 </div>
@@ -398,7 +398,7 @@ export default function CashflowPage() {
                 <div>
                   <h3 className="font-semibold flex items-center gap-2">
                     <ArrowUpCircle className="w-4 h-4 text-red-400" />
-                    Décaissements prévus (AP)
+                    Décaissements prévus
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{ap.length} facture(s) · Total : {toFCFA(kpis?.totalAP ?? 0)}</p>
                 </div>
@@ -472,9 +472,9 @@ export default function CashflowPage() {
                     color: (kpis.currentBalance / (kpis.avgMonthlyOutflows || 1)) > 3 ? "text-emerald-600" : "text-amber-700",
                   },
                   {
-                    label: "Ratio AR/AP",
+                    label: "Ratio créances/dettes",
                     value: kpis.totalAP > 0 ? `${(kpis.totalAR / kpis.totalAP).toFixed(2)}×` : "∞",
-                    hint: "Créances / dettes (> 1 = favorable)",
+                    hint: "Créances / dettes fournisseurs (> 1 = favorable)",
                     icon: ArrowRight,
                     color: kpis.totalAP === 0 || kpis.totalAR >= kpis.totalAP ? "text-emerald-600" : "text-rose-600",
                   },

@@ -10,6 +10,10 @@ import { FileSpreadsheet, TrendingUp, TrendingDown } from "lucide-react";
 
 interface FiscalPeriod { id: string; name: string; }
 interface BudgetRow { id: string; name: string; kind: string; versionNumber: number; status: string; }
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon", active: "Actif", archived: "Archivé",
+};
 interface ProjectionRow {
   accountId: string; accountCode: string; accountLabel: string;
   annualBudget: number; ytdActual: number; remainingBudget: number;
@@ -83,7 +87,7 @@ export default function ForecastPage() {
           <SelectTrigger className="max-w-xl"><SelectValue placeholder="Choisir une prévision…" /></SelectTrigger>
           <SelectContent>
             {forecasts.length === 0 && <div className="px-2 py-2 text-sm text-muted-foreground">Aucune prévision pour cette période.</div>}
-            {forecasts.map((f) => <SelectItem key={f.id} value={f.id}>{f.name} (v{f.versionNumber}) — {f.status}</SelectItem>)}
+            {forecasts.map((f) => <SelectItem key={f.id} value={f.id}>{f.name} (v{f.versionNumber}) — {STATUS_LABELS[f.status] ?? f.status}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -136,7 +140,7 @@ export default function ForecastPage() {
         <Select value={budgetId} onValueChange={setBudgetId}>
           <SelectTrigger className="max-w-xl"><SelectValue placeholder="Choisir un budget…" /></SelectTrigger>
           <SelectContent>
-            {budgets.map((b) => <SelectItem key={b.id} value={b.id}>{b.name} (v{b.versionNumber}) — {b.status}</SelectItem>)}
+            {budgets.map((b) => <SelectItem key={b.id} value={b.id}>{b.name} (v{b.versionNumber}) — {STATUS_LABELS[b.status] ?? b.status}</SelectItem>)}
           </SelectContent>
         </Select>
 

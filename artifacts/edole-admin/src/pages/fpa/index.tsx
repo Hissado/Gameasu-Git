@@ -42,6 +42,11 @@ interface YearEndResponse {
 
 const MONTH_LABELS = ["jan", "fév", "mar", "avr", "mai", "jun", "jul", "aoû", "sep", "oct", "nov", "déc"];
 
+const PROJECT_STATUS_LABELS: Record<string, string> = {
+  planned: "Planifié", in_progress: "En cours", on_hold: "En pause",
+  completed: "Terminé", cancelled: "Annulé",
+};
+
 function fmtMonth(period: string) {
   const m = parseInt(period.slice(5, 7), 10);
   return MONTH_LABELS[m - 1] || period;
@@ -166,7 +171,7 @@ export default function FpaDashboardPage() {
             </Link>
             <Link href="/fpa/forecast">
               <Button variant="secondary" size="sm" className="bg-white/10 text-white hover:bg-white/20 border-0">
-                <Target className="w-4 h-4 mr-1.5" />Forecast
+                <Target className="w-4 h-4 mr-1.5" />Prévisions
               </Button>
             </Link>
             <Link href="/fpa/reports">
@@ -463,8 +468,8 @@ export default function FpaDashboardPage() {
                               <div className={`text-sm font-bold ${profitable ? "text-emerald-600" : "text-rose-600"}`}>
                                 {profitable ? "+" : ""}{fmtCompact(margin)}
                               </div>
-                              <Badge variant="outline" className="text-[10px] mt-0.5 capitalize">
-                                {p.projectStatus.replace("_", " ")}
+                              <Badge variant="outline" className="text-[10px] mt-0.5">
+                                {PROJECT_STATUS_LABELS[p.projectStatus] ?? p.projectStatus.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>

@@ -41,6 +41,10 @@ const MONTH_LABEL: Record<string, string> = {
   "07": "Juil", "08": "Août", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon", active: "Actif", archived: "Archivé",
+};
+
 export default function BudgetDetailPage() {
   const [, params] = useRoute<{ id: string }>("/fpa/budgets/:id");
   const id = params?.id || "";
@@ -150,7 +154,7 @@ export default function BudgetDetailPage() {
               {budget.kind === "forecast" ? "Prévision" : "Budget"}
             </Badge>
             <Badge variant="outline">v{budget.versionNumber}</Badge>
-            <Badge variant="outline">{budget.status}</Badge>
+            <Badge variant="outline">{STATUS_LABELS[budget.status] ?? budget.status}</Badge>
             {period && <span className="text-sm text-muted-foreground">{period.name}</span>}
           </div>
         </div>

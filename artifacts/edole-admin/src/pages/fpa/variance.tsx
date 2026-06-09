@@ -28,6 +28,10 @@ const MONTH_LABEL: Record<string, string> = {
   "07": "Juil", "08": "Août", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon", active: "Actif", archived: "Archivé",
+};
+
 export default function VariancePage() {
   const [location] = useLocation();
   const initialBudgetId = new URLSearchParams(location.split("?")[1] || "").get("budgetId") || "";
@@ -99,7 +103,7 @@ export default function VariancePage() {
               <SelectContent>
                 {budgets.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.name} (v{b.versionNumber}) — {b.status}
+                    {b.name} (v{b.versionNumber}) — {STATUS_LABELS[b.status] ?? b.status}
                   </SelectItem>
                 ))}
               </SelectContent>
