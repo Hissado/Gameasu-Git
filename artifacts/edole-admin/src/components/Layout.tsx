@@ -20,6 +20,7 @@ import { PlanBadge } from "@/components/PlanBadge";
 import { useCurrentOrganization, useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
 import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
+import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -542,6 +543,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </DropdownMenu>
           </div>
         </header>
+
+        <AppBreadcrumb />
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 page-scroll bg-background">
           <div className="max-w-[1440px] mx-auto w-full">{children}</div>
