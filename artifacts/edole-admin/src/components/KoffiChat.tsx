@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sparkles, Send, X, Minimize2, Bot, User, Loader2,
+  Sparkles, SendHorizontal, X, Minimize2, Bot, User, Loader2,
   ExternalLink, ChevronDown,
 } from "lucide-react";
 
@@ -213,17 +213,19 @@ export function KoffiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Posez votre question à Koffi…"
+              placeholder="Posez votre question…"
               disabled={ask.isPending}
-              className="flex-1 bg-slate-50 border-slate-200 rounded-xl text-sm h-10 focus-visible:ring-primary/30"
+              className="flex-1 bg-white border-[1.5px] border-indigo-200 rounded-2xl text-sm h-11 px-4 focus-visible:ring-indigo-200 focus-visible:border-indigo-400 placeholder:text-slate-400 shadow-sm"
             />
             <Button
               type="submit"
               size="icon"
               disabled={ask.isPending || input.trim().length < 1}
-              className="h-10 w-10 rounded-full bg-[#0F1A3A] hover:bg-[#0F1A3A]/90 shrink-0"
+              className="h-11 w-11 rounded-2xl bg-indigo-300/80 hover:bg-indigo-400/90 text-white shrink-0 shadow-sm disabled:opacity-40"
             >
-              {ask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {ask.isPending
+                ? <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                : <SendHorizontal className="w-[18px] h-[18px]" />}
             </Button>
           </form>
         </div>
