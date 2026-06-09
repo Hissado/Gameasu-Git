@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BRANDING } from "@/config/branding";
 import { PlanBadge } from "@/components/PlanBadge";
 import { useCurrentOrganization, useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
+import { KoffiChat } from "@/components/KoffiChat";
 
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -36,7 +37,6 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Briefing du jour",   path: "/briefing",    icon: Sun,             moduleKey: "dashboard" },
       { name: "Cockpit IA",         path: "/intelligence",icon: Brain,           moduleKey: "dashboard" },
       { name: "Approbations",       path: "/approvals",   icon: CheckSquare,     moduleKey: "dashboard" },
-      { name: "Assistant Gaméasù",  path: "/assistant",   icon: Sparkles,        moduleKey: "dashboard" },
     ],
   },
   {
@@ -474,6 +474,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="max-w-[1440px] mx-auto w-full">{children}</div>
         </div>
       </main>
+
+      {/* ── Koffi — assistant flottant universel ─────────────────────────────── */}
+      <KoffiChat />
     </div>
   );
 };
