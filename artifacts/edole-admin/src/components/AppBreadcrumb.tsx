@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { ChevronRight, ArrowLeft, Home } from "lucide-react";
+import { ChevronRight, ArrowLeft } from "lucide-react";
 
 type Crumb = { label: string; href?: string };
 
@@ -64,112 +64,112 @@ const TOP_LEVEL: Record<string, string> = {
  */
 const ROUTES: Array<{ pattern: RegExp; crumbs: Crumb[] }> = [
   // ── Projects ───────────────────────────────────────────────────
-  { pattern: /^\/projects\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Fiche projet" }] },
-  { pattern: /^\/portfolio/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Portefeuille" }] },
-  { pattern: /^\/workload/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Charge de travail" }] },
+  { pattern: /^\/projects\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Fiche projet" }] },
+  { pattern: /^\/portfolio/,        crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Portefeuille" }] },
+  { pattern: /^\/workload/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Projets", href: "/projects" }, { label: "Charge de travail" }] },
 
   // ── Tasks ──────────────────────────────────────────────────────
-  { pattern: /^\/tasks\/(?!focus)[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Tâches", href: "/tasks" }, { label: "Détail tâche" }] },
+  { pattern: /^\/tasks\/(?!focus)[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Tâches", href: "/tasks" }, { label: "Détail tâche" }] },
 
   // ── CRM ────────────────────────────────────────────────────────
-  { pattern: /^\/crm\/clients\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Clients", href: "/crm/clients" }, { label: "Fiche client" }] },
-  { pattern: /^\/crm\/clients/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Clients" }] },
-  { pattern: /^\/crm\/activities/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Activités" }] },
+  { pattern: /^\/crm\/clients\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Clients", href: "/crm/clients" }, { label: "Fiche client" }] },
+  { pattern: /^\/crm\/clients/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Clients" }] },
+  { pattern: /^\/crm\/activities/,      crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Activités" }] },
 
   // ── Clients workspace ──────────────────────────────────────────
-  { pattern: /^\/clients\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Clients", href: "/clients" }, { label: "Fiche client" }] },
+  { pattern: /^\/clients\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Clients", href: "/clients" }, { label: "Fiche client" }] },
 
   // ── Services ───────────────────────────────────────────────────
-  { pattern: /^\/services\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Services", href: "/services" }, { label: "Détail service" }] },
+  { pattern: /^\/services\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Services", href: "/services" }, { label: "Détail service" }] },
 
   // ── Equipment ──────────────────────────────────────────────────
-  { pattern: /^\/equipment\/categories/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Équipements", href: "/equipment" }, { label: "Catégories" }] },
-  { pattern: /^\/equipment\/qr/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Équipements", href: "/equipment" }, { label: "QR Codes" }] },
+  { pattern: /^\/equipment\/categories/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Équipements", href: "/equipment" }, { label: "Catégories" }] },
+  { pattern: /^\/equipment\/qr/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Équipements", href: "/equipment" }, { label: "QR Codes" }] },
 
   // ── Collaborators ──────────────────────────────────────────────
-  { pattern: /^\/collaborators\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Collaborateurs", href: "/collaborators" }, { label: "Fiche collaborateur" }] },
+  { pattern: /^\/collaborators\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Collaborateurs", href: "/collaborators" }, { label: "Fiche collaborateur" }] },
 
   // ── Rentals ────────────────────────────────────────────────────
-  { pattern: /^\/rentals\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Locations", href: "/rentals" }, { label: "Fiche location" }] },
+  { pattern: /^\/rentals\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Locations", href: "/rentals" }, { label: "Fiche location" }] },
 
   // ── Inspections ────────────────────────────────────────────────
-  { pattern: /^\/inspections\/compare\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Inspections", href: "/inspections" }, { label: "Comparaison" }] },
+  { pattern: /^\/inspections\/compare\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Inspections", href: "/inspections" }, { label: "Comparaison" }] },
 
   // ── FP&A ───────────────────────────────────────────────────────
-  { pattern: /^\/fpa\/budgets\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Budgets", href: "/fpa/budgets" }, { label: "Détail budget" }] },
-  { pattern: /^\/fpa\/budgets/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Budgets" }] },
-  { pattern: /^\/fpa\/variance/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Analyse de variance" }] },
-  { pattern: /^\/fpa\/forecast/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Forecast" }] },
-  { pattern: /^\/fpa\/cashflow/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Cash Flow" }] },
-  { pattern: /^\/fpa\/reports/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Rapports" }] },
+  { pattern: /^\/fpa\/budgets\/[^/?]+/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Budgets", href: "/fpa/budgets" }, { label: "Détail budget" }] },
+  { pattern: /^\/fpa\/budgets/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Budgets" }] },
+  { pattern: /^\/fpa\/variance/,        crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Analyse de variance" }] },
+  { pattern: /^\/fpa\/forecast/,        crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Forecast" }] },
+  { pattern: /^\/fpa\/cashflow/,        crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Cash Flow" }] },
+  { pattern: /^\/fpa\/reports/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "FP&A", href: "/fpa" }, { label: "Rapports" }] },
 
   // ── Accounting ─────────────────────────────────────────────────
-  { pattern: /^\/accounting\/chart-of-accounts/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Plan comptable" }] },
-  { pattern: /^\/accounting\/entries/,           crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Écritures" }] },
-  { pattern: /^\/accounting\/ledger/,            crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Grand livre" }] },
-  { pattern: /^\/accounting\/balance-sheet/,     crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Bilan" }] },
-  { pattern: /^\/accounting\/balance/,           crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Balance" }] },
-  { pattern: /^\/accounting\/income-statement/,  crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Compte de résultat" }] },
-  { pattern: /^\/accounting\/customers/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Clients" }] },
-  { pattern: /^\/accounting\/suppliers/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Fournisseurs" }] },
-  { pattern: /^\/accounting\/banks/,             crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Banques" }] },
-  { pattern: /^\/accounting\/reconciliation/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Rapprochement" }] },
-  { pattern: /^\/accounting\/fixed-assets/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Immobilisations" }] },
-  { pattern: /^\/accounting\/matching/,          crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Lettrage" }] },
-  { pattern: /^\/accounting\/fiscal-periods/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Périodes fiscales" }] },
-  { pattern: /^\/accounting\/taxes/,             crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Taxes" }] },
-  { pattern: /^\/accounting\/analytical/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Analytique" }] },
-  { pattern: /^\/accounting\/cash-flow/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Tableau de flux" }] },
+  { pattern: /^\/accounting\/chart-of-accounts/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Plan comptable" }] },
+  { pattern: /^\/accounting\/entries/,           crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Écritures" }] },
+  { pattern: /^\/accounting\/ledger/,            crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Grand livre" }] },
+  { pattern: /^\/accounting\/balance-sheet/,     crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Bilan" }] },
+  { pattern: /^\/accounting\/balance/,           crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Balance" }] },
+  { pattern: /^\/accounting\/income-statement/,  crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Compte de résultat" }] },
+  { pattern: /^\/accounting\/customers/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Clients" }] },
+  { pattern: /^\/accounting\/suppliers/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Fournisseurs" }] },
+  { pattern: /^\/accounting\/banks/,             crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Banques" }] },
+  { pattern: /^\/accounting\/reconciliation/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Rapprochement" }] },
+  { pattern: /^\/accounting\/fixed-assets/,      crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Immobilisations" }] },
+  { pattern: /^\/accounting\/matching/,          crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Lettrage" }] },
+  { pattern: /^\/accounting\/fiscal-periods/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Périodes fiscales" }] },
+  { pattern: /^\/accounting\/taxes/,             crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Taxes" }] },
+  { pattern: /^\/accounting\/analytical/,        crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Analytique" }] },
+  { pattern: /^\/accounting\/cash-flow/,         crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Comptabilité", href: "/accounting" }, { label: "Tableau de flux" }] },
 
   // ── HR ─────────────────────────────────────────────────────────
-  { pattern: /^\/hr\/departments/, crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Départements" }] },
-  { pattern: /^\/hr\/positions/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Postes" }] },
-  { pattern: /^\/hr\/contracts/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Contrats" }] },
-  { pattern: /^\/hr\/documents/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Documents" }] },
-  { pattern: /^\/hr\/assignments/, crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Affectations" }] },
-  { pattern: /^\/hr\/leaves/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Congés" }] },
-  { pattern: /^\/hr\/payroll/,     crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Paie" }] },
-  { pattern: /^\/hr\/recruitment/, crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Recrutement" }] },
-  { pattern: /^\/hr\/evaluations/, crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Évaluations" }] },
-  { pattern: /^\/hr\/training/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Formations" }] },
-  { pattern: /^\/hr\/movements/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Mouvements" }] },
-  { pattern: /^\/hr\/orgchart/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Organigramme" }] },
-  { pattern: /^\/hr\/intelligence/,crumbs: [{ label: "Accueil", href: "/" }, { label: "RH", href: "/hr" }, { label: "Intelligence" }] },
+  { pattern: /^\/hr\/departments/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Départements" }] },
+  { pattern: /^\/hr\/positions/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Postes" }] },
+  { pattern: /^\/hr\/contracts/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Contrats" }] },
+  { pattern: /^\/hr\/documents/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Documents" }] },
+  { pattern: /^\/hr\/assignments/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Affectations" }] },
+  { pattern: /^\/hr\/leaves/,      crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Congés" }] },
+  { pattern: /^\/hr\/payroll/,     crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Paie" }] },
+  { pattern: /^\/hr\/recruitment/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Recrutement" }] },
+  { pattern: /^\/hr\/evaluations/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Évaluations" }] },
+  { pattern: /^\/hr\/training/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Formations" }] },
+  { pattern: /^\/hr\/movements/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Mouvements" }] },
+  { pattern: /^\/hr\/orgchart/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Organigramme" }] },
+  { pattern: /^\/hr\/intelligence/,crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "RH", href: "/hr" }, { label: "Intelligence" }] },
 
   // ── Admin ──────────────────────────────────────────────────────
-  { pattern: /^\/admin\/roles/,       crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Rôles" }] },
-  { pattern: /^\/admin\/permissions/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Permissions" }] },
-  { pattern: /^\/admin\/departments/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Départements" }] },
-  { pattern: /^\/admin\/users/,       crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Utilisateurs" }] },
-  { pattern: /^\/admin\/invitations/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Invitations" }] },
-  { pattern: /^\/admin\/audit/,       crumbs: [{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Journal d'audit" }] },
+  { pattern: /^\/admin\/roles/,       crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Rôles" }] },
+  { pattern: /^\/admin\/permissions/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Permissions" }] },
+  { pattern: /^\/admin\/departments/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Départements" }] },
+  { pattern: /^\/admin\/users/,       crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Utilisateurs" }] },
+  { pattern: /^\/admin\/invitations/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Invitations" }] },
+  { pattern: /^\/admin\/audit/,       crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Journal d'audit" }] },
 
   // ── Inventory ──────────────────────────────────────────────────
-  { pattern: /^\/inventory\/warehouses/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Inventaire", href: "/inventory" }, { label: "Entrepôts" }] },
+  { pattern: /^\/inventory\/warehouses/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Inventaire", href: "/inventory" }, { label: "Entrepôts" }] },
 
   // ── Commercial ─────────────────────────────────────────────────
-  { pattern: /^\/commercial\/clients/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Commercial", href: "/commercial" }, { label: "Clients" }] },
-  { pattern: /^\/commercial\/services/,crumbs: [{ label: "Accueil", href: "/" }, { label: "Commercial", href: "/commercial" }, { label: "Services" }] },
+  { pattern: /^\/commercial\/clients/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Commercial", href: "/commercial" }, { label: "Clients" }] },
+  { pattern: /^\/commercial\/services/,crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Commercial", href: "/commercial" }, { label: "Services" }] },
 
   // ── Marketing ──────────────────────────────────────────────────
-  { pattern: /^\/marketing\/prospects/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Prospects" }] },
-  { pattern: /^\/marketing\/campaigns/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Campagnes" }] },
-  { pattern: /^\/marketing\/audiences/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Audiences" }] },
-  { pattern: /^\/marketing\/templates/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Modèles" }] },
-  { pattern: /^\/marketing\/automations/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Automatisations" }] },
-  { pattern: /^\/marketing\/alerts/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Alertes" }] },
-  { pattern: /^\/marketing\/contacts/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Contacts" }] },
-  { pattern: /^\/marketing\/calendar/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Calendrier" }] },
-  { pattern: /^\/marketing\/analytics/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Analytique" }] },
-  { pattern: /^\/marketing\/consent/,     crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Consentements" }] },
-  { pattern: /^\/marketing\/channels/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Canaux" }] },
-  { pattern: /^\/marketing\/forms/,       crumbs: [{ label: "Accueil", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Formulaires" }] },
+  { pattern: /^\/marketing\/prospects/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Prospects" }] },
+  { pattern: /^\/marketing\/campaigns/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Campagnes" }] },
+  { pattern: /^\/marketing\/audiences/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Audiences" }] },
+  { pattern: /^\/marketing\/templates/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Modèles" }] },
+  { pattern: /^\/marketing\/automations/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Automatisations" }] },
+  { pattern: /^\/marketing\/alerts/,      crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Alertes" }] },
+  { pattern: /^\/marketing\/contacts/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Contacts" }] },
+  { pattern: /^\/marketing\/calendar/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Calendrier" }] },
+  { pattern: /^\/marketing\/analytics/,   crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Analytique" }] },
+  { pattern: /^\/marketing\/consent/,     crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Consentements" }] },
+  { pattern: /^\/marketing\/channels/,    crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Canaux" }] },
+  { pattern: /^\/marketing\/forms/,       crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Marketing", href: "/marketing" }, { label: "Formulaires" }] },
 
   // ── Finance Intelligence ────────────────────────────────────────
-  { pattern: /^\/finance\/intelligence/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Finance", href: "/finance" }, { label: "Intelligence" }] },
+  { pattern: /^\/finance\/intelligence/, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Finance", href: "/finance" }, { label: "Intelligence" }] },
 
   // ── Documents ──────────────────────────────────────────────────
-  { pattern: /^\/documents\//, crumbs: [{ label: "Accueil", href: "/" }, { label: "Documents" }, { label: "Prévisualisation" }] },
+  { pattern: /^\/documents\//, crumbs: [{ label: "Vue d'ensemble", href: "/" }, { label: "Documents" }, { label: "Prévisualisation" }] },
 ];
 
 export function AppBreadcrumb() {
@@ -182,7 +182,7 @@ export function AppBreadcrumb() {
   const matched = ROUTES.find(r => r.pattern.test(path));
   const crumbs: Crumb[] = matched
     ? matched.crumbs
-    : [{ label: "Accueil", href: "/" }, { label: TOP_LEVEL[path] ?? path.slice(1) }];
+    : [{ label: "Vue d'ensemble", href: "/" }, { label: TOP_LEVEL[path] ?? path.slice(1) }];
 
   const parentCrumb = [...crumbs].reverse().find(c => c.href && c.href !== path);
 
@@ -218,14 +218,13 @@ export function AppBreadcrumb() {
               {crumb.href && !isLast ? (
                 <Link
                   href={crumb.href}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px]"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors truncate max-w-[140px]"
                 >
-                  {isFirst && <Home className="w-3 h-3 shrink-0" />}
-                  {isFirst ? null : crumb.label}
+                  {crumb.label}
                 </Link>
               ) : (
                 <span className={`text-xs truncate max-w-[180px] ${isLast ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  {isFirst ? <Home className="w-3 h-3 inline" /> : crumb.label}
+                  {crumb.label}
                 </span>
               )}
             </li>
