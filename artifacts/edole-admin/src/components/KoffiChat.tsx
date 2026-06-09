@@ -221,7 +221,7 @@ export function KoffiChat() {
               type="submit"
               size="icon"
               disabled={ask.isPending || input.trim().length < 1}
-              className="h-10 w-10 rounded-xl bg-[#0F1A3A] hover:bg-[#0F1A3A]/90 shrink-0"
+              className="h-10 w-10 rounded-full bg-[#0F1A3A] hover:bg-[#0F1A3A]/90 shrink-0"
             >
               {ask.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
