@@ -91,6 +91,7 @@ router.get("/auth/me", async (req, res) => {
       lastName: user.lastName,
       role: user.role,
       avatarUrl: user.avatarUrl,
+      phone: user.phone ?? null,
       isClient: user.isClient,
       mustChangePassword: user.mustChangePassword,
       departmentId: user.departmentId,

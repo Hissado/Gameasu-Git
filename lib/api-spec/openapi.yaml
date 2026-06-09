@@ -2052,6 +2052,9 @@ components:
           type: string
         avatarUrl:
           type: string
+        phone:
+          type: string
+          nullable: true
         isClient:
           type: boolean
       required:

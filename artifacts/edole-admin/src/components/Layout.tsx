@@ -453,38 +453,91 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 sm:gap-2.5 outline-none transition-all rounded-lg px-1.5 py-1 hover:bg-muted">
+                <button className="flex items-center gap-2 sm:gap-2.5 outline-none transition-all rounded-lg px-1.5 py-1 hover:bg-muted group">
                   <div className="text-right hidden lg:block">
                     <p className="text-[13px] font-semibold leading-none text-foreground">{fullName}</p>
                     <p className="text-[11px] text-muted-foreground mt-1">{roleLabel}</p>
                   </div>
-                  <Avatar className="w-9 h-9 ring-2 ring-border">
+                  <Avatar className="w-9 h-9 ring-2 ring-border group-hover:ring-primary/30 transition-all">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
                     <AvatarFallback className="bg-[#0F1A3A] text-[#C8A24B] font-semibold text-sm">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 font-sans">
-                <div className="px-3 py-2 lg:hidden border-b border-border mb-1">
-                  <p className="text-sm font-medium leading-none text-foreground">{fullName}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{roleLabel}</p>
+
+              <DropdownMenuContent align="end" className="w-80 font-sans p-0 overflow-hidden shadow-xl border-border/70">
+                {/* ── Carte profil ── */}
+                <div className="bg-gradient-to-br from-[#0F1A3A] to-[#162040] px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-14 h-14 ring-2 ring-[#C8A24B]/40 shrink-0">
+                      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+                      <AvatarFallback className="bg-[#C8A24B]/20 text-[#C8A24B] font-bold text-lg">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-white leading-tight truncate">{fullName}</p>
+                      <p className="text-xs text-[#C8A24B] font-medium mt-0.5">{roleLabel}</p>
+                      {user?.email && (
+                        <p className="text-[11px] text-white/50 mt-1 truncate">{user.email}</p>
+                      )}
+                      {user?.phone && (
+                        <p className="text-[11px] text-white/50 mt-0.5 truncate">{user.phone}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="mt-3 flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white/80 transition-colors"
+                  >
+                    <UserCircle className="w-3 h-3" />
+                    Voir et modifier mon profil
+                    <ChevronRight className="w-3 h-3 ml-auto" />
+                  </Link>
                 </div>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
-                  <Link href="/workspace-settings"><Settings className="w-4 h-4 mr-2 text-muted-foreground" />Paramètres de l'espace</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
-                  <Link href="/billing"><CreditCard className="w-4 h-4 mr-2 text-muted-foreground" />Abonnement & facturation</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
-                  <Link href="/mon-espace"><BarChart3 className="w-4 h-4 mr-2 text-muted-foreground" />Mon espace</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5">
-                  <Link href="/profile"><UserCircle className="w-4 h-4 mr-2 text-muted-foreground" />Mon profil</Link>
-                </DropdownMenuItem>
-                <div className="h-px bg-border my-1" />
-                <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive focus:text-destructive" onClick={() => logout()}>
-                  <LogOut className="w-4 h-4 mr-2" />Déconnexion
-                </DropdownMenuItem>
+
+                {/* ── Navigation personnelle ── */}
+                <div className="py-1.5 px-1">
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5 px-3 gap-3">
+                    <Link href="/mon-espace">
+                      <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-none">Mon espace</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Mes tâches, projets et activité</p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                </div>
+
+                <div className="h-px bg-border/60 mx-3" />
+
+                {/* ── Organisation ── */}
+                <div className="py-1.5 px-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 pt-1 pb-1.5">Organisation</p>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5 px-3 gap-3">
+                    <Link href="/workspace-settings">
+                      <Settings className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium">Paramètres de l'espace</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5 px-3 gap-3">
+                    <Link href="/billing">
+                      <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium">Abonnement & facturation</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </div>
+
+                <div className="h-px bg-border/60 mx-3" />
+
+                {/* ── Déconnexion ── */}
+                <div className="py-1.5 px-1">
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg py-2.5 px-3 gap-3 text-destructive focus:text-destructive focus:bg-destructive/8"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium">Déconnexion</span>
+                  </DropdownMenuItem>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

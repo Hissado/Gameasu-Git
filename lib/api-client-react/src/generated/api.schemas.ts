@@ -21,6 +21,7 @@ export interface UserProfile {
   lastName: string;
   role: string;
   avatarUrl?: string;
+  phone?: string | null;
   isClient: boolean;
 }
 

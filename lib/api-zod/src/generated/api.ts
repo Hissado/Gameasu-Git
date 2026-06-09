@@ -31,6 +31,7 @@ export const LoginResponse = zod.object({
     lastName: zod.string(),
     role: zod.string(),
     avatarUrl: zod.string().optional(),
+    phone: zod.string().nullish(),
     isClient: zod.boolean(),
   }),
 });
@@ -45,6 +46,7 @@ export const GetMeResponse = zod.object({
   lastName: zod.string(),
   role: zod.string(),
   avatarUrl: zod.string().optional(),
+  phone: zod.string().nullish(),
   isClient: zod.boolean(),
 });
 
