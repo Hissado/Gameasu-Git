@@ -12,6 +12,14 @@ import {
   collaboratorsTable, riskFlagsTable, recommendationsTable, insightsTable,
   equipmentTable, ordersTable, proformasTable, documentsTable,
   conversationsTable, paymentsTable,
+  // Marketing
+  marketingCampaignsTable, prospectsTable,
+  // RH étendu
+  contractsTable, departmentsTable, jobOffersTable,
+  // Présences
+  attendanceRecordsTable, attendanceFlagsTable,
+  // Opérations & stock
+  operationsMissionsTable, productsTable, stockMovementsTable,
 } from "@workspace/db";
 import { and, eq, isNull, sql, desc, inArray, ilike } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -28,7 +36,11 @@ type Intent =
   | "tasks"
   | "finance"
   | "hr"
+  | "attendance"
   | "equipment"
+  | "inventory"
+  | "operations"
+  | "marketing"
   | "orders"
   | "intelligence"
   | "messaging"
@@ -40,36 +52,65 @@ type Intent =
   | "unknown";
 
 function detectIntent(q: string): Intent {
-  const s = q.toLowerCase();
+  const s = q.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // retirer les accents pour la correspondance
+    .toLowerCase();
+
   // Help / navigation / explication d'usage
-  if (/(bonjour|salut|aide|help|qui es|que peux|présente|comment\s+(?:utiliser|fonctionne|faire|naviguer|aller|accéder|trouver|créer|ajouter|modifier|supprimer)|explique|c'est quoi|qu'est.ce)/.test(s)) return "help";
-  if (/(menu|navigation|aller\s+sur|accéder\s+à|page\s+de|section|module|où\s+(?:est|se trouve|trouver))/.test(s)) return "navigation";
-  // Intelligence & risques
-  if (/(risque|insight|recommandation|alerte|intelligence|cockpit|anomalie|signal)/.test(s)) return "intelligence";
+  if (/(bonjour|salut|aide|help|qui es.tu|que peux.tu|presente.toi|comment\s+(?:utiliser|fonctionne|faire|naviguer|aller|acceder|trouver|creer|ajouter|modifier|supprimer)|explique|c.est quoi|qu.est.ce|koffi)/.test(s)) return "help";
+  if (/(menu|navigation|aller\s+sur|acceder\s+a|page\s+de|section|module|ou\s+(?:est|se trouve|trouver|puis.je))/.test(s)) return "navigation";
+
+  // Intelligence & risques (priorité haute)
+  if (/(risque|insight|recommandation|alerte|intelligence|cockpit|anomalie|signal|fraude|drift|irregularit)/.test(s)) return "intelligence";
+
+  // Finance — avant kpi_overview car "chiffre" peut matcher les deux
+  if (/(facture|paiement|tresorerie|cash|finance|recouvrement|impaye|encours|avoir|devis|proforma|budget|comptabilit|bilan|resultat|fiscal|taxe|fpa|prevision|chiffre.d.affaires|chiffre.affaires|revenu|recette|encaissement|marge|benefice|ca\s+(?:du|de|par|mensuel|annuel|total|global)|premier\s+client|meilleur\s+client|top\s+client|contribu|apport)/.test(s)) return "finance";
+
+  // Marketing — avant crm/clients
+  if (/(marketing|campagne|campaign|email\s+(?:blast|mass)|sms\s+(?:campagne|mass)|whatsapp\s+(?:campagne)|prospect\s+(?:converti|qualifi)|audience|template|emailing|publipostage)/.test(s)) return "marketing";
+
   // KPI globaux
-  if (/(kpi|tableau\s+de\s+bord|vue\s+d'ensemble|globale|santé|activité|résumé|statistique)/.test(s)) return "kpi_overview";
+  if (/(kpi|tableau\s+de\s+bord|vue\s+d.ensemble|globale|sante\s+(?:de|du)|activite\s+(?:de|du)|resume\s+(?:de|du)|statistique|performance\s+(?:globale|generale))/.test(s)) return "kpi_overview";
+
   // Commercial & clients
-  if (/(client|prospect|crm|pipeline|opportunité|lead|contact|partenaire)/.test(s)) return "clients";
-  // Projets & opérations
-  if (/(projet|chantier|phase|planning|gantt|portefeuille|workload|charge|mission|service)/.test(s)) return "projects";
+  if (/(client|prospect(?!\s+converti)|crm|pipeline|opportunite|lead|contact\s+(?:client|commercial)|partenaire)/.test(s)) return "clients";
+
+  // Projets & portefeuille
+  if (/(projet|chantier|phase|planning|gantt|portefeuille|workload|charge\s+(?:d.equipe|du\s+projet)|mission\s+(?:de\s+projet)|service\s+(?:projet))/.test(s)) return "projects";
+
   // Tâches
-  if (/(tâche|task|backlog|urgence|priorité|sous.tâche|mention)/.test(s)) return "tasks";
-  // Finance — intentionnellement avant kpi_overview pour capturer "chiffre d'affaires", "CA", "revenu"
-  if (/(facture|paiement|trésorerie|cash|finance|recouvrement|impayé|encours|avoir|devis|proforma|commande|budget|comptabilité|bilan|résultat|fiscal|taxe|fpa|prévision|chiffre\s+d'affaires|chiffre.d.affaires|revenu|recette|ca\s+(?:du|de|mensuel|annuel)|encaissement|marge|bénéfice)/.test(s)) return "finance";
-  // Équipements & stock
-  if (/(équipement|matériel|machine|parc|stock|inventaire|produit|location|inspection|locat)/.test(s)) return "equipment";
-  // RH & équipe
-  if (/(rh|collaborateur|équipe|absent|retard|pointage|congé|contrat|paie|salaire|recrutement|formation|évaluation|mouvement|organigramme|poste|département)/.test(s)) return "hr";
+  if (/(tache|task|backlog|urgence(?!\s+de)|priorite|sous.tache|mention|todo|to.do)/.test(s)) return "tasks";
+
+  // Présences & pointage (avant RH pour prioriser)
+  if (/(presence|point(?:age|er|e\s|es\s|ent\s)|clock.in|clock.out|absence|conge|retard\s+(?:de|du|ce|aujourd)|anomalie\s+(?:de\s+presence|pointage)|heure\s+(?:travaill|suppl)|planning\s+(?:de\s+presence)|qui\s+(?:est|sont)\s+(?:present|absent))/.test(s)) return "attendance";
+
+  // Opérations & missions terrain
+  if (/(operation|mission\s+(?:terrain|en\s+cours|livraison|collecte|intervention)|livraison|collecte|dispatch|tournee|chauffeur|technicien\s+terrain|checklist\s+terrain|incident\s+terrain|preuve|photo\s+terrain)/.test(s)) return "operations";
+
+  // Stock & inventaire (avant equipment)
+  if (/(stock|inventaire|produit\s+(?:en\s+stock|rupture|disponible)|rupture|approvisionnement|mouvement\s+de\s+stock|bon\s+de\s+commande\s+fournisseur|achat\s+fournisseur|entree\s+stock|sortie\s+stock|niveau\s+(?:de\s+stock|minimal))/.test(s)) return "inventory";
+
+  // Équipements & locations
+  if (/(equipement|materiel|machine|parc|location\s+(?:de\s+)?(?:materiel|equipement)|inspection|locat|engin|vehicule\s+(?:parc)|qr.code)/.test(s)) return "equipment";
+
+  // RH & ressources humaines
+  if (/(rh|ressource.humaine|collaborateur|effectif|absent|contrat\s+(?:de\s+travail|cdi|cdd|expire)|paie|salaire|recrutement|offre\s+d.emploi|candidature|formation|evaluation|organigramme|poste|departement|service\s+(?:rh))/.test(s)) return "hr";
+
   // Messagerie
-  if (/(message|messagerie|conversation|discussion|chat|mp|groupe)/.test(s)) return "messaging";
+  if (/(message|messagerie|conversation|discussion|chat|mp|groupe\s+(?:de\s+discussion)|vocal|audio\s+(?:message))/.test(s)) return "messaging";
+
   // Documents
-  if (/(document|fichier|contrat|signature|archiv|bibliothèque|pdf|rapport)/.test(s)) return "documents";
+  if (/(document|fichier|contrat\s+(?:document|signe)|signature|archiv|bibliotheque|pdf|rapport\s+(?:document))/.test(s)) return "documents";
+
   // Approbations
-  if (/(approbation|approuver|valider|validation|en\s+attente|signer|file)/.test(s)) return "approvals";
+  if (/(approbation|approuver|valider|validation|en\s+attente\s+(?:de|d.)|signer|file\s+(?:d.approbation|de\s+validation))/.test(s)) return "approvals";
+
   // Commandes
-  if (/(commande|order|vente|bon\s+de\s+commande|achat)/.test(s)) return "orders";
+  if (/(commande|order|bon\s+de\s+commande|achat\s+(?:client|commande)|vente\s+(?:commande))/.test(s)) return "orders";
+
   // Recherche
-  if (/(cherche|trouve|recherch|où\s+est|find)/.test(s)) return "search";
+  if (/(cherche|trouve|recherch|ou\s+est|find|localise)/.test(s)) return "search";
+
   return "unknown";
 }
 
@@ -236,6 +277,8 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
   // ── Finance ───────────────────────────────────────────────────────────────────
   if (intent === "finance" && await hasPermission(userId, "accounting.read")) {
     try {
+      const fmtFCFA = (n: number) => Math.round(n).toLocaleString("fr-FR") + " FCFA";
+
       // Factures en retard
       const overdueConds = [
         sql`${invoicesTable.status} not in ('draft','paid','cancelled')`,
@@ -248,22 +291,30 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
       }).from(invoicesTable).where(and(...overdueConds)).limit(5);
       const totalOverdue = overdue.reduce((s, r) => s + (Number(r.total) - Number(r.paid ?? 0)), 0);
 
-      // CA du mois en cours : somme des paiements reçus ce mois-ci
+      // CA du mois en cours
       const [caThisMonth] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
-        .from(paymentsTable)
-        .where(sql`date_trunc('month', paid_at) = date_trunc('month', now())`);
+        .from(paymentsTable).where(sql`date_trunc('month', paid_at) = date_trunc('month', now())`);
 
       // CA du mois précédent
       const [caLastMonth] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
-        .from(paymentsTable)
-        .where(sql`date_trunc('month', paid_at) = date_trunc('month', now() - interval '1 month')`);
+        .from(paymentsTable).where(sql`date_trunc('month', paid_at) = date_trunc('month', now() - interval '1 month')`);
 
-      // CA YTD (année en cours)
+      // CA YTD
       const [caYtd] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
-        .from(paymentsTable)
-        .where(sql`date_part('year', paid_at) = date_part('year', now())`);
+        .from(paymentsTable).where(sql`date_part('year', paid_at) = date_part('year', now())`);
 
-      const fmtFCFA = (n: number) => Math.round(n).toLocaleString("fr-FR") + " FCFA";
+      // Top clients par CA (via paiements reçus → factures → clients)
+      const topClientsRows = await db.execute(sql`
+        SELECT c.name, coalesce(sum(p.amount), 0) AS total_paid
+        FROM payments p
+        JOIN invoices i ON i.id = p.invoice_id
+        JOIN clients c ON c.id = i.client_id
+        WHERE c.deleted_at IS NULL
+        GROUP BY c.id, c.name
+        ORDER BY total_paid DESC
+        LIMIT 5
+      `);
+      const topClients = topClientsRows as unknown as { name: string; total_paid: string }[];
 
       const [draftCount] = await db.select({ c: sql<number>`count(*)::int` }).from(proformasTable).where(eq(proformasTable.status, "draft"));
       const [orderCount] = await db.select({ c: sql<number>`count(*)::int` }).from(ordersTable).where(isNull(ordersTable.deletedAt));
@@ -276,21 +327,154 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
         `${overdue.length} facture(s) en retard (encours impayé : ${fmtFCFA(totalOverdue)}). ` +
         `${draftCount?.c ?? 0} devis en brouillon. ${orderCount?.c ?? 0} commandes.`
       );
+
+      if (topClients.length) {
+        lines.push(
+          `Top clients par CA (année en cours) : ` +
+          topClients.map((c, i) => `${i + 1}. ${c.name} (${fmtFCFA(Number(c.total_paid))})`).join(" | ")
+        );
+      }
+
       citations.push({ label: "Factures", url: "/invoices" });
       citations.push({ label: "Encaissements", url: "/payments" });
       citations.push({ label: "Planification financière", url: "/fpa" });
+      citations.push({ label: "Clients", url: "/clients" });
     } catch { /* ignore */ }
   }
 
-  // ── Équipements & stock ───────────────────────────────────────────────────────
+  // ── Équipements & locations ───────────────────────────────────────────────────
   if (intent === "equipment") {
     try {
       const [eqTotal] = await db.select({ c: sql<number>`count(*)::int` }).from(equipmentTable).where(isNull(equipmentTable.deletedAt));
       const [eqAvail] = await db.select({ c: sql<number>`count(*)::int` }).from(equipmentTable).where(and(isNull(equipmentTable.deletedAt), eq(equipmentTable.status, "available")));
-      lines.push(`Parc & équipements : ${eqTotal?.c ?? 0} équipements au total, ${eqAvail?.c ?? 0} disponibles.`);
+      const [eqRented] = await db.select({ c: sql<number>`count(*)::int` }).from(equipmentTable).where(and(isNull(equipmentTable.deletedAt), eq(equipmentTable.status, "rented")));
+      const [eqMaint] = await db.select({ c: sql<number>`count(*)::int` }).from(equipmentTable).where(and(isNull(equipmentTable.deletedAt), eq(equipmentTable.status, "maintenance")));
+      lines.push(`Parc & équipements : ${eqTotal?.c ?? 0} équipements total — ${eqAvail?.c ?? 0} disponibles, ${eqRented?.c ?? 0} en location, ${eqMaint?.c ?? 0} en maintenance.`);
       citations.push({ label: "Parc & équipements", url: "/equipment" });
       citations.push({ label: "Locations", url: "/rentals" });
       citations.push({ label: "Produits & stock", url: "/inventory" });
+    } catch { /* ignore */ }
+  }
+
+  // ── Inventaire & stock ────────────────────────────────────────────────────────
+  if (intent === "inventory") {
+    try {
+      const [prodTotal] = await db.select({ c: sql<number>`count(*)::int` }).from(productsTable).where(isNull(productsTable.deletedAt));
+      // Produits dont le stock calculé (somme des mouvements) est en dessous du seuil min
+      const lowStockRows = await db.execute(sql`
+        SELECT p.name, p.sku, p.min_stock,
+               coalesce(sum(sm.quantity), 0) AS current_stock
+        FROM products p
+        LEFT JOIN stock_movements sm ON sm.product_id = p.id
+        WHERE p.deleted_at IS NULL
+        GROUP BY p.id, p.name, p.sku, p.min_stock
+        HAVING coalesce(sum(sm.quantity), 0) <= p.min_stock
+        ORDER BY (coalesce(sum(sm.quantity), 0) - p.min_stock) ASC
+        LIMIT 8
+      `);
+      const lowStock = (lowStockRows as unknown as { name: string; sku: string; current_stock: string; min_stock: string }[]);
+      const [mvtCount] = await db.select({ c: sql<number>`count(*)::int` }).from(stockMovementsTable);
+      lines.push(`Stock & inventaire : ${prodTotal?.c ?? 0} produits référencés, ${mvtCount?.c ?? 0} mouvements enregistrés.`);
+      if (lowStock.length > 0) {
+        lines.push(`Produits en rupture ou sous seuil minimal (${lowStock.length}) : ` +
+          lowStock.map(p => `${p.name} (SKU: ${p.sku}, stock: ${Number(p.current_stock).toFixed(0)}, min: ${Number(p.min_stock).toFixed(0)})`).join(" | "));
+      }
+      citations.push({ label: "Produits & stock", url: "/inventory" });
+    } catch { /* ignore */ }
+  }
+
+  // ── Marketing & campagnes ─────────────────────────────────────────────────────
+  if (intent === "marketing" && orgId) {
+    try {
+      const campaigns = await db.select({
+        name: marketingCampaignsTable.name,
+        channel: marketingCampaignsTable.channel,
+        status: marketingCampaignsTable.status,
+      }).from(marketingCampaignsTable)
+        .where(eq(marketingCampaignsTable.organizationId, orgId))
+        .orderBy(desc(marketingCampaignsTable.createdAt)).limit(8);
+
+      const [prospCount] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(prospectsTable).where(eq(prospectsTable.organizationId, orgId));
+
+      const byStatus = campaigns.reduce<Record<string, number>>((acc, c) => {
+        acc[c.status] = (acc[c.status] ?? 0) + 1; return acc;
+      }, {});
+
+      lines.push(
+        `Marketing : ${campaigns.length} campagne(s) — ` +
+        Object.entries(byStatus).map(([s, n]) => `${n} ${s}`).join(", ") +
+        `. ${prospCount?.c ?? 0} prospect(s) dans le CRM.`
+      );
+      if (campaigns.length) {
+        lines.push("Campagnes : " + campaigns.slice(0, 5).map(c => `« ${c.name} » (${c.channel}, ${c.status})`).join(" | "));
+      }
+      citations.push({ label: "Marketing", url: "/marketing" });
+      citations.push({ label: "CRM & pipeline", url: "/crm" });
+    } catch { /* ignore */ }
+  }
+
+  // ── Opérations terrain ────────────────────────────────────────────────────────
+  if (intent === "operations" && orgId && await hasPermission(userId, "operations.view")) {
+    try {
+      const missions = await db.select({
+        title: operationsMissionsTable.title,
+        kind: operationsMissionsTable.kind,
+        status: operationsMissionsTable.status,
+        priority: operationsMissionsTable.priority,
+      }).from(operationsMissionsTable)
+        .where(eq(operationsMissionsTable.organizationId, orgId))
+        .orderBy(desc(operationsMissionsTable.createdAt)).limit(8);
+
+      const byStatus = missions.reduce<Record<string, number>>((acc, m) => {
+        acc[m.status] = (acc[m.status] ?? 0) + 1; return acc;
+      }, {});
+      const urgent = missions.filter(m => m.priority === "urgent" || m.priority === "high");
+
+      lines.push(
+        `Opérations terrain : ${missions.length} mission(s) — ` +
+        Object.entries(byStatus).map(([s, n]) => `${n} ${s}`).join(", ") + "."
+      );
+      if (urgent.length) {
+        lines.push(`Missions urgentes/haute priorité : ` + urgent.slice(0, 3).map(m => `« ${m.title} » (${m.kind}, ${m.status})`).join(" | "));
+      }
+      citations.push({ label: "Opérations & logistique", url: "/operations" });
+    } catch { /* ignore */ }
+  }
+
+  // ── Présences & pointage ──────────────────────────────────────────────────────
+  if (intent === "attendance" && orgId && await hasPermission(userId, "attendance.view")) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const [clockInsToday] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(attendanceRecordsTable)
+        .where(and(
+          eq(attendanceRecordsTable.organizationId, orgId),
+          eq(attendanceRecordsTable.kind, "clock_in"),
+          sql`occurred_at::date = ${today}::date`,
+        ));
+
+      const flags = await db.select({
+        kind: attendanceFlagsTable.kind,
+        severity: attendanceFlagsTable.severity,
+        workDate: attendanceFlagsTable.workDate,
+      }).from(attendanceFlagsTable)
+        .where(and(
+          eq(attendanceFlagsTable.organizationId, orgId),
+          sql`work_date >= (now() - interval '7 days')::date`,
+        ))
+        .orderBy(desc(attendanceFlagsTable.workDate)).limit(8);
+
+      lines.push(`Présences aujourd'hui : ${clockInsToday?.c ?? 0} pointage(s) d'entrée enregistrés.`);
+      if (flags.length) {
+        const byKind = flags.reduce<Record<string, number>>((acc, f) => {
+          acc[f.kind] = (acc[f.kind] ?? 0) + 1; return acc;
+        }, {});
+        lines.push(`Anomalies de présence (7 derniers jours) : ` +
+          Object.entries(byKind).map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`).join(", ") + ".");
+      }
+      citations.push({ label: "Présences & pointage", url: "/attendance" });
+      citations.push({ label: "Équipe & RH", url: "/hr" });
     } catch { /* ignore */ }
   }
 
@@ -317,10 +501,41 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
   // ── RH & équipe ───────────────────────────────────────────────────────────────
   if (intent === "hr" && await hasPermission(userId, "hr.read")) {
     try {
-      const [active] = await db.select({ c: sql<number>`count(*)::int` }).from(collaboratorsTable).where(and(isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.employmentStatus, "active")));
-      lines.push(`Effectif actif : ${active?.c ?? 0} collaborateur(s).`);
+      const [active] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(collaboratorsTable).where(and(isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.employmentStatus, "active")));
+      const [onLeave] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(collaboratorsTable).where(and(isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.employmentStatus, "on_leave")));
+
+      // Contrats expirant dans les 30 prochains jours
+      const [expiringContracts] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(contractsTable)
+        .where(and(
+          eq(contractsTable.status, "active"),
+          sql`end_date is not null`,
+          sql`end_date::date between now()::date and (now() + interval '30 days')::date`,
+        ));
+
+      // Offres d'emploi ouvertes
+      const [openJobs] = await db.select({ c: sql<number>`count(*)::int` })
+        .from(jobOffersTable)
+        .where(eq(jobOffersTable.status, "published"));
+
+      // Départements
+      const depts = await db.select({ name: departmentsTable.name })
+        .from(departmentsTable).limit(10);
+
+      lines.push(
+        `Équipe & RH : ${active?.c ?? 0} collaborateur(s) actif(s)` +
+        (onLeave?.c ? `, ${onLeave.c} en congé` : "") +
+        `. ${expiringContracts?.c ?? 0} contrat(s) expirant dans 30 jours. ` +
+        `${openJobs?.c ?? 0} offre(s) d'emploi active(s).`
+      );
+      if (depts.length) {
+        lines.push(`Départements : ${depts.map(d => d.name).join(", ")}.`);
+      }
       citations.push({ label: "Collaborateurs", url: "/collaborators" });
       citations.push({ label: "Équipe & RH", url: "/hr" });
+      citations.push({ label: "Présences & pointage", url: "/attendance" });
     } catch { /* ignore */ }
   }
 
