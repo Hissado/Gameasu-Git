@@ -1,0 +1,75 @@
+Pouvez-vous vérifier si **toutes les sous-sections du module Pilotage citées ci-dessus fonctionnent correctement** ?
+
+Je veux un **audit fonctionnel ciblé**, réalisé **section par section**, afin de confirmer que tout marche réellement comme prévu dans ce bloc précis du module **Pilotage**.
+
+### Sous-sections à tester
+Merci de vérifier précisément les sous-sections suivantes :
+- **Tableau de bord**
+- **Briefing du jour**
+- **Cockpit IA**
+- **Approbations**
+- **Assistant Gaméasù**
+
+### Ce qu’il faut faire
+Merci de :
+
+- tester chaque sous-section une par une
+- vérifier tous les boutons
+- vérifier toutes les actions
+- vérifier les redirections
+- vérifier les formulaires s’il y en a
+- vérifier les interactions
+- vérifier les données affichées
+- vérifier la logique fonctionnelle de chaque sous-section
+- vérifier les liens entre ces sous-sections si elles sont connectées entre elles
+- confirmer que l’expérience est fluide, cohérente et professionnelle
+
+### Points à contrôler
+Je veux notamment que vous vérifiiez :
+
+#### Tableau de bord
+- affichage correct des données
+- mise à jour des KPI
+- fonctionnement des cartes, raccourcis, widgets et filtres
+- navigation vers les modules liés
+
+#### Briefing du jour
+- bonne génération du contenu
+- bonne date affichée
+- cohérence des informations remontées
+- lien éventuel avec les tâches, alertes, approbations ou activités du jour
+
+#### Cockpit IA
+- bon fonctionnement des analyses ou synthèses proposées
+- cohérence des recommandations ou insights
+- affichage correct
+- utilité réelle des données remontées
+
+#### Approbations
+- affichage des demandes à approuver
+- bon fonctionnement des actions d’approbation / rejet
+- cohérence des statuts
+- bonne affectation aux bons utilisateurs ou rôles
+
+#### Assistant Gaméasù
+- bon fonctionnement de l’assistant
+- cohérence des réponses ou suggestions
+- accès aux bonnes informations
+- utilité et fluidité de l’interaction
+
+### Données de test / mock data
+Vous pouvez :
+- utiliser les données déjà présentes
+- ajouter des **mock data réalistes** si nécessaire
+- compléter les données de démonstration pour confirmer les tests
+
+### Résultat attendu
+Je veux que vous :
+1. testiez ces sous-sections une par une
+2. identifiiez les bugs, incohérences ou éléments incomplets
+3. corrigiez ce qui ne fonctionne pas
+4. ajoutiez si nécessaire les données utiles pour valider les parcours
+5. confirmiez que tout fonctionne correctement après test
+
+### Objectif final
+Je veux m’assurer que les sous-sections **Tableau de bord, Briefing du jour, Cockpit IA, Approbations et Assistant Gaméasù** sont réellement opérationnelles, bien finalisées, cohérentes et professionnelles.
