@@ -17,6 +17,7 @@ import { BRANDING } from "@/config/branding";
 import { PlanBadge } from "@/components/PlanBadge";
 import { useCurrentOrganization, useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
 import { KoffiChat } from "@/components/KoffiChat";
+import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -137,6 +138,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
 
   // Collapsible groups — open the active one by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
@@ -404,17 +406,24 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               />
             </span>
 
-            {/* Search bar */}
-            <div className="hidden md:flex items-center text-muted-foreground bg-muted/40 border border-border/60 rounded-lg px-3.5 py-2 w-80 focus-within:bg-white focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
-              <Search className="w-4 h-4 mr-2.5 text-muted-foreground/70 shrink-0" />
-              <input
-                type="text"
-                placeholder="Rechercher clients, projets, factures…"
-                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground/70"
-              />
-              <kbd className="hidden lg:inline-flex ml-2 text-[10px] text-muted-foreground/70 font-mono bg-background border border-border rounded px-1.5 py-0.5">⌘K</kbd>
-            </div>
-            <button type="button" className="md:hidden p-2 rounded-md text-muted-foreground hover:bg-muted ml-auto" aria-label="Rechercher">
+            {/* Global search trigger — desktop */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="hidden md:flex items-center gap-2.5 text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg px-3.5 py-2 w-80 transition-all group"
+            >
+              <Search className="w-4 h-4 text-muted-foreground/70 shrink-0" />
+              <span className="text-sm text-muted-foreground/70 flex-1 text-left">Rechercher clients, projets, factures…</span>
+              <kbd className="hidden lg:inline-flex text-[10px] text-muted-foreground/70 font-mono bg-background border border-border rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
+            </button>
+
+            {/* Global search trigger — mobile */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="md:hidden p-2 rounded-md text-muted-foreground hover:bg-muted ml-auto"
+              aria-label="Rechercher"
+            >
               <Search className="w-5 h-5" />
             </button>
           </div>
@@ -477,6 +486,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* ── Koffi — assistant flottant universel ─────────────────────────────── */}
       <KoffiChat />
+
+      {/* ── Recherche globale ─────────────────────────────────────────────────── */}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 };

@@ -1,0 +1,65 @@
+Pouvez-vous revoir entièrement la **barre de recherche** visible sur la capture et la rendre beaucoup plus **puissante, globale et réellement utile** dans toute l’application ?
+
+### Objectif
+Je veux que cette barre de recherche devienne une **recherche globale** capable de retrouver rapidement n’importe quelle information importante dans l’application.
+
+### Logique attendue
+Lorsqu’un utilisateur saisit un mot-clé, un nom ou une référence dans cette barre, le système doit pouvoir rechercher à travers l’ensemble des modules pertinents.
+
+Par exemple, si l’on tape le nom d’un **client**, la recherche doit permettre de retrouver directement :
+- la fiche client
+- les informations liées à ce client
+- ses devis
+- ses commandes
+- ses factures
+- ses encaissements
+- ses services
+- ses projets
+- ses documents
+- ses communications
+- et tout autre élément pertinent lié à ce client
+
+Cette même logique doit s’appliquer aussi aux autres objets importants de l’application :
+- projets
+- services
+- tâches
+- produits
+- factures
+- commandes
+- fournisseurs
+- collaborateurs
+- documents
+- opérations
+- équipements
+- locations
+- rapports
+- etc.
+
+### Fonctionnement attendu
+Je veux que la barre de recherche :
+- fonctionne comme une **recherche globale transverse**
+- affiche des résultats pertinents et bien organisés
+- permette d’ouvrir directement l’élément recherché
+- recherche par nom, référence, mot-clé ou identifiant métier si pertinent
+- soit rapide, fluide et user-friendly
+- donne une impression de moteur de recherche interne professionnel
+
+### Raccourci clavier
+Merci de faire en sorte que **Ctrl + F** fonctionne également pour ouvrir ou activer cette recherche globale dans l’application.
+
+Si pertinent, prévoir aussi :
+- focus automatique sur la barre
+- ouverture rapide de la recherche via le raccourci
+- comportement cohérent sur desktop
+
+### Résultat attendu
+Je veux une barre de recherche beaucoup plus :
+- intelligente
+- globale
+- rapide
+- pratique
+- bien intégrée
+- professionnelle
+
+### Objectif final
+Je veux qu’un utilisateur puisse retrouver rapidement n’importe quelle donnée importante de l’application depuis une seule barre de recherche, avec une expérience fluide et complète, y compris via **Ctrl + F**.
