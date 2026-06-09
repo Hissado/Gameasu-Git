@@ -214,15 +214,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* ── Workspace card ────────────────────────────────────────── */}
       <div className="px-3 pt-3 pb-1 shrink-0">
-        <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.05] border border-white/[0.07] px-3 py-2.5 hover:bg-white/[0.07] transition-colors cursor-default">
-          <div className="w-7 h-7 rounded-md bg-[#C8A24B]/20 border border-[#C8A24B]/30 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-black text-[#C8A24B]">{(org?.name || "?")[0].toUpperCase()}</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-white/90 truncate leading-none">{org?.name ?? "…"}</p>
-            <p className="text-[9.5px] text-white/35 mt-0.5 uppercase tracking-wider">Espace de travail</p>
-          </div>
-          {subData && <PlanBadge code={subData.plan.code} name={subData.plan.name} compact light />}
+        <div className="px-3 py-2">
+          <p className="text-[13px] font-bold text-white/90 truncate leading-none">{org?.name ?? "…"}</p>
         </div>
       </div>
 
