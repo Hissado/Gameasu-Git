@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 import { Link, useLocation } from "wouter";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -139,6 +141,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
+
+  // Unread notifications count — polled every 60 s + invalidated by socket events
+  const { data: unreadData } = useQuery({
+    queryKey: ["/api/notifications", "unread-count"],
+    queryFn: () => apiFetch<{ total: number }>("/api/notifications?unreadOnly=true&page=1&limit=1"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    enabled: !!user,
+  });
+  const unreadCount = unreadData?.total ?? 0;
 
   // Collapsible groups — open the active one by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
@@ -435,7 +447,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
               <Bell className="w-5 h-5" strokeWidth={1.75} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary rounded-full border-2 border-card flex items-center justify-center">
+                  <span className="text-[9px] font-bold text-white leading-none px-0.5">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                </span>
+              )}
             </Link>
 
             <div className="w-px h-6 bg-border/70 hidden sm:block mx-1" />

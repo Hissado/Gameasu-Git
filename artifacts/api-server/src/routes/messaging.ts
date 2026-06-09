@@ -819,6 +819,15 @@ router.get("/notifications", async (req, res) => {
   });
 });
 
+// ⚠ Route statique AVANT la route paramétrique pour éviter que Express
+//   capture "read-all" comme valeur de :id.
+router.put("/notifications/read-all", async (req, res) => {
+  const userId = req.authUser!.id;
+  await db.update(notificationsTable).set({ isRead: "true" })
+    .where(eq(notificationsTable.userId, userId));
+  return res.json({ success: true });
+});
+
 router.put("/notifications/:id/read", async (req, res) => {
   const userId = req.authUser!.id;
   const [notif] = await db.update(notificationsTable)
@@ -826,13 +835,6 @@ router.put("/notifications/:id/read", async (req, res) => {
     .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId))).returning();
   if (!notif) return res.status(404).json({ error: "Introuvable" });
   return res.json({ ...notif, isRead: true });
-});
-
-router.put("/notifications/read-all", async (req, res) => {
-  const userId = req.authUser!.id;
-  await db.update(notificationsTable).set({ isRead: "true" })
-    .where(eq(notificationsTable.userId, userId));
-  return res.json({ success: true });
 });
 
 export default router;

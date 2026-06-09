@@ -304,7 +304,7 @@ router.get("/search", async (req, res, next) => {
       total: groups.reduce((s, g) => s + g.results.length, 0),
       groups,
     });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 export default router;

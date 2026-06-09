@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useListNotifications, useMarkAllNotificationsRead } from "@workspace/api-client-react";
+import { useListNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -224,6 +224,7 @@ const FILTER_OPTIONS = [
 export default function NotificationsList() {
   const { data, isLoading, refetch } = useListNotifications();
   const markAllRead = useMarkAllNotificationsRead();
+  const markOneRead = useMarkNotificationRead();
   const { toast } = useToast();
   const [filter, setFilter] = useState("all");
 
@@ -237,8 +238,9 @@ export default function NotificationsList() {
   };
 
   const handleMarkRead = (id: string) => {
-    // Optimistic: handled by refetch or dedicated mutation
-    refetch();
+    markOneRead.mutate({ id }, {
+      onSuccess: () => refetch(),
+    });
   };
 
   const allNotifications = data?.data || [];
