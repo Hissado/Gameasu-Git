@@ -11,7 +11,7 @@ import {
   db, clientsTable, projectsTable, tasksTable, invoicesTable,
   collaboratorsTable, riskFlagsTable, recommendationsTable, insightsTable,
   equipmentTable, ordersTable, proformasTable, documentsTable,
-  conversationsTable,
+  conversationsTable, paymentsTable,
 } from "@workspace/db";
 import { and, eq, isNull, sql, desc, inArray, ilike } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -47,15 +47,15 @@ function detectIntent(q: string): Intent {
   // Intelligence & risques
   if (/(risque|insight|recommandation|alerte|intelligence|cockpit|anomalie|signal)/.test(s)) return "intelligence";
   // KPI globaux
-  if (/(kpi|tableau\s+de\s+bord|vue\s+d'ensemble|globale|santé|activité|résumé|bilan|statistique|chiffre)/.test(s)) return "kpi_overview";
+  if (/(kpi|tableau\s+de\s+bord|vue\s+d'ensemble|globale|santé|activité|résumé|statistique)/.test(s)) return "kpi_overview";
   // Commercial & clients
   if (/(client|prospect|crm|pipeline|opportunité|lead|contact|partenaire)/.test(s)) return "clients";
   // Projets & opérations
   if (/(projet|chantier|phase|planning|gantt|portefeuille|workload|charge|mission|service)/.test(s)) return "projects";
   // Tâches
   if (/(tâche|task|backlog|urgence|priorité|sous.tâche|mention)/.test(s)) return "tasks";
-  // Finance
-  if (/(facture|paiement|trésorerie|cash|finance|recouvrement|impayé|encours|avoir|devis|proforma|commande|budget|comptabilité|bilan|résultat|fiscal|taxe|fpa|prévision)/.test(s)) return "finance";
+  // Finance — intentionnellement avant kpi_overview pour capturer "chiffre d'affaires", "CA", "revenu"
+  if (/(facture|paiement|trésorerie|cash|finance|recouvrement|impayé|encours|avoir|devis|proforma|commande|budget|comptabilité|bilan|résultat|fiscal|taxe|fpa|prévision|chiffre\s+d'affaires|chiffre.d.affaires|revenu|recette|ca\s+(?:du|de|mensuel|annuel)|encaissement|marge|bénéfice)/.test(s)) return "finance";
   // Équipements & stock
   if (/(équipement|matériel|machine|parc|stock|inventaire|produit|location|inspection|locat)/.test(s)) return "equipment";
   // RH & équipe
@@ -197,7 +197,10 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
         .from(clientsTable).where(and(...conds)).orderBy(desc(clientsTable.createdAt)).limit(6);
       if (rows.length) {
         lines.push("Derniers clients : " + rows.map((r) => `${r.name} (${r.status || "actif"})`).join(", ") + ".");
-        rows.slice(0, 3).forEach((r) => citations.push({ label: r.name, url: `/clients/${r.id}` }));
+        // Citations individuelles uniquement pour l'intent "clients" pour éviter les noms de données de test
+        if (intent === "clients") {
+          rows.slice(0, 3).forEach((r) => citations.push({ label: r.name, url: `/clients/${r.id}` }));
+        }
         citations.push({ label: "Tous les clients", url: "/clients" });
       }
     } catch { /* ignore */ }
@@ -233,6 +236,7 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
   // ── Finance ───────────────────────────────────────────────────────────────────
   if (intent === "finance" && await hasPermission(userId, "accounting.read")) {
     try {
+      // Factures en retard
       const overdueConds = [
         sql`${invoicesTable.status} not in ('draft','paid','cancelled')`,
         sql`${invoicesTable.dueDate} is not null`,
@@ -244,12 +248,36 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
       }).from(invoicesTable).where(and(...overdueConds)).limit(5);
       const totalOverdue = overdue.reduce((s, r) => s + (Number(r.total) - Number(r.paid ?? 0)), 0);
 
+      // CA du mois en cours : somme des paiements reçus ce mois-ci
+      const [caThisMonth] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
+        .from(paymentsTable)
+        .where(sql`date_trunc('month', paid_at) = date_trunc('month', now())`);
+
+      // CA du mois précédent
+      const [caLastMonth] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
+        .from(paymentsTable)
+        .where(sql`date_trunc('month', paid_at) = date_trunc('month', now() - interval '1 month')`);
+
+      // CA YTD (année en cours)
+      const [caYtd] = await db.select({ total: sql<number>`coalesce(sum(amount),0)::bigint` })
+        .from(paymentsTable)
+        .where(sql`date_part('year', paid_at) = date_part('year', now())`);
+
+      const fmtFCFA = (n: number) => Math.round(n).toLocaleString("fr-FR") + " FCFA";
+
       const [draftCount] = await db.select({ c: sql<number>`count(*)::int` }).from(proformasTable).where(eq(proformasTable.status, "draft"));
       const [orderCount] = await db.select({ c: sql<number>`count(*)::int` }).from(ordersTable).where(isNull(ordersTable.deletedAt));
 
-      lines.push(`Finance : ${overdue.length} facture(s) en retard, encours ${Math.round(totalOverdue).toLocaleString("fr-FR")} FCFA. ${draftCount?.c ?? 0} devis en brouillon. ${orderCount?.c ?? 0} commandes.`);
+      lines.push(
+        `Finance : ` +
+        `CA mois en cours = ${fmtFCFA(Number(caThisMonth?.total ?? 0))}. ` +
+        `CA mois précédent = ${fmtFCFA(Number(caLastMonth?.total ?? 0))}. ` +
+        `CA YTD = ${fmtFCFA(Number(caYtd?.total ?? 0))}. ` +
+        `${overdue.length} facture(s) en retard (encours impayé : ${fmtFCFA(totalOverdue)}). ` +
+        `${draftCount?.c ?? 0} devis en brouillon. ${orderCount?.c ?? 0} commandes.`
+      );
       citations.push({ label: "Factures", url: "/invoices" });
-      citations.push({ label: "Devis", url: "/proformas" });
+      citations.push({ label: "Encaissements", url: "/payments" });
       citations.push({ label: "Planification financière", url: "/fpa" });
     } catch { /* ignore */ }
   }
@@ -357,8 +385,8 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
     } catch { /* ignore */ }
   }
 
-  // ── Risques transversaux ──────────────────────────────────────────────────────
-  if (intent !== "help" && intent !== "navigation" && intent !== "intelligence" && orgId && await hasPermission(userId, "ai.view_risk_flags")) {
+  // ── Risques transversaux (exclus : intelligence traite déjà tous les risques) ─
+  if (intent !== "intelligence" && orgId && await hasPermission(userId, "ai.view_risk_flags")) {
     try {
       const risks = await db.select({ severity: riskFlagsTable.severity, title: riskFlagsTable.title })
         .from(riskFlagsTable).where(and(
@@ -438,7 +466,7 @@ INSTRUCTIONS :
       citations,
       provider,
     });
-  } catch (e) { next(e); }
+  } catch (e) { return next(e); }
 });
 
 export default router;
