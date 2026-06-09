@@ -102,6 +102,38 @@ router.get("/auth/me", async (req, res) => {
   }
 });
 
+/** PATCH /api/auth/me — mise à jour des informations de base de l'utilisateur connecté. */
+router.patch("/auth/me", async (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const decoded = Buffer.from(auth.replace("Bearer ", ""), "base64").toString();
+    const [userId] = decoded.split(":");
+    const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!users[0]) return res.status(401).json({ error: "Unauthorized" });
+    const { phone, avatarUrl } = req.body || {};
+    const patch: Record<string, string | null> = {};
+    if (phone !== undefined) patch.phone = phone || null;
+    if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl || null;
+    if (Object.keys(patch).length > 0) {
+      await db.update(usersTable).set(patch).where(eq(usersTable.id, userId));
+    }
+    const updated = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    const u = updated[0];
+    return res.json({
+      id: u.id,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      role: u.role,
+      avatarUrl: u.avatarUrl,
+      phone: u.phone ?? null,
+    });
+  } catch {
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // ──────────────────────────────────────────────────────────────────
 // Onboarding : invitation, change-password forcé, mot de passe oublié
 // ──────────────────────────────────────────────────────────────────

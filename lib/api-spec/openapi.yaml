@@ -102,6 +102,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateMe
+      tags: [auth]
+      summary: Update current user basic profile (phone, avatarUrl)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  nullable: true
+                avatarUrl:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
 
   # ── USERS ─────────────────────────────────────────────────────────────────
   /users:

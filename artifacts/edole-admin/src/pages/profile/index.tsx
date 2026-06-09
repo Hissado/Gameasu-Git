@@ -10,8 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Camera, Save, Loader2, User, Phone, MapPin, AlertCircle, ShieldCheck, Briefcase } from "lucide-react";
-import { formatDate, formatFCFA } from "@/lib/format";
+import { Separator } from "@/components/ui/separator";
+import {
+  Camera, Save, Loader2, User, Phone, MapPin, AlertCircle,
+  ShieldCheck, Briefcase, Mail, Building2, CalendarDays,
+  Hash, UserCheck, Info,
+} from "lucide-react";
+import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 
 type Collaborator = {
@@ -27,16 +32,29 @@ type Collaborator = {
   employmentStatus?: string;
   address?: string;
   emergencyContact?: { name?: string; phone?: string; relation?: string } | null;
-  baseSalary?: string;
   employeeNumber?: string;
-  nationalId?: string;
 };
 
-const EMPLOYMENT_LABELS: Record<string, string> = {
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super Administrateur",
+  admin: "Administrateur",
+  manager: "Manager",
+  commercial: "Commercial",
+  collaborator: "Collaborateur",
+};
+
+const STATUS_LABELS: Record<string, string> = {
   active: "Actif",
   on_leave: "En congé",
   terminated: "Contrat terminé",
   retired: "Retraité",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-emerald-100 text-emerald-700",
+  on_leave: "bg-amber-100 text-amber-700",
+  terminated: "bg-red-100 text-red-700",
+  retired: "bg-gray-100 text-gray-600",
 };
 
 export default function MyProfile() {
@@ -44,49 +62,74 @@ export default function MyProfile() {
   const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: collab, isLoading, error } = useQuery<Collaborator>({
-    queryKey: ["hr-me-profile"],
-    queryFn: () => apiFetch("/api/hr/me/profile"),
-  });
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl ?? null);
+  const [accountDirty, setAccountDirty] = useState(false);
 
-  const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [ecName, setEcName] = useState("");
   const [ecPhone, setEcPhone] = useState("");
   const [ecRelation, setEcRelation] = useState("");
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [collabInitialized, setCollabInitialized] = useState(false);
 
   React.useEffect(() => {
-    if (collab && !initialized) {
-      setPhone(collab.phone || "");
+    if (!accountDirty) {
+      setPhone(user?.phone ?? "");
+      setAvatarPreview(user?.avatarUrl ?? null);
+    }
+  }, [user?.phone, user?.avatarUrl]);
+
+  const { data: collab, isLoading: collabLoading } = useQuery<Collaborator>({
+    queryKey: ["hr-me-profile"],
+    queryFn: () => apiFetch("/api/hr/me/profile"),
+    retry: false,
+  });
+
+  React.useEffect(() => {
+    if (collab && !collabInitialized) {
       setAddress(collab.address || "");
       setEcName(collab.emergencyContact?.name || "");
       setEcPhone(collab.emergencyContact?.phone || "");
       setEcRelation(collab.emergencyContact?.relation || "");
-      setAvatarPreview(collab.avatarUrl || null);
-      setInitialized(true);
+      setCollabInitialized(true);
     }
-  }, [collab, initialized]);
+  }, [collab, collabInitialized]);
 
-  const mutation = useMutation({
+  const accountMutation = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: phone || null,
+          avatarUrl: avatarPreview || null,
+        }),
+      }),
+    onSuccess: () => {
+      toast.success("Informations de compte mises à jour");
+      queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+      setAccountDirty(false);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Erreur lors de la mise à jour");
+    },
+  });
+
+  const collabMutation = useMutation({
     mutationFn: () =>
       apiFetch("/api/hr/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phone || null,
           address: address || null,
           emergencyContact: (ecName || ecPhone || ecRelation)
             ? { name: ecName, phone: ecPhone, relation: ecRelation }
             : null,
-          avatarUrl: avatarPreview || null,
         }),
       }),
     onSuccess: () => {
-      toast.success("Profil mis à jour avec succès");
+      toast.success("Profil collaborateur mis à jour");
       queryClient.invalidateQueries({ queryKey: ["hr-me-profile"] });
-      queryClient.invalidateQueries({ queryKey: ["auth-me"] });
     },
     onError: (err: any) => {
       toast.error(err?.message || "Erreur lors de la mise à jour");
@@ -101,62 +144,40 @@ export default function MyProfile() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.onload = (ev) => {
+      setAvatarPreview(ev.target?.result as string);
+      setAccountDirty(true);
+    };
     reader.readAsDataURL(file);
   };
 
   const initials = ((user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")).toUpperCase() || "?";
-
-  if (isLoading) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40" />
-        <Skeleton className="h-64" />
-      </div>
-    );
-  }
-
-  if (error || !collab) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Aucun profil collaborateur lié</h2>
-            <p className="text-sm text-muted-foreground">
-              Votre compte utilisateur n'est pas encore associé à un profil collaborateur.
-              Contactez votre administrateur RH pour lier votre compte.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Utilisateur";
+  const roleLabel = ROLE_LABELS[user?.role ?? ""] || user?.role || "—";
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Mon Profil</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Mon profil</h1>
         <p className="text-sm text-muted-foreground mt-1">Gérez vos informations personnelles et de contact.</p>
       </div>
 
-      {/* Carte identité (lecture seule) */}
+      {/* ── Carte compte utilisateur ── */}
       <Card className="border-border shadow-sm">
         <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
-            Informations de compte
+            Mon compte
           </CardTitle>
-          <CardDescription>Ces informations sont gérées par l'administration RH.</CardDescription>
+          <CardDescription>Photo, téléphone et informations d'identification.</CardDescription>
         </CardHeader>
-        <CardContent className="pt-5">
+        <CardContent className="pt-5 space-y-5">
           {/* Avatar + Identité */}
-          <div className="flex items-center gap-5 mb-6">
-            <div className="relative">
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
               <Avatar className="w-20 h-20 ring-2 ring-border">
-                {avatarPreview ? <AvatarImage src={avatarPreview} /> : null}
-                <AvatarFallback className="text-2xl bg-primary text-primary-foreground font-bold">{initials}</AvatarFallback>
+                {avatarPreview && <AvatarImage src={avatarPreview} />}
+                <AvatarFallback className="text-2xl bg-[#0F1A3A] text-[#C8A24B] font-bold">{initials}</AvatarFallback>
               </Avatar>
               <button
                 type="button"
@@ -166,83 +187,150 @@ export default function MyProfile() {
               >
                 <Camera className="w-3.5 h-3.5" />
               </button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{collab.firstName} {collab.lastName}</h2>
-              <p className="text-sm text-primary font-medium mt-0.5">{collab.position || "Poste non défini"}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{collab.department || "Département non défini"}</p>
-              <div className="flex items-center gap-2 mt-2">
-                {collab.employmentStatus && (
-                  <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">
-                    {EMPLOYMENT_LABELS[collab.employmentStatus] || collab.employmentStatus}
-                  </Badge>
-                )}
-                {collab.employeeNumber && (
-                  <Badge variant="outline" className="font-mono text-xs">Matricule {collab.employeeNumber}</Badge>
-                )}
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-foreground leading-tight">{fullName}</h2>
+              <Badge variant="outline" className="mt-1.5 text-xs font-medium">{roleLabel}</Badge>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Mail className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{user?.email}</span>
+                </div>
               </div>
             </div>
           </div>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarFile}
-          />
-          {avatarPreview && avatarPreview !== collab.avatarUrl && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800 text-xs">
+
+          {avatarPreview && avatarPreview !== (user?.avatarUrl ?? null) && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              Nouvelle photo sélectionnée — cliquez sur "Enregistrer" pour l'appliquer.
+              Nouvelle photo sélectionnée — enregistrez pour l'appliquer.
             </div>
           )}
 
-          {/* Infos RH (lecture seule) */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Briefcase className="w-3 h-3" /> Email
-              </p>
-              <p className="font-medium">{collab.email || "—"}</p>
-            </div>
-            {collab.hireDate && (
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Date d'embauche</p>
-                <p className="font-medium">{formatDate(collab.hireDate)}</p>
-              </div>
-            )}
+          <Separator />
+
+          {/* Champ téléphone */}
+          <div className="space-y-1.5">
+            <Label htmlFor="user-phone" className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+              Téléphone
+            </Label>
+            <Input
+              id="user-phone"
+              value={phone}
+              onChange={e => { setPhone(e.target.value); setAccountDirty(true); }}
+              placeholder="+228 90 00 00 00"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={() => accountMutation.mutate()}
+              disabled={accountMutation.isPending || (!accountDirty && avatarPreview === (user?.avatarUrl ?? null))}
+              size="sm"
+            >
+              {accountMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Enregistrer
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Formulaire auto-modification */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="w-4 h-4 text-primary" />
-            Mes informations modifiables
-          </CardTitle>
-          <CardDescription>Mettez à jour vos coordonnées et votre contact d'urgence.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-5 space-y-5">
-          {/* Coordonnées */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              Coordonnées
-            </h3>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Téléphone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="+228 90 00 00 00"
-                />
+      {/* ── Profil collaborateur ── */}
+      {collabLoading ? (
+        <Card className="border-border shadow-sm">
+          <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-64 mt-1" />
+          </CardHeader>
+          <CardContent className="pt-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+            </div>
+          </CardContent>
+        </Card>
+      ) : collab ? (
+        <>
+          {/* Infos RH (lecture seule) */}
+          <Card className="border-border shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-primary" />
+                Profil collaborateur
+              </CardTitle>
+              <CardDescription>Informations gérées par le département RH.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                {collab.position && (
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3" /> Poste
+                    </p>
+                    <p className="font-medium">{collab.position}</p>
+                  </div>
+                )}
+                {collab.department && (
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Building2 className="w-3 h-3" /> Département
+                    </p>
+                    <p className="font-medium">{collab.department}</p>
+                  </div>
+                )}
+                {collab.hireDate && (
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <CalendarDays className="w-3 h-3" /> Date d'embauche
+                    </p>
+                    <p className="font-medium">{formatDate(collab.hireDate)}</p>
+                  </div>
+                )}
+                {collab.employeeNumber && (
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Hash className="w-3 h-3" /> Matricule
+                    </p>
+                    <p className="font-mono font-medium">{collab.employeeNumber}</p>
+                  </div>
+                )}
+                {collab.employmentStatus && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Statut</p>
+                    <Badge
+                      className={`border-0 text-xs ${STATUS_COLORS[collab.employmentStatus] ?? "bg-muted text-muted-foreground"}`}
+                    >
+                      {STATUS_LABELS[collab.employmentStatus] || collab.employmentStatus}
+                    </Badge>
+                  </div>
+                )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Formulaire auto-modification collaborateur */}
+          <Card className="border-border shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Mes informations modifiables
+              </CardTitle>
+              <CardDescription>Adresse et contact d'urgence — modifiables par vous-même.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5 space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="address">Adresse</Label>
+                <Label htmlFor="address" className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  Adresse
+                </Label>
                 <Textarea
                   id="address"
                   value={address}
@@ -251,60 +339,68 @@ export default function MyProfile() {
                   rows={2}
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Contact d'urgence */}
-          <div className="border-t border-border/50 pt-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-muted-foreground" />
-              Contact d'urgence
-            </h3>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="ecName">Nom complet</Label>
-                <Input
-                  id="ecName"
-                  value={ecName}
-                  onChange={e => setEcName(e.target.value)}
-                  placeholder="ex : Fatou Diallo"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ecPhone">Téléphone</Label>
-                  <Input
-                    id="ecPhone"
-                    value={ecPhone}
-                    onChange={e => setEcPhone(e.target.value)}
-                    placeholder="+228 91 00 00 00"
-                  />
+              <div className="border-t border-border/50 pt-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                  Contact d'urgence
+                </h3>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ecName">Nom complet</Label>
+                    <Input
+                      id="ecName"
+                      value={ecName}
+                      onChange={e => setEcName(e.target.value)}
+                      placeholder="ex : Fatou Diallo"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ecPhone">Téléphone</Label>
+                      <Input
+                        id="ecPhone"
+                        value={ecPhone}
+                        onChange={e => setEcPhone(e.target.value)}
+                        placeholder="+228 91 00 00 00"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ecRelation">Lien de parenté</Label>
+                      <Input
+                        id="ecRelation"
+                        value={ecRelation}
+                        onChange={e => setEcRelation(e.target.value)}
+                        placeholder="ex : Épouse, Père…"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ecRelation">Lien de parenté</Label>
-                  <Input
-                    id="ecRelation"
-                    value={ecRelation}
-                    onChange={e => setEcRelation(e.target.value)}
-                    placeholder="ex : Épouse, Père…"
-                  />
-                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-              {mutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Enregistrer les modifications
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex justify-end pt-1">
+                <Button onClick={() => collabMutation.mutate()} disabled={collabMutation.isPending} size="sm">
+                  {collabMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Enregistrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        /* Pas de collaborateur lié → note discrète, sans bloquer */
+        <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          <Info className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground/70" />
+          <p>
+            Ce compte n'est pas encore associé à un profil collaborateur RH.
+            Les champs RH (poste, département, contact d'urgence…) seront disponibles une fois le lien établi par l'administration.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
