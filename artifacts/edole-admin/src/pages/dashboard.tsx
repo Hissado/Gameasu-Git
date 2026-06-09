@@ -55,6 +55,7 @@ import { MoneyAmount } from "@/components/ui/money-amount";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { IntelligenceWidget } from "@/components/IntelligenceWidget";
+import { QuickClockWidget } from "@/components/QuickClockWidget";
 
 // ───────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -324,6 +325,9 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* ─── Pointage rapide ─── */}
+      <QuickClockWidget />
 
       {/* ─── Copilote exécutif Gaméasù ─── */}
       <IntelligenceWidget />
