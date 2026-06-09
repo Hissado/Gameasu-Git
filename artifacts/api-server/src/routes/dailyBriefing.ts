@@ -20,6 +20,33 @@ const router: IRouter = Router();
 
 function fmtFCFA(n: number): string { return Math.round(n).toLocaleString("fr-FR") + " FCFA"; }
 
+// ── Cache en mémoire par (userId + date) ─────────────────────────────────────
+// Le briefing est un résumé journalier : inutile de rappeler OpenAI à chaque visite.
+// TTL : jusqu'à minuit (max 60 min pour éviter une accumulation mémoire indéfinie).
+type BriefingCache = { data: unknown; expiresAt: number };
+const briefingCache = new Map<string, BriefingCache>();
+
+function getCachedBriefing(userId: string, date: string): unknown | null {
+  const key = `${userId}:${date}`;
+  const entry = briefingCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { briefingCache.delete(key); return null; }
+  return entry.data;
+}
+
+function setCachedBriefing(userId: string, date: string, data: unknown): void {
+  const key = `${userId}:${date}`;
+  // TTL = min(temps jusqu'à minuit, 60 minutes)
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+  const expiresAt = Math.min(midnight, Date.now() + 60 * 60 * 1000);
+  briefingCache.set(key, { data, expiresAt });
+  // Nettoyage des entrées expirées (garde la map bornée)
+  if (briefingCache.size > 500) {
+    for (const [k, v] of briefingCache) { if (Date.now() > v.expiresAt) briefingCache.delete(k); }
+  }
+}
+
 router.get("/briefing/today", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
@@ -27,6 +54,10 @@ router.get("/briefing/today", async (req, res, next) => {
     // Utilise la date locale du serveur (pas UTC) pour éviter le décalage de fuseau horaire
     const pad = (n: number) => String(n).padStart(2, "0");
     const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // ── Cache hit → réponse instantanée ─────────────────────
+    const cached = getCachedBriefing(userId, today);
+    if (cached) return res.json(cached);
 
     const [clientIds, projectIds, orgId] = await Promise.all([
       userAccessibleClientIds(userId),
@@ -138,7 +169,7 @@ router.get("/briefing/today", async (req, res, next) => {
       narrative = ctxLines.join(" ");
     }
 
-    return res.json({
+    const payload = {
       date: today,
       narrative,
       provider,
@@ -157,7 +188,12 @@ router.get("/briefing/today", async (req, res, next) => {
       risks,
       recommendations: recos,
       insights,
-    });
+    };
+
+    // ── Mise en cache jusqu'à minuit (ou 60 min max) ─────────
+    setCachedBriefing(userId, today, payload);
+
+    return res.json(payload);
   } catch (e) { next(e); }
 });
 
