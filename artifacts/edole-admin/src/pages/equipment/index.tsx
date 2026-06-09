@@ -1,27 +1,205 @@
-import React from "react";
-import { useListEquipment, useGetEquipmentAvailability } from "@workspace/api-client-react";
+import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useListEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment,
+  useGetEquipmentAvailability, useListEquipmentCategories,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, Wrench, Settings, Truck, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Search, Wrench, Settings, Truck, AlertTriangle, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA } from "@/lib/format";
+import { Link } from "wouter";
+import { toast } from "sonner";
+
+// ── Status helpers ─────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "available":   return <Badge className="bg-green-100 text-green-800 border-green-200">Disponible</Badge>;
+    case "rented":      return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En location</Badge>;
+    case "maintenance": return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">En maintenance</Badge>;
+    case "retired":     return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300">Hors service</Badge>;
+    default:            return <Badge variant="outline">Inconnu</Badge>;
+  }
+}
+
+// ── Equipment Form Dialog ──────────────────────────────────────────────────────
+
+const EMPTY = { name: "", code: "", categoryId: "", status: "available", quantity: "1", dailyRate: "", location: "", description: "" };
+
+function EquipmentFormDialog({ open, onClose, item }: { open: boolean; onClose: () => void; item?: any }) {
+  const isEdit = !!item;
+  const qc = useQueryClient();
+  const { data: catsData } = useListEquipmentCategories();
+  const [form, setForm] = useState(EMPTY);
+
+  React.useEffect(() => {
+    if (open) setForm(isEdit ? {
+      name: item.name || "",
+      code: item.code || "",
+      categoryId: item.categoryId || "",
+      status: item.status || "available",
+      quantity: String(item.quantity ?? 1),
+      dailyRate: item.dailyRate != null ? String(item.dailyRate) : "",
+      location: item.location || "",
+      description: item.description || "",
+    } : EMPTY);
+  }, [open, item, isEdit]);
+
+  const createMut = useCreateEquipment({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); qc.invalidateQueries({ queryKey: ["getEquipmentAvailability"] }); toast.success("Équipement ajouté"); onClose(); },
+    onError: () => toast.error("Erreur lors de la création"),
+  }});
+  const updateMut = useUpdateEquipment({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); toast.success("Équipement mis à jour"); onClose(); },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
+  }});
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const payload: any = {
+      name: form.name.trim(),
+      status: form.status,
+      quantity: parseInt(form.quantity) || 1,
+      ...(form.code && { code: form.code }),
+      ...(form.categoryId && { categoryId: form.categoryId }),
+      ...(form.dailyRate && { dailyRate: parseFloat(form.dailyRate) }),
+      ...(form.location && { location: form.location }),
+      ...(form.description && { description: form.description }),
+    };
+    if (isEdit) updateMut.mutate({ id: item.id, data: payload });
+    else createMut.mutate({ data: payload });
+  }
+
+  const cats = (catsData as any)?.data || [];
+  const isPending = createMut.isPending || updateMut.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Modifier l'équipement" : "Ajouter un équipement"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label>Désignation *</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex. Grue à flèche 60T" required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Code / Référence</Label>
+              <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="Ex. GRU-001" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Statut *</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Disponible</SelectItem>
+                  <SelectItem value="rented">En location</SelectItem>
+                  <SelectItem value="maintenance">En maintenance</SelectItem>
+                  <SelectItem value="retired">Hors service</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Catégorie</Label>
+              <Select value={form.categoryId || "_none"} onValueChange={v => setForm(f => ({ ...f, categoryId: v === "_none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Aucune —</SelectItem>
+                  {cats.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quantité *</Label>
+              <Input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} required />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Taux journalier (FCFA)</Label>
+              <Input type="number" value={form.dailyRate} onChange={e => setForm(f => ({ ...f, dailyRate: e.target.value }))} placeholder="Ex. 150000" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Emplacement / Site</Label>
+              <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Ex. Dépôt Lomé" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Spécifications techniques, état général…" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={!form.name.trim() || isPending}>
+              {isPending ? "Enregistrement…" : isEdit ? "Mettre à jour" : "Ajouter l'équipement"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteEquipmentDialog({ item, onClose }: { item: any; onClose: () => void }) {
+  const qc = useQueryClient();
+  const deleteMut = useDeleteEquipment({ mutation: {
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); qc.invalidateQueries({ queryKey: ["getEquipmentAvailability"] }); toast.success("Équipement supprimé"); onClose(); },
+    onError: () => toast.error("Erreur lors de la suppression"),
+  }});
+  return (
+    <Dialog open={!!item} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">Supprimer l'équipement ?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          L'équipement <span className="font-semibold text-foreground">"{item?.name}"</span> sera définitivement retiré de l'inventaire.
+        </p>
+        <DialogFooter className="gap-2 mt-2">
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button variant="destructive" disabled={deleteMut.isPending} onClick={() => deleteMut.mutate({ id: item.id })}>
+            {deleteMut.isPending ? "Suppression…" : "Supprimer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function EquipmentList() {
   const { data: availability, isLoading: isLoadingAvail } = useGetEquipmentAvailability();
   const { data: equipment, isLoading } = useListEquipment();
+  const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [deleteItem, setDeleteItem] = useState<any>(null);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "available": return <Badge className="bg-green-100 text-green-800 border-green-200">Disponible</Badge>;
-      case "rented": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En location</Badge>;
-      case "maintenance": return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">En maintenance</Badge>;
-      case "retired": return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300">Hors service</Badge>;
-      default: return <Badge variant="outline">Inconnu</Badge>;
-    }
-  };
+  const items = useMemo(() => {
+    const all = equipment?.data || [];
+    if (!search.trim()) return all;
+    const q = search.toLowerCase();
+    return all.filter((e: any) =>
+      e.name?.toLowerCase().includes(q) ||
+      e.code?.toLowerCase().includes(q) ||
+      e.categoryName?.toLowerCase().includes(q)
+    );
+  }, [equipment, search]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -30,65 +208,33 @@ export default function EquipmentList() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Inventaire Matériel</h1>
           <p className="text-sm text-muted-foreground mt-1">Flotte d'équipements et machines</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+        <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
           Ajouter du Matériel
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-l-4 border-l-slate-400">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Parc Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-slate-800">{availability?.totalItems || 0}</div>
-                <Wrench className="w-5 h-5 text-slate-400" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Disponibles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-green-600">{availability?.available || 0}</div>
-                <div className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">Prêts</div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-l-4 border-l-blue-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sur Projets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-blue-600">{availability?.rented || 0}</div>
-                <Truck className="w-5 h-5 text-blue-400" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">En Maintenance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-yellow-600">{availability?.maintenance || 0}</div>
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {[
+          { label: "Parc Total",     value: availability?.totalItems || 0, color: "border-l-slate-400",  icon: <Wrench className="w-5 h-5 text-slate-400" />,    cls: "text-slate-800" },
+          { label: "Disponibles",    value: availability?.available || 0,  color: "border-l-green-500",  icon: null,                                               cls: "text-green-600" },
+          { label: "Sur Projets",    value: availability?.rented || 0,     color: "border-l-blue-500",   icon: <Truck className="w-5 h-5 text-blue-400" />,      cls: "text-blue-600" },
+          { label: "En Maintenance", value: availability?.maintenance || 0, color: "border-l-yellow-500", icon: <AlertTriangle className="w-5 h-5 text-yellow-500" />, cls: "text-yellow-600" },
+        ].map(kpi => (
+          <Card key={kpi.label} className={`shadow-sm border-l-4 ${kpi.color}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{kpi.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAvail ? <Skeleton className="h-8 w-16" /> : (
+                <div className="flex items-center justify-between">
+                  <div className={`text-2xl font-bold ${kpi.cls}`}>{kpi.value}</div>
+                  {kpi.icon}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card className="shadow-sm border-border">
@@ -98,12 +244,20 @@ export default function EquipmentList() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Référence, nom..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
+                <Input
+                  type="search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Référence, nom, catégorie…"
+                  className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                />
               </div>
-              <Button variant="outline" size="sm" className="h-9">
-                <Settings className="w-4 h-4 mr-2" />
-                Catégories
-              </Button>
+              <Link href="/equipment/categories">
+                <Button variant="outline" size="sm" className="h-9">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Catégories
+                </Button>
+              </Link>
             </div>
           </div>
         </CardHeader>
@@ -120,29 +274,50 @@ export default function EquipmentList() {
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center">Qté</TableHead>
                   <TableHead className="hidden sm:table-cell text-right font-semibold text-slate-600">Taux Journalier</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {!equipment?.data || equipment.data.length === 0 ? (
+                {items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      Aucun équipement dans l'inventaire.
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <Wrench className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
+                      <p className="text-lg font-medium text-slate-600">{search ? "Aucun résultat" : "Aucun équipement dans l'inventaire."}</p>
+                      {!search && <Button variant="outline" className="mt-4 border-primary text-primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Ajouter un équipement</Button>}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  equipment.data.map((item) => (
+                  items.map((item: any) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono text-xs font-bold text-slate-500 bg-slate-100/50">{item.code || "—"}</TableCell>
                       <TableCell className="font-bold text-slate-800">{item.name}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">{item.categoryName || "—"}</TableCell>
-                      <TableCell>{getStatusBadge(item.status)}</TableCell>
+                      <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="text-center font-bold">
-                        <span className={item.availableQuantity === 0 ? "text-red-500" : "text-green-600"}>{item.availableQuantity}</span> 
-                        <span className="text-slate-400 font-normal mx-1">/</span> 
+                        <span className={item.availableQuantity === 0 ? "text-red-500" : "text-green-600"}>{item.availableQuantity}</span>
+                        <span className="text-slate-400 font-normal mx-1">/</span>
                         {item.quantity}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-right font-bold text-slate-700">
-                        {formatFCFA(item.dailyRate)}
+                        {item.dailyRate ? formatFCFA(item.dailyRate) : <span className="text-slate-400 italic text-xs">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <Link href={`/equipment/${item.id}`}>
+                              <DropdownMenuItem className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> Détail</DropdownMenuItem>
+                            </Link>
+                            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditItem(item)}>
+                              <Edit className="mr-2 h-4 w-4" /> Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setDeleteItem(item)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -152,6 +327,10 @@ export default function EquipmentList() {
           )}
         </CardContent>
       </Card>
+
+      <EquipmentFormDialog open={showCreate} onClose={() => setShowCreate(false)} />
+      <EquipmentFormDialog open={!!editItem} onClose={() => setEditItem(null)} item={editItem} />
+      {deleteItem && <DeleteEquipmentDialog item={deleteItem} onClose={() => setDeleteItem(null)} />}
     </div>
   );
 }
