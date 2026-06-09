@@ -9,7 +9,7 @@ import {
   Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
-  Gauge, FolderKanban, Users2,
+  Gauge, FolderKanban, Users2, LayoutGrid, Activity,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,15 +59,15 @@ const NAV_GROUPS: NavGroup[] = [
     icon: FolderKanban,
     items: [
       { name: "Projets",                path: "/projects",   icon: FolderKanban, moduleKey: "projects" },
-      { name: "Portefeuille",           path: "/portfolio",  icon: TrendingUp,   moduleKey: "projects" },
-      { name: "Charge équipe",          path: "/workload",   icon: Users2,       moduleKey: "projects" },
-      { name: "Tâches",                 path: "/tasks",      icon: CheckSquare,  moduleKey: "tasks" },
-      { name: "Services",               path: "/services",   icon: Briefcase,    moduleKey: "services" },
-      { name: "Opérations & Logistique",path: "/operations", icon: Truck,        moduleKey: "operations" },
-      { name: "Parc & équipements",     path: "/equipment",  icon: Wrench,       moduleKey: "inventory_assets" },
-      { name: "Produits & Stock",       path: "/inventory",  icon: Package,      moduleKey: "inventory_products" },
-      { name: "Locations & inspections",path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
-      { name: "Documents",              path: "/documents",  icon: FolderOpen,   moduleKey: "documents" },
+      { name: "Portefeuille",            path: "/portfolio",  icon: LayoutGrid,     moduleKey: "projects" },
+      { name: "Charge d'équipe",         path: "/workload",   icon: Activity,       moduleKey: "projects" },
+      { name: "Tâches",                  path: "/tasks",      icon: CheckSquare,    moduleKey: "tasks" },
+      { name: "Missions & services",     path: "/services",   icon: Briefcase,      moduleKey: "services" },
+      { name: "Opérations & logistique", path: "/operations", icon: Truck,          moduleKey: "operations" },
+      { name: "Parc & équipements",      path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
+      { name: "Produits & stock",        path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
+      { name: "Locations & inspections", path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
+      { name: "Documents",               path: "/documents",  icon: FolderOpen,     moduleKey: "documents" },
     ],
   },
   {
