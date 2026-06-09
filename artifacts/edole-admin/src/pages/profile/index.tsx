@@ -62,6 +62,7 @@ export default function MyProfile() {
   const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl ?? null);
   const [accountDirty, setAccountDirty] = useState(false);
@@ -74,10 +75,11 @@ export default function MyProfile() {
 
   React.useEffect(() => {
     if (!accountDirty) {
+      setEmail(user?.email ?? "");
       setPhone(user?.phone ?? "");
       setAvatarPreview(user?.avatarUrl ?? null);
     }
-  }, [user?.phone, user?.avatarUrl]);
+  }, [user?.email, user?.phone, user?.avatarUrl]);
 
   const { data: collab, isLoading: collabLoading } = useQuery<Collaborator>({
     queryKey: ["hr-me-profile"],
@@ -101,6 +103,7 @@ export default function MyProfile() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          email: email || null,
           phone: phone || null,
           avatarUrl: avatarPreview || null,
         }),
@@ -224,24 +227,41 @@ export default function MyProfile() {
 
           <Separator />
 
-          {/* Champ téléphone */}
-          <div className="space-y-1.5">
-            <Label htmlFor="user-phone" className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-              Téléphone
-            </Label>
-            <Input
-              id="user-phone"
-              value={phone}
-              onChange={e => { setPhone(e.target.value); setAccountDirty(true); }}
-              placeholder="+228 90 00 00 00"
-            />
+          {/* Champs éditables */}
+          <div className="grid gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="user-email" className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                Adresse e-mail
+              </Label>
+              <Input
+                id="user-email"
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setAccountDirty(true); }}
+                placeholder="prenom.nom@exemple.com"
+              />
+              <p className="text-[11px] text-muted-foreground">Cet e-mail est aussi votre identifiant de connexion.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="user-phone" className="flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                Téléphone
+              </Label>
+              <Input
+                id="user-phone"
+                value={phone}
+                onChange={e => { setPhone(e.target.value); setAccountDirty(true); }}
+                placeholder="+228 90 00 00 00"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end">
             <Button
               onClick={() => accountMutation.mutate()}
-              disabled={accountMutation.isPending || (!accountDirty && avatarPreview === (user?.avatarUrl ?? null))}
+              disabled={accountMutation.isPending || !accountDirty}
               size="sm"
             >
               {accountMutation.isPending ? (

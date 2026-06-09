@@ -111,10 +111,19 @@ router.patch("/auth/me", async (req, res) => {
     const [userId] = decoded.split(":");
     const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     if (!users[0]) return res.status(401).json({ error: "Unauthorized" });
-    const { phone, avatarUrl } = req.body || {};
+    const { phone, avatarUrl, email } = req.body || {};
     const patch: Record<string, string | null> = {};
     if (phone !== undefined) patch.phone = phone || null;
     if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl || null;
+    if (email !== undefined && email) {
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const existing = await db.select({ id: usersTable.id }).from(usersTable)
+        .where(eq(usersTable.email, normalizedEmail)).limit(1);
+      if (existing.length > 0 && existing[0].id !== userId) {
+        return res.status(409).json({ error: "Cette adresse e-mail est déjà utilisée par un autre compte." });
+      }
+      patch.email = normalizedEmail;
+    }
     if (Object.keys(patch).length > 0) {
       await db.update(usersTable).set(patch).where(eq(usersTable.id, userId));
     }
