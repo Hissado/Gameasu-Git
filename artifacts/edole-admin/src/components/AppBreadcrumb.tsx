@@ -87,7 +87,8 @@ const ROUTES: Array<{ pattern: RegExp; crumbs: Crumb[] }> = [
   { pattern: /^\/equipment\/qr/,         crumbs: [{ label: "Accueil", href: "/" }, { label: "Équipements", href: "/equipment" }, { label: "QR Codes" }] },
 
   // ── Collaborators ──────────────────────────────────────────────
-  { pattern: /^\/collaborators\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Collaborateurs", href: "/collaborators" }, { label: "Fiche collaborateur" }] },
+  { pattern: /^\/collaborators\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Équipe & RH", href: "/hr" }, { label: "Fiche collaborateur" }] },
+  { pattern: /^\/collaborators$/,        crumbs: [{ label: "Accueil", href: "/" }, { label: "Équipe & RH", href: "/hr" }, { label: "Collaborateurs" }] },
 
   // ── Rentals ────────────────────────────────────────────────────
   { pattern: /^\/rentals\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Locations", href: "/rentals" }, { label: "Fiche location" }] },

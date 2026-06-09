@@ -644,10 +644,10 @@ export default function CollaboratorDetail() {
       {/* HEADER */}
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-6">
-          <Link href="/collaborators">
+          <Link href="/hr">
             <Button variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
               <ArrowLeft className="w-4 h-4" />
-              Collaborateurs
+              Équipe & RH
             </Button>
           </Link>
           <div className="flex items-center gap-5">
