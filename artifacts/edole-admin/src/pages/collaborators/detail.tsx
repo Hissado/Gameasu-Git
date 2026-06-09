@@ -21,7 +21,7 @@ import {
   ArrowLeft, Mail, Phone, Calendar, FolderKanban, Briefcase, FileSignature, Wrench,
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
-  HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon,
+  HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -590,6 +590,25 @@ export default function CollaboratorDetail() {
 
   const isManagerOrAbove = ["admin", "super_admin", "manager"].includes(user?.role || "");
   const isAdmin = ["admin", "super_admin"].includes(user?.role || "");
+  const queryClient = useQueryClient();
+
+  // Kiosk code inline edit
+  const [kioskCodeEditing, setKioskCodeEditing] = useState(false);
+  const [kioskCodeInput, setKioskCodeInput] = useState("");
+  const kioskCodeMutation = useMutation({
+    mutationFn: (code: string | null) =>
+      apiFetch(`/api/collaborators/${id}/kiosk-code`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kioskCode: code }),
+      }),
+    onSuccess: () => {
+      toast.success("Code kiosk mis à jour");
+      queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(id) });
+      setKioskCodeEditing(false);
+    },
+    onError: (err: any) => toast.error(err?.message || "Erreur lors de la mise à jour"),
+  });
 
   const getEditForm = (): EditForm => {
     const c = collaborator as any;
@@ -765,6 +784,53 @@ export default function CollaboratorDetail() {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Contact d'urgence</p>
                 <p className="text-sm font-medium">{(collaborator as any).emergencyContact.name}</p>
                 <p className="text-xs text-muted-foreground">{(collaborator as any).emergencyContact.phone} · {(collaborator as any).emergencyContact.relation}</p>
+              </div>
+            )}
+            {/* Kiosk code */}
+            {isAdmin && (
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Keyboard className="w-3 h-3" /> Code kiosk
+                  </p>
+                  {!kioskCodeEditing && (
+                    <button
+                      onClick={() => { setKioskCodeInput((collaborator as any).kioskCode || ""); setKioskCodeEditing(true); }}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      Modifier
+                    </button>
+                  )}
+                </div>
+                {kioskCodeEditing ? (
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={kioskCodeInput}
+                      onChange={e => setKioskCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="0000"
+                      maxLength={4}
+                      className="h-7 text-sm font-mono w-24 px-2"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => kioskCodeMutation.mutate(kioskCodeInput.length === 4 ? kioskCodeInput : null)}
+                      disabled={kioskCodeMutation.isPending}
+                      className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
+                    >
+                      {kioskCodeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    </button>
+                    <button onClick={() => setKioskCodeEditing(false)} className="p-1 rounded hover:bg-muted text-muted-foreground">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="font-mono font-bold text-lg tracking-widest text-foreground">
+                    {(collaborator as any).kioskCode
+                      ? <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{(collaborator as any).kioskCode}</span>
+                      : <span className="text-xs text-muted-foreground font-normal">Non attribué</span>
+                    }
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

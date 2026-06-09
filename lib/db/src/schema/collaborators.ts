@@ -55,6 +55,9 @@ export const collaboratorsTable = pgTable("collaborators", {
   // Durée de travail hebdomadaire de référence pour le calcul du taux horaire.
   weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }).default("40"),
 
+  // Kiosk
+  kioskCode: text("kiosk_code"), // code à 4 chiffres unique par organisation pour le kiosk
+
   // active | on_leave | terminated | retired
   employmentStatus: text("employment_status").notNull().default("active"),
 

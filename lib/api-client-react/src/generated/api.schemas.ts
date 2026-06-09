@@ -1173,6 +1173,131 @@ export interface PaginatedNotifications {
   limit: number;
 }
 
+export interface KioskIdentifyInput {
+  /**
+   * @minLength 4
+   * @maxLength 4
+   */
+  code: string;
+  kioskToken: string;
+}
+
+export type KioskIdentifyResultCollaborator = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  /** @nullable */
+  position?: string | null;
+  /** @nullable */
+  photoUrl?: string | null;
+};
+
+export type KioskIdentifyResultKioskSettings = { [key: string]: unknown };
+
+export type KioskIdentifyResultKiosk = {
+  id: string;
+  name: string;
+  /** @nullable */
+  location?: string | null;
+  organizationId: string;
+  settings?: KioskIdentifyResultKioskSettings;
+};
+
+export interface KioskIdentifyResult {
+  collaborator: KioskIdentifyResultCollaborator;
+  kiosk: KioskIdentifyResultKiosk;
+}
+
+export type KioskPunchInputKind =
+  (typeof KioskPunchInputKind)[keyof typeof KioskPunchInputKind];
+
+export const KioskPunchInputKind = {
+  clock_in: "clock_in",
+  clock_out: "clock_out",
+  break_start: "break_start",
+  break_end: "break_end",
+} as const;
+
+export interface KioskPunchInput {
+  kioskToken: string;
+  collaboratorId: string;
+  kind: KioskPunchInputKind;
+  photoDataUrl?: string;
+}
+
+export interface KioskPunchResult {
+  success: boolean;
+  /** @nullable */
+  recordId?: string | null;
+  kind: string;
+  /** @nullable */
+  occurredAt?: string | null;
+}
+
+export type KioskSettings = { [key: string]: unknown };
+
+export interface Kiosk {
+  id: string;
+  organizationId: string;
+  name: string;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  description?: string | null;
+  isActive: boolean;
+  token: string;
+  settings?: KioskSettings;
+  /** @nullable */
+  lastSeenAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type KioskInputSettings = { [key: string]: unknown };
+
+export interface KioskInput {
+  /** @minLength 1 */
+  name: string;
+  location?: string;
+  description?: string;
+  settings?: KioskInputSettings;
+}
+
+export type KioskUpdateSettings = { [key: string]: unknown };
+
+export interface KioskUpdate {
+  /** @minLength 1 */
+  name?: string;
+  location?: string;
+  description?: string;
+  isActive?: boolean;
+  settings?: KioskUpdateSettings;
+}
+
+export interface KioskCodeUpdate {
+  /** @nullable */
+  kioskCode: string | null;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export type RequestUploadUrlResponseMetadata = { [key: string]: unknown };
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: RequestUploadUrlResponseMetadata;
+}
+
+export type UpdateMeBody = {
+  phone?: string | null;
+  avatarUrl?: string | null;
+};
+
 export type ListUsersParams = {
   role?: string;
   search?: string;

@@ -14,7 +14,8 @@
     "./seed-demo-accounting": "./src/seed-demo-accounting.ts",
     "./seed-demo-hr": "./src/seed-demo-hr.ts",
     "./seed-demo-hr-supplement": "./src/seed-demo-hr-supplement.ts",
-    "./seed-demo-all": "./src/seed-demo-all.ts"
+    "./seed-demo-all": "./src/seed-demo-all.ts",
+    "./seed-kiosk": "./src/seed-kiosk.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

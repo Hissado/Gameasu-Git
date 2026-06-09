@@ -26,3 +26,4 @@ export * from "./governance";
 export * from "./operations";
 export * from "./inventory";
 export * from "./payroll";
+export * from "./kiosk";

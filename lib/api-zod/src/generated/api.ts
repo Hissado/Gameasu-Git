@@ -51,6 +51,25 @@ export const GetMeResponse = zod.object({
 });
 
 /**
+ * @summary Update current user basic profile (phone, avatarUrl)
+ */
+export const UpdateMeBody = zod.object({
+  phone: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+});
+
+export const UpdateMeResponse = zod.object({
+  id: zod.string(),
+  email: zod.string(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  role: zod.string(),
+  avatarUrl: zod.string().optional(),
+  phone: zod.string().nullish(),
+  isClient: zod.boolean(),
+});
+
+/**
  * @summary List all users
  */
 export const listUsersQueryPageDefault = 1;
@@ -2220,4 +2239,143 @@ export const MarkNotificationReadResponse = zod.object({
   entityId: zod.string().optional(),
   isRead: zod.boolean(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Identifier un collaborateur par code kiosk
+ */
+export const kioskIdentifyBodyCodeMin = 4;
+export const kioskIdentifyBodyCodeMax = 4;
+
+export const KioskIdentifyBody = zod.object({
+  code: zod
+    .string()
+    .min(kioskIdentifyBodyCodeMin)
+    .max(kioskIdentifyBodyCodeMax),
+  kioskToken: zod.string(),
+});
+
+export const KioskIdentifyResponse = zod.object({
+  collaborator: zod.object({
+    id: zod.string(),
+    firstName: zod.string(),
+    lastName: zod.string(),
+    position: zod.string().nullish(),
+    photoUrl: zod.string().nullish(),
+  }),
+  kiosk: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    location: zod.string().nullish(),
+    organizationId: zod.string(),
+    settings: zod.record(zod.string(), zod.unknown()).optional(),
+  }),
+});
+
+/**
+ * @summary Enregistrer un pointage depuis le kiosk
+ */
+export const KioskPunchBody = zod.object({
+  kioskToken: zod.string(),
+  collaboratorId: zod.string(),
+  kind: zod.enum(["clock_in", "clock_out", "break_start", "break_end"]),
+  photoDataUrl: zod.string().optional(),
+});
+
+export const KioskPunchResponse = zod.object({
+  success: zod.boolean(),
+  recordId: zod.string().nullish(),
+  kind: zod.string(),
+  occurredAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Lister les kiosks de l'organisation
+ */
+export const ListKiosksResponseItem = zod.object({
+  id: zod.string(),
+  organizationId: zod.string(),
+  name: zod.string(),
+  location: zod.string().nullish(),
+  description: zod.string().nullish(),
+  isActive: zod.boolean(),
+  token: zod.string(),
+  settings: zod.record(zod.string(), zod.unknown()).optional(),
+  lastSeenAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+export const ListKiosksResponse = zod.array(ListKiosksResponseItem);
+
+/**
+ * @summary Créer un kiosk
+ */
+
+export const CreateKioskBody = zod.object({
+  name: zod.string().min(1),
+  location: zod.string().optional(),
+  description: zod.string().optional(),
+  settings: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+/**
+ * @summary Mettre à jour un kiosk
+ */
+export const UpdateKioskParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateKioskBody = zod.object({
+  name: zod.string().min(1).optional(),
+  location: zod.string().optional(),
+  description: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+  settings: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const UpdateKioskResponse = zod.object({
+  id: zod.string(),
+  organizationId: zod.string(),
+  name: zod.string(),
+  location: zod.string().nullish(),
+  description: zod.string().nullish(),
+  isActive: zod.boolean(),
+  token: zod.string(),
+  settings: zod.record(zod.string(), zod.unknown()).optional(),
+  lastSeenAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Supprimer un kiosk
+ */
+export const DeleteKioskParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Assigner ou modifier le code kiosk d'un collaborateur
+ */
+export const UpdateCollaboratorKioskCodeParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCollaboratorKioskCodeBody = zod.object({
+  kioskCode: zod.string().nullable(),
+});
+
+/**
+ * @summary Obtenir une URL présignée pour l'upload d'un fichier
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+  metadata: zod.record(zod.string(), zod.unknown()).optional(),
 });

@@ -2027,6 +2027,159 @@ paths:
         "200":
           description: All marked as read
 
+  # ── KIOSK PUBLIC ──────────────────────────────────────────────────────────
+  /kiosk/identify:
+    post:
+      operationId: kioskIdentify
+      tags: [kiosk]
+      summary: Identifier un collaborateur par code kiosk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KioskIdentifyInput"
+      responses:
+        "200":
+          description: Collaborateur identifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KioskIdentifyResult"
+        "404":
+          description: Code non reconnu
+
+  /kiosk/punch:
+    post:
+      operationId: kioskPunch
+      tags: [kiosk]
+      summary: Enregistrer un pointage depuis le kiosk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KioskPunchInput"
+      responses:
+        "200":
+          description: Pointage enregistré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KioskPunchResult"
+
+  # ── KIOSK ADMIN ────────────────────────────────────────────────────────────
+  /kiosks:
+    get:
+      operationId: listKiosks
+      tags: [kiosk]
+      summary: Lister les kiosks de l'organisation
+      responses:
+        "200":
+          description: Liste des kiosks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kiosk"
+    post:
+      operationId: createKiosk
+      tags: [kiosk]
+      summary: Créer un kiosk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KioskInput"
+      responses:
+        "201":
+          description: Kiosk créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kiosk"
+
+  /kiosks/{id}:
+    patch:
+      operationId: updateKiosk
+      tags: [kiosk]
+      summary: Mettre à jour un kiosk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KioskUpdate"
+      responses:
+        "200":
+          description: Kiosk mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kiosk"
+    delete:
+      operationId: deleteKiosk
+      tags: [kiosk]
+      summary: Supprimer un kiosk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Supprimé
+
+  /collaborators/{id}/kiosk-code:
+    patch:
+      operationId: updateCollaboratorKioskCode
+      tags: [kiosk]
+      summary: Assigner ou modifier le code kiosk d'un collaborateur
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KioskCodeUpdate"
+      responses:
+        "200":
+          description: Code mis à jour
+
+  # ── STORAGE ────────────────────────────────────────────────────────────────
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Obtenir une URL présignée pour l'upload d'un fichier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: URL générée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -4021,3 +4174,126 @@ components:
         - total
         - page
         - limit
+
+    # ── KIOSK ─────────────────────────────────────────────────────────────────
+    KioskIdentifyInput:
+      type: object
+      required: [code, kioskToken]
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 4
+        kioskToken:
+          type: string
+
+    KioskIdentifyResult:
+      type: object
+      required: [collaborator, kiosk]
+      properties:
+        collaborator:
+          type: object
+          required: [id, firstName, lastName]
+          properties:
+            id: { type: string }
+            firstName: { type: string }
+            lastName: { type: string }
+            position: { type: ["string", "null"] }
+            photoUrl: { type: ["string", "null"] }
+        kiosk:
+          type: object
+          required: [id, name, organizationId]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            location: { type: ["string", "null"] }
+            organizationId: { type: string }
+            settings:
+              type: object
+              additionalProperties: true
+
+    KioskPunchInput:
+      type: object
+      required: [kioskToken, collaboratorId, kind]
+      properties:
+        kioskToken: { type: string }
+        collaboratorId: { type: string }
+        kind:
+          type: string
+          enum: [clock_in, clock_out, break_start, break_end]
+        photoDataUrl: { type: string }
+
+    KioskPunchResult:
+      type: object
+      required: [success, kind]
+      properties:
+        success: { type: boolean }
+        recordId: { type: ["string", "null"] }
+        kind: { type: string }
+        occurredAt: { type: ["string", "null"], format: date-time }
+
+    Kiosk:
+      type: object
+      required: [id, organizationId, name, isActive, token]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        name: { type: string }
+        location: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        isActive: { type: boolean }
+        token: { type: string }
+        settings:
+          type: object
+          additionalProperties: true
+        lastSeenAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    KioskInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        location: { type: string }
+        description: { type: string }
+        settings:
+          type: object
+          additionalProperties: true
+
+    KioskUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        location: { type: string }
+        description: { type: string }
+        isActive: { type: boolean }
+        settings:
+          type: object
+          additionalProperties: true
+
+    KioskCodeUpdate:
+      type: object
+      required: [kioskCode]
+      properties:
+        kioskCode:
+          type: ["string", "null"]
+
+    # ── STORAGE ───────────────────────────────────────────────────────────────
+    RequestUploadUrlBody:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string }
+        size: { type: integer }
+        contentType: { type: string }
+
+    RequestUploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true

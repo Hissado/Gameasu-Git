@@ -48,12 +48,15 @@ import superAdminCockpitRouter from "./superAdminCockpit";
 import superAdminStructuresRouter, { publicOnboardingRouter } from "./superAdminStructures";
 import orgTunerRouter from "./orgTuner";
 import operationsRouter from "./operations";
+import kioskAdminRouter, { kioskPublicRouter } from "./kiosk";
+import storageRouter from "./storage";
 import inventoryRouter from "./inventory";
 import analyticsManagementRouter from "./analyticsManagement";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
 import { seedInventoryDemo } from "@workspace/db/seed-inventory";
+import { seedKiosk } from "@workspace/db/seed-kiosk";
 import { requireAuth } from "../middlewares/auth";
 import { enforcePasswordChange } from "../middlewares/permissions";
 import { seedRbac } from "../lib/rbac/seed";
@@ -64,6 +67,7 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(authRouter);
 router.use(publicOnboardingRouter);
+router.use(kioskPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -120,6 +124,8 @@ router.use(intelligenceRouter);
 router.use(automationRouter);
 router.use(attendanceRouter);
 router.use(client360Router);
+router.use(kioskAdminRouter);
+router.use(storageRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()
@@ -135,6 +141,7 @@ seedSaas()
   .then(() => console.log("[operations] seed démo OK"))
   .then(() => seedInventoryDemo())
   .then(() => console.log("[inventory] seed démo OK"))
+  .then(() => seedKiosk())
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h

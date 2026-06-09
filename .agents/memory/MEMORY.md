@@ -1,1 +1,2 @@
 - [Workload assignee fix](workload-assignee-fix.md) — use task-derived assignees (not collaborators) in workload matrix; most collabs have userId=null
+- [Drizzle jsonb select bug](drizzle-jsonb-select.md) — select() without explicit fields crashes when any column is undefined; always use select({ col: table.col }) and returning({ ... }).

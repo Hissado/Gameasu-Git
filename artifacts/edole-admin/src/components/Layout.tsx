@@ -11,7 +11,7 @@ import {
   Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
-  Gauge, FolderKanban, Users2, LayoutGrid, Activity,
+  Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -89,6 +89,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Équipe & RH",        path: "/hr",            icon: UsersRound,    moduleKey: "team_hr" },
       { name: "Présences & pointage",path: "/attendance",   icon: Clock,         moduleKey: "team_hr" },
+      { name: "Kiosks de pointage",  path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr" },
       { name: "Messagerie",         path: "/messaging",     icon: MessageSquare, moduleKey: "communications" },
       { name: "Appels",             path: "/calls",         icon: PhoneCall,     moduleKey: "communications" },
     ],

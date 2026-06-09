@@ -58,6 +58,10 @@ export const attendanceRecordsTable = pgTable("attendance_records", {
   ipAddress: text("ip_address"),
   comment: text("comment"),
   status: text("status").default("validated"), // validated | pending | rejected
+  // Kiosk fields
+  source: text("source").default("app"), // app | kiosk
+  kioskId: uuid("kiosk_id"), // FK to kiosks (no hard ref to avoid circular)
+  photoUrl: text("photo_url"),
   metadata: jsonb("metadata").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

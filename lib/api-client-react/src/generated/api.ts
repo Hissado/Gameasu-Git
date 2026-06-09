@@ -58,6 +58,14 @@ import type {
   HealthStatus,
   Inspection,
   Invoice,
+  Kiosk,
+  KioskCodeUpdate,
+  KioskIdentifyInput,
+  KioskIdentifyResult,
+  KioskInput,
+  KioskPunchInput,
+  KioskPunchResult,
+  KioskUpdate,
   ListActivitiesParams,
   ListCallSessionsParams,
   ListClientsParams,
@@ -109,11 +117,14 @@ import type {
   ProjectStats,
   Rental,
   RentalDetail,
+  RequestUploadUrlBody,
+  RequestUploadUrlResponse,
   SendMessageBody,
   Task,
   TaskComment,
   TaskDetail,
   UpdateCallSessionBody,
+  UpdateMeBody,
   UpdateUserBody,
   User,
   UserProfile,
@@ -430,6 +441,92 @@ export function useGetMe<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update current user basic profile (phone, avatarUrl)
+ */
+export const getUpdateMeUrl = () => {
+  return `/api/auth/me`;
+};
+
+export const updateMe = async (
+  updateMeBody: UpdateMeBody,
+  options?: RequestInit,
+): Promise<UserProfile> => {
+  return customFetch<UserProfile>(getUpdateMeUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateMeBody),
+  });
+};
+
+export const getUpdateMeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMe>>,
+    TError,
+    { data: BodyType<UpdateMeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMe>>,
+  TError,
+  { data: BodyType<UpdateMeBody> },
+  TContext
+> => {
+  const mutationKey = ["updateMe"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMe>>,
+    { data: BodyType<UpdateMeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMe(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMe>>
+>;
+export type UpdateMeMutationBody = BodyType<UpdateMeBody>;
+export type UpdateMeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update current user basic profile (phone, avatarUrl)
+ */
+export const useUpdateMe = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMe>>,
+    TError,
+    { data: BodyType<UpdateMeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMe>>,
+  TError,
+  { data: BodyType<UpdateMeBody> },
+  TContext
+> => {
+  return useMutation(getUpdateMeMutationOptions(options));
+};
 
 /**
  * @summary List all users
@@ -8190,4 +8287,679 @@ export const useMarkAllNotificationsRead = <
   TContext
 > => {
   return useMutation(getMarkAllNotificationsReadMutationOptions(options));
+};
+
+/**
+ * @summary Identifier un collaborateur par code kiosk
+ */
+export const getKioskIdentifyUrl = () => {
+  return `/api/kiosk/identify`;
+};
+
+export const kioskIdentify = async (
+  kioskIdentifyInput: KioskIdentifyInput,
+  options?: RequestInit,
+): Promise<KioskIdentifyResult> => {
+  return customFetch<KioskIdentifyResult>(getKioskIdentifyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kioskIdentifyInput),
+  });
+};
+
+export const getKioskIdentifyMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof kioskIdentify>>,
+    TError,
+    { data: BodyType<KioskIdentifyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof kioskIdentify>>,
+  TError,
+  { data: BodyType<KioskIdentifyInput> },
+  TContext
+> => {
+  const mutationKey = ["kioskIdentify"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof kioskIdentify>>,
+    { data: BodyType<KioskIdentifyInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return kioskIdentify(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type KioskIdentifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof kioskIdentify>>
+>;
+export type KioskIdentifyMutationBody = BodyType<KioskIdentifyInput>;
+export type KioskIdentifyMutationError = ErrorType<void>;
+
+/**
+ * @summary Identifier un collaborateur par code kiosk
+ */
+export const useKioskIdentify = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof kioskIdentify>>,
+    TError,
+    { data: BodyType<KioskIdentifyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof kioskIdentify>>,
+  TError,
+  { data: BodyType<KioskIdentifyInput> },
+  TContext
+> => {
+  return useMutation(getKioskIdentifyMutationOptions(options));
+};
+
+/**
+ * @summary Enregistrer un pointage depuis le kiosk
+ */
+export const getKioskPunchUrl = () => {
+  return `/api/kiosk/punch`;
+};
+
+export const kioskPunch = async (
+  kioskPunchInput: KioskPunchInput,
+  options?: RequestInit,
+): Promise<KioskPunchResult> => {
+  return customFetch<KioskPunchResult>(getKioskPunchUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kioskPunchInput),
+  });
+};
+
+export const getKioskPunchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof kioskPunch>>,
+    TError,
+    { data: BodyType<KioskPunchInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof kioskPunch>>,
+  TError,
+  { data: BodyType<KioskPunchInput> },
+  TContext
+> => {
+  const mutationKey = ["kioskPunch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof kioskPunch>>,
+    { data: BodyType<KioskPunchInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return kioskPunch(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type KioskPunchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof kioskPunch>>
+>;
+export type KioskPunchMutationBody = BodyType<KioskPunchInput>;
+export type KioskPunchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Enregistrer un pointage depuis le kiosk
+ */
+export const useKioskPunch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof kioskPunch>>,
+    TError,
+    { data: BodyType<KioskPunchInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof kioskPunch>>,
+  TError,
+  { data: BodyType<KioskPunchInput> },
+  TContext
+> => {
+  return useMutation(getKioskPunchMutationOptions(options));
+};
+
+/**
+ * @summary Lister les kiosks de l'organisation
+ */
+export const getListKiosksUrl = () => {
+  return `/api/kiosks`;
+};
+
+export const listKiosks = async (options?: RequestInit): Promise<Kiosk[]> => {
+  return customFetch<Kiosk[]>(getListKiosksUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListKiosksQueryKey = () => {
+  return [`/api/kiosks`] as const;
+};
+
+export const getListKiosksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listKiosks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listKiosks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListKiosksQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listKiosks>>> = ({
+    signal,
+  }) => listKiosks({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listKiosks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListKiosksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listKiosks>>
+>;
+export type ListKiosksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Lister les kiosks de l'organisation
+ */
+
+export function useListKiosks<
+  TData = Awaited<ReturnType<typeof listKiosks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listKiosks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListKiosksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Créer un kiosk
+ */
+export const getCreateKioskUrl = () => {
+  return `/api/kiosks`;
+};
+
+export const createKiosk = async (
+  kioskInput: KioskInput,
+  options?: RequestInit,
+): Promise<Kiosk> => {
+  return customFetch<Kiosk>(getCreateKioskUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kioskInput),
+  });
+};
+
+export const getCreateKioskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createKiosk>>,
+    TError,
+    { data: BodyType<KioskInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createKiosk>>,
+  TError,
+  { data: BodyType<KioskInput> },
+  TContext
+> => {
+  const mutationKey = ["createKiosk"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createKiosk>>,
+    { data: BodyType<KioskInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createKiosk(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateKioskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createKiosk>>
+>;
+export type CreateKioskMutationBody = BodyType<KioskInput>;
+export type CreateKioskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Créer un kiosk
+ */
+export const useCreateKiosk = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createKiosk>>,
+    TError,
+    { data: BodyType<KioskInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createKiosk>>,
+  TError,
+  { data: BodyType<KioskInput> },
+  TContext
+> => {
+  return useMutation(getCreateKioskMutationOptions(options));
+};
+
+/**
+ * @summary Mettre à jour un kiosk
+ */
+export const getUpdateKioskUrl = (id: string) => {
+  return `/api/kiosks/${id}`;
+};
+
+export const updateKiosk = async (
+  id: string,
+  kioskUpdate: KioskUpdate,
+  options?: RequestInit,
+): Promise<Kiosk> => {
+  return customFetch<Kiosk>(getUpdateKioskUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kioskUpdate),
+  });
+};
+
+export const getUpdateKioskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateKiosk>>,
+    TError,
+    { id: string; data: BodyType<KioskUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateKiosk>>,
+  TError,
+  { id: string; data: BodyType<KioskUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateKiosk"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateKiosk>>,
+    { id: string; data: BodyType<KioskUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateKiosk(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateKioskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateKiosk>>
+>;
+export type UpdateKioskMutationBody = BodyType<KioskUpdate>;
+export type UpdateKioskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mettre à jour un kiosk
+ */
+export const useUpdateKiosk = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateKiosk>>,
+    TError,
+    { id: string; data: BodyType<KioskUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateKiosk>>,
+  TError,
+  { id: string; data: BodyType<KioskUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateKioskMutationOptions(options));
+};
+
+/**
+ * @summary Supprimer un kiosk
+ */
+export const getDeleteKioskUrl = (id: string) => {
+  return `/api/kiosks/${id}`;
+};
+
+export const deleteKiosk = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteKioskUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteKioskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteKiosk>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteKiosk>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteKiosk"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteKiosk>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteKiosk(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteKioskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteKiosk>>
+>;
+
+export type DeleteKioskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Supprimer un kiosk
+ */
+export const useDeleteKiosk = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteKiosk>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteKiosk>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteKioskMutationOptions(options));
+};
+
+/**
+ * @summary Assigner ou modifier le code kiosk d'un collaborateur
+ */
+export const getUpdateCollaboratorKioskCodeUrl = (id: string) => {
+  return `/api/collaborators/${id}/kiosk-code`;
+};
+
+export const updateCollaboratorKioskCode = async (
+  id: string,
+  kioskCodeUpdate: KioskCodeUpdate,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCollaboratorKioskCodeUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kioskCodeUpdate),
+  });
+};
+
+export const getUpdateCollaboratorKioskCodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCollaboratorKioskCode>>,
+    TError,
+    { id: string; data: BodyType<KioskCodeUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCollaboratorKioskCode>>,
+  TError,
+  { id: string; data: BodyType<KioskCodeUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateCollaboratorKioskCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCollaboratorKioskCode>>,
+    { id: string; data: BodyType<KioskCodeUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCollaboratorKioskCode(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCollaboratorKioskCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCollaboratorKioskCode>>
+>;
+export type UpdateCollaboratorKioskCodeMutationBody = BodyType<KioskCodeUpdate>;
+export type UpdateCollaboratorKioskCodeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Assigner ou modifier le code kiosk d'un collaborateur
+ */
+export const useUpdateCollaboratorKioskCode = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCollaboratorKioskCode>>,
+    TError,
+    { id: string; data: BodyType<KioskCodeUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCollaboratorKioskCode>>,
+  TError,
+  { id: string; data: BodyType<KioskCodeUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateCollaboratorKioskCodeMutationOptions(options));
+};
+
+/**
+ * @summary Obtenir une URL présignée pour l'upload d'un fichier
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  requestUploadUrlBody: RequestUploadUrlBody,
+  options?: RequestInit,
+): Promise<RequestUploadUrlResponse> => {
+  return customFetch<RequestUploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(requestUploadUrlBody),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlBody> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<RequestUploadUrlBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<RequestUploadUrlBody>;
+export type RequestUploadUrlMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Obtenir une URL présignée pour l'upload d'un fichier
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlBody> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
 };

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/kiosk/"
+title = "Kiosk de Pointage"
+version = "1.0.0"
+id = "artifacts/kiosk"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/kiosk/" ]
+localPort = 25657
+
+[services.development]
+run = "pnpm --filter @workspace/kiosk run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/kiosk", "run", "build" ]
+publicDir = "artifacts/kiosk/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25657"
+BASE_PATH = "/kiosk/"
