@@ -88,7 +88,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Users2,
     items: [
       { name: "Équipe & RH",        path: "/hr",            icon: UsersRound,    moduleKey: "team_hr" },
-      { name: "Collaborateurs",     path: "/collaborators", icon: GraduationCap, moduleKey: "team_hr" },
       { name: "Présences & pointage",path: "/attendance",   icon: Clock,         moduleKey: "team_hr" },
       { name: "Messagerie",         path: "/messaging",     icon: MessageSquare, moduleKey: "communications" },
       { name: "Appels",             path: "/calls",         icon: PhoneCall,     moduleKey: "communications" },
