@@ -1,6 +1,6 @@
 import React from "react";
 import { useGetProject, useListTasks, getGetProjectQueryKey, getListTasksQueryKey } from "@workspace/api-client-react";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatFCFA, formatDate } from "@/lib/format";
 import {
-  ExternalLink, FileText, Sparkles, GanttChartSquare,
+  ArrowLeft, ExternalLink, FileText, Sparkles, GanttChartSquare,
   CheckCircle2, AlertTriangle, Clock, CircleDot,
 } from "lucide-react";
 import ProjectIntelligenceTab from "./ProjectIntelligenceTab";
@@ -90,7 +90,10 @@ export default function ProjectDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-start gap-6 flex-wrap">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Projet</p>
+          <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            Retour aux projets
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
           <p className="text-muted-foreground mt-1">
             Client : <span className="font-medium text-foreground">{project.clientName || "—"}</span>

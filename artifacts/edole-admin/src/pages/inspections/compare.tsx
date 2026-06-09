@@ -99,7 +99,7 @@ export default function InspectionCompare() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-3">
-        <Link href="/inspections"><Button variant="outline" size="icon" className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button></Link>
+        <Link href="/inspections"><Button variant="outline" size="sm" className="h-8 gap-1.5"><ArrowLeft className="w-4 h-4" />Inspections</Button></Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Comparaison des états des lieux</h1>
           <p className="text-sm text-muted-foreground mt-1">Contrat : <span className="font-mono">{rentalId.substring(0, 8).toUpperCase()}</span></p>

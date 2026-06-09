@@ -411,8 +411,9 @@ export default function ClientDetail() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <Link href="/crm/clients">
-            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
               <ArrowLeft className="w-4 h-4" />
+              Clients CRM
             </Button>
           </Link>
           <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg shrink-0">

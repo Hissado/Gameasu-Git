@@ -1,0 +1,49 @@
+Pouvez-vous vérifier **section par section** et **module par module** si toute l’application respecte bien une **logique de retour cohérente** ?
+
+### Objectif
+Je veux m’assurer que, partout dans l’application, l’utilisateur puisse revenir facilement à la vue précédente, à la liste d’origine ou à la section parente, sans blocage de navigation.
+
+### Problème constaté
+Par exemple, lorsqu’on clique sur **Collaborateur**, il n’y a pas d’option **Retour** claire pour revenir facilement à l’écran précédent.
+
+Je veux vérifier si ce problème existe aussi dans d’autres modules ou sous-sections.
+
+### Ce qu’il faut faire
+Merci de :
+
+- parcourir l’application en profondeur
+- visiter tous les modules
+- visiter toutes les sections et sous-sections
+- tester les fiches détail, vues internes, écrans de création, modification et consultation
+- vérifier à chaque niveau s’il existe une logique de retour cohérente
+- identifier les endroits où cette logique manque ou fonctionne mal
+
+### Points à contrôler
+Merci de vérifier notamment :
+- les pages liste → fiche détail
+- les pages section → sous-section
+- les écrans de création / modification
+- les vues internes de modules
+- les redirections après action
+- la présence ou l’absence d’un bouton **Retour**
+- la cohérence de la navigation hiérarchique
+- la possibilité de revenir à la vue précédente sans passer systématiquement par l’accueil
+
+### Attente importante
+Prenez vraiment le temps de :
+- visiter toute l’application
+- tester sérieusement les parcours
+- repérer les endroits où la logique de retour est absente, cassée ou peu intuitive
+- corriger tout ce qui nuit à une navigation fluide
+
+### Résultat attendu
+Je veux que l’ensemble de l’application respecte une logique de retour claire, naturelle et professionnelle, afin que l’utilisateur puisse naviguer facilement entre :
+- modules
+- sections
+- sous-sections
+- fiches
+- formulaires
+- vues détaillées
+
+### Objectif final
+Je veux une application beaucoup plus fluide et ergonomique, avec une vraie logique de navigation retour partout, sans dépendre du retour à la page d’accueil pour se repérer.

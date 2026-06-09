@@ -13,7 +13,7 @@ import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
-  History, ListTree, MessageSquare, Send, RotateCcw, Timer,
+  ArrowLeft, History, ListTree, MessageSquare, Send, RotateCcw, Timer,
   Play, Square, Clock, CheckCircle2, AlertCircle, Plus,
 } from "lucide-react";
 
@@ -345,7 +345,10 @@ export default function TaskDetail() {
       {/* Header */}
       <div className="flex justify-between items-start gap-6 flex-wrap">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Tâche</p>
+          <Link href="/tasks" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            Retour aux tâches
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
           <p className="text-muted-foreground mt-1">
             Projet : <span className="font-medium text-foreground">{task.projectName || "—"}</span>

@@ -645,8 +645,9 @@ export default function CollaboratorDetail() {
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-6">
           <Link href="/collaborators">
-            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
               <ArrowLeft className="w-4 h-4" />
+              Collaborateurs
             </Button>
           </Link>
           <div className="flex items-center gap-5">
