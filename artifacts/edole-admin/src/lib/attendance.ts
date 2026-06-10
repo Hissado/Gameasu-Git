@@ -34,6 +34,9 @@ export type AttendanceRecord = {
   sourceDevice: string | null;
   comment: string | null;
   status: string;
+  source: string | null;
+  kioskId: string | null;
+  photoUrl: string | null;
 };
 
 export type AttendanceFlag = {

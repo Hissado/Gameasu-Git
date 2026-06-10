@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Clock, MapPin, Coffee, LogIn, LogOut, AlertTriangle, CheckCircle2,
-  Users, Loader2, Calendar,
+  Users, Loader2, Calendar, Camera, MonitorSmartphone,
 } from "lucide-react";
 import {
   useMyAttendanceToday, useAttendanceDashboard, useAttendanceAnomalies,
@@ -128,13 +128,27 @@ function MyClockPanel() {
           <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Historique du jour</p>
           <div className="space-y-1.5">
             {records.map((r: AttendanceRecord) => (
-              <div key={r.id} className="flex items-center justify-between text-sm bg-slate-50 rounded-md px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <div key={r.id} className="flex items-center justify-between text-sm bg-slate-50 rounded-md px-3 py-2 gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="font-medium text-slate-700">{KIND_LABEL[r.kind] ?? r.kind}</span>
                   <span className="text-slate-500">{fmtTime(r.occurredAt)}</span>
+                  {r.source === "kiosk" && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5 shrink-0">
+                      <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosk
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-slate-500 flex items-center gap-2">
+                <div className="text-xs text-slate-500 flex items-center gap-2 shrink-0">
+                  {r.photoUrl && (
+                    <a href={r.photoUrl} target="_blank" rel="noreferrer" title="Voir la photo de présence">
+                      <img
+                        src={r.photoUrl}
+                        alt="Photo pointage"
+                        className="w-8 h-8 rounded object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in"
+                      />
+                    </a>
+                  )}
                   {r.latitude && r.longitude ? (
                     <a
                       target="_blank" rel="noreferrer"
