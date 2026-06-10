@@ -1,18 +1,22 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard } from "lucide-react";
+import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3 } from "lucide-react";
 
 const TABS = [
   { name: "Mon espace", path: "/hr/my-space", icon: LayoutDashboard },
   { name: "Vue d'ensemble", path: "/hr", icon: UsersRound, exact: true },
+  { name: "Indicateurs RH", path: "/hr/indicators", icon: BarChart3 },
   { name: "Collaborateurs", path: "/collaborators", icon: UsersRound },
   { name: "Organigramme", path: "/hr/orgchart", icon: Share2 },
+  { name: "Calendrier absences", path: "/hr/team-calendar", icon: CalendarRange },
+  { name: "Feuilles de temps", path: "/hr/timesheets", icon: Timer },
+  { name: "Absences & Congés", path: "/hr/leaves", icon: CalendarOff },
+  { name: "Politiques congés", path: "/hr/leave-policies", icon: Settings2 },
+  { name: "Mouvements", path: "/hr/movements", icon: ArrowRightLeft },
   { name: "Paie", path: "/hr/payroll", icon: Banknote },
   { name: "Recrutement", path: "/hr/recruitment", icon: Briefcase },
   { name: "Évaluations", path: "/hr/evaluations", icon: Star },
   { name: "Formations", path: "/hr/training", icon: BookOpen },
-  { name: "Mouvements", path: "/hr/movements", icon: ArrowRightLeft },
-  { name: "Absences & Congés", path: "/hr/leaves", icon: CalendarOff },
   { name: "Affectations", path: "/hr/assignments", icon: GitBranch },
   { name: "Départements", path: "/hr/departments", icon: Network },
   { name: "Postes", path: "/hr/positions", icon: GraduationCap },

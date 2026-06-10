@@ -13,6 +13,7 @@ import {
   equipmentTable,
   leaveRequestsTable,
   leaveBalancesTable,
+  leavePoliciesTable,
   jobOffersTable,
   candidaciesTable,
   performanceReviewsTable,
@@ -21,8 +22,11 @@ import {
   personnelMovementsTable,
   payslipsTable,
   payrollRunsTable,
+  attendanceSessionsTable,
+  attendanceFlagsTable,
+  usersTable,
 } from "@workspace/db";
-import { and, asc, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
+import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -1609,6 +1613,570 @@ router.get("/hr/orgchart", async (req, res, next) => {
         )),
     ]);
     res.json({ departments: depts, collaborators: collabs });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #1 — POLITIQUES DE CONGÉS
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select().from(leavePoliciesTable)
+      .where(eq(leavePoliciesTable.organizationId, orgId))
+      .orderBy(asc(leavePoliciesTable.leaveType));
+    res.json({ data: rows });
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const {
+      leaveType, isActive, minNoticeDays, maxDaysPerYear, carryOverMax,
+      requiresApproval, allowHalfDay, accrualRate, defaultAllocatedDays, description,
+    } = req.body as Record<string, any>;
+    if (!leaveType) { res.status(400).json({ error: "leaveType requis" }); return; }
+    const [row] = await db.insert(leavePoliciesTable).values({
+      organizationId: orgId, leaveType,
+      isActive: isActive !== false,
+      minNoticeDays: minNoticeDays ?? 0,
+      maxDaysPerYear: maxDaysPerYear != null ? String(maxDaysPerYear) : null,
+      carryOverMax: carryOverMax != null ? String(carryOverMax) : null,
+      requiresApproval: requiresApproval !== false,
+      allowHalfDay: allowHalfDay ?? false,
+      accrualRate: accrualRate != null ? String(accrualRate) : null,
+      defaultAllocatedDays: defaultAllocatedDays != null ? String(defaultAllocatedDays) : "0",
+      description: description ?? null,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+router.put("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [existing] = await db.select().from(leavePoliciesTable)
+      .where(and(eq(leavePoliciesTable.id, req.params.id), eq(leavePoliciesTable.organizationId, orgId))).limit(1);
+    if (!existing) { res.status(404).json({ error: "Politique introuvable" }); return; }
+    const body = req.body as Record<string, any>;
+    const [updated] = await db.update(leavePoliciesTable).set({
+      leaveType: body.leaveType ?? existing.leaveType,
+      isActive: body.isActive !== undefined ? body.isActive : existing.isActive,
+      minNoticeDays: body.minNoticeDays ?? existing.minNoticeDays,
+      maxDaysPerYear: body.maxDaysPerYear != null ? String(body.maxDaysPerYear) : null,
+      carryOverMax: body.carryOverMax != null ? String(body.carryOverMax) : null,
+      requiresApproval: body.requiresApproval !== undefined ? body.requiresApproval : existing.requiresApproval,
+      allowHalfDay: body.allowHalfDay !== undefined ? body.allowHalfDay : existing.allowHalfDay,
+      accrualRate: body.accrualRate != null ? String(body.accrualRate) : null,
+      defaultAllocatedDays: body.defaultAllocatedDays != null ? String(body.defaultAllocatedDays) : existing.defaultAllocatedDays,
+      description: body.description !== undefined ? body.description : existing.description,
+    }).where(eq(leavePoliciesTable.id, req.params.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    await db.delete(leavePoliciesTable)
+      .where(and(eq(leavePoliciesTable.id, req.params.id), eq(leavePoliciesTable.organizationId, orgId)));
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #2 — CALENDRIER DES ABSENCES ÉQUIPE
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/team-calendar", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { start, end } = req.query as { start?: string; end?: string };
+    const conditions = [
+      eq(leaveRequestsTable.organizationId, orgId),
+      eq(leaveRequestsTable.status, "approved"),
+    ];
+    if (start) conditions.push(gte(leaveRequestsTable.endDate, start));
+    if (end) conditions.push(lte(leaveRequestsTable.startDate, end));
+    const rows = await db.select({
+      id: leaveRequestsTable.id,
+      collaboratorId: leaveRequestsTable.collaboratorId,
+      type: leaveRequestsTable.type,
+      startDate: leaveRequestsTable.startDate,
+      endDate: leaveRequestsTable.endDate,
+      days: leaveRequestsTable.days,
+      status: leaveRequestsTable.status,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      collaboratorAvatar: collaboratorsTable.avatarUrl,
+    }).from(leaveRequestsTable)
+      .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...conditions))
+      .orderBy(asc(leaveRequestsTable.startDate));
+    res.json({ data: rows });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #3 — ATTESTATIONS (self-service)
+// ════════════════════════════════════════════════════════════════
+async function getCollaboratorForUser(userId: string, orgId: string) {
+  const [collab] = await db.select().from(collaboratorsTable)
+    .where(and(
+      eq(collaboratorsTable.organizationId, orgId),
+      eq(collaboratorsTable.userId, userId),
+      isNull(collaboratorsTable.deletedAt),
+    )).limit(1);
+  return collab ?? null;
+}
+
+async function buildAttestation(collaboratorId: string, orgId: string, type: "travail" | "salaire" | "presence", res: import("express").Response) {
+  const [collab] = await db.select().from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.id, collaboratorId), eq(collaboratorsTable.organizationId, orgId))).limit(1);
+  if (!collab) { res.status(404).json({ error: "Collaborateur introuvable" }); return; }
+
+  const [contract] = await db.select().from(contractsTable)
+    .where(and(
+      eq(contractsTable.collaboratorId, collaboratorId),
+      eq(contractsTable.status, "active"),
+    )).orderBy(desc(contractsTable.startDate)).limit(1);
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const fullName = `${collab.firstName} ${collab.lastName}`.toUpperCase();
+  const poste = collab.position ?? collab.jobTitle ?? "Collaborateur";
+  const anciennete = contract?.startDate
+    ? `${Math.floor((today.getTime() - new Date(contract.startDate).getTime()) / (1000 * 60 * 60 * 24 * 365))} an(s)`
+    : "Non précisée";
+
+  const LABELS: Record<string, string> = {
+    travail: "ATTESTATION DE TRAVAIL",
+    salaire: "ATTESTATION DE SALAIRE",
+    presence: "ATTESTATION DE PRÉSENCE",
+  };
+
+  const doc = new PDFDocument({ margin: 60, size: "A4" });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="attestation_${type}_${collab.lastName.toLowerCase()}.pdf"`);
+  doc.pipe(res);
+
+  // En-tête
+  doc.fontSize(10).fillColor("#666666").text("GAMÉASÙ AFRICA", 60, 60);
+  doc.fontSize(8).fillColor("#999999").text("Plateforme de gestion RH", 60, 75);
+  doc.moveTo(60, 95).lineTo(535, 95).strokeColor("#F37021").lineWidth(2).stroke();
+
+  // Titre
+  doc.fontSize(16).fillColor("#1a1a1a").font("Helvetica-Bold")
+    .text(LABELS[type] ?? "ATTESTATION", 0, 120, { align: "center" });
+
+  doc.fontSize(10).fillColor("#555555").font("Helvetica")
+    .text(`Numéro de référence : ATT-${type.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-8)}`, 0, 148, { align: "center" });
+
+  doc.moveDown(2);
+
+  // Corps
+  const soussigne = "La Direction des Ressources Humaines de GAMÉASÙ AFRICA";
+  doc.font("Helvetica").fontSize(11).fillColor("#1a1a1a");
+
+  if (type === "travail") {
+    doc.text(`${soussigne} atteste que :`, { align: "left" });
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").text(`M./Mme ${fullName}`, { align: "center" });
+    doc.font("Helvetica").moveDown(0.5)
+      .text(`est bien employé(e) en qualité de ${poste} au sein de notre organisation.`)
+      .moveDown(0.5)
+      .text(`Type de contrat : ${contract?.type?.toUpperCase() ?? "CDI"}`)
+      .text(`Date d'entrée : ${contract?.startDate ? new Date(contract.startDate).toLocaleDateString("fr-FR") : "Non précisée"}`)
+      .text(`Ancienneté : ${anciennete}`);
+  } else if (type === "salaire") {
+    const salaire = contract?.monthlySalary ? `${Number(contract.monthlySalary).toLocaleString("fr-FR")} FCFA` : "Confidentiel";
+    doc.text(`${soussigne} atteste que :`, { align: "left" });
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").text(`M./Mme ${fullName}`, { align: "center" });
+    doc.font("Helvetica").moveDown(0.5)
+      .text(`perçoit une rémunération mensuelle brute de : ${salaire}`)
+      .text(`Poste : ${poste}`)
+      .text(`Contrat : ${contract?.type?.toUpperCase() ?? "CDI"}`);
+  } else {
+    doc.text(`${soussigne} atteste que :`, { align: "left" });
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").text(`M./Mme ${fullName}`, { align: "center" });
+    doc.font("Helvetica").moveDown(0.5)
+      .text(`est présent(e) et actif/active au sein de notre organisation.`)
+      .text(`Poste occupé : ${poste}`)
+      .text(`Statut : Actif(ve)`);
+  }
+
+  doc.moveDown(1.5);
+  doc.font("Helvetica").fontSize(11)
+    .text(`La présente attestation est délivrée à l'intéressé(e) pour faire valoir ce que de droit.`)
+    .moveDown(1)
+    .text(`Fait à Lomé, le ${dateStr}`, { align: "right" });
+
+  doc.moveDown(2);
+  doc.font("Helvetica-Bold").text("La Direction des Ressources Humaines", { align: "right" });
+
+  // Pied de page
+  doc.moveTo(60, 760).lineTo(535, 760).strokeColor("#e2e8f0").lineWidth(1).stroke();
+  doc.fontSize(8).fillColor("#999999").font("Helvetica")
+    .text("Document généré automatiquement — GAMÉASÙ Africa | www.gameasu.tech", 0, 768, { align: "center" });
+
+  doc.end();
+}
+
+router.get("/hr/me/attestation/:type", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const userId = req.authUser!.userId;
+    const type = req.params.type as "travail" | "salaire" | "presence";
+    if (!["travail", "salaire", "presence"].includes(type)) { res.status(400).json({ error: "Type invalide" }); return; }
+    const collab = await getCollaboratorForUser(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur associé" }); return; }
+    await buildAttestation(collab.id, orgId, type, res);
+  } catch (e) { next(e); }
+});
+
+router.get("/hr/attestations/:collaboratorId/:type", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const type = req.params.type as "travail" | "salaire" | "presence";
+    if (!["travail", "salaire", "presence"].includes(type)) { res.status(400).json({ error: "Type invalide" }); return; }
+    await buildAttestation(req.params.collaboratorId, orgId, type, res);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #5 — FEUILLES DE TEMPS (approbation manager)
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/timesheets", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { start, end, departmentId, approvalStatus } = req.query as Record<string, string>;
+    const conditions: ReturnType<typeof eq>[] = [eq(attendanceSessionsTable.organizationId, orgId)];
+    if (start) conditions.push(gte(attendanceSessionsTable.workDate, start) as any);
+    if (end) conditions.push(lte(attendanceSessionsTable.workDate, end) as any);
+    if (departmentId) conditions.push(eq(attendanceSessionsTable.departmentId, departmentId) as any);
+    if (approvalStatus && approvalStatus !== "all") conditions.push(eq(attendanceSessionsTable.approvalStatus, approvalStatus) as any);
+
+    const rows = await db.select({
+      id: attendanceSessionsTable.id,
+      collaboratorId: attendanceSessionsTable.collaboratorId,
+      workDate: attendanceSessionsTable.workDate,
+      clockInAt: attendanceSessionsTable.clockInAt,
+      clockOutAt: attendanceSessionsTable.clockOutAt,
+      totalMinutes: attendanceSessionsTable.totalMinutes,
+      effectiveMinutes: attendanceSessionsTable.effectiveMinutes,
+      expectedMinutes: attendanceSessionsTable.expectedMinutes,
+      isLate: attendanceSessionsTable.isLate,
+      isEarlyLeave: attendanceSessionsTable.isEarlyLeave,
+      approvalStatus: attendanceSessionsTable.approvalStatus,
+      approvedById: attendanceSessionsTable.approvedById,
+      approvalNote: attendanceSessionsTable.approvalNote,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      collaboratorAvatar: collaboratorsTable.avatarUrl,
+      departmentName: departmentsTable.name,
+    }).from(attendanceSessionsTable)
+      .leftJoin(collaboratorsTable, eq(attendanceSessionsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(departmentsTable, eq(attendanceSessionsTable.departmentId, departmentsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(attendanceSessionsTable.workDate), asc(collaboratorsTable.lastName));
+
+    const flagCounts = await db.select({
+      sessionId: attendanceFlagsTable.sessionId,
+      cnt: count(),
+    }).from(attendanceFlagsTable)
+      .where(and(
+        eq(attendanceFlagsTable.organizationId, orgId),
+        eq(attendanceFlagsTable.isResolved, false),
+      ))
+      .groupBy(attendanceFlagsTable.sessionId);
+    const flagMap = new Map(flagCounts.map(f => [f.sessionId, Number(f.cnt)]));
+
+    const totalSessions = rows.length;
+    const pendingApproval = rows.filter(r => r.approvalStatus === "pending").length;
+    const totalHours = Math.round(rows.reduce((sum, r) => sum + (r.effectiveMinutes ?? 0), 0) / 60);
+    const lateCount = rows.filter(r => r.isLate).length;
+    const flaggedCount = rows.filter(r => flagMap.has(r.id)).length;
+
+    res.json({
+      data: rows.map(r => ({ ...r, flagCount: flagMap.get(r.id) ?? 0 })),
+      stats: { totalSessions, pendingApproval, totalHours, lateCount, flaggedCount },
+    });
+  } catch (e) { next(e); }
+});
+
+router.patch("/hr/timesheets/:id/approve", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { status, note } = req.body as { status: "approved" | "rejected"; note?: string };
+    if (!["approved", "rejected"].includes(status)) { res.status(400).json({ error: "status invalide" }); return; }
+    const [existing] = await db.select().from(attendanceSessionsTable)
+      .where(and(eq(attendanceSessionsTable.id, req.params.id), eq(attendanceSessionsTable.organizationId, orgId))).limit(1);
+    if (!existing) { res.status(404).json({ error: "Session introuvable" }); return; }
+    const [updated] = await db.update(attendanceSessionsTable).set({
+      approvalStatus: status,
+      approvedById: req.authUser!.userId,
+      approvedAt: new Date(),
+      approvalNote: note ?? null,
+    }).where(eq(attendanceSessionsTable.id, req.params.id)).returning();
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.post("/hr/timesheets/bulk-approve", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { ids } = req.body as { ids: string[] };
+    if (!Array.isArray(ids) || ids.length === 0) { res.status(400).json({ error: "ids requis" }); return; }
+    await db.update(attendanceSessionsTable).set({
+      approvalStatus: "approved",
+      approvedById: req.authUser!.userId,
+      approvedAt: new Date(),
+    }).where(and(
+      eq(attendanceSessionsTable.organizationId, orgId),
+      inArray(attendanceSessionsTable.id, ids),
+      eq(attendanceSessionsTable.approvalStatus, "pending"),
+    ));
+    res.json({ ok: true, count: ids.length });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #6 — ALERTES RH (contrats + périodes d'essai)
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/alerts/upcoming", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const today = new Date();
+    const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+    const in60 = new Date(today); in60.setDate(in60.getDate() + 60);
+    const todayStr = today.toISOString().slice(0, 10);
+    const in30Str = in30.toISOString().slice(0, 10);
+    const in60Str = in60.toISOString().slice(0, 10);
+
+    // Contrats CDD expirant dans les 60j
+    const expiringContracts = await db.select({
+      id: contractsTable.id,
+      type: contractsTable.type,
+      endDate: contractsTable.endDate,
+      collaboratorId: collaboratorsTable.id,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      poste: collaboratorsTable.position,
+      department: collaboratorsTable.department,
+    }).from(contractsTable)
+      .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(
+        eq(contractsTable.organizationId, orgId),
+        eq(contractsTable.status, "active"),
+        sql`${contractsTable.endDate} IS NOT NULL`,
+        gte(contractsTable.endDate, todayStr) as any,
+        lte(contractsTable.endDate, in60Str) as any,
+      ))
+      .orderBy(asc(contractsTable.endDate));
+
+    // Nouveaux contrats commencés dans les 90 derniers jours (période d'essai probable)
+    const ninetyDaysAgo = new Date(today); ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().slice(0, 10);
+    const trialEnding = await db.select({
+      id: contractsTable.id,
+      type: contractsTable.type,
+      startDate: contractsTable.startDate,
+      collaboratorId: collaboratorsTable.id,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      poste: collaboratorsTable.position,
+      department: collaboratorsTable.department,
+    }).from(contractsTable)
+      .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(
+        eq(contractsTable.organizationId, orgId),
+        eq(contractsTable.status, "active"),
+        gte(contractsTable.startDate, ninetyDaysAgoStr) as any,
+      ))
+      .orderBy(asc(contractsTable.startDate));
+
+    // Anniversaires de contrat ce mois (pour NPS / ancienneté)
+    const thisMonth = String(today.getMonth() + 1).padStart(2, "0");
+    const anniversaries = await db.select({
+      id: contractsTable.id,
+      startDate: contractsTable.startDate,
+      collaboratorId: collaboratorsTable.id,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+      poste: collaboratorsTable.position,
+    }).from(contractsTable)
+      .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(
+        eq(contractsTable.organizationId, orgId),
+        eq(contractsTable.status, "active"),
+        sql`EXTRACT(MONTH FROM ${contractsTable.startDate}) = ${thisMonth}`,
+      ))
+      .orderBy(asc(contractsTable.startDate));
+
+    const annivWithYears = anniversaries.map(a => ({
+      ...a,
+      years: a.startDate ? Math.floor((today.getTime() - new Date(a.startDate).getTime()) / (1000 * 60 * 60 * 24 * 365)) : 0,
+    })).filter(a => a.years >= 1);
+
+    res.json({
+      expiringContracts: expiringContracts.map(c => ({
+        ...c,
+        daysLeft: c.endDate ? Math.ceil((new Date(c.endDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null,
+        urgency: c.endDate && new Date(c.endDate) <= in30 ? "high" : "medium",
+      })),
+      trialEnding: trialEnding.map(t => ({
+        ...t,
+        daysSinceStart: t.startDate ? Math.floor((today.getTime() - new Date(t.startDate).getTime()) / (1000 * 60 * 60 * 24)) : null,
+      })),
+      anniversaries: annivWithYears,
+    });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// #7 — INDICATEURS RH
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/indicators", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { year } = req.query as { year?: string };
+    const y = year ? Number(year) : new Date().getFullYear();
+    const yearStart = `${y}-01-01`, yearEnd = `${y}-12-31`;
+
+    // Headcount de base
+    const [{ total }] = await db.select({ total: count() }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
+    const [{ active }] = await db.select({ active: count() }).from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.status, "active")));
+
+    // Recrutements de l'année
+    const [{ hired }] = await db.select({ hired: count() }).from(contractsTable)
+      .where(and(
+        eq(contractsTable.organizationId, orgId),
+        gte(contractsTable.startDate, yearStart) as any,
+        lte(contractsTable.startDate, yearEnd) as any,
+      ));
+
+    // Départs (mouvements departure/retirement)
+    const [{ departures }] = await db.select({ departures: count() }).from(personnelMovementsTable)
+      .where(and(
+        eq(personnelMovementsTable.organizationId, orgId),
+        inArray(personnelMovementsTable.type, ["departure", "retirement"]),
+        gte(personnelMovementsTable.effectiveDate, yearStart) as any,
+        lte(personnelMovementsTable.effectiveDate, yearEnd) as any,
+      ));
+
+    const turnoverRate = total > 0 ? Math.round((Number(departures) / Number(total)) * 100 * 10) / 10 : 0;
+
+    // Ancienneté moyenne
+    const contracts = await db.select({ startDate: contractsTable.startDate }).from(contractsTable)
+      .where(and(eq(contractsTable.organizationId, orgId), eq(contractsTable.status, "active")));
+    const now = Date.now();
+    const avgTenureMs = contracts.length > 0
+      ? contracts.reduce((sum, c) => sum + (c.startDate ? now - new Date(c.startDate).getTime() : 0), 0) / contracts.length : 0;
+    const avgTenureYears = Math.round(avgTenureMs / (1000 * 60 * 60 * 24 * 365) * 10) / 10;
+
+    // Répartition par type de contrat
+    const byContract = await db.select({
+      type: contractsTable.type,
+      cnt: count(),
+    }).from(contractsTable)
+      .where(and(eq(contractsTable.organizationId, orgId), eq(contractsTable.status, "active")))
+      .groupBy(contractsTable.type);
+
+    const permanentCount = byContract.find(b => b.type === "CDI")?.cnt ?? 0;
+    const temporaryCount = byContract.filter(b => b.type !== "CDI").reduce((s, b) => s + Number(b.cnt), 0);
+
+    // Répartition par département
+    const byDept = await db.select({
+      department: departmentsTable.name,
+      cnt: count(),
+    }).from(collaboratorsTable)
+      .leftJoin(departmentsTable, eq(collaboratorsTable.departmentId, departmentsTable.id))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.status, "active")))
+      .groupBy(departmentsTable.name)
+      .orderBy(desc(count()));
+
+    // Absences par mois de l'année
+    const absenceRows = await db.select({
+      month: sql<string>`TO_CHAR(${leaveRequestsTable.startDate}::date, 'Mon')`,
+      monthNum: sql<number>`EXTRACT(MONTH FROM ${leaveRequestsTable.startDate}::date)`,
+      days: sql<number>`SUM(${leaveRequestsTable.days})`,
+    }).from(leaveRequestsTable)
+      .where(and(
+        eq(leaveRequestsTable.organizationId, orgId),
+        eq(leaveRequestsTable.status, "approved"),
+        gte(leaveRequestsTable.startDate, yearStart) as any,
+        lte(leaveRequestsTable.startDate, yearEnd) as any,
+      ))
+      .groupBy(sql`TO_CHAR(${leaveRequestsTable.startDate}::date, 'Mon')`, sql`EXTRACT(MONTH FROM ${leaveRequestsTable.startDate}::date)`)
+      .orderBy(sql`EXTRACT(MONTH FROM ${leaveRequestsTable.startDate}::date)`);
+
+    const totalAbsenceDays = absenceRows.reduce((s, r) => s + Number(r.days), 0);
+    const absenceDaysPerFTE = Number(active) > 0 ? Math.round((totalAbsenceDays / Number(active)) * 10) / 10 : 0;
+
+    // Absences par département
+    const absenceByDeptRaw = await db.select({
+      department: departmentsTable.name,
+      days: sql<number>`SUM(${leaveRequestsTable.days})`,
+    }).from(leaveRequestsTable)
+      .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(departmentsTable, eq(collaboratorsTable.departmentId, departmentsTable.id))
+      .where(and(
+        eq(leaveRequestsTable.organizationId, orgId),
+        eq(leaveRequestsTable.status, "approved"),
+        gte(leaveRequestsTable.startDate, yearStart) as any,
+        lte(leaveRequestsTable.startDate, yearEnd) as any,
+      ))
+      .groupBy(departmentsTable.name)
+      .orderBy(desc(sql`SUM(${leaveRequestsTable.days})`));
+
+    const absenceTotalDays = absenceByDeptRaw.reduce((s, r) => s + Number(r.days), 0);
+    const absencesByDept = absenceByDeptRaw.map(r => ({
+      department: r.department ?? "—",
+      days: Number(r.days),
+      pct: absenceTotalDays > 0 ? Math.round((Number(r.days) / absenceTotalDays) * 100) : 0,
+    }));
+
+    // Taux de présence du mois courant
+    const thisMonth = new Date(); thisMonth.setDate(1);
+    const thisMonthStr = thisMonth.toISOString().slice(0, 10);
+    const [{ sessionsThisMonth }] = await db.select({ sessionsThisMonth: count() }).from(attendanceSessionsTable)
+      .where(and(eq(attendanceSessionsTable.organizationId, orgId), gte(attendanceSessionsTable.workDate, thisMonthStr) as any));
+    const workdaysThisMonth = Math.max(1, Math.ceil((new Date().getDate() * 5) / 7));
+    const attendanceRate = Number(active) > 0
+      ? Math.min(100, Math.round((Number(sessionsThisMonth) / (Number(active) * workdaysThisMonth)) * 100))
+      : 0;
+
+    // Mouvements récents
+    const recentMovements = await db.select({
+      id: personnelMovementsTable.id,
+      type: personnelMovementsTable.type,
+      effectiveDate: personnelMovementsTable.effectiveDate,
+      collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+    }).from(personnelMovementsTable)
+      .leftJoin(collaboratorsTable, eq(personnelMovementsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(
+        eq(personnelMovementsTable.organizationId, orgId),
+        gte(personnelMovementsTable.effectiveDate, yearStart) as any,
+      ))
+      .orderBy(desc(personnelMovementsTable.effectiveDate))
+      .limit(10);
+
+    res.json({
+      headcount: Number(total),
+      activeCount: Number(active),
+      hiredThisYear: Number(hired),
+      departuresThisYear: Number(departures),
+      turnoverRate,
+      avgTenureYears,
+      permanentCount: Number(permanentCount),
+      temporaryCount,
+      absenceDaysPerFTE,
+      attendanceRate,
+      byDepartment: byDept.map(d => ({ department: d.department ?? "—", count: Number(d.cnt) })),
+      byContract: byContract.map(b => ({ type: b.type, count: Number(b.cnt) })),
+      absencesByMonth: absenceRows.map(r => ({ month: r.month, days: Number(r.days) })),
+      absencesByDept,
+      recentMovements,
+    });
   } catch (e) { next(e); }
 });
 

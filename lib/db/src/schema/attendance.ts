@@ -33,6 +33,11 @@ export const attendanceSessionsTable = pgTable("attendance_sessions", {
   isLate: boolean("is_late").default(false),
   isEarlyLeave: boolean("is_early_leave").default(false),
   notes: text("notes"),
+  // Approbation manager : pending | approved | rejected
+  approvalStatus: text("approval_status").notNull().default("pending"),
+  approvedById: uuid("approved_by_id").references(() => usersTable.id),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  approvalNote: text("approval_note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({

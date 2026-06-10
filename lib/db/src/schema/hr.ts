@@ -300,6 +300,36 @@ export const personnelMovementsTable = pgTable("personnel_movements", {
 }));
 
 // ────────────────────────────────────────────────────────────────
+// POLITIQUES DE CONGÉS
+// ────────────────────────────────────────────────────────────────
+export const leavePoliciesTable = pgTable("leave_policies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  leaveType: text("leave_type").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  // Délai minimum de préavis en jours calendaires
+  minNoticeDays: integer("min_notice_days").notNull().default(0),
+  // Plafond de jours par an (null = illimité)
+  maxDaysPerYear: numeric("max_days_per_year", { precision: 5, scale: 1 }),
+  // Report max depuis l'année précédente (null = pas de report)
+  carryOverMax: numeric("carry_over_max", { precision: 5, scale: 1 }),
+  // Nécessite approbation manager
+  requiresApproval: boolean("requires_approval").notNull().default(true),
+  // Autorise demi-journée
+  allowHalfDay: boolean("allow_half_day").notNull().default(false),
+  // Taux d'acquisition mensuel (jours/mois)
+  accrualRate: numeric("accrual_rate", { precision: 5, scale: 2 }),
+  // Alloué par défaut à l'initialisation des soldes annuels
+  defaultAllocatedDays: numeric("default_allocated_days", { precision: 5, scale: 1 }).default("0"),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  uniq: uniqueIndex("leave_policies_org_type_uidx").on(t.organizationId, t.leaveType),
+  orgIdx: index("leave_policies_org_idx").on(t.organizationId),
+}));
+
+// ────────────────────────────────────────────────────────────────
 // DEMANDES D'ABSENCES / CONGÉS
 // ────────────────────────────────────────────────────────────────
 export const leaveRequestsTable = pgTable("leave_requests", {
@@ -358,6 +388,7 @@ export const insertCollabAssignmentSchema = createInsertSchema(collaboratorAssig
 
 export const insertLeaveRequestSchema = createInsertSchema(leaveRequestsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
 export const insertLeaveBalanceSchema = createInsertSchema(leaveBalancesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLeavePolicySchema = createInsertSchema(leavePoliciesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertJobOfferSchema = createInsertSchema(jobOffersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCandidacySchema = createInsertSchema(candidaciesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPerformanceReviewSchema = createInsertSchema(performanceReviewsTable).omit({ id: true, createdAt: true, updatedAt: true, acknowledgedAt: true });
@@ -371,6 +402,7 @@ export type HrDocument = typeof hrDocumentsTable.$inferSelect;
 export type CollaboratorAssignment = typeof collaboratorAssignmentsTable.$inferSelect;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
 export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
+export type LeavePolicy = typeof leavePoliciesTable.$inferSelect;
 export type JobOffer = typeof jobOffersTable.$inferSelect;
 export type Candidacy = typeof candidaciesTable.$inferSelect;
 export type PerformanceReview = typeof performanceReviewsTable.$inferSelect;

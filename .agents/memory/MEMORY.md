@@ -2,3 +2,5 @@
 - [Drizzle jsonb select bug](drizzle-jsonb-select.md) — select() without explicit fields crashes when any column is undefined; always use select({ col: table.col }) and returning({ ... }).
 - [Object storage URL convention](object-storage-url.md) — objectPath from presigned URL → serve via `/api/storage` + objectPath directly
 - [HR self-service endpoints](hr-self-service.md) — complete set of /api/hr/me/* routes already implemented; use them for portail employé
+- [DB lib rebuild required](db-lib-rebuild.md) — after adding new exports to lib/db schema, always run `pnpm run typecheck:libs` before checking api-server typecheck
+- [contractsTable fields](contracts-table-fields.md) — contractsTable has `monthlySalary` not `salary`; no `trialEndDate`; use recent hires (< 90 days) as probation proxy

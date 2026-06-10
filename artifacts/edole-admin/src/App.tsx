@@ -79,6 +79,10 @@ const HrEvaluations = lazy(() => import("@/pages/hr/evaluations"));
 const HrTraining = lazy(() => import("@/pages/hr/training"));
 const HrMovements = lazy(() => import("@/pages/hr/movements"));
 const HrMySpace = lazy(() => import("@/pages/hr/my-space"));
+const HrLeavePolicies = lazy(() => import("@/pages/hr/leave-policies"));
+const HrTeamCalendar = lazy(() => import("@/pages/hr/team-calendar"));
+const HrTimesheets = lazy(() => import("@/pages/hr/timesheets"));
+const HrIndicators = lazy(() => import("@/pages/hr/indicators"));
 const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
 const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
@@ -277,6 +281,10 @@ function AppRouter() {
                 <Route path="/hr/training" component={HrTraining} />
                 <Route path="/hr/movements" component={HrMovements} />
                 <Route path="/hr/my-space" component={HrMySpace} />
+                <Route path="/hr/leave-policies" component={HrLeavePolicies} />
+                <Route path="/hr/team-calendar" component={HrTeamCalendar} />
+                <Route path="/hr/timesheets" component={HrTimesheets} />
+                <Route path="/hr/indicators" component={HrIndicators} />
                 <Route path="/accounting/analytical" component={AccountingAnalytical} />
                 <Route path="/inventory/warehouses" component={InventoryWarehouses} />
 

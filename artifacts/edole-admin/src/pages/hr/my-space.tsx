@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
 import {
   User, CalendarDays, FolderArchive, Banknote, Phone, MapPin, Shield,
-  Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X
+  Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -257,11 +257,12 @@ export default function MySpacePage() {
         {/* Colonne droite : tabs */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="conges">
-            <TabsList className="w-full justify-start">
+            <TabsList className="w-full justify-start flex-wrap">
               <TabsTrigger value="conges" className="gap-1.5"><CalendarDays className="w-4 h-4" />Congés</TabsTrigger>
               <TabsTrigger value="soldes" className="gap-1.5"><CheckCircle2 className="w-4 h-4" />Soldes</TabsTrigger>
               <TabsTrigger value="bulletins" className="gap-1.5"><Banknote className="w-4 h-4" />Bulletins</TabsTrigger>
               <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents</TabsTrigger>
+              <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations</TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}
@@ -434,6 +435,43 @@ export default function MySpacePage() {
                       </tbody>
                     </table>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Attestations */}
+            <TabsContent value="attestations" className="mt-4">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Téléchargez vos attestations officielles au format PDF, signées et prêtes à remettre.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { type: "travail", label: "Attestation de travail", desc: "Certifie votre emploi actuel, poste et ancienneté", icon: "🏢" },
+                      { type: "salaire", label: "Attestation de salaire", desc: "Mentionne votre rémunération mensuelle brute/nette", icon: "💰" },
+                      { type: "presence", label: "Attestation de présence", desc: "Justifie votre présence active dans l'organisation", icon: "✅" },
+                    ].map(({ type, label, desc, icon }) => (
+                      <div key={type} className="border rounded-lg p-4 flex flex-col gap-3">
+                        <div className="text-2xl">{icon}</div>
+                        <div>
+                          <p className="font-semibold text-sm">{label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                        </div>
+                        <a
+                          href={`/api/hr/me/attestation/${type}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-auto"
+                        >
+                          <button className="w-full inline-flex items-center justify-center gap-2 text-xs font-medium border border-primary text-primary hover:bg-primary/5 rounded-md px-3 py-1.5 transition-colors">
+                            <Download className="w-3.5 h-3.5" />
+                            Télécharger PDF
+                          </button>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
