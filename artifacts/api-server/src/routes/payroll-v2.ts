@@ -1594,4 +1594,270 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
   } catch (e) { next(e); }
 });
 
+// ════════════════════════════════════════════════════════
+// RÉCAPITULATIF ANNUEL CNSS / IRPP
+// GET /api/payroll/declarations/annual?year=YYYY[&format=excel]
+// ════════════════════════════════════════════════════════
+router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const year = String(req.query.year ?? new Date().getFullYear());
+    if (!/^\d{4}$/.test(year)) {
+      return res.status(400).json({ error: "Paramètre year invalide (format YYYY attendu)" });
+    }
+
+    // Runs validés/payés de l'année
+    const runs = await db
+      .select({ id: payrollRunsTable.id, period: payrollRunsTable.period, status: payrollRunsTable.status })
+      .from(payrollRunsTable)
+      .where(
+        and(
+          eq(payrollRunsTable.organizationId, orgId),
+          sql`${payrollRunsTable.period} LIKE ${year + "-%"}`,
+          inArray(payrollRunsTable.status, ["validated", "paid"])
+        )
+      )
+      .orderBy(asc(payrollRunsTable.period));
+
+    if (runs.length === 0) {
+      return res.json({
+        year,
+        months: [],
+        cnss: { rows: [], totaux: { totalBrut: 0, totalSal: 0, totalPat: 0, totalCnss: 0 } },
+        irpp: { rows: [], totaux: { totalBrut: 0, totalCnssEmployee: 0, revImposableAnnuel: 0, irppTheorique: 0, irppVerse: 0, ecart: 0, totalIpts: 0, totalNet: 0 } },
+      });
+    }
+
+    const runIds = runs.map(r => r.id);
+    const months = runs.map(r => r.period);
+
+    // Tous les bulletins des runs sélectionnés
+    const payslips = await db
+      .select({
+        collaboratorId: payslipsTable.collaboratorId,
+        period: payslipsTable.period,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        cnssEmployer: payslipsTable.cnssEmployer,
+        irpp: payslipsTable.irpp,
+        ipts: payslipsTable.ipts,
+        netSalary: payslipsTable.netSalary,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        employeeNumber: collaboratorsTable.employeeNumber,
+        department: collaboratorsTable.department,
+        position: collaboratorsTable.position,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .where(inArray(payslipsTable.payrollRunId, runIds))
+      .orderBy(asc(collaboratorsTable.lastName), asc(payslipsTable.period));
+
+    // Grouper par collaborateur
+    type SlipRow = typeof payslips[0];
+    const byCollab = new Map<string, SlipRow[]>();
+    for (const p of payslips) {
+      if (!byCollab.has(p.collaboratorId)) byCollab.set(p.collaboratorId, []);
+      byCollab.get(p.collaboratorId)!.push(p);
+    }
+
+    type CnssAnnualRow = {
+      numero: number; matricule: string; nom: string; departement: string; poste: string;
+      moisTraites: number;
+      totalBrut: number; totalSal: number; totalPat: number; totalCnss: number;
+    };
+    type IrppAnnualRow = {
+      numero: number; matricule: string; nom: string; departement: string;
+      moisTraites: number;
+      totalBrut: number; totalCnssEmployee: number; revImposableAnnuel: number;
+      irppTheorique: number; irppVerse: number; ecart: number;
+      totalIpts: number; totalNet: number;
+    };
+
+    const cnssRows: CnssAnnualRow[] = [];
+    const irppRows: IrppAnnualRow[] = [];
+    let idx = 0;
+
+    for (const [, slips] of byCollab) {
+      idx++;
+      const first = slips[0];
+      const nom = `${first.lastName ?? ""} ${first.firstName ?? ""}`.trim();
+      const matricule = first.employeeNumber ?? `EMP-${String(idx).padStart(3, "0")}`;
+
+      let totalBrut = 0, totalSal = 0, totalPat = 0;
+      let totalCnssEmployee = 0, totalIrppVerse = 0, totalIpts = 0, totalNet = 0;
+
+      for (const p of slips) {
+        const brut = toNum(p.grossSalary);
+        const sal = toNum(p.cnssEmployee);
+        const pat = toNum(p.cnssEmployer);
+        totalBrut += brut;
+        totalSal += sal;
+        totalPat += pat;
+        totalCnssEmployee += sal;
+        totalIrppVerse += toNum(p.irpp);
+        totalIpts += toNum(p.ipts);
+        totalNet += toNum(p.netSalary);
+      }
+
+      const revImposableAnnuel = Math.max(0, totalBrut - totalCnssEmployee);
+      const irppTheorique = computeIrppAnnuel(revImposableAnnuel);
+      const ecart = irppTheorique - totalIrppVerse;
+
+      cnssRows.push({
+        numero: idx, matricule, nom,
+        departement: first.department ?? "",
+        poste: first.position ?? "",
+        moisTraites: slips.length,
+        totalBrut, totalSal, totalPat, totalCnss: totalSal + totalPat,
+      });
+
+      irppRows.push({
+        numero: idx, matricule, nom,
+        departement: first.department ?? "",
+        moisTraites: slips.length,
+        totalBrut, totalCnssEmployee, revImposableAnnuel,
+        irppTheorique, irppVerse: totalIrppVerse, ecart,
+        totalIpts, totalNet,
+      });
+    }
+
+    const cnssTotaux = {
+      totalBrut: cnssRows.reduce((s, r) => s + r.totalBrut, 0),
+      totalSal: cnssRows.reduce((s, r) => s + r.totalSal, 0),
+      totalPat: cnssRows.reduce((s, r) => s + r.totalPat, 0),
+      totalCnss: cnssRows.reduce((s, r) => s + r.totalCnss, 0),
+    };
+    const irppTotaux = {
+      totalBrut: irppRows.reduce((s, r) => s + r.totalBrut, 0),
+      totalCnssEmployee: irppRows.reduce((s, r) => s + r.totalCnssEmployee, 0),
+      revImposableAnnuel: irppRows.reduce((s, r) => s + r.revImposableAnnuel, 0),
+      irppTheorique: irppRows.reduce((s, r) => s + r.irppTheorique, 0),
+      irppVerse: irppRows.reduce((s, r) => s + r.irppVerse, 0),
+      ecart: irppRows.reduce((s, r) => s + r.ecart, 0),
+      totalIpts: irppRows.reduce((s, r) => s + r.totalIpts, 0),
+      totalNet: irppRows.reduce((s, r) => s + r.totalNet, 0),
+    };
+
+    if (req.query.format === "excel") {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "Gaméasù";
+      wb.created = new Date();
+
+      // ── Onglet CNSS ──────────────────────────────────────────────
+      const wsCnss = wb.addWorksheet("CNSS Annuel");
+      wsCnss.columns = [
+        { key: "numero", width: 6 }, { key: "matricule", width: 16 },
+        { key: "nom", width: 30 }, { key: "departement", width: 22 },
+        { key: "poste", width: 22 }, { key: "moisTraites", width: 14 },
+        { key: "totalBrut", width: 24 }, { key: "totalSal", width: 24 },
+        { key: "totalPat", width: 24 }, { key: "totalCnss", width: 24 },
+      ];
+
+      wsCnss.mergeCells("A1:J1");
+      const cnssTitle = wsCnss.getCell("A1");
+      cnssTitle.value = `RÉCAPITULATIF ANNUEL CNSS — Exercice ${year}`;
+      cnssTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      cnssTitle.alignment = { horizontal: "center", vertical: "middle" };
+      wsCnss.getRow(1).height = 28;
+
+      wsCnss.mergeCells("A2:J2");
+      wsCnss.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Taux salarié : 4 % | Taux patronal : 16,4 %`;
+      wsCnss.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
+      wsCnss.getCell("A2").alignment = { horizontal: "center" };
+      wsCnss.getRow(2).height = 18;
+      wsCnss.addRow([]);
+
+      const cnssHdr = wsCnss.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Mois traités", "Cumul Brut", "Cotis. Salariales (4%)", "Cotis. Patronales (16,4%)", "Total CNSS"]);
+      applyHeaderStyle(cnssHdr);
+
+      for (const r of cnssRows) {
+        const dr = wsCnss.addRow([r.numero, r.matricule, r.nom, r.departement, r.poste, r.moisTraites, formatFcfaCell(r.totalBrut), formatFcfaCell(r.totalSal), formatFcfaCell(r.totalPat), formatFcfaCell(r.totalCnss)]);
+        dr.height = 18;
+        dr.eachCell((cell, col) => {
+          cell.border = { top: { style: "hair" }, bottom: { style: "hair" }, left: { style: "hair" }, right: { style: "hair" } };
+          if (col >= 7) cell.alignment = { horizontal: "right" };
+          if (dr.number % 2 === 0) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+        });
+      }
+
+      const cTot = wsCnss.addRow(["", "", `TOTAL (${cnssRows.length} employé${cnssRows.length !== 1 ? "s" : ""})`, "", "", months.length, formatFcfaCell(cnssTotaux.totalBrut), formatFcfaCell(cnssTotaux.totalSal), formatFcfaCell(cnssTotaux.totalPat), formatFcfaCell(cnssTotaux.totalCnss)]);
+      cTot.height = 20;
+      cTot.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
+      });
+
+      // ── Onglet IRPP ──────────────────────────────────────────────
+      const wsIrpp = wb.addWorksheet("IRPP Annuel");
+      wsIrpp.columns = [
+        { key: "numero", width: 6 }, { key: "matricule", width: 16 },
+        { key: "nom", width: 30 }, { key: "departement", width: 22 },
+        { key: "moisTraites", width: 14 }, { key: "totalBrut", width: 24 },
+        { key: "totalCnssEmployee", width: 24 }, { key: "revImposableAnnuel", width: 26 },
+        { key: "irppTheorique", width: 26 }, { key: "irppVerse", width: 24 },
+        { key: "ecart", width: 20 }, { key: "totalIpts", width: 20 },
+        { key: "totalNet", width: 24 },
+      ];
+
+      wsIrpp.mergeCells("A1:M1");
+      const irppTitle = wsIrpp.getCell("A1");
+      irppTitle.value = `RÉCAPITULATIF ANNUEL IRPP — Exercice ${year}`;
+      irppTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      irppTitle.alignment = { horizontal: "center", vertical: "middle" };
+      wsIrpp.getRow(1).height = 28;
+
+      wsIrpp.mergeCells("A2:M2");
+      wsIrpp.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Barème progressif SYSCOHADA Togo`;
+      wsIrpp.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
+      wsIrpp.getCell("A2").alignment = { horizontal: "center" };
+      wsIrpp.getRow(2).height = 18;
+      wsIrpp.addRow([]);
+
+      const irppHdr = wsIrpp.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Mois traités", "Cumul Brut", "CNSS Salarié", "Rev. Imposable Annuel", "IRPP Théorique (barème)", "IRPP Versé", "Écart", "IPTS Total", "Net Cumulé"]);
+      applyHeaderStyle(irppHdr);
+
+      for (const r of irppRows) {
+        const dr = wsIrpp.addRow([r.numero, r.matricule, r.nom, r.departement, r.moisTraites, formatFcfaCell(r.totalBrut), formatFcfaCell(r.totalCnssEmployee), formatFcfaCell(r.revImposableAnnuel), formatFcfaCell(r.irppTheorique), formatFcfaCell(r.irppVerse), formatFcfaCell(r.ecart), formatFcfaCell(r.totalIpts), formatFcfaCell(r.totalNet)]);
+        dr.height = 18;
+        dr.eachCell((cell, col) => {
+          cell.border = { top: { style: "hair" }, bottom: { style: "hair" }, left: { style: "hair" }, right: { style: "hair" } };
+          if (col >= 6) cell.alignment = { horizontal: "right" };
+          if (dr.number % 2 === 0) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+        });
+      }
+
+      const iTot = wsIrpp.addRow(["", "", `TOTAL (${irppRows.length} employé${irppRows.length !== 1 ? "s" : ""})`, "", months.length, formatFcfaCell(irppTotaux.totalBrut), formatFcfaCell(irppTotaux.totalCnssEmployee), formatFcfaCell(irppTotaux.revImposableAnnuel), formatFcfaCell(irppTotaux.irppTheorique), formatFcfaCell(irppTotaux.irppVerse), formatFcfaCell(irppTotaux.ecart), formatFcfaCell(irppTotaux.totalIpts), formatFcfaCell(irppTotaux.totalNet)]);
+      iTot.height = 20;
+      iTot.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
+      });
+
+      // ── Onglet Barème IRPP ────────────────────────────────────────
+      const wsBar = wb.addWorksheet("Barème IRPP");
+      wsBar.columns = [{ key: "de", width: 22 }, { key: "a", width: 22 }, { key: "taux", width: 12 }];
+      const barHdr = wsBar.addRow(["De (XOF/an)", "À (XOF/an)", "Taux"]);
+      applyHeaderStyle(barHdr);
+      for (const t of IRPP_TRANCHES) {
+        wsBar.addRow([t.de.toLocaleString("fr-FR"), t.a ? t.a.toLocaleString("fr-FR") : "Illimité", `${(t.taux * 100).toFixed(0)} %`]);
+      }
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="Recapitulatif_Annuel_CNSS_IRPP_${year}.xlsx"`);
+      await wb.xlsx.write(res);
+      return res.end();
+    }
+
+    res.json({
+      year,
+      months,
+      cnss: { rows: cnssRows, totaux: cnssTotaux },
+      irpp: { rows: irppRows, totaux: irppTotaux },
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;

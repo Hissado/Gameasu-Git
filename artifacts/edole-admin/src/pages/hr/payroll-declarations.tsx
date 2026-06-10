@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   Download, FileText, Building2, Percent, Users, ArrowLeft,
   CheckCircle, ChevronRight, RefreshCw, Info,
-  Send, Clock, ShieldCheck, XCircle, Calendar,
+  Send, Clock, ShieldCheck, XCircle, Calendar, BarChart3,
 } from "lucide-react";
 
 const API = "/api";
@@ -76,6 +76,31 @@ type IrppData = {
   bareme: Array<{ de: number; a: number | null; taux: number }>;
   rows: IrppRow[];
   totaux: { totalBrut: number; totalRevImposable: number; totalIrpp: number; totalIpts: number; totalNet: number };
+};
+
+type AnnualCnssRow = {
+  numero: number; matricule: string; nom: string; departement: string; poste: string;
+  moisTraites: number;
+  totalBrut: number; totalSal: number; totalPat: number; totalCnss: number;
+};
+type AnnualIrppRow = {
+  numero: number; matricule: string; nom: string; departement: string;
+  moisTraites: number;
+  totalBrut: number; totalCnssEmployee: number; revImposableAnnuel: number;
+  irppTheorique: number; irppVerse: number; ecart: number;
+  totalIpts: number; totalNet: number;
+};
+type AnnualData = {
+  year: string;
+  months: string[];
+  cnss: {
+    rows: AnnualCnssRow[];
+    totaux: { totalBrut: number; totalSal: number; totalPat: number; totalCnss: number };
+  };
+  irpp: {
+    rows: AnnualIrppRow[];
+    totaux: { totalBrut: number; totalCnssEmployee: number; revImposableAnnuel: number; irppTheorique: number; irppVerse: number; ecart: number; totalIpts: number; totalNet: number };
+  };
 };
 
 const STATUS_LABEL: Record<string, string> = { draft: "Brouillon", validated: "Validé", paid: "Payé", archived: "Archivé" };
@@ -291,12 +316,299 @@ function DeclStatusRow({ decl, typeLabel, onSubmit, onValidate }: {
   );
 }
 
+// ════════════════════════════════════════════════════════
+// COMPOSANT VUE ANNUELLE
+// ════════════════════════════════════════════════════════
+type AnnualViewProps = {
+  selectedYear: number;
+  onYearChange: (y: number) => void;
+  annualData: AnnualData | null;
+  isLoading: boolean;
+  annualTab: "cnss" | "irpp";
+  onTabChange: (t: "cnss" | "irpp") => void;
+};
+
+function AnnualView({ selectedYear, onYearChange, annualData, isLoading, annualTab, onTabChange }: AnnualViewProps) {
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  const cnss = annualData?.cnss;
+  const irpp = annualData?.irpp;
+  const months = annualData?.months ?? [];
+
+  return (
+    <div className="space-y-5">
+      {/* ─── Sélecteur d'année + export ─── */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium text-muted-foreground">Exercice :</span>
+          <div className="flex gap-2">
+            {yearOptions.map(y => (
+              <button
+                key={y}
+                onClick={() => onYearChange(y)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                  selectedYear === y
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                }`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!annualData || months.length === 0}
+          onClick={() => downloadExcel(`${API}/payroll/declarations/annual?year=${selectedYear}&format=excel`, `Recapitulatif_Annuel_CNSS_IRPP_${selectedYear}.xlsx`)}
+        >
+          <Download className="w-4 h-4 mr-1" />Export Excel annuel
+        </Button>
+      </div>
+
+      {/* ─── KPIs annuels ─── */}
+      {annualData && months.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Mois traités", value: `${months.length} / 12`, icon: Calendar, color: "text-blue-600 bg-blue-50" },
+            { label: "Masse brute cumulée", value: formatFCFA(cnss?.totaux.totalBrut ?? 0), icon: Building2, color: "text-orange-600 bg-orange-50" },
+            { label: "CNSS total (sal. + pat.)", value: formatFCFA(cnss?.totaux.totalCnss ?? 0), icon: Building2, color: "text-purple-600 bg-purple-50" },
+            { label: "IRPP total versé", value: formatFCFA(irpp?.totaux.irppVerse ?? 0), icon: Percent, color: "text-red-600 bg-red-50" },
+          ].map(k => (
+            <Card key={k.label}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.color}`}>
+                    <k.icon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground truncate">{k.label}</p>
+                    <p className="text-base font-bold truncate">{k.value}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* ─── État vide ─── */}
+      {isLoading && (
+        <div className="py-16 text-center text-muted-foreground">Calcul en cours…</div>
+      )}
+      {!isLoading && annualData && months.length === 0 && (
+        <div className="flex flex-col items-center py-16 gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+            <BarChart3 className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold">Aucune donnée pour {selectedYear}</h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Aucun cycle de paie validé ou payé n'a été trouvé pour l'exercice {selectedYear}.
+          </p>
+        </div>
+      )}
+
+      {/* ─── Onglets CNSS / IRPP ─── */}
+      {!isLoading && annualData && months.length > 0 && (
+        <>
+          <div className="border-b border-border">
+            <nav className="flex gap-1 -mb-px">
+              {(["cnss", "irpp"] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => onTabChange(tab)}
+                  className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    annualTab === tab
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {tab === "cnss" ? "CNSS — Cotisations annuelles" : "IRPP — Impôt annuel & barème"}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* ─── Tableau CNSS annuel ─── */}
+          {annualTab === "cnss" && cnss && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3 text-sm text-blue-800">
+                <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>Cumul annuel des cotisations CNSS par collaborateur sur <strong>{months.length} mois</strong> ({months[0]} → {months[months.length - 1]}). Taux salarié 4 % | Taux patronal 16,4 %.</span>
+              </div>
+              <div className="rounded-xl border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-3 py-3 text-left">N°</th>
+                      <th className="px-3 py-3 text-left">Matricule</th>
+                      <th className="px-3 py-3 text-left">Nom & Prénom</th>
+                      <th className="px-3 py-3 text-left">Département</th>
+                      <th className="px-3 py-3 text-right">Mois traités</th>
+                      <th className="px-3 py-3 text-right">Cumul Brut</th>
+                      <th className="px-3 py-3 text-right">Cotis. Salariales (4%)</th>
+                      <th className="px-3 py-3 text-right">Cotis. Patronales (16,4%)</th>
+                      <th className="px-3 py-3 text-right font-semibold text-foreground">Total CNSS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cnss.rows.map(r => (
+                      <tr key={r.numero} className="border-t hover:bg-muted/20">
+                        <td className="px-3 py-2.5 text-muted-foreground">{r.numero}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs">{r.matricule}</td>
+                        <td className="px-3 py-2.5 font-medium">{r.nom}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground text-xs">{r.departement}</td>
+                        <td className="px-3 py-2.5 text-right text-muted-foreground">{r.moisTraites}</td>
+                        <td className="px-3 py-2.5 text-right">{formatFCFA(r.totalBrut)}</td>
+                        <td className="px-3 py-2.5 text-right text-amber-700">{formatFCFA(r.totalSal)}</td>
+                        <td className="px-3 py-2.5 text-right text-purple-700">{formatFCFA(r.totalPat)}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold">{formatFCFA(r.totalCnss)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 bg-orange-50/60">
+                      <td colSpan={5} className="px-3 py-3 font-bold text-sm">
+                        TOTAL — {cnss.rows.length} employé{cnss.rows.length > 1 ? "s" : ""}
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold">{formatFCFA(cnss.totaux.totalBrut)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-amber-700">{formatFCFA(cnss.totaux.totalSal)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-purple-700">{formatFCFA(cnss.totaux.totalPat)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary text-base">{formatFCFA(cnss.totaux.totalCnss)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[
+                  { label: "Cotisations salariales cumulées (4%)", value: cnss.totaux.totalSal, color: "text-amber-700 bg-amber-50 border-amber-200" },
+                  { label: "Cotisations patronales cumulées (16,4%)", value: cnss.totaux.totalPat, color: "text-purple-700 bg-purple-50 border-purple-200" },
+                  { label: "Total CNSS à verser — exercice", value: cnss.totaux.totalCnss, color: "text-primary bg-primary/5 border-primary/20" },
+                ].map(s => (
+                  <Card key={s.label} className={`border ${s.color}`}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium mb-1">{s.label}</p>
+                      <p className="text-lg font-bold">{formatFCFA(s.value)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── Tableau IRPP annuel ─── */}
+          {annualTab === "irpp" && irpp && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3 text-sm text-amber-800">
+                <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  Revenu imposable annuel réel = cumul brut – cumul CNSS salarié. L'<strong>IRPP théorique</strong> est recalculé d'après le barème annuel SYSCOHADA. L'<strong>écart</strong> signale un sur- ou sous-versement mensuel.
+                </span>
+              </div>
+              <div className="rounded-xl border overflow-auto">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-3 py-3 text-left">N°</th>
+                      <th className="px-3 py-3 text-left">Matricule</th>
+                      <th className="px-3 py-3 text-left">Nom & Prénom</th>
+                      <th className="px-3 py-3 text-right">Mois</th>
+                      <th className="px-3 py-3 text-right">Cumul Brut</th>
+                      <th className="px-3 py-3 text-right">CNSS Sal.</th>
+                      <th className="px-3 py-3 text-right">Rev. Imposable</th>
+                      <th className="px-3 py-3 text-right">IRPP Théorique</th>
+                      <th className="px-3 py-3 text-right font-semibold text-foreground">IRPP Versé</th>
+                      <th className="px-3 py-3 text-right">Écart</th>
+                      <th className="px-3 py-3 text-right">IPTS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {irpp.rows.map(r => {
+                      const ecartPositif = r.ecart > 0;
+                      const ecartNegatif = r.ecart < 0;
+                      return (
+                        <tr key={r.numero} className="border-t hover:bg-muted/20">
+                          <td className="px-3 py-2.5 text-muted-foreground">{r.numero}</td>
+                          <td className="px-3 py-2.5 font-mono text-xs">{r.matricule}</td>
+                          <td className="px-3 py-2.5 font-medium">{r.nom}</td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">{r.moisTraites}</td>
+                          <td className="px-3 py-2.5 text-right">{formatFCFA(r.totalBrut)}</td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">{formatFCFA(r.totalCnssEmployee)}</td>
+                          <td className="px-3 py-2.5 text-right">{formatFCFA(r.revImposableAnnuel)}</td>
+                          <td className="px-3 py-2.5 text-right text-blue-700">{formatFCFA(r.irppTheorique)}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold text-red-700">{formatFCFA(r.irppVerse)}</td>
+                          <td className={`px-3 py-2.5 text-right font-medium text-xs ${ecartPositif ? "text-amber-700" : ecartNegatif ? "text-emerald-700" : "text-muted-foreground"}`}>
+                            {r.ecart === 0 ? "—" : `${ecartPositif ? "+" : ""}${formatFCFA(r.ecart)}`}
+                          </td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">{formatFCFA(r.totalIpts)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 bg-orange-50/60">
+                      <td colSpan={4} className="px-3 py-3 font-bold text-sm">
+                        TOTAL — {irpp.rows.length} employé{irpp.rows.length > 1 ? "s" : ""}
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold">{formatFCFA(irpp.totaux.totalBrut)}</td>
+                      <td className="px-3 py-3 text-right font-bold">{formatFCFA(irpp.totaux.totalCnssEmployee)}</td>
+                      <td className="px-3 py-3 text-right font-bold">{formatFCFA(irpp.totaux.revImposableAnnuel)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-blue-700">{formatFCFA(irpp.totaux.irppTheorique)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-red-700 text-base">{formatFCFA(irpp.totaux.irppVerse)}</td>
+                      <td className={`px-3 py-3 text-right font-bold text-sm ${irpp.totaux.ecart > 0 ? "text-amber-700" : irpp.totaux.ecart < 0 ? "text-emerald-700" : "text-muted-foreground"}`}>
+                        {irpp.totaux.ecart === 0 ? "—" : `${irpp.totaux.ecart > 0 ? "+" : ""}${formatFCFA(irpp.totaux.ecart)}`}
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold">{formatFCFA(irpp.totaux.totalIpts)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Rev. imposable annuel cumulé", value: irpp.totaux.revImposableAnnuel, color: "text-blue-700 bg-blue-50 border-blue-200" },
+                  { label: "IRPP théorique (barème)", value: irpp.totaux.irppTheorique, color: "text-blue-700 bg-blue-50 border-blue-200" },
+                  { label: "IRPP total versé à l'OTR", value: irpp.totaux.irppVerse, color: "text-red-700 bg-red-50 border-red-200" },
+                  { label: "IPTS total (2%)", value: irpp.totaux.totalIpts, color: "text-amber-700 bg-amber-50 border-amber-200" },
+                ].map(s => (
+                  <Card key={s.label} className={`border ${s.color}`}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium mb-1">{s.label}</p>
+                      <p className="text-lg font-bold">{formatFCFA(s.value)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {irpp.totaux.ecart !== 0 && (
+                <div className={`rounded-lg border px-4 py-3 flex items-start gap-3 text-sm ${irpp.totaux.ecart > 0 ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
+                  <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                  {irpp.totaux.ecart > 0 ? (
+                    <span><strong>Écart positif de {formatFCFA(irpp.totaux.ecart)} :</strong> L'IRPP théorique selon le barème annuel dépasse les versements mensuels. Un régularisation peut être nécessaire lors de la clôture.</span>
+                  ) : (
+                    <span><strong>Écart négatif de {formatFCFA(Math.abs(irpp.totaux.ecart))} :</strong> Les versements mensuels dépassent l'IRPP théorique annuel. Un remboursement peut être dû au collaborateur.</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function PayrollDeclarations() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [view, setView] = useState<"mensuel" | "annuel">("mensuel");
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"cnss" | "irpp">("cnss");
+  const [annualTab, setAnnualTab] = useState<"cnss" | "irpp">("cnss");
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [submitDialog, setSubmitDialog] = useState<{
     decl: TaxDeclaration;
@@ -329,6 +641,12 @@ export default function PayrollDeclarations() {
     queryKey: ["tax-declarations", period],
     queryFn: () => fetchJSON(`${API}/hr/tax-declarations?period=${period}`),
     enabled: !!period,
+  });
+
+  const { data: annualData, isLoading: annualLoading } = useQuery<AnnualData>({
+    queryKey: ["annual-declarations", selectedYear],
+    queryFn: () => fetchJSON(`${API}/payroll/declarations/annual?year=${selectedYear}`),
+    enabled: view === "annuel",
   });
 
   const cnssDecl = taxDecls.find(d => d.type === "cnss");
@@ -418,8 +736,47 @@ export default function PayrollDeclarations() {
   })();
 
   return (
-    <HrShell title="Déclarations fiscales" subtitle="États mensuels CNSS et IRPP — génération automatique depuis les bulletins validés">
+    <HrShell title="Déclarations fiscales" subtitle={view === "annuel" ? "Récapitulatif annuel CNSS/IRPP — clôture fiscale" : "États mensuels CNSS et IRPP — génération automatique depuis les bulletins validés"}>
       <div className="space-y-6">
+
+        {/* ─── Bascule Vue mensuelle / Vue annuelle ─── */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView("mensuel")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+              view === "mensuel"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />Vue mensuelle
+          </button>
+          <button
+            onClick={() => setView("annuel")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+              view === "annuel"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />Vue annuelle
+          </button>
+        </div>
+
+        {/* ════════════════════ VUE ANNUELLE ════════════════════ */}
+        {view === "annuel" && (
+          <AnnualView
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            annualData={annualData ?? null}
+            isLoading={annualLoading}
+            annualTab={annualTab}
+            onTabChange={setAnnualTab}
+          />
+        )}
+
+        {/* ════════════════════ VUE MENSUELLE ══════════════════ */}
+        {view === "mensuel" && <>
 
         {/* ─── Sélecteur de cycle ─── */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -834,6 +1191,7 @@ export default function PayrollDeclarations() {
             ) : null}
           </div>
         )}
+        </>}
       </div>
 
       <SubmitDialog
