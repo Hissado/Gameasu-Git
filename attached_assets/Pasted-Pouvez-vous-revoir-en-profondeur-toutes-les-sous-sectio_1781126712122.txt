@@ -1,0 +1,99 @@
+Pouvez-vous revoir en profondeur toutes les sous-sections du module **Équipe & Communication** afin de vérifier s’il reste encore des termes anglais dans l’interface, les boutons, les tableaux, les messages, les filtres, les formulaires ou les écrans internes ?
+
+### Sections à vérifier
+
+Merci de contrôler toutes les sous-sections suivantes :
+
+* **Présences & Pointage**
+* **Kiosks de pointage**
+* **Messagerie**
+* **Appels**
+* et toutes les pages, vues détaillées, formulaires, modales et composants liés au module **Équipe & Communication**
+
+### Objectif
+
+Je veux que toute cette partie de l’application soit entièrement en **français professionnel**, sans termes anglais visibles pour l’utilisateur final.
+
+### Ce qu’il faut vérifier
+
+Merci de parcourir chaque écran et de vérifier notamment :
+
+* titres de pages
+* noms des sections
+* boutons
+* menus déroulants
+* filtres
+* colonnes de tableaux
+* statuts
+* messages de confirmation
+* messages d’erreur
+* notifications
+* placeholders
+* formulaires
+* libellés de champs
+* cartes statistiques
+* modales
+* toasts
+* actions rapides
+* menus contextuels
+* pages de détail
+* écrans de création et modification
+
+### Termes anglais à corriger
+
+Merci de remplacer tous les termes anglais restants, par exemple :
+
+* `Clock in` → **Pointage à l’arrivée**
+* `Clock out` → **Pointage au départ**
+* `Break start` → **Début de pause**
+* `Break end` → **Fin de pause / reprise**
+* `Status` → **Statut**
+* `Actions` → **Actions** ou **Options**
+* `Created at` → **Créé le**
+* `Updated at` → **Mis à jour le**
+* `Employee` → **Collaborateur**
+* `Manager` → **Responsable**
+* `Message` → **Message**
+* `Call` → **Appel**
+* `Attendance` → **Présence**
+* `Kiosk` → **Kiosque de pointage**
+* `Settings` → **Paramètres**
+* `Submit` → **Soumettre**
+* `Cancel` → **Annuler**
+* `Save` → **Enregistrer**
+* `Delete` → **Supprimer**
+
+### Important
+
+Ne vous limitez pas seulement à la navigation principale.
+Merci de vérifier aussi :
+
+* les vues internes
+* les pages de détail
+* les formulaires de création
+* les formulaires de modification
+* les messages automatiques
+* les données de démonstration
+* les badges de statut
+* les colonnes techniques visibles
+* les labels venant de la base de données
+* les composants réutilisables
+* les textes affichés après une action utilisateur
+
+### Logique attendue
+
+L’application peut garder les noms techniques en anglais dans le code si nécessaire, mais **tout ce qui est visible à l’utilisateur doit être en français**.
+
+### Résultat attendu
+
+Je veux un module **Équipe & Communication** entièrement francisé, propre et professionnel, avec une terminologie cohérente dans :
+
+* Présences & Pointage
+* Kiosks de pointage
+* Messagerie
+* Appels
+* tous les écrans liés à ces sous-sections
+
+### Objectif final
+
+Rendre le module **Équipe & Communication** plus cohérent, plus professionnel et totalement adapté à une application SaaS francophone premium.
