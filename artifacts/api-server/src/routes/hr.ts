@@ -1030,6 +1030,8 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
       // Champs coût employeur
       employerChargeRate, transportAllowance, housingAllowance, mealAllowance,
       otherBenefitsMonthly, weeklyHours,
+      // Coordonnées bancaires
+      bankName, bankCode, bankAccountNumber,
     } = req.body;
 
     const updateData: Record<string, unknown> = {
@@ -1063,6 +1065,34 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
     if (housingAllowance   !== undefined) updateData.housingAllowance   = housingAllowance   != null ? String(housingAllowance)   : "0";
     if (mealAllowance      !== undefined) updateData.mealAllowance      = mealAllowance      != null ? String(mealAllowance)      : "0";
     if (otherBenefitsMonthly !== undefined) updateData.otherBenefitsMonthly = otherBenefitsMonthly != null ? String(otherBenefitsMonthly) : "0";
+    // Coordonnées bancaires : validation + persistance (manager+)
+    if (bankName !== undefined) {
+      if (bankName !== null && bankName !== "" && typeof bankName !== "string") {
+        res.status(400).json({ error: "bankName doit être une chaîne de caractères" }); return;
+      }
+      if (typeof bankName === "string" && bankName.length > 100) {
+        res.status(400).json({ error: "bankName ne peut pas dépasser 100 caractères" }); return;
+      }
+      updateData.bankName = bankName || null;
+    }
+    if (bankCode !== undefined) {
+      if (bankCode !== null && bankCode !== "" && typeof bankCode !== "string") {
+        res.status(400).json({ error: "bankCode doit être une chaîne de caractères" }); return;
+      }
+      if (typeof bankCode === "string" && bankCode !== "" && !/^\d{3}$/.test(bankCode)) {
+        res.status(400).json({ error: "bankCode doit être un code BCEAO à 3 chiffres (ex : 024)" }); return;
+      }
+      updateData.bankCode = bankCode || null;
+    }
+    if (bankAccountNumber !== undefined) {
+      if (bankAccountNumber !== null && bankAccountNumber !== "" && typeof bankAccountNumber !== "string") {
+        res.status(400).json({ error: "bankAccountNumber doit être une chaîne de caractères" }); return;
+      }
+      if (typeof bankAccountNumber === "string" && bankAccountNumber.length > 50) {
+        res.status(400).json({ error: "bankAccountNumber ne peut pas dépasser 50 caractères" }); return;
+      }
+      updateData.bankAccountNumber = bankAccountNumber || null;
+    }
 
     const [collab] = await db.update(collaboratorsTable)
       .set(updateData as any)

@@ -22,7 +22,7 @@ import {
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
-  FileText, Download,
+  FileText, Download, Landmark,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -72,6 +72,10 @@ type EditForm = {
   ecPhone: string;
   ecRelation: string;
   avatarUrl: string;
+  // Coordonnées bancaires
+  bankName: string;
+  bankCode: string;
+  bankAccountNumber: string;
 };
 
 type EmployerCost = {
@@ -229,6 +233,10 @@ function EditCollaboratorDialog({
           employmentStatus: data.employmentStatus,
           isAvailable: data.isAvailable,
           avatarUrl: data.avatarUrl || null,
+          // Coordonnées bancaires
+          bankName: data.bankName || null,
+          bankCode: data.bankCode || null,
+          bankAccountNumber: data.bankAccountNumber || null,
           ...(canEditSalary && {
             baseSalary: data.baseSalary ? Number(data.baseSalary) : null,
             employerChargeRate: data.employerChargeRate ? Number(data.employerChargeRate) : 18.4,
@@ -311,7 +319,7 @@ function EditCollaboratorDialog({
         </div>
 
         <Tabs defaultValue="identity">
-          <TabsList className="grid grid-cols-4 w-full mb-4">
+          <TabsList className="grid grid-cols-5 w-full mb-4">
             <TabsTrigger value="identity" className="flex items-center gap-1.5 text-xs">
               <User className="w-3.5 h-3.5" />Identité
             </TabsTrigger>
@@ -320,6 +328,9 @@ function EditCollaboratorDialog({
             </TabsTrigger>
             <TabsTrigger value="salary" className="flex items-center gap-1.5 text-xs" disabled={!canEditSalary}>
               <DollarSign className="w-3.5 h-3.5" />Rémunération
+            </TabsTrigger>
+            <TabsTrigger value="bank" className="flex items-center gap-1.5 text-xs">
+              <Landmark className="w-3.5 h-3.5" />Banque
             </TabsTrigger>
             <TabsTrigger value="emergency" className="flex items-center gap-1.5 text-xs">
               <AlertCircle className="w-3.5 h-3.5" />Urgence
@@ -579,7 +590,48 @@ function EditCollaboratorDialog({
             )}
           </TabsContent>
 
-          {/* TAB 4 — Contact d'urgence */}
+          {/* TAB 4 — Coordonnées bancaires */}
+          <TabsContent value="bank" className="space-y-4">
+            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-blue-800 text-xs">
+              <Landmark className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>Ces informations sont utilisées pour générer les ordres de virement de salaire (format BCEAO/UEMOA).</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bankName">Nom de la banque</Label>
+              <Input
+                id="bankName"
+                value={form.bankName}
+                onChange={e => set("bankName", e.target.value)}
+                placeholder="ex : Ecobank Togo, BTCI, SGBF…"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="bankCode">Code banque BCEAO</Label>
+                <Input
+                  id="bankCode"
+                  value={form.bankCode}
+                  onChange={e => set("bankCode", e.target.value)}
+                  placeholder="ex : 024"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">Code à 3 chiffres attribué par la BCEAO (ex : 024 = Ecobank Togo).</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bankAccountNumber">Numéro de compte</Label>
+                <Input
+                  id="bankAccountNumber"
+                  value={form.bankAccountNumber}
+                  onChange={e => set("bankAccountNumber", e.target.value)}
+                  placeholder="ex : TG53 TG007 0100 0XXX…"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">Numéro de compte ou IBAN UEMOA.</p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* TAB 5 — Contact d'urgence */}
           <TabsContent value="emergency" className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="ecName">Nom complet</Label>
@@ -728,6 +780,9 @@ export default function CollaboratorDetail() {
       ecPhone: ec?.phone || "",
       ecRelation: ec?.relation || "",
       avatarUrl: c?.avatarUrl || "",
+      bankName: c?.bankName || "",
+      bankCode: c?.bankCode || "",
+      bankAccountNumber: c?.bankAccountNumber || "",
     };
   };
 
@@ -873,6 +928,22 @@ export default function CollaboratorDetail() {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Contact d'urgence</p>
                 <p className="text-sm font-medium">{(collaborator as any).emergencyContact.name}</p>
                 <p className="text-xs text-muted-foreground">{(collaborator as any).emergencyContact.phone} · {(collaborator as any).emergencyContact.relation}</p>
+              </div>
+            )}
+            {/* Coordonnées bancaires */}
+            {isManagerOrAbove && ((collaborator as any).bankName || (collaborator as any).bankAccountNumber) && (
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Landmark className="w-3 h-3" /> Coordonnées bancaires
+                </p>
+                {(collaborator as any).bankName && (
+                  <p className="text-sm font-medium">{(collaborator as any).bankName}
+                    {(collaborator as any).bankCode && <span className="text-muted-foreground font-normal text-xs ml-1.5">(code {(collaborator as any).bankCode})</span>}
+                  </p>
+                )}
+                {(collaborator as any).bankAccountNumber && (
+                  <p className="text-xs font-mono text-muted-foreground mt-0.5">{(collaborator as any).bankAccountNumber}</p>
+                )}
               </div>
             )}
             {/* Kiosk code */}
