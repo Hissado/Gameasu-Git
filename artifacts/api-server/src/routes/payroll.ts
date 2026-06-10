@@ -96,12 +96,20 @@ router.post("/payroll/runs", requireManagerOrAbove, async (req, res, next) => {
     if (!period || !/^\d{4}-\d{2}$/.test(period)) {
       res.status(400).json({ error: "La période doit être au format YYYY-MM" }); return;
     }
+    // Vérifier qu'il n'existe pas déjà un run pour cette période/org
+    const [existing] = await db.select({ id: payrollRunsTable.id })
+      .from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.period, period)))
+      .limit(1);
+    if (existing) {
+      res.status(409).json({ error: `Un cycle de paie pour la période ${period} existe déjà.` }); return;
+    }
     const [run] = await db.insert(payrollRunsTable).values({
       organizationId: orgId,
       period,
-      notes,
-      runDate,
-      paymentDate,
+      notes: notes || null,
+      runDate: runDate || undefined,
+      paymentDate: paymentDate || undefined,
       createdById: req.authUser!.id,
     }).returning();
     res.status(201).json(run);
