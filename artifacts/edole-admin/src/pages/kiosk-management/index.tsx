@@ -67,7 +67,7 @@ function KioskDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
-      toast.success("Kiosk créé");
+      toast.success("Kiosque créé");
       onClose();
     },
     onError: () => toast.error("Erreur lors de la création"),
@@ -82,7 +82,7 @@ function KioskDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
-      toast.success("Kiosk mis à jour");
+      toast.success("Kiosque mis à jour");
       onClose();
     },
     onError: () => toast.error("Erreur lors de la mise à jour"),
@@ -108,7 +108,7 @@ function KioskDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{kiosk ? "Modifier le kiosk" : "Nouveau kiosk"}</DialogTitle>
+          <DialogTitle>{kiosk ? "Modifier le kiosque" : "Nouveau kiosque"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1">
@@ -155,7 +155,7 @@ function KioskCodeCell({ collaborator, onUpdate }: { collaborator: Collaborator;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kioskCode: trimmed || null }),
       });
-      toast.success("Code kiosk mis à jour");
+      toast.success("Code kiosque mis à jour");
       setEditing(false);
       onUpdate();
     } catch {
@@ -256,7 +256,7 @@ export default function KioskManagementPage() {
     const url = `${window.location.origin}/kiosk/?token=${token}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId("url-" + id);
-      toast.success("URL kiosk copiée !");
+      toast.success("URL kiosque copiée !");
       setTimeout(() => setCopiedId(null), 2000);
     });
   };
@@ -272,21 +272,21 @@ export default function KioskManagementPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <MonitorSmartphone className="w-7 h-7 text-primary" />
-            Gestion des kiosks
+            Gestion des kiosques
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Bornes de pointage tablet — configurez et gérez vos kiosks de présence
+            Bornes de pointage tablette — configurez et gérez vos kiosques de présence
           </p>
         </div>
         <Button onClick={() => { setEditingKiosk(null); setDialogOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> Nouveau kiosk
+          <Plus className="w-4 h-4 mr-2" /> Nouveau kiosque
         </Button>
       </div>
 
       <Tabs defaultValue="kiosks">
         <TabsList>
           <TabsTrigger value="kiosks" className="flex items-center gap-1.5">
-            <MonitorSmartphone className="w-4 h-4" /> Kiosks ({kiosks.length})
+            <MonitorSmartphone className="w-4 h-4" /> Kiosques ({kiosks.length})
           </TabsTrigger>
           <TabsTrigger value="codes" className="flex items-center gap-1.5">
             <Key className="w-4 h-4" /> Codes collaborateurs
@@ -306,12 +306,12 @@ export default function KioskManagementPage() {
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <MonitorSmartphone className="w-12 h-12 text-muted-foreground/40 mb-4" />
-                <p className="font-medium">Aucun kiosk configuré</p>
+                <p className="font-medium">Aucun kiosque configuré</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Créez votre premier kiosk pour commencer le pointage tablet
+                  Créez votre premier kiosque pour commencer le pointage sur tablette
                 </p>
                 <Button className="mt-4" onClick={() => { setEditingKiosk(null); setDialogOpen(true); }}>
-                  <Plus className="w-4 h-4 mr-2" /> Créer un kiosk
+                  <Plus className="w-4 h-4 mr-2" /> Créer un kiosque
                 </Button>
               </CardContent>
             </Card>
@@ -394,7 +394,7 @@ export default function KioskManagementPage() {
                 <Users className="w-4 h-4" /> Codes PIN des collaborateurs
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Chaque collaborateur dispose d'un code à 4 chiffres unique pour s'identifier sur le kiosk.
+                Chaque collaborateur dispose d'un code à 4 chiffres unique pour s'identifier sur le kiosque.
                 Cliquez sur <Pencil className="inline w-3 h-3 mx-0.5" /> pour modifier.
               </p>
             </CardHeader>
@@ -410,7 +410,7 @@ export default function KioskManagementPage() {
                       <TableHead>Collaborateur</TableHead>
                       <TableHead>Poste</TableHead>
                       <TableHead>Département</TableHead>
-                      <TableHead>Code kiosk</TableHead>
+                      <TableHead>Code kiosque</TableHead>
                       <TableHead>Statut</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -470,7 +470,7 @@ export default function KioskManagementPage() {
               {[
                 { label: "Pointages total", value: activityData.summary.totalPunches, icon: Clock, color: "bg-blue-50 text-blue-600" },
                 { label: "Employés uniques", value: activityData.summary.uniqueEmployees, icon: Users, color: "bg-emerald-50 text-emerald-600" },
-                { label: "Kiosks actifs", value: activityData.summary.activeKiosks, icon: Wifi, color: "bg-orange-50 text-orange-600" },
+                { label: "Kiosques actifs", value: activityData.summary.activeKiosks, icon: Wifi, color: "bg-orange-50 text-orange-600" },
               ].map(stat => (
                 <Card key={stat.label}>
                   <CardContent className="p-4 flex items-center gap-3">
@@ -490,7 +490,7 @@ export default function KioskManagementPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <BarChart2 className="w-4 h-4" /> Détail par kiosk
+                <BarChart2 className="w-4 h-4" /> Détail par kiosque
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -502,7 +502,7 @@ export default function KioskManagementPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Kiosk</TableHead>
+                      <TableHead>Kiosque</TableHead>
                       <TableHead>Emplacement</TableHead>
                       <TableHead className="text-center">Statut</TableHead>
                       <TableHead className="text-center">Pointages</TableHead>

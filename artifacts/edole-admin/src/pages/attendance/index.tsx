@@ -145,7 +145,7 @@ function MyClockPanel() {
                   <span className="text-slate-500">{fmtTime(r.occurredAt)}</span>
                   {r.source === "kiosk" && (
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5 shrink-0">
-                      <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosk
+                      <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
                     </span>
                   )}
                 </div>
@@ -234,7 +234,7 @@ function CollaboratorRecordsDialog({
                     <span className="text-slate-500 text-sm">{fmtTime(r.occurredAt)}</span>
                     {r.source === "kiosk" && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5">
-                        <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosk
+                        <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
                       </span>
                     )}
                     {r.source === "app" && (

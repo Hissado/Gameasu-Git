@@ -65,7 +65,7 @@ function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () =
           {kiosk?.settings?.orgName ?? "Gaméasù"}
         </div>
         <div className="text-sm text-white/40 uppercase tracking-widest">
-          {kiosk?.name ?? "Kiosk de Pointage"}
+          {kiosk?.name ?? "Kiosque de Pointage"}
           {kiosk?.location ? ` — ${kiosk.location}` : ""}
         </div>
       </div>
@@ -76,7 +76,7 @@ function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () =
           <div className="text-2xl text-white/70">
             {kiosk?.settings?.welcomeMessage ?? "Touchez pour pointer"}
           </div>
-          <div className="text-sm text-white/30 mt-1">Tap anywhere to start</div>
+          <div className="text-sm text-white/30 mt-1">Appuyez n'importe où pour commencer</div>
         </div>
       </div>
 

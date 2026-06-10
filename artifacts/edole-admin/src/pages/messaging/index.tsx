@@ -480,7 +480,7 @@ function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-primary hover:bg-primary/90 text-white font-semibold">
-          <Plus className="w-4 h-4 mr-1" /> Nouveau Message
+          <Plus className="w-4 h-4 mr-1" /> Nouveau message
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
@@ -991,7 +991,7 @@ export default function Messaging() {
               ))
             ) : conversations.length === 0 ? (
               <div className="text-center text-sm text-slate-400 py-12 px-4">
-                Aucune conversation. Créez-en une avec « Nouveau Message ».
+                Aucune conversation. Créez-en une avec « Nouveau message ».
               </div>
             ) : conversations.map((c) => {
               const other = c.type === "direct" ? getOther(c, meId) : null;
