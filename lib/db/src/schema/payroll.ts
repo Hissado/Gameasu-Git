@@ -214,3 +214,98 @@ export type OffCyclePayment = typeof offCyclePaymentsTable.$inferSelect;
 export type IrppBracket = typeof irppBracketsTable.$inferSelect;
 export type TaxExemption = typeof taxExemptionsTable.$inferSelect;
 export type BankTransferOrder = typeof bankTransferOrdersTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// PLANNINGS RÉCURRENTS DE PAIE
+// monthly | bimonthly | weekly | custom
+// ─────────────────────────────────────────────────────────
+export const payrollSchedulesTable = pgTable("payroll_schedules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // monthly | bimonthly | weekly | custom
+  frequency: text("frequency").notNull().default("monthly"),
+  // Pour bimonthly: jour de coupure 1 et 2 (1–28)
+  cutoffDay1: integer("cutoff_day_1").default(15),
+  cutoffDay2: integer("cutoff_day_2").default(28),
+  // Délai de paiement après la fin de période (en jours calendaires)
+  paymentDelayDays: integer("payment_delay_days").default(5),
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  createdById: uuid("created_by_id").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("payroll_schedules_org_idx").on(t.organizationId),
+}));
+
+// ─────────────────────────────────────────────────────────
+// LIGNES DE PAIE PAR COLLABORATEUR (données variables par run)
+// ─────────────────────────────────────────────────────────
+export const payrollLineItemsTable = pgTable("payroll_line_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  payrollRunId: uuid("payroll_run_id").notNull().references(() => payrollRunsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id),
+  // Heures travaillées (en h)
+  regularHours: numeric("regular_hours", { precision: 8, scale: 2 }).default("0"),
+  overtimeHours: numeric("overtime_hours", { precision: 8, scale: 2 }).default("0"),
+  leaveHours: numeric("leave_hours", { precision: 8, scale: 2 }).default("0"),
+  absenceHours: numeric("absence_hours", { precision: 8, scale: 2 }).default("0"),
+  // Éléments variables (FCFA)
+  bonus: numeric("bonus", { precision: 14, scale: 2 }).default("0"),
+  commission: numeric("commission", { precision: 14, scale: 2 }).default("0"),
+  tip: numeric("tip", { precision: 14, scale: 2 }).default("0"),
+  reimbursement: numeric("reimbursement", { precision: 14, scale: 2 }).default("0"),
+  deduction: numeric("deduction", { precision: 14, scale: 2 }).default("0"),
+  payrollCorrection: numeric("payroll_correction", { precision: 14, scale: 2 }).default("0"),
+  notes: text("notes"),
+  // cash | bank_transfer | mobile_money | check | other
+  paymentMethod: text("payment_method").default("bank_transfer"),
+  // Brut total calculé = base + bonus + commissions + ... - déductions
+  totalGross: numeric("total_gross", { precision: 14, scale: 2 }).default("0"),
+  // Sync depuis présence
+  attendanceSynced: boolean("attendance_synced").default(false),
+  attendanceSyncedAt: timestamp("attendance_synced_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  runIdx: index("pli_run_idx").on(t.payrollRunId),
+  collabIdx: index("pli_collab_idx").on(t.collaboratorId),
+  uniqRunCollab: uniqueIndex("pli_run_collab_uidx").on(t.payrollRunId, t.collaboratorId),
+}));
+
+// ─────────────────────────────────────────────────────────
+// CORRECTIONS DE PAIE
+// ─────────────────────────────────────────────────────────
+export const payrollCorrectionsTable = pgTable("payroll_corrections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  sourceRunId: uuid("source_run_id").references(() => payrollRunsTable.id),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id),
+  // Positif = sous-payé (à verser), négatif = trop payé (à récupérer)
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  reason: text("reason").notNull(),
+  description: text("description"),
+  // pending | approved | applied | rejected
+  status: text("status").notNull().default("pending"),
+  targetRunId: uuid("target_run_id").references(() => payrollRunsTable.id),
+  createdById: uuid("created_by_id").references(() => usersTable.id),
+  approvedById: uuid("approved_by_id").references(() => usersTable.id),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("payroll_corrections_org_idx").on(t.organizationId),
+  collabIdx: index("payroll_corrections_collab_idx").on(t.collaboratorId),
+  statusIdx: index("payroll_corrections_status_idx").on(t.status),
+}));
+
+export const insertPayrollScheduleSchema = createInsertSchema(payrollSchedulesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPayrollLineItemSchema = createInsertSchema(payrollLineItemsTable).omit({ id: true, createdAt: true, updatedAt: true, attendanceSyncedAt: true });
+export const insertPayrollCorrectionSchema = createInsertSchema(payrollCorrectionsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true, appliedAt: true });
+
+export type PayrollSchedule = typeof payrollSchedulesTable.$inferSelect;
+export type PayrollLineItem = typeof payrollLineItemsTable.$inferSelect;
+export type PayrollCorrection = typeof payrollCorrectionsTable.$inferSelect;

@@ -91,6 +91,8 @@ const HrExpenses = lazy(() => import("@/pages/hr/expenses"));
 const HrLegalRegister = lazy(() => import("@/pages/hr/legal-register"));
 const HrBenefits = lazy(() => import("@/pages/hr/benefits"));
 const HrTransferOrders = lazy(() => import("@/pages/hr/transfer-orders"));
+const HrPayrollRun = lazy(() => import("@/pages/hr/payroll-run"));
+const HrPayrollCalendar = lazy(() => import("@/pages/hr/payroll-calendar"));
 const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
 const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
@@ -340,6 +342,8 @@ function AppRouter() {
                 <Route path="/kiosk-management" component={KioskManagement} />
                 <Route path="/mon-espace" component={MonEspace} />
                 <Route path="/hr/orgchart" component={HrOrgchart} />
+                <Route path="/hr/payroll/run/:id" component={HrPayrollRun} />
+                <Route path="/hr/payroll/calendar" component={HrPayrollCalendar} />
                 <Route path="/hr/payroll/off-cycle" component={HrPayrollOffCycle} />
                 <Route path="/hr/tax-settings" component={HrTaxSettings} />
                 <Route path="/hr/contract-templates" component={HrContractTemplates} />

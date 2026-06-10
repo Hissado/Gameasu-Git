@@ -5,3 +5,5 @@
 - [DB lib rebuild required](db-lib-rebuild.md) — after adding new exports to lib/db schema, always run `pnpm run typecheck:libs` before checking api-server typecheck
 - [contractsTable fields](contracts-table-fields.md) — contractsTable has `monthlySalary` not `salary`; no `trialEndDate`; use recent hires (< 90 days) as probation proxy
 - [HR #8-17 schema files](hr-modules-schema.md) — new schema lives in onboarding.ts/expenses.ts/benefits.ts + appended to payroll.ts and hr.ts; hr.ts must import usersTable from ./users or push fails
+- [Payroll V2 architecture](payroll-v2-arch.md) — 3 new DB tables (schedules/line_items/corrections) in payroll.ts; API in payroll-v2.ts; avoid raw aliased SQL joins in drizzle 0.45.2 (use 2-query pattern instead).
+- [Payroll salary source](payroll-salary-source.md) — base salary is on collaboratorsTable.baseSalary (not contractsTable); contractsTable has monthlySalary; both read in line-items route.

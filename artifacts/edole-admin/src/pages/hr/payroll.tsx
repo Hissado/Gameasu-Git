@@ -2,17 +2,19 @@ import React, { useState } from "react";
 import { HrShell } from "./_layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Play, CheckCircle, ChevronDown, ChevronRight, Users, TrendingUp, Banknote, Receipt } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useLocation } from "wouter";
+import {
+  Plus, Play, CalendarDays, Users, TrendingUp, Banknote, Receipt,
+  Zap, AlertCircle, Download, Upload, CheckCircle, ArrowRight,
+  Clock, Building2, FileText, ChevronRight, RefreshCw, Wrench,
+} from "lucide-react";
 
 const API = "/api";
 
@@ -23,217 +25,255 @@ async function fetchJSON(url: string, opts?: RequestInit) {
   return r.json();
 }
 
-const STATUS_LABELS: Record<string, string> = { draft: "Brouillon", validated: "Validé", paid: "Payé", archived: "Archivé" };
-const STATUS_COLORS: Record<string, string> = { draft: "secondary", validated: "default", paid: "success", archived: "outline" };
+const STATUS_LABEL: Record<string, string> = { draft: "Brouillon", validated: "Validé", paid: "Payé", archived: "Archivé" };
+const STATUS_COLOR: Record<string, string> = {
+  draft: "bg-amber-50 text-amber-700 border-amber-200",
+  validated: "bg-blue-50 text-blue-700 border-blue-200",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  archived: "bg-gray-50 text-gray-600 border-gray-200",
+};
 
-export default function PayrollPage() {
+type DashboardData = {
+  nextRun: { id: string; period: string; status: string; paymentDate?: string; employeeCount?: number; totalGrossSalary: number; totalNetSalary: number } | null;
+  activeSchedule: { name: string; frequency: string; cutoffDay1?: number; cutoffDay2?: number } | null;
+  kpis: { totalGross: number; totalNet: number; totalCnssEmployer: number; totalIrpp: number; avgEmployeeCount: number; runCount: number; draftCount: number };
+  calendarItems: Array<{ period: string; status: string; paymentDate?: string; totalNetSalary: number; employeeCount?: number }>;
+  pendingCorrections: number;
+  recentRuns: Array<{ id: string; period: string; status: string; employeeCount?: number; totalGrossSalary: number; totalNetSalary: number; paymentDate?: string }>;
+};
+
+const FREQ_LABEL: Record<string, string> = { monthly: "Mensuelle", bimonthly: "Bimensuelle", weekly: "Hebdomadaire", custom: "Personnalisée" };
+
+export default function PayrollDashboard() {
+  const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
   const [newOpen, setNewOpen] = useState(false);
-  const [expandedRun, setExpandedRun] = useState<string | null>(null);
-  const [newForm, setNewForm] = useState({ period: format(new Date(), "yyyy-MM"), notes: "", paymentDate: "" });
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [newForm, setNewForm] = useState({ period: "", notes: "", paymentDate: "" });
+  const [corrForm, setCorrForm] = useState({ collaboratorId: "", sourceRunId: "", amount: "", reason: "" });
 
-  const { data: runs = [], isLoading } = useQuery<any[]>({
-    queryKey: ["payroll-runs"],
-    queryFn: () => fetchJSON(`${API}/payroll/runs`),
+  const now = new Date();
+  const defaultPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const { data: dash, isLoading } = useQuery<DashboardData>({
+    queryKey: ["payroll-dashboard"],
+    queryFn: () => fetchJSON(`${API}/payroll/dashboard`),
   });
 
-  const { data: runDetail } = useQuery<any>({
-    queryKey: ["payroll-run", expandedRun],
-    queryFn: () => fetchJSON(`${API}/payroll/runs/${expandedRun}`),
-    enabled: !!expandedRun,
+  const { data: collabs = [] } = useQuery<{ id: string; firstName: string; lastName: string }[]>({
+    queryKey: ["collabs-list"],
+    queryFn: () => fetchJSON(`${API}/hr/collaborators`),
   });
 
   const createRun = useMutation({
     mutationFn: (d: typeof newForm) => fetchJSON(`${API}/payroll/runs`, { method: "POST", body: JSON.stringify(d) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["payroll-runs"] }); setNewOpen(false); toast({ title: "Cycle créé" }); },
+    onSuccess: (run) => {
+      qc.invalidateQueries({ queryKey: ["payroll-dashboard"] });
+      setNewOpen(false);
+      toast({ title: "Cycle créé", description: `Période ${run.period}` });
+      navigate(`/hr/payroll/run/${run.id}`);
+    },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
-  const generateMut = useMutation({
-    mutationFn: (id: string) => fetchJSON(`${API}/payroll/runs/${id}/generate`, { method: "POST" }),
-    onSuccess: (_, id) => { qc.invalidateQueries({ queryKey: ["payroll-runs"] }); qc.invalidateQueries({ queryKey: ["payroll-run", id] }); toast({ title: "Bulletins générés" }); },
+  const seedDemoMut = useMutation({
+    mutationFn: () => fetchJSON(`${API}/payroll/seed-demo`, { method: "POST" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["payroll-dashboard"] }); toast({ title: "Données démo créées" }); },
+  });
+
+  const createCorrectionMut = useMutation({
+    mutationFn: (d: typeof corrForm) => fetchJSON(`${API}/payroll/corrections`, { method: "POST", body: JSON.stringify({ ...d, amount: Number(d.amount), sourceRunId: d.sourceRunId || undefined }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["payroll-dashboard"] }); setCorrectionOpen(false); toast({ title: "Correction créée" }); },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
-  const validateMut = useMutation({
-    mutationFn: (id: string) => fetchJSON(`${API}/payroll/runs/${id}/validate`, { method: "POST" }),
-    onSuccess: (_, id) => { qc.invalidateQueries({ queryKey: ["payroll-runs"] }); qc.invalidateQueries({ queryKey: ["payroll-run", id] }); toast({ title: "Cycle validé" }); },
-    onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
-  });
+  const kpis = dash?.kpis;
+  const nextRun = dash?.nextRun;
+  const recentRuns = dash?.recentRuns ?? [];
 
-  const totalBrut = runs.reduce((s: number, r: any) => s + r.totalGrossSalary, 0);
-  const totalNet = runs.reduce((s: number, r: any) => s + r.totalNetSalary, 0);
+  const quickActions = [
+    { label: "Lancer une paie", icon: Play, color: "bg-primary text-primary-foreground", desc: "Démarrer un nouveau cycle de paie", action: () => { setNewForm({ period: defaultPeriod, notes: "", paymentDate: "" }); setNewOpen(true); } },
+    { label: "Paie hors-cycle", icon: Zap, color: "bg-orange-50 text-orange-700 border border-orange-200", desc: "Prime, acompte, régularisation", action: () => navigate("/hr/payroll/off-cycle") },
+    { label: "Corriger une paie", icon: Wrench, color: "bg-red-50 text-red-700 border border-red-200", desc: "Ajuster une erreur de paie", action: () => setCorrectionOpen(true) },
+    { label: "Calendrier de paie", icon: CalendarDays, color: "bg-blue-50 text-blue-700 border border-blue-200", desc: "Vue mensuelle des cycles", action: () => navigate("/hr/payroll/calendar") },
+    { label: "Importer des données", icon: Upload, color: "bg-purple-50 text-purple-700 border border-purple-200", desc: "Importer heures & primes CSV", action: () => { if (nextRun) navigate(`/hr/payroll/run/${nextRun.id}`); else toast({ title: "Créez d'abord un cycle" }); } },
+    { label: "Ordres de virement", icon: Banknote, color: "bg-emerald-50 text-emerald-700 border border-emerald-200", desc: "Gérer les virements bancaires", action: () => navigate("/hr/transfer-orders") },
+  ];
 
   return (
-    <HrShell title="Livre de paie" subtitle="Cycles mensuels, bulletins et cotisations">
-      <div className="space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Cycles</p>
-                  <p className="text-xl font-bold">{runs.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-orange-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Masse salariale brute</p>
-                  <p className="text-lg font-bold">{formatFCFA(totalBrut)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center"><Banknote className="w-5 h-5 text-green-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Masse salariale nette</p>
-                  <p className="text-lg font-bold">{formatFCFA(totalNet)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center"><Receipt className="w-5 h-5 text-purple-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Charge patronale CNSS</p>
-                  <p className="text-lg font-bold">{formatFCFA(runs.reduce((s: number, r: any) => s + r.totalCnssEmployer, 0))}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <HrShell title="Paie" subtitle="Gestion des cycles de paie, bulletins et cotisations">
+      {isLoading ? (
+        <div className="py-20 text-center text-muted-foreground">Chargement…</div>
+      ) : (
+        <div className="space-y-6">
 
-        {/* Toolbar */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Cycles de paie</h2>
-          <Button onClick={() => setNewOpen(true)} className="gap-2"><Plus className="w-4 h-4" />Nouveau cycle</Button>
-        </div>
-
-        {/* Runs list */}
-        {isLoading ? (
-          <div className="py-12 text-center text-muted-foreground">Chargement…</div>
-        ) : runs.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">Aucun cycle de paie créé</div>
-        ) : (
-          <div className="space-y-2">
-            {runs.map((run: any) => {
-              const isExpanded = expandedRun === run.id;
-              return (
-                <Card key={run.id} className="overflow-hidden">
-                  <div
-                    className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => setExpandedRun(isExpanded ? null : run.id)}
-                  >
-                    <div className="flex items-center gap-4">
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                      <div>
-                        <span className="font-semibold">{run.period}</span>
-                        <span className="ml-3 text-sm text-muted-foreground">{run.employeeCount ?? 0} collaborateur(s)</span>
-                      </div>
-                      <Badge variant={STATUS_COLORS[run.status] as any}>{STATUS_LABELS[run.status] ?? run.status}</Badge>
+          {/* ─── BLOC "À VENIR" ─── */}
+          {nextRun ? (
+            <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Clock className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLOR[nextRun.status]}`}>
+                        {STATUS_LABEL[nextRun.status]}
+                      </span>
+                      {dash?.activeSchedule && (
+                        <span className="text-xs text-muted-foreground">{FREQ_LABEL[dash.activeSchedule.frequency]}</span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs text-muted-foreground">Brut</p>
-                        <p className="font-semibold">{formatFCFA(run.totalGrossSalary)}</p>
-                      </div>
-                      <div className="text-right hidden md:block">
-                        <p className="text-xs text-muted-foreground">Net</p>
-                        <p className="font-semibold text-green-700">{formatFCFA(run.totalNetSalary)}</p>
-                      </div>
-                      {run.status === "draft" && (
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="outline" disabled={generateMut.isPending} onClick={() => generateMut.mutate(run.id)}>
-                            <Play className="w-3 h-3 mr-1" />Générer
-                          </Button>
-                          {(run.employeeCount ?? 0) > 0 && (
-                            <Button size="sm" disabled={validateMut.isPending} onClick={() => validateMut.mutate(run.id)}>
-                              <CheckCircle className="w-3 h-3 mr-1" />Valider
-                            </Button>
-                          )}
-                        </div>
+                    <h2 className="text-xl font-bold">Paie {nextRun.period}</h2>
+                    <div className="flex flex-wrap gap-4 mt-1 text-sm text-muted-foreground">
+                      {nextRun.paymentDate && (
+                        <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />Paiement : {new Date(nextRun.paymentDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span>
+                      )}
+                      {(nextRun.employeeCount ?? 0) > 0 && (
+                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{nextRun.employeeCount} collaborateur{(nextRun.employeeCount ?? 0) > 1 ? "s" : ""}</span>
+                      )}
+                      {nextRun.totalNetSalary > 0 && (
+                        <span className="flex items-center gap-1 text-emerald-700 font-medium"><Banknote className="w-3.5 h-3.5" />{formatFCFA(nextRun.totalNetSalary)} net</span>
                       )}
                     </div>
                   </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/hr/payroll/run/${nextRun.id}`)}>
+                    Modifier <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                  <Button size="sm" onClick={() => navigate(`/hr/payroll/run/${nextRun.id}`)}>
+                    <Play className="w-4 h-4 mr-1" />Lancer la paie
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <Banknote className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-1">Aucun cycle de paie en cours</h3>
+              <p className="text-sm text-muted-foreground mb-4">Créez votre premier cycle de paie pour cette période</p>
+              <div className="flex justify-center gap-2">
+                <Button onClick={() => { setNewForm({ period: defaultPeriod, notes: "", paymentDate: "" }); setNewOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-1" />Nouveau cycle de paie
+                </Button>
+                <Button variant="outline" onClick={() => seedDemoMut.mutate()} disabled={seedDemoMut.isPending}>
+                  <RefreshCw className="w-4 h-4 mr-1" />Données démo
+                </Button>
+              </div>
+            </div>
+          )}
 
-                  {isExpanded && runDetail?.id === run.id && (
-                    <div className="border-t">
-                      {/* Récap cotisations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-muted text-sm">
-                        {[
-                          { label: "Salaire brut", value: formatFCFA(runDetail.totalGrossSalary) },
-                          { label: "CNSS salarié (4%)", value: formatFCFA(runDetail.totalCnssEmployee) },
-                          { label: "IRPP", value: formatFCFA(runDetail.totalIrpp) },
-                          { label: "IPTS (2%)", value: formatFCFA(runDetail.totalIpts) },
-                          { label: "Salaire net", value: formatFCFA(runDetail.totalNetSalary), highlight: true },
-                        ].map((item) => (
-                          <div key={item.label} className={`bg-background px-3 py-2 ${item.highlight ? "text-green-700 font-semibold" : ""}`}>
-                            <p className="text-xs text-muted-foreground">{item.label}</p>
-                            <p className="font-medium">{item.value}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Bulletins */}
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Collaborateur</TableHead>
-                              <TableHead>Département</TableHead>
-                              <TableHead className="text-right">Salaire brut</TableHead>
-                              <TableHead className="text-right">CNSS salarié</TableHead>
-                              <TableHead className="text-right">IRPP</TableHead>
-                              <TableHead className="text-right">IPTS</TableHead>
-                              <TableHead className="text-right">Net à payer</TableHead>
-                              <TableHead>Statut</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(runDetail.payslips ?? []).map((p: any) => (
-                              <TableRow key={p.id}>
-                                <TableCell className="font-medium">{p.collaboratorName}</TableCell>
-                                <TableCell className="text-muted-foreground">{p.department ?? "—"}</TableCell>
-                                <TableCell className="text-right">{formatFCFA(p.grossSalary)}</TableCell>
-                                <TableCell className="text-right text-red-600">{formatFCFA(p.cnssEmployee)}</TableCell>
-                                <TableCell className="text-right text-red-600">{formatFCFA(p.irpp)}</TableCell>
-                                <TableCell className="text-right text-red-600">{formatFCFA(p.ipts)}</TableCell>
-                                <TableCell className="text-right font-semibold text-green-700">{formatFCFA(p.netSalary)}</TableCell>
-                                <TableCell><Badge variant={p.status === "validated" ? "default" : "secondary"}>{STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
-                              </TableRow>
-                            ))}
-                            {(!runDetail.payslips || runDetail.payslips.length === 0) && (
-                              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Cliquez sur "Générer" pour créer les bulletins</TableCell></TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
+          {/* ─── ALERTES ─── */}
+          {(dash?.pendingCorrections ?? 0) > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{dash!.pendingCorrections} correction(s) de paie en attente d'approbation</span>
+              <Button variant="link" size="sm" className="ml-auto text-amber-800 h-auto p-0" onClick={() => navigate("/hr/payroll/corrections")}>Voir →</Button>
+            </div>
+          )}
+
+          {/* ─── KPIs (12 derniers mois) ─── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Masse brute (cumulée)", value: formatFCFA(kpis?.totalGross ?? 0), icon: TrendingUp, color: "text-blue-600 bg-blue-50" },
+              { label: "Masse nette (cumulée)", value: formatFCFA(kpis?.totalNet ?? 0), icon: Banknote, color: "text-emerald-600 bg-emerald-50" },
+              { label: "Charge patronale CNSS", value: formatFCFA(kpis?.totalCnssEmployer ?? 0), icon: Building2, color: "text-orange-600 bg-orange-50" },
+              { label: "Moy. collaborateurs/cycle", value: String(kpis?.avgEmployeeCount ?? 0), icon: Users, color: "text-purple-600 bg-purple-50" },
+            ].map((k) => (
+              <Card key={k.label}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.color}`}>
+                      <k.icon className="w-5 h-5" />
                     </div>
-                  )}
-                </Card>
-              );
-            })}
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground truncate">{k.label}</p>
+                      <p className="text-lg font-bold truncate">{k.value}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Dialog nouveau cycle */}
+          {/* ─── OPTIONS RAPIDES ─── */}
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Actions rapides</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {quickActions.map((a) => (
+                <button
+                  key={a.label}
+                  onClick={a.action}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl text-center transition-all hover:scale-105 hover:shadow-md ${a.color}`}
+                >
+                  <a.icon className="w-6 h-6" />
+                  <span className="text-xs font-semibold leading-tight">{a.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ─── CYCLES RÉCENTS ─── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Cycles récents</h2>
+              <Button size="sm" variant="ghost" onClick={() => { setNewForm({ period: defaultPeriod, notes: "", paymentDate: "" }); setNewOpen(true); }}>
+                <Plus className="w-4 h-4 mr-1" />Nouveau cycle
+              </Button>
+            </div>
+            {recentRuns.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground rounded-lg border border-dashed">Aucun cycle de paie créé</div>
+            ) : (
+              <div className="rounded-xl border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Période</th>
+                      <th className="px-4 py-3 text-left">Statut</th>
+                      <th className="px-4 py-3 text-right">Collaborateurs</th>
+                      <th className="px-4 py-3 text-right">Masse brute</th>
+                      <th className="px-4 py-3 text-right">Masse nette</th>
+                      <th className="px-4 py-3 text-right">Date paiement</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentRuns.map((run) => (
+                      <tr key={run.id} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/hr/payroll/run/${run.id}`)}>
+                        <td className="px-4 py-3 font-semibold">{run.period}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLOR[run.status] ?? ""}`}>
+                            {STATUS_LABEL[run.status] ?? run.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-muted-foreground">{run.employeeCount ?? 0}</td>
+                        <td className="px-4 py-3 text-right">{formatFCFA(run.totalGrossSalary)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-emerald-700">{formatFCFA(run.totalNetSalary)}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground text-xs">{run.paymentDate ? new Date(run.paymentDate).toLocaleDateString("fr-FR") : "—"}</td>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" variant="ghost" className="h-7" onClick={() => navigate(`/hr/payroll/run/${run.id}`)}>
+                            Ouvrir <ArrowRight className="w-3 h-3 ml-1" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Dialog nouveau cycle ─── */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Nouveau cycle de paie</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-2">
             <div>
               <Label>Période (YYYY-MM)</Label>
               <Input value={newForm.period} onChange={(e) => setNewForm({ ...newForm, period: e.target.value })} placeholder="2026-06" />
@@ -243,13 +283,66 @@ export default function PayrollPage() {
               <Input type="date" value={newForm.paymentDate} onChange={(e) => setNewForm({ ...newForm, paymentDate: e.target.value })} />
             </div>
             <div>
-              <Label>Notes</Label>
-              <Input value={newForm.notes} onChange={(e) => setNewForm({ ...newForm, notes: e.target.value })} />
+              <Label>Notes internes</Label>
+              <Input value={newForm.notes} onChange={(e) => setNewForm({ ...newForm, notes: e.target.value })} placeholder="Cycle mensuel juin 2026…" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Annuler</Button>
-            <Button onClick={() => createRun.mutate(newForm)} disabled={createRun.isPending}>Créer</Button>
+            <Button onClick={() => createRun.mutate(newForm)} disabled={!newForm.period || createRun.isPending}>
+              <Play className="w-4 h-4 mr-1" />Créer et préparer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Dialog correction ─── */}
+      <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Corriger une erreur de paie</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">Identifiez l'erreur, saisissez le montant correctif (positif si sous-payé, négatif si trop payé) et documentez le motif.</p>
+            <div>
+              <Label>Collaborateur</Label>
+              <select
+                className="w-full mt-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
+                value={corrForm.collaboratorId}
+                onChange={e => setCorrForm(f => ({ ...f, collaboratorId: e.target.value }))}
+              >
+                <option value="">Sélectionner…</option>
+                {collabs.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label>Cycle source (optionnel)</Label>
+              <select
+                className="w-full mt-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
+                value={corrForm.sourceRunId}
+                onChange={e => setCorrForm(f => ({ ...f, sourceRunId: e.target.value }))}
+              >
+                <option value="">Aucun cycle spécifique</option>
+                {(dash?.recentRuns ?? []).filter(r => r.status !== "draft").map(r => (
+                  <option key={r.id} value={r.id}>{r.period} — {STATUS_LABEL[r.status]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Montant (FCFA, + si sous-payé / – si trop payé)</Label>
+              <Input type="number" placeholder="Ex: 25000 ou -15000" value={corrForm.amount} onChange={e => setCorrForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Motif *</Label>
+              <Input placeholder="Heures sup. non comptabilisées en juin…" value={corrForm.reason} onChange={e => setCorrForm(f => ({ ...f, reason: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCorrectionOpen(false)}>Annuler</Button>
+            <Button
+              disabled={!corrForm.collaboratorId || !corrForm.amount || !corrForm.reason || createCorrectionMut.isPending}
+              onClick={() => createCorrectionMut.mutate(corrForm)}
+            >
+              <FileText className="w-4 h-4 mr-1" />Créer la correction
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
