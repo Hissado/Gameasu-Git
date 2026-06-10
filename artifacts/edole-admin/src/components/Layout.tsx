@@ -392,7 +392,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Desktop — nom de l'organisation (multi-tenant, dynamique) */}
             <div className="hidden lg:flex items-center min-w-0 max-w-[200px] ml-[80px]">
-              <span className="text-[13px] font-semibold text-foreground/80 truncate leading-none">
+              <span className="text-[13px] font-semibold text-foreground truncate leading-none">
                 {org?.name ?? BRANDING.appName}
               </span>
             </div>
