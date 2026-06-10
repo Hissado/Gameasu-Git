@@ -213,13 +213,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </button>
       </div>
 
-      {/* ── Workspace card ────────────────────────────────────────── */}
-      <div className="px-3 pt-3 pb-1 shrink-0">
-        <div className="px-3 py-2">
-          <p className="text-[13px] font-bold text-white/90 truncate leading-none">{org?.name ?? "…"}</p>
-        </div>
-      </div>
-
       {/* ── Navigation groups ─────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto pt-2 pb-4 custom-scrollbar overscroll-contain">
         <nav className="px-2 space-y-0.5">
