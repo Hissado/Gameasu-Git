@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { VerticalTabsShell, TabNavGroup } from "@/components/ui/module-nav";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
@@ -256,8 +257,32 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 // PAGE
 // ════════════════════════════════════════════════════════════════
 
+const REPORT_TAB_GROUPS: TabNavGroup[] = [
+  {
+    label: "Synthèse",
+    items: [{ value: "overview", label: "Vue d'ensemble", icon: TrendingUp }],
+  },
+  {
+    label: "Finance & Commerce",
+    items: [
+      { value: "finance", label: "Finance", icon: Banknote },
+      { value: "sales", label: "Ventes", icon: ShoppingCart },
+      { value: "purchases", label: "Achats", icon: Package },
+    ],
+  },
+  {
+    label: "Opérations",
+    items: [
+      { value: "projects", label: "Projets", icon: Briefcase },
+      { value: "hr", label: "RH", icon: Users },
+      { value: "parc", label: "Parc", icon: Wrench },
+    ],
+  },
+];
+
 export default function ReportsPage() {
   const pf = usePeriodFilter("month");
+  const [tab, setTab] = useState("overview");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -288,67 +313,57 @@ export default function ReportsPage() {
         />
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-6 h-auto gap-px">
-          <TabsTrigger value="overview" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="finance" className="text-xs"><Banknote className="w-3.5 h-3.5 mr-1" />Finance</TabsTrigger>
-          <TabsTrigger value="sales" className="text-xs"><ShoppingCart className="w-3.5 h-3.5 mr-1" />Ventes</TabsTrigger>
-          <TabsTrigger value="purchases" className="text-xs"><Package className="w-3.5 h-3.5 mr-1" />Achats</TabsTrigger>
-          <TabsTrigger value="projects" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Projets</TabsTrigger>
-          <TabsTrigger value="hr" className="text-xs"><Users className="w-3.5 h-3.5 mr-1" />RH</TabsTrigger>
-          <TabsTrigger value="parc" className="text-xs"><Wrench className="w-3.5 h-3.5 mr-1" />Parc</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
+      <VerticalTabsShell tabGroups={REPORT_TAB_GROUPS} value={tab} onChange={setTab}>
+        {tab === "overview" && (
           <OverviewTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="finance">
+        )}
+        {tab === "finance" && (
           <FinanceTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="sales">
+        )}
+        {tab === "sales" && (
           <SalesTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="purchases">
+        )}
+        {tab === "purchases" && (
           <PurchasesTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="projects">
+        )}
+        {tab === "projects" && (
           <ProjectsTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="hr">
+        )}
+        {tab === "hr" && (
           <HrTab
             periodQuery={pf.periodQuery}
             comparePeriod={pf.comparePeriod}
             compareMode={pf.compareMode}
             period={pf.period}
           />
-        </TabsContent>
-        <TabsContent value="parc"><ParcTab /></TabsContent>
-      </Tabs>
+        )}
+        {tab === "parc" && <ParcTab />}
+      </VerticalTabsShell>
     </div>
   );
 }

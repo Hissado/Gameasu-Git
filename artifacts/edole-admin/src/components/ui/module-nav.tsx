@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ── URL-routing nav types (ModuleShell) ─────────────────────────
 export interface NavItem {
   name: string;
   path: string;
@@ -15,20 +16,27 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-interface ModuleShellProps {
-  title: string;
-  subtitle?: string;
-  titleIcon?: React.ComponentType<{ className?: string }>;
-  navGroups: NavGroup[];
-  actions?: React.ReactNode;
-  children: React.ReactNode;
+// ── State-driven nav types (VerticalTabsShell) ───────────────────
+export interface TabItem {
+  value: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
+
+export interface TabNavGroup {
+  label?: string;
+  items: TabItem[];
+}
+
+// ── Shared helpers ───────────────────────────────────────────────
 
 function itemIsActive(item: NavItem, location: string) {
   return item.exact
     ? location === item.path
     : location === item.path || location.startsWith(item.path + "/");
 }
+
+// ── URL-routing sidebar ──────────────────────────────────────────
 
 function NavSidebar({ navGroups }: { navGroups: NavGroup[] }) {
   const [location] = useLocation();
@@ -121,12 +129,126 @@ function MobileNavDropdown({ navGroups }: { navGroups: NavGroup[] }) {
   );
 }
 
+// ── State-driven sidebar ─────────────────────────────────────────
+
+function TabNavSidebar({ tabGroups, value, onChange }: {
+  tabGroups: TabNavGroup[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <aside className="w-48 shrink-0 sticky top-4 max-h-[calc(100vh-8rem)] overflow-y-auto pr-0.5 space-y-4">
+      {tabGroups.map((group, gi) => (
+        <div key={gi}>
+          {group.label && (
+            <p className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 mb-1.5 select-none">
+              {group.label}
+            </p>
+          )}
+          <div className="space-y-0.5">
+            {group.items.map(item => {
+              const active = item.value === value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => onChange(item.value)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-[7px] rounded-lg text-[12.5px] font-medium transition-all leading-tight",
+                    active
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <item.icon className="w-[13px] h-[13px] shrink-0" />
+                  <span className="truncate text-left">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+function MobileTabsDropdown({ tabGroups, value, onChange }: {
+  tabGroups: TabNavGroup[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const allItems = tabGroups.flatMap(g => g.items);
+  const activeItem = allItems.find(i => i.value === value);
+
+  return (
+    <div className="relative z-30">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-foreground hover:bg-muted/60 transition-colors shadow-sm"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {activeItem && <activeItem.icon className="w-4 h-4 text-primary shrink-0" />}
+          <span className="truncate">{activeItem?.label ?? "Navigation"}</span>
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform shrink-0 ml-2", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-border bg-card shadow-xl p-2 space-y-3 max-h-[65vh] overflow-y-auto">
+          {tabGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pb-1 select-none">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map(item => {
+                  const active = item.value === value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => { onChange(item.value); setOpen(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <item.icon className="w-[14px] h-[14px] shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ModuleShell (URL routing) ────────────────────────────────────
+
+interface ModuleShellProps {
+  title: string;
+  subtitle?: string;
+  titleIcon?: React.ComponentType<{ className?: string }>;
+  navGroups: NavGroup[];
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}
+
 export function ModuleShell({
   title, subtitle, titleIcon: TitleIcon, navGroups, actions, children,
 }: ModuleShellProps) {
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
-      {/* En-tête du module */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
@@ -138,21 +260,42 @@ export function ModuleShell({
         {actions && <div className="flex gap-2 shrink-0 flex-wrap">{actions}</div>}
       </div>
 
-      {/* Navigation mobile (dropdown) */}
       <div className="lg:hidden">
         <MobileNavDropdown navGroups={navGroups} />
       </div>
 
-      {/* Layout desktop : sidebar gauche + contenu */}
       <div className="hidden lg:flex gap-6 items-start">
         <NavSidebar navGroups={navGroups} />
         <div className="flex-1 min-w-0">{children}</div>
       </div>
 
-      {/* Contenu mobile */}
       <div className="lg:hidden">
         {children}
       </div>
     </div>
+  );
+}
+
+// ── VerticalTabsShell (state-driven) ────────────────────────────
+
+interface VerticalTabsShellProps {
+  tabGroups: TabNavGroup[];
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}
+
+export function VerticalTabsShell({ tabGroups, value, onChange, children }: VerticalTabsShellProps) {
+  return (
+    <>
+      <div className="lg:hidden mb-4">
+        <MobileTabsDropdown tabGroups={tabGroups} value={value} onChange={onChange} />
+      </div>
+      <div className="hidden lg:flex gap-6 items-start">
+        <TabNavSidebar tabGroups={tabGroups} value={value} onChange={onChange} />
+        <div className="flex-1 min-w-0">{children}</div>
+      </div>
+      <div className="lg:hidden">{children}</div>
+    </>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { VerticalTabsShell, TabNavGroup } from "@/components/ui/module-nav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,37 @@ function get(url: string): Promise<any> { return apiFetch(url); }
 function post(url: string, body?: any): Promise<any> { return apiFetch(url, { method: "POST", body }); }
 function patch(url: string, body?: any): Promise<any> { return apiFetch(url, { method: "PATCH", body }); }
 
+const OPS_TAB_GROUPS: TabNavGroup[] = [
+  {
+    label: "Synthèse",
+    items: [{ value: "overview", label: "Vue d'ensemble", icon: Activity }],
+  },
+  {
+    label: "Terrain",
+    items: [
+      { value: "missions", label: "Missions", icon: Truck },
+      { value: "dispatch", label: "Dispatching", icon: Zap },
+      { value: "tracking", label: "Suivi terrain", icon: MapPin },
+    ],
+  },
+  {
+    label: "Qualité",
+    items: [
+      { value: "incidents", label: "Incidents", icon: AlertTriangle },
+      { value: "checklists", label: "Checklists", icon: ClipboardCheck },
+      { value: "proofs", label: "Preuves", icon: FileText },
+    ],
+  },
+  {
+    label: "Analyse",
+    items: [
+      { value: "performance", label: "Coûts & performance", icon: Gauge },
+      { value: "map", label: "Carte", icon: MapIcon },
+      { value: "calendar", label: "Calendrier", icon: Calendar },
+    ],
+  },
+];
+
 export default function OperationsCommandCenter() {
   const [tab, setTab] = useState("overview");
   const [missionDialog, setMissionDialog] = useState(false);
@@ -96,70 +127,38 @@ export default function OperationsCommandCenter() {
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="overview" className="gap-1"><Activity className="w-4 h-4" />Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="missions" className="gap-1"><Truck className="w-4 h-4" />Missions</TabsTrigger>
-          <TabsTrigger value="dispatch" className="gap-1"><Zap className="w-4 h-4" />Dispatching</TabsTrigger>
-          <TabsTrigger value="tracking" className="gap-1"><MapPin className="w-4 h-4" />Suivi terrain</TabsTrigger>
-          <TabsTrigger value="incidents" className="gap-1"><AlertTriangle className="w-4 h-4" />Incidents</TabsTrigger>
-          <TabsTrigger value="checklists" className="gap-1"><ClipboardCheck className="w-4 h-4" />Checklists</TabsTrigger>
-          <TabsTrigger value="proofs" className="gap-1"><FileText className="w-4 h-4" />Preuves</TabsTrigger>
-          <TabsTrigger value="performance" className="gap-1"><Gauge className="w-4 h-4" />Coûts & performance</TabsTrigger>
-          <TabsTrigger value="map" className="gap-1"><MapIcon className="w-4 h-4" />Carte</TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-1"><Calendar className="w-4 h-4" />Calendrier</TabsTrigger>
-        </TabsList>
-
-        {/* OVERVIEW */}
-        <TabsContent value="overview" className="space-y-4">
-          <OverviewTab data={overview.data} onOpen={setDetailMissionId} />
-        </TabsContent>
-
-        {/* MISSIONS */}
-        <TabsContent value="missions">
+      <VerticalTabsShell tabGroups={OPS_TAB_GROUPS} value={tab} onChange={setTab}>
+        {tab === "overview" && (
+          <div className="space-y-4"><OverviewTab data={overview.data} onOpen={setDetailMissionId} /></div>
+        )}
+        {tab === "missions" && (
           <MissionsTable data={missions.data?.data ?? []} onOpen={setDetailMissionId} />
-        </TabsContent>
-
-        {/* DISPATCH */}
-        <TabsContent value="dispatch">
+        )}
+        {tab === "dispatch" && (
           <DispatchTab data={dispatch.data} missions={missions.data?.data ?? []} onChanged={refreshAll} onOpen={setDetailMissionId} />
-        </TabsContent>
-
-        {/* TRACKING */}
-        <TabsContent value="tracking">
+        )}
+        {tab === "tracking" && (
           <TrackingBoard data={missions.data?.data ?? []} onOpen={setDetailMissionId} onChanged={refreshAll} />
-        </TabsContent>
-
-        {/* INCIDENTS */}
-        <TabsContent value="incidents">
+        )}
+        {tab === "incidents" && (
           <IncidentsTab data={incidents.data?.data ?? []} onChanged={refreshAll} />
-        </TabsContent>
-
-        {/* CHECKLISTS */}
-        <TabsContent value="checklists">
+        )}
+        {tab === "checklists" && (
           <ChecklistsTab missions={missions.data?.data ?? []} onOpen={setDetailMissionId} />
-        </TabsContent>
-
-        {/* PROOFS */}
-        <TabsContent value="proofs">
+        )}
+        {tab === "proofs" && (
           <ProofsTab missions={missions.data?.data ?? []} onOpen={setDetailMissionId} />
-        </TabsContent>
-
-        {/* PERFORMANCE */}
-        <TabsContent value="performance">
+        )}
+        {tab === "performance" && (
           <PerformanceTab data={performance.data} />
-        </TabsContent>
-
-        {/* MAP */}
-        <TabsContent value="map">
+        )}
+        {tab === "map" && (
           <MapTab data={mapPts.data} />
-        </TabsContent>
-
-        {/* CALENDAR */}
-        <TabsContent value="calendar">
+        )}
+        {tab === "calendar" && (
           <CalendarTab items={calendar.data?.items ?? []} onOpen={setDetailMissionId} />
-        </TabsContent>
-      </Tabs>
+        )}
+      </VerticalTabsShell>
 
       <NewMissionDialog open={missionDialog} onClose={() => setMissionDialog(false)} onCreated={() => { setMissionDialog(false); refreshAll(); }} />
       <MissionDetailDialog missionId={detailMissionId} onClose={() => setDetailMissionId(null)} onChanged={refreshAll} />
