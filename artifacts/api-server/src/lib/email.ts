@@ -11,12 +11,18 @@
  * pour faciliter le copier-coller, quelle que soit la méthode d'envoi.
  */
 
+export type EmailAttachment = {
+  filename: string;
+  content: string; // base64-encoded
+};
+
 export type EmailMessage = {
   to: string;
   subject: string;
   html: string;
   text: string;
   category?: string;
+  attachments?: EmailAttachment[];
 };
 
 export type EmailDeliveryResult = {
@@ -52,6 +58,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult>
             subject: msg.subject,
             html: msg.html,
             text: msg.text,
+            ...(msg.attachments?.length ? { attachments: msg.attachments } : {}),
           }),
           headers: { "Content-Type": "application/json" },
         });
@@ -71,7 +78,10 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult>
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
+        body: JSON.stringify({
+          from, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text,
+          ...(msg.attachments?.length ? { attachments: msg.attachments } : {}),
+        }),
       });
       const j: any = await r.json().catch(() => ({}));
       result = r.ok

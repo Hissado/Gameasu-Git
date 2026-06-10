@@ -82,6 +82,8 @@ export const payslipsTable = pgTable("payslips", {
   // draft | validated | paid
   status: text("status").notNull().default("draft"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
+  // Suivi de l'envoi par email (Resend)
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

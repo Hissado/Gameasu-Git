@@ -10,7 +10,7 @@ import { useLocation, useParams } from "wouter";
 import {
   CheckCircle, ChevronLeft, ChevronRight, RefreshCw, Upload, AlertTriangle,
   Users, Banknote, TrendingUp, Receipt, Search, Play, ArrowLeft,
-  Download, FileDown, Archive, ChevronDown, X,
+  Download, FileDown, Archive, ChevronDown, X, Mail, MailCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -192,7 +192,7 @@ export default function PayrollRun() {
     enabled: !!runId,
   });
 
-  const { data: runDetail } = useQuery<{ payslips: { id: string; collaboratorId: string }[] }>({
+  const { data: runDetail, refetch: refetchRunDetail } = useQuery<{ payslips: { id: string; collaboratorId: string; emailSentAt?: string | null }[] }>({
     queryKey: ["payroll-run-detail", runId],
     queryFn: () => fetchJSON(`${API}/payroll/runs/${runId}`),
     enabled: !!runId,
@@ -204,8 +204,15 @@ export default function PayrollRun() {
     return m;
   }, [runDetail?.payslips]);
 
+  const emailSentByPayslip = React.useMemo(() => {
+    const m: Record<string, string | null> = {};
+    for (const p of (runDetail?.payslips ?? [])) m[p.id] = p.emailSentAt ?? null;
+    return m;
+  }, [runDetail?.payslips]);
+
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [emailingId, setEmailingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (data?.lineItems) setLocalItems(data.lineItems);
@@ -687,6 +694,7 @@ export default function PayrollRun() {
                     <th className="px-4 py-3 text-right">Net estimé</th>
                     <th className="px-4 py-3 text-left">Mode paiement</th>
                     <th className="px-4 py-3 text-center w-[110px]">Bulletin</th>
+                    <th className="px-4 py-3 text-center w-[130px]">Email</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -696,6 +704,8 @@ export default function PayrollRun() {
                     const irppIpts = Math.round(totalGross * 0.17);
                     const payslipId = payslipByCollab[l.collaboratorId];
                     const isDownloading = downloadingId === l.collaboratorId;
+                    const isEmailing = emailingId === payslipId;
+                    const emailSentAt = payslipId ? emailSentByPayslip[payslipId] : null;
                     return (
                       <tr key={l.collaboratorId} className="border-t hover:bg-muted/20">
                         <td className="px-4 py-2.5 font-medium">{l.firstName} {l.lastName}<div className="text-xs text-muted-foreground">{l.department}</div></td>
@@ -727,6 +737,43 @@ export default function PayrollRun() {
                               {isDownloading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
                               PDF
                             </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {payslipId ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <Button
+                                size="sm"
+                                variant={emailSentAt ? "outline" : "ghost"}
+                                className={`h-7 px-2 text-xs gap-1 ${emailSentAt ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : ""}`}
+                                disabled={isEmailing}
+                                onClick={async () => {
+                                  setEmailingId(payslipId);
+                                  try {
+                                    await fetchJSON(`${API}/payroll/payslips/${payslipId}/send-email`, { method: "POST" });
+                                    toast({ title: "Email envoyé", description: `Bulletin transmis à ${l.firstName} ${l.lastName}` });
+                                    refetchRunDetail();
+                                  } catch (e: any) {
+                                    toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
+                                  } finally { setEmailingId(null); }
+                                }}
+                              >
+                                {isEmailing
+                                  ? <RefreshCw className="w-3 h-3 animate-spin" />
+                                  : emailSentAt
+                                    ? <MailCheck className="w-3 h-3" />
+                                    : <Mail className="w-3 h-3" />
+                                }
+                                {emailSentAt ? "Renvoi" : "Envoyer"}
+                              </Button>
+                              {emailSentAt && (
+                                <span className="text-[10px] text-emerald-600">
+                                  ✓ {new Date(emailSentAt).toLocaleDateString("fr-FR")}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}

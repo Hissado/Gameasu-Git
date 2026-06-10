@@ -15,6 +15,8 @@
  *  PATCH  /api/payroll/payslips/:id         modifier un bulletin (draft)
  *
  *  GET    /api/payroll/livre               livre de paie (regroupé par période)
+ *
+ *  POST   /api/payroll/payslips/:id/send-email  envoyer le bulletin par email au collaborateur
  */
 import { Router } from "express";
 import { PassThrough } from "stream";
@@ -30,6 +32,7 @@ import {
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { generatePayslipPdf } from "../lib/payslip-pdf";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 router.use(requireAuth);
@@ -564,6 +567,164 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
       org ?? { name: "Organisation" },
       res,
     );
+  } catch (e) { next(e); }
+});
+
+// ──────────────────────────────────────────────────────────
+// EMAIL — ENVOYER LE BULLETIN AU COLLABORATEUR
+// POST /api/payroll/payslips/:id/send-email
+// ──────────────────────────────────────────────────────────
+router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+
+    const [p] = await db
+      .select({
+        id: payslipsTable.id,
+        payrollRunId: payslipsTable.payrollRunId,
+        period: payslipsTable.period,
+        baseSalary: payslipsTable.baseSalary,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        cnssEmployer: payslipsTable.cnssEmployer,
+        irpp: payslipsTable.irpp,
+        ipts: payslipsTable.ipts,
+        netSalary: payslipsTable.netSalary,
+        transportAllowance: payslipsTable.transportAllowance,
+        housingAllowance: payslipsTable.housingAllowance,
+        mealAllowance: payslipsTable.mealAllowance,
+        additions: payslipsTable.additions,
+        deductions: payslipsTable.deductions,
+        status: payslipsTable.status,
+        collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+        collaboratorFirstName: collaboratorsTable.firstName,
+        collaboratorCode: collaboratorsTable.employeeNumber,
+        collaboratorEmail: collaboratorsTable.email,
+        department: collaboratorsTable.department,
+        jobTitle: contractsTable.jobTitle,
+        paymentDate: payrollRunsTable.paymentDate,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
+      .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .limit(1);
+
+    if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
+    if (!p.collaboratorEmail) {
+      res.status(400).json({ error: "Aucune adresse email renseignée pour ce collaborateur" });
+      return;
+    }
+
+    const [org] = await db
+      .select({
+        name: organizationsTable.name,
+        legalName: organizationsTable.legalName,
+        address: organizationsTable.address,
+        taxId: organizationsTable.taxId,
+        contactEmail: organizationsTable.contactEmail,
+        contactPhone: organizationsTable.contactPhone,
+        logoUrl: organizationsTable.logoUrl,
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+
+    // Générer le PDF dans un buffer en mémoire
+    const pass = new PassThrough();
+    const chunks: Buffer[] = [];
+    pass.on("data", (chunk: Buffer) => chunks.push(chunk));
+    await new Promise<void>((resolve, reject) => {
+      pass.on("end", resolve);
+      pass.on("error", reject);
+      generatePayslipPdf(
+        {
+          id: p.id,
+          period: p.period,
+          collaboratorName: p.collaboratorName ?? "—",
+          collaboratorCode: p.collaboratorCode,
+          department: p.department,
+          jobTitle: p.jobTitle,
+          baseSalary: toNum(p.baseSalary),
+          transportAllowance: toNum(p.transportAllowance),
+          housingAllowance: toNum(p.housingAllowance),
+          mealAllowance: toNum(p.mealAllowance),
+          additions: p.additions as { label: string; amount: number }[] | null,
+          deductions: p.deductions as { label: string; amount: number }[] | null,
+          grossSalary: toNum(p.grossSalary),
+          cnssEmployee: toNum(p.cnssEmployee),
+          cnssEmployer: toNum(p.cnssEmployer),
+          irpp: toNum(p.irpp),
+          ipts: toNum(p.ipts),
+          netSalary: toNum(p.netSalary),
+          paymentDate: p.paymentDate,
+          status: p.status ?? "draft",
+        },
+        org ?? { name: "Organisation" },
+        pass,
+      );
+    });
+
+    const pdfBuffer = Buffer.concat(chunks);
+    const pdfBase64 = pdfBuffer.toString("base64");
+
+    // Période lisible : "Juin 2026"
+    const [yr, mo] = p.period.split("-");
+    const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    const periodLabel = `${MOIS[(parseInt(mo, 10) - 1)] ?? mo} ${yr}`;
+    const orgName = org?.name ?? "Gaméasù";
+
+    const safeName = (p.collaboratorName ?? "bulletin").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const pdfFilename = `bulletin_${p.period}_${safeName}.pdf`;
+
+    const netFormatted = new Intl.NumberFormat("fr-FR").format(Math.round(toNum(p.netSalary))) + " FCFA";
+
+    const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:580px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:#F37021;padding:24px 28px">
+    <div style="color:#fff;font-weight:700;letter-spacing:2px;font-size:13px;margin-bottom:4px">${orgName.toUpperCase()}</div>
+    <div style="color:rgba(255,255,255,0.85);font-size:13px">Bulletin de paie</div>
+  </div>
+  <div style="padding:28px">
+    <p style="margin:0 0 12px">Bonjour <strong>${p.collaboratorFirstName ?? p.collaboratorName}</strong>,</p>
+    <p style="margin:0 0 20px;color:#444;line-height:1.6">Veuillez trouver ci-joint votre bulletin de paie pour la période de <strong>${periodLabel}</strong>.</p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:20px">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Net à payer</div>
+      <div style="font-size:28px;font-weight:700;color:#F37021">${netFormatted}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:4px">${periodLabel}</div>
+    </div>
+    <p style="margin:0;font-size:13px;color:#64748b">Le bulletin détaillé est joint à cet email en PDF.</p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    Bulletin établi conformément à la législation togolaise. À conserver sans limitation de durée.<br>
+    © ${new Date().getFullYear()} ${orgName}
+  </div>
+</div>
+</body></html>`;
+
+    const text = `Bonjour ${p.collaboratorFirstName ?? p.collaboratorName},\n\nVeuillez trouver ci-joint votre bulletin de paie pour la période de ${periodLabel}.\n\nNet à payer : ${netFormatted}\n\nCordialement,\n${orgName}`;
+
+    const result = await sendEmail({
+      to: p.collaboratorEmail,
+      subject: `Bulletin de paie — ${periodLabel} — ${orgName}`,
+      html,
+      text,
+      attachments: [{ filename: pdfFilename, content: pdfBase64 }],
+    });
+
+    if (!result.delivered) {
+      res.status(502).json({ error: `Échec de l'envoi : ${result.error ?? "erreur inconnue"}` });
+      return;
+    }
+
+    // Mettre à jour emailSentAt
+    await db.update(payslipsTable)
+      .set({ emailSentAt: new Date() })
+      .where(eq(payslipsTable.id, p.id));
+
+    res.json({ delivered: true, provider: result.provider, messageId: result.messageId, sentTo: p.collaboratorEmail });
   } catch (e) { next(e); }
 });
 
