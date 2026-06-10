@@ -330,8 +330,16 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
       .where(eq(payrollLineItemsTable.payrollRunId, run.id));
     const lineMap = new Map(existingLines.map(l => [l.collaboratorId, l]));
 
+    // Dédupliquer les collaborateurs (un seul contrat actif retenu par collaborateur)
+    const seenCollab = new Set<string>();
+    const uniqueActives = actives.filter(a => {
+      if (seenCollab.has(a.collaboratorId)) return false;
+      seenCollab.add(a.collaboratorId);
+      return true;
+    });
+
     // Créer les lignes manquantes
-    const missing = actives.filter(a => !lineMap.has(a.collaboratorId));
+    const missing = uniqueActives.filter(a => !lineMap.has(a.collaboratorId));
     if (missing.length > 0) {
       const toInsert = missing
         .filter(a => a.contractId || toNum(a.baseSalary) > 0)
@@ -354,7 +362,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
     }
 
     // Assembler la réponse
-    const result = actives
+    const result = uniqueActives
       .filter(a => a.contractId || toNum(a.baseSalary) > 0)
       .map(a => {
         const line = lineMap.get(a.collaboratorId);

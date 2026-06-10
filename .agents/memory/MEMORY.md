@@ -7,3 +7,4 @@
 - [HR #8-17 schema files](hr-modules-schema.md) — new schema lives in onboarding.ts/expenses.ts/benefits.ts + appended to payroll.ts and hr.ts; hr.ts must import usersTable from ./users or push fails
 - [Payroll V2 architecture](payroll-v2-arch.md) — 3 new DB tables (schedules/line_items/corrections) in payroll.ts; API in payroll-v2.ts; avoid raw aliased SQL joins in drizzle 0.45.2 (use 2-query pattern instead).
 - [Payroll salary source](payroll-salary-source.md) — base salary is on collaboratorsTable.baseSalary (not contractsTable); contractsTable has monthlySalary; both read in line-items route.
+- [Payroll leftJoin deduplicate](payroll-leftjoin-dedup.md) — leftJoin on contractsTable in line-items GET produces duplicate rows per collaborator when multiple active contracts exist; always deduplicate by collaboratorId with a Set before inserting or assembling response.
