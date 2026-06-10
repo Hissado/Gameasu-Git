@@ -17,12 +17,14 @@ async function fetchJSON(url: string) {
 }
 
 type Run = { id: string; period: string; status: string; paymentDate?: string; employeeCount?: number; totalNetSalary: number; totalGrossSalary: number };
+type CalendarItem = { period: string; status: string; paymentDate?: string | null; totalNetSalary: number; employeeCount?: number };
 
 const STATUS_STYLES: Record<string, { dot: string; badge: string; label: string }> = {
   draft:     { dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Brouillon" },
   validated: { dot: "bg-blue-500",  badge: "bg-blue-50 text-blue-700 border-blue-200",   label: "Validé" },
   paid:      { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Payé" },
   archived:  { dot: "bg-gray-400", badge: "bg-gray-50 text-gray-600 border-gray-200", label: "Archivé" },
+  scheduled: { dot: "bg-indigo-400", badge: "bg-indigo-50 text-indigo-700 border-indigo-200", label: "Planifié" },
 };
 
 const MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -38,7 +40,17 @@ export default function PayrollCalendar() {
     queryFn: () => fetchJSON(`${API}/payroll/runs`),
   });
 
+  // Dashboard provides forward-looking projected cycles from active schedule
+  const { data: dash } = useQuery<{ calendarItems: CalendarItem[] }>({
+    queryKey: ["payroll-dashboard"],
+    queryFn: () => fetchJSON(`${API}/payroll/dashboard`),
+  });
+
   const runByPeriod = Object.fromEntries(runs.map(r => [r.period, r]));
+  // Projected future cycles (status "scheduled") keyed by period
+  const projectedByPeriod = Object.fromEntries(
+    (dash?.calendarItems ?? []).filter(c => c.status === "scheduled").map(c => [c.period, c])
+  );
 
   // Statistiques annuelles
   const yearRuns = runs.filter(r => r.period.startsWith(String(viewYear)));
@@ -97,10 +109,13 @@ export default function PayrollCalendar() {
             {Array.from({ length: 12 }, (_, m) => {
               const period = `${viewYear}-${String(m + 1).padStart(2, "0")}`;
               const run = runByPeriod[period];
+              const projected = !run ? projectedByPeriod[period] : null;
               const isCurrentMonth = viewYear === now.getFullYear() && m === now.getMonth();
               const isPast = new Date(viewYear, m + 1, 1) < now;
               const isFuture = new Date(viewYear, m, 1) > now;
-              const style = run ? STATUS_STYLES[run.status] ?? STATUS_STYLES.draft : null;
+              const style = run
+                ? (STATUS_STYLES[run.status] ?? STATUS_STYLES.draft)
+                : projected ? STATUS_STYLES.scheduled : null;
 
               return (
                 <div
@@ -109,6 +124,8 @@ export default function PayrollCalendar() {
                   className={`rounded-xl border p-4 transition-all ${
                     run
                       ? `cursor-pointer hover:shadow-md hover:border-primary/40 ${selected?.id === run.id ? "ring-2 ring-primary shadow-md" : ""}`
+                      : projected
+                      ? "border-indigo-200 bg-indigo-50/30"
                       : isPast ? "opacity-40 bg-muted/30 border-dashed" : isCurrentMonth ? "border-primary/30 bg-primary/5" : "border-dashed"
                   }`}
                 >
@@ -122,6 +139,12 @@ export default function PayrollCalendar() {
                       {run.totalNetSalary > 0 && <div className="text-xs font-medium text-emerald-700 mt-1">{formatFCFA(run.totalNetSalary)}</div>}
                       {(run.employeeCount ?? 0) > 0 && <div className="text-xs text-muted-foreground">{run.employeeCount} collabs</div>}
                       {run.paymentDate && <div className="text-xs text-muted-foreground">Paiement : {new Date(run.paymentDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>}
+                    </div>
+                  ) : projected ? (
+                    <div className="space-y-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_STYLES.scheduled.badge}`}>Planifié</span>
+                      {(projected.employeeCount ?? 0) > 0 && <div className="text-xs text-muted-foreground">{projected.employeeCount} collabs (estimé)</div>}
+                      {projected.paymentDate && <div className="text-xs text-indigo-600">Paiement : {new Date(projected.paymentDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground mt-1">{isFuture ? "À planifier" : isCurrentMonth ? "Cycle en cours" : "Aucun cycle"}</div>

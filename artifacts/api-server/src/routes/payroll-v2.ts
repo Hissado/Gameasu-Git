@@ -537,10 +537,22 @@ router.post("/payroll/runs/:id/import-rows", requireManagerOrAbove, async (req, 
       })),
     }).parse(req.body);
 
+    // Validate that all collaboratorIds belong to this organisation
+    const collabIdList = [...new Set(body.rows.map(r => r.collaboratorId))];
+    const validCollabs = collabIdList.length > 0
+      ? await db.select({ id: collaboratorsTable.id })
+        .from(collaboratorsTable)
+        .where(and(
+          eq(collaboratorsTable.organizationId, orgId),
+          inArray(collaboratorsTable.id, collabIdList),
+        ))
+      : [];
+    const validCollabIds = new Set(validCollabs.map(c => c.id));
+
     let imported = 0;
     let errors: string[] = [];
 
-    for (const row of body.rows) {
+    for (const row of body.rows.filter(r => validCollabIds.has(r.collaboratorId))) {
       try {
         const existing = await db.select().from(payrollLineItemsTable)
           .where(and(
@@ -611,7 +623,10 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
         eq(contractsTable.collaboratorId, collaboratorsTable.id),
         eq(contractsTable.status, "active"),
       ))
-      .where(inArray(collaboratorsTable.id, collabIds));
+      .where(and(
+        eq(collaboratorsTable.organizationId, orgId),
+        inArray(collaboratorsTable.id, collabIds),
+      ));
     const collabMap = new Map(collabs.map(c => [c.id, c]));
 
     // Compute payslip data from each line item

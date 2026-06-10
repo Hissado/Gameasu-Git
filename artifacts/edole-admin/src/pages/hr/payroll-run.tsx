@@ -103,7 +103,8 @@ export default function PayrollRun() {
   const [step, setStep] = useState<1 | 2>(1);
   const [search, setSearch] = useState("");
   const [localItems, setLocalItems] = useState<LineItem[]>([]);
-  const [pendingPatches, setPendingPatches] = useState<Record<string, Partial<LineItem>>>({});
+  const pendingPatchesRef = useRef<Record<string, Partial<LineItem>>>({});
+  const localItemsRef = useRef<LineItem[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [importPreview, setImportPreview] = useState<null | {
@@ -124,6 +125,9 @@ export default function PayrollRun() {
   useEffect(() => {
     if (data?.lineItems) setLocalItems(data.lineItems);
   }, [data]);
+
+  // Keep ref in sync so flush callback always reads current items (no stale closure)
+  useEffect(() => { localItemsRef.current = localItems; }, [localItems]);
 
   const run = data?.run;
 
@@ -158,30 +162,31 @@ export default function PayrollRun() {
     onError: (e: Error) => toast({ title: "Erreur de sauvegarde", description: e.message, variant: "destructive" }),
   });
 
-  // Flush pending patches with debounce
+  // Flush ALL pending patches — uses refs to avoid stale-closure issues
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flushAllPendingPatches() {
+    const patches = pendingPatchesRef.current;
+    if (Object.keys(patches).length === 0) return;
+    pendingPatchesRef.current = {};
+    for (const [collabId, patch] of Object.entries(patches)) {
+      const item = localItemsRef.current.find(l => l.collaboratorId === collabId);
+      if (item?.lineItemId && Object.keys(patch).length > 0) {
+        patchLineMut.mutate({ lineId: item.lineItemId, patch });
+      }
+    }
+  }
 
   function updateLine(collaboratorId: string, field: keyof LineItem, value: number | string) {
     setLocalItems(items => items.map(item =>
       item.collaboratorId === collaboratorId ? { ...item, [field]: value } : item
     ));
-    setPendingPatches(p => ({
-      ...p,
-      [collaboratorId]: { ...(p[collaboratorId] ?? {}), [field]: value },
-    }));
-    // Debounce save
+    pendingPatchesRef.current = {
+      ...pendingPatchesRef.current,
+      [collaboratorId]: { ...(pendingPatchesRef.current[collaboratorId] ?? {}), [field]: value },
+    };
     if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
-    flushTimeoutRef.current = setTimeout(() => {
-      setPendingPatches(current => {
-        const item = localItems.find(l => l.collaboratorId === collaboratorId);
-        if (!item?.lineItemId) return current;
-        const patch = current[collaboratorId];
-        if (patch) patchLineMut.mutate({ lineId: item.lineItemId, patch });
-        const next = { ...current };
-        delete next[collaboratorId];
-        return next;
-      });
-    }, 800);
+    flushTimeoutRef.current = setTimeout(flushAllPendingPatches, 800);
   }
 
   const filtered = localItems.filter(l =>
@@ -347,6 +352,7 @@ export default function PayrollRun() {
                     <th className="px-3 py-2.5 text-right min-w-[110px]">Déduction</th>
                     <th className="px-3 py-2.5 text-right min-w-[100px]">Correction</th>
                     <th className="px-3 py-2.5 text-left min-w-[140px]">Mode paiement</th>
+                    <th className="px-3 py-2.5 text-left min-w-[160px]">Notes</th>
                     <th className="px-3 py-2.5 text-right min-w-[120px] font-semibold">Total brut</th>
                     <th className="px-3 py-2.5 text-right min-w-[120px] text-emerald-700">Net estimé</th>
                   </tr>
@@ -385,6 +391,19 @@ export default function PayrollRun() {
                             <span className="text-xs">{PAY_METHODS[l.paymentMethod] ?? l.paymentMethod}</span>
                           )}
                         </td>
+                        <td className="px-3 py-2">
+                          {isDraft ? (
+                            <input
+                              type="text"
+                              className="w-full text-xs px-2 py-1 rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                              value={l.notes}
+                              placeholder="Remarque…"
+                              onChange={e => updateLine(l.collaboratorId, "notes", e.target.value)}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{l.notes || "—"}</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-right font-semibold">{formatFCFA(totalGross)}</td>
                         <td className="px-3 py-2 text-right font-semibold text-emerald-700">{formatFCFA(net)}</td>
                       </tr>
@@ -401,7 +420,7 @@ export default function PayrollRun() {
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.commission)}</td>
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.reimbursement)}</td>
                     <td className="px-3 py-2.5 text-right text-red-600 text-sm">{formatFCFA(totals.deduction)}</td>
-                    <td colSpan={2} />
+                    <td colSpan={3} />
                     <td className="px-3 py-2.5 text-right text-primary">{formatFCFA(totals.gross)}</td>
                     <td className="px-3 py-2.5 text-right text-emerald-700">{formatFCFA(totals.net)}</td>
                   </tr>
