@@ -10,9 +10,18 @@ import { useLocation, useParams } from "wouter";
 import {
   CheckCircle, ChevronLeft, ChevronRight, RefreshCw, Upload, AlertTriangle,
   Users, Banknote, TrendingUp, Receipt, Search, Play, ArrowLeft,
-  Download, FileDown, Archive,
+  Download, FileDown, Archive, ChevronDown, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const API = "/api";
 
@@ -123,6 +132,49 @@ export default function PayrollRun() {
   const [localItems, setLocalItems] = useState<LineItem[]>([]);
   const pendingPatchesRef = useRef<Record<string, Partial<LineItem>>>({});
   const localItemsRef = useRef<LineItem[]>([]);
+  // ── Sélection en masse ───────────────────────────────────────────
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDialog, setBulkDialog] = useState<{
+    action: "payment_method" | "bonus" | "commission" | "reimbursement" | "deduction" | "correction" | "note" | null;
+  }>({ action: null });
+  const [bulkVal, setBulkVal] = useState("");
+
+  function toggleRow(id: string) {
+    setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+  function toggleAll() {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(l => l.collaboratorId)));
+  }
+  function openBulk(action: typeof bulkDialog["action"]) { setBulkVal(""); setBulkDialog({ action }); }
+  function applyBulk() {
+    const { action } = bulkDialog;
+    if (!action) return;
+    selected.forEach(id => {
+      if (action === "payment_method") {
+        updateLine(id, "paymentMethod", bulkVal);
+      } else if (action === "bonus") {
+        const cur = localItems.find(l => l.collaboratorId === id);
+        updateLine(id, "bonus", (cur?.bonus ?? 0) + (parseFloat(bulkVal) || 0));
+      } else if (action === "commission") {
+        const cur = localItems.find(l => l.collaboratorId === id);
+        updateLine(id, "commission", (cur?.commission ?? 0) + (parseFloat(bulkVal) || 0));
+      } else if (action === "reimbursement") {
+        const cur = localItems.find(l => l.collaboratorId === id);
+        updateLine(id, "reimbursement", (cur?.reimbursement ?? 0) + (parseFloat(bulkVal) || 0));
+      } else if (action === "deduction") {
+        const cur = localItems.find(l => l.collaboratorId === id);
+        updateLine(id, "deduction", (cur?.deduction ?? 0) + (parseFloat(bulkVal) || 0));
+      } else if (action === "correction") {
+        const cur = localItems.find(l => l.collaboratorId === id);
+        updateLine(id, "payrollCorrection", (cur?.payrollCorrection ?? 0) + (parseFloat(bulkVal) || 0));
+      } else if (action === "note") {
+        updateLine(id, "notes", bulkVal);
+      }
+    });
+    setBulkDialog({ action: null });
+  }
+
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [importPreview, setImportPreview] = useState<null | {
@@ -388,6 +440,45 @@ export default function PayrollRun() {
             </Button>
           </div>
 
+          {/* ── Barre de sélection flottante ─────────────────────── */}
+          {selected.size > 0 && (
+            <div className="sticky bottom-4 z-20 flex items-center gap-3 bg-foreground text-background rounded-xl px-4 py-2.5 shadow-xl w-fit mx-auto border border-foreground/20 animate-in slide-in-from-bottom-2 duration-200">
+              <Checkbox
+                checked
+                className="border-background data-[state=checked]:bg-background data-[state=checked]:text-foreground"
+                onCheckedChange={() => setSelected(new Set())}
+                aria-label="Désélectionner tout"
+              />
+              <span className="text-sm font-semibold">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 h-8">
+                    Actions <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" side="top" className="w-52">
+                  <DropdownMenuItem onClick={() => openBulk("payment_method")}>Mode de paiement</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => openBulk("bonus")}>Ajouter une prime</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openBulk("commission")}>Ajouter une commission</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openBulk("reimbursement")}>Remboursement ponctuel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openBulk("deduction")} className="text-red-600">Déduction ponctuelle</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openBulk("correction")}>Correction de paie</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => openBulk("note")}>Ajouter une note</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                aria-label="Fermer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Tableau principal */}
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground rounded-lg border border-dashed">
@@ -399,7 +490,14 @@ export default function PayrollRun() {
               <table className="w-full text-sm border-collapse min-w-[1400px]">
                 <thead className="bg-muted/50 text-xs text-muted-foreground uppercase sticky top-0 z-10">
                   <tr>
-                    <th className="px-3 py-2.5 text-left sticky left-0 bg-muted/50 min-w-[180px]">Collaborateur</th>
+                    <th className="px-3 py-2.5 text-center w-10 sticky left-0 bg-muted/50">
+                      <Checkbox
+                        checked={filtered.length > 0 && selected.size === filtered.length}
+                        onCheckedChange={toggleAll}
+                        aria-label="Tout sélectionner"
+                      />
+                    </th>
+                    <th className="px-3 py-2.5 text-left sticky left-10 bg-muted/50 min-w-[180px]">Collaborateur</th>
                     <th className="px-3 py-2.5 text-right min-w-[120px]">Salaire base</th>
                     <th className="px-3 py-2.5 text-right min-w-[90px]">H. rég.</th>
                     <th className="px-3 py-2.5 text-right min-w-[90px]">H. sup.</th>
@@ -420,9 +518,17 @@ export default function PayrollRun() {
                   {filtered.map((l, idx) => {
                     const { totalGross, net } = computeGross(l);
                     const isDraft = run?.status === "draft";
+                    const isSelected = selected.has(l.collaboratorId);
                     return (
-                      <tr key={l.collaboratorId} className={`border-t ${idx % 2 === 0 ? "bg-background" : "bg-muted/10"} hover:bg-primary/5`}>
-                        <td className="px-3 py-2 sticky left-0 bg-inherit border-r">
+                      <tr key={l.collaboratorId} className={`border-t ${isSelected ? "bg-primary/8" : idx % 2 === 0 ? "bg-background" : "bg-muted/10"} hover:bg-primary/5`}>
+                        <td className="px-3 py-2 text-center w-10 sticky left-0 bg-inherit">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleRow(l.collaboratorId)}
+                            aria-label={`Sélectionner ${l.firstName} ${l.lastName}`}
+                          />
+                        </td>
+                        <td className="px-3 py-2 sticky left-10 bg-inherit border-r">
                           <div className="font-medium text-sm">{l.firstName} {l.lastName}</div>
                           {(l.department || l.jobTitle) && <div className="text-xs text-muted-foreground">{l.jobTitle ?? l.department}</div>}
                           {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
@@ -472,7 +578,8 @@ export default function PayrollRun() {
                 {/* Totaux */}
                 <tfoot className="border-t-2 bg-muted/40 font-semibold">
                   <tr>
-                    <td className="px-3 py-2.5 sticky left-0 bg-muted/40 text-sm">TOTAUX ({filtered.length})</td>
+                    <td className="px-3 py-2.5 w-10 sticky left-0 bg-muted/40" />
+                    <td className="px-3 py-2.5 sticky left-10 bg-muted/40 text-sm">TOTAUX ({filtered.length})</td>
                     <td className="px-3 py-2.5" />
                     <td colSpan={4} />
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.bonus)}</td>
@@ -644,6 +751,75 @@ export default function PayrollRun() {
           </div>
         </div>
       )}
+
+      {/* ─── Dialog Action en masse ─── */}
+      <Dialog open={bulkDialog.action !== null} onOpenChange={open => { if (!open) setBulkDialog({ action: null }); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkDialog.action === "payment_method" && "Mode de paiement"}
+              {bulkDialog.action === "bonus" && "Ajouter une prime"}
+              {bulkDialog.action === "commission" && "Ajouter une commission"}
+              {bulkDialog.action === "reimbursement" && "Remboursement ponctuel"}
+              {bulkDialog.action === "deduction" && "Déduction ponctuelle"}
+              {bulkDialog.action === "correction" && "Correction de paie"}
+              {bulkDialog.action === "note" && "Ajouter une note"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            S'applique aux <span className="font-semibold text-foreground">{selected.size}</span> collaborateur{selected.size > 1 ? "s" : ""} sélectionné{selected.size > 1 ? "s" : ""}.
+            {bulkDialog.action !== "payment_method" && bulkDialog.action !== "note" && " La valeur sera ajoutée au montant existant."}
+          </p>
+          <div className="space-y-3 py-1">
+            {bulkDialog.action === "payment_method" ? (
+              <div>
+                <Label className="text-sm mb-1.5 block">Mode de paiement</Label>
+                <select
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={bulkVal}
+                  onChange={e => setBulkVal(e.target.value)}
+                >
+                  <option value="">— Choisir —</option>
+                  {Object.entries(PAY_METHODS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            ) : bulkDialog.action === "note" ? (
+              <div>
+                <Label className="text-sm mb-1.5 block">Note</Label>
+                <Input
+                  placeholder="Remarque à appliquer…"
+                  value={bulkVal}
+                  onChange={e => setBulkVal(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && applyBulk()}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div>
+                <Label className="text-sm mb-1.5 block">Montant (FCFA)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={bulkVal}
+                  onChange={e => setBulkVal(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && applyBulk()}
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setBulkDialog({ action: null })}>Annuler</Button>
+            <Button
+              onClick={applyBulk}
+              disabled={!bulkVal || (bulkDialog.action !== "note" && bulkDialog.action !== "payment_method" && isNaN(parseFloat(bulkVal)))}
+            >
+              Appliquer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Modal Import CSV — preview + apply ─── */}
       {importOpen && (
