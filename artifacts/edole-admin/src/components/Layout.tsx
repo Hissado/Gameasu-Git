@@ -40,8 +40,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard" },
       { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard" },
-      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard" },
-      { name: "Approbations",     path: "/approvals",    icon: CheckSquare,     moduleKey: "dashboard" },
+      { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications" },
+      { name: "Appels",           path: "/calls",        icon: PhoneCall,       moduleKey: "communications" },
+      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       secondary: true },
+      { name: "Approbations",     path: "/approvals",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
     ],
   },
   {
@@ -94,11 +96,9 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Équipe",
     icon: Users2,
     items: [
-      { name: "Ressources humaines", path: "/hr",               icon: UsersRound,        moduleKey: "team_hr" },
-      { name: "Présences",           path: "/attendance",        icon: Clock,             moduleKey: "team_hr" },
-      { name: "Messagerie",          path: "/messaging",         icon: MessageSquare,     moduleKey: "communications" },
-      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr",          secondary: true },
-      { name: "Appels",              path: "/calls",             icon: PhoneCall,         moduleKey: "communications",   secondary: true },
+      { name: "Ressources humaines",  path: "/hr",               icon: UsersRound,        moduleKey: "team_hr" },
+      { name: "Présences",            path: "/attendance",        icon: Clock,             moduleKey: "team_hr" },
+      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr", secondary: true },
     ],
   },
   {
