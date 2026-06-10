@@ -132,8 +132,12 @@ export default function PayrollRun() {
   });
 
   const validateMut = useMutation({
-    mutationFn: () => fetchJSON(`${API}/payroll/runs/${runId}/validate`, { method: "POST" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["payroll-dashboard"] }); toast({ title: "Paie soumise !", description: "Le cycle est maintenant validé" }); navigate("/hr/payroll"); },
+    mutationFn: () => fetchJSON(`${API}/payroll/runs/${runId}/submit`, { method: "POST" }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["payroll-dashboard"] });
+      toast({ title: "Paie soumise !", description: `${r.employeeCount ?? localItems.length} bulletins générés et validés` });
+      navigate("/hr/payroll");
+    },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 

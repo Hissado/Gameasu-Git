@@ -40,6 +40,36 @@ router.use(requireAuth);
 
 const toNum = (v: unknown) => (v == null ? 0 : Number(v));
 
+// ─── Calculs SYSCOHADA Togo (identiques à payroll.ts) ─────────────────────
+function computeIrppAnnuel(revenuImposableAnnuel: number): number {
+  const tranches = [
+    { plafond: 900_000, taux: 0 },
+    { plafond: 1_500_000, taux: 0.07 },
+    { plafond: 2_500_000, taux: 0.11 },
+    { plafond: 4_000_000, taux: 0.15 },
+    { plafond: 6_000_000, taux: 0.20 },
+    { plafond: 10_000_000, taux: 0.25 },
+    { plafond: Infinity, taux: 0.35 },
+  ];
+  let irpp = 0, prev = 0;
+  for (const { plafond, taux } of tranches) {
+    if (revenuImposableAnnuel <= prev) break;
+    const base = Math.min(revenuImposableAnnuel, plafond) - prev;
+    irpp += base * taux;
+    prev = plafond;
+  }
+  return Math.round(irpp);
+}
+function computePayslipAmounts(grossSalary: number) {
+  const cnssEmployee = Math.round(grossSalary * 0.04);
+  const cnssEmployer = Math.round(grossSalary * 0.164);
+  const ipts = Math.round(grossSalary * 0.02);
+  const revenuImposableMensuel = Math.max(0, grossSalary - cnssEmployee);
+  const irppMensuel = Math.round(computeIrppAnnuel(revenuImposableMensuel * 12) / 12);
+  const netSalary = Math.round(grossSalary - cnssEmployee - irppMensuel - ipts);
+  return { cnssEmployee, cnssEmployer, irpp: irppMensuel, ipts, netSalary };
+}
+
 // ════════════════════════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════════════════════════
@@ -295,25 +325,62 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
       payrollCorrection: z.number().optional(),
       notes: z.string().optional(),
       paymentMethod: z.enum(["cash", "bank_transfer", "mobile_money", "check", "other"]).optional(),
-      totalGross: z.number().optional(),
     }).parse(req.body);
 
-    const updates: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(body)) {
-      if (v !== undefined) {
-        updates[k] = typeof v === "number" ? String(v) : v;
-      }
-    }
-
-    const [line] = await db.update(payrollLineItemsTable)
-      .set(updates)
+    // Fetch existing line (org-scoped via run ownership)
+    const [existing] = await db.select().from(payrollLineItemsTable)
       .where(and(
         eq(payrollLineItemsTable.id, req.params.lineId),
         eq(payrollLineItemsTable.organizationId, orgId),
         eq(payrollLineItemsTable.payrollRunId, req.params.id),
       ))
+      .limit(1);
+    if (!existing) return res.status(404).json({ error: "Ligne introuvable" });
+
+    // Merge patch with existing values for totalGross computation
+    const merged = {
+      bonus: body.bonus ?? toNum(existing.bonus),
+      commission: body.commission ?? toNum(existing.commission),
+      tip: body.tip ?? toNum(existing.tip),
+      reimbursement: body.reimbursement ?? toNum(existing.reimbursement),
+      deduction: body.deduction ?? toNum(existing.deduction),
+      payrollCorrection: body.payrollCorrection ?? toNum(existing.payrollCorrection),
+    };
+
+    // Get collaborator salary for authoritative totalGross
+    const [collab] = await db.select({
+      baseSalary: collaboratorsTable.baseSalary,
+      transportAllowance: collaboratorsTable.transportAllowance,
+      housingAllowance: collaboratorsTable.housingAllowance,
+      monthlySalary: contractsTable.monthlySalary,
+    })
+      .from(collaboratorsTable)
+      .leftJoin(contractsTable, and(
+        eq(contractsTable.collaboratorId, collaboratorsTable.id),
+        eq(contractsTable.status, "active"),
+      ))
+      .where(eq(collaboratorsTable.id, existing.collaboratorId))
+      .limit(1);
+
+    const base = collab ? (toNum(collab.monthlySalary) || toNum(collab.baseSalary)) : 0;
+    const transport = collab ? toNum(collab.transportAllowance) : 0;
+    const housing = collab ? toNum(collab.housingAllowance) : 0;
+    const computedGross = Math.max(0,
+      base + transport + housing
+      + merged.bonus + merged.commission + merged.tip
+      + merged.reimbursement + merged.payrollCorrection
+      - merged.deduction,
+    );
+
+    const updates: Record<string, unknown> = { totalGross: String(computedGross) };
+    for (const [k, v] of Object.entries(body)) {
+      if (v !== undefined) updates[k] = typeof v === "number" ? String(v) : v;
+    }
+
+    const [line] = await db.update(payrollLineItemsTable)
+      .set(updates)
+      .where(eq(payrollLineItemsTable.id, existing.id))
       .returning();
-    if (!line) return res.status(404).json({ error: "Ligne introuvable" });
     res.json({ ...line, totalGross: toNum(line.totalGross) });
   } catch (e) { next(e); }
 });
@@ -462,6 +529,218 @@ router.post("/payroll/runs/:id/import-rows", requireManagerOrAbove, async (req, 
   } catch (e) { next(e); }
 });
 
+// POST /payroll/runs/:id/submit — recompute payslips from line-items, update run totals, validate atomically
+router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [run] = await db.select().from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .limit(1);
+    if (!run) return res.status(404).json({ error: "Cycle introuvable" });
+    if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être soumis" });
+
+    // Get all line items for this run
+    const lineItems = await db.select().from(payrollLineItemsTable)
+      .where(eq(payrollLineItemsTable.payrollRunId, run.id));
+    if (lineItems.length === 0) {
+      return res.status(400).json({ error: "Aucune ligne de paie. Utilisez d'abord « Préparer la paie »." });
+    }
+
+    // Get collaborator salary data in one query
+    const collabIds = [...new Set(lineItems.map(l => l.collaboratorId))];
+    const collabs = await db.select({
+      id: collaboratorsTable.id,
+      baseSalary: collaboratorsTable.baseSalary,
+      transportAllowance: collaboratorsTable.transportAllowance,
+      housingAllowance: collaboratorsTable.housingAllowance,
+      monthlySalary: contractsTable.monthlySalary,
+      contractId: contractsTable.id,
+    })
+      .from(collaboratorsTable)
+      .leftJoin(contractsTable, and(
+        eq(contractsTable.collaboratorId, collaboratorsTable.id),
+        eq(contractsTable.status, "active"),
+      ))
+      .where(inArray(collaboratorsTable.id, collabIds));
+    const collabMap = new Map(collabs.map(c => [c.id, c]));
+
+    // Compute payslip data from each line item
+    let totalGrossSalary = 0, totalCnssEmployee = 0, totalCnssEmployer = 0;
+    let totalIrpp = 0, totalIpts = 0, totalNetSalary = 0;
+
+    const payslipRows = lineItems.map(line => {
+      const c = collabMap.get(line.collaboratorId);
+      const base = c ? (toNum(c.monthlySalary) || toNum(c.baseSalary)) : 0;
+      const transport = c ? toNum(c.transportAllowance) : 0;
+      const housing = c ? toNum(c.housingAllowance) : 0;
+      const variable = toNum(line.bonus) + toNum(line.commission) + toNum(line.tip)
+        + toNum(line.reimbursement) + toNum(line.payrollCorrection);
+      const deduction = toNum(line.deduction);
+      const gross = Math.max(0, base + transport + housing + variable - deduction);
+      const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross);
+
+      totalGrossSalary += gross;
+      totalCnssEmployee += cnssEmployee;
+      totalCnssEmployer += cnssEmployer;
+      totalIrpp += irpp;
+      totalIpts += ipts;
+      totalNetSalary += netSalary;
+
+      return {
+        organizationId: orgId,
+        payrollRunId: run.id,
+        collaboratorId: line.collaboratorId,
+        contractId: c?.contractId ?? null,
+        period: run.period,
+        baseSalary: String(base),
+        transportAllowance: String(transport),
+        housingAllowance: String(housing),
+        grossSalary: String(gross),
+        cnssEmployee: String(cnssEmployee),
+        cnssEmployer: String(cnssEmployer),
+        irpp: String(irpp),
+        ipts: String(ipts),
+        netSalary: String(netSalary),
+        status: "validated" as const,
+      };
+    });
+
+    // Delete and re-insert payslips (atomic replacement)
+    await db.delete(payslipsTable).where(eq(payslipsTable.payrollRunId, run.id));
+    if (payslipRows.length > 0) await db.insert(payslipsTable).values(payslipRows);
+
+    // Update run totals and validate
+    const [updated] = await db.update(payrollRunsTable).set({
+      status: "validated",
+      validatedById: req.authUser!.id,
+      validatedAt: new Date(),
+      employeeCount: payslipRows.length,
+      totalGrossSalary: String(Math.round(totalGrossSalary)),
+      totalCnssEmployee: String(Math.round(totalCnssEmployee)),
+      totalCnssEmployer: String(Math.round(totalCnssEmployer)),
+      totalIrpp: String(Math.round(totalIrpp)),
+      totalIpts: String(Math.round(totalIpts)),
+      totalNetSalary: String(Math.round(totalNetSalary)),
+    }).where(eq(payrollRunsTable.id, run.id)).returning();
+
+    res.json({
+      ...updated,
+      employeeCount: payslipRows.length,
+      totalGrossSalary: Math.round(totalGrossSalary),
+      totalNetSalary: Math.round(totalNetSalary),
+    });
+  } catch (e) { next(e); }
+});
+
+// POST /payroll/runs/:id/import-csv — server-side CSV parsing with validation preview
+router.post("/payroll/runs/:id/import-csv", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [run] = await db.select().from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .limit(1);
+    if (!run) return res.status(404).json({ error: "Cycle introuvable" });
+    if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être importé" });
+
+    const body = z.object({
+      csv: z.string().min(1),
+      apply: z.boolean().default(false),
+    }).parse(req.body);
+
+    const csvLines = body.csv.trim().split(/\r?\n/).filter(l => l.trim());
+    if (csvLines.length < 2) return res.status(400).json({ error: "CSV vide ou sans données" });
+
+    const sep = csvLines[0].includes(";") ? ";" : ",";
+
+    // Normalize header: strip accents, lowercase
+    const normalize = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const headers = csvLines[0].split(sep).map(normalize);
+    const dataRows = csvLines.slice(1);
+
+    // Get existing line items + collaborator names
+    const existingLines = await db.select().from(payrollLineItemsTable)
+      .where(eq(payrollLineItemsTable.payrollRunId, run.id));
+    const collabIds = existingLines.map(l => l.collaboratorId);
+    const collabs = collabIds.length > 0
+      ? await db.select({ id: collaboratorsTable.id, firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName })
+          .from(collaboratorsTable).where(inArray(collaboratorsTable.id, collabIds))
+      : [];
+
+    const lineByCollabId = new Map(existingLines.map(l => [l.collaboratorId, l]));
+    const collabByName = new Map(collabs.map(c => [`${c.firstName} ${c.lastName}`.toLowerCase(), c.id]));
+    const collabById = new Map(collabs.map(c => [c.id, c]));
+
+    // Field mapping: CSV header → DB field
+    const FIELD_MAP: Record<string, string> = {
+      bonus: "bonus", prime: "bonus", primes: "bonus",
+      commission: "commission", commissions: "commission",
+      remboursement: "reimbursement", remboursements: "reimbursement", reimbursement: "reimbursement",
+      deduction: "deduction", deductions: "deduction", retenue: "deduction", retenuespeciale: "deduction",
+      h_regulieres: "regularHours", heures_regulieres: "regularHours", regularhours: "regularHours",
+      h_sup: "overtimeHours", heures_sup: "overtimeHours", overtimehours: "overtimeHours",
+      tip: "tip", pourboire: "tip",
+      notes: "notes", remarques: "notes",
+    };
+
+    type PreviewRow = { collaboratorId: string; name: string; matched: boolean; fields: Record<string, number | string>; error?: string };
+    const preview: PreviewRow[] = [];
+    const updates: Array<{ lineId: string; patch: Record<string, string> }> = [];
+    const unmatched: string[] = [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const cells = dataRows[i].split(sep);
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = cells[idx]?.trim() ?? ""; });
+
+      // Identify collaborator
+      const idCol = row["id"] || row["collaborator_id"] || row["collaboratorid"];
+      const nomCol = row["nom"] || row["name"] || row["collaborateur"] || row["prenom_nom"];
+      let collabId: string | undefined = idCol || collabByName.get((nomCol ?? "").toLowerCase());
+
+      const line = collabId ? lineByCollabId.get(collabId) : undefined;
+      if (!line || !collabId) {
+        const label = nomCol ?? idCol ?? `Ligne ${i + 2}`;
+        unmatched.push(`Ligne ${i + 2}: "${label}" non trouvé dans ce cycle`);
+        preview.push({ collaboratorId: "", name: label, matched: false, fields: {} });
+        continue;
+      }
+
+      const c = collabById.get(collabId);
+      const name = c ? `${c.firstName} ${c.lastName}` : collabId;
+      const fields: Record<string, number | string> = {};
+      const patch: Record<string, string> = {};
+
+      for (const [header, value] of Object.entries(row)) {
+        const field = FIELD_MAP[header];
+        if (!field || !value) continue;
+        if (field === "notes") {
+          fields[field] = value;
+          patch[field] = value;
+        } else {
+          const num = parseFloat(value.replace(/\s/g, "").replace(",", "."));
+          if (!isNaN(num)) {
+            fields[field] = num;
+            patch[field] = String(num);
+          }
+        }
+      }
+
+      preview.push({ collaboratorId: collabId, name, matched: true, fields, ...(Object.keys(patch).length === 0 ? { error: "Aucune colonne reconnue" } : {}) });
+      if (Object.keys(patch).length > 0) updates.push({ lineId: line.id, patch });
+    }
+
+    let applied = 0;
+    if (body.apply && updates.length > 0) {
+      for (const { lineId, patch } of updates) {
+        await db.update(payrollLineItemsTable).set(patch).where(eq(payrollLineItemsTable.id, lineId));
+        applied++;
+      }
+    }
+
+    res.json({ preview, unmatched, matched: updates.length, total: dataRows.length, applied });
+  } catch (e) { next(e); }
+});
+
 // ════════════════════════════════════════════════════════
 // CORRECTIONS DE PAIE
 // ════════════════════════════════════════════════════════
@@ -525,6 +804,26 @@ router.post("/payroll/corrections", requireManagerOrAbove, async (req, res, next
       targetRunId: z.string().uuid().optional(),
     }).parse(req.body);
 
+    // Multi-tenant ownership validation
+    const [collabCheck] = await db.select({ id: collaboratorsTable.id })
+      .from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.id, body.collaboratorId), eq(collaboratorsTable.organizationId, orgId)))
+      .limit(1);
+    if (!collabCheck) return res.status(400).json({ error: "Collaborateur introuvable dans cette organisation" });
+
+    if (body.sourceRunId) {
+      const [srcRun] = await db.select({ id: payrollRunsTable.id }).from(payrollRunsTable)
+        .where(and(eq(payrollRunsTable.id, body.sourceRunId), eq(payrollRunsTable.organizationId, orgId)))
+        .limit(1);
+      if (!srcRun) return res.status(400).json({ error: "Cycle source introuvable dans cette organisation" });
+    }
+    if (body.targetRunId) {
+      const [tgtRun] = await db.select({ id: payrollRunsTable.id }).from(payrollRunsTable)
+        .where(and(eq(payrollRunsTable.id, body.targetRunId), eq(payrollRunsTable.organizationId, orgId)))
+        .limit(1);
+      if (!tgtRun) return res.status(400).json({ error: "Cycle cible introuvable dans cette organisation" });
+    }
+
     const [row] = await db.insert(payrollCorrectionsTable).values({
       organizationId: orgId,
       collaboratorId: body.collaboratorId,
@@ -569,7 +868,7 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
   try {
     const orgId = req.authUser!.organizationId;
 
-    // Planning bimensuel actif
+    // 1. Planning bimensuel actif
     const existingSchedules = await db.select().from(payrollSchedulesTable)
       .where(eq(payrollSchedulesTable.organizationId, orgId));
     if (existingSchedules.length === 0) {
@@ -586,7 +885,6 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
       });
     }
 
-    // Run du mois courant en draft (si pas encore créé)
     const now = new Date();
     const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
@@ -595,21 +893,140 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
 
     const existingRuns = await db.select().from(payrollRunsTable)
       .where(eq(payrollRunsTable.organizationId, orgId));
-    const hasCurrentRun = existingRuns.some(r => r.period === currentPeriod);
+    const hasCurrent = existingRuns.some(r => r.period === currentPeriod);
+    const hasPrev = existingRuns.some(r => r.period === prevPeriod);
 
-    if (!hasCurrentRun) {
+    // Collaborateurs actifs avec contrat
+    const actives = await db.select({
+      collaboratorId: collaboratorsTable.id,
+      contractId: contractsTable.id,
+      baseSalary: collaboratorsTable.baseSalary,
+      transportAllowance: collaboratorsTable.transportAllowance,
+      housingAllowance: collaboratorsTable.housingAllowance,
+      monthlySalary: contractsTable.monthlySalary,
+    })
+      .from(collaboratorsTable)
+      .leftJoin(contractsTable, and(
+        eq(contractsTable.collaboratorId, collaboratorsTable.id),
+        eq(contractsTable.status, "active"),
+      ))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.status, "active")))
+      .limit(5);
+
+    // 2. Run mois précédent validé avec bulletins réels
+    if (!hasPrev && actives.length > 0) {
+      const prevPayDay = new Date(prevYear, prevMonth, 28);
+      const [prevRun] = await db.insert(payrollRunsTable).values({
+        organizationId: orgId,
+        period: prevPeriod,
+        status: "validated",
+        paymentDate: prevPayDay.toISOString().split("T")[0],
+        notes: "Cycle validé — exemple démo",
+        createdById: req.authUser!.id,
+        validatedById: req.authUser!.id,
+        validatedAt: new Date(prevYear, prevMonth - 1, 26),
+        employeeCount: actives.length,
+      }).returning();
+
+      let tGross = 0, tCnssEmp = 0, tCnssEr = 0, tIrpp = 0, tIpts = 0, tNet = 0;
+      const prevPayslips = actives.map(a => {
+        const base = toNum(a.monthlySalary) || toNum(a.baseSalary) || 250_000;
+        const transport = toNum(a.transportAllowance) || 25_000;
+        const housing = toNum(a.housingAllowance) || 0;
+        const gross = base + transport + housing;
+        const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross);
+        tGross += gross; tCnssEmp += cnssEmployee; tCnssEr += cnssEmployer;
+        tIrpp += irpp; tIpts += ipts; tNet += netSalary;
+        return {
+          organizationId: orgId, payrollRunId: prevRun.id,
+          collaboratorId: a.collaboratorId, contractId: a.contractId ?? undefined,
+          period: prevPeriod,
+          baseSalary: String(base), transportAllowance: String(transport), housingAllowance: String(housing),
+          grossSalary: String(gross),
+          cnssEmployee: String(cnssEmployee), cnssEmployer: String(cnssEmployer),
+          irpp: String(irpp), ipts: String(ipts), netSalary: String(netSalary),
+          status: "validated" as const,
+        };
+      });
+      if (prevPayslips.length > 0) await db.insert(payslipsTable).values(prevPayslips);
+      await db.update(payrollRunsTable).set({
+        totalGrossSalary: String(Math.round(tGross)),
+        totalCnssEmployee: String(Math.round(tCnssEmp)),
+        totalCnssEmployer: String(Math.round(tCnssEr)),
+        totalIrpp: String(Math.round(tIrpp)),
+        totalIpts: String(Math.round(tIpts)),
+        totalNetSalary: String(Math.round(tNet)),
+      }).where(eq(payrollRunsTable.id, prevRun.id));
+
+      // 3. Correction démo sur le run précédent
+      const existingCorrections = await db.select().from(payrollCorrectionsTable)
+        .where(eq(payrollCorrectionsTable.organizationId, orgId));
+      if (existingCorrections.length === 0 && actives[0]) {
+        await db.insert(payrollCorrectionsTable).values({
+          organizationId: orgId,
+          collaboratorId: actives[0].collaboratorId,
+          sourceRunId: prevRun.id,
+          amount: "35000",
+          reason: "Heures supplémentaires non comptabilisées",
+          description: `Régularisation de 5h sup × 7 000 FCFA/h sur la période ${prevPeriod}`,
+          status: "pending",
+          createdById: req.authUser!.id,
+        });
+      }
+    }
+
+    // 4. Run mois courant en draft avec lignes peuplées
+    let currentRunId: string | null = null;
+    if (!hasCurrent) {
       const payDay = new Date(now.getFullYear(), now.getMonth(), 28);
-      await db.insert(payrollRunsTable).values({
+      const [currentRun] = await db.insert(payrollRunsTable).values({
         organizationId: orgId,
         period: currentPeriod,
         status: "draft",
         paymentDate: payDay.toISOString().split("T")[0],
         notes: "Cycle bimensuel — à valider avant le 25",
         createdById: req.authUser!.id,
-      });
+      }).returning();
+      currentRunId = currentRun.id;
+    } else {
+      currentRunId = existingRuns.find(r => r.period === currentPeriod)?.id ?? null;
     }
 
-    res.json({ ok: true, message: "Données de démo créées" });
+    // Injecter des lignes variables démo dans le run courant
+    if (currentRunId && actives.length > 0) {
+      const existingLines = await db.select().from(payrollLineItemsTable)
+        .where(eq(payrollLineItemsTable.payrollRunId, currentRunId));
+      if (existingLines.length === 0) {
+        const demoVariables = [
+          { bonus: 75_000, commission: 0, reimbursement: 15_000, deduction: 0 },
+          { bonus: 50_000, commission: 120_000, reimbursement: 0, deduction: 0 },
+          { bonus: 0, commission: 0, reimbursement: 25_000, deduction: 10_000 },
+          { bonus: 100_000, commission: 0, reimbursement: 0, deduction: 0 },
+          { bonus: 30_000, commission: 45_000, reimbursement: 8_000, deduction: 5_000 },
+        ];
+        const linesToInsert = actives.slice(0, 5).map((a, i) => {
+          const vars = demoVariables[i] ?? demoVariables[0];
+          const base = toNum(a.monthlySalary) || toNum(a.baseSalary) || 250_000;
+          const transport = toNum(a.transportAllowance) || 25_000;
+          const housing = toNum(a.housingAllowance) || 0;
+          const gross = Math.max(0, base + transport + housing + vars.bonus + vars.commission + vars.reimbursement - vars.deduction);
+          return {
+            organizationId: orgId,
+            payrollRunId: currentRunId!,
+            collaboratorId: a.collaboratorId,
+            bonus: String(vars.bonus),
+            commission: String(vars.commission),
+            reimbursement: String(vars.reimbursement),
+            deduction: String(vars.deduction),
+            regularHours: "160",
+            totalGross: String(gross),
+          };
+        });
+        if (linesToInsert.length > 0) await db.insert(payrollLineItemsTable).values(linesToInsert);
+      }
+    }
+
+    res.json({ ok: true, message: `Données de démo créées (${actives.length} collaborateurs, run ${currentPeriod} + ${prevPeriod})` });
   } catch (e) { next(e); }
 });
 

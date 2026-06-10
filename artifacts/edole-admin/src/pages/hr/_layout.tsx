@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield } from "lucide-react";
+import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench } from "lucide-react";
 
 const TABS = [
   { name: "Mon espace", path: "/hr/my-space", icon: LayoutDashboard },
@@ -15,6 +15,7 @@ const TABS = [
   { name: "Mouvements", path: "/hr/movements", icon: ArrowRightLeft },
   { name: "Paie", path: "/hr/payroll", icon: Banknote, exact: true },
   { name: "Calendrier paie", path: "/hr/payroll/calendar", icon: CalendarRange },
+  { name: "Corrections paie", path: "/hr/payroll/corrections", icon: Wrench },
   { name: "Hors-cycle", path: "/hr/payroll/off-cycle", icon: Zap },
   { name: "Fiscalité RH", path: "/hr/tax-settings", icon: Percent },
   { name: "Virements", path: "/hr/transfer-orders", icon: Banknote },
