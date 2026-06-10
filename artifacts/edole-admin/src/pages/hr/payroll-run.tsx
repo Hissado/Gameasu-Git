@@ -222,6 +222,7 @@ export default function PayrollRun() {
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState(false);
   const [emailingId, setEmailingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -655,22 +656,50 @@ export default function PayrollRun() {
             </Button>
             <div className="flex items-center gap-2 flex-wrap">
               {Object.keys(payslipByCollab).length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={downloadingZip}
-                  onClick={async () => {
-                    setDownloadingZip(true);
-                    try {
-                      await downloadFile(`${API}/payroll/runs/${runId}/pdf-zip`, `bulletins_paie_${run?.period ?? runId}.zip`);
-                    } catch (e: any) {
-                      toast({ title: "Erreur téléchargement ZIP", description: e.message, variant: "destructive" });
-                    } finally { setDownloadingZip(false); }
-                  }}
-                >
-                  {downloadingZip ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Archive className="w-4 h-4 mr-1" />}
-                  Télécharger tout (ZIP)
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={sendingEmails}
+                    onClick={async () => {
+                      setSendingEmails(true);
+                      try {
+                        const r = await fetchJSON(`${API}/payroll/runs/${runId}/send-emails`, { method: "POST" });
+                        const parts: string[] = [];
+                        if (r.sent > 0) parts.push(`${r.sent} bulletin${r.sent > 1 ? "s" : ""} envoyé${r.sent > 1 ? "s" : ""}`);
+                        if (r.skipped > 0) parts.push(`${r.skipped} ignoré${r.skipped > 1 ? "s" : ""} (email manquant)`);
+                        if (r.failed > 0) parts.push(`${r.failed} échec${r.failed > 1 ? "s" : ""}`);
+                        toast({
+                          title: r.sent > 0 ? "Bulletins envoyés par email" : "Aucun email envoyé",
+                          description: parts.join(", "),
+                          variant: r.failed > 0 ? "destructive" : "default",
+                        });
+                        refetchRunDetail();
+                      } catch (e: any) {
+                        toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
+                      } finally { setSendingEmails(false); }
+                    }}
+                  >
+                    {sendingEmails ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Mail className="w-4 h-4 mr-1" />}
+                    Envoyer tous par email
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={downloadingZip}
+                    onClick={async () => {
+                      setDownloadingZip(true);
+                      try {
+                        await downloadFile(`${API}/payroll/runs/${runId}/pdf-zip`, `bulletins_paie_${run?.period ?? runId}.zip`);
+                      } catch (e: any) {
+                        toast({ title: "Erreur téléchargement ZIP", description: e.message, variant: "destructive" });
+                      } finally { setDownloadingZip(false); }
+                    }}
+                  >
+                    {downloadingZip ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Archive className="w-4 h-4 mr-1" />}
+                    Télécharger tout (ZIP)
+                  </Button>
+                </>
               )}
               <Button
                 size="lg"
