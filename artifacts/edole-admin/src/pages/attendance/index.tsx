@@ -17,6 +17,12 @@ import {
 import { toast } from "sonner";
 import { severityLabel } from "@/lib/intelligence";
 
+function resolveStorageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith("/objects/")) return `/api/storage${url}`;
+  return url;
+}
+
 const KIND_LABEL: Record<string, string> = {
   clock_in: "Arrivée",
   clock_out: "Départ",
@@ -142,10 +148,10 @@ function MyClockPanel() {
                   )}
                 </div>
                 <div className="text-xs text-slate-500 flex items-center gap-2 shrink-0">
-                  {r.photoUrl && (
-                    <a href={r.photoUrl} target="_blank" rel="noreferrer" title="Voir la photo de présence">
+                  {resolveStorageUrl(r.photoUrl) && (
+                    <a href={resolveStorageUrl(r.photoUrl)!} target="_blank" rel="noreferrer" title="Voir la photo de présence">
                       <img
-                        src={r.photoUrl}
+                        src={resolveStorageUrl(r.photoUrl)!}
                         alt="Photo pointage"
                         className="w-8 h-8 rounded object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in"
                       />
@@ -207,10 +213,10 @@ function CollaboratorRecordsDialog({
           <div className="space-y-2">
             {todayRecords.map((r) => (
               <div key={r.id} className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-2.5">
-                {r.photoUrl ? (
-                  <a href={r.photoUrl} target="_blank" rel="noreferrer" title="Voir la photo en grand">
+                {resolveStorageUrl(r.photoUrl) ? (
+                  <a href={resolveStorageUrl(r.photoUrl)!} target="_blank" rel="noreferrer" title="Voir la photo en grand">
                     <img
-                      src={r.photoUrl}
+                      src={resolveStorageUrl(r.photoUrl)!}
                       alt="Photo pointage"
                       className="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in shrink-0"
                     />

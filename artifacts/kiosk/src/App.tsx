@@ -397,6 +397,7 @@ function KioskApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const gpsRef = useRef<{ latitude: number; longitude: number; accuracyMeters: number } | null>(null);
 
   // Pre-warm camera permission as soon as the kiosk token is set,
   // so the browser doesn't show a permission popup during a punch.
@@ -441,6 +442,21 @@ function KioskApp() {
 
   const handleAction = (kind: PunchKind) => {
     setSelectedKind(kind);
+    gpsRef.current = null;
+    // Capture GPS en arrière-plan pendant la prise de photo
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          gpsRef.current = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracyMeters: Math.round(pos.coords.accuracy),
+          };
+        },
+        () => { gpsRef.current = null; },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
+      );
+    }
     setScreen("photo");
   };
 
@@ -448,6 +464,7 @@ function KioskApp() {
     if (!kioskToken || !collaborator) return;
     setLoading(true);
     try {
+      const gps = gpsRef.current;
       const res = await fetch("/api/kiosk/punch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -456,6 +473,7 @@ function KioskApp() {
           collaboratorId: collaborator.id,
           kind,
           ...(photoDataUrl ? { photoDataUrl } : {}),
+          ...(gps ? { latitude: gps.latitude, longitude: gps.longitude, accuracyMeters: gps.accuracyMeters } : {}),
         }),
       });
       const data = await res.json();

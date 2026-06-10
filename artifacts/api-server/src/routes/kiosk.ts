@@ -109,6 +109,9 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       collaboratorId: z.string().uuid(),
       kind: z.enum(["clock_in", "clock_out", "break_start", "break_end"]),
       photoDataUrl: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+      accuracyMeters: z.number().optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
@@ -116,7 +119,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       return;
     }
 
-    const { kioskToken, collaboratorId, kind, photoDataUrl } = parsed.data;
+    const { kioskToken, collaboratorId, kind, photoDataUrl, latitude, longitude, accuracyMeters } = parsed.data;
 
     const [kiosk] = await db
       .select({
@@ -211,6 +214,9 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         source: "kiosk",
         kioskId: kiosk.id,
         photoUrl,
+        latitude: latitude != null ? String(latitude) : null,
+        longitude: longitude != null ? String(longitude) : null,
+        accuracyMeters: accuracyMeters != null ? Math.round(accuracyMeters) : null,
         occurredAt: new Date(),
         status: "validated",
       })
