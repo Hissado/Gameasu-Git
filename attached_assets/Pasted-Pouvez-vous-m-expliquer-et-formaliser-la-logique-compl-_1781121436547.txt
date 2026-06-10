@@ -1,0 +1,118 @@
+Pouvez-vous m’expliquer et formaliser la **logique complète du module Équipe & Communication**, en montrant comment toutes ses sous-sections fonctionnent ensemble, comment elles sont liées entre elles, et comment les données sont assignées aux collaborateurs, managers, équipes et organisations ?
+
+### Sous-sections concernées
+
+Merci d’analyser en détail les sous-sections suivantes :
+
+* **Présences & Pointage**
+* **Kiosks de pointage**
+* **Messagerie**
+* **Appels**
+* et toute autre sous-section liée au module **Équipe & Communication**
+
+### Objectif
+
+Je veux comprendre la logique globale de ce module, pas seulement chaque section séparément.
+
+Merci d’expliquer clairement :
+
+* comment chaque sous-section fonctionne
+* comment les sous-sections sont connectées entre elles
+* quelles données sont partagées entre elles
+* comment les collaborateurs sont assignés
+* comment les managers supervisent les équipes
+* comment les présences, messages, appels et pointages sont reliés
+* comment tout cela fonctionne dans une logique SaaS multi-tenant
+
+### Points à expliquer
+
+Merci de détailler notamment :
+
+#### 1. Présences & Pointage
+
+* comment un collaborateur pointe dans l’application
+* comment les heures sont enregistrées
+* comment les présences sont liées au profil collaborateur
+* comment les managers voient les présences de leurs équipes
+* comment les anomalies sont détectées
+* comment les données remontent dans les rapports RH
+
+#### 2. Kiosks de pointage
+
+* comment chaque kiosk est créé
+* comment un kiosk est lié à une organisation
+* comment les collaborateurs utilisent leur code employé à 4 chiffres
+* comment les punches du kiosk sont synchronisés avec l’application
+* comment les photos de pointage sont rattachées aux punches
+* comment différencier un punch fait via l’application d’un punch fait via le kiosk
+
+#### 3. Messagerie
+
+* comment les conversations sont créées
+* comment les collaborateurs sont assignés à une conversation
+* comment les groupes sont liés à une équipe, un projet, un service, un client ou une organisation
+* comment les messages sont visibles selon les rôles et permissions
+* comment la messagerie peut être liée aux actions RH, aux présences ou aux alertes
+
+#### 4. Appels
+
+* comment les appels sont initiés
+* comment les participants sont assignés
+* comment les appels sont liés aux conversations, équipes, services ou projets
+* comment l’historique des appels est conservé
+* comment les permissions contrôlent qui peut appeler qui
+* comment les appels s’intègrent dans la logique de communication interne
+
+### Logique d’assignation
+
+Merci d’expliquer comment fonctionnent les assignations entre :
+
+* organisation
+* équipe
+* département
+* manager
+* collaborateur
+* projet
+* service
+* conversation
+* kiosk
+* présence
+* appel
+
+Je veux comprendre par exemple :
+
+* qui peut voir quoi
+* qui peut gérer quoi
+* qui peut pointer où
+* qui peut envoyer un message à qui
+* qui peut appeler qui
+* comment un manager suit son équipe
+* comment un admin supervise toute l’organisation
+
+### Logique SaaS / multi-tenant
+
+Merci de vérifier que toute la logique respecte bien une architecture SaaS :
+
+* chaque organisation doit avoir ses propres collaborateurs
+* chaque organisation doit avoir ses propres kiosks
+* chaque organisation doit avoir ses propres conversations
+* chaque organisation doit avoir ses propres appels
+* aucune donnée ne doit être visible entre organisations
+* les permissions doivent être strictement liées au tenant connecté
+
+### Résultat attendu
+
+Je veux une explication claire, structurée et exploitable de la logique complète du module **Équipe & Communication**, avec :
+
+1. une explication de chaque sous-section
+2. une explication des liens entre les sous-sections
+3. une logique d’assignation claire
+4. une logique de permissions claire
+5. une logique multi-tenant claire
+6. des exemples de workflows réels
+7. les éventuels problèmes de logique à corriger
+8. les améliorations recommandées pour rendre le module plus cohérent, plus fluide et plus professionnel
+
+### Objectif final
+
+Je veux que le module **Équipe & Communication** fonctionne comme un vrai centre opérationnel interne, où les présences, les kiosks, la messagerie et les appels sont bien connectés, bien assignés, bien sécurisés et faciles à comprendre pour les utilisateurs.
