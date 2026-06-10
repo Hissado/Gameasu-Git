@@ -267,7 +267,7 @@ function PhotoScreen({
             const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
             stream.getTracks().forEach((t) => t.stop());
             onCapture(dataUrl);
-          }, 120);
+          }, 1500);
         };
       })
       .catch(() => onSkip());
