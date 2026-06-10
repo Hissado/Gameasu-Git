@@ -9,8 +9,8 @@ import { formatFCFA } from "@/lib/format";
 import { useLocation, useParams } from "wouter";
 import {
   CheckCircle, ChevronLeft, ChevronRight, RefreshCw, Upload, AlertTriangle,
-  Users, Banknote, TrendingUp, Receipt, Search, Play, ArrowLeft, Info,
-  Download, CreditCard,
+  Users, Banknote, TrendingUp, Receipt, Search, Play, ArrowLeft,
+  Download, FileDown, Archive,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +21,18 @@ async function fetchJSON(url: string, opts?: RequestInit) {
   const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...opts?.headers } });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error ?? r.statusText); }
   return r.json();
+}
+
+async function downloadFile(url: string, filename: string): Promise<void> {
+  const token = localStorage.getItem("auth_token");
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as { error?: string }).error ?? r.statusText); }
+  const blob = await r.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 const PAY_METHODS: Record<string, string> = {
@@ -127,6 +139,21 @@ export default function PayrollRun() {
     queryFn: () => fetchJSON(`${API}/payroll/runs/${runId}/line-items`),
     enabled: !!runId,
   });
+
+  const { data: runDetail } = useQuery<{ payslips: { id: string; collaboratorId: string }[] }>({
+    queryKey: ["payroll-run-detail", runId],
+    queryFn: () => fetchJSON(`${API}/payroll/runs/${runId}`),
+    enabled: !!runId,
+  });
+
+  const payslipByCollab = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of (runDetail?.payslips ?? [])) m[p.collaboratorId] = p.id;
+    return m;
+  }, [runDetail?.payslips]);
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   useEffect(() => {
     if (data?.lineItems) setLocalItems(data.lineItems);
@@ -466,19 +493,39 @@ export default function PayrollRun() {
       {/* ════════════ ÉTAPE 2 ════════════ */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>
               <ChevronLeft className="w-4 h-4 mr-1" />Retour modifier
             </Button>
-            <Button
-              size="lg"
-              onClick={() => flushAndProceed(() => validateMut.mutate())}
-              disabled={validateMut.isPending || isFlushing || run?.status !== "draft" || localItems.length === 0}
-              className="gap-2"
-            >
-              <CheckCircle className="w-5 h-5" />
-              {isFlushing ? "Sauvegarde en cours…" : validateMut.isPending ? "Soumission…" : "Soumettre la paie"}
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {Object.keys(payslipByCollab).length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={downloadingZip}
+                  onClick={async () => {
+                    setDownloadingZip(true);
+                    try {
+                      await downloadFile(`${API}/payroll/runs/${runId}/pdf-zip`, `bulletins_paie_${run?.period ?? runId}.zip`);
+                    } catch (e: any) {
+                      toast({ title: "Erreur téléchargement ZIP", description: e.message, variant: "destructive" });
+                    } finally { setDownloadingZip(false); }
+                  }}
+                >
+                  {downloadingZip ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Archive className="w-4 h-4 mr-1" />}
+                  Télécharger tout (ZIP)
+                </Button>
+              )}
+              <Button
+                size="lg"
+                onClick={() => flushAndProceed(() => validateMut.mutate())}
+                disabled={validateMut.isPending || isFlushing || run?.status !== "draft" || localItems.length === 0}
+                className="gap-2"
+              >
+                <CheckCircle className="w-5 h-5" />
+                {isFlushing ? "Sauvegarde en cours…" : validateMut.isPending ? "Soumission…" : "Soumettre la paie"}
+              </Button>
+            </div>
           </div>
 
           {/* Anomalies */}
@@ -532,6 +579,7 @@ export default function PayrollRun() {
                     <th className="px-4 py-3 text-right">IRPP+IPTS</th>
                     <th className="px-4 py-3 text-right">Net estimé</th>
                     <th className="px-4 py-3 text-left">Mode paiement</th>
+                    <th className="px-4 py-3 text-center w-[110px]">Bulletin</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -539,6 +587,8 @@ export default function PayrollRun() {
                     const { totalGross, net } = computeGross(l);
                     const cnss = Math.round(totalGross * 0.04);
                     const irppIpts = Math.round(totalGross * 0.17);
+                    const payslipId = payslipByCollab[l.collaboratorId];
+                    const isDownloading = downloadingId === l.collaboratorId;
                     return (
                       <tr key={l.collaboratorId} className="border-t hover:bg-muted/20">
                         <td className="px-4 py-2.5 font-medium">{l.firstName} {l.lastName}<div className="text-xs text-muted-foreground">{l.department}</div></td>
@@ -547,6 +597,33 @@ export default function PayrollRun() {
                         <td className="px-4 py-2.5 text-right text-red-600">{formatFCFA(irppIpts)}</td>
                         <td className="px-4 py-2.5 text-right font-semibold text-emerald-700">{formatFCFA(net)}</td>
                         <td className="px-4 py-2.5 text-sm text-muted-foreground">{PAY_METHODS[l.paymentMethod] ?? l.paymentMethod}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {payslipId ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs gap-1"
+                              disabled={isDownloading}
+                              onClick={async () => {
+                                setDownloadingId(l.collaboratorId);
+                                try {
+                                  const safeName = `${l.firstName}_${l.lastName}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+                                  await downloadFile(
+                                    `${API}/payroll/payslips/${payslipId}/pdf`,
+                                    `bulletin_${run?.period ?? ""}_${safeName}.pdf`,
+                                  );
+                                } catch (e: any) {
+                                  toast({ title: "Erreur PDF", description: e.message, variant: "destructive" });
+                                } finally { setDownloadingId(null); }
+                              }}
+                            >
+                              {isDownloading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                              PDF
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -558,6 +635,7 @@ export default function PayrollRun() {
                     <td className="px-4 py-3 text-right text-red-600">{formatFCFA(cnssTotal)}</td>
                     <td className="px-4 py-3 text-right text-red-600">{formatFCFA(irppTotal + iptsTotal)}</td>
                     <td className="px-4 py-3 text-right text-emerald-700 text-base">{formatFCFA(totals.net)}</td>
+                    <td />
                     <td />
                   </tr>
                 </tfoot>

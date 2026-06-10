@@ -17,15 +17,19 @@
  *  GET    /api/payroll/livre               livre de paie (regroupé par période)
  */
 import { Router } from "express";
+import { PassThrough } from "stream";
+import { ZipArchive } from "archiver";
 import { db } from "@workspace/db";
 import {
   payrollRunsTable,
   payslipsTable,
   collaboratorsTable,
   contractsTable,
+  organizationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { generatePayslipPdf } from "../lib/payslip-pdf";
 
 const router = Router();
 router.use(requireAuth);
@@ -141,7 +145,7 @@ router.get("/payroll/runs/:id", requireManagerOrAbove, async (req, res, next) =>
         housingAllowance: payslipsTable.housingAllowance,
         mealAllowance: payslipsTable.mealAllowance,
         collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
-        collaboratorCode: collaboratorsTable.employeeId,
+        collaboratorCode: collaboratorsTable.employeeNumber,
         department: collaboratorsTable.department,
       })
       .from(payslipsTable)
@@ -205,9 +209,9 @@ router.post("/payroll/runs/:id/generate", requireManagerOrAbove, async (req, res
       .select({
         collaboratorId: collaboratorsTable.id,
         contractId: contractsTable.id,
-        baseSalary: contractsTable.baseSalary,
-        transportAllowance: contractsTable.transportAllowance,
-        housingAllowance: contractsTable.housingAllowance,
+        baseSalary: collaboratorsTable.baseSalary,
+        transportAllowance: collaboratorsTable.transportAllowance,
+        housingAllowance: collaboratorsTable.housingAllowance,
       })
       .from(collaboratorsTable)
       .leftJoin(
@@ -220,12 +224,19 @@ router.post("/payroll/runs/:id/generate", requireManagerOrAbove, async (req, res
       .where(
         and(
           eq(collaboratorsTable.organizationId, orgId),
-          eq(collaboratorsTable.status, "active"),
+          eq(collaboratorsTable.employmentStatus, "active"),
         )
       );
 
+    // Déduplique : un seul contrat par collaborateur (premier contrat actif trouvé)
+    const seen = new Set<string>();
     const toInsert = actives
-      .filter((a) => a.contractId && a.baseSalary != null)
+      .filter((a) => {
+        if (!a.contractId || a.baseSalary == null) return false;
+        if (seen.has(a.collaboratorId)) return false;
+        seen.add(a.collaboratorId);
+        return true;
+      })
       .map((a) => {
         const base = toNum(a.baseSalary);
         const transport = toNum(a.transportAllowance);
@@ -352,7 +363,7 @@ router.get("/payroll/payslips", requireManagerOrAbove, async (req, res, next) =>
         additions: payslipsTable.additions,
         deductions: payslipsTable.deductions,
         collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
-        collaboratorCode: collaboratorsTable.employeeId,
+        collaboratorCode: collaboratorsTable.employeeNumber,
         department: collaboratorsTable.department,
       })
       .from(payslipsTable)
@@ -401,13 +412,14 @@ router.get("/payroll/payslips/:id", requireManagerOrAbove, async (req, res, next
         notes: payslipsTable.notes,
         organizationId: payslipsTable.organizationId,
         collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
-        collaboratorCode: collaboratorsTable.employeeId,
+        collaboratorCode: collaboratorsTable.employeeNumber,
         department: collaboratorsTable.department,
-        jobTitle: collaboratorsTable.jobTitle,
+        jobTitle: contractsTable.jobTitle,
         runStatus: payrollRunsTable.status,
       })
       .from(payslipsTable)
       .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
       .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
       .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
       .limit(1);
@@ -462,6 +474,203 @@ router.patch("/payroll/payslips/:id", requireManagerOrAbove, async (req, res, ne
       netSalary: String(netSalary),
     }).where(eq(payslipsTable.id, p.id)).returning();
     res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// ──────────────────────────────────────────────────────────
+// PDF — BULLETIN INDIVIDUEL
+// GET /api/payroll/payslips/:id/pdf
+// ──────────────────────────────────────────────────────────
+router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+
+    const [p] = await db
+      .select({
+        id: payslipsTable.id,
+        payrollRunId: payslipsTable.payrollRunId,
+        period: payslipsTable.period,
+        baseSalary: payslipsTable.baseSalary,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        cnssEmployer: payslipsTable.cnssEmployer,
+        irpp: payslipsTable.irpp,
+        ipts: payslipsTable.ipts,
+        netSalary: payslipsTable.netSalary,
+        transportAllowance: payslipsTable.transportAllowance,
+        housingAllowance: payslipsTable.housingAllowance,
+        mealAllowance: payslipsTable.mealAllowance,
+        additions: payslipsTable.additions,
+        deductions: payslipsTable.deductions,
+        status: payslipsTable.status,
+        collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+        collaboratorCode: collaboratorsTable.employeeNumber,
+        department: collaboratorsTable.department,
+        jobTitle: contractsTable.jobTitle,
+        paymentDate: payrollRunsTable.paymentDate,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
+      .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .limit(1);
+
+    if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
+
+    const [org] = await db
+      .select({
+        name: organizationsTable.name,
+        legalName: organizationsTable.legalName,
+        address: organizationsTable.address,
+        taxId: organizationsTable.taxId,
+        contactEmail: organizationsTable.contactEmail,
+        contactPhone: organizationsTable.contactPhone,
+        logoUrl: organizationsTable.logoUrl,
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+
+    const safeName = (p.collaboratorName ?? "bulletin").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const filename = `bulletin_${p.period}_${safeName}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    generatePayslipPdf(
+      {
+        id: p.id,
+        period: p.period,
+        collaboratorName: p.collaboratorName ?? "—",
+        collaboratorCode: p.collaboratorCode,
+        department: p.department,
+        jobTitle: p.jobTitle,
+        baseSalary: toNum(p.baseSalary),
+        transportAllowance: toNum(p.transportAllowance),
+        housingAllowance: toNum(p.housingAllowance),
+        mealAllowance: toNum(p.mealAllowance),
+        additions: p.additions as { label: string; amount: number }[] | null,
+        deductions: p.deductions as { label: string; amount: number }[] | null,
+        grossSalary: toNum(p.grossSalary),
+        cnssEmployee: toNum(p.cnssEmployee),
+        cnssEmployer: toNum(p.cnssEmployer),
+        irpp: toNum(p.irpp),
+        ipts: toNum(p.ipts),
+        netSalary: toNum(p.netSalary),
+        paymentDate: p.paymentDate,
+        status: p.status ?? "draft",
+      },
+      org ?? { name: "Organisation" },
+      res,
+    );
+  } catch (e) { next(e); }
+});
+
+// ──────────────────────────────────────────────────────────
+// PDF ZIP — TOUS LES BULLETINS D'UN CYCLE
+// GET /api/payroll/runs/:id/pdf-zip
+// ──────────────────────────────────────────────────────────
+router.get("/payroll/runs/:id/pdf-zip", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+
+    const [run] = await db.select().from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .limit(1);
+    if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
+
+    const payslips = await db
+      .select({
+        id: payslipsTable.id,
+        period: payslipsTable.period,
+        baseSalary: payslipsTable.baseSalary,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        cnssEmployer: payslipsTable.cnssEmployer,
+        irpp: payslipsTable.irpp,
+        ipts: payslipsTable.ipts,
+        netSalary: payslipsTable.netSalary,
+        transportAllowance: payslipsTable.transportAllowance,
+        housingAllowance: payslipsTable.housingAllowance,
+        mealAllowance: payslipsTable.mealAllowance,
+        additions: payslipsTable.additions,
+        deductions: payslipsTable.deductions,
+        status: payslipsTable.status,
+        collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
+        collaboratorCode: collaboratorsTable.employeeNumber,
+        department: collaboratorsTable.department,
+        jobTitle: contractsTable.jobTitle,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
+      .where(eq(payslipsTable.payrollRunId, run.id))
+      .orderBy(asc(collaboratorsTable.lastName));
+
+    if (payslips.length === 0) {
+      res.status(400).json({ error: "Aucun bulletin dans ce cycle" }); return;
+    }
+
+    const [org] = await db
+      .select({
+        name: organizationsTable.name,
+        legalName: organizationsTable.legalName,
+        address: organizationsTable.address,
+        taxId: organizationsTable.taxId,
+        contactEmail: organizationsTable.contactEmail,
+        contactPhone: organizationsTable.contactPhone,
+        logoUrl: organizationsTable.logoUrl,
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+
+    const zipFilename = `bulletins_paie_${run.period}.zip`;
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
+
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    archive.pipe(res);
+
+    archive.on("error", (err) => { next(err); });
+
+    for (const p of payslips) {
+      const safeName = (p.collaboratorName ?? "bulletin").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const pdfFilename = `bulletin_${p.period}_${safeName}.pdf`;
+
+      const pass = new PassThrough();
+      archive.append(pass, { name: pdfFilename });
+
+      generatePayslipPdf(
+        {
+          id: p.id,
+          period: p.period,
+          collaboratorName: p.collaboratorName ?? "—",
+          collaboratorCode: p.collaboratorCode,
+          department: p.department,
+          jobTitle: p.jobTitle,
+          baseSalary: toNum(p.baseSalary),
+          transportAllowance: toNum(p.transportAllowance),
+          housingAllowance: toNum(p.housingAllowance),
+          mealAllowance: toNum(p.mealAllowance),
+          additions: p.additions as { label: string; amount: number }[] | null,
+          deductions: p.deductions as { label: string; amount: number }[] | null,
+          grossSalary: toNum(p.grossSalary),
+          cnssEmployee: toNum(p.cnssEmployee),
+          cnssEmployer: toNum(p.cnssEmployer),
+          irpp: toNum(p.irpp),
+          ipts: toNum(p.ipts),
+          netSalary: toNum(p.netSalary),
+          paymentDate: run.paymentDate,
+          status: p.status ?? "draft",
+        },
+        org ?? { name: "Organisation" },
+        pass,
+      );
+    }
+
+    await archive.finalize();
   } catch (e) { next(e); }
 });
 
