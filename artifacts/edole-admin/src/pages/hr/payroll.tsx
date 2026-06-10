@@ -13,7 +13,7 @@ import { useLocation } from "wouter";
 import {
   Plus, Play, CalendarDays, Users, TrendingUp, Banknote, Receipt,
   Zap, AlertCircle, Download, Upload, CheckCircle, ArrowRight,
-  Clock, Building2, FileText, ChevronRight, RefreshCw, Wrench,
+  Clock, Building2, FileText, ChevronRight, RefreshCw, Wrench, ClipboardList,
 } from "lucide-react";
 
 const API = "/api";
@@ -39,6 +39,7 @@ type DashboardData = {
   kpis: { totalGross: number; totalNet: number; totalCnssEmployer: number; totalIrpp: number; avgEmployeeCount: number; runCount: number; draftCount: number };
   calendarItems: Array<{ period: string; status: string; paymentDate?: string; totalNetSalary: number; employeeCount?: number }>;
   pendingCorrections: number;
+  pendingDeclarations: number;
   recentRuns: Array<{ id: string; period: string; status: string; employeeCount?: number; totalGrossSalary: number; totalNetSalary: number; paymentDate?: string }>;
 };
 
@@ -94,10 +95,10 @@ export default function PayrollDashboard() {
 
   const quickActions = [
     { label: "Lancer une paie", icon: Play, color: "bg-primary text-primary-foreground", desc: "Démarrer un nouveau cycle de paie", action: () => { setNewForm({ period: defaultPeriod, notes: "", paymentDate: "" }); setNewOpen(true); } },
+    { label: "Déclarations CNSS/IRPP", icon: ClipboardList, color: "bg-red-50 text-red-700 border border-red-200", desc: "États fiscaux mensuels", action: () => navigate("/hr/payroll/declarations") },
     { label: "Paie hors-cycle", icon: Zap, color: "bg-orange-50 text-orange-700 border border-orange-200", desc: "Prime, acompte, régularisation", action: () => navigate("/hr/payroll/off-cycle") },
-    { label: "Corriger une paie", icon: Wrench, color: "bg-red-50 text-red-700 border border-red-200", desc: "Ajuster une erreur de paie", action: () => setCorrectionOpen(true) },
+    { label: "Corriger une paie", icon: Wrench, color: "bg-amber-50 text-amber-700 border border-amber-200", desc: "Ajuster une erreur de paie", action: () => setCorrectionOpen(true) },
     { label: "Calendrier de paie", icon: CalendarDays, color: "bg-blue-50 text-blue-700 border border-blue-200", desc: "Vue mensuelle des cycles", action: () => navigate("/hr/payroll/calendar") },
-    { label: "Importer des données", icon: Upload, color: "bg-purple-50 text-purple-700 border border-purple-200", desc: "Importer heures & primes CSV", action: () => { if (nextRun) navigate(`/hr/payroll/run/${nextRun.id}`); else toast({ title: "Créez d'abord un cycle" }); } },
     { label: "Ordres de virement", icon: Banknote, color: "bg-emerald-50 text-emerald-700 border border-emerald-200", desc: "Gérer les virements bancaires", action: () => navigate("/hr/transfer-orders") },
   ];
 
@@ -168,6 +169,13 @@ export default function PayrollDashboard() {
           )}
 
           {/* ─── ALERTES ─── */}
+          {(dash?.pendingDeclarations ?? 0) > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
+              <ClipboardList className="w-4 h-4 shrink-0" />
+              <span><strong>{dash!.pendingDeclarations} cycle{dash!.pendingDeclarations > 1 ? "s" : ""} validé{dash!.pendingDeclarations > 1 ? "s" : ""}</strong> sans déclarations CNSS/IRPP générées — à soumettre à la CNSS et à l'OTR.</span>
+              <Button variant="link" size="sm" className="ml-auto text-red-800 h-auto p-0 whitespace-nowrap" onClick={() => navigate("/hr/payroll/declarations")}>Générer →</Button>
+            </div>
+          )}
           {(dash?.pendingCorrections ?? 0) > 0 && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
               <AlertCircle className="w-4 h-4 shrink-0" />

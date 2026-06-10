@@ -31,8 +31,10 @@ import {
   offCyclePaymentsTable,
   attendanceSessionsTable,
   leaveRequestsTable,
+  taxDeclarationsTable,
 } from "@workspace/db";
-import { and, desc, eq, gte, lte, sql, asc, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, asc, inArray, notInArray } from "drizzle-orm";
+import ExcelJS from "exceljs";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
 
@@ -175,6 +177,29 @@ router.get("/payroll/dashboard", requireManagerOrAbove, async (req, res, next) =
       .from(payrollCorrectionsTable)
       .where(and(eq(payrollCorrectionsTable.organizationId, orgId), eq(payrollCorrectionsTable.status, "pending")));
 
+    // Déclarations à soumettre : runs validés/payés sans déclarations CNSS+IRPP générées
+    const closedRuns = allRuns.filter(r => r.status === "validated" || r.status === "paid");
+    let pendingDeclarations = 0;
+    if (closedRuns.length > 0) {
+      const closedRunIds = closedRuns.map(r => r.id);
+      const existingDecls = await db
+        .select({ detail: taxDeclarationsTable.details })
+        .from(taxDeclarationsTable)
+        .where(and(
+          eq(taxDeclarationsTable.organizationId, orgId),
+          inArray(taxDeclarationsTable.type, ["cnss", "irpp"]),
+        ));
+      const declaredRunIds = new Set(
+        existingDecls
+          .map(d => {
+            const det = d.detail as Record<string, string> | null;
+            return det?.payrollRunId ?? null;
+          })
+          .filter(Boolean),
+      );
+      pendingDeclarations = closedRunIds.filter(id => !declaredRunIds.has(id)).length;
+    }
+
     res.json({
       nextRun: nextRun ? {
         ...nextRun,
@@ -186,6 +211,7 @@ router.get("/payroll/dashboard", requireManagerOrAbove, async (req, res, next) =
       kpis,
       calendarItems,
       pendingCorrections: Number(pendingCorrections[0]?.count ?? 0),
+      pendingDeclarations,
       recentRuns: allRuns.slice(0, 5).map(r => ({
         ...r,
         totalGrossSalary: toNum(r.totalGrossSalary),
@@ -1248,6 +1274,323 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
     }
 
     res.json({ ok: true, message: `Données de démo créées (${actives.length} collaborateurs, run ${currentPeriod} + ${prevPeriod} + prime hors-cycle)` });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════
+// DÉCLARATIONS FISCALES CNSS & IRPP
+// GET /api/payroll/runs/:id/declarations/cnss
+// GET /api/payroll/runs/:id/declarations/irpp
+// ════════════════════════════════════════════════════════
+
+// ─── Helpers Excel ────────────────────────────────────────────────────────────
+function formatFcfaCell(value: number): string {
+  return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value) + " FCFA";
+}
+
+function applyHeaderStyle(row: ExcelJS.Row) {
+  row.eachCell(cell => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+      left: { style: "thin" },
+      right: { style: "thin" },
+    };
+  });
+  row.height = 22;
+}
+
+// ─── CNSS ─────────────────────────────────────────────────────────────────────
+router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [run] = await db.select().from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .limit(1);
+    if (!run) return res.status(404).json({ error: "Cycle introuvable" });
+    if (run.status === "draft") return res.status(400).json({ error: "Le cycle doit être validé pour générer la déclaration CNSS" });
+
+    const payslips = await db
+      .select({
+        collaboratorId: payslipsTable.collaboratorId,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        cnssEmployer: payslipsTable.cnssEmployer,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        employeeNumber: collaboratorsTable.employeeNumber,
+        department: collaboratorsTable.department,
+        position: collaboratorsTable.position,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .where(eq(payslipsTable.payrollRunId, run.id))
+      .orderBy(asc(collaboratorsTable.lastName));
+
+    const rows = payslips.map((p, i) => ({
+      numero: i + 1,
+      matricule: p.employeeNumber ?? `EMP-${String(i + 1).padStart(3, "0")}`,
+      nom: `${p.lastName ?? ""} ${p.firstName ?? ""}`.trim(),
+      departement: p.department ?? "",
+      poste: p.position ?? "",
+      salaireBrut: toNum(p.grossSalary),
+      partSalariale: toNum(p.cnssEmployee),
+      partPatronale: toNum(p.cnssEmployer),
+      totalCnss: toNum(p.cnssEmployee) + toNum(p.cnssEmployer),
+    }));
+
+    const totalBrut = rows.reduce((s, r) => s + r.salaireBrut, 0);
+    const totalSal = rows.reduce((s, r) => s + r.partSalariale, 0);
+    const totalPat = rows.reduce((s, r) => s + r.partPatronale, 0);
+    const totalCnss = rows.reduce((s, r) => s + r.totalCnss, 0);
+
+    if (req.query.format === "excel") {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "Gaméasù";
+      wb.created = new Date();
+      const ws = wb.addWorksheet("CNSS");
+
+      ws.columns = [
+        { key: "numero", width: 6 },
+        { key: "matricule", width: 16 },
+        { key: "nom", width: 28 },
+        { key: "departement", width: 20 },
+        { key: "poste", width: 22 },
+        { key: "salaireBrut", width: 20 },
+        { key: "partSalariale", width: 20 },
+        { key: "partPatronale", width: 20 },
+        { key: "totalCnss", width: 20 },
+      ];
+
+      // Titre
+      ws.mergeCells("A1:I1");
+      const titleCell = ws.getCell("A1");
+      titleCell.value = `DÉCLARATION CNSS — Période ${run.period}`;
+      titleCell.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+      ws.getRow(1).height = 28;
+
+      // Sous-titre
+      ws.mergeCells("A2:I2");
+      ws.getCell("A2").value = `Taux salarié : 4 % | Taux patronal : 16,4 % | Total employés : ${rows.length}`;
+      ws.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
+      ws.getCell("A2").alignment = { horizontal: "center" };
+      ws.getRow(2).height = 18;
+
+      ws.addRow([]);
+
+      // En-têtes
+      const headerRow = ws.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Salaire Brut", "Part Salariale (4%)", "Part Patronale (16,4%)", "Total CNSS"]);
+      applyHeaderStyle(headerRow);
+
+      // Données
+      for (const r of rows) {
+        const dr = ws.addRow([r.numero, r.matricule, r.nom, r.departement, r.poste, formatFcfaCell(r.salaireBrut), formatFcfaCell(r.partSalariale), formatFcfaCell(r.partPatronale), formatFcfaCell(r.totalCnss)]);
+        dr.height = 18;
+        dr.eachCell((cell, col) => {
+          cell.border = { top: { style: "hair" }, bottom: { style: "hair" }, left: { style: "hair" }, right: { style: "hair" } };
+          if (col >= 6) { cell.alignment = { horizontal: "right" }; }
+          if (dr.number % 2 === 0) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+          }
+        });
+      }
+
+      // Ligne totaux
+      const totRow = ws.addRow(["", "", `TOTAL (${rows.length} employé${rows.length > 1 ? "s" : ""})`, "", "", formatFcfaCell(totalBrut), formatFcfaCell(totalSal), formatFcfaCell(totalPat), formatFcfaCell(totalCnss)]);
+      totRow.height = 20;
+      totRow.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
+      });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="CNSS_${run.period}.xlsx"`);
+      await wb.xlsx.write(res);
+      return res.end();
+    }
+
+    res.json({
+      run: { id: run.id, period: run.period, status: run.status, employeeCount: run.employeeCount },
+      taux: { salarie: 0.04, patronal: 0.164 },
+      rows,
+      totaux: { totalBrut, totalSal, totalPat, totalCnss },
+    });
+  } catch (e) { next(e); }
+});
+
+// ─── IRPP ─────────────────────────────────────────────────────────────────────
+const IRPP_TRANCHES = [
+  { de: 0, a: 900_000, taux: 0 },
+  { de: 900_001, a: 1_500_000, taux: 0.07 },
+  { de: 1_500_001, a: 2_500_000, taux: 0.11 },
+  { de: 2_500_001, a: 4_000_000, taux: 0.15 },
+  { de: 4_000_001, a: 6_000_000, taux: 0.20 },
+  { de: 6_000_001, a: 10_000_000, taux: 0.25 },
+  { de: 10_000_001, a: null, taux: 0.35 },
+];
+
+function irppDetail(grossSalary: number) {
+  const cnssEmployee = Math.round(grossSalary * 0.04);
+  const revImposableAnnuel = Math.max(0, grossSalary - cnssEmployee) * 12;
+  const detail: Array<{ tranche: string; base: number; taux: number; montant: number }> = [];
+  let prev = 0;
+  for (const { de, a, taux } of IRPP_TRANCHES) {
+    if (revImposableAnnuel <= prev) break;
+    const plafond = a ?? Infinity;
+    const base = Math.min(revImposableAnnuel, plafond) - prev;
+    if (base > 0 && taux > 0) {
+      detail.push({ tranche: a ? `${de.toLocaleString("fr-FR")} – ${a.toLocaleString("fr-FR")}` : `> ${de.toLocaleString("fr-FR")}`, base: Math.round(base / 12), taux, montant: Math.round(base * taux / 12) });
+    }
+    prev = plafond;
+  }
+  return detail;
+}
+
+router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [run] = await db.select().from(payrollRunsTable)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .limit(1);
+    if (!run) return res.status(404).json({ error: "Cycle introuvable" });
+    if (run.status === "draft") return res.status(400).json({ error: "Le cycle doit être validé pour générer la déclaration IRPP" });
+
+    const payslips = await db
+      .select({
+        collaboratorId: payslipsTable.collaboratorId,
+        grossSalary: payslipsTable.grossSalary,
+        cnssEmployee: payslipsTable.cnssEmployee,
+        irpp: payslipsTable.irpp,
+        ipts: payslipsTable.ipts,
+        netSalary: payslipsTable.netSalary,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        employeeNumber: collaboratorsTable.employeeNumber,
+        department: collaboratorsTable.department,
+        position: collaboratorsTable.position,
+      })
+      .from(payslipsTable)
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .where(eq(payslipsTable.payrollRunId, run.id))
+      .orderBy(asc(collaboratorsTable.lastName));
+
+    const rows = payslips.map((p, i) => {
+      const gross = toNum(p.grossSalary);
+      const cnssEmp = toNum(p.cnssEmployee);
+      const revenuImposable = Math.max(0, gross - cnssEmp);
+      return {
+        numero: i + 1,
+        matricule: p.employeeNumber ?? `EMP-${String(i + 1).padStart(3, "0")}`,
+        nom: `${p.lastName ?? ""} ${p.firstName ?? ""}`.trim(),
+        departement: p.department ?? "",
+        poste: p.position ?? "",
+        salaireBrut: gross,
+        cnssEmployee: cnssEmp,
+        revenuImposable,
+        irpp: toNum(p.irpp),
+        ipts: toNum(p.ipts),
+        netSalary: toNum(p.netSalary),
+        detail: irppDetail(gross),
+      };
+    });
+
+    const totalBrut = rows.reduce((s, r) => s + r.salaireBrut, 0);
+    const totalRevImposable = rows.reduce((s, r) => s + r.revenuImposable, 0);
+    const totalIrpp = rows.reduce((s, r) => s + r.irpp, 0);
+    const totalIpts = rows.reduce((s, r) => s + r.ipts, 0);
+    const totalNet = rows.reduce((s, r) => s + r.netSalary, 0);
+
+    if (req.query.format === "excel") {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "Gaméasù";
+      wb.created = new Date();
+
+      // Onglet 1 : Récapitulatif
+      const wsRecap = wb.addWorksheet("Récapitulatif IRPP");
+      wsRecap.columns = [
+        { key: "numero", width: 6 },
+        { key: "matricule", width: 16 },
+        { key: "nom", width: 28 },
+        { key: "departement", width: 20 },
+        { key: "salaireBrut", width: 20 },
+        { key: "cnssEmployee", width: 20 },
+        { key: "revenuImposable", width: 20 },
+        { key: "irpp", width: 18 },
+        { key: "ipts", width: 18 },
+        { key: "netSalary", width: 20 },
+      ];
+
+      wsRecap.mergeCells("A1:J1");
+      const titleCell = wsRecap.getCell("A1");
+      titleCell.value = `ÉTAT IRPP MENSUEL — Période ${run.period}`;
+      titleCell.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+      wsRecap.getRow(1).height = 28;
+
+      wsRecap.mergeCells("A2:J2");
+      wsRecap.getCell("A2").value = `Barème progressif SYSCOHADA Togo | Total employés : ${rows.length}`;
+      wsRecap.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
+      wsRecap.getCell("A2").alignment = { horizontal: "center" };
+      wsRecap.getRow(2).height = 18;
+      wsRecap.addRow([]);
+
+      const hdrRecap = wsRecap.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Salaire Brut", "CNSS Salarié", "Revenu Imposable", "IRPP", "IPTS (2%)", "Net à Payer"]);
+      applyHeaderStyle(hdrRecap);
+
+      for (const r of rows) {
+        const dr = wsRecap.addRow([r.numero, r.matricule, r.nom, r.departement, formatFcfaCell(r.salaireBrut), formatFcfaCell(r.cnssEmployee), formatFcfaCell(r.revenuImposable), formatFcfaCell(r.irpp), formatFcfaCell(r.ipts), formatFcfaCell(r.netSalary)]);
+        dr.height = 18;
+        dr.eachCell((cell, col) => {
+          cell.border = { top: { style: "hair" }, bottom: { style: "hair" }, left: { style: "hair" }, right: { style: "hair" } };
+          if (col >= 5) { cell.alignment = { horizontal: "right" }; }
+          if (dr.number % 2 === 0) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAFA" } };
+          }
+        });
+      }
+
+      const totRow = wsRecap.addRow(["", "", `TOTAL (${rows.length} employé${rows.length > 1 ? "s" : ""})`, "", formatFcfaCell(totalBrut), "", formatFcfaCell(totalRevImposable), formatFcfaCell(totalIrpp), formatFcfaCell(totalIpts), formatFcfaCell(totalNet)]);
+      totRow.height = 20;
+      totRow.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
+      });
+
+      // Onglet 2 : Barème de référence
+      const wsBar = wb.addWorksheet("Barème IRPP");
+      wsBar.columns = [
+        { key: "de", width: 20 },
+        { key: "a", width: 20 },
+        { key: "taux", width: 12 },
+      ];
+      const hdrBar = wsBar.addRow(["De (XOF/an)", "À (XOF/an)", "Taux"]);
+      applyHeaderStyle(hdrBar);
+      for (const t of IRPP_TRANCHES) {
+        wsBar.addRow([
+          t.de.toLocaleString("fr-FR"),
+          t.a ? t.a.toLocaleString("fr-FR") : "Illimité",
+          `${(t.taux * 100).toFixed(0)} %`,
+        ]);
+      }
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="IRPP_${run.period}.xlsx"`);
+      await wb.xlsx.write(res);
+      return res.end();
+    }
+
+    res.json({
+      run: { id: run.id, period: run.period, status: run.status, employeeCount: run.employeeCount },
+      bareme: IRPP_TRANCHES,
+      rows,
+      totaux: { totalBrut, totalRevImposable, totalIrpp, totalIpts, totalNet },
+    });
   } catch (e) { next(e); }
 });
 

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
   Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
-  Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench,
+  Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench, ClipboardList,
 } from "lucide-react";
 
 const TABS = [
@@ -19,6 +19,7 @@ const TABS = [
   { name: "Mouvements", path: "/hr/movements", icon: ArrowRightLeft },
   { name: "Paie", path: "/hr/payroll", icon: Banknote, exact: true },
   { name: "Calendrier paie", path: "/hr/payroll/calendar", icon: CalendarRange },
+  { name: "Déclarations CNSS/IRPP", path: "/hr/payroll/declarations", icon: ClipboardList },
   { name: "Corrections paie", path: "/hr/payroll/corrections", icon: Wrench },
   { name: "Hors-cycle", path: "/hr/payroll/off-cycle", icon: Zap },
   { name: "Fiscalité RH", path: "/hr/tax-settings", icon: Percent },
