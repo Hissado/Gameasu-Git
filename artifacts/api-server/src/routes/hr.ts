@@ -22,6 +22,7 @@ import {
   personnelMovementsTable,
   payslipsTable,
   payrollRunsTable,
+  irppBracketsTable,
   attendanceSessionsTable,
   attendanceFlagsTable,
   usersTable,
@@ -1439,6 +1440,88 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
     doc.moveTo(40, 770).lineTo(555, 770).lineWidth(0.5).stroke("#e2e8f0");
     doc.fillColor("#94a3b8").fontSize(7).text("Document généré par Gaméasù Technology — Confidentiel", 40, 776, { align: "center", width: 515 });
     doc.end();
+  } catch (e) { next(e); }
+});
+
+/** GET /api/hr/me/contributions — cotisations sociales et fiscales des bulletins validés */
+router.get("/hr/me/contributions", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const payslips = await db.select({
+      id: payslipsTable.id,
+      period: payslipsTable.period,
+      grossSalary: payslipsTable.grossSalary,
+      cnssEmployee: payslipsTable.cnssEmployee,
+      cnssEmployer: payslipsTable.cnssEmployer,
+      irpp: payslipsTable.irpp,
+      ipts: payslipsTable.ipts,
+      status: payslipsTable.status,
+    })
+      .from(payslipsTable)
+      .where(and(
+        eq(payslipsTable.collaboratorId, collab.id),
+        eq(payslipsTable.organizationId, orgId),
+        inArray(payslipsTable.status, ["validated", "paid"])
+      ))
+      .orderBy(desc(payslipsTable.period));
+
+    const bracketRows = await db.select().from(irppBracketsTable)
+      .where(and(eq(irppBracketsTable.organizationId, orgId), eq(irppBracketsTable.isActive, true)))
+      .orderBy(asc(irppBracketsTable.sortOrder));
+
+    const brackets = bracketRows.length > 0
+      ? bracketRows.map(r => ({ fromAmount: toN(r.fromAmount), toAmount: r.toAmount != null ? toN(r.toAmount) : null, rate: toN(r.rate) }))
+      : [
+          { fromAmount: 0, toAmount: 900_000, rate: 0 },
+          { fromAmount: 900_000, toAmount: 1_500_000, rate: 0.07 },
+          { fromAmount: 1_500_000, toAmount: 2_500_000, rate: 0.11 },
+          { fromAmount: 2_500_000, toAmount: 4_000_000, rate: 0.15 },
+          { fromAmount: 4_000_000, toAmount: 6_000_000, rate: 0.20 },
+          { fromAmount: 6_000_000, toAmount: 10_000_000, rate: 0.25 },
+          { fromAmount: 10_000_000, toAmount: null, rate: 0.35 },
+        ];
+
+    function computeIrppDetail(revenuAnnuel: number): Array<{ label: string; base: number; rate: number; irppAnnuel: number; irppMensuel: number }> {
+      const detail: Array<{ label: string; base: number; rate: number; irppAnnuel: number; irppMensuel: number }> = [];
+      let prev = 0;
+      for (const b of brackets) {
+        const upper = b.toAmount ?? Infinity;
+        if (revenuAnnuel <= prev) break;
+        const base = Math.min(revenuAnnuel, upper) - prev;
+        const irppAnnuel = Math.round(base * b.rate);
+        if (base > 0) {
+          const label = b.toAmount != null
+            ? `${Math.round(b.fromAmount).toLocaleString("fr-FR")} – ${Math.round(b.toAmount).toLocaleString("fr-FR")} FCFA`
+            : `Au-delà de ${Math.round(b.fromAmount).toLocaleString("fr-FR")} FCFA`;
+          detail.push({ label, base, rate: b.rate, irppAnnuel, irppMensuel: Math.round(irppAnnuel / 12) });
+        }
+        prev = upper;
+      }
+      return detail;
+    }
+
+    const data = payslips.map(p => {
+      const gross = toN(p.grossSalary);
+      const cnssEmp = toN(p.cnssEmployee);
+      const revenuAnnuel = Math.max(0, (gross - cnssEmp) * 12);
+      return {
+        id: p.id,
+        period: p.period,
+        grossSalary: gross,
+        cnssEmployee: cnssEmp,
+        cnssEmployer: toN(p.cnssEmployer),
+        irpp: toN(p.irpp),
+        ipts: toN(p.ipts),
+        status: p.status,
+        irppDetail: computeIrppDetail(revenuAnnuel),
+      };
+    });
+
+    res.json({ data });
   } catch (e) { next(e); }
 });
 

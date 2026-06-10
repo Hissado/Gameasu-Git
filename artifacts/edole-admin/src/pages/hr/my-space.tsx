@@ -18,7 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
 import {
   User, CalendarDays, FolderArchive, Banknote, Phone, MapPin, Shield,
-  Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download
+  Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download,
+  Receipt, ChevronDown, ChevronRight
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -53,6 +54,7 @@ export default function MySpacePage() {
   const [openLeave, setOpenLeave] = useState(false);
   const [profileForm, setProfileForm] = useState({ phone: "", address: "", emergencyContact: "" });
   const [leaveForm, setLeaveForm] = useState({ type: "congé_payé", startDate: "", endDate: "", days: "", reason: "" });
+  const [expandedContrib, setExpandedContrib] = useState<string | null>(null);
 
   const { data: profile, isLoading: loadingProfile } = useQuery<any>({
     queryKey: ["hr-me-profile"],
@@ -86,6 +88,12 @@ export default function MySpacePage() {
   const { data: contractData } = useQuery<any>({
     queryKey: ["hr-me-contract"],
     queryFn: () => apiFetch("/api/hr/me/contract"),
+    enabled: !!profile,
+  });
+
+  const { data: contributionsData } = useQuery<{ data: any[] }>({
+    queryKey: ["hr-me-contributions"],
+    queryFn: () => apiFetch("/api/hr/me/contributions"),
     enabled: !!profile,
   });
 
@@ -146,6 +154,7 @@ export default function MySpacePage() {
   const balances = balancesData?.data ?? [];
   const payslips = payslipsData?.data ?? [];
   const docs = docsData?.data ?? [];
+  const contributions = contributionsData?.data ?? [];
 
   const pendingLeaves = leaves.filter((l: any) => l.status === "pending").length;
   const totalBalanceDays = balances.reduce((sum: number, b: any) => sum + (Number(b.remaining) > 0 ? Number(b.remaining) : 0), 0);
@@ -261,6 +270,7 @@ export default function MySpacePage() {
               <TabsTrigger value="conges" className="gap-1.5"><CalendarDays className="w-4 h-4" />Congés</TabsTrigger>
               <TabsTrigger value="soldes" className="gap-1.5"><CheckCircle2 className="w-4 h-4" />Soldes</TabsTrigger>
               <TabsTrigger value="bulletins" className="gap-1.5"><Banknote className="w-4 h-4" />Bulletins</TabsTrigger>
+              <TabsTrigger value="cotisations" className="gap-1.5"><Receipt className="w-4 h-4" />Cotisations</TabsTrigger>
               <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents</TabsTrigger>
               <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations</TabsTrigger>
             </TabsList>
@@ -391,6 +401,136 @@ export default function MySpacePage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Mes cotisations */}
+            <TabsContent value="cotisations" className="mt-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">CNSS salarié (cumul)</p>
+                      <p className="text-lg font-bold text-blue-700">
+                        {formatFCFA(contributions.reduce((s: number, c: any) => s + Number(c.cnssEmployee), 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">IRPP (cumul)</p>
+                      <p className="text-lg font-bold text-purple-700">
+                        {formatFCFA(contributions.reduce((s: number, c: any) => s + Number(c.irpp), 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">IPTS (cumul)</p>
+                      <p className="text-lg font-bold text-amber-700">
+                        {formatFCFA(contributions.reduce((s: number, c: any) => s + Number(c.ipts), 0))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardContent className="p-0">
+                    {contributions.length === 0 ? (
+                      <div className="py-12 text-center text-muted-foreground">
+                        <Receipt className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">Aucune cotisation disponible</p>
+                        <p className="text-xs mt-1">Les cotisations apparaissent une fois vos bulletins validés.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-xs uppercase text-muted-foreground border-b">
+                          <tr>
+                            <th className="text-left px-4 py-2.5 w-8"></th>
+                            <th className="text-left px-4 py-2.5">Période</th>
+                            <th className="text-right px-4 py-2.5">CNSS salarié</th>
+                            <th className="text-right px-4 py-2.5">IRPP</th>
+                            <th className="text-right px-4 py-2.5">IPTS</th>
+                            <th className="text-right px-4 py-2.5">Total retenues</th>
+                            <th className="text-center px-4 py-2.5">Statut</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {contributions.map((c: any) => {
+                            const total = Number(c.cnssEmployee) + Number(c.irpp) + Number(c.ipts);
+                            const isExpanded = expandedContrib === c.id;
+                            return (
+                              <>
+                                <tr
+                                  key={c.id}
+                                  className="border-t hover:bg-muted/20 cursor-pointer"
+                                  onClick={() => setExpandedContrib(isExpanded ? null : c.id)}
+                                >
+                                  <td className="px-4 py-2.5 text-muted-foreground">
+                                    {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                  </td>
+                                  <td className="px-4 py-2.5 font-medium">{c.period}</td>
+                                  <td className="px-4 py-2.5 text-right text-blue-700">{formatFCFA(Number(c.cnssEmployee))}</td>
+                                  <td className="px-4 py-2.5 text-right text-purple-700">{formatFCFA(Number(c.irpp))}</td>
+                                  <td className="px-4 py-2.5 text-right text-amber-700">{formatFCFA(Number(c.ipts))}</td>
+                                  <td className="px-4 py-2.5 text-right font-semibold">{formatFCFA(total)}</td>
+                                  <td className="px-4 py-2.5 text-center">
+                                    <Badge
+                                      variant={c.status === "paid" ? "default" : "secondary"}
+                                      className="text-xs capitalize"
+                                    >
+                                      {c.status === "paid" ? "Payé" : "Validé"}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr key={`${c.id}-detail`} className="bg-muted/30 border-t">
+                                    <td colSpan={7} className="px-6 py-3">
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                                        Détail IRPP — Revenu imposable annualisé : {formatFCFA(Number(c.grossSalary) - Number(c.cnssEmployee))} × 12
+                                      </p>
+                                      {c.irppDetail && c.irppDetail.length > 0 ? (
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="text-muted-foreground">
+                                              <th className="text-left py-1 pr-4">Tranche annuelle</th>
+                                              <th className="text-right py-1 pr-4">Base dans tranche</th>
+                                              <th className="text-right py-1 pr-4">Taux</th>
+                                              <th className="text-right py-1 pr-4">IRPP annuel</th>
+                                              <th className="text-right py-1">Quote-part mensuelle</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {c.irppDetail.map((d: any, i: number) => (
+                                              <tr key={i} className="border-t border-border/40">
+                                                <td className="py-1 pr-4">{d.label}</td>
+                                                <td className="text-right py-1 pr-4 text-muted-foreground">{formatFCFA(d.base)}</td>
+                                                <td className="text-right py-1 pr-4">{(d.rate * 100).toFixed(0)} %</td>
+                                                <td className="text-right py-1 pr-4">{formatFCFA(d.irppAnnuel)}</td>
+                                                <td className="text-right py-1 font-semibold text-purple-700">{formatFCFA(d.irppMensuel)}</td>
+                                              </tr>
+                                            ))}
+                                            <tr className="border-t border-border font-semibold">
+                                              <td colSpan={3} className="py-1 pr-4 text-muted-foreground">Total IRPP mensuel</td>
+                                              <td className="text-right py-1 pr-4"></td>
+                                              <td className="text-right py-1 text-purple-700">{formatFCFA(Number(c.irpp))}</td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground">Revenu sous le seuil d'imposition — IRPP nul.</p>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )}
+                              </>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Documents */}
