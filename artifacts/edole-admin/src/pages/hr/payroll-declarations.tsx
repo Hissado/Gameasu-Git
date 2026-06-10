@@ -7,9 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
 import { useLocation } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Download, FileText, Building2, Percent, Users, ArrowLeft,
-  CheckCircle, AlertCircle, ChevronRight, RefreshCw, Info,
+  CheckCircle, ChevronRight, RefreshCw, Info,
+  Send, Clock, ShieldCheck, XCircle, Calendar,
 } from "lucide-react";
 
 const API = "/api";
@@ -37,30 +41,26 @@ type Run = {
   totalIpts?: number;
 };
 
+type TaxDeclaration = {
+  id: string;
+  type: string;
+  period: string;
+  status: string;
+  totalAmount: number;
+  referenceNumber?: string | null;
+  submittedAt?: string | null;
+  validatedAt?: string | null;
+  notes?: string | null;
+};
+
 type CnssRow = {
-  numero: number;
-  matricule: string;
-  nom: string;
-  departement: string;
-  poste: string;
-  salaireBrut: number;
-  partSalariale: number;
-  partPatronale: number;
-  totalCnss: number;
+  numero: number; matricule: string; nom: string; departement: string; poste: string;
+  salaireBrut: number; partSalariale: number; partPatronale: number; totalCnss: number;
 };
 
 type IrppRow = {
-  numero: number;
-  matricule: string;
-  nom: string;
-  departement: string;
-  poste: string;
-  salaireBrut: number;
-  cnssEmployee: number;
-  revenuImposable: number;
-  irpp: number;
-  ipts: number;
-  netSalary: number;
+  numero: number; matricule: string; nom: string; departement: string; poste: string;
+  salaireBrut: number; cnssEmployee: number; revenuImposable: number; irpp: number; ipts: number; netSalary: number;
   detail: Array<{ tranche: string; base: number; taux: number; montant: number }>;
 };
 
@@ -86,6 +86,14 @@ const STATUS_COLOR: Record<string, string> = {
   archived: "bg-gray-50 text-gray-600 border-gray-200",
 };
 
+const DECL_STATUS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  draft:     { label: "Non enregistré", icon: Clock,       color: "text-gray-500" },
+  generated: { label: "Enregistré",     icon: FileText,    color: "text-blue-600" },
+  submitted: { label: "Soumis",         icon: Send,        color: "text-amber-600" },
+  validated: { label: "Validé OTR",     icon: ShieldCheck, color: "text-emerald-600" },
+  rejected:  { label: "Rejeté",         icon: XCircle,     color: "text-red-600" },
+};
+
 function downloadExcel(url: string, filename: string) {
   const token = localStorage.getItem("auth_token");
   fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -99,6 +107,190 @@ function downloadExcel(url: string, filename: string) {
     });
 }
 
+function fmtDate(d: string | null | undefined) {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString("fr-FR");
+}
+
+function toInputDate(d: string | null | undefined): string {
+  if (!d) return new Date().toISOString().split("T")[0];
+  return new Date(d).toISOString().split("T")[0];
+}
+
+type SubmitPayload = {
+  status: "submitted" | "validated";
+  referenceNumber?: string;
+  submittedAt?: string;
+  validatedAt?: string;
+  notes?: string;
+};
+
+type SubmitDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  declaration: TaxDeclaration | null;
+  targetStatus: "submitted" | "validated";
+  onSave: (id: string, data: SubmitPayload) => void;
+  isSaving: boolean;
+};
+
+function SubmitDialog({ open, onClose, declaration, targetStatus, onSave, isSaving }: SubmitDialogProps) {
+  const isValidate = targetStatus === "validated";
+  const isAlreadySubmitted = declaration?.status === "submitted" && targetStatus === "submitted";
+
+  const [ref, setRef] = useState("");
+  const [dateValue, setDateValue] = useState("");
+  const [notes, setNotes] = useState("");
+
+  React.useEffect(() => {
+    if (!open) return;
+    setRef(declaration?.referenceNumber ?? "");
+    setNotes(declaration?.notes ?? "");
+    if (isValidate) {
+      setDateValue(toInputDate(declaration?.validatedAt));
+    } else if (isAlreadySubmitted) {
+      setDateValue(toInputDate(declaration?.submittedAt));
+    } else {
+      setDateValue(new Date().toISOString().split("T")[0]);
+    }
+  }, [open, declaration, isValidate, isAlreadySubmitted]);
+
+  const typeLabel = declaration?.type === "cnss" ? "CNSS" : declaration?.type === "irpp" ? "IRPP" : "IPTS";
+  const dateLabel = isValidate ? "Date de validation OTR" : "Date de soumission";
+  const datePlaceholder = isValidate ? "Date de validation par l'OTR" : "Date de dépôt de la déclaration";
+
+  const handleSave = () => {
+    if (!declaration) return;
+    const payload: SubmitPayload = {
+      status: targetStatus,
+      referenceNumber: ref || undefined,
+      notes: notes || undefined,
+    };
+    if (isValidate) {
+      payload.validatedAt = dateValue;
+      if (isAlreadySubmitted || declaration.status === "submitted") {
+        payload.submittedAt = toInputDate(declaration.submittedAt);
+      }
+    } else {
+      payload.submittedAt = dateValue;
+    }
+    onSave(declaration.id, payload);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isValidate
+              ? `Valider la déclaration ${typeLabel}`
+              : isAlreadySubmitted
+                ? `Modifier la soumission ${typeLabel}`
+                : `Soumettre la déclaration ${typeLabel}`}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <Label>{dateLabel} <span className="text-destructive">*</span></Label>
+            <Input
+              type="date"
+              value={dateValue}
+              onChange={e => setDateValue(e.target.value)}
+              placeholder={datePlaceholder}
+            />
+          </div>
+          <div>
+            <Label>Numéro de référence {isValidate ? "OTR" : "CNSS / OTR"}</Label>
+            <Input
+              placeholder={isValidate ? "Ex. OTR-2026-00123" : "Ex. CNSS-2026-00456"}
+              value={ref}
+              onChange={e => setRef(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Notes / Observations</Label>
+            <Input placeholder="Optionnel" value={notes} onChange={e => setNotes(e.target.value)} />
+          </div>
+          {declaration && (
+            <div className="rounded-lg bg-muted/40 border px-3 py-2 text-sm text-muted-foreground space-y-1">
+              <p>Période : <span className="font-medium text-foreground">{declaration.period}</span></p>
+              <p>Montant : <span className="font-medium text-foreground">{formatFCFA(declaration.totalAmount)}</span></p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button disabled={isSaving || !declaration || !dateValue} onClick={handleSave}>
+            {isSaving ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : isValidate ? <ShieldCheck className="w-4 h-4 mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+            {isValidate ? "Marquer validé" : isAlreadySubmitted ? "Mettre à jour" : "Marquer soumis"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeclStatusRow({ decl, typeLabel, onSubmit, onValidate }: {
+  decl: TaxDeclaration | undefined;
+  typeLabel: string;
+  onSubmit: () => void;
+  onValidate: () => void;
+}) {
+  const status = decl?.status ?? "pending_generate";
+  const info = DECL_STATUS[status] ?? DECL_STATUS.draft;
+  const Icon = info.icon;
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b last:border-0">
+      <div className="flex items-center gap-3 min-w-0 flex-wrap">
+        <span className="text-sm font-semibold w-12 shrink-0">{typeLabel}</span>
+        {decl ? (
+          <div className={`flex items-center gap-1.5 text-xs font-medium ${info.color}`}>
+            <Icon className="w-3.5 h-3.5" />
+            {info.label}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
+            <Clock className="w-3.5 h-3.5" />Non enregistré
+          </div>
+        )}
+        {decl?.submittedAt && (
+          <span className="text-xs text-muted-foreground">
+            Soumis le {fmtDate(decl.submittedAt)}
+            {decl.referenceNumber && <> — <span className="font-mono font-semibold text-foreground">{decl.referenceNumber}</span></>}
+          </span>
+        )}
+        {decl?.validatedAt && (
+          <span className="text-xs text-emerald-700 font-medium">Validé le {fmtDate(decl.validatedAt)}</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {(!decl || decl.status === "generated" || decl.status === "submitted") && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onSubmit}>
+            <Send className="w-3 h-3 mr-1" />
+            {!decl ? "Générer & Soumettre" : decl.status === "submitted" ? "Modifier réf." : "Soumettre"}
+          </Button>
+        )}
+        {decl?.status === "submitted" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={onValidate}>
+            <ShieldCheck className="w-3 h-3 mr-1" />Valider OTR
+          </Button>
+        )}
+        {decl?.status === "validated" && (
+          <span className="text-xs text-emerald-600 flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5" />Validé OTR
+          </span>
+        )}
+        {decl?.status === "rejected" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onSubmit}>
+            <RefreshCw className="w-3 h-3 mr-1" />Re-soumettre
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PayrollDeclarations() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -106,6 +298,10 @@ export default function PayrollDeclarations() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"cnss" | "irpp">("cnss");
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [submitDialog, setSubmitDialog] = useState<{
+    decl: TaxDeclaration;
+    targetStatus: "submitted" | "validated";
+  } | null>(null);
 
   const { data: runs = [], isLoading: runsLoading } = useQuery<Run[]>({
     queryKey: ["payroll-runs"],
@@ -115,6 +311,7 @@ export default function PayrollDeclarations() {
   const validatedRuns = runs.filter(r => r.status === "validated" || r.status === "paid");
   const selectedRun = validatedRuns.find(r => r.id === selectedRunId) ?? validatedRuns[0] ?? null;
   const runId = selectedRun?.id ?? null;
+  const period = selectedRun?.period ?? null;
 
   const { data: cnssData, isLoading: cnssLoading } = useQuery<CnssData>({
     queryKey: ["declaration-cnss", runId],
@@ -128,15 +325,59 @@ export default function PayrollDeclarations() {
     enabled: !!runId && activeTab === "irpp",
   });
 
+  const { data: taxDecls = [], refetch: refetchDecls } = useQuery<TaxDeclaration[]>({
+    queryKey: ["tax-declarations", period],
+    queryFn: () => fetchJSON(`${API}/hr/tax-declarations?period=${period}`),
+    enabled: !!period,
+  });
+
+  const cnssDecl = taxDecls.find(d => d.type === "cnss");
+  const irppDecl = taxDecls.find(d => d.type === "irpp");
+  const iptsDecl = taxDecls.find(d => d.type === "ipts");
+
   const generateDeclMut = useMutation({
     mutationFn: (runIdToGen: string) =>
       fetchJSON(`${API}/hr/tax-declarations/generate/${runIdToGen}`, { method: "POST" }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tax-declarations", period] });
       qc.invalidateQueries({ queryKey: ["payroll-dashboard"] });
       toast({ title: "Déclarations enregistrées", description: "CNSS, IRPP et IPTS ont été générées dans le registre fiscal." });
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
+
+  const updateDeclMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: SubmitPayload }) =>
+      fetchJSON(`${API}/hr/tax-declarations/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tax-declarations", period] });
+      qc.invalidateQueries({ queryKey: ["all-tax-declarations"] });
+      setSubmitDialog(null);
+      toast({ title: "Statut mis à jour" });
+    },
+    onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const generateThenOpenDialog = async (type: "cnss" | "irpp" | "ipts", targetStatus: "submitted" | "validated") => {
+    if (!runId) return;
+    try {
+      const result: TaxDeclaration[] = await fetchJSON(`${API}/hr/tax-declarations/generate/${runId}`, { method: "POST" });
+      await qc.invalidateQueries({ queryKey: ["tax-declarations", period] });
+      const fresh = await refetchDecls();
+      const decl = (fresh.data ?? []).find((d: TaxDeclaration) => d.type === type);
+      if (decl) setSubmitDialog({ decl, targetStatus });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: (e instanceof Error ? e.message : "Erreur lors de la génération"), variant: "destructive" });
+    }
+  };
+
+  const handleOpenSubmit = async (type: "cnss" | "irpp" | "ipts", existingDecl: TaxDeclaration | undefined, targetStatus: "submitted" | "validated") => {
+    if (existingDecl) {
+      setSubmitDialog({ decl: existingDecl, targetStatus });
+    } else {
+      await generateThenOpenDialog(type, targetStatus);
+    }
+  };
 
   if (runsLoading) {
     return (
@@ -166,6 +407,15 @@ export default function PayrollDeclarations() {
   }
 
   const activeRun = selectedRun ?? validatedRuns[0];
+
+  const overallDeclStatus = (() => {
+    const decls = [cnssDecl, irppDecl, iptsDecl].filter(Boolean) as TaxDeclaration[];
+    if (decls.length === 0) return null;
+    if (decls.every(d => d.status === "validated")) return "validated";
+    if (decls.some(d => d.status === "submitted")) return "submitted";
+    if (decls.some(d => d.status === "generated")) return "generated";
+    return null;
+  })();
 
   return (
     <HrShell title="Déclarations fiscales" subtitle="États mensuels CNSS et IRPP — génération automatique depuis les bulletins validés">
@@ -231,6 +481,52 @@ export default function PayrollDeclarations() {
           </div>
         )}
 
+        {/* ─── Suivi de soumission ─── */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Suivi de conformité fiscale — {activeRun.period}</h3>
+              </div>
+              {overallDeclStatus && (
+                <Badge
+                  variant="outline"
+                  className={
+                    overallDeclStatus === "validated" ? "border-emerald-300 text-emerald-700 bg-emerald-50" :
+                    overallDeclStatus === "submitted" ? "border-amber-300 text-amber-700 bg-amber-50" :
+                    "border-blue-300 text-blue-700 bg-blue-50"
+                  }
+                >
+                  {overallDeclStatus === "validated" ? "✓ Toutes déclarations validées" :
+                   overallDeclStatus === "submitted" ? "En attente de validation" :
+                   "Enregistrées — à soumettre"}
+                </Badge>
+              )}
+            </div>
+            <div className="divide-y">
+              <DeclStatusRow
+                decl={cnssDecl}
+                typeLabel="CNSS"
+                onSubmit={() => handleOpenSubmit("cnss", cnssDecl, "submitted")}
+                onValidate={() => cnssDecl && setSubmitDialog({ decl: cnssDecl, targetStatus: "validated" })}
+              />
+              <DeclStatusRow
+                decl={irppDecl}
+                typeLabel="IRPP"
+                onSubmit={() => handleOpenSubmit("irpp", irppDecl, "submitted")}
+                onValidate={() => irppDecl && setSubmitDialog({ decl: irppDecl, targetStatus: "validated" })}
+              />
+              <DeclStatusRow
+                decl={iptsDecl}
+                typeLabel="IPTS"
+                onSubmit={() => handleOpenSubmit("ipts", iptsDecl, "submitted")}
+                onValidate={() => iptsDecl && setSubmitDialog({ decl: iptsDecl, targetStatus: "validated" })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* ─── Onglets CNSS / IRPP ─── */}
         <div className="border-b border-border">
           <nav className="flex gap-1 -mb-px">
@@ -257,6 +553,20 @@ export default function PayrollDeclarations() {
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold">Déclaration CNSS</h2>
                 <Badge variant="outline" className="font-mono text-xs">Salarié 4% | Patronal 16,4%</Badge>
+                {cnssDecl && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      cnssDecl.status === "validated" ? "border-emerald-300 text-emerald-700 bg-emerald-50" :
+                      cnssDecl.status === "submitted" ? "border-amber-300 text-amber-700 bg-amber-50" :
+                      "border-blue-300 text-blue-700 bg-blue-50"
+                    }
+                  >
+                    {DECL_STATUS[cnssDecl.status]?.label ?? cnssDecl.status}
+                    {cnssDecl.submittedAt && ` — ${fmtDate(cnssDecl.submittedAt)}`}
+                    {cnssDecl.referenceNumber && ` — ${cnssDecl.referenceNumber}`}
+                  </Badge>
+                )}
               </div>
               <Button
                 size="sm"
@@ -347,6 +657,20 @@ export default function PayrollDeclarations() {
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold">État IRPP mensuel</h2>
                 <Badge variant="outline" className="font-mono text-xs">Barème progressif SYSCOHADA</Badge>
+                {irppDecl && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      irppDecl.status === "validated" ? "border-emerald-300 text-emerald-700 bg-emerald-50" :
+                      irppDecl.status === "submitted" ? "border-amber-300 text-amber-700 bg-amber-50" :
+                      "border-blue-300 text-blue-700 bg-blue-50"
+                    }
+                  >
+                    {DECL_STATUS[irppDecl.status]?.label ?? irppDecl.status}
+                    {irppDecl.submittedAt && ` — ${fmtDate(irppDecl.submittedAt)}`}
+                    {irppDecl.referenceNumber && ` — ${irppDecl.referenceNumber}`}
+                  </Badge>
+                )}
               </div>
               <Button
                 size="sm"
@@ -365,7 +689,6 @@ export default function PayrollDeclarations() {
               <span>L'IRPP est calculé sur le revenu imposable annualisé (brut – CNSS salarié × 12) puis ramené au mois. À verser à l'<strong>OTR Togo</strong> avant le <strong>15 du mois suivant</strong>.</span>
             </div>
 
-            {/* Barème de référence */}
             <details className="rounded-lg border bg-muted/20">
               <summary className="px-4 py-3 cursor-pointer text-sm font-medium flex items-center gap-2">
                 <Percent className="w-4 h-4 text-muted-foreground" />
@@ -512,6 +835,15 @@ export default function PayrollDeclarations() {
           </div>
         )}
       </div>
+
+      <SubmitDialog
+        open={!!submitDialog}
+        onClose={() => setSubmitDialog(null)}
+        declaration={submitDialog?.decl ?? null}
+        targetStatus={submitDialog?.targetStatus ?? "submitted"}
+        onSave={(id, data) => updateDeclMut.mutate({ id, data })}
+        isSaving={updateDeclMut.isPending}
+      />
     </HrShell>
   );
 }

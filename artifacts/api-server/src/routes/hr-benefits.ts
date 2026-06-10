@@ -196,8 +196,12 @@ router.patch("/hr/signature-requests/:id/cancel", requireManagerOrAbove, async (
 router.get("/hr/tax-declarations", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const { period, type } = req.query as Record<string, string>;
+    const conditions = [eq(taxDeclarationsTable.organizationId, orgId)];
+    if (period) conditions.push(eq(taxDeclarationsTable.period, period));
+    if (type) conditions.push(eq(taxDeclarationsTable.type, type));
     const rows = await db.select().from(taxDeclarationsTable)
-      .where(eq(taxDeclarationsTable.organizationId, orgId))
+      .where(and(...conditions))
       .orderBy(desc(taxDeclarationsTable.period), desc(taxDeclarationsTable.createdAt));
     res.json(rows.map(r => ({ ...r, totalAmount: toNum(r.totalAmount) })));
   } catch (e) { next(e); }
@@ -262,11 +266,27 @@ router.patch("/hr/tax-declarations/:id", requireManagerOrAbove, async (req, res,
       referenceNumber: z.string().optional(),
       totalAmount: z.number().optional(),
       dueDate: z.string().optional(),
+      submittedAt: z.string().optional(),
+      validatedAt: z.string().optional(),
       notes: z.string().optional(),
     }).parse(req.body);
-    const updates: Record<string, unknown> = { ...body, totalAmount: body.totalAmount != null ? String(body.totalAmount) : undefined };
-    if (body.status === "submitted") updates.submittedAt = new Date();
-    if (body.status === "validated") updates.validatedAt = new Date();
+    const updates: Record<string, unknown> = {
+      status: body.status,
+      referenceNumber: body.referenceNumber,
+      notes: body.notes,
+      dueDate: body.dueDate,
+      totalAmount: body.totalAmount != null ? String(body.totalAmount) : undefined,
+    };
+    if (body.status === "submitted") {
+      updates.submittedAt = body.submittedAt ? new Date(body.submittedAt) : new Date();
+    } else if (body.submittedAt) {
+      updates.submittedAt = new Date(body.submittedAt);
+    }
+    if (body.status === "validated") {
+      updates.validatedAt = body.validatedAt ? new Date(body.validatedAt) : new Date();
+    } else if (body.validatedAt) {
+      updates.validatedAt = new Date(body.validatedAt);
+    }
     const [row] = await db.update(taxDeclarationsTable).set(updates)
       .where(and(eq(taxDeclarationsTable.id, req.params.id), eq(taxDeclarationsTable.organizationId, orgId))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
