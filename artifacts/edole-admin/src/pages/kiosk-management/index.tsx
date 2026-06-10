@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  useListKiosks, useCreateKiosk, useUpdateKiosk,
-  getListKiosksQueryKey,
   useListCollaborators, getListCollaboratorsQueryKey,
 } from "@workspace/api-client-react";
 import { apiFetch } from "@/lib/api";
@@ -45,6 +43,8 @@ type Collaborator = {
   employmentStatus?: string;
 };
 
+const KIOSKS_QUERY_KEY = ["kiosks"] as const;
+
 // ─── Kiosk Form Dialog ────────────────────────────────────────────────────────
 function KioskDialog({
   open, onClose, kiosk,
@@ -58,36 +58,49 @@ function KioskDialog({
   const [location, setLocation] = useState(kiosk?.location ?? "");
   const [description, setDescription] = useState(kiosk?.description ?? "");
 
-  const createMutation = useCreateKiosk({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListKiosksQueryKey() });
-        toast.success("Kiosk créé");
-        onClose();
-      },
-      onError: () => toast.error("Erreur lors de la création"),
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; location?: string; description?: string }) =>
+      apiFetch("/api/kiosks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      toast.success("Kiosk créé");
+      onClose();
     },
+    onError: () => toast.error("Erreur lors de la création"),
   });
 
-  const updateMutation = useUpdateKiosk({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListKiosksQueryKey() });
-        toast.success("Kiosk mis à jour");
-        onClose();
-      },
-      onError: () => toast.error("Erreur lors de la mise à jour"),
+  const updateMutation = useMutation({
+    mutationFn: (data: { name?: string; location?: string; description?: string }) =>
+      apiFetch(`/api/kiosks/${kiosk!.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      toast.success("Kiosk mis à jour");
+      onClose();
     },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const handleSubmit = () => {
     if (!name.trim()) { toast.error("Le nom est requis"); return; }
+    const data = {
+      name: name.trim(),
+      location: location.trim() || undefined,
+      description: description.trim() || undefined,
+    };
     if (kiosk) {
-      updateMutation.mutate({ id: kiosk.id, data: { name, location: location || undefined, description: description || undefined } });
+      updateMutation.mutate(data);
     } else {
-      createMutation.mutate({ data: { name, location: location || undefined, description: description || undefined } });
+      createMutation.mutate(data);
     }
   };
 
@@ -162,6 +175,7 @@ function KioskCodeCell({ collaborator, onUpdate }: { collaborator: Collaborator;
           className="w-20 h-7 text-center font-mono text-sm"
           maxLength={4}
           onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+          autoFocus
         />
         <Button size="sm" className="h-7 px-2" onClick={save} disabled={loading}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
@@ -198,17 +212,26 @@ export default function KioskManagementPage() {
   const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { data: kiosks = [], isLoading: kiosksLoading } = useListKiosks();
+  const { data: kiosks = [], isLoading: kiosksLoading } = useQuery<Kiosk[]>({
+    queryKey: KIOSKS_QUERY_KEY,
+    queryFn: () => apiFetch<Kiosk[]>("/api/kiosks"),
+  });
+
   const { data: collabsData, isLoading: collabsLoading } = useListCollaborators(
     { limit: 200 },
     { query: { queryKey: getListCollaboratorsQueryKey({ limit: 200 }) } }
   );
   const collaborators: Collaborator[] = (collabsData as any)?.data ?? [];
 
-  const updateMutation = useUpdateKiosk({
-    mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: getListKiosksQueryKey() }),
-    },
+  const toggleMutation = useMutation({
+    mutationFn: (k: Kiosk) =>
+      apiFetch(`/api/kiosks/${k.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !k.isActive }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY }),
+    onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
   const copyToken = (token: string, id: string) => {
@@ -226,10 +249,6 @@ export default function KioskManagementPage() {
       toast.success("URL kiosk copiée !");
       setTimeout(() => setCopiedId(null), 2000);
     });
-  };
-
-  const toggleActive = (k: Kiosk) => {
-    updateMutation.mutate({ id: k.id, data: { isActive: !k.isActive } });
   };
 
   const fmtDate = (d: string | null | undefined) => {
@@ -257,7 +276,7 @@ export default function KioskManagementPage() {
       <Tabs defaultValue="kiosks">
         <TabsList>
           <TabsTrigger value="kiosks" className="flex items-center gap-1.5">
-            <MonitorSmartphone className="w-4 h-4" /> Kiosks ({(kiosks as Kiosk[]).length})
+            <MonitorSmartphone className="w-4 h-4" /> Kiosks ({kiosks.length})
           </TabsTrigger>
           <TabsTrigger value="codes" className="flex items-center gap-1.5">
             <Key className="w-4 h-4" /> Codes collaborateurs
@@ -270,7 +289,7 @@ export default function KioskManagementPage() {
             <div className="flex items-center justify-center h-32">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : (kiosks as Kiosk[]).length === 0 ? (
+          ) : kiosks.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <MonitorSmartphone className="w-12 h-12 text-muted-foreground/40 mb-4" />
@@ -285,7 +304,7 @@ export default function KioskManagementPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {(kiosks as Kiosk[]).map((k) => (
+              {kiosks.map((k) => (
                 <Card key={k.id} className={`relative ${!k.isActive ? "opacity-60" : ""}`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
@@ -339,7 +358,8 @@ export default function KioskManagementPage() {
                       </Button>
                       <Button
                         variant="ghost" size="sm" className="h-8"
-                        onClick={() => toggleActive(k)}
+                        onClick={() => toggleMutation.mutate(k)}
+                        disabled={toggleMutation.isPending}
                       >
                         {k.isActive
                           ? <ToggleRight className="w-4 h-4 text-emerald-500" />
