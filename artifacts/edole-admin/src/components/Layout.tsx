@@ -346,36 +346,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-background font-sans">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-[260px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col h-full shadow-xl z-10 shrink-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08] pointer-events-none" />
-        <div className="relative flex flex-col h-full">{SidebarContent}</div>
-      </aside>
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-background font-sans">
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Mobile sidebar */}
-      <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[82%] max-w-[300px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col shadow-2xl transition-transform duration-200 ease-out ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        aria-hidden={!mobileOpen}
-      >
-        {SidebarContent}
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
-        {/* Topbar */}
-        <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center px-3 sm:px-4 shrink-0 z-10 sticky top-0 shadow-[var(--shadow-xs)] gap-2">
+      {/* ── Topbar pleine largeur ──────────────────────────────────── */}
+      <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center px-3 sm:px-4 shrink-0 z-20 shadow-[var(--shadow-xs)] gap-2">
 
           {/* ── Zone gauche : logo + séparateur + nom organisation ──── */}
           <div className="flex items-center shrink-0 gap-0 min-w-0">
@@ -579,14 +553,46 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+      </header>
 
-        <AppBreadcrumb />
+      {/* ── Corps : sidebar + contenu ─────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 page-scroll bg-background">
-          <div className="max-w-[1440px] mx-auto w-full">{children}</div>
-        </div>
-      </main>
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex w-[260px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col shadow-xl z-10 shrink-0 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08] pointer-events-none" />
+          <div className="relative flex flex-col h-full">{SidebarContent}</div>
+        </aside>
+
+        {/* Mobile overlay */}
+        {mobileOpen && (
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Mobile sidebar */}
+        <aside
+          className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[82%] max-w-[300px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col shadow-2xl transition-transform duration-200 ease-out ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+          aria-hidden={!mobileOpen}
+        >
+          {SidebarContent}
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
+          <AppBreadcrumb />
+
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 page-scroll bg-background">
+            <div className="max-w-[1440px] mx-auto w-full">{children}</div>
+          </div>
+        </main>
+
+      </div>
 
       {/* ── Koffi — assistant flottant universel ─────────────────────────────── */}
       <KoffiChat />
