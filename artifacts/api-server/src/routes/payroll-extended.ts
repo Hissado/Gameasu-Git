@@ -378,7 +378,37 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
   } catch (e) { next(e); }
 });
 
-// Générer ordre de virement depuis un run validé
+// Helper : génère les lignes de virement depuis un run (payslips + infos bancaires collaborateurs)
+async function buildTransferLines(runId: string, orgId: string) {
+  const payslips = await db.select({
+    collaboratorId: payslipsTable.collaboratorId,
+    netSalary: payslipsTable.netSalary,
+  }).from(payslipsTable).where(eq(payslipsTable.payrollRunId, runId));
+
+  const collabs = await db.select({
+    id: collaboratorsTable.id,
+    firstName: collaboratorsTable.firstName,
+    lastName: collaboratorsTable.lastName,
+    bankName: collaboratorsTable.bankName,
+    bankCode: collaboratorsTable.bankCode,
+    bankAccountNumber: collaboratorsTable.bankAccountNumber,
+  }).from(collaboratorsTable).where(eq(collaboratorsTable.organizationId, orgId));
+  const collabMap = Object.fromEntries(collabs.map(c => [c.id, c]));
+
+  return payslips.map(p => {
+    const c = collabMap[p.collaboratorId];
+    return {
+      collaboratorId: p.collaboratorId,
+      name: c ? `${c.firstName} ${c.lastName}` : "—",
+      iban: c?.bankAccountNumber ?? "",
+      bankName: c?.bankName ?? "",
+      bankCode: c?.bankCode ?? "",
+      amount: toNum(p.netSalary),
+    };
+  });
+}
+
+// Générer ordre de virement depuis un run validé (alias legacy)
 router.post("/payroll/runs/:id/generate-transfer", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
@@ -386,21 +416,8 @@ router.post("/payroll/runs/:id/generate-transfer", requireManagerOrAbove, async 
     if (!run) return res.status(404).json({ error: "Run non trouvé" });
     if (run.status !== "validated" && run.status !== "paid") return res.status(400).json({ error: "Le run doit être validé" });
 
-    const payslips = await db.select({ id: payslipsTable.id, collaboratorId: payslipsTable.collaboratorId, netSalary: payslipsTable.netSalary })
-      .from(payslipsTable).where(eq(payslipsTable.payrollRunId, run.id));
-
-    const collabs = await db.select({ id: collaboratorsTable.id, firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName })
-      .from(collaboratorsTable).where(eq(collaboratorsTable.organizationId, orgId));
-    const collabMap = Object.fromEntries(collabs.map(c => [c.id, c]));
-
-    const lines = payslips.map(p => ({
-      collaboratorId: p.collaboratorId,
-      name: collabMap[p.collaboratorId] ? `${collabMap[p.collaboratorId].firstName} ${collabMap[p.collaboratorId].lastName}` : "—",
-      amount: toNum(p.netSalary),
-      iban: "",
-    }));
+    const lines = await buildTransferLines(run.id, orgId);
     const total = lines.reduce((s, l) => s + l.amount, 0);
-
     const ref = `VIR-${run.period}-${Date.now().toString(36).toUpperCase()}`;
     const [order] = await db.insert(bankTransferOrdersTable).values({
       organizationId: orgId,
@@ -411,6 +428,205 @@ router.post("/payroll/runs/:id/generate-transfer", requireManagerOrAbove, async 
       createdById: req.authUser!.userId,
     }).returning();
     res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
+  } catch (e) { next(e); }
+});
+
+// POST /api/payroll/runs/:id/bank-transfer-order — endpoint canonique BCEAO/UEMOA
+router.post("/payroll/runs/:id/bank-transfer-order", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const run = await db.query.payrollRunsTable.findFirst({
+      where: and(eq(payrollRunsTable.id, req.params.id), eq(payrollRunsTable.organizationId, orgId)),
+    });
+    if (!run) return res.status(404).json({ error: "Cycle de paie introuvable" });
+    if (run.status !== "validated" && run.status !== "paid") {
+      return res.status(400).json({ error: "Le cycle de paie doit être validé pour générer un ordre de virement" });
+    }
+
+    const body = z.object({
+      notes: z.string().optional(),
+    }).optional().parse(req.body ?? {}) ?? {};
+
+    const lines = await buildTransferLines(run.id, orgId);
+    if (lines.length === 0) {
+      return res.status(400).json({ error: "Aucun bulletin de paie trouvé pour ce cycle" });
+    }
+    const total = lines.reduce((s, l) => s + l.amount, 0);
+    const ref = `VIR-BCEAO-${run.period}-${Date.now().toString(36).toUpperCase()}`;
+
+    const [order] = await db.insert(bankTransferOrdersTable).values({
+      organizationId: orgId,
+      payrollRunId: run.id,
+      reference: ref,
+      totalAmount: String(total),
+      currency: "XOF",
+      transferLines: lines,
+      notes: body.notes ?? `Salaires ${run.period} — ${lines.length} bénéficiaire(s)`,
+      createdById: req.authUser!.userId,
+    }).returning();
+
+    res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-orders/:id/export.csv — export CSV format BCEAO/UEMOA
+router.get("/payroll/transfer-orders/:id/export.csv", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [order] = await db.select().from(bankTransferOrdersTable)
+      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+    if (!order) return res.status(404).json({ error: "Ordre de virement introuvable" });
+
+    const lines = (order.transferLines as Array<{
+      collaboratorId: string; name: string; iban?: string;
+      bankName?: string; bankCode?: string; amount: number;
+    }>) ?? [];
+
+    // Récupérer la période depuis le run lié
+    let period = "";
+    if (order.payrollRunId) {
+      const [run] = await db.select({ period: payrollRunsTable.period })
+        .from(payrollRunsTable).where(eq(payrollRunsTable.id, order.payrollRunId));
+      period = run?.period ?? "";
+    }
+
+    const motif = period ? `Salaires ${period}` : "Virement de salaires";
+
+    // Générer CSV — format attendu par ECOBANK/UTB/BIA Togo
+    const csvRows: string[] = [
+      // En-tête
+      ["Référence ordre", "IBAN / N° compte", "Code banque", "Établissement", "Nom bénéficiaire", "Montant net (XOF)", "Devise", "Motif"].join(";"),
+    ];
+
+    for (const l of lines) {
+      csvRows.push([
+        order.reference,
+        l.iban ?? "",
+        (l as { bankCode?: string }).bankCode ?? "",
+        (l as { bankName?: string }).bankName ?? "",
+        l.name,
+        String(Math.round(l.amount)),
+        "XOF",
+        motif,
+      ].join(";"));
+    }
+
+    // Ligne total
+    csvRows.push([
+      "", "", "", "",
+      "TOTAL",
+      String(Math.round(toNum(order.totalAmount))),
+      "XOF",
+      "",
+    ].join(";"));
+
+    const csvContent = "\uFEFF" + csvRows.join("\r\n"); // BOM UTF-8 pour Excel
+    const filename = `${order.reference}.csv`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csvContent);
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-orders/:id/export.xlsx — export XLS format BCEAO/UEMOA
+router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [order] = await db.select().from(bankTransferOrdersTable)
+      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+    if (!order) return res.status(404).json({ error: "Ordre de virement introuvable" });
+
+    const lines = (order.transferLines as Array<{
+      collaboratorId: string; name: string; iban?: string;
+      bankName?: string; bankCode?: string; amount: number;
+    }>) ?? [];
+
+    let period = "";
+    if (order.payrollRunId) {
+      const [run] = await db.select({ period: payrollRunsTable.period })
+        .from(payrollRunsTable).where(eq(payrollRunsTable.id, order.payrollRunId));
+      period = run?.period ?? "";
+    }
+    const motif = period ? `Salaires ${period}` : "Virement de salaires";
+
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Gaméasù Plateforme";
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet("Ordre de virement");
+
+    // Titre
+    ws.mergeCells("A1:H1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = `Ordre de virement — ${order.reference}`;
+    titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(1).height = 30;
+
+    // Sous-titre
+    ws.mergeCells("A2:H2");
+    const subCell = ws.getCell("A2");
+    subCell.value = `Référence : ${order.reference}  |  Total : ${toNum(order.totalAmount).toLocaleString("fr-FR")} XOF  |  ${lines.length} bénéficiaire(s)`;
+    subCell.font = { italic: true, size: 10 };
+    subCell.alignment = { horizontal: "center" };
+
+    ws.addRow([]);
+
+    // En-tête colonnes
+    const headerRow = ws.addRow(["Référence ordre", "IBAN / N° compte", "Code banque", "Établissement", "Nom bénéficiaire", "Montant net (XOF)", "Devise", "Motif"]);
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+      cell.alignment = { horizontal: "center" };
+      cell.border = { bottom: { style: "thin" } };
+    });
+    ws.getRow(4).height = 20;
+
+    // Lignes de virement
+    let rowIdx = 5;
+    for (const l of lines) {
+      const row = ws.addRow([
+        order.reference,
+        l.iban ?? "",
+        (l as { bankCode?: string }).bankCode ?? "",
+        (l as { bankName?: string }).bankName ?? "",
+        l.name,
+        Math.round(l.amount),
+        "XOF",
+        motif,
+      ]);
+      if (rowIdx % 2 === 0) {
+        row.eachCell(cell => {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDF6EE" } };
+        });
+      }
+      const amountCell = row.getCell(6);
+      amountCell.numFmt = '#,##0" XOF"';
+      rowIdx++;
+    }
+
+    // Ligne total
+    const totalRow = ws.addRow(["", "", "", "", "TOTAL", Math.round(toNum(order.totalAmount)), "XOF", ""]);
+    totalRow.eachCell(cell => {
+      cell.font = { bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEE2CC" } };
+    });
+    totalRow.getCell(6).numFmt = '#,##0" XOF"';
+
+    // Largeurs
+    ws.columns = [
+      { width: 28 }, { width: 24 }, { width: 14 }, { width: 20 },
+      { width: 28 }, { width: 20 }, { width: 10 }, { width: 30 },
+    ];
+
+    const filename = `${order.reference}.xlsx`;
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    await wb.xlsx.write(res);
+    res.end();
   } catch (e) { next(e); }
 });
 

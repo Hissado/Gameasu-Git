@@ -12,17 +12,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Banknote, CheckCircle, XCircle, Send } from "lucide-react";
+import { Plus, Banknote, CheckCircle, XCircle, Send, FileSpreadsheet, FileText } from "lucide-react";
+
+type TransferLine = {
+  collaboratorId: string;
+  name: string;
+  iban?: string;
+  bankName?: string;
+  bankCode?: string;
+  amount: number;
+};
 
 type TransferOrder = {
-  id: string; reference: string; status: string; totalAmount: number; currency: string;
-  transferLines: Array<{ collaboratorId: string; name: string; iban?: string; amount: number }>;
-  notes?: string; createdAt: string; submittedAt?: string; completedAt?: string; bankReference?: string;
+  id: string;
+  reference: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  payrollRunId?: string;
+  transferLines: TransferLine[];
+  notes?: string;
+  createdAt: string;
+  submittedAt?: string;
+  completedAt?: string;
+  bankReference?: string;
 };
+
 type PayrollRun = { id: string; period: string; status: string };
 
-const STATUS_LABEL: Record<string, string> = { pending: "En attente", processing: "En traitement", submitted: "Soumis", completed: "Exécuté", failed: "Échec", cancelled: "Annulé" };
-const STATUS_COLOR: Record<string, string> = { pending: "bg-amber-100 text-amber-700", processing: "bg-blue-100 text-blue-700", submitted: "bg-indigo-100 text-indigo-700", completed: "bg-emerald-100 text-emerald-700", failed: "bg-red-100 text-red-700", cancelled: "bg-gray-100 text-gray-600" };
+const STATUS_LABEL: Record<string, string> = {
+  pending: "En attente",
+  processing: "En traitement",
+  submitted: "Soumis",
+  completed: "Exécuté",
+  failed: "Échec",
+  cancelled: "Annulé",
+};
+const STATUS_COLOR: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700",
+  processing: "bg-blue-100 text-blue-700",
+  submitted: "bg-indigo-100 text-indigo-700",
+  completed: "bg-emerald-100 text-emerald-700",
+  failed: "bg-red-100 text-red-700",
+  cancelled: "bg-gray-100 text-gray-600",
+};
+
+function downloadFile(url: string) {
+  const token = localStorage.getItem("auth_token");
+  const sep = url.includes("?") ? "&" : "?";
+  const authenticatedUrl = token ? `${url}${sep}token=${encodeURIComponent(token)}` : url;
+  const a = document.createElement("a");
+  a.href = authenticatedUrl;
+  a.click();
+}
 
 export default function TransferOrders() {
   const qc = useQueryClient();
@@ -35,65 +77,107 @@ export default function TransferOrders() {
     queryKey: ["transfer-orders"],
     queryFn: () => apiFetch("/api/payroll/transfer-orders"),
   });
+
   const { data: runs } = useQuery<PayrollRun[]>({
     queryKey: ["payroll-runs"],
     queryFn: () => apiFetch("/api/payroll/runs"),
   });
 
   const createMut = useMutation({
-    mutationFn: (d: typeof form) => apiFetch("/api/payroll/transfer-orders", {
-      method: "POST",
-      body: JSON.stringify({ ...d, totalAmount: Number(d.totalAmount || 0) }),
-    }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["transfer-orders"] }); setOpen(false); toast({ title: "Ordre créé" }); },
+    mutationFn: (d: typeof form) =>
+      apiFetch("/api/payroll/transfer-orders", {
+        method: "POST",
+        body: JSON.stringify({ ...d, totalAmount: Number(d.totalAmount || 0) }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transfer-orders"] });
+      setOpen(false);
+      toast({ title: "Ordre créé" });
+    },
   });
 
   const generateMut = useMutation({
-    mutationFn: (runId: string) => apiFetch(`/api/payroll/runs/${runId}/generate-transfer`, { method: "POST" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["transfer-orders"] }); toast({ title: "Ordre de virement généré depuis le run" }); },
-    onError: () => toast({ title: "Erreur", variant: "destructive" }),
+    mutationFn: (runId: string) =>
+      apiFetch(`/api/payroll/runs/${runId}/bank-transfer-order`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transfer-orders"] });
+      toast({ title: "Ordre de virement BCEAO/UEMOA généré depuis le cycle de paie" });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => apiFetch(`/api/payroll/transfer-orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["transfer-orders"] }); },
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiFetch(`/api/payroll/transfer-orders/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transfer-orders"] }),
   });
 
-  const detail = (orders ?? []).find(o => o.id === detailId) ?? null;
-  const validatedRuns = (runs ?? []).filter(r => r.status === "validated");
+  const detail = (orders ?? []).find((o) => o.id === detailId) ?? null;
+  const validatedRuns = (runs ?? []).filter((r) => r.status === "validated");
+
+  // Build a map of runId → period for display
+  const runPeriodMap = Object.fromEntries((runs ?? []).map((r) => [r.id, r.period]));
 
   const totals = {
-    pending: (orders ?? []).filter(o => o.status === "pending").reduce((s, o) => s + o.totalAmount, 0),
-    completed: (orders ?? []).filter(o => o.status === "completed").reduce((s, o) => s + o.totalAmount, 0),
+    pending: (orders ?? [])
+      .filter((o) => o.status === "pending")
+      .reduce((s, o) => s + o.totalAmount, 0),
+    completed: (orders ?? [])
+      .filter((o) => o.status === "completed")
+      .reduce((s, o) => s + o.totalAmount, 0),
   };
 
   return (
     <HrShell
       title="Ordres de virement"
-      subtitle="Génération et suivi des virements bancaires de salaires"
+      subtitle="Génération et suivi des virements bancaires de salaires — format BCEAO/UEMOA"
       actions={
         <div className="flex gap-2">
           {validatedRuns.length > 0 && (
-            <Select onValueChange={v => generateMut.mutate(v)}>
-              <SelectTrigger className="h-9 text-sm w-52">
-                <SelectValue placeholder="Générer depuis run validé…" />
+            <Select onValueChange={(v) => generateMut.mutate(v)} disabled={generateMut.isPending}>
+              <SelectTrigger className="h-9 text-sm w-56">
+                <SelectValue placeholder="Générer depuis cycle validé…" />
               </SelectTrigger>
               <SelectContent>
-                {validatedRuns.map(r => (
-                  <SelectItem key={r.id} value={r.id}>Run {r.period}</SelectItem>
+                {validatedRuns.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    Cycle {r.period}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
-          <Button size="sm" onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-1" />Nouvel ordre</Button>
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Nouvel ordre
+          </Button>
         </div>
       }
     >
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">En attente</div><div className="text-xl font-bold">{formatFCFA(totals.pending)}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">Exécutés</div><div className="text-xl font-bold text-emerald-600">{formatFCFA(totals.completed)}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">Nombre total</div><div className="text-xl font-bold">{(orders ?? []).length}</div></CardContent></Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">En attente</div>
+            <div className="text-xl font-bold">{formatFCFA(totals.pending)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">Exécutés</div>
+            <div className="text-xl font-bold text-emerald-600">{formatFCFA(totals.completed)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">Nombre total</div>
+            <div className="text-xl font-bold">{(orders ?? []).length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {isLoading ? (
@@ -102,6 +186,11 @@ export default function TransferOrders() {
         <div className="text-center py-12 text-muted-foreground">
           <Banknote className="w-8 h-8 mx-auto mb-2 opacity-30" />
           <p>Aucun ordre de virement.</p>
+          {validatedRuns.length > 0 && (
+            <p className="text-sm mt-2">
+              Utilisez le sélecteur ci-dessus pour générer un ordre depuis un cycle validé.
+            </p>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border overflow-hidden">
@@ -109,6 +198,7 @@ export default function TransferOrders() {
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left">Référence</th>
+                <th className="px-4 py-3 text-left">Cycle de paie</th>
                 <th className="px-4 py-3 text-right">Montant total</th>
                 <th className="px-4 py-3 text-left">Lignes</th>
                 <th className="px-4 py-3 text-left">Statut</th>
@@ -117,26 +207,92 @@ export default function TransferOrders() {
               </tr>
             </thead>
             <tbody>
-              {(orders ?? []).map(o => (
-                <tr key={o.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => setDetailId(o.id)}>
+              {(orders ?? []).map((o) => (
+                <tr
+                  key={o.id}
+                  className="border-t hover:bg-muted/30 cursor-pointer"
+                  onClick={() => setDetailId(o.id)}
+                >
                   <td className="px-4 py-3 font-mono text-sm font-medium">{o.reference}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    {o.payrollRunId && runPeriodMap[o.payrollRunId] ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full border border-orange-200 font-medium">
+                        {runPeriodMap[o.payrollRunId]}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold">{formatFCFA(o.totalAmount)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{(o.transferLines ?? []).length} bénéficiaire{(o.transferLines ?? []).length > 1 ? "s" : ""}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[o.status] ?? ""}`}>{STATUS_LABEL[o.status] ?? o.status}</span></td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString("fr-FR")}</td>
-                  <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {(o.transferLines ?? []).length} bénéficiaire
+                    {(o.transferLines ?? []).length > 1 ? "s" : ""}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[o.status] ?? ""}`}
+                    >
+                      {STATUS_LABEL[o.status] ?? o.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {new Date(o.createdAt).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
+                      {/* Export CSV */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Exporter CSV (ECOBANK/UTB/BIA)"
+                        onClick={() =>
+                          downloadFile(`/api/payroll/transfer-orders/${o.id}/export.csv`)
+                        }
+                      >
+                        <FileText className="w-4 h-4 text-emerald-600" />
+                      </Button>
+                      {/* Export XLS */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Exporter Excel (BCEAO/UEMOA)"
+                        onClick={() =>
+                          downloadFile(`/api/payroll/transfer-orders/${o.id}/export.xlsx`)
+                        }
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                      </Button>
                       {o.status === "pending" && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Soumettre à la banque" onClick={() => updateMut.mutate({ id: o.id, status: "submitted" })}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Soumettre à la banque"
+                          onClick={() => updateMut.mutate({ id: o.id, status: "submitted" })}
+                        >
                           <Send className="w-4 h-4 text-blue-600" />
                         </Button>
                       )}
                       {o.status === "submitted" && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Marquer exécuté" onClick={() => updateMut.mutate({ id: o.id, status: "completed" })}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            title="Marquer exécuté"
+                            onClick={() => updateMut.mutate({ id: o.id, status: "completed" })}
+                          >
                             <CheckCircle className="w-4 h-4 text-emerald-600" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Marquer échoué" onClick={() => updateMut.mutate({ id: o.id, status: "failed" })}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            title="Marquer échoué"
+                            onClick={() => updateMut.mutate({ id: o.id, status: "failed" })}
+                          >
                             <XCircle className="w-4 h-4 text-red-500" />
                           </Button>
                         </>
@@ -153,24 +309,45 @@ export default function TransferOrders() {
       {/* Dialog créer ordre manuel */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Nouvel ordre de virement</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Nouvel ordre de virement</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <Label>Référence</Label>
-              <Input placeholder="VIR-2026-06-001" value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
+              <Input
+                placeholder="VIR-2026-06-001"
+                value={form.reference}
+                onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+              />
             </div>
             <div>
               <Label>Montant total (FCFA)</Label>
-              <Input type="number" value={form.totalAmount} onChange={e => setForm(f => ({ ...f, totalAmount: e.target.value }))} />
+              <Input
+                type="number"
+                value={form.totalAmount}
+                onChange={(e) => setForm((f) => ({ ...f, totalAmount: e.target.value }))}
+              />
             </div>
             <div>
               <Label>Notes</Label>
-              <Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+              <Textarea
+                rows={2}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button disabled={!form.reference || createMut.isPending} onClick={() => createMut.mutate(form)}>Créer</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              disabled={!form.reference || createMut.isPending}
+              onClick={() => createMut.mutate(form)}
+            >
+              Créer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -178,34 +355,104 @@ export default function TransferOrders() {
       {/* Dialog détail ordre */}
       {detail && (
         <Dialog open={!!detail} onOpenChange={() => setDetailId(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Ordre {detail.reference}</DialogTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[detail.status] ?? ""}`}>{STATUS_LABEL[detail.status] ?? detail.status}</span>
-                <span className="text-sm text-muted-foreground">Total : {formatFCFA(detail.totalAmount)}</span>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[detail.status] ?? ""}`}
+                >
+                  {STATUS_LABEL[detail.status] ?? detail.status}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Total : {formatFCFA(detail.totalAmount)}
+                </span>
+                {detail.payrollRunId && runPeriodMap[detail.payrollRunId] && (
+                  <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full border border-orange-200">
+                    Cycle {runPeriodMap[detail.payrollRunId]}
+                  </span>
+                )}
               </div>
             </DialogHeader>
+
+            {/* Actions d'export dans le détail */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.csv`)
+                }
+              >
+                <FileText className="w-4 h-4 mr-2 text-emerald-600" />
+                Exporter CSV
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.xlsx`)
+                }
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" />
+                Exporter Excel
+              </Button>
+              <div className="flex-1" />
+              <Badge variant="outline" className="text-xs">
+                {(detail.transferLines ?? []).length} bénéficiaire
+                {(detail.transferLines ?? []).length > 1 ? "s" : ""}
+              </Badge>
+            </div>
+
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr><th className="px-3 py-2 text-left">Bénéficiaire</th><th className="px-3 py-2 text-left">IBAN/Compte</th><th className="px-3 py-2 text-right">Montant</th></tr>
+                  <tr>
+                    <th className="px-3 py-2 text-left">Bénéficiaire</th>
+                    <th className="px-3 py-2 text-left">IBAN / N° compte</th>
+                    <th className="px-3 py-2 text-left">Banque</th>
+                    <th className="px-3 py-2 text-right">Montant net</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {(detail.transferLines ?? []).map((l, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-3 py-2 font-medium">{l.name}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{l.iban || "—"}</td>
-                      <td className="px-3 py-2 text-right">{formatFCFA(l.amount)}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                        {l.iban || <span className="italic text-muted-foreground/60">Non renseigné</span>}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        {l.bankName || "—"}
+                        {l.bankCode ? ` (${l.bankCode})` : ""}
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold">
+                        {formatFCFA(l.amount)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="border-t bg-muted/30">
-                  <tr><td className="px-3 py-2 font-semibold" colSpan={2}>Total</td><td className="px-3 py-2 text-right font-bold">{formatFCFA(detail.totalAmount)}</td></tr>
+                  <tr>
+                    <td className="px-3 py-2 font-semibold" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-bold">
+                      {formatFCFA(detail.totalAmount)}
+                    </td>
+                  </tr>
                 </tfoot>
               </table>
             </div>
-            {detail.notes && <div className="text-xs text-muted-foreground mt-2">{detail.notes}</div>}
+            {detail.notes && (
+              <div className="text-xs text-muted-foreground mt-3 p-3 bg-muted/30 rounded-md">
+                {detail.notes}
+              </div>
+            )}
+            {detail.bankReference && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Réf. banque : <span className="font-mono">{detail.bankReference}</span>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}
