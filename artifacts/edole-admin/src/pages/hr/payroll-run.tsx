@@ -233,6 +233,20 @@ export default function PayrollRun() {
 
   const run = data?.run;
 
+  const { data: attendanceSummary } = useQuery<{
+    period: string;
+    data: Array<{ collaboratorId: string; collaboratorName: string; effectiveHours: number; workDays: number; lateDays: number }>;
+  }>({
+    queryKey: ["attendance-payroll-summary", run?.period],
+    queryFn: () => fetchJSON(`${API}/attendance/payroll-summary?period=${run?.period}`),
+    enabled: !!run?.period,
+  });
+  const attendanceMap = React.useMemo(() => {
+    const m = new Map<string, { effectiveHours: number; workDays: number; lateDays: number }>();
+    for (const row of (attendanceSummary?.data ?? [])) m.set(row.collaboratorId, row);
+    return m;
+  }, [attendanceSummary]);
+
   const syncMut = useMutation({
     mutationFn: () => fetchJSON(`${API}/payroll/runs/${runId}/sync-attendance`, { method: "POST" }),
     onSuccess: (r) => { toast({ title: r.message ?? "Présence synchronisée" }); refetch(); },
@@ -559,7 +573,14 @@ export default function PayrollRun() {
                             {isSkipped && <span className="text-[10px] bg-red-100 text-red-600 border border-red-200 rounded px-1 py-0.5 font-semibold">Exclu</span>}
                           </div>
                           {(l.department || l.jobTitle) && <div className="text-xs text-muted-foreground">{l.jobTitle ?? l.department}</div>}
-                          {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
+                            {(() => { const att = attendanceMap.get(l.collaboratorId); return att ? (
+                              <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 rounded px-1 py-px">
+                                {att.effectiveHours}h · {att.workDays}j{att.lateDays > 0 ? ` · ${att.lateDays} retard${att.lateDays > 1 ? "s" : ""}` : ""}
+                              </span>
+                            ) : null; })()}
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-right font-medium text-sm">{formatFCFA(l.baseSalary)}</td>
                         <td className="px-3 py-2"><NumCell unit="hours" value={l.regularHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "regularHours", v)} /></td>

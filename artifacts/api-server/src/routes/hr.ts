@@ -28,6 +28,8 @@ import {
 } from "@workspace/db";
 import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { conversationsTable, conversationParticipantsTable } from "@workspace/db";
+import { emitToUser } from "../lib/realtime";
 
 const router = Router();
 
@@ -56,6 +58,24 @@ router.post("/hr/departments", requireManagerOrAbove, async (req, res) => {
   try {
     const [d] = await db.insert(departmentsTable).values({
       organizationId: req.authUser!.organizationId, code, name, description, parentId, headCollaboratorId, color }).returning();
+
+    // T004 : Créer automatiquement un groupe de messagerie pour le département
+    try {
+      const [conv] = await db.insert(conversationsTable).values({
+        organizationId: req.authUser!.organizationId,
+        type: "group",
+        title: `${name} — Équipe`,
+      }).returning({ id: conversationsTable.id });
+      if (conv) {
+        await db.insert(conversationParticipantsTable).values({
+          organizationId: req.authUser!.organizationId,
+          conversationId: conv.id,
+          userId: req.authUser!.id,
+        });
+        emitToUser(req.authUser!.id, "conversation:new", { id: conv.id, title: `${name} — Équipe`, type: "group" });
+      }
+    } catch { /* silencieux — ne doit pas bloquer la création du département */ }
+
     return res.status(201).json(d);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });

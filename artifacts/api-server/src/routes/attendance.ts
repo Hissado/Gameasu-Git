@@ -2,12 +2,13 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
   attendanceSessionsTable, attendanceRecordsTable, attendanceFlagsTable,
-  collaboratorsTable, departmentsTable, usersTable,
+  collaboratorsTable, departmentsTable, usersTable, notificationsTable,
   clockEventSchema,
 } from "@workspace/db";
-import { and, desc, eq, gte, lte, sql, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, isNull, inArray } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
+import { emitToUser } from "../lib/realtime";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,38 @@ function todayISO(d = new Date()): string {
 function diffMinutes(a: Date | null, b: Date | null): number {
   if (!a || !b) return 0;
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
+}
+
+// ── T001 : Alerte manager sur anomalie ───────────────────────────
+async function notifyDeptHead(
+  orgId: string, collaboratorId: string, departmentId: string | null,
+  flagKind: string, description: string,
+): Promise<void> {
+  if (!departmentId) return;
+  try {
+    const [dept] = await db.select({ headCollaboratorId: departmentsTable.headCollaboratorId })
+      .from(departmentsTable)
+      .where(and(eq(departmentsTable.id, departmentId), eq(departmentsTable.organizationId, orgId)))
+      .limit(1);
+    if (!dept?.headCollaboratorId) return;
+    const [headCollab] = await db.select({ userId: collaboratorsTable.userId })
+      .from(collaboratorsTable).where(eq(collaboratorsTable.id, dept.headCollaboratorId)).limit(1);
+    if (!headCollab?.userId) return;
+    const [collab] = await db.select({ firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName })
+      .from(collaboratorsTable).where(eq(collaboratorsTable.id, collaboratorId)).limit(1);
+    const kindLabel: Record<string, string> = {
+      late: "Retard", long_break: "Pause prolongée", missing_clock_out: "Oubli de pointage départ",
+    };
+    const [notif] = await db.insert(notificationsTable).values({
+      organizationId: orgId,
+      userId: headCollab.userId,
+      title: `⚠️ Anomalie présence : ${kindLabel[flagKind] ?? flagKind}`,
+      body: `${collab ? collab.firstName + " " + collab.lastName : collaboratorId} — ${description}`,
+      type: "attendance_flag",
+      entityType: "attendance",
+    }).returning();
+    emitToUser(headCollab.userId, "notification:new", notif);
+  } catch { /* silencieux — ne doit pas bloquer le pointage */ }
 }
 
 async function recomputeSession(sessionId: string): Promise<void> {
@@ -82,11 +115,12 @@ async function recomputeSession(sessionId: string): Promise<void> {
       .where(and(eq(attendanceFlagsTable.sessionId, sessionId), eq(attendanceFlagsTable.kind, "late")))
       .limit(1);
     if (!existing[0]) {
+      const desc = `Arrivée tardive à ${clockIn?.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
       await db.insert(attendanceFlagsTable).values({
         organizationId: s.organizationId, collaboratorId: s.collaboratorId, sessionId,
-        kind: "late", severity: "medium", workDate: s.workDate,
-        description: `Arrivée tardive à ${clockIn?.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+        kind: "late", severity: "medium", workDate: s.workDate, description: desc,
       });
+      void notifyDeptHead(s.organizationId, s.collaboratorId, s.departmentId, "late", desc);
     }
   }
   if (breakMinutes > 90) {
@@ -94,11 +128,12 @@ async function recomputeSession(sessionId: string): Promise<void> {
       .where(and(eq(attendanceFlagsTable.sessionId, sessionId), eq(attendanceFlagsTable.kind, "long_break")))
       .limit(1);
     if (!existing[0]) {
+      const desc = `Pause prolongée (${breakMinutes} min)`;
       await db.insert(attendanceFlagsTable).values({
         organizationId: s.organizationId, collaboratorId: s.collaboratorId, sessionId,
-        kind: "long_break", severity: "low", workDate: s.workDate,
-        description: `Pause prolongée (${breakMinutes} min)`,
+        kind: "long_break", severity: "low", workDate: s.workDate, description: desc,
       });
+      void notifyDeptHead(s.organizationId, s.collaboratorId, s.departmentId, "long_break", desc);
     }
   }
 }
@@ -378,6 +413,63 @@ router.post("/attendance/scan-anomalies", requirePermission("attendance.manage")
       }
     }
     res.json({ scanned: stale.length, flagged: created });
+  } catch (e) { next(e); }
+});
+
+// ── T005 : Résumé présences pour la Paie ─────────────────────────
+router.get("/attendance/payroll-summary", requirePermission("attendance.view"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const period = String(req.query["period"] ?? new Date().toISOString().slice(0, 7));
+    const match = /^(\d{4})-(\d{2})$/.exec(period);
+    if (!match) return res.status(400).json({ error: "Format invalide. Utilisez YYYY-MM." });
+    const year = parseInt(match[1]!), month = parseInt(match[2]!);
+    const startDate = `${period}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${period}-${String(lastDay).padStart(2, "0")}`;
+
+    const sessions = await db.select({
+      collaboratorId: attendanceSessionsTable.collaboratorId,
+      effectiveMinutes: attendanceSessionsTable.effectiveMinutes,
+      status: attendanceSessionsTable.status,
+      isLate: attendanceSessionsTable.isLate,
+    })
+      .from(attendanceSessionsTable)
+      .where(and(
+        eq(attendanceSessionsTable.organizationId, orgId),
+        gte(attendanceSessionsTable.workDate, startDate),
+        lte(attendanceSessionsTable.workDate, endDate),
+      ));
+
+    const map = new Map<string, { effectiveMinutes: number; workDays: number; lateDays: number }>();
+    for (const s of sessions) {
+      const e = map.get(s.collaboratorId) ?? { effectiveMinutes: 0, workDays: 0, lateDays: 0 };
+      e.effectiveMinutes += s.effectiveMinutes ?? 0;
+      if (s.status === "closed") e.workDays++;
+      if (s.isLate) e.lateDays++;
+      map.set(s.collaboratorId, e);
+    }
+
+    const ids = [...map.keys()];
+    const collabs = ids.length
+      ? await db.select({ id: collaboratorsTable.id, firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName, baseSalary: collaboratorsTable.baseSalary })
+          .from(collaboratorsTable).where(inArray(collaboratorsTable.id, ids))
+      : [];
+    const nameMap = new Map(collabs.map(c => [c.id, { name: `${c.firstName} ${c.lastName}`, baseSalary: c.baseSalary }]));
+
+    const data = [...map.entries()].map(([collaboratorId, stats]) => ({
+      collaboratorId,
+      collaboratorName: nameMap.get(collaboratorId)?.name ?? collaboratorId,
+      baseSalary: nameMap.get(collaboratorId)?.baseSalary ?? 0,
+      effectiveMinutes: stats.effectiveMinutes,
+      effectiveHours: Math.round(stats.effectiveMinutes / 6) / 10,
+      workDays: stats.workDays,
+      lateDays: stats.lateDays,
+    }));
+
+    res.json({ period, data });
   } catch (e) { next(e); }
 });
 

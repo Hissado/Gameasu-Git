@@ -6,7 +6,7 @@ import {
   attendanceRecordsTable,
   attendanceSessionsTable,
 } from "@workspace/db";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull, desc, gte, lte } from "drizzle-orm";
 import { z } from "zod/v4";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { ObjectStorageService } from "../lib/objectStorage";
@@ -339,6 +339,60 @@ kioskAdminRouter.delete("/kiosks/:id", async (req: Request, res: Response, next)
       .delete(kiosksTable)
       .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)));
     res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+// ── T003 : Activité & statistiques kiosks ────────────────────────
+kioskAdminRouter.get("/kiosks/activity", async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const date = String(req.query["date"] ?? new Date().toISOString().slice(0, 10));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { res.status(400).json({ error: "Format date invalide (YYYY-MM-DD)" }); return; }
+
+    const kiosks = await db.select({
+      id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
+      isActive: kiosksTable.isActive, lastSeenAt: kiosksTable.lastSeenAt,
+    }).from(kiosksTable).where(eq(kiosksTable.organizationId, orgId));
+
+    const startOfDay = new Date(date + "T00:00:00.000Z");
+    const endOfDay = new Date(date + "T23:59:59.999Z");
+
+    const records = await db.select({
+      kioskId: attendanceRecordsTable.kioskId,
+      collaboratorId: attendanceRecordsTable.collaboratorId,
+      occurredAt: attendanceRecordsTable.occurredAt,
+      kind: attendanceRecordsTable.kind,
+    })
+      .from(attendanceRecordsTable)
+      .where(and(
+        eq(attendanceRecordsTable.organizationId, orgId),
+        eq(attendanceRecordsTable.source, "kiosk"),
+        gte(attendanceRecordsTable.occurredAt, startOfDay),
+        lte(attendanceRecordsTable.occurredAt, endOfDay),
+      ));
+
+    const statsMap = new Map<string, { punchCount: number; uniqueEmployees: Set<string>; lastPunchAt: Date | null }>();
+    for (const r of records) {
+      if (!r.kioskId) continue;
+      const s = statsMap.get(r.kioskId) ?? { punchCount: 0, uniqueEmployees: new Set(), lastPunchAt: null };
+      s.punchCount++;
+      s.uniqueEmployees.add(r.collaboratorId);
+      if (!s.lastPunchAt || (r.occurredAt && r.occurredAt > s.lastPunchAt)) s.lastPunchAt = r.occurredAt;
+      statsMap.set(r.kioskId, s);
+    }
+
+    const totalPunches = records.length;
+    const uniqueEmployees = new Set(records.filter(r => r.kioskId).map(r => r.collaboratorId)).size;
+
+    const kioskStats = kiosks.map(k => ({
+      ...k,
+      punchCount: statsMap.get(k.id)?.punchCount ?? 0,
+      uniqueEmployees: statsMap.get(k.id)?.uniqueEmployees.size ?? 0,
+      lastPunchAt: statsMap.get(k.id)?.lastPunchAt ?? null,
+    }));
+
+    res.json({ date, summary: { totalPunches, uniqueEmployees, activeKiosks: kiosks.filter(k => k.isActive).length }, kiosks: kioskStats });
   } catch (err) { next(err); }
 });
 

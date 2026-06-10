@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Clock, MapPin, Coffee, LogIn, LogOut, AlertTriangle, CheckCircle2,
-  Users, Loader2, Calendar, Camera, MonitorSmartphone, ChevronRight,
+  Users, Loader2, Calendar, Camera, MonitorSmartphone, ChevronRight, MessageSquare,
 } from "lucide-react";
 import {
   useMyAttendanceToday, useAttendanceDashboard, useAttendanceAnomalies,
@@ -14,6 +15,7 @@ import {
   useCollaboratorAttendanceHistory,
   captureGeolocation, formatMinutes, type AttendanceRecord,
 } from "@/lib/attendance";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { severityLabel } from "@/lib/intelligence";
 
@@ -267,6 +269,22 @@ function HRDashboard() {
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const { data, isLoading } = useAttendanceDashboard(date);
   const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+  const [, navigate] = useLocation();
+
+  async function handleContact(e: React.MouseEvent, userId: string | null | undefined) {
+    e.stopPropagation();
+    if (!userId) { toast.error("Compte utilisateur non lié à ce collaborateur"); return; }
+    try {
+      const conv = await apiFetch<{ id: string }>("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "direct", participantIds: [userId] }),
+      });
+      navigate(`/messaging?conv=${conv.id}`);
+    } catch {
+      toast.error("Impossible d'ouvrir la messagerie");
+    }
+  }
 
   return (
     <>
@@ -323,8 +341,18 @@ function HRDashboard() {
                       s.isLate ? <Badge variant="destructive">Retard</Badge> :
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Présent</Badge>}
                   </td>
-                  <td className="px-3 py-2 text-slate-400">
-                    <ChevronRight className="w-4 h-4" />
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1 justify-end">
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-7 w-7 p-0 text-primary hover:bg-primary/10"
+                        title="Envoyer un message"
+                        onClick={(e) => handleContact(e, s.userId)}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </Button>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
                   </td>
                 </tr>
               )) : (

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import {
   MonitorSmartphone, Plus, Copy, Check, ToggleLeft, ToggleRight,
-  Pencil, Users, Key, Loader2, MapPin, RefreshCw,
+  Pencil, Users, Key, Loader2, MapPin, RefreshCw, BarChart2, Wifi, Clock,
 } from "lucide-react";
 
 type Kiosk = {
@@ -217,6 +217,16 @@ export default function KioskManagementPage() {
     queryFn: () => apiFetch<Kiosk[]>("/api/kiosks"),
   });
 
+  const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const { data: activityData, isLoading: activityLoading, refetch: refetchActivity } = useQuery<{
+    date: string;
+    summary: { totalPunches: number; uniqueEmployees: number; activeKiosks: number };
+    kiosks: Array<{ id: string; name: string; location?: string | null; isActive: boolean; lastSeenAt?: string | null; punchCount: number; uniqueEmployees: number; lastPunchAt: string | null }>;
+  }>({
+    queryKey: ["kiosk-activity", activityDate],
+    queryFn: () => apiFetch(`/api/kiosks/activity?date=${activityDate}`),
+  });
+
   const { data: collabsData, isLoading: collabsLoading } = useListCollaborators(
     { limit: 200 },
     { query: { queryKey: getListCollaboratorsQueryKey({ limit: 200 }) } }
@@ -280,6 +290,9 @@ export default function KioskManagementPage() {
           </TabsTrigger>
           <TabsTrigger value="codes" className="flex items-center gap-1.5">
             <Key className="w-4 h-4" /> Codes collaborateurs
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="flex items-center gap-1.5">
+            <BarChart2 className="w-4 h-4" /> Activité
           </TabsTrigger>
         </TabsList>
 
@@ -428,6 +441,104 @@ export default function KioskManagementPage() {
                           Aucun collaborateur
                         </TableCell>
                       </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Activité tab ──────────────────────────────────────────────── */}
+        <TabsContent value="activity" className="mt-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="date"
+              value={activityDate}
+              onChange={e => setActivityDate(e.target.value)}
+              className="border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <Button size="sm" variant="outline" onClick={() => refetchActivity()} disabled={activityLoading}>
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${activityLoading ? "animate-spin" : ""}`} />
+              Actualiser
+            </Button>
+            <span className="text-sm text-muted-foreground ml-auto">Activité du {activityDate}</span>
+          </div>
+
+          {activityData && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Pointages total", value: activityData.summary.totalPunches, icon: Clock, color: "bg-blue-50 text-blue-600" },
+                { label: "Employés uniques", value: activityData.summary.uniqueEmployees, icon: Users, color: "bg-emerald-50 text-emerald-600" },
+                { label: "Kiosks actifs", value: activityData.summary.activeKiosks, icon: Wifi, color: "bg-orange-50 text-orange-600" },
+              ].map(stat => (
+                <Card key={stat.label}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
+                      <stat.icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      <p className="font-bold text-xl">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart2 className="w-4 h-4" /> Détail par kiosk
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {activityLoading ? (
+                <div className="flex items-center justify-center h-24">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Kiosk</TableHead>
+                      <TableHead>Emplacement</TableHead>
+                      <TableHead className="text-center">Statut</TableHead>
+                      <TableHead className="text-center">Pointages</TableHead>
+                      <TableHead className="text-center">Employés</TableHead>
+                      <TableHead>Dernier pointage</TableHead>
+                      <TableHead>Vu pour la dernière fois</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(activityData?.kiosks ?? []).map(k => (
+                      <TableRow key={k.id}>
+                        <TableCell className="font-medium">{k.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {k.location ? <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{k.location}</span> : "—"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={k.isActive ? "default" : "secondary"} className="text-xs">
+                            {k.isActive ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {k.punchCount > 0 ? (
+                            <span className="text-primary font-bold">{k.punchCount}</span>
+                          ) : <span className="text-muted-foreground">0</span>}
+                        </TableCell>
+                        <TableCell className="text-center">{k.uniqueEmployees || "—"}</TableCell>
+                        <TableCell className="text-sm">
+                          {k.lastPunchAt ? new Date(k.lastPunchAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {k.lastSeenAt ? new Date(k.lastSeenAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "Jamais"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!activityData?.kiosks?.length && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun kiosk configuré</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
