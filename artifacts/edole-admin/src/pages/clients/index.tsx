@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Building2, Plus, Mail, Phone, ChevronRight, FileSignature, Search } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/hooks/use-toast";
 
 type Client = { id: string; name: string; email?: string; phone?: string; industry?: string; status: string };
@@ -37,18 +38,17 @@ export default function ClientsWorkspace() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Building2 className="w-7 h-7 text-primary" /> Clients
-          </h1>
-          <p className="text-muted-foreground mt-1">Portefeuille clients</p>
-        </div>
-        <div className="flex gap-2">
-          <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
-          <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Nouveau client</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Clients"
+        icon={Building2}
+        subtitle="Portefeuille clients B2B"
+        actions={
+          <>
+            <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-56 h-9" />
+            <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Nouveau client</Button>
+          </>
+        }
+      />
 
       {isLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
 

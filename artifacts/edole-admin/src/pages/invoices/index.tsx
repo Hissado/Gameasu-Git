@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer } from "lucide-react";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
@@ -328,7 +329,7 @@ function CancelInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
 export default function InvoicesList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [editTarget, setEditTarget] = useState<Invoice | null>(null);
@@ -348,11 +349,20 @@ export default function InvoicesList() {
     .reduce((s, i) => s + ((i.totalAmount ?? 0) - (i.paidAmount ?? 0)), 0);
 
   const invoices = allInvoices.filter(inv => {
-    if (showOverdueOnly && inv.status !== "overdue") return false;
+    if (statusFilter !== "all" && inv.status !== statusFilter) return false;
     if (!search) return true;
     return inv.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
       (inv.clientName ?? "").toLowerCase().includes(search.toLowerCase());
   });
+
+  const statusTabCounts: Record<string, number> = {
+    all:            allInvoices.length,
+    draft:          allInvoices.filter(i => i.status === "draft").length,
+    pending:        allInvoices.filter(i => i.status === "pending").length,
+    partially_paid: allInvoices.filter(i => i.status === "partially_paid").length,
+    overdue:        allInvoices.filter(i => i.status === "overdue").length,
+    paid:           allInvoices.filter(i => i.status === "paid").length,
+  };
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -361,18 +371,36 @@ export default function InvoicesList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Factures</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+      <PageHeader
+        title="Factures"
+        icon={FileText}
+        subtitle={
+          <>
             Facturation client · Encours : <strong className="text-amber-600">{formatFCFA(totalOutstanding)}</strong>
             {overdueCount > 0 && <span className="ml-2 text-red-600 font-semibold">· {overdueCount} en retard</span>}
-          </p>
-        </div>
-        <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
-          <Plus className="w-4 h-4" strokeWidth={3} /> Créer une facture
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+            <Plus className="w-4 h-4" strokeWidth={3} /> Créer une facture
+          </Button>
+        }
+      />
+
+      {/* Onglets de filtrage par statut Xero-style */}
+      <StatusTabs
+        tabs={[
+          { key: "all",            label: "Toutes",       count: statusTabCounts.all },
+          { key: "draft",          label: "Brouillons",   count: statusTabCounts.draft },
+          { key: "pending",        label: "En attente",   count: statusTabCounts.pending },
+          { key: "partially_paid", label: "Part. payées", count: statusTabCounts.partially_paid },
+          { key: "overdue",        label: "En retard",    count: statusTabCounts.overdue },
+          { key: "paid",           label: "Payées",       count: statusTabCounts.paid },
+        ]}
+        active={statusFilter}
+        onChange={(k) => setStatusFilter(k)}
+        className="border-b border-border pb-1"
+      />
 
       {/* Bannière factures en retard */}
       {overdueCount > 0 && (
@@ -390,12 +418,14 @@ export default function InvoicesList() {
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button size="sm" variant="outline" className={`text-xs gap-1 ${showOverdueOnly ? "border-red-500 bg-red-100 text-red-800" : "border-red-300 text-red-700 hover:bg-red-100"}`}
-              onClick={() => setShowOverdueOnly(v => !v)}>
-              <AlertCircle className="w-3.5 h-3.5" /> {showOverdueOnly ? "Tout afficher" : "Filtrer retards"}
-            </Button>
+            {statusFilter !== "overdue" && (
+              <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-100 text-xs gap-1"
+                onClick={() => setStatusFilter("overdue")}>
+                <AlertCircle className="w-3.5 h-3.5" /> Filtrer retards
+              </Button>
+            )}
             {(() => {
-              const first = invoices.find(i => i.status === "overdue");
+              const first = allInvoices.find(i => i.status === "overdue");
               return first ? (
                 <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs gap-1"
                   onClick={() => setSendEmailTarget(first)}>

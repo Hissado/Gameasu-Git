@@ -11,7 +11,7 @@ import {
   Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
-  Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle,
+  Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +25,7 @@ import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   moduleKey?: string;
+  secondary?: boolean;
 };
 type NavGroup = {
   title: string;
@@ -34,75 +35,75 @@ type NavGroup = {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Pilotage",
+    title: "Accueil",
     icon: Gauge,
     items: [
-      { name: "Tableau de bord",    path: "/",            icon: LayoutDashboard, moduleKey: "dashboard" },
-      { name: "Briefing du jour",   path: "/briefing",    icon: Sun,             moduleKey: "dashboard" },
-      { name: "Cockpit IA",         path: "/intelligence",icon: Brain,           moduleKey: "dashboard" },
-      { name: "Approbations",       path: "/approvals",   icon: CheckSquare,     moduleKey: "dashboard" },
+      { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard" },
+      { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard" },
+      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard" },
+      { name: "Approbations",     path: "/approvals",    icon: CheckSquare,     moduleKey: "dashboard" },
     ],
   },
   {
-    title: "Commercial",
+    title: "Ventes",
     icon: TrendingUp,
     items: [
-      { name: "Pipeline & opportunités", path: "/crm",          icon: Target,        moduleKey: "sales_crm" },
-      { name: "Clients",                 path: "/clients",       icon: Building2,     moduleKey: "clients" },
-      { name: "Calculateur tarifaire",   path: "/pricing",       icon: Tag,           moduleKey: "sales_crm" },
-      { name: "Devis",                   path: "/proformas",     icon: FileSignature, moduleKey: "sales_crm" },
-      { name: "Commandes",               path: "/orders",        icon: ShoppingCart,  moduleKey: "sales_crm" },
-      { name: "Factures",                path: "/invoices",      icon: FileText,      moduleKey: "sales_crm" },
-      { name: "Encaissements",           path: "/payments",      icon: CreditCard,    moduleKey: "sales_crm" },
-      { name: "Avoirs",                  path: "/credit-notes",  icon: MinusCircle,   moduleKey: "sales_crm" },
-      { name: "Marketing",               path: "/marketing",     icon: Megaphone,     moduleKey: "marketing" },
+      { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients" },
+      { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm" },
+      { name: "Factures",      path: "/invoices",     icon: FileText,      moduleKey: "sales_crm" },
+      { name: "Encaissements", path: "/payments",     icon: CreditCard,    moduleKey: "sales_crm" },
+      { name: "Devis",         path: "/proformas",    icon: FileSignature, moduleKey: "sales_crm",          secondary: true },
+      { name: "Commandes",     path: "/orders",       icon: ShoppingCart,  moduleKey: "sales_crm",          secondary: true },
+      { name: "Avoirs",        path: "/credit-notes", icon: MinusCircle,   moduleKey: "sales_crm",          secondary: true },
+      { name: "Tarification",  path: "/pricing",      icon: Tag,           moduleKey: "sales_crm",          secondary: true },
+      { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing",          secondary: true },
     ],
   },
   {
-    title: "Projets & Opérations",
+    title: "Projets",
     icon: FolderKanban,
     items: [
-      { name: "Projets",                path: "/projects",   icon: FolderKanban, moduleKey: "projects" },
-      { name: "Portefeuille",            path: "/portfolio",  icon: LayoutGrid,     moduleKey: "projects" },
-      { name: "Charge d'équipe",         path: "/workload",   icon: Activity,       moduleKey: "projects" },
-      { name: "Tâches",                  path: "/tasks",      icon: CheckSquare,    moduleKey: "tasks" },
-      { name: "Missions & services",     path: "/services",   icon: Briefcase,      moduleKey: "services" },
-      { name: "Opérations & logistique", path: "/operations", icon: Truck,          moduleKey: "operations" },
-      { name: "Parc & équipements",      path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
-      { name: "Produits & stock",        path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
-      { name: "Locations & inspections", path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
-      { name: "Documents",               path: "/documents",  icon: FolderOpen,     moduleKey: "documents" },
+      { name: "Projets",       path: "/projects",   icon: FolderKanban,  moduleKey: "projects" },
+      { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks" },
+      { name: "Équipements",   path: "/equipment",  icon: Wrench,        moduleKey: "inventory_assets" },
+      { name: "Portefeuille",  path: "/portfolio",  icon: LayoutGrid,    moduleKey: "projects",            secondary: true },
+      { name: "Charge équipe", path: "/workload",   icon: Activity,      moduleKey: "projects",            secondary: true },
+      { name: "Services",      path: "/services",   icon: Briefcase,     moduleKey: "services",            secondary: true },
+      { name: "Opérations",    path: "/operations", icon: Truck,         moduleKey: "operations",          secondary: true },
+      { name: "Stock",         path: "/inventory",  icon: Package,       moduleKey: "inventory_products",  secondary: true },
+      { name: "Locations",     path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals",            secondary: true },
+      { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",           secondary: true },
     ],
   },
   {
     title: "Finance",
     icon: Landmark,
     items: [
-      { name: "Comptabilité",           path: "/accounting", icon: Calculator,  moduleKey: "accounting" },
-      { name: "Planification financière",path: "/fpa",       icon: TrendingUp,  moduleKey: "financial_planning" },
-      { name: "Rapports & analytique",  path: "/reports",    icon: BarChart3,   moduleKey: "reports" },
+      { name: "Comptabilité",      path: "/accounting", icon: Calculator, moduleKey: "accounting" },
+      { name: "Budgets & prévisions", path: "/fpa",     icon: TrendingUp, moduleKey: "financial_planning" },
+      { name: "Rapports",          path: "/reports",    icon: BarChart3,  moduleKey: "reports" },
     ],
   },
   {
-    title: "Équipe & Communication",
+    title: "Équipe",
     icon: Users2,
     items: [
-      { name: "Équipe & RH",        path: "/hr",            icon: UsersRound,    moduleKey: "team_hr" },
-      { name: "Présences & pointage",path: "/attendance",   icon: Clock,         moduleKey: "team_hr" },
-      { name: "Kiosks de pointage",  path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr" },
-      { name: "Messagerie",         path: "/messaging",     icon: MessageSquare, moduleKey: "communications" },
-      { name: "Appels",             path: "/calls",         icon: PhoneCall,     moduleKey: "communications" },
+      { name: "Ressources humaines", path: "/hr",               icon: UsersRound,        moduleKey: "team_hr" },
+      { name: "Présences",           path: "/attendance",        icon: Clock,             moduleKey: "team_hr" },
+      { name: "Messagerie",          path: "/messaging",         icon: MessageSquare,     moduleKey: "communications" },
+      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr",          secondary: true },
+      { name: "Appels",              path: "/calls",             icon: PhoneCall,         moduleKey: "communications",   secondary: true },
     ],
   },
   {
-    title: "Administration",
+    title: "Admin",
     icon: Shield,
     items: [
-      { name: "Console admin",           path: "/admin",               icon: Shield,    moduleKey: "administration" },
-      { name: "Automatisations",         path: "/automations",          icon: Workflow,  moduleKey: "administration" },
-      { name: "Abonnement & facturation",path: "/billing",              icon: CreditCard,moduleKey: "billing_subscription" },
-      { name: "Paramètres de l'espace",  path: "/workspace-settings",   icon: Settings,  moduleKey: "workspace_settings" },
-      { name: "Support",                 path: "/tickets",              icon: LifeBuoy },
+      { name: "Paramètres",    path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings" },
+      { name: "Abonnement",    path: "/billing",             icon: CreditCard, moduleKey: "billing_subscription" },
+      { name: "Console admin", path: "/admin",               icon: Shield,     moduleKey: "administration",    secondary: true },
+      { name: "Automatisations", path: "/automations",       icon: Workflow,   moduleKey: "administration",    secondary: true },
+      { name: "Support",       path: "/tickets",             icon: LifeBuoy,                                   secondary: true },
     ],
   },
 ];
@@ -173,6 +174,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         next.add(activeGroup.title);
         return next;
       });
+      // Auto-expand secondary items if the active item is secondary
+      const activeItem = activeGroup.items.find(
+        (item) => location === item.path || (item.path !== "/" && location.startsWith(item.path))
+      );
+      if (activeItem?.secondary) {
+        setExpandedGroups((prev) => {
+          if (prev.has(activeGroup.title)) return prev;
+          const next = new Set(prev);
+          next.add(activeGroup.title);
+          return next;
+        });
+      }
     }
   }, [location]);
 
@@ -183,6 +196,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const toggleGroup = (title: string) => {
     setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (title: string) => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title);
       else next.add(title);
@@ -258,46 +282,66 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 >
                   <div className="overflow-hidden">
                     <ul className="pt-0.5 pb-1 pl-2 space-y-0.5">
-                      {group.items.map((item) => {
+                      {/* ── Items primaires — toujours visibles ── */}
+                      {group.items.filter(i => !i.secondary).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                         const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
                         const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
-
                         return (
                           <li key={item.path}>
                             <Link
                               href={href}
-                              className={`
-                                group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg
-                                text-[12.5px] font-medium transition-all duration-150
-                                ${active
-                                  ? "bg-white/[0.08] text-white"
-                                  : locked
-                                    ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]"
-                                    : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
-                                }
-                              `}
+                              className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
+                                active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                              }`}
                             >
-                              {/* Active left accent bar */}
-                              {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />
-                              )}
-                              <item.icon
-                                className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${
-                                  active
-                                    ? "text-[#D9B86A]"
-                                    : locked
-                                      ? "text-white/20"
-                                      : "text-white/35 group-hover/item:text-white/60"
-                                }`}
-                                strokeWidth={active ? 2 : 1.75}
-                              />
+                              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />}
+                              <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
                               <span className="truncate flex-1">{item.name}</span>
                               {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
                             </Link>
                           </li>
                         );
                       })}
+                      {/* ── Items secondaires + toggle ── */}
+                      {group.items.some(i => i.secondary) && (() => {
+                        const sec = group.items.filter(i => i.secondary);
+                        const isExp = expandedGroups.has(group.title);
+                        return (
+                          <>
+                            {isExp && sec.map((item) => {
+                              const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                              const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
+                              const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
+                              return (
+                                <li key={item.path}>
+                                  <Link
+                                    href={href}
+                                    className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
+                                      active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                                    }`}
+                                  >
+                                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />}
+                                    <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
+                                    <span className="truncate flex-1">{item.name}</span>
+                                    {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                            <li>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleExpand(group.title); }}
+                                className="w-full flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-medium text-white/25 hover:text-white/50 hover:bg-white/[0.03] transition-colors mt-0.5"
+                              >
+                                <span className="flex-1 text-left">{isExp ? "Réduire" : `${sec.length} de plus…`}</span>
+                                <ChevronRight className={`w-3 h-3 transition-transform duration-150 ${isExp ? "-rotate-90" : "rotate-90"}`} />
+                              </button>
+                            </li>
+                          </>
+                        );
+                      })()}
                     </ul>
                   </div>
                 </div>
@@ -415,6 +459,43 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
           {/* ── Zone droite : raccourcis rapides + profil ─────────────── */}
           <div className="flex items-center gap-0.5 shrink-0">
+            {/* Bouton "Nouveau" Xero-style */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="hidden sm:flex items-center gap-1.5 px-3 py-[7px] mr-2 rounded-lg bg-primary text-white text-[12.5px] font-semibold hover:bg-primary/90 transition-colors shadow-sm">
+                  <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  <span>Nouveau</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 font-sans">
+                <DropdownMenuItem asChild>
+                  <Link href="/invoices" className="flex items-center gap-2.5 cursor-pointer">
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />Facture
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/clients" className="flex items-center gap-2.5 cursor-pointer">
+                    <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />Client
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/projects" className="flex items-center gap-2.5 cursor-pointer">
+                    <FolderKanban className="w-4 h-4 text-muted-foreground shrink-0" />Projet
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/proformas" className="flex items-center gap-2.5 cursor-pointer">
+                    <FileSignature className="w-4 h-4 text-muted-foreground shrink-0" />Devis
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/tasks" className="flex items-center gap-2.5 cursor-pointer">
+                    <CheckSquare className="w-4 h-4 text-muted-foreground shrink-0" />Tâche
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Badge plan abonnement */}
             <div className="hidden sm:inline-flex items-center mr-1.5">
               <PlanBadge code={subData?.plan.code} name={subData?.plan.name} compact light />

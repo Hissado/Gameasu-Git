@@ -18,6 +18,7 @@ import {
   LayoutGrid, List, CheckCircle2, AlertTriangle, Clock, CircleDot,
   TrendingUp, ChevronRight,
 } from "lucide-react";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { Link } from "wouter";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -258,6 +259,7 @@ type ViewMode = "list" | "cards";
 export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [view, setView] = useState<ViewMode>("list");
   const [showCreate, setShowCreate] = useState(false);
   const [editProject, setEditProject] = useState<any>(null);
@@ -265,14 +267,32 @@ export default function ProjectsList() {
 
   const projects = useMemo(() => {
     const all = data?.data || [];
-    if (!search.trim()) return all;
+    let filtered = all;
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((p: any) => {
+        if (statusFilter === "active") return ["active", "in_progress"].includes(p.status);
+        return p.status === statusFilter;
+      });
+    }
+    if (!search.trim()) return filtered;
     const q = search.toLowerCase();
-    return all.filter((p: any) =>
+    return filtered.filter((p: any) =>
       p.name?.toLowerCase().includes(q) ||
       p.clientName?.toLowerCase().includes(q) ||
       p.managerName?.toLowerCase().includes(q)
     );
-  }, [data, search]);
+  }, [data, search, statusFilter]);
+
+  const statusTabCounts = useMemo(() => {
+    const all = data?.data || [];
+    return {
+      all:       all.length,
+      active:    all.filter((p: any) => ["active", "in_progress"].includes(p.status)).length,
+      planning:  all.filter((p: any) => p.status === "planning").length,
+      on_hold:   all.filter((p: any) => p.status === "on_hold").length,
+      completed: all.filter((p: any) => p.status === "completed").length,
+    };
+  }, [data]);
 
   const kpis = useMemo(() => {
     const all = data?.data || [];
@@ -287,33 +307,48 @@ export default function ProjectsList() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Projets</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestion et suivi de vos projets</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/portfolio">
-            <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
-              <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">Portefeuille</span>
+      <PageHeader
+        title="Projets"
+        icon={FolderKanban}
+        subtitle="Gestion et suivi de vos projets"
+        actions={
+          <>
+            <Link href="/portfolio">
+              <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Portefeuille</span>
+              </Button>
+            </Link>
+            <Link href="/workload">
+              <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden sm:inline">Charge équipe</span>
+              </Button>
+            </Link>
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9"
+            >
+              <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+              Nouveau projet
             </Button>
-          </Link>
-          <Link href="/workload">
-            <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
-              <FolderKanban className="w-4 h-4" />
-              <span className="hidden sm:inline">Charge équipe</span>
-            </Button>
-          </Link>
-          <Button
-            onClick={() => setShowCreate(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9"
-          >
-            <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-            Nouveau Projet
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
+
+      {/* Onglets de filtrage par statut Xero-style */}
+      <StatusTabs
+        tabs={[
+          { key: "all",       label: "Tous",       count: statusTabCounts.all },
+          { key: "active",    label: "En cours",   count: statusTabCounts.active },
+          { key: "planning",  label: "Planifiés",  count: statusTabCounts.planning },
+          { key: "on_hold",   label: "En attente", count: statusTabCounts.on_hold },
+          { key: "completed", label: "Terminés",   count: statusTabCounts.completed },
+        ]}
+        active={statusFilter}
+        onChange={(k) => setStatusFilter(k)}
+        className="border-b border-border pb-1"
+      />
 
       {!isLoading && (data?.data || []).length > 0 && (
         <div className="grid grid-cols-4 gap-3">

@@ -26,8 +26,10 @@ import {
   ChevronRight,
   ClipboardList,
   FileText,
+  FileSignature,
   FolderKanban,
   LineChart as LineChartIcon,
+  Plus,
   Receipt,
   Shield,
   Target,
@@ -325,6 +327,25 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* ─── Actions rapides Xero-style ─── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider shrink-0">Créer :</span>
+        {([
+          { label: "Facture",  href: "/invoices",  icon: FileText },
+          { label: "Client",   href: "/clients",   icon: Building2 },
+          { label: "Projet",   href: "/projects",  icon: FolderKanban },
+          { label: "Devis",    href: "/proformas", icon: FileSignature },
+          { label: "Tâche",    href: "/tasks",     icon: ClipboardList },
+        ] as { label: string; href: string; icon: React.ComponentType<{ className?: string }> }[]).map((a) => (
+          <Button key={a.label} variant="outline" size="sm" className="gap-1.5 h-8 text-[12.5px] border-slate-200 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors" asChild>
+            <Link href={a.href}>
+              <Plus className="w-3 h-3" />
+              {a.label}
+            </Link>
+          </Button>
+        ))}
+      </div>
 
       {/* ─── Pointage rapide ─── */}
       <QuickClockWidget />
