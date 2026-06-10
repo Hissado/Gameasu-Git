@@ -9,5 +9,5 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["src/seed.ts", "src/seed-saas.ts", "src/seed-rich.ts", "src/seed-intelligence.ts", "src/seed-operations.ts", "src/seed-inventory.ts", "src/migrate-multi-tenant.ts", "src/migrate-tenant-uniques.ts"]
+  "exclude": ["src/seed.ts", "src/seed-saas.ts", "src/seed-rich.ts", "src/seed-intelligence.ts", "src/seed-operations.ts", "src/seed-inventory.ts", "src/seed-kiosk.ts", "src/seed-demo-accounting.ts", "src/seed-demo-all.ts", "src/seed-demo-hr-supplement.ts", "src/seed-demo-hr.ts", "src/migrate-multi-tenant.ts", "src/migrate-tenant-uniques.ts"]
 }

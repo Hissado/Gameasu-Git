@@ -18,6 +18,24 @@ router.get("/collaborators", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
+async function generateUniqueKioskCode(orgId: string): Promise<string> {
+  for (let i = 0; i < 30; i++) {
+    const candidate = String(1000 + Math.floor(Math.random() * 9000));
+    const existing = await db
+      .select({ id: collaboratorsTable.id })
+      .from(collaboratorsTable)
+      .where(and(
+        eq(collaboratorsTable.organizationId, orgId),
+        eq(collaboratorsTable.kioskCode, candidate),
+        isNull(collaboratorsTable.deletedAt),
+      ))
+      .limit(1);
+    if (existing.length === 0) return candidate;
+  }
+  // Fallback : timestamp-based unique suffix
+  return String(Date.now()).slice(-4);
+}
+
 router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
   const {
     firstName, lastName, email, phone, position, department, isAvailable,
@@ -27,8 +45,10 @@ router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
   } = req.body;
   if (!firstName || !lastName) return res.status(400).json({ error: "firstName et lastName requis" });
   try {
+    const orgId = req.authUser!.organizationId;
+    const kioskCode = await generateUniqueKioskCode(orgId);
     const [collab] = await db.insert(collaboratorsTable).values({
-      organizationId: req.authUser!.organizationId,
+      organizationId: orgId,
       firstName, lastName, email, phone, position, department,
       isAvailable: isAvailable !== false,
       departmentId: departmentId || null,
@@ -42,7 +62,8 @@ router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
       mealAllowance: mealAllowance != null ? mealAllowance.toString() : "0",
       otherBenefitsMonthly: otherBenefitsMonthly != null ? otherBenefitsMonthly.toString() : "0",
       weeklyHours: weeklyHours != null ? weeklyHours.toString() : "40",
-    }).returning();
+      kioskCode,
+    }).returning({ id: collaboratorsTable.id, firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName, email: collaboratorsTable.email, phone: collaboratorsTable.phone, position: collaboratorsTable.position, department: collaboratorsTable.department, isAvailable: collaboratorsTable.isAvailable, organizationId: collaboratorsTable.organizationId, avatarUrl: collaboratorsTable.avatarUrl, kioskCode: collaboratorsTable.kioskCode, employeeNumber: collaboratorsTable.employeeNumber, hireDate: collaboratorsTable.hireDate, employmentStatus: collaboratorsTable.employmentStatus, departmentId: collaboratorsTable.departmentId, positionId: collaboratorsTable.positionId, createdAt: collaboratorsTable.createdAt, updatedAt: collaboratorsTable.updatedAt });
     return res.status(201).json(collab);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });

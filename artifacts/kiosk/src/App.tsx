@@ -458,11 +458,7 @@ function KioskApp() {
 
   const handleAction = (kind: PunchKind) => {
     setSelectedKind(kind);
-    if (kiosk?.settings?.photoEnabled) {
-      setScreen("photo");
-    } else {
-      doPunch(kind, undefined);
-    }
+    setScreen("photo");
   };
 
   const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string) => {
