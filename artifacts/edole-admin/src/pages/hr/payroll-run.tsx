@@ -134,6 +134,7 @@ export default function PayrollRun() {
   const localItemsRef = useRef<LineItem[]>([]);
   // ── Sélection en masse ───────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [skippedCollabs, setSkippedCollabs] = useState<Set<string>>(new Set());
   const [bulkDialog, setBulkDialog] = useState<{
     action: "payment_method" | "bonus" | "commission" | "reimbursement" | "deduction" | "correction" | "note" | null;
   }>({ action: null });
@@ -146,6 +147,15 @@ export default function PayrollRun() {
     if (selected.size === filtered.length) setSelected(new Set());
     else setSelected(new Set(filtered.map(l => l.collaboratorId)));
   }
+  function skipSelected() {
+    setSkippedCollabs(s => { const n = new Set(s); selected.forEach(id => n.add(id)); return n; });
+    setSelected(new Set());
+  }
+  function unskipSelected() {
+    setSkippedCollabs(s => { const n = new Set(s); selected.forEach(id => n.delete(id)); return n; });
+    setSelected(new Set());
+  }
+
   function openBulk(action: typeof bulkDialog["action"]) { setBulkVal(""); setBulkDialog({ action }); }
   function applyBulk() {
     const { action } = bulkDialog;
@@ -311,8 +321,8 @@ export default function PayrollRun() {
     search === "" || `${l.firstName} ${l.lastName}`.toLowerCase().includes(search.toLowerCase()) || (l.department ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Totaux
-  const totals = localItems.reduce((acc, l) => {
+  // Totaux (collaborateurs non exclus uniquement)
+  const totals = localItems.filter(l => !skippedCollabs.has(l.collaboratorId)).reduce((acc, l) => {
     const { totalGross, net } = computeGross(l);
     return {
       gross: acc.gross + totalGross,
@@ -463,13 +473,20 @@ export default function PayrollRun() {
                     Actions <ChevronDown className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" side="top" className="w-52">
+                <DropdownMenuContent align="center" side="top" className="w-56">
                   <DropdownMenuItem onClick={() => openBulk("payment_method")}>Mode de paiement</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={skipSelected} className="text-red-600 focus:text-red-600">
+                    Exclure de la paie
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={unskipSelected} className="text-emerald-700 focus:text-emerald-700">
+                    Inclure dans la paie
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => openBulk("bonus")}>Ajouter une prime</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openBulk("commission")}>Ajouter une commission</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openBulk("reimbursement")}>Remboursement ponctuel</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openBulk("deduction")} className="text-red-600">Déduction ponctuelle</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openBulk("deduction")} className="text-red-600 focus:text-red-600">Déduction ponctuelle</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openBulk("correction")}>Correction de paie</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => openBulk("note")}>Ajouter une note</DropdownMenuItem>
@@ -526,8 +543,9 @@ export default function PayrollRun() {
                     const { totalGross, net } = computeGross(l);
                     const isDraft = run?.status === "draft";
                     const isSelected = selected.has(l.collaboratorId);
+                    const isSkipped = skippedCollabs.has(l.collaboratorId);
                     return (
-                      <tr key={l.collaboratorId} className={`border-t ${isSelected ? "bg-primary/8" : idx % 2 === 0 ? "bg-background" : "bg-muted/10"} hover:bg-primary/5`}>
+                      <tr key={l.collaboratorId} className={`border-t ${isSkipped ? "opacity-40 bg-muted/30" : isSelected ? "bg-primary/[0.08]" : idx % 2 === 0 ? "bg-background" : "bg-muted/10"} hover:bg-primary/5`}>
                         <td className="px-3 py-2 text-center w-10 sticky left-0 bg-inherit">
                           <Checkbox
                             checked={isSelected}
@@ -536,7 +554,10 @@ export default function PayrollRun() {
                           />
                         </td>
                         <td className="px-3 py-2 sticky left-10 bg-inherit border-r">
-                          <div className="font-medium text-sm">{l.firstName} {l.lastName}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm">{l.firstName} {l.lastName}</span>
+                            {isSkipped && <span className="text-[10px] bg-red-100 text-red-600 border border-red-200 rounded px-1 py-0.5 font-semibold">Exclu</span>}
+                          </div>
                           {(l.department || l.jobTitle) && <div className="text-xs text-muted-foreground">{l.jobTitle ?? l.department}</div>}
                           {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
                         </td>
