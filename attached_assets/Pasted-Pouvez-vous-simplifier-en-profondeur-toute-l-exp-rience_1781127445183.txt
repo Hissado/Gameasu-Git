@@ -1,0 +1,147 @@
+Pouvez-vous simplifier en profondeur toute l’expérience utilisateur de **Gaméasù**, en vous inspirant de la logique de navigation de **Xero**, reconnu pour son interface claire, ses menus simples, son expérience fluide, ainsi que ses workflows faciles à comprendre, notamment pour la facturation et le rapprochement bancaire ?
+
+### Objectif général
+
+Je veux que Gaméasù devienne beaucoup plus simple à utiliser, plus intuitif, plus fluide et moins complexe dans toutes les parties de l’application.
+
+L’objectif n’est pas de copier Xero visuellement, mais de s’inspirer de sa philosophie :
+
+* interface claire
+* menus simples
+* navigation évidente
+* workflows courts
+* sections bien organisées
+* actions faciles à trouver
+* synchronisation logique entre les modules
+* expérience utilisateur sans confusion
+
+### Problème à corriger
+
+Actuellement, certaines parties de l’application peuvent sembler trop complexes, trop chargées ou difficiles à comprendre.
+
+Je veux éviter que l’utilisateur se sente perdu entre les modules, les sous-sections, les fonctionnalités et les workflows.
+
+### Ce qu’il faut faire
+
+Merci de revoir toute l’application avec une approche **simplicité + clarté + fluidité**.
+
+Analysez et améliorez notamment :
+
+* la navigation principale
+* les menus et sous-menus
+* l’organisation des sections
+* la présentation des fonctionnalités
+* les tableaux
+* les formulaires
+* les boutons d’action
+* les workflows métier
+* les liens entre modules
+* les redirections
+* les pages de détail
+* les écrans de création / modification
+* les notifications
+* la barre de recherche globale
+* les tableaux de bord
+* l’expérience mobile et tablette
+
+### Logique attendue
+
+Chaque module doit être facile à comprendre dès la première utilisation.
+
+L’utilisateur doit pouvoir rapidement répondre à ces questions :
+
+* Où suis-je ?
+* Que puis-je faire ici ?
+* Quelle est la prochaine action logique ?
+* Comment revenir en arrière ?
+* Où retrouver l’information ?
+* Comment les données sont liées aux autres modules ?
+
+### Navigation
+
+Merci de simplifier la navigation afin que :
+
+* les menus soient plus courts et mieux organisés
+* les sous-sections soient regroupées de manière logique
+* les fonctionnalités importantes soient faciles à trouver
+* les actions fréquentes soient visibles rapidement
+* les écrans ne soient pas surchargés
+* les utilisateurs ne soient pas obligés de cliquer trop souvent pour accomplir une tâche
+
+### Présentation des sections et fonctionnalités
+
+Chaque section doit avoir :
+
+* un titre clair
+* une courte description utile
+* des actions principales visibles
+* des filtres simples
+* des tableaux lisibles
+* des statuts compréhensibles
+* des boutons bien nommés
+* une hiérarchie visuelle propre
+* une logique de retour claire
+
+Éviter les interfaces trop techniques ou trop chargées.
+
+### Synchronisation entre les modules
+
+Merci de vérifier que les modules sont connectés de manière simple et logique.
+
+Par exemple :
+
+* un client doit être lié naturellement à ses devis, factures, paiements, projets, services, documents et messages
+* un collaborateur doit être lié à son profil RH, ses présences, ses pointages, ses tâches, ses messages et sa paie
+* une facture doit être liée au client, au paiement, à la comptabilité et aux rapports
+* un projet doit être lié aux tâches, documents, équipes, coûts, factures et rapports
+* les données ne doivent pas être dupliquées inutilement
+* les redirections entre modules doivent être naturelles
+
+### Expérience inspirée de Xero
+
+Merci de vous inspirer de l’approche Xero pour rendre Gaméasù :
+
+* plus simple
+* plus propre
+* plus lisible
+* plus rapide à comprendre
+* plus agréable à utiliser
+* plus fluide dans les workflows
+* plus cohérent entre les modules
+
+Le but est que l’utilisateur puisse accomplir ses tâches principales avec le minimum de friction possible.
+
+### Points à revoir en priorité
+
+Merci de revoir en priorité :
+
+1. la navigation globale
+2. la structure des modules
+3. les sous-sections trop complexes
+4. les workflows trop longs
+5. les pages trop chargées
+6. les libellés peu clairs
+7. les boutons d’action mal positionnés
+8. les liens entre modules
+9. les retours arrière
+10. les tableaux et filtres
+11. les formulaires
+12. les dashboards
+13. les écrans mobiles
+
+### Résultat attendu
+
+Je veux que Gaméasù soit beaucoup plus simple à utiliser, avec une expérience proche des meilleurs SaaS modernes :
+
+* navigation intuitive
+* menus propres
+* sections bien organisées
+* workflows courts
+* actions visibles
+* interface légère
+* synchronisation claire entre modules
+* expérience fluide sur desktop, tablette et mobile
+
+### Objectif final
+
+Transformer Gaméasù en une application SaaS / ERP premium, puissante mais simple, où la complexité métier est bien gérée en arrière-plan, tandis que l’utilisateur final bénéficie d’une interface claire, facile et agréable à utiliser.
