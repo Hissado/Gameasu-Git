@@ -11,7 +11,7 @@ import {
   Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
-  Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone,
+  Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -391,58 +391,101 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
         {/* Topbar */}
-        <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-10 gap-2 sticky top-0 shadow-[var(--shadow-xs)]">
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+        <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center px-3 sm:px-4 shrink-0 z-10 sticky top-0 shadow-[var(--shadow-xs)] gap-2">
+
+          {/* ── Zone gauche : logo + séparateur + nom organisation ──── */}
+          <div className="flex items-center shrink-0 gap-0 min-w-0">
+            {/* Mobile — hamburger */}
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-muted"
+              className="lg:hidden p-2 -ml-1 rounded-lg text-foreground/70 hover:bg-muted"
               aria-label="Ouvrir le menu"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" />
             </button>
-            {/* Mobile logo */}
-            <span className="lg:hidden inline-flex items-center">
+
+            {/* Mobile — logo */}
+            <span className="lg:hidden ml-1">
               <img
                 src={BRANDING.logoMark}
                 alt={BRANDING.appName}
-                className="h-7 w-auto object-contain"
-                style={{ maxWidth: "130px" }}
+                className="h-6 w-auto object-contain"
                 draggable={false}
               />
             </span>
 
-            {/* Global search trigger — desktop */}
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-2.5 text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg px-3.5 py-2 w-80 transition-all group"
+            {/* Desktop — logo mark cliquable */}
+            <Link
+              href="/"
+              className="hidden lg:flex items-center shrink-0 group/logo"
+              aria-label={BRANDING.appName}
             >
-              <Search className="w-4 h-4 text-muted-foreground/70 shrink-0" />
-              <span className="text-sm text-muted-foreground/70 flex-1 text-left">Rechercher clients, projets, factures…</span>
-              <kbd className="hidden lg:inline-flex text-[10px] text-muted-foreground/70 font-mono bg-background border border-border rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
-            </button>
+              <img
+                src={BRANDING.logoMark}
+                alt={BRANDING.appName}
+                className="h-7 w-auto object-contain select-none group-hover/logo:opacity-80 transition-opacity"
+                draggable={false}
+              />
+            </Link>
 
-            {/* Global search trigger — mobile */}
+            {/* Desktop — séparateur vertical */}
+            <div className="hidden lg:block w-px h-5 bg-border/70 mx-3 shrink-0" />
+
+            {/* Desktop — nom de l'organisation (multi-tenant, dynamique) */}
+            <div className="hidden lg:flex items-center min-w-0 max-w-[200px]">
+              <span className="text-[13px] font-semibold text-foreground/80 truncate leading-none">
+                {org?.name ?? BRANDING.appName}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Zone centrale : barre de recherche globale ────────────── */}
+          <div className="flex-1 flex justify-center px-3 lg:px-6 min-w-0">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="md:hidden p-2 rounded-md text-muted-foreground hover:bg-muted ml-auto"
-              aria-label="Rechercher"
+              className="hidden md:flex items-center gap-2.5 text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg px-3.5 py-2 w-full max-w-[520px] transition-all group"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+              <span className="text-sm text-muted-foreground/60 flex-1 text-left truncate">
+                Rechercher clients, collaborateurs, factures, projets…
+              </span>
+              <kbd className="hidden lg:inline-flex text-[10px] text-muted-foreground/50 font-mono bg-background border border-border rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
             </button>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            <div className="hidden sm:inline-flex items-center gap-2">
+          {/* ── Zone droite : raccourcis rapides + profil ─────────────── */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            {/* Badge plan abonnement */}
+            <div className="hidden sm:inline-flex items-center mr-1.5">
               <PlanBadge code={subData?.plan.code} name={subData?.plan.name} compact light />
             </div>
 
+            {/* Mobile — icône recherche */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="md:hidden p-2 rounded-lg text-muted-foreground hover:bg-muted"
+              aria-label="Rechercher"
+            >
+              <Search className="w-[18px] h-[18px]" />
+            </button>
+
+            {/* Paramètres de l'espace */}
+            <Link
+              href="/workspace-settings"
+              className="hidden sm:flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Paramètres de l'espace"
+            >
+              <Settings className="w-[18px] h-[18px]" strokeWidth={1.75} />
+            </Link>
+
+            {/* Notifications */}
             <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
-              <Bell className="w-5 h-5" strokeWidth={1.75} />
+              <Bell className="w-[18px] h-[18px]" strokeWidth={1.75} />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary rounded-full border-2 border-card flex items-center justify-center">
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-primary rounded-full border-2 border-card flex items-center justify-center">
                   <span className="text-[9px] font-bold text-white leading-none px-0.5">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
@@ -450,16 +493,26 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               )}
             </Link>
 
-            <div className="w-px h-6 bg-border/70 hidden sm:block mx-1" />
+            {/* Aide & support */}
+            <Link
+              href="/tickets"
+              className="hidden sm:flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Aide et support"
+            >
+              <HelpCircle className="w-[18px] h-[18px]" strokeWidth={1.75} />
+            </Link>
+
+            {/* Séparateur vertical */}
+            <div className="hidden sm:block w-px h-5 bg-border/70 mx-1.5 shrink-0" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 sm:gap-2.5 outline-none transition-all rounded-lg px-1.5 py-1 hover:bg-muted group">
-                  <div className="text-right hidden lg:block">
-                    <p className="text-[13px] font-semibold leading-none text-foreground">{fullName}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{roleLabel}</p>
+                <button className="flex items-center gap-2 outline-none transition-all rounded-lg px-1.5 py-1 hover:bg-muted group">
+                  <div className="text-right hidden xl:block">
+                    <p className="text-[12.5px] font-semibold leading-none text-foreground">{fullName}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{roleLabel}</p>
                   </div>
-                  <Avatar className="w-9 h-9 ring-2 ring-border group-hover:ring-primary/30 transition-all">
+                  <Avatar className="w-8 h-8 ring-2 ring-border group-hover:ring-primary/30 transition-all">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
                     <AvatarFallback className="bg-[#0F1A3A] text-[#C8A24B] font-semibold text-sm">{initials}</AvatarFallback>
                   </Avatar>

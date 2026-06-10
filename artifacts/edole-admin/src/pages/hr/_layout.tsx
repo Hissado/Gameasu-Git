@@ -1,6 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench } from "lucide-react";
+import {
+  UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
+  Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
+  Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench,
+} from "lucide-react";
 
 const TABS = [
   { name: "Mon espace", path: "/hr/my-space", icon: LayoutDashboard },
