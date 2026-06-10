@@ -1,0 +1,58 @@
+Pouvez-vous réaliser une **étude comparative approfondie entre Gusto et le module RH de Gaméasù**, afin d’identifier clairement les fonctionnalités RH qui manquent encore dans notre application ?
+
+### Objectif
+
+Je veux comprendre si Gaméasù couvre suffisamment les besoins d’une solution RH moderne, ou s’il existe encore des fonctionnalités importantes à ajouter pour atteindre un niveau plus complet, plus professionnel et plus compétitif.
+
+### Ce qu’il faut analyser
+
+Merci d’étudier les principales fonctionnalités proposées par **Gusto**, notamment sur les volets suivants :
+
+* gestion du personnel
+* onboarding des collaborateurs
+* contrats et documents RH
+* paie
+* bulletins de paie
+* taxes et charges sociales
+* congés, absences et permissions
+* pointage et suivi du temps
+* avantages sociaux
+* profils collaborateurs
+* espace personnel employé
+* workflows d’approbation
+* reporting RH
+* conformité RH
+* automatisations RH
+* notifications et rappels
+* gestion des managers
+* self-service employé
+
+### Comparaison avec Gaméasù
+
+Après l’étude de Gusto, merci de comparer ces fonctionnalités avec celles actuellement présentes dans Gaméasù.
+
+Pour chaque fonctionnalité, indiquez clairement si elle est :
+
+* **Déjà présente**
+* **Partiellement présente**
+* **Absente — à développer**
+
+### Ce que j’attends
+
+Merci de produire une analyse structurée qui montre :
+
+1. les fonctionnalités RH que Gaméasù possède déjà
+2. les fonctionnalités partiellement couvertes
+3. les fonctionnalités absentes
+4. les écarts importants par rapport à Gusto
+5. les priorités de développement à envisager
+6. les améliorations UX à apporter au module RH
+7. les fonctionnalités RH qui pourraient rendre Gaméasù plus puissant et plus compétitif
+
+### Point important
+
+L’objectif n’est pas de copier Gusto exactement, mais de s’en inspirer comme référence pour renforcer le module RH de Gaméasù et l’adapter à notre contexte SaaS, francophone, multi-tenant et orienté entreprises.
+
+### Résultat attendu
+
+Je veux une étude claire, utile et directement exploitable, permettant de savoir précisément ce qui manque dans Gaméasù au niveau RH et ce qu’il faut ajouter pour avoir un module RH moderne, complet, professionnel et réellement compétitif.
