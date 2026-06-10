@@ -192,21 +192,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const SidebarContent = (
     <>
-      {/* ── Logo area ─────────────────────────────────────────────── */}
-      <div className="shrink-0 h-16 flex items-center px-5 border-b border-white/[0.07] relative">
-        <Link href="/" aria-label={BRANDING.appName} className="flex items-center min-w-0 flex-1 group/logo" onClick={() => setMobileOpen(false)}>
-          <img
-            src={BRANDING.logoFull}
-            alt={BRANDING.appName}
-            draggable={false}
-            className="h-8 w-auto object-contain select-none max-w-[160px] group-hover/logo:opacity-90 transition-opacity duration-200"
-            style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }}
-          />
-        </Link>
+      {/* ── Bouton fermeture mobile ───────────────────────────────── */}
+      <div className="shrink-0 h-14 flex items-center justify-end px-4 border-b border-white/[0.07] lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden ml-auto p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] transition-colors"
+          className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] transition-colors"
           aria-label="Fermer le menu"
         >
           <X className="w-4 h-4" />
