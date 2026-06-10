@@ -101,6 +101,7 @@ export default function PayrollRun() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2>(1);
+  const [isFlushing, setIsFlushing] = useState(false);
   const [search, setSearch] = useState("");
   const [localItems, setLocalItems] = useState<LineItem[]>([]);
   const pendingPatchesRef = useRef<Record<string, Partial<LineItem>>>({});
@@ -175,6 +176,32 @@ export default function PayrollRun() {
         patchLineMut.mutate({ lineId: item.lineItemId, patch });
       }
     }
+  }
+
+  // Flush all pending edits synchronously before a critical action (step change / submit)
+  async function flushAndProceed(action: () => void) {
+    if (flushTimeoutRef.current) { clearTimeout(flushTimeoutRef.current); flushTimeoutRef.current = null; }
+    const patches = pendingPatchesRef.current;
+    if (Object.keys(patches).length === 0) { action(); return; }
+    pendingPatchesRef.current = {};
+    setIsFlushing(true);
+    try {
+      await Promise.all(
+        Object.entries(patches).map(([collabId, patch]) => {
+          const item = localItemsRef.current.find(l => l.collaboratorId === collabId);
+          if (!item?.lineItemId || Object.keys(patch).length === 0) return Promise.resolve();
+          const numericPatch: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(patch)) numericPatch[k] = v;
+          return fetchJSON(`${API}/payroll/runs/${runId}/line-items/${item.lineItemId}`, {
+            method: "PATCH",
+            body: JSON.stringify(numericPatch),
+          }).catch((e: Error) => toast({ title: "Erreur de sauvegarde", description: e.message, variant: "destructive" }));
+        })
+      );
+    } finally {
+      setIsFlushing(false);
+    }
+    action();
   }
 
   function updateLine(collaboratorId: string, field: keyof LineItem, value: number | string) {
@@ -324,8 +351,8 @@ export default function PayrollRun() {
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} disabled={run?.status !== "draft"}>
               <Upload className="w-4 h-4 mr-1" />Importer CSV
             </Button>
-            <Button size="sm" className="ml-auto" onClick={() => setStep(2)} disabled={localItems.length === 0}>
-              Vérifier & Soumettre <ChevronRight className="w-4 h-4 ml-1" />
+            <Button size="sm" className="ml-auto" onClick={() => flushAndProceed(() => setStep(2))} disabled={localItems.length === 0 || isFlushing || patchLineMut.isPending}>
+              {isFlushing ? "Sauvegarde…" : <>Vérifier & Soumettre <ChevronRight className="w-4 h-4 ml-1" /></>}
             </Button>
           </div>
 
@@ -440,12 +467,12 @@ export default function PayrollRun() {
             </Button>
             <Button
               size="lg"
-              onClick={() => validateMut.mutate()}
-              disabled={validateMut.isPending || run?.status !== "draft" || localItems.length === 0}
+              onClick={() => flushAndProceed(() => validateMut.mutate())}
+              disabled={validateMut.isPending || isFlushing || run?.status !== "draft" || localItems.length === 0}
               className="gap-2"
             >
               <CheckCircle className="w-5 h-5" />
-              {validateMut.isPending ? "Soumission…" : "Soumettre la paie"}
+              {isFlushing ? "Sauvegarde en cours…" : validateMut.isPending ? "Soumission…" : "Soumettre la paie"}
             </Button>
           </div>
 

@@ -28,6 +28,7 @@ import {
   payrollSchedulesTable,
   payrollLineItemsTable,
   payrollCorrectionsTable,
+  offCyclePaymentsTable,
   attendanceSessionsTable,
   leaveRequestsTable,
 } from "@workspace/db";
@@ -85,8 +86,13 @@ router.get("/payroll/dashboard", requireManagerOrAbove, async (req, res, next) =
     // Run en brouillon le plus récent → "À venir"
     const nextRun = allRuns.find(r => r.status === "draft") ?? null;
 
-    // KPIs sur les 12 derniers mois
-    const validatedRuns = allRuns.filter(r => r.status === "validated" || r.status === "paid");
+    // KPIs sur les 12 derniers mois glissants
+    const todayDate = new Date();
+    const kpiCutoff = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1);
+    const kpiCutoffPeriod = `${kpiCutoff.getFullYear()}-${String(kpiCutoff.getMonth() + 1).padStart(2, "0")}`;
+    const validatedRuns = allRuns.filter(r =>
+      (r.status === "validated" || r.status === "paid") && r.period >= kpiCutoffPeriod
+    );
     const kpis = {
       totalGross: validatedRuns.reduce((s, r) => s + toNum(r.totalGrossSalary), 0),
       totalNet: validatedRuns.reduce((s, r) => s + toNum(r.totalNetSalary), 0),
@@ -1177,7 +1183,36 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
       }
     }
 
-    res.json({ ok: true, message: `Données de démo créées (${actives.length} collaborateurs, run ${currentPeriod} + ${prevPeriod})` });
+    // 5. Off-cycle demo — prime exceptionnelle hors cycle mensuel
+    const existingOffCycle = await db.select({ id: offCyclePaymentsTable.id })
+      .from(offCyclePaymentsTable)
+      .where(eq(offCyclePaymentsTable.organizationId, orgId))
+      .limit(1);
+    if (existingOffCycle.length === 0 && actives.length > 0) {
+      const offCycleGross = 150_000;
+      const offCycleIrpp = Math.round(offCycleGross * 0.05);
+      const offCycleCnss = Math.round(offCycleGross * 0.04);
+      const offCycleNet = offCycleGross - offCycleIrpp - offCycleCnss;
+      await db.insert(offCyclePaymentsTable).values({
+        organizationId: orgId,
+        collaboratorId: actives[0].collaboratorId,
+        type: "prime",
+        label: "Prime exceptionnelle Q2",
+        amount: String(offCycleGross),
+        period: prevPeriod,
+        paymentDate: new Date(prevYear, prevMonth - 1, 15).toISOString().split("T")[0],
+        status: "approved",
+        reason: "Prime trimestrielle de performance — hors cycle mensuel",
+        irpp: String(offCycleIrpp),
+        cnssEmployee: String(offCycleCnss),
+        netAmount: String(offCycleNet),
+        createdById: req.authUser!.id,
+        approvedById: req.authUser!.id,
+        approvedAt: new Date(prevYear, prevMonth - 1, 14),
+      });
+    }
+
+    res.json({ ok: true, message: `Données de démo créées (${actives.length} collaborateurs, run ${currentPeriod} + ${prevPeriod} + prime hors-cycle)` });
   } catch (e) { next(e); }
 });
 
