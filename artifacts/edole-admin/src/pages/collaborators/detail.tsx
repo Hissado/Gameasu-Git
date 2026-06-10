@@ -22,6 +22,7 @@ import {
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
+  FileText, Download,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -91,7 +92,52 @@ type EmployerCost = {
   weeklyHoursSource: string;
 };
 
+type Payslip = {
+  id: string;
+  period: string;
+  baseSalary: number;
+  grossSalary: number;
+  netSalary: number;
+  cnssEmployee: number;
+  irpp: number;
+  ipts: number;
+  status: string;
+  paidAt?: string | null;
+  collaboratorName?: string;
+  collaboratorCode?: string;
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function downloadPayslipPdf(url: string, filename: string) {
+  const token = localStorage.getItem("auth_token");
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as { error?: string }).error ?? r.statusText); }
+  const blob = await r.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+const PAYSLIP_STATUS_LABEL: Record<string, string> = {
+  draft: "Brouillon",
+  validated: "Validé",
+  paid: "Payé",
+};
+const PAYSLIP_STATUS_CLASS: Record<string, string> = {
+  draft: "bg-amber-50 text-amber-700 border-amber-200",
+  validated: "bg-blue-50 text-blue-700 border-blue-200",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
+const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+function formatPeriod(period: string) {
+  const [yr, mo] = period.split("-");
+  const label = MOIS_FR[parseInt(mo, 10) - 1] ?? mo;
+  return `${label} ${yr}`;
+}
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -610,6 +656,49 @@ export default function CollaboratorDetail() {
     onError: (err: any) => toast.error(err?.message || "Erreur lors de la mise à jour"),
   });
 
+  // ─── Bulletins de paie ────────────────────────────────────────────────────
+  const collabUserId = (collaborator as any)?.userId as string | undefined;
+  const isOwnProfile = !isManagerOrAbove && collabUserId === user?.id;
+  const canSeePayslips = isManagerOrAbove || isOwnProfile;
+
+  const currentYear = new Date().getFullYear();
+  const [payslipYear, setPayslipYear] = useState<number>(currentYear);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const { data: payslipsData, isLoading: payslipsLoading } = useQuery<Payslip[]>({
+    queryKey: ["payslips-collab", id, payslipYear, isManagerOrAbove],
+    queryFn: async () => {
+      if (isManagerOrAbove) {
+        const rows = await apiFetch(`/api/payroll/payslips?collaboratorId=${id}`);
+        return rows as Payslip[];
+      } else {
+        const rows = await apiFetch("/api/hr/me/payslips");
+        return rows as Payslip[];
+      }
+    },
+    enabled: !!id && canSeePayslips,
+  });
+
+  const payslips = (payslipsData ?? []).filter((p) => p.period.startsWith(String(payslipYear)));
+  const availableYears = Array.from(new Set((payslipsData ?? []).map((p) => Number(p.period.split("-")[0])))).sort((a, b) => b - a);
+
+  const handleDownloadPdf = async (payslip: Payslip) => {
+    setDownloadingId(payslip.id);
+    try {
+      const url = isManagerOrAbove
+        ? `/api/payroll/payslips/${payslip.id}/pdf`
+        : `/api/hr/me/payslips/${payslip.id}/pdf`;
+      const name = payslip.collaboratorName
+        ? payslip.collaboratorName.replace(/\s+/g, "_")
+        : `${(collaborator as any)?.firstName ?? ""}_${(collaborator as any)?.lastName ?? ""}`;
+      await downloadPayslipPdf(url, `bulletin_${payslip.period}_${name}.pdf`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors du téléchargement");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const getEditForm = (): EditForm => {
     const c = collaborator as any;
     const ec = c?.emergencyContact as { name?: string; phone?: string; relation?: string } | null;
@@ -1014,6 +1103,106 @@ export default function CollaboratorDetail() {
                   </div>
                 </div>
               </TooltipProvider>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* BULLETINS DE PAIE */}
+      {canSeePayslips && (
+        <Card className="shadow-sm border-border">
+          <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Bulletins de paie
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {availableYears.length > 0 && (
+                  <Select
+                    value={String(payslipYear)}
+                    onValueChange={(v) => setPayslipYear(Number(v))}
+                  >
+                    <SelectTrigger className="h-8 w-32 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.map((y) => (
+                        <SelectItem key={y} value={String(y)} className="text-xs">
+                          {y}
+                        </SelectItem>
+                      ))}
+                      {!availableYears.includes(currentYear) && (
+                        <SelectItem value={String(currentYear)} className="text-xs">
+                          {currentYear}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {payslipsLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : payslips.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                Aucun bulletin pour {payslipYear}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs text-muted-foreground">
+                      <th className="text-left pb-2 pr-4 font-medium">Période</th>
+                      <th className="text-right pb-2 pr-4 font-medium">Salaire brut</th>
+                      <th className="text-right pb-2 pr-4 font-medium">CNSS salarié</th>
+                      <th className="text-right pb-2 pr-4 font-medium">IRPP</th>
+                      <th className="text-right pb-2 pr-4 font-medium">Salaire net</th>
+                      <th className="text-center pb-2 pr-4 font-medium">Statut</th>
+                      <th className="text-right pb-2 font-medium">PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payslips.map((p) => (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <td className="py-3 pr-4 font-medium">{formatPeriod(p.period)}</td>
+                        <td className="py-3 pr-4 text-right tabular-nums text-muted-foreground">{formatFCFA(p.grossSalary)}</td>
+                        <td className="py-3 pr-4 text-right tabular-nums text-red-600 text-xs">−{formatFCFA(p.cnssEmployee)}</td>
+                        <td className="py-3 pr-4 text-right tabular-nums text-red-600 text-xs">−{formatFCFA(p.irpp)}</td>
+                        <td className="py-3 pr-4 text-right tabular-nums font-semibold text-emerald-700">{formatFCFA(p.netSalary)}</td>
+                        <td className="py-3 pr-4 text-center">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${PAYSLIP_STATUS_CLASS[p.status] ?? "bg-muted"}`}
+                          >
+                            {PAYSLIP_STATUS_LABEL[p.status] ?? p.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 gap-1 text-xs hover:bg-primary/10 hover:text-primary"
+                            disabled={downloadingId === p.id}
+                            onClick={() => handleDownloadPdf(p)}
+                          >
+                            {downloadingId === p.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Download className="w-3.5 h-3.5" />
+                            }
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
