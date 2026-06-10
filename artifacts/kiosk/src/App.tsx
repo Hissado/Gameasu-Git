@@ -398,12 +398,14 @@ function KioskApp() {
   const [error, setError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Load kiosk info on mount
+  // Pre-warm camera permission as soon as the kiosk token is set,
+  // so the browser doesn't show a permission popup during a punch.
   useEffect(() => {
     if (!kioskToken) return;
-    // We do a test identify call with a dummy code to get kiosk info
-    // Actually we can't — let's store org name from first successful identify
-    // The kiosk info is returned with the identify response
+    navigator.mediaDevices
+      ?.getUserMedia({ video: true })
+      .then((stream) => stream.getTracks().forEach((t) => t.stop()))
+      .catch(() => { /* permission denied — photo will be skipped silently */ });
   }, [kioskToken]);
 
   const handleSetupToken = (token: string) => {
