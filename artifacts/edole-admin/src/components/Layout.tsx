@@ -65,7 +65,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Projets",       path: "/projects",   icon: FolderKanban,  moduleKey: "projects" },
       { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks" },
-      { name: "Équipements",   path: "/equipment",  icon: Wrench,        moduleKey: "inventory_assets" },
       { name: "Portefeuille",  path: "/portfolio",  icon: LayoutGrid,    moduleKey: "projects",   secondary: true },
       { name: "Charge équipe", path: "/workload",   icon: Activity,      moduleKey: "projects",   secondary: true },
       { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",  secondary: true },
@@ -75,10 +74,11 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Logistique",
     icon: Truck,
     items: [
-      { name: "Services",   path: "/services",   icon: Briefcase,      moduleKey: "services" },
-      { name: "Opérations", path: "/operations", icon: Truck,          moduleKey: "operations" },
-      { name: "Stock",      path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
-      { name: "Locations",  path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
+      { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services" },
+      { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations" },
+      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
+      { name: "Stock",       path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
+      { name: "Locations",   path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
     ],
   },
   {
