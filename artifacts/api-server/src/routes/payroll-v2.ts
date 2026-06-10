@@ -104,14 +104,65 @@ router.get("/payroll/dashboard", requireManagerOrAbove, async (req, res, next) =
       .where(and(eq(payrollSchedulesTable.organizationId, orgId), eq(payrollSchedulesTable.isActive, true)))
       .limit(1);
 
-    // Calendrier : les 6 derniers runs + prochain calculé
-    const calendarItems = allRuns.slice(0, 12).map(r => ({
+    // Calendrier : runs historiques + 6 prochains cycles projetés depuis le planning actif
+    const historicalItems = allRuns.slice(0, 6).map(r => ({
       period: r.period,
       status: r.status,
-      paymentDate: r.paymentDate,
+      paymentDate: r.paymentDate ?? null,
       totalNetSalary: toNum(r.totalNetSalary),
-      employeeCount: r.employeeCount,
+      employeeCount: r.employeeCount ?? 0,
+      isFuture: false,
     }));
+
+    const existingPeriods = new Set(allRuns.map(r => r.period));
+
+    // Generate forward-looking periods from schedule frequency
+    const futureItems: typeof historicalItems = [];
+    if (activeSchedule) {
+      const today = new Date();
+      let cursor = new Date(today.getFullYear(), today.getMonth(), 1);
+      const { frequency, cutoffDay1, cutoffDay2, paymentDelayDays = 3 } = activeSchedule;
+      let generated = 0;
+      while (generated < 6) {
+        const year = cursor.getFullYear();
+        const month = cursor.getMonth(); // 0-indexed
+        const periodStr = `${year}-${String(month + 1).padStart(2, "0")}`;
+        if (!existingPeriods.has(periodStr)) {
+          // Compute payment date based on frequency
+          let payDay: Date;
+          if (frequency === "bimonthly") {
+            const cutoff = cutoffDay2 ?? 28;
+            payDay = new Date(year, month, Math.min(cutoff + (paymentDelayDays ?? 3), 31));
+          } else if (frequency === "weekly") {
+            payDay = new Date(year, month, (cutoffDay1 ?? 5) + (paymentDelayDays ?? 3));
+          } else {
+            payDay = new Date(year, month, Math.min((cutoffDay1 ?? 28) + (paymentDelayDays ?? 3), 31));
+          }
+          // Clamp to last day of month
+          const lastDay = new Date(year, month + 1, 0).getDate();
+          if (payDay.getDate() > lastDay) payDay.setDate(lastDay);
+
+          futureItems.push({
+            period: periodStr,
+            status: "scheduled",
+            paymentDate: payDay.toISOString().split("T")[0],
+            totalNetSalary: 0,
+            employeeCount: kpis.avgEmployeeCount,
+            isFuture: true,
+          });
+          generated++;
+        }
+        // Advance by 1 month
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+        if (generated === 0 && cursor.getFullYear() > today.getFullYear() + 2) break; // safety
+      }
+    }
+
+    // Merge: historical first, then upcoming projections — no duplicate periods
+    const calendarItems = [
+      ...historicalItems,
+      ...futureItems.filter(f => !existingPeriods.has(f.period)),
+    ];
 
     // Corrections en attente
     const pendingCorrections = await db.select({ count: sql<number>`count(*)` })
@@ -847,17 +898,84 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
       description: z.string().optional(),
     }).parse(req.body);
 
+    // Fetch the correction first
+    const [correction] = await db.select().from(payrollCorrectionsTable)
+      .where(and(eq(payrollCorrectionsTable.id, req.params.id), eq(payrollCorrectionsTable.organizationId, orgId)))
+      .limit(1);
+    if (!correction) return res.status(404).json({ error: "Correction introuvable" });
+
     const updates: Record<string, unknown> = { ...body };
-    if (body.status === "approved") updates.approvedById = req.authUser!.id;
-    if (body.status === "approved") updates.approvedAt = new Date();
+    if (body.status === "approved") { updates.approvedById = req.authUser!.id; updates.approvedAt = new Date(); }
     if (body.status === "applied") updates.appliedAt = new Date();
+
+    // ── Injection dans la ligne de paie quand status → "applied" ──
+    let offCycleCreated = false;
+    let resolvedTargetRunId: string | null = null;
+
+    if (body.status === "applied") {
+      // Resolve target run: explicit > correction.targetRunId > next draft > create off-cycle
+      resolvedTargetRunId = body.targetRunId ?? correction.targetRunId ?? null;
+
+      if (!resolvedTargetRunId) {
+        const [draftRun] = await db.select({ id: payrollRunsTable.id })
+          .from(payrollRunsTable)
+          .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.status, "draft")))
+          .orderBy(asc(payrollRunsTable.period))
+          .limit(1);
+        if (draftRun) {
+          resolvedTargetRunId = draftRun.id;
+        } else {
+          // Create a minimal off-cycle draft run
+          const now = new Date();
+          const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const [newRun] = await db.insert(payrollRunsTable).values({
+            organizationId: orgId,
+            period,
+            status: "draft",
+            notes: `Off-cycle — correction régularisée (${toNum(correction.amount) >= 0 ? "+" : ""}${toNum(correction.amount).toLocaleString("fr-FR")} FCFA)`,
+            createdById: req.authUser!.id,
+          }).returning();
+          resolvedTargetRunId = newRun.id;
+          offCycleCreated = true;
+        }
+      }
+
+      updates.targetRunId = resolvedTargetRunId;
+
+      // Upsert payrollCorrection in the target run's line item for this collaborator
+      const [existingLine] = await db.select({
+        id: payrollLineItemsTable.id,
+        payrollCorrection: payrollLineItemsTable.payrollCorrection,
+      })
+        .from(payrollLineItemsTable)
+        .where(and(
+          eq(payrollLineItemsTable.payrollRunId, resolvedTargetRunId),
+          eq(payrollLineItemsTable.collaboratorId, correction.collaboratorId),
+        ))
+        .limit(1);
+
+      const corrAmount = toNum(correction.amount);
+      if (existingLine) {
+        const newTotal = toNum(existingLine.payrollCorrection) + corrAmount;
+        await db.update(payrollLineItemsTable)
+          .set({ payrollCorrection: String(newTotal) })
+          .where(eq(payrollLineItemsTable.id, existingLine.id));
+      } else {
+        await db.insert(payrollLineItemsTable).values({
+          organizationId: orgId,
+          payrollRunId: resolvedTargetRunId,
+          collaboratorId: correction.collaboratorId,
+          payrollCorrection: String(corrAmount),
+        });
+      }
+    }
 
     const [row] = await db.update(payrollCorrectionsTable)
       .set(updates)
-      .where(and(eq(payrollCorrectionsTable.id, req.params.id), eq(payrollCorrectionsTable.organizationId, orgId)))
+      .where(eq(payrollCorrectionsTable.id, req.params.id))
       .returning();
-    if (!row) return res.status(404).json({ error: "Correction introuvable" });
-    res.json({ ...row, amount: toNum(row.amount) });
+
+    res.json({ ...row, amount: toNum(row.amount), offCycleCreated, targetRunId: resolvedTargetRunId ?? row.targetRunId });
   } catch (e) { next(e); }
 });
 

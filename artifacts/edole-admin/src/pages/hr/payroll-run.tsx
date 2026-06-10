@@ -106,6 +106,14 @@ export default function PayrollRun() {
   const [pendingPatches, setPendingPatches] = useState<Record<string, Partial<LineItem>>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
+  const [importPreview, setImportPreview] = useState<null | {
+    preview: Array<{ collaboratorId: string; name: string; matched: boolean; fields: Record<string, number | string>; error?: string }>;
+    unmatched: string[];
+    matched: number;
+    total: number;
+  }>(null);
+  const [importStep, setImportStep] = useState<"input" | "preview">("input");
+  const [importLoading, setImportLoading] = useState(false);
 
   const { data, isLoading, refetch } = useQuery<{ run: any; lineItems: LineItem[] }>({
     queryKey: ["payroll-run-items", runId],
@@ -201,38 +209,41 @@ export default function PayrollRun() {
   // Anomalies simples
   const anomalies = localItems.filter(l => l.baseSalary === 0 && l.totalGross === 0).map(l => `${l.firstName} ${l.lastName} : salaire de base non renseigné`);
 
-  function handleImport() {
+  async function handleImportPreview() {
+    if (!csvText.trim()) return;
+    setImportLoading(true);
     try {
-      const lines = csvText.trim().split("\n").filter(l => l.trim());
-      const header = lines[0].split(";").map(h => h.trim().toLowerCase());
-      const rows = lines.slice(1).map(line => {
-        const cells = line.split(";");
-        return Object.fromEntries(header.map((h, i) => [h, cells[i]?.trim()]));
+      const result = await fetchJSON(`${API}/payroll/runs/${runId}/import-csv`, {
+        method: "POST",
+        body: JSON.stringify({ csv: csvText, apply: false }),
       });
-      // Match par nom ou id
-      let matched = 0;
-      rows.forEach(row => {
-        const item = localItems.find(l =>
-          l.collaboratorId === row["id"] ||
-          `${l.firstName} ${l.lastName}`.toLowerCase() === (row["nom"] ?? "").toLowerCase()
-        );
-        if (!item) return;
-        const patch: Partial<LineItem> = {};
-        if (row["bonus"]) patch.bonus = parseFloat(row["bonus"]) || 0;
-        if (row["commission"]) patch.commission = parseFloat(row["commission"]) || 0;
-        if (row["remboursement"]) patch.reimbursement = parseFloat(row["remboursement"]) || 0;
-        if (row["deduction"]) patch.deduction = parseFloat(row["deduction"]) || 0;
-        if (row["h_regulieres"]) patch.regularHours = parseFloat(row["h_regulieres"]) || 0;
-        if (row["h_sup"]) patch.overtimeHours = parseFloat(row["h_sup"]) || 0;
-        if (Object.keys(patch).length > 0) {
-          for (const [k, v] of Object.entries(patch)) updateLine(item.collaboratorId, k as keyof LineItem, v as number);
-          matched++;
-        }
+      setImportPreview(result);
+      setImportStep("preview");
+    } catch (e: any) {
+      toast({ title: "Erreur de validation", description: e.message, variant: "destructive" });
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function handleImportApply() {
+    if (!csvText.trim()) return;
+    setImportLoading(true);
+    try {
+      const result = await fetchJSON(`${API}/payroll/runs/${runId}/import-csv`, {
+        method: "POST",
+        body: JSON.stringify({ csv: csvText, apply: true }),
       });
-      toast({ title: `${matched} ligne(s) importée(s)` });
+      toast({ title: `${result.applied} ligne(s) importée(s)`, description: result.unmatched?.length ? `${result.unmatched.length} ligne(s) non reconnue(s)` : undefined });
       setImportOpen(false);
-    } catch (e) {
-      toast({ title: "Erreur d'import", variant: "destructive" });
+      setImportStep("input");
+      setCsvText("");
+      setImportPreview(null);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Erreur d'import", description: e.message, variant: "destructive" });
+    } finally {
+      setImportLoading(false);
     }
   }
 
@@ -505,24 +516,102 @@ export default function PayrollRun() {
         </div>
       )}
 
-      {/* ─── Modal Import CSV ─── */}
+      {/* ─── Modal Import CSV — preview + apply ─── */}
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4">
-            <h3 className="text-lg font-bold mb-2">Importer des données de paie (CSV)</h3>
-            <p className="text-sm text-muted-foreground mb-3">Format attendu (séparateur ; ) : <code className="bg-muted px-1 rounded text-xs">id;nom;bonus;commission;remboursement;deduction;h_regulieres;h_sup</code></p>
-            <textarea
-              className="w-full h-48 font-mono text-xs border border-input rounded-lg p-3 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder={"id;nom;bonus;commission;h_regulieres;h_sup\nabc-123;Kofi Asante;50000;25000;160;8"}
-              value={csvText}
-              onChange={e => setCsvText(e.target.value)}
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setImportOpen(false)}>Annuler</Button>
-              <Button onClick={handleImport} disabled={!csvText.trim()}>
-                <Upload className="w-4 h-4 mr-1" />Importer
-              </Button>
+          <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold">Importer des données de paie (CSV)</h3>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className={importStep === "input" ? "text-primary font-semibold" : ""}>1. Coller le CSV</span>
+                <span>›</span>
+                <span className={importStep === "preview" ? "text-primary font-semibold" : ""}>2. Valider</span>
+                <span>›</span>
+                <span>3. Appliquer</span>
+              </div>
             </div>
+
+            {importStep === "input" && (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Colonnes reconnues (séparateur <code className="bg-muted px-1 rounded">;</code> ou <code className="bg-muted px-1 rounded">,</code>) :{" "}
+                  <code className="bg-muted px-1 rounded text-xs">id · nom · bonus · prime · commission · remboursement · deduction · h_regulieres · h_sup</code>
+                </p>
+                <textarea
+                  className="flex-1 min-h-48 font-mono text-xs border border-input rounded-lg p-3 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder={"id;nom;bonus;commission;h_regulieres;h_sup\nabc-123;Kofi Asante;50000;25000;160;8"}
+                  value={csvText}
+                  onChange={e => setCsvText(e.target.value)}
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => { setImportOpen(false); setCsvText(""); }}>Annuler</Button>
+                  <Button onClick={handleImportPreview} disabled={!csvText.trim() || importLoading}>
+                    {importLoading ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+                    Valider le CSV
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {importStep === "preview" && importPreview && (
+              <>
+                <div className="flex gap-4 mb-3 text-sm">
+                  <span className="text-emerald-700 font-semibold">{importPreview.matched} ligne(s) reconnue(s)</span>
+                  {importPreview.unmatched.length > 0 && (
+                    <span className="text-amber-700 font-semibold">{importPreview.unmatched.length} non reconnue(s)</span>
+                  )}
+                  <span className="text-muted-foreground">sur {importPreview.total} au total</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto rounded-lg border text-sm">
+                  <table className="w-full">
+                    <thead className="bg-muted/40 text-xs text-muted-foreground uppercase sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Collaborateur</th>
+                        <th className="px-3 py-2 text-left">Champs importés</th>
+                        <th className="px-3 py-2 text-center">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.preview.map((row, i) => (
+                        <tr key={i} className={`border-t ${row.matched ? "" : "bg-amber-50"}`}>
+                          <td className="px-3 py-2 font-medium">{row.name}</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            {row.matched && Object.keys(row.fields).length > 0
+                              ? Object.entries(row.fields).map(([k, v]) => `${k}: ${v}`).join(" · ")
+                              : row.error ?? "—"}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {row.matched
+                              ? <span className="text-xs text-emerald-700 font-semibold">✓ OK</span>
+                              : <span className="text-xs text-amber-700">Non trouvé</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {importPreview.unmatched.length > 0 && (
+                  <div className="mt-2 text-xs text-amber-700 bg-amber-50 rounded px-3 py-2">
+                    {importPreview.unmatched.map((u, i) => <div key={i}>{u}</div>)}
+                  </div>
+                )}
+
+                <div className="flex justify-between gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setImportStep("input")}>
+                    ← Modifier le CSV
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setImportOpen(false); setImportStep("input"); setCsvText(""); setImportPreview(null); }}>Annuler</Button>
+                    <Button onClick={handleImportApply} disabled={importPreview.matched === 0 || importLoading}>
+                      {importLoading ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                      Appliquer ({importPreview.matched} ligne{importPreview.matched > 1 ? "s" : ""})
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
