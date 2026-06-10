@@ -68,6 +68,7 @@ router.use(healthRouter);
 router.use(authRouter);
 router.use(publicOnboardingRouter);
 router.use(kioskPublicRouter);
+router.use(storageRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
