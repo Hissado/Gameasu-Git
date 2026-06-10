@@ -76,8 +76,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services" },
       { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations" },
-      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
       { name: "Stock",       path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
+      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
       { name: "Locations",   path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
     ],
   },
