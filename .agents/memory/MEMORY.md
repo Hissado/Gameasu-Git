@@ -4,3 +4,4 @@
 - [HR self-service endpoints](hr-self-service.md) — complete set of /api/hr/me/* routes already implemented; use them for portail employé
 - [DB lib rebuild required](db-lib-rebuild.md) — after adding new exports to lib/db schema, always run `pnpm run typecheck:libs` before checking api-server typecheck
 - [contractsTable fields](contracts-table-fields.md) — contractsTable has `monthlySalary` not `salary`; no `trialEndDate`; use recent hires (< 90 days) as probation proxy
+- [HR #8-17 schema files](hr-modules-schema.md) — new schema lives in onboarding.ts/expenses.ts/benefits.ts + appended to payroll.ts and hr.ts; hr.ts must import usersTable from ./users or push fails

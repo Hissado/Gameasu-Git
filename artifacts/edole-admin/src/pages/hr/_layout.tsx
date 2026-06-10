@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3 } from "lucide-react";
+import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange, Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield } from "lucide-react";
 
 const TABS = [
   { name: "Mon espace", path: "/hr/my-space", icon: LayoutDashboard },
@@ -14,13 +14,21 @@ const TABS = [
   { name: "Politiques congés", path: "/hr/leave-policies", icon: Settings2 },
   { name: "Mouvements", path: "/hr/movements", icon: ArrowRightLeft },
   { name: "Paie", path: "/hr/payroll", icon: Banknote },
+  { name: "Hors-cycle", path: "/hr/payroll/off-cycle", icon: Zap },
+  { name: "Fiscalité RH", path: "/hr/tax-settings", icon: Percent },
+  { name: "Virements", path: "/hr/transfer-orders", icon: Banknote },
   { name: "Recrutement", path: "/hr/recruitment", icon: Briefcase },
+  { name: "Onboarding", path: "/hr/onboarding", icon: UserPlus },
+  { name: "Notes de frais", path: "/hr/expenses", icon: Receipt },
   { name: "Évaluations", path: "/hr/evaluations", icon: Star },
   { name: "Formations", path: "/hr/training", icon: BookOpen },
   { name: "Affectations", path: "/hr/assignments", icon: GitBranch },
   { name: "Départements", path: "/hr/departments", icon: Network },
   { name: "Postes", path: "/hr/positions", icon: GraduationCap },
   { name: "Contrats", path: "/hr/contracts", icon: FileSignature },
+  { name: "Templates contrats", path: "/hr/contract-templates", icon: FileText },
+  { name: "Registre légal", path: "/hr/legal-register", icon: BookOpen },
+  { name: "Avantages & Conformité", path: "/hr/benefits", icon: Shield },
   { name: "Documents", path: "/hr/documents", icon: FolderArchive },
 ];
 

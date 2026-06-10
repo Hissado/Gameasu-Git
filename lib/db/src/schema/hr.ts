@@ -6,6 +6,7 @@ import { z } from "zod/v4";
 import { collaboratorsTable } from "./collaborators";
 import { projectsTable } from "./projects";
 import { organizationsTable } from "./saas";
+import { usersTable } from "./users";
 
 /**
  * Module RH (Ressources Humaines).
@@ -408,3 +409,31 @@ export type Candidacy = typeof candidaciesTable.$inferSelect;
 export type PerformanceReview = typeof performanceReviewsTable.$inferSelect;
 export type TrainingSession = typeof trainingSessionsTable.$inferSelect;
 export type PersonnelMovement = typeof personnelMovementsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// TEMPLATES DE CONTRATS (#10)
+// ─────────────────────────────────────────────────────────
+export const contractTemplatesTable = pgTable("contract_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // CDI | CDD | Stage | Consultant | Freelance | Autre
+  contractType: text("contract_type").notNull(),
+  description: text("description"),
+  // Corps du template avec variables {{nom}}, {{poste}}, {{salaire}}, etc.
+  templateBody: text("template_body").notNull(),
+  // Variables disponibles (jsonb [{key, label, required}])
+  variables: jsonb("variables").default([]),
+  isDefault: boolean("is_default").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  version: integer("version").notNull().default(1),
+  createdById: uuid("created_by_id").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("ct_org_idx").on(t.organizationId),
+  typeIdx: index("ct_type_idx").on(t.contractType),
+}));
+
+export const insertContractTemplateSchema = createInsertSchema(contractTemplatesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type ContractTemplate = typeof contractTemplatesTable.$inferSelect;

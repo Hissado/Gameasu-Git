@@ -83,6 +83,14 @@ const HrLeavePolicies = lazy(() => import("@/pages/hr/leave-policies"));
 const HrTeamCalendar = lazy(() => import("@/pages/hr/team-calendar"));
 const HrTimesheets = lazy(() => import("@/pages/hr/timesheets"));
 const HrIndicators = lazy(() => import("@/pages/hr/indicators"));
+const HrPayrollOffCycle = lazy(() => import("@/pages/hr/payroll-off-cycle"));
+const HrTaxSettings = lazy(() => import("@/pages/hr/tax-settings"));
+const HrContractTemplates = lazy(() => import("@/pages/hr/contract-templates"));
+const HrOnboarding = lazy(() => import("@/pages/hr/onboarding"));
+const HrExpenses = lazy(() => import("@/pages/hr/expenses"));
+const HrLegalRegister = lazy(() => import("@/pages/hr/legal-register"));
+const HrBenefits = lazy(() => import("@/pages/hr/benefits"));
+const HrTransferOrders = lazy(() => import("@/pages/hr/transfer-orders"));
 const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
 const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
@@ -332,6 +340,14 @@ function AppRouter() {
                 <Route path="/kiosk-management" component={KioskManagement} />
                 <Route path="/mon-espace" component={MonEspace} />
                 <Route path="/hr/orgchart" component={HrOrgchart} />
+                <Route path="/hr/payroll/off-cycle" component={HrPayrollOffCycle} />
+                <Route path="/hr/tax-settings" component={HrTaxSettings} />
+                <Route path="/hr/contract-templates" component={HrContractTemplates} />
+                <Route path="/hr/onboarding" component={HrOnboarding} />
+                <Route path="/hr/expenses" component={HrExpenses} />
+                <Route path="/hr/legal-register" component={HrLegalRegister} />
+                <Route path="/hr/benefits" component={HrBenefits} />
+                <Route path="/hr/transfer-orders" component={HrTransferOrders} />
                 <Route path="/accounting/cash-flow" component={CashFlowStatement} />
 
                 <Route path="/admin" component={AdminHub} />
