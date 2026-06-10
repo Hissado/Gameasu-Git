@@ -237,7 +237,7 @@ router.patch("/payroll/schedules/:id", requireManagerOrAbove, async (req, res, n
     }).parse(req.body);
     const [row] = await db.update(payrollSchedulesTable)
       .set(body)
-      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId)))
+      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId))!)
       .returning();
     if (!row) return res.status(404).json({ error: "Planning introuvable" });
     res.json(row);
@@ -248,7 +248,7 @@ router.delete("/payroll/schedules/:id", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(payrollSchedulesTable)
-      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId)));
+      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId))!);
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -262,7 +262,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
 
@@ -273,8 +273,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
         department: collaboratorsTable.department,
-        jobTitle: collaboratorsTable.jobTitle,
-        poste: collaboratorsTable.poste,
+        position: collaboratorsTable.position,
         baseSalary: collaboratorsTable.baseSalary,
         transportAllowance: collaboratorsTable.transportAllowance,
         housingAllowance: collaboratorsTable.housingAllowance,
@@ -289,7 +288,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
       ))
       .where(and(
         eq(collaboratorsTable.organizationId, orgId),
-        eq(collaboratorsTable.status, "active"),
+        eq(collaboratorsTable.employmentStatus, "active"),
       ))
       .orderBy(asc(collaboratorsTable.lastName));
 
@@ -334,7 +333,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
           firstName: a.firstName,
           lastName: a.lastName,
           department: a.department,
-          jobTitle: a.jobTitle ?? a.poste,
+          jobTitle: a.position ?? null,
           baseSalary: base,
           transportAllowance: transport,
           housingAllowance: housing,
@@ -384,7 +383,7 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
         eq(payrollLineItemsTable.id, req.params.lineId),
         eq(payrollLineItemsTable.organizationId, orgId),
         eq(payrollLineItemsTable.payrollRunId, req.params.id),
-      ))
+      )!)
       .limit(1);
     if (!existing) return res.status(404).json({ error: "Ligne introuvable" });
 
@@ -441,7 +440,7 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être synchronisé" });
@@ -520,7 +519,7 @@ router.post("/payroll/runs/:id/import-rows", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être importé" });
@@ -585,7 +584,7 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être soumis" });
@@ -688,7 +687,7 @@ router.post("/payroll/runs/:id/import-csv", requireManagerOrAbove, async (req, r
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être importé" });
@@ -900,7 +899,7 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
 
     // Fetch the correction first
     const [correction] = await db.select().from(payrollCorrectionsTable)
-      .where(and(eq(payrollCorrectionsTable.id, req.params.id), eq(payrollCorrectionsTable.organizationId, orgId)))
+      .where(and(eq(payrollCorrectionsTable.id, req.params.id), eq(payrollCorrectionsTable.organizationId, orgId))!)
       .limit(1);
     if (!correction) return res.status(404).json({ error: "Correction introuvable" });
 
@@ -913,8 +912,26 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
     let resolvedTargetRunId: string | null = null;
 
     if (body.status === "applied") {
-      // Resolve target run: explicit > correction.targetRunId > next draft > create off-cycle
-      resolvedTargetRunId = body.targetRunId ?? correction.targetRunId ?? null;
+      // Validate that the explicit targetRunId belongs to this org
+      if (body.targetRunId) {
+        const [tgtOwnership] = await db.select({ id: payrollRunsTable.id })
+          .from(payrollRunsTable)
+          .where(and(eq(payrollRunsTable.id, body.targetRunId), eq(payrollRunsTable.organizationId, orgId)))
+          .limit(1);
+        if (!tgtOwnership) return res.status(400).json({ error: "Cycle cible introuvable dans cette organisation" });
+      }
+
+      // Resolve target run: explicit (already validated above) > correction.targetRunId (re-validate) > next draft > create off-cycle
+      if (!body.targetRunId && correction.targetRunId) {
+        const [storedOwnership] = await db.select({ id: payrollRunsTable.id })
+          .from(payrollRunsTable)
+          .where(and(eq(payrollRunsTable.id, correction.targetRunId), eq(payrollRunsTable.organizationId, orgId)))
+          .limit(1);
+        // If the stored targetRunId exists and belongs to org, use it; otherwise fall through to next-draft logic
+        if (storedOwnership) resolvedTargetRunId = correction.targetRunId;
+      } else {
+        resolvedTargetRunId = body.targetRunId ?? null;
+      }
 
       if (!resolvedTargetRunId) {
         const [draftRun] = await db.select({ id: payrollRunsTable.id })
@@ -971,7 +988,8 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
     }
 
     const [row] = await db.update(payrollCorrectionsTable)
-      .set(updates)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .set(updates as any)
       .where(eq(payrollCorrectionsTable.id, req.params.id))
       .returning();
 
@@ -1028,7 +1046,7 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
         eq(contractsTable.collaboratorId, collaboratorsTable.id),
         eq(contractsTable.status, "active"),
       ))
-      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.status, "active")))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.employmentStatus, "active"))!)
       .limit(5);
 
     // 2. Run mois précédent validé avec bulletins réels
