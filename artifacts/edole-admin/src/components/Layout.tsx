@@ -349,7 +349,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-background font-sans">
 
       {/* ── Topbar pleine largeur ──────────────────────────────────── */}
-      <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center px-3 sm:px-4 shrink-0 z-20 shadow-[var(--shadow-xs)] gap-2">
+      <header className="h-14 bg-card/95 backdrop-blur-md border-b border-border/60 flex items-center px-3 sm:px-4 shrink-0 z-20 shadow-[var(--shadow-xs)] gap-2 relative">
 
           {/* ── Zone gauche : logo + séparateur + nom organisation ──── */}
           <div className="flex items-center shrink-0 gap-0 min-w-0">
@@ -387,15 +387,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               />
             </Link>
 
-            {/* Desktop — séparateur vertical */}
-            <div className="hidden lg:block w-px h-5 bg-border/70 mx-3 shrink-0" />
+          </div>
 
-            {/* Desktop — nom de l'organisation (multi-tenant, dynamique) */}
-            <div className="hidden lg:flex items-center min-w-0 max-w-[200px]">
-              <span className="text-[13px] font-semibold text-foreground/80 truncate leading-none">
-                {org?.name ?? BRANDING.appName}
-              </span>
-            </div>
+          {/* ── Nom organisation centré en absolu ─────────────────────── */}
+          <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center pointer-events-none select-none">
+            <span className="text-[13px] font-semibold text-foreground/80 truncate leading-none whitespace-nowrap">
+              {org?.name ?? BRANDING.appName}
+            </span>
           </div>
 
           {/* ── Zone centrale : barre de recherche globale ────────────── */}
