@@ -231,6 +231,8 @@ function ActionScreen({
 }
 
 // ─── Photo Screen ─────────────────────────────────────────────────
+const PHOTO_COUNTDOWN = 3;
+
 function PhotoScreen({
   onCapture,
   onSkip,
@@ -241,9 +243,12 @@ function PhotoScreen({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const capturedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(PHOTO_COUNTDOWN);
 
+  // Start camera
   useEffect(() => {
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } })
@@ -262,48 +267,69 @@ function PhotoScreen({
     };
   }, []);
 
-  const capture = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  // Auto-countdown once ready
+  useEffect(() => {
+    if (!ready) return;
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [ready, countdown]);
+
+  // Capture when countdown hits 0
+  useEffect(() => {
+    if (!ready || countdown > 0 || capturedRef.current) return;
+    capturedRef.current = true;
+    if (!videoRef.current || !canvasRef.current) { onSkip(); return; }
     const ctx = canvasRef.current.getContext("2d");
-    if (!ctx) return;
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
+    if (!ctx) { onSkip(); return; }
+    canvasRef.current.width = videoRef.current.videoWidth || 640;
+    canvasRef.current.height = videoRef.current.videoHeight || 480;
     ctx.drawImage(videoRef.current, 0, 0);
     const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.85);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     onCapture(dataUrl);
-  };
+  }, [ready, countdown, onCapture, onSkip]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
       <div className="text-xl text-white/70">Photo de présence</div>
-      <div className="text-sm text-white/40">Regardez la caméra et prenez votre photo</div>
+      <div className="text-sm text-white/40">
+        {error ? "Caméra non disponible" : ready && countdown > 0 ? `Capture automatique dans ${countdown}…` : "Capture en cours…"}
+      </div>
 
       <div className="relative rounded-2xl overflow-hidden border border-white/20 bg-black w-full max-w-sm aspect-video flex items-center justify-center">
         {error ? (
-          <div className="text-white/40 text-center p-8">{error}</div>
+          <div className="text-white/40 text-center p-8">📷 {error}</div>
         ) : (
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+          <>
+            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            {ready && countdown > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span
+                  key={countdown}
+                  className="text-white font-black drop-shadow-lg animate-ping-once"
+                  style={{ fontSize: "6rem", lineHeight: 1, textShadow: "0 0 40px rgba(251,191,36,0.8)" }}
+                >
+                  {countdown}
+                </span>
+              </div>
+            )}
+            {ready && countdown === 0 && (
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center pointer-events-none">
+                <span className="text-4xl">📸</span>
+              </div>
+            )}
+          </>
         )}
       </div>
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="flex gap-4">
-        {!error && ready && (
-          <button
-            onClick={capture}
-            className="px-8 py-4 bg-amber-400 text-slate-900 font-semibold text-lg rounded-xl hover:bg-amber-300 active:scale-95 transition-all"
-          >
-            📸 Prendre la photo
-          </button>
-        )}
-        <button
-          onClick={onSkip}
-          className="px-8 py-4 bg-white/10 border border-white/20 text-white/60 text-lg rounded-xl hover:bg-white/15 active:scale-95 transition-all"
-        >
-          Passer
-        </button>
-      </div>
+      <button
+        onClick={onSkip}
+        className="px-8 py-3 bg-white/10 border border-white/20 text-white/50 text-base rounded-xl hover:bg-white/15 active:scale-95 transition-all"
+      >
+        Passer sans photo
+      </button>
     </div>
   );
 }
