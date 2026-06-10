@@ -1,0 +1,355 @@
+Pouvez-vous revoir, améliorer et compléter toute la **fonctionnalité Paie** de Gaméasù afin qu’elle soit beaucoup plus professionnelle, moderne et structurée, en s’inspirant de la logique de Gusto visible dans les captures d’écran fournies ?
+
+L’objectif n’est pas de copier Gusto à l’identique, mais de créer une expérience de paie fluide, claire, complète et adaptée à Gaméasù, avec une logique SaaS multi-tenant, une interface premium, et un workflow de paie simple à comprendre pour les administrateurs RH / Finance.
+
+## Objectif général
+
+Je veux que le module **Paie** permette de gérer un cycle complet de paie, comme dans une vraie application RH moderne :
+
+* calendrier de paie
+* cycles de paie récurrents
+* paie bimensuelle, mensuelle, hebdomadaire ou personnalisée
+* préparation de la paie
+* brouillon de paie
+* validation étape par étape
+* lancement de la paie
+* paie hors cycle
+* paie exceptionnelle
+* correction d’erreur de paie
+* paiement des collaborateurs
+* paiement des contractuels
+* import des données de paie
+* gestion des heures travaillées
+* gestion des congés / absences
+* primes, bonus, commissions, remboursements et déductions
+* rapports de paie
+
+## Référence UX inspirée des screenshots Gusto
+
+Merci d’utiliser les captures d’écran comme référence fonctionnelle pour structurer l’expérience.
+
+### 1. Bloc “À venir” / prochaine paie
+
+Créer une section claire du type **À venir** sur le dashboard Paie, affichant :
+
+* le prochain cycle de paie
+* le statut, par exemple : “À soumettre dans 14 jours”
+* le type de paie, par exemple : “Paie bimensuelle”
+* la période couverte
+* la date de paiement
+* les collaborateurs concernés
+* un bouton **Lancer la paie**
+* une option **Ignorer / reporter** si pertinent
+* un lien vers le **calendrier de paie**
+
+Exemple de logique :
+
+* Période : 8 juin – 21 juin 2026
+* Date de paiement : vendredi 26 juin
+* Statut : brouillon / à venir / en attente / prêt à lancer
+
+### 2. Options rapides de paie
+
+Ajouter un panneau **Options de paie** similaire à la logique visible dans Gusto, avec des actions rapides :
+
+* Payer un collaborateur
+* Payer un contractuel local
+* Payer un contractuel international
+* Lancer une paie hors cycle
+* Lancer une paie exceptionnelle
+* Corriger une erreur de paie
+* Voir plus d’options
+
+Chaque option doit ouvrir un workflow clair, adapté au contexte Gaméasù.
+
+## Workflow de lancement de paie
+
+Créer une page dédiée pour lancer une paie, avec une logique en étapes.
+
+### Étape 1 : Préparation / modification de la paie
+
+La page doit afficher :
+
+* fil d’Ariane : Paie / Paie bimensuelle
+* titre du cycle de paie
+* statut : Brouillon
+* période couverte
+* barre de progression
+* indication : Étape 1 sur 2
+* date limite de soumission
+* date de paiement
+* total des congés / absences
+* total des heures travaillées
+* total brut estimé / total à payer
+
+### Résumé supérieur attendu
+
+Afficher des cartes ou blocs récapitulatifs :
+
+* À soumettre avant
+* Date de paiement
+* Total congés / absences
+* Total heures travaillées
+* Total gains / rémunération brute
+* Total déductions
+* Total net à payer si disponible
+
+## Tableau de paie des collaborateurs
+
+Créer un tableau de paie complet et professionnel permettant de gérer chaque collaborateur ligne par ligne.
+
+### Colonnes attendues
+
+Le tableau doit inclure au minimum :
+
+* Collaborateur
+* Salaire total
+* Taux / salaire de base
+* Heures régulières
+* Heures supplémentaires
+* Congés payés
+* Absences
+* Bonus
+* Primes
+* Commissions
+* Pourboires si applicable
+* Remboursements
+* Déductions
+* Corrections de paie
+* Notes
+* Type de paiement
+* Actions
+
+### Fonctionnalités du tableau
+
+Ajouter :
+
+* recherche par collaborateur
+* sélection individuelle
+* sélection multiple
+* filtre
+* choix des colonnes affichées
+* import des données de paie
+* modification inline si pertinent
+* actions par collaborateur
+* total automatique en bas du tableau
+* calcul automatique des heures et montants
+* statut de paiement
+* mode de paiement, par exemple virement, cash, chèque, mobile money, autre
+
+## Étape 2 : Vérification et soumission
+
+Créer une deuxième étape permettant de vérifier la paie avant validation finale.
+
+Cette étape doit inclure :
+
+* résumé global de la paie
+* liste des collaborateurs payés
+* total brut
+* total net
+* charges employeur
+* déductions
+* remboursements
+* taxes / retenues si configurées
+* anomalies détectées
+* avertissements
+* bouton **Soumettre la paie**
+* bouton **Retour modifier**
+
+## Paie hors cycle et paie exceptionnelle
+
+Ajouter une logique permettant de créer :
+
+* une paie hors cycle
+* une paie exceptionnelle
+* un paiement de bonus
+* un ajustement de paie
+* une correction d’erreur
+* un paiement manuel
+
+Chaque workflow doit être clair et relié au collaborateur, à l’organisation, à la période et aux écritures comptables si la comptabilité est activée.
+
+## Correction d’erreur de paie
+
+Ajouter une option **Corriger une erreur de paie** permettant de :
+
+* sélectionner une paie déjà traitée
+* sélectionner un collaborateur
+* identifier l’erreur
+* ajouter une correction positive ou négative
+* documenter la raison
+* générer un ajustement dans le cycle suivant ou une paie hors cycle
+* conserver un historique complet
+
+## Import des données de paie
+
+Ajouter une fonctionnalité **Importer les données de paie** permettant d’importer :
+
+* heures travaillées
+* primes
+* bonus
+* commissions
+* remboursements
+* déductions
+* corrections
+
+L’import doit supporter au minimum CSV / Excel, avec mapping des colonnes et validation avant import.
+
+## Intégration avec Présence & Pointage
+
+La paie doit être directement reliée au module **Présence & Pointage**.
+
+Les heures travaillées doivent pouvoir être récupérées automatiquement depuis :
+
+* pointage dans l’application
+* kiosk de pointage
+* feuilles de temps
+* absences approuvées
+* congés approuvés
+* heures supplémentaires validées
+
+La paie doit calculer automatiquement :
+
+* heures régulières
+* heures supplémentaires
+* temps d’absence
+* congés payés
+* heures non validées
+* anomalies à vérifier
+
+## Intégration avec RH
+
+Le module Paie doit utiliser les données RH existantes :
+
+* profil collaborateur
+* type de contrat
+* salaire
+* taux horaire
+* statut employé / contractuel
+* département
+* poste
+* manager
+* mode de paiement
+* informations bancaires si disponibles
+* avantages
+* retenues
+* documents RH
+
+## Intégration comptable
+
+Prévoir une logique de connexion avec la comptabilité :
+
+* génération automatique des écritures de paie
+* salaires à payer
+* charges sociales
+* retenues
+* remboursements
+* paiements
+* dettes fiscales et sociales
+* ventilation par département, projet, service ou centre de coût
+
+Si la comptabilité n’est pas encore totalement connectée, prévoir l’architecture pour le faire proprement.
+
+## Logique SaaS / multi-tenant
+
+Comme Gaméasù est une application SaaS, la paie doit être strictement multi-tenant :
+
+* chaque organisation a ses propres cycles de paie
+* chaque organisation a ses propres collaborateurs
+* chaque organisation a ses propres règles de paie
+* chaque organisation a ses propres paramètres fiscaux et sociaux
+* aucune donnée ne doit être visible entre organisations
+* les permissions doivent contrôler qui peut voir, préparer, modifier, approuver ou soumettre la paie
+
+## Permissions
+
+Créer ou vérifier les permissions suivantes :
+
+* voir la paie
+* préparer la paie
+* modifier la paie
+* approuver la paie
+* soumettre la paie
+* corriger une paie
+* importer les données de paie
+* voir les rapports de paie
+* gérer les paramètres de paie
+
+## Design et UX
+
+Le design doit être :
+
+* propre
+* premium
+* clair
+* moderne
+* inspiré de la simplicité de Gusto
+* adapté à Gaméasù
+* entièrement en français
+* responsive desktop / tablette
+* professionnel pour une vraie application SaaS RH
+
+Éviter les termes anglais visibles dans l’interface. Utiliser des libellés français comme :
+
+* Paie
+* Collaborateurs
+* Heures régulières
+* Bonus
+* Commissions
+* Remboursements
+* Déductions
+* Correction de paie
+* Type de paiement
+* Actions
+* Soumettre
+* Lancer la paie
+* Brouillon
+* Étape 1 sur 2
+* Étape 2 sur 2
+
+## Données de démonstration
+
+Ajouter des données réalistes pour tester :
+
+* plusieurs collaborateurs
+* plusieurs salaires
+* plusieurs types de contrats
+* heures travaillées
+* congés
+* bonus
+* commissions
+* remboursements
+* déductions
+* paie bimensuelle
+* paie hors cycle
+* correction d’erreur
+
+## Résultat attendu
+
+Je veux un module Paie beaucoup plus complet, proche de la logique professionnelle de Gusto, mais adapté à Gaméasù.
+
+Le résultat final doit permettre de :
+
+* voir la prochaine paie à lancer
+* consulter le calendrier de paie
+* lancer une paie en plusieurs étapes
+* gérer les collaborateurs dans un tableau détaillé
+* modifier les montants et heures
+* importer les données de paie
+* gérer les bonus, commissions, remboursements et déductions
+* corriger les erreurs
+* gérer les paies hors cycle
+* synchroniser la paie avec RH, Présence & Pointage et Comptabilité
+* respecter la logique SaaS multi-tenant
+
+Merci d’implémenter directement les pages, composants, routes, tables, workflows et données nécessaires, puis de fournir à la fin :
+
+1. les fichiers créés
+2. les fichiers modifiés
+3. les tables créées ou adaptées
+4. les routes créées
+5. les pages créées
+6. les composants créés
+7. les permissions ajoutées
+8. les fonctionnalités prêtes à tester
+9. les points restant à connecter si nécessaire
