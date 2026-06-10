@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Banknote, CheckCircle, XCircle, Send, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Banknote, CheckCircle, XCircle, Send, FileSpreadsheet, FileText, History, User } from "lucide-react";
 
 type TransferLine = {
   collaboratorId: string;
@@ -33,12 +33,27 @@ type TransferOrder = {
   transferLines: TransferLine[];
   notes?: string;
   createdAt: string;
+  updatedAt?: string;
   submittedAt?: string;
   completedAt?: string;
   bankReference?: string;
+  updatedById?: string;
+  updatedByName?: string | null;
 };
 
 type PayrollRun = { id: string; period: string; status: string };
+
+type AuditEntry = {
+  id: string;
+  action: string;
+  oldStatus: string | null;
+  newStatus: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  userId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+};
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "En attente",
@@ -66,11 +81,68 @@ function downloadFile(url: string) {
   a.click();
 }
 
+function AuditLogPanel({ orderId }: { orderId: string }) {
+  const { data: entries, isLoading } = useQuery<AuditEntry[]>({
+    queryKey: ["transfer-audit", orderId],
+    queryFn: () => apiFetch(`/api/payroll/transfer-orders/${orderId}/audit-log`),
+  });
+
+  if (isLoading) return <div className="text-sm text-muted-foreground py-4">Chargement…</div>;
+  if (!entries || entries.length === 0)
+    return <div className="text-sm text-muted-foreground py-4 italic">Aucune action enregistrée.</div>;
+
+  return (
+    <div className="space-y-2">
+      {entries.map((e) => {
+        const actor = e.firstName ? `${e.firstName} ${e.lastName}` : "Système";
+        return (
+          <div key={e.id} className="flex gap-3 items-start text-sm">
+            <div className="mt-0.5 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <User className="w-3 h-3 text-orange-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium">{actor}</span>
+                {e.oldStatus && e.newStatus && (
+                  <span className="text-xs text-muted-foreground">
+                    a fait passer le statut de{" "}
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[e.oldStatus] ?? ""}`}>
+                      {STATUS_LABEL[e.oldStatus] ?? e.oldStatus}
+                    </span>{" "}
+                    à{" "}
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[e.newStatus] ?? ""}`}>
+                      {STATUS_LABEL[e.newStatus] ?? e.newStatus}
+                    </span>
+                  </span>
+                )}
+              </div>
+              {e.metadata && Boolean((e.metadata as Record<string, unknown>).bankReference) && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Réf. banque : <span className="font-mono">{String((e.metadata as Record<string, unknown>).bankReference)}</span>
+                </div>
+              )}
+              {e.metadata && Boolean((e.metadata as Record<string, unknown>).errorMessage) && (
+                <div className="text-xs text-red-600 mt-0.5">
+                  {String((e.metadata as Record<string, unknown>).errorMessage)}
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {new Date(e.createdAt).toLocaleString("fr-FR")}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function TransferOrders() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [showAudit, setShowAudit] = useState(false);
   const [form, setForm] = useState({ reference: "", totalAmount: "", notes: "" });
 
   const { data: orders, isLoading } = useQuery<TransferOrder[]>({
@@ -113,13 +185,16 @@ export default function TransferOrders() {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transfer-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transfer-orders"] });
+      if (detailId) qc.invalidateQueries({ queryKey: ["transfer-audit", detailId] });
+      toast({ title: "Statut mis à jour" });
+    },
   });
 
   const detail = (orders ?? []).find((o) => o.id === detailId) ?? null;
   const validatedRuns = (runs ?? []).filter((r) => r.status === "validated");
 
-  // Build a map of runId → period for display
   const runPeriodMap = Object.fromEntries((runs ?? []).map((r) => [r.id, r.period]));
 
   const totals = {
@@ -202,7 +277,8 @@ export default function TransferOrders() {
                 <th className="px-4 py-3 text-right">Montant total</th>
                 <th className="px-4 py-3 text-left">Lignes</th>
                 <th className="px-4 py-3 text-left">Statut</th>
-                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Créé le</th>
+                <th className="px-4 py-3 text-left">Dernière modification</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -211,7 +287,7 @@ export default function TransferOrders() {
                 <tr
                   key={o.id}
                   className="border-t hover:bg-muted/30 cursor-pointer"
-                  onClick={() => setDetailId(o.id)}
+                  onClick={() => { setDetailId(o.id); setShowAudit(false); }}
                 >
                   <td className="px-4 py-3 font-mono text-sm font-medium">{o.reference}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
@@ -237,6 +313,18 @@ export default function TransferOrders() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {new Date(o.createdAt).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {o.updatedAt && o.updatedById ? (
+                      <div>
+                        <div className="font-medium text-foreground/80">{o.updatedByName ?? "—"}</div>
+                        <div className="text-muted-foreground">
+                          {new Date(o.updatedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="italic opacity-50">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
@@ -355,7 +443,7 @@ export default function TransferOrders() {
       {/* Dialog détail ordre */}
       {detail && (
         <Dialog open={!!detail} onOpenChange={() => setDetailId(null)}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Ordre {detail.reference}</DialogTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -372,85 +460,118 @@ export default function TransferOrders() {
                     Cycle {runPeriodMap[detail.payrollRunId]}
                   </span>
                 )}
+                {detail.updatedAt && (
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Modifié le {new Date(detail.updatedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                )}
               </div>
             </DialogHeader>
 
-            {/* Actions d'export dans le détail */}
-            <div className="flex gap-2 mb-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.csv`)
-                }
+            {/* Onglets Détail / Journal */}
+            <div className="flex gap-1 mb-4 border-b">
+              <button
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${!showAudit ? "border-orange-500 text-orange-600" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setShowAudit(false)}
               >
-                <FileText className="w-4 h-4 mr-2 text-emerald-600" />
-                Exporter CSV
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.xlsx`)
-                }
+                Bénéficiaires
+              </button>
+              <button
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-1.5 transition-colors ${showAudit ? "border-orange-500 text-orange-600" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setShowAudit(true)}
               >
-                <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" />
-                Exporter Excel
-              </Button>
-              <div className="flex-1" />
-              <Badge variant="outline" className="text-xs">
-                {(detail.transferLines ?? []).length} bénéficiaire
-                {(detail.transferLines ?? []).length > 1 ? "s" : ""}
-              </Badge>
+                <History className="w-3.5 h-3.5" />
+                Journal d'audit
+              </button>
             </div>
 
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Bénéficiaire</th>
-                    <th className="px-3 py-2 text-left">IBAN / N° compte</th>
-                    <th className="px-3 py-2 text-left">Banque</th>
-                    <th className="px-3 py-2 text-right">Montant net</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(detail.transferLines ?? []).map((l, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-3 py-2 font-medium">{l.name}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                        {l.iban || <span className="italic text-muted-foreground/60">Non renseigné</span>}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {l.bankName || "—"}
-                        {l.bankCode ? ` (${l.bankCode})` : ""}
-                      </td>
-                      <td className="px-3 py-2 text-right font-semibold">
-                        {formatFCFA(l.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="border-t bg-muted/30">
-                  <tr>
-                    <td className="px-3 py-2 font-semibold" colSpan={3}>
-                      Total
-                    </td>
-                    <td className="px-3 py-2 text-right font-bold">
-                      {formatFCFA(detail.totalAmount)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            {detail.notes && (
-              <div className="text-xs text-muted-foreground mt-3 p-3 bg-muted/30 rounded-md">
-                {detail.notes}
-              </div>
-            )}
-            {detail.bankReference && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Réf. banque : <span className="font-mono">{detail.bankReference}</span>
+            {!showAudit ? (
+              <>
+                {/* Actions d'export dans le détail */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.csv`)
+                    }
+                  >
+                    <FileText className="w-4 h-4 mr-2 text-emerald-600" />
+                    Exporter CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      downloadFile(`/api/payroll/transfer-orders/${detail.id}/export.xlsx`)
+                    }
+                  >
+                    <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" />
+                    Exporter Excel
+                  </Button>
+                  <div className="flex-1" />
+                  <Badge variant="outline" className="text-xs">
+                    {(detail.transferLines ?? []).length} bénéficiaire
+                    {(detail.transferLines ?? []).length > 1 ? "s" : ""}
+                  </Badge>
+                </div>
+
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Bénéficiaire</th>
+                        <th className="px-3 py-2 text-left">IBAN / N° compte</th>
+                        <th className="px-3 py-2 text-left">Banque</th>
+                        <th className="px-3 py-2 text-right">Montant net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(detail.transferLines ?? []).map((l, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="px-3 py-2 font-medium">{l.name}</td>
+                          <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                            {l.iban || <span className="italic text-muted-foreground/60">Non renseigné</span>}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            {l.bankName || "—"}
+                            {l.bankCode ? ` (${l.bankCode})` : ""}
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold">
+                            {formatFCFA(l.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t bg-muted/30">
+                      <tr>
+                        <td className="px-3 py-2 font-semibold" colSpan={3}>
+                          Total
+                        </td>
+                        <td className="px-3 py-2 text-right font-bold">
+                          {formatFCFA(detail.totalAmount)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                {detail.notes && (
+                  <div className="text-xs text-muted-foreground mt-3 p-3 bg-muted/30 rounded-md">
+                    {detail.notes}
+                  </div>
+                )}
+                {detail.bankReference && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Réf. banque : <span className="font-mono">{detail.bankReference}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="py-2">
+                <p className="text-xs text-muted-foreground mb-4">
+                  Toutes les modifications de statut sont enregistrées ici avec l'auteur et l'horodatage.
+                </p>
+                <AuditLogPanel orderId={detail.id} />
               </div>
             )}
           </DialogContent>

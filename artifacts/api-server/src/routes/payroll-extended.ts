@@ -11,18 +11,24 @@ import {
   irppBracketsTable,
   taxExemptionsTable,
   bankTransferOrdersTable,
+  bankTransferAuditLogTable,
   collaboratorsTable,
   payrollRunsTable,
   payslipsTable,
+  notificationsTable,
+  usersTable,
+  organizationMembersTable,
 } from "@workspace/db";
-import { and, eq, desc, asc, sql } from "drizzle-orm";
+import { and, eq, desc, asc, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 router.use(requireAuth);
 
 const toNum = (v: unknown) => (v == null ? 0 : Number(v));
+const formatFCFA = (v: number) => `${Math.round(v).toLocaleString("fr-FR")} FCFA`;
 
 // ─────────────────────────────────────────────────────────
 // IRPP par défaut Togo (barème annuel XOF)
@@ -322,10 +328,38 @@ router.post("/payroll/off-cycle/:id/pay", requireManagerOrAbove, async (req, res
 router.get("/payroll/transfer-orders", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const rows = await db.select().from(bankTransferOrdersTable)
+    const updatedByAlias = usersTable;
+    const rows = await db
+      .select({
+        id: bankTransferOrdersTable.id,
+        organizationId: bankTransferOrdersTable.organizationId,
+        payrollRunId: bankTransferOrdersTable.payrollRunId,
+        reference: bankTransferOrdersTable.reference,
+        status: bankTransferOrdersTable.status,
+        totalAmount: bankTransferOrdersTable.totalAmount,
+        currency: bankTransferOrdersTable.currency,
+        bankReference: bankTransferOrdersTable.bankReference,
+        transferLines: bankTransferOrdersTable.transferLines,
+        submittedAt: bankTransferOrdersTable.submittedAt,
+        completedAt: bankTransferOrdersTable.completedAt,
+        errorMessage: bankTransferOrdersTable.errorMessage,
+        notes: bankTransferOrdersTable.notes,
+        createdById: bankTransferOrdersTable.createdById,
+        updatedById: bankTransferOrdersTable.updatedById,
+        createdAt: bankTransferOrdersTable.createdAt,
+        updatedAt: bankTransferOrdersTable.updatedAt,
+        updatedByFirstName: updatedByAlias.firstName,
+        updatedByLastName: updatedByAlias.lastName,
+      })
+      .from(bankTransferOrdersTable)
+      .leftJoin(updatedByAlias, eq(bankTransferOrdersTable.updatedById, updatedByAlias.id))
       .where(eq(bankTransferOrdersTable.organizationId, orgId))
       .orderBy(desc(bankTransferOrdersTable.createdAt));
-    res.json(rows.map(r => ({ ...r, totalAmount: toNum(r.totalAmount) })));
+    res.json(rows.map(r => ({
+      ...r,
+      totalAmount: toNum(r.totalAmount),
+      updatedByName: r.updatedByFirstName ? `${r.updatedByFirstName} ${r.updatedByLastName ?? ""}`.trim() : null,
+    })));
   } catch (e) { next(e); }
 });
 
@@ -360,21 +394,159 @@ router.post("/payroll/transfer-orders", requireManagerOrAbove, async (req, res, 
 router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const userId = req.authUser!.userId;
     const body = z.object({
       status: z.enum(["pending", "processing", "submitted", "completed", "failed", "cancelled"]).optional(),
       bankReference: z.string().optional(),
       errorMessage: z.string().optional(),
       notes: z.string().optional(),
     }).parse(req.body);
-    const updates: Record<string, unknown> = { ...body };
+
+    // Fetch current state before update (for audit diff)
+    const [current] = await db.select({
+      status: bankTransferOrdersTable.status,
+      reference: bankTransferOrdersTable.reference,
+      totalAmount: bankTransferOrdersTable.totalAmount,
+    })
+      .from(bankTransferOrdersTable)
+      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+    if (!current) return res.status(404).json({ error: "Non trouvé" });
+
+    const updates: Record<string, unknown> = { ...body, updatedById: userId };
     if (body.status === "submitted") updates.submittedAt = new Date();
     if (body.status === "completed") updates.completedAt = new Date();
+
     const [row] = await db.update(bankTransferOrdersTable)
       .set(updates)
       .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
+
+    // ── Journal d'audit ─────────────────────────────────
+    if (body.status && body.status !== current.status) {
+      await db.insert(bankTransferAuditLogTable).values({
+        organizationId: orgId,
+        bankTransferOrderId: row.id,
+        userId,
+        action: "status_change",
+        oldStatus: current.status,
+        newStatus: body.status,
+        metadata: {
+          reference: row.reference,
+          bankReference: body.bankReference ?? null,
+          errorMessage: body.errorMessage ?? null,
+        },
+      });
+
+      // ── Notifications in-app (tous les managers/admins de l'org) ────
+      try {
+        const members = await db.select({ userId: organizationMembersTable.userId })
+          .from(organizationMembersTable)
+          .where(eq(organizationMembersTable.organizationId, orgId));
+
+        const users = members.length
+          ? await db.select({ id: usersTable.id, role: usersTable.role, email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+              .from(usersTable)
+              .where(and(eq(usersTable.isActive, true), inArray(usersTable.id, members.map(m => m.userId))))
+          : [];
+
+        const hrUsers = users.filter(u => ["admin", "manager", "super_admin"].includes(u.role ?? ""));
+
+        const statusLabels: Record<string, string> = {
+          submitted: "Soumis à la banque",
+          completed: "Exécuté",
+          failed: "Échec",
+          cancelled: "Annulé",
+          processing: "En traitement",
+          pending: "En attente",
+        };
+        const notifTitle = `Virement ${row.reference} — ${statusLabels[body.status] ?? body.status}`;
+        const notifBody = `Le statut de l'ordre de virement ${row.reference} (${formatFCFA(toNum(row.totalAmount))}) est passé de « ${statusLabels[current.status] ?? current.status} » à « ${statusLabels[body.status] ?? body.status} ».`;
+
+        if (hrUsers.length) {
+          await db.insert(notificationsTable).values(
+            hrUsers.map(u => ({
+              organizationId: orgId,
+              userId: u.id,
+              title: notifTitle,
+              body: notifBody,
+              type: body.status === "failed" ? "error" : body.status === "completed" ? "success" : "info",
+              entityType: "bank_transfer",
+              entityId: row.id,
+            }))
+          );
+
+          // ── Email de confirmation (statuts clés uniquement) ──────────
+          if (body.status === "submitted" || body.status === "completed" || body.status === "failed") {
+            const actorUser = users.find(u => u.id === userId);
+            const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : "Un responsable RH";
+            const emailSubject = body.status === "submitted"
+              ? `Virement ${row.reference} soumis à la banque`
+              : body.status === "completed"
+              ? `Virement ${row.reference} exécuté avec succès`
+              : `Virement ${row.reference} — échec`;
+
+            const statusColor = body.status === "completed" ? "#16a34a" : body.status === "failed" ? "#dc2626" : "#2563eb";
+            const emailHtml = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+  <div style="background:#1e1e2e;padding:24px 32px;">
+    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gaméasù</span>
+    <span style="color:#9ca3af;font-size:14px;margin-left:12px;">RH · Virements bancaires</span>
+  </div>
+  <div style="padding:32px;border:1px solid #e5e7eb;border-top:none;">
+    <h2 style="margin:0 0 16px;color:#111827;">${emailSubject}</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:40%;">Référence</td><td style="padding:8px 0;font-weight:600;font-size:14px;">${row.reference}</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Montant total</td><td style="padding:8px 0;font-weight:600;font-size:14px;">${formatFCFA(toNum(row.totalAmount))} XOF</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Nouveau statut</td><td style="padding:8px 0;"><span style="background:${statusColor}1a;color:${statusColor};padding:2px 10px;border-radius:12px;font-size:13px;font-weight:600;">${statusLabels[body.status] ?? body.status}</span></td></tr>
+      ${body.bankReference ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Réf. banque</td><td style="padding:8px 0;font-family:monospace;font-size:14px;">${body.bankReference}</td></tr>` : ""}
+      ${body.errorMessage ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Message d'erreur</td><td style="padding:8px 0;color:#dc2626;font-size:14px;">${body.errorMessage}</td></tr>` : ""}
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Modifié par</td><td style="padding:8px 0;font-size:14px;">${actorName}</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Date</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString("fr-FR")}</td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:13px;margin:0;">Ce message est envoyé automatiquement par Gaméasù. Ne pas répondre à cet email.</p>
+  </div>
+</div>`;
+            const emailText = `${emailSubject}\n\nRéférence : ${row.reference}\nMontant : ${formatFCFA(toNum(row.totalAmount))} XOF\nStatut : ${statusLabels[body.status] ?? body.status}\nModifié par : ${actorName}\nDate : ${new Date().toLocaleString("fr-FR")}`;
+
+            for (const u of hrUsers) {
+              if (u.email) {
+                sendEmail({ to: u.email, subject: emailSubject, html: emailHtml, text: emailText, category: "bank_transfer" }).catch(() => {/* ignore */});
+              }
+            }
+          }
+        }
+      } catch {/* ne pas bloquer la réponse si notifications échouent */}
+    }
+
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-orders/:id/audit-log — journal d'audit
+router.get("/payroll/transfer-orders/:id/audit-log", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const entries = await db
+      .select({
+        id: bankTransferAuditLogTable.id,
+        action: bankTransferAuditLogTable.action,
+        oldStatus: bankTransferAuditLogTable.oldStatus,
+        newStatus: bankTransferAuditLogTable.newStatus,
+        metadata: bankTransferAuditLogTable.metadata,
+        createdAt: bankTransferAuditLogTable.createdAt,
+        userId: bankTransferAuditLogTable.userId,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+      })
+      .from(bankTransferAuditLogTable)
+      .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
+      .where(and(
+        eq(bankTransferAuditLogTable.bankTransferOrderId, req.params.id),
+        eq(bankTransferAuditLogTable.organizationId, orgId),
+      ))
+      .orderBy(desc(bankTransferAuditLogTable.createdAt));
+    res.json(entries);
   } catch (e) { next(e); }
 });
 

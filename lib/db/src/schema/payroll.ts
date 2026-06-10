@@ -200,12 +200,33 @@ export const bankTransferOrdersTable = pgTable("bank_transfer_orders", {
   errorMessage: text("error_message"),
   notes: text("notes"),
   createdById: uuid("created_by_id").references(() => usersTable.id),
+  updatedById: uuid("updated_by_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
   orgIdx: index("bto_org_idx").on(t.organizationId),
   statusIdx: index("bto_status_idx").on(t.status),
 }));
+
+// ─────────────────────────────────────────────────────────
+// JOURNAL D'AUDIT DES ORDRES DE VIREMENT
+// ─────────────────────────────────────────────────────────
+export const bankTransferAuditLogTable = pgTable("bank_transfer_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  bankTransferOrderId: uuid("bank_transfer_order_id").notNull().references(() => bankTransferOrdersTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => usersTable.id),
+  action: text("action").notNull(),
+  oldStatus: text("old_status"),
+  newStatus: text("new_status"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orderIdx: index("btal_order_idx").on(t.bankTransferOrderId),
+  orgIdx: index("btal_org_idx").on(t.organizationId),
+}));
+
+export type BankTransferAuditLog = typeof bankTransferAuditLogTable.$inferSelect;
 
 export const insertOffCyclePaymentSchema = createInsertSchema(offCyclePaymentsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true, paidAt: true });
 export const insertIrppBracketSchema = createInsertSchema(irppBracketsTable).omit({ id: true, createdAt: true, updatedAt: true });
