@@ -60,15 +60,20 @@ function computeGross(l: LineItem) {
 }
 
 // Editable numeric cell
-function NumCell({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
+function NumCell({ value, onChange, disabled, unit = "fcfa" }: { value: number; onChange: (v: number) => void; disabled?: boolean; unit?: "fcfa" | "hours" }) {
   const [editing, setEditing] = useState(false);
   const [raw, setRaw] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { if (editing && ref.current) ref.current.select(); }, [editing]);
   useEffect(() => { if (!editing) setRaw(String(value)); }, [value, editing]);
 
+  function fmt(v: number) {
+    if (unit === "hours") return v > 0 ? `${v} h` : "—";
+    return v > 0 ? formatFCFA(v) : "—";
+  }
+
   if (disabled) {
-    return <span className="text-right block text-sm">{value > 0 ? formatFCFA(value) : <span className="text-muted-foreground">—</span>}</span>;
+    return <span className="text-right block text-sm">{fmt(value) !== "—" ? fmt(value) : <span className="text-muted-foreground">—</span>}</span>;
   }
   if (editing) {
     return (
@@ -89,7 +94,7 @@ function NumCell({ value, onChange, disabled }: { value: number; onChange: (v: n
       onClick={() => setEditing(true)}
       title="Cliquer pour modifier"
     >
-      {value !== 0 ? formatFCFA(value) : <span className="text-muted-foreground text-xs">0 — modifier</span>}
+      {value !== 0 ? fmt(value) : <span className="text-muted-foreground text-xs">{unit === "hours" ? "0 h" : "0 — modifier"}</span>}
     </span>
   );
 }
@@ -396,10 +401,10 @@ export default function PayrollRun() {
                           {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
                         </td>
                         <td className="px-3 py-2 text-right font-medium text-sm">{formatFCFA(l.baseSalary)}</td>
-                        <td className="px-3 py-2"><NumCell value={l.regularHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "regularHours", v)} /></td>
-                        <td className="px-3 py-2"><NumCell value={l.overtimeHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "overtimeHours", v)} /></td>
-                        <td className="px-3 py-2"><NumCell value={l.leaveHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "leaveHours", v)} /></td>
-                        <td className="px-3 py-2"><NumCell value={l.absenceHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "absenceHours", v)} /></td>
+                        <td className="px-3 py-2"><NumCell unit="hours" value={l.regularHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "regularHours", v)} /></td>
+                        <td className="px-3 py-2"><NumCell unit="hours" value={l.overtimeHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "overtimeHours", v)} /></td>
+                        <td className="px-3 py-2"><NumCell unit="hours" value={l.leaveHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "leaveHours", v)} /></td>
+                        <td className="px-3 py-2"><NumCell unit="hours" value={l.absenceHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "absenceHours", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.bonus} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "bonus", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.commission} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "commission", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.reimbursement} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "reimbursement", v)} /></td>

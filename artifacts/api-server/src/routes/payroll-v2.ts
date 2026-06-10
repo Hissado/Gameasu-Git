@@ -198,13 +198,40 @@ router.get("/payroll/dashboard", requireManagerOrAbove, async (req, res, next) =
 // ════════════════════════════════════════════════════════
 // PLANNINGS RÉCURRENTS
 // ════════════════════════════════════════════════════════
+// Compute the next occurrence date for a schedule based on frequency and cutoff days
+function computeNextOccurrence(schedule: { frequency: string; cutoffDay1?: number | null; cutoffDay2?: number | null; paymentDelayDays?: number | null }): string {
+  const now = new Date();
+  const delay = schedule.paymentDelayDays ?? 3;
+  const day1 = schedule.cutoffDay1 ?? 28;
+  const day2 = schedule.cutoffDay2 ?? null;
+
+  if (schedule.frequency === "bimonthly" && day2 !== null) {
+    // Next cutoff is day1 or day2 of current/next month
+    const candidates = [
+      new Date(now.getFullYear(), now.getMonth(), day1 + delay),
+      new Date(now.getFullYear(), now.getMonth(), day2 + delay),
+      new Date(now.getFullYear(), now.getMonth() + 1, day1 + delay),
+    ];
+    const next = candidates.find(d => d > now) ?? candidates[candidates.length - 1];
+    return next.toISOString().split("T")[0];
+  }
+  if (schedule.frequency === "weekly") {
+    const next = new Date(now);
+    next.setDate(now.getDate() + (7 - now.getDay() + 1) % 7 + 1 + delay);
+    return next.toISOString().split("T")[0];
+  }
+  // monthly / custom — next month's cutoff day
+  const next = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= day1 ? 1 : 0), day1 + delay);
+  return next.toISOString().split("T")[0];
+}
+
 router.get("/payroll/schedules", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const rows = await db.select().from(payrollSchedulesTable)
       .where(eq(payrollSchedulesTable.organizationId, orgId))
       .orderBy(desc(payrollSchedulesTable.isActive), asc(payrollSchedulesTable.name));
-    res.json(rows);
+    res.json(rows.map(r => ({ ...r, nextOccurrence: computeNextOccurrence(r) })));
   } catch (e) { next(e); }
 });
 

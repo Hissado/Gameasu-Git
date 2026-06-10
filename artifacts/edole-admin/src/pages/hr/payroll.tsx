@@ -217,6 +217,55 @@ export default function PayrollDashboard() {
             </div>
           </div>
 
+          {/* ─── MINI-CALENDRIER DES CYCLES ─── */}
+          {(dash?.calendarItems?.length ?? 0) > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Calendrier de paie — 6 prochains cycles</h2>
+                <Button size="sm" variant="ghost" onClick={() => navigate("/hr/payroll/calendar")}>
+                  <CalendarDays className="w-4 h-4 mr-1" />Vue complète
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {dash!.calendarItems.slice(0, 6).map((item) => {
+                  const [year, mon] = item.period.split("-");
+                  const monthName = new Date(Number(year), Number(mon) - 1, 1).toLocaleDateString("fr-FR", { month: "short" });
+                  const isProjected = item.status === "projected";
+                  return (
+                    <div
+                      key={item.period}
+                      className={`rounded-xl border p-3 text-center transition-all ${
+                        isProjected
+                          ? "border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground"
+                          : STATUS_COLOR[item.status] ?? "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <div className="text-xs font-semibold uppercase tracking-wide mb-1">{monthName} {year}</div>
+                      {!isProjected && item.totalNetSalary > 0 && (
+                        <div className="text-xs font-bold truncate">{formatFCFA(item.totalNetSalary)}</div>
+                      )}
+                      {!isProjected && item.paymentDate && (
+                        <div className="text-[10px] mt-1 opacity-70">
+                          Paie le {new Date(item.paymentDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                        </div>
+                      )}
+                      {isProjected && (
+                        <div className="text-[10px] mt-1 flex items-center justify-center gap-0.5 opacity-60">
+                          <Clock className="w-2.5 h-2.5" />Prévisionnel
+                        </div>
+                      )}
+                      <div className="mt-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${isProjected ? "border-muted-foreground/20 text-muted-foreground bg-transparent" : STATUS_COLOR[item.status] ?? ""}`}>
+                          {isProjected ? "À venir" : STATUS_LABEL[item.status] ?? item.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ─── CYCLES RÉCENTS ─── */}
           <div>
             <div className="flex items-center justify-between mb-3">
