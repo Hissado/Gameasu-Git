@@ -111,6 +111,14 @@ export function useClockMutation() {
   });
 }
 
+export function useCollaboratorAttendanceHistory(collaboratorId: string | null, limit = 30) {
+  return useQuery<{ sessions: AttendanceSession[]; records: AttendanceRecord[] }>({
+    queryKey: ["attendance", "collaborator", collaboratorId, limit],
+    queryFn: () => apiFetch(`/api/attendance/collaborator/${collaboratorId}/history?limit=${limit}`),
+    enabled: !!collaboratorId,
+  });
+}
+
 export function useResolveAttendanceFlag() {
   const qc = useQueryClient();
   return useMutation({

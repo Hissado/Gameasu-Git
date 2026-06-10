@@ -3,13 +3,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Clock, MapPin, Coffee, LogIn, LogOut, AlertTriangle, CheckCircle2,
-  Users, Loader2, Calendar, Camera, MonitorSmartphone,
+  Users, Loader2, Calendar, Camera, MonitorSmartphone, ChevronRight,
 } from "lucide-react";
 import {
   useMyAttendanceToday, useAttendanceDashboard, useAttendanceAnomalies,
   useMyAttendanceHistory, useClockMutation, useResolveAttendanceFlag,
+  useCollaboratorAttendanceHistory,
   captureGeolocation, formatMinutes, type AttendanceRecord,
 } from "@/lib/attendance";
 import { toast } from "sonner";
@@ -169,67 +171,177 @@ function MyClockPanel() {
   );
 }
 
+function CollaboratorRecordsDialog({
+  collaboratorId,
+  collaboratorName,
+  date,
+  open,
+  onClose,
+}: {
+  collaboratorId: string;
+  collaboratorName: string;
+  date: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useCollaboratorAttendanceHistory(open ? collaboratorId : null, 7);
+  const todayRecords = (data?.records ?? []).filter((r) => {
+    const d = new Date(r.occurredAt).toISOString().slice(0, 10);
+    return d === date;
+  }).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            {collaboratorName} — {new Date(date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        ) : todayRecords.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">Aucun enregistrement pour cette date.</p>
+        ) : (
+          <div className="space-y-2">
+            {todayRecords.map((r) => (
+              <div key={r.id} className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-2.5">
+                {r.photoUrl ? (
+                  <a href={r.photoUrl} target="_blank" rel="noreferrer" title="Voir la photo en grand">
+                    <img
+                      src={r.photoUrl}
+                      alt="Photo pointage"
+                      className="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in shrink-0"
+                    />
+                  </a>
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+                    <Camera className="w-5 h-5 text-slate-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-800 text-sm">{KIND_LABEL[r.kind] ?? r.kind}</span>
+                    <span className="text-slate-500 text-sm">{fmtTime(r.occurredAt)}</span>
+                    {r.source === "kiosk" && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5">
+                        <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosk
+                      </span>
+                    )}
+                    {r.source === "app" && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">
+                        Application
+                      </span>
+                    )}
+                  </div>
+                  {r.latitude && r.longitude ? (
+                    <a
+                      target="_blank" rel="noreferrer"
+                      href={`https://www.openstreetmap.org/?mlat=${r.latitude}&mlon=${r.longitude}#map=17/${r.latitude}/${r.longitude}`}
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      {Number(r.latitude).toFixed(4)}, {Number(r.longitude).toFixed(4)}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-0.5">Sans GPS</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function HRDashboard() {
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const { data, isLoading } = useAttendanceDashboard(date);
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
 
   return (
-    <Card className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Users className="w-5 h-5" />Tableau RH des présences</h2>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-slate-400" />
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+    <>
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Users className="w-5 h-5" />Tableau RH des présences</h2>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+          </div>
         </div>
-      </div>
 
-      {data && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <Stat label="Total" value={String(data.summary.total)} />
-          <Stat label="Présents" value={String(data.summary.present)} tone="emerald" />
-          <Stat label="Retards" value={String(data.summary.late)} tone="amber" />
-          <Stat label="Clôturés" value={String(data.summary.closed)} />
-          <Stat label="Heures totales" value={`${data.summary.totalHours}h`} tone="primary" />
-        </div>
-      )}
+        {data && (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <Stat label="Total" value={String(data.summary.total)} />
+            <Stat label="Présents" value={String(data.summary.present)} tone="emerald" />
+            <Stat label="Retards" value={String(data.summary.late)} tone="amber" />
+            <Stat label="Clôturés" value={String(data.summary.closed)} />
+            <Stat label="Heures totales" value={`${data.summary.totalHours}h`} tone="primary" />
+          </div>
+        )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="text-left px-3 py-2">Collaborateur</th>
-              <th className="text-left px-3 py-2">Département</th>
-              <th className="text-left px-3 py-2">Arrivée</th>
-              <th className="text-left px-3 py-2">Départ</th>
-              <th className="text-left px-3 py-2">Pause</th>
-              <th className="text-left px-3 py-2">Présence</th>
-              <th className="text-left px-3 py-2">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
-            ) : data?.sessions.length ? data.sessions.map((s) => (
-              <tr key={s.id} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-medium text-slate-700">{s.collaboratorName}</td>
-                <td className="px-3 py-2 text-slate-500">{s.departmentName ?? "—"}</td>
-                <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
-                <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
-                <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
-                <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
-                <td className="px-3 py-2">
-                  {s.status === "closed" ? <Badge variant="secondary">Clôturée</Badge> :
-                    s.isLate ? <Badge variant="destructive">Retard</Badge> :
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Présent</Badge>}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="text-left px-3 py-2">Collaborateur</th>
+                <th className="text-left px-3 py-2">Département</th>
+                <th className="text-left px-3 py-2">Arrivée</th>
+                <th className="text-left px-3 py-2">Départ</th>
+                <th className="text-left px-3 py-2">Pause</th>
+                <th className="text-left px-3 py-2">Présence</th>
+                <th className="text-left px-3 py-2">Statut</th>
+                <th className="px-3 py-2"></th>
               </tr>
-            )) : (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-400">Aucun pointage pour cette date.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+              ) : data?.sessions.length ? data.sessions.map((s) => (
+                <tr
+                  key={s.id}
+                  className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => setSelected({ id: s.collaboratorId, name: s.collaboratorName ?? "—" })}
+                >
+                  <td className="px-3 py-2 font-medium text-slate-700">{s.collaboratorName}</td>
+                  <td className="px-3 py-2 text-slate-500">{s.departmentName ?? "—"}</td>
+                  <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
+                  <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
+                  <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
+                  <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
+                  <td className="px-3 py-2">
+                    {s.status === "closed" ? <Badge variant="secondary">Clôturée</Badge> :
+                      s.isLate ? <Badge variant="destructive">Retard</Badge> :
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Présent</Badge>}
+                  </td>
+                  <td className="px-3 py-2 text-slate-400">
+                    <ChevronRight className="w-4 h-4" />
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">Aucun pointage pour cette date.</td></tr>
+              )}
+            </tbody>
+          </table>
+          {data?.sessions.length ? (
+            <p className="text-xs text-slate-400 mt-2 px-1">Cliquez sur une ligne pour voir le détail des pointages et photos.</p>
+          ) : null}
+        </div>
+      </Card>
+
+      {selected && (
+        <CollaboratorRecordsDialog
+          collaboratorId={selected.id}
+          collaboratorName={selected.name}
+          date={date}
+          open={!!selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
   );
 }
 
