@@ -78,6 +78,7 @@ const HrRecruitment = lazy(() => import("@/pages/hr/recruitment"));
 const HrEvaluations = lazy(() => import("@/pages/hr/evaluations"));
 const HrTraining = lazy(() => import("@/pages/hr/training"));
 const HrMovements = lazy(() => import("@/pages/hr/movements"));
+const HrMySpace = lazy(() => import("@/pages/hr/my-space"));
 const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
 const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
@@ -275,6 +276,7 @@ function AppRouter() {
                 <Route path="/hr/evaluations" component={HrEvaluations} />
                 <Route path="/hr/training" component={HrTraining} />
                 <Route path="/hr/movements" component={HrMovements} />
+                <Route path="/hr/my-space" component={HrMySpace} />
                 <Route path="/accounting/analytical" component={AccountingAnalytical} />
                 <Route path="/inventory/warehouses" component={InventoryWarehouses} />
 

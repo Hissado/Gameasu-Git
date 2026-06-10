@@ -328,6 +328,26 @@ export const leaveRequestsTable = pgTable("leave_requests", {
 }));
 
 // ────────────────────────────────────────────────────────────────
+// SOLDES DE CONGÉS
+// ────────────────────────────────────────────────────────────────
+export const leaveBalancesTable = pgTable("leave_balances", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  year: integer("year").notNull(),
+  leaveType: text("leave_type").notNull(),
+  allocated: numeric("allocated", { precision: 5, scale: 1 }).notNull().default("0"),
+  used: numeric("used", { precision: 5, scale: 1 }).notNull().default("0"),
+  carried: numeric("carried", { precision: 5, scale: 1 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  uniq: uniqueIndex("leave_balances_collab_year_type_uniq").on(t.collaboratorId, t.year, t.leaveType),
+  orgIdx: index("leave_balances_org_idx").on(t.organizationId),
+  collabIdx: index("leave_balances_collab_idx").on(t.collaboratorId),
+}));
+
+// ────────────────────────────────────────────────────────────────
 // Schémas Zod & Types
 // ────────────────────────────────────────────────────────────────
 export const insertDepartmentSchema = createInsertSchema(departmentsTable).omit({ id: true, createdAt: true, updatedAt: true });
@@ -337,6 +357,7 @@ export const insertHrDocumentSchema = createInsertSchema(hrDocumentsTable).omit(
 export const insertCollabAssignmentSchema = createInsertSchema(collaboratorAssignmentsTable).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertLeaveRequestSchema = createInsertSchema(leaveRequestsTable).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
+export const insertLeaveBalanceSchema = createInsertSchema(leaveBalancesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertJobOfferSchema = createInsertSchema(jobOffersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCandidacySchema = createInsertSchema(candidaciesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPerformanceReviewSchema = createInsertSchema(performanceReviewsTable).omit({ id: true, createdAt: true, updatedAt: true, acknowledgedAt: true });
@@ -349,6 +370,7 @@ export type Contract = typeof contractsTable.$inferSelect;
 export type HrDocument = typeof hrDocumentsTable.$inferSelect;
 export type CollaboratorAssignment = typeof collaboratorAssignmentsTable.$inferSelect;
 export type LeaveRequest = typeof leaveRequestsTable.$inferSelect;
+export type LeaveBalance = typeof leaveBalancesTable.$inferSelect;
 export type JobOffer = typeof jobOffersTable.$inferSelect;
 export type Candidacy = typeof candidaciesTable.$inferSelect;
 export type PerformanceReview = typeof performanceReviewsTable.$inferSelect;

@@ -1,2 +1,4 @@
 - [Workload assignee fix](workload-assignee-fix.md) — use task-derived assignees (not collaborators) in workload matrix; most collabs have userId=null
 - [Drizzle jsonb select bug](drizzle-jsonb-select.md) — select() without explicit fields crashes when any column is undefined; always use select({ col: table.col }) and returning({ ... }).
+- [Object storage URL convention](object-storage-url.md) — objectPath from presigned URL → serve via `/api/storage` + objectPath directly
+- [HR self-service endpoints](hr-self-service.md) — complete set of /api/hr/me/* routes already implemented; use them for portail employé

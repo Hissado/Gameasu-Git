@@ -12,6 +12,7 @@ import {
   tasksTable,
   equipmentTable,
   leaveRequestsTable,
+  leaveBalancesTable,
   jobOffersTable,
   candidaciesTable,
   performanceReviewsTable,
@@ -577,6 +578,20 @@ router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) =>
     rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
     updatedAt: new Date(),
   }).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id))).returning();
+
+  if (status === "approved") {
+    const leaveYear = new Date(leave.startDate).getFullYear();
+    await db.update(leaveBalancesTable).set({
+      used: sql`${leaveBalancesTable.used} + ${Number(leave.days)}`,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(leaveBalancesTable.organizationId, orgId),
+      eq(leaveBalancesTable.collaboratorId, leave.collaboratorId),
+      sql`${leaveBalancesTable.year} = ${leaveYear}`,
+      eq(leaveBalancesTable.leaveType, leave.type),
+    ));
+  }
+
   res.json(updated);
 });
 
@@ -587,6 +602,95 @@ router.delete("/hr/leaves/:id", requireManagerOrAbove, async (req, res) => {
   if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
   await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)));
   res.status(204).send();
+});
+
+// ════════════════════════════════════════════════════════════════
+// SOLDES DE CONGÉS
+// ════════════════════════════════════════════════════════════════
+
+router.get("/hr/leave-balances", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { collaboratorId, year } = req.query as Record<string, string>;
+  const targetYear = year ? parseInt(year) : new Date().getFullYear();
+
+  const conds = [
+    eq(leaveBalancesTable.organizationId, orgId),
+    sql`${leaveBalancesTable.year} = ${targetYear}`,
+  ];
+  if (collaboratorId) conds.push(eq(leaveBalancesTable.collaboratorId, collaboratorId));
+
+  const rows = await db.select({
+    b: leaveBalancesTable,
+    firstName: collaboratorsTable.firstName,
+    lastName: collaboratorsTable.lastName,
+    avatarUrl: collaboratorsTable.avatarUrl,
+  }).from(leaveBalancesTable)
+    .leftJoin(collaboratorsTable, eq(leaveBalancesTable.collaboratorId, collaboratorsTable.id))
+    .where(and(...conds))
+    .orderBy(collaboratorsTable.lastName, collaboratorsTable.firstName);
+
+  res.json({ data: rows.map(r => ({
+    ...r.b,
+    allocated: Number(r.b.allocated),
+    used: Number(r.b.used),
+    carried: Number(r.b.carried),
+    remaining: Number(r.b.allocated) + Number(r.b.carried) - Number(r.b.used),
+    collaboratorName: `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim(),
+    collaboratorAvatar: r.avatarUrl,
+  })) });
+});
+
+router.get("/hr/leave-balances/:collaboratorId", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const targetYear = new Date().getFullYear();
+  const rows = await db.select().from(leaveBalancesTable)
+    .where(and(
+      eq(leaveBalancesTable.organizationId, orgId),
+      eq(leaveBalancesTable.collaboratorId, req.params.collaboratorId),
+      sql`${leaveBalancesTable.year} = ${targetYear}`,
+    ));
+  res.json({ data: rows.map(r => ({
+    ...r,
+    allocated: Number(r.allocated),
+    used: Number(r.used),
+    carried: Number(r.carried),
+    remaining: Number(r.allocated) + Number(r.carried) - Number(r.used),
+  })) });
+});
+
+router.post("/hr/leave-balances", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { collaboratorId, year, leaveType, allocated, carried } = req.body;
+  if (!collaboratorId || !leaveType) { res.status(400).json({ error: "collaboratorId et leaveType requis" }); return; }
+  const targetYear = year ?? new Date().getFullYear();
+
+  const [existing] = await db.select().from(leaveBalancesTable)
+    .where(and(
+      eq(leaveBalancesTable.organizationId, orgId),
+      eq(leaveBalancesTable.collaboratorId, collaboratorId),
+      sql`${leaveBalancesTable.year} = ${targetYear}`,
+      eq(leaveBalancesTable.leaveType, leaveType),
+    )).limit(1);
+
+  if (existing) {
+    const [updated] = await db.update(leaveBalancesTable).set({
+      allocated: allocated != null ? String(allocated) : existing.allocated,
+      carried: carried != null ? String(carried) : existing.carried,
+      updatedAt: new Date(),
+    }).where(eq(leaveBalancesTable.id, existing.id)).returning();
+    res.json({ ...updated, allocated: Number(updated.allocated), used: Number(updated.used), carried: Number(updated.carried), remaining: Number(updated.allocated) + Number(updated.carried) - Number(updated.used) });
+  } else {
+    const [created] = await db.insert(leaveBalancesTable).values({
+      organizationId: orgId,
+      collaboratorId,
+      year: targetYear,
+      leaveType,
+      allocated: allocated != null ? String(allocated) : "0",
+      used: "0",
+      carried: carried != null ? String(carried) : "0",
+    }).returning();
+    res.status(201).json({ ...created, allocated: Number(created.allocated), used: Number(created.used), carried: Number(created.carried), remaining: Number(created.allocated) + Number(created.carried) - Number(created.used) });
+  }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1496,6 +1600,7 @@ router.get("/hr/orgchart", async (req, res, next) => {
         departmentId: collaboratorsTable.departmentId,
         avatarUrl: collaboratorsTable.avatarUrl,
         status: collaboratorsTable.status,
+        managerCollaboratorId: collaboratorsTable.managerCollaboratorId,
       }).from(collaboratorsTable)
         .where(and(
           eq(collaboratorsTable.organizationId, orgId),

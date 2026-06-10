@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2 } from "lucide-react";
+import { UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff, Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard } from "lucide-react";
 
 const TABS = [
+  { name: "Mon espace", path: "/hr/my-space", icon: LayoutDashboard },
   { name: "Vue d'ensemble", path: "/hr", icon: UsersRound, exact: true },
   { name: "Collaborateurs", path: "/collaborators", icon: UsersRound },
   { name: "Organigramme", path: "/hr/orgchart", icon: Share2 },
