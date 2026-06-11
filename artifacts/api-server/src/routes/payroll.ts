@@ -16,8 +16,9 @@
  *
  *  GET    /api/payroll/livre               livre de paie (regroupé par période)
  *
- *  POST   /api/payroll/payslips/:id/send-email  envoyer le bulletin par email au collaborateur
- *  POST   /api/payroll/runs/:id/send-emails    envoyer tous les bulletins d'un cycle en masse
+ *  POST   /api/payroll/payslips/:id/send-email   envoyer le bulletin par email au collaborateur
+ *  GET    /api/payroll/payslips/:id/email-logs  historique complet des envois pour un bulletin
+ *  POST   /api/payroll/runs/:id/send-emails     envoyer tous les bulletins d'un cycle en masse
  */
 import { Router } from "express";
 import { PassThrough } from "stream";
@@ -26,6 +27,7 @@ import { db } from "@workspace/db";
 import {
   payrollRunsTable,
   payslipsTable,
+  payslipEmailLogsTable,
   collaboratorsTable,
   contractsTable,
   organizationsTable,
@@ -715,17 +717,73 @@ router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (re
       attachments: [{ filename: pdfFilename, content: pdfBase64 }],
     });
 
+    const sentAt = new Date();
+
     if (!result.delivered) {
+      // Enregistrer l'échec dans l'historique
+      await db.insert(payslipEmailLogsTable).values({
+        payslipId: p.id,
+        sentAt,
+        sentTo: p.collaboratorEmail,
+        provider: result.provider ?? "unknown",
+        messageId: result.messageId ?? null,
+        status: "failed",
+        errorMessage: result.error ?? "Échec inconnu",
+      });
       res.status(502).json({ error: `Échec de l'envoi : ${result.error ?? "erreur inconnue"}` });
       return;
     }
 
-    // Mettre à jour emailSentAt
-    await db.update(payslipsTable)
-      .set({ emailSentAt: new Date() })
-      .where(eq(payslipsTable.id, p.id));
+    // Mettre à jour emailSentAt + insérer dans l'historique
+    await Promise.all([
+      db.update(payslipsTable)
+        .set({ emailSentAt: sentAt })
+        .where(eq(payslipsTable.id, p.id)),
+      db.insert(payslipEmailLogsTable).values({
+        payslipId: p.id,
+        sentAt,
+        sentTo: p.collaboratorEmail,
+        provider: result.provider ?? "unknown",
+        messageId: result.messageId ?? null,
+        status: "delivered",
+      }),
+    ]);
 
     res.json({ delivered: true, provider: result.provider, messageId: result.messageId, sentTo: p.collaboratorEmail });
+  } catch (e) { next(e); }
+});
+
+// ──────────────────────────────────────────────────────────
+// HISTORIQUE DES EMAILS — PAR BULLETIN
+// GET /api/payroll/payslips/:id/email-logs
+// ──────────────────────────────────────────────────────────
+router.get("/payroll/payslips/:id/email-logs", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+
+    const [p] = await db
+      .select({ id: payslipsTable.id })
+      .from(payslipsTable)
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .limit(1);
+
+    if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
+
+    const logs = await db
+      .select({
+        id: payslipEmailLogsTable.id,
+        sentAt: payslipEmailLogsTable.sentAt,
+        sentTo: payslipEmailLogsTable.sentTo,
+        provider: payslipEmailLogsTable.provider,
+        messageId: payslipEmailLogsTable.messageId,
+        status: payslipEmailLogsTable.status,
+        errorMessage: payslipEmailLogsTable.errorMessage,
+      })
+      .from(payslipEmailLogsTable)
+      .where(eq(payslipEmailLogsTable.payslipId, p.id))
+      .orderBy(desc(payslipEmailLogsTable.sentAt));
+
+    res.json({ logs });
   } catch (e) { next(e); }
 });
 
@@ -876,11 +934,34 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
           attachments: [{ filename: pdfFilename, content: pdfBase64 }],
         });
 
-        if (!result.delivered) throw new Error(result.error ?? "Échec envoi");
+        const sentAt = new Date();
 
-        await db.update(payslipsTable)
-          .set({ emailSentAt: new Date() })
-          .where(eq(payslipsTable.id, p.id));
+        if (!result.delivered) {
+          await db.insert(payslipEmailLogsTable).values({
+            payslipId: p.id,
+            sentAt,
+            sentTo: p.collaboratorEmail,
+            provider: result.provider ?? "unknown",
+            messageId: result.messageId ?? null,
+            status: "failed",
+            errorMessage: result.error ?? "Échec inconnu",
+          });
+          throw new Error(result.error ?? "Échec envoi");
+        }
+
+        await Promise.all([
+          db.update(payslipsTable)
+            .set({ emailSentAt: sentAt })
+            .where(eq(payslipsTable.id, p.id)),
+          db.insert(payslipEmailLogsTable).values({
+            payslipId: p.id,
+            sentAt,
+            sentTo: p.collaboratorEmail,
+            provider: result.provider ?? "unknown",
+            messageId: result.messageId ?? null,
+            status: "delivered",
+          }),
+        ]);
 
         return { status: "sent" as const, id: p.id };
       })

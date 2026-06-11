@@ -332,3 +332,24 @@ export const insertPayrollCorrectionSchema = createInsertSchema(payrollCorrectio
 export type PayrollSchedule = typeof payrollSchedulesTable.$inferSelect;
 export type PayrollLineItem = typeof payrollLineItemsTable.$inferSelect;
 export type PayrollCorrection = typeof payrollCorrectionsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// HISTORIQUE DES EMAILS DE BULLETINS DE PAIE
+// ─────────────────────────────────────────────────────────
+export const payslipEmailLogsTable = pgTable("payslip_email_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  payslipId: uuid("payslip_id").notNull().references(() => payslipsTable.id, { onDelete: "cascade" }),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  sentTo: text("sent_to").notNull(),
+  // resend | console | unknown
+  provider: text("provider"),
+  messageId: text("message_id"),
+  // delivered | failed
+  status: text("status").notNull().default("delivered"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  payslipIdx: index("pel_payslip_idx").on(t.payslipId),
+}));
+
+export type PayslipEmailLog = typeof payslipEmailLogsTable.$inferSelect;
