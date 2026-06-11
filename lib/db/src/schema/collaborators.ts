@@ -55,6 +55,9 @@ export const collaboratorsTable = pgTable("collaborators", {
   // Durée de travail hebdomadaire de référence pour le calcul du taux horaire.
   weeklyHours: numeric("weekly_hours", { precision: 5, scale: 2 }).default("40"),
 
+  // Email professionnel (utilisé en priorité pour les bulletins de paie)
+  professionalEmail: text("professional_email"),
+
   // Coordonnées bancaires (pour virements de salaires)
   bankName: text("bank_name"),
   bankCode: text("bank_code"),         // Code banque BCEAO (ex: "024" pour Ecobank Togo)

@@ -50,6 +50,7 @@ type EditForm = {
   firstName: string;
   lastName: string;
   email: string;
+  professionalEmail: string;
   phone: string;
   nationalId: string;
   birthDate: string;
@@ -230,6 +231,7 @@ function EditCollaboratorDialog({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
+          professionalEmail: data.professionalEmail || null,
           phone: data.phone,
           nationalId: data.nationalId,
           birthDate: data.birthDate || null,
@@ -363,13 +365,19 @@ function EditCollaboratorDialog({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email professionnel</Label>
-                <Input id="email" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="prenom.nom@entreprise.com" />
+                <Label htmlFor="professionalEmail">Email professionnel</Label>
+                <Input id="professionalEmail" type="email" value={form.professionalEmail} onChange={e => set("professionalEmail", e.target.value)} placeholder="prenom.nom@entreprise.com" />
+                <p className="text-xs text-muted-foreground">Utilisé en priorité pour l'envoi des bulletins.</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">Téléphone</Label>
                 <Input id="phone" value={form.phone} onChange={e => set("phone", e.target.value)} />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email personnel</Label>
+              <Input id="email" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="email@personnel.com" />
+              <p className="text-xs text-muted-foreground">Utilisé en secours si l'email professionnel est absent.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -820,6 +828,7 @@ export default function CollaboratorDetail() {
       bankName: c?.bankName || "",
       bankCode: c?.bankCode || "",
       bankAccountNumber: c?.bankAccountNumber || "",
+      professionalEmail: c?.professionalEmail || "",
     };
   };
 

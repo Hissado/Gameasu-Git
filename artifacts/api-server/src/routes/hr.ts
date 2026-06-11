@@ -1044,7 +1044,7 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
     const isAdmin = ["admin", "super_admin"].includes(req.authUser!.role);
 
     const {
-      firstName, lastName, email, phone, nationalId, birthDate, address,
+      firstName, lastName, email, professionalEmail, phone, nationalId, birthDate, address,
       emergencyContact, employeeNumber, departmentId, positionId, position,
       department, managerCollaboratorId, hireDate, employmentStatus, isAvailable,
       avatarUrl, baseSalary,
@@ -1059,6 +1059,7 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
       ...(firstName !== undefined && { firstName }),
       ...(lastName !== undefined && { lastName }),
       ...(email !== undefined && { email }),
+      ...(professionalEmail !== undefined && { professionalEmail: professionalEmail || null }),
       ...(phone !== undefined && { phone }),
       ...(nationalId !== undefined && { nationalId }),
       ...(birthDate !== undefined && { birthDate: birthDate || null }),
