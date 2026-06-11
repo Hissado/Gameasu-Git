@@ -10,22 +10,24 @@ import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function CollaboratorsList() {
   const { data: collaborators, isLoading } = useListCollaborators();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Équipe Terrain</h1>
-          <p className="text-sm text-muted-foreground mt-1">Effectifs et affectations</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Ajouter un Collaborateur
-        </Button>
-      </div>
+      <PageHeader
+        title="Équipe Terrain"
+        subtitle="Effectifs et affectations"
+        icon={UsersRound}
+        actions={
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+            Ajouter un Collaborateur
+          </Button>
+        }
+      />
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">

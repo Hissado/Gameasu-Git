@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Invoice = {
   id: string; referenceNumber: string; status: string;
@@ -242,22 +243,20 @@ export default function PaymentsList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Encaissements</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Journal des paiements clients ·{" "}
-            <strong className="text-emerald-600">{formatFCFA(totalEncaisse)}</strong> encaissé
-          </p>
-        </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold shadow-sm gap-1.5"
-        >
-          <Plus className="w-4 h-4" strokeWidth={3} />
-          Saisir un encaissement
-        </Button>
-      </div>
+      <PageHeader
+        title="Encaissements"
+        subtitle={`Journal des paiements · ${formatFCFA(totalEncaisse)} encaissé`}
+        icon={CreditCard}
+        actions={
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold shadow-sm gap-1.5"
+          >
+            <Plus className="w-4 h-4" strokeWidth={3} />
+            Saisir un encaissement
+          </Button>
+        }
+      />
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">

@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA } from "@/lib/format";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -186,33 +187,48 @@ export default function EquipmentList() {
   const { data: availability, isLoading: isLoadingAvail } = useGetEquipmentAvailability();
   const { data: equipment, isLoading } = useListEquipment();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteItem, setDeleteItem] = useState<any>(null);
 
+  const allItems = equipment?.data || [];
   const items = useMemo(() => {
-    const all = equipment?.data || [];
-    if (!search.trim()) return all;
+    let result = allItems;
+    if (statusFilter !== "all") result = result.filter((e: any) => e.status === statusFilter);
+    if (!search.trim()) return result;
     const q = search.toLowerCase();
-    return all.filter((e: any) =>
+    return result.filter((e: any) =>
       e.name?.toLowerCase().includes(q) ||
       e.code?.toLowerCase().includes(q) ||
       e.categoryName?.toLowerCase().includes(q)
     );
-  }, [equipment, search]);
+  }, [allItems, search, statusFilter]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Inventaire Matériel</h1>
-          <p className="text-sm text-muted-foreground mt-1">Flotte d'équipements et machines</p>
-        </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Ajouter du Matériel
-        </Button>
-      </div>
+      <PageHeader
+        title="Inventaire Matériel"
+        subtitle={`${allItems.length} équipements · Flotte et machines`}
+        icon={Wrench}
+        actions={
+          <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+            Ajouter du Matériel
+          </Button>
+        }
+      />
+      <StatusTabs
+        tabs={[
+          { key: "all",         label: "Tous",           count: allItems.length },
+          { key: "available",   label: "Disponibles",    count: availability?.available ?? 0 },
+          { key: "rented",      label: "En location",    count: availability?.rented ?? 0 },
+          { key: "maintenance", label: "En maintenance", count: availability?.maintenance ?? 0 },
+          { key: "retired",     label: "Hors service",   count: allItems.filter((e: any) => e.status === "retired").length },
+        ]}
+        active={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[

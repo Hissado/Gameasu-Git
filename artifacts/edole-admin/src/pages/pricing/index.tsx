@@ -82,6 +82,8 @@ interface StructureCostConfig {
   monthlyCapacity: number;       // mode capacity: capacité totale mensuelle
   dealConsumption: number;       // mode capacity: part de ce deal
   capacityUnit: string;
+  /** Auto-calcule dealConsumption/dealAllocationPct depuis les heures MO du scénario */
+  autoAllocation: boolean;
   // Per-section monthly budgets
   operational: StructureSectionBudget;
   admin: StructureSectionBudget;
@@ -212,6 +214,7 @@ const DEFAULT_STRUCTURE_COSTS: StructureCostConfig = {
   monthlyCapacity: 160,
   dealConsumption: 0,
   capacityUnit: "h",
+  autoAllocation: false,
   operational: { monthlyBudget: 0 },
   admin:        { monthlyBudget: 0 },
   commercial:   { monthlyBudget: 0 },
@@ -418,7 +421,17 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
   }
 
   // 4. Structure costs — unified burn rate OR fallback to line items
-  const sc = computeStructureCosts(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS);
+  // Auto-allocation : si activée, dériver dealConsumption/dealAllocationPct depuis les heures MO
+  const totalLaborHours = (scenario.laborLines ?? []).reduce((sum, l) => sum + (l.allocatedHours ?? 0), 0);
+  const rawCfg = scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS;
+  const effectiveCfg: StructureCostConfig = rawCfg.autoAllocation && rawCfg.enabled && totalLaborHours > 0
+    ? rawCfg.allocationMode === "capacity"
+      ? { ...rawCfg, dealConsumption: totalLaborHours }
+      : { ...rawCfg, dealAllocationPct: rawCfg.monthlyCapacity > 0
+            ? Math.min(100, (totalLaborHours / rawCfg.monthlyCapacity) * 100)
+            : rawCfg.dealAllocationPct }
+    : rawCfg;
+  const sc = computeStructureCosts(effectiveCfg);
   if ((scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled) {
     // Unified mode: use computed structure allocations
     byCategory.operational += sc.operational; baseCost += sc.operational;
@@ -1278,7 +1291,7 @@ function CostSection({
 // ─── UnifiedStructurePanel ────────────────────────────────────────────────────
 
 function UnifiedStructurePanel({
-  config, onUpdate, ytdCharges, ytdMonthsElapsed, realBurnRates, ytdRevenues, priceHT,
+  config, onUpdate, ytdCharges, ytdMonthsElapsed, realBurnRates, ytdRevenues, priceHT, laborLines,
 }: {
   config: StructureCostConfig;
   onUpdate: (patch: Partial<StructureCostConfig>) => void;
@@ -1287,8 +1300,22 @@ function UnifiedStructurePanel({
   realBurnRates: RealBurnRates | null;
   ytdRevenues: number;
   priceHT: number;
+  laborLines: LaborLineItem[];
 }) {
-  const sc = computeStructureCosts(config);
+  // Auto-allocation: compute effective values from labor hours
+  const totalLaborHours = (laborLines ?? []).reduce((sum, l) => sum + (l.allocatedHours ?? 0), 0);
+  const autoEffectivePct = config.monthlyCapacity > 0 && totalLaborHours > 0
+    ? Math.min(100, (totalLaborHours / config.monthlyCapacity) * 100)
+    : 0;
+
+  // Build effective config (override dealConsumption/dealAllocationPct when auto is on)
+  const effectiveCfg: StructureCostConfig = config.autoAllocation && totalLaborHours > 0
+    ? config.allocationMode === "capacity"
+      ? { ...config, dealConsumption: totalLaborHours }
+      : { ...config, dealAllocationPct: autoEffectivePct }
+    : config;
+
+  const sc = computeStructureCosts(effectiveCfg);
   const totalMonthly = config.operational.monthlyBudget + config.admin.monthlyBudget +
     config.commercial.monthlyBudget + config.financial.monthlyBudget;
 
@@ -1437,39 +1464,73 @@ function UnifiedStructurePanel({
           </div>
         </div>
 
+        {/* Auto-allocation toggle */}
+        <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${config.autoAllocation ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+          <div className="flex items-center gap-2">
+            <Calculator className={`w-3.5 h-3.5 ${config.autoAllocation ? "text-emerald-600" : "text-slate-400"}`} />
+            <div>
+              <div className={`text-xs font-semibold ${config.autoAllocation ? "text-emerald-800" : "text-slate-600"}`}>
+                Allocation automatique depuis les heures MO
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                {totalLaborHours > 0
+                  ? `${totalLaborHours}h saisies dans les lignes main-d'œuvre`
+                  : "Ajoutez des lignes main-d'œuvre dans l'onglet MO pour activer"}
+              </div>
+            </div>
+          </div>
+          <Switch
+            checked={config.autoAllocation}
+            disabled={totalLaborHours === 0}
+            onCheckedChange={v => onUpdate({ autoAllocation: v })}
+          />
+        </div>
+
         {config.allocationMode === "pct" ? (
           <div className="space-y-2">
             <Label className="text-xs font-medium block">Part de votre activité représentée par ce deal (%)</Label>
-            <div className="flex items-center gap-2">
-              <Input type="number" min="0" max="100" step="0.5"
-                value={config.dealAllocationPct || ""}
-                placeholder="ex. 20"
-                onChange={e => onUpdate({ dealAllocationPct: parseFloat(e.target.value) || 0 })}
-                className="h-9 text-sm w-32" />
-              {config.dealAllocationPct > 0 && (
-                <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg">
-                  {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} mois
+            {config.autoAllocation && totalLaborHours > 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800 w-32">
+                  {autoEffectivePct.toFixed(1)}%
+                </div>
+                <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
+                  {totalLaborHours}h ÷ {config.monthlyCapacity}h cap. = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
                 </span>
-              )}
-              {/* Auto-suggest deal share from priceHT */}
-              {autoSharePct > 0 && Math.abs(autoSharePct - config.dealAllocationPct) > 0.5 && (
-                <button
-                  onClick={() => {
-                    onUpdate({ dealAllocationPct: Math.round(autoSharePct * 10) / 10 });
-                    toast.success("Part du deal calculée automatiquement", {
-                      description: `${(Math.round(autoSharePct * 10) / 10).toFixed(1)}% = Prix HT (${formatFCFA(Math.round(priceHT))}) ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))})`,
-                    });
-                  }}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors shrink-0">
-                  <Calculator className="w-3 h-3" />
-                  Auto : {(Math.round(autoSharePct * 10) / 10).toFixed(1)}%
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input type="number" min="0" max="100" step="0.5"
+                  value={config.dealAllocationPct || ""}
+                  placeholder="ex. 20"
+                  onChange={e => onUpdate({ dealAllocationPct: parseFloat(e.target.value) || 0 })}
+                  className="h-9 text-sm w-32" />
+                {config.dealAllocationPct > 0 && (
+                  <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg">
+                    {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} mois
+                  </span>
+                )}
+                {autoSharePct > 0 && Math.abs(autoSharePct - config.dealAllocationPct) > 0.5 && (
+                  <button
+                    onClick={() => {
+                      onUpdate({ dealAllocationPct: Math.round(autoSharePct * 10) / 10 });
+                      toast.success("Part du deal calculée automatiquement", {
+                        description: `${(Math.round(autoSharePct * 10) / 10).toFixed(1)}% = Prix HT (${formatFCFA(Math.round(priceHT))}) ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))})`,
+                      });
+                    }}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors shrink-0">
+                    <Calculator className="w-3 h-3" />
+                    Auto : {(Math.round(autoSharePct * 10) / 10).toFixed(1)}%
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-[10px] text-muted-foreground">
-              {autoSharePct > 0
-                ? `Suggestion calculée : prix HT du deal ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))}/mois) = ${(Math.round(autoSharePct * 10) / 10).toFixed(1)}%`
-                : "Ex. ce deal représente 20% de votre activité ce mois. Saisissez un prix HT pour obtenir une suggestion automatique."}
+              {config.autoAllocation && totalLaborHours > 0
+                ? "Calculé automatiquement : heures MO du deal ÷ capacité mensuelle totale."
+                : autoSharePct > 0
+                  ? `Suggestion calculée : prix HT du deal ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))}/mois) = ${(Math.round(autoSharePct * 10) / 10).toFixed(1)}%`
+                  : "Ex. ce deal représente 20% de votre activité ce mois. Activez le mode Auto si vous avez des lignes MO."}
             </p>
           </div>
         ) : (
@@ -1491,21 +1552,30 @@ function UnifiedStructurePanel({
               </div>
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Part de ce deal</Label>
-                <Input type="number" min="0"
-                  value={config.dealConsumption || ""}
-                  placeholder="ex. 32"
-                  onChange={e => onUpdate({ dealConsumption: parseFloat(e.target.value) || 0 })}
-                  className="h-9 text-sm" />
-                <p className="text-[10px] text-muted-foreground mt-0.5">{config.capacityUnit || "unités"} consommées</p>
+                {config.autoAllocation && totalLaborHours > 0 ? (
+                  <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800">
+                    {totalLaborHours}{config.capacityUnit || "h"}
+                  </div>
+                ) : (
+                  <Input type="number" min="0"
+                    value={config.dealConsumption || ""}
+                    placeholder="ex. 32"
+                    onChange={e => onUpdate({ dealConsumption: parseFloat(e.target.value) || 0 })}
+                    className="h-9 text-sm" />
+                )}
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {config.autoAllocation && totalLaborHours > 0 ? "Calculé depuis MO" : `${config.capacityUnit || "unités"} consommées`}
+                </p>
               </div>
             </div>
-            {config.monthlyCapacity > 0 && config.dealConsumption > 0 && (
-              <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
-                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">
-                  {config.dealConsumption} / {config.monthlyCapacity} {config.capacityUnit} = <strong className="text-slate-800">
-                    {Math.min(100, (config.dealConsumption / config.monthlyCapacity) * 100).toFixed(1)}%
+            {config.monthlyCapacity > 0 && (config.autoAllocation ? totalLaborHours : config.dealConsumption) > 0 && (
+              <div className={`border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${config.autoAllocation ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200"}`}>
+                <ArrowRight className={`w-3 h-3 shrink-0 ${config.autoAllocation ? "text-emerald-500" : "text-muted-foreground"}`} />
+                <span className={config.autoAllocation ? "text-emerald-700" : "text-muted-foreground"}>
+                  {config.autoAllocation ? totalLaborHours : config.dealConsumption} / {config.monthlyCapacity} {config.capacityUnit} = <strong className={config.autoAllocation ? "text-emerald-900" : "text-slate-800"}>
+                    {Math.min(100, ((config.autoAllocation ? totalLaborHours : config.dealConsumption) / config.monthlyCapacity) * 100).toFixed(1)}%
                   </strong> de votre capacité mensuelle
+                  {config.autoAllocation && <span className="ml-1 text-[10px] font-semibold bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full">AUTO</span>}
                 </span>
               </div>
             )}
@@ -2021,6 +2091,7 @@ export default function PricingCalculator() {
                         realBurnRates={realBurnRates}
                         ytdRevenues={ytdData?.ytdRevenues ?? 0}
                         priceHT={result.priceHT}
+                        laborLines={scenario.laborLines ?? []}
                       />
                     ) : (
                       <div className="space-y-5">

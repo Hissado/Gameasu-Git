@@ -15,6 +15,7 @@ import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircl
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 
 type Client = { id: string; name: string };
 type Proforma = {
@@ -270,6 +271,7 @@ function CancelProformaDialog({ proforma, onClose, onSuccess }: { proforma: Prof
 export default function ProformasList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Proforma | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Proforma | null>(null);
@@ -281,9 +283,11 @@ export default function ProformasList() {
     queryFn: () => apiFetch("/api/proformas?limit=50"),
   });
 
-  const proformas = (data?.data ?? []).filter(p =>
-    !search || p.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    (p.clientName ?? "").toLowerCase().includes(search.toLowerCase())
+  const allProformas = data?.data ?? [];
+  const proformas = allProformas.filter(p =>
+    (statusFilter === "all" || p.status === statusFilter) &&
+    (!search || p.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
+    (p.clientName ?? "").toLowerCase().includes(search.toLowerCase()))
   );
 
   const generateInvoice = async (id: string) => {
@@ -314,27 +318,27 @@ export default function ProformasList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Devis (Proformas)</h1>
-          <p className="text-sm text-muted-foreground mt-1">Propositions commerciales — workflow devis → facture</p>
-        </div>
-        <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
-          <Plus className="w-4 h-4" strokeWidth={3} /> Créer un devis
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-3 text-sm text-muted-foreground bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
-        <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-        <span className="font-medium text-slate-600">Workflow :</span>
-        <span className="flex items-center gap-1.5 flex-wrap">
-          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-semibold">Brouillon</span>→
-          <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">Envoyé</span>→
-          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-semibold">Approuvé</span>→
-          <Receipt className="w-3.5 h-3.5 text-[#C8A24B]" />
-          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-xs font-semibold">Facture générée</span>
-        </span>
-      </div>
+      <PageHeader
+        title="Devis"
+        subtitle={`${allProformas.length} devis · Propositions commerciales`}
+        icon={FileText}
+        actions={
+          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+            <Plus className="w-4 h-4" strokeWidth={3} /> Créer un devis
+          </Button>
+        }
+      />
+      <StatusTabs
+        tabs={[
+          { key: "all",      label: "Tous",       count: allProformas.length },
+          { key: "draft",    label: "Brouillons", count: allProformas.filter(p => p.status === "draft").length },
+          { key: "sent",     label: "Envoyés",    count: allProformas.filter(p => p.status === "sent").length },
+          { key: "approved", label: "Approuvés",  count: allProformas.filter(p => p.status === "approved").length },
+          { key: "rejected", label: "Refusés",    count: allProformas.filter(p => p.status === "rejected").length },
+        ]}
+        active={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       <Card className="shadow-sm">
         <CardHeader className="pb-4 border-b">

@@ -20,6 +20,7 @@ import { formatFCFA } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Progression logique des stades (prev → next)
 const STAGE_NEXT: Record<string, string> = {
@@ -228,33 +229,30 @@ export default function CrmHome() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pipeline Commercial</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {opportunities?.total ?? 0} opportunités ·{" "}
-            {pipeline && formatFCFA(pipeline.totalValue ?? 0)} en pipeline
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/clients">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Building className="w-4 h-4" /> Annuaire clients
+      <PageHeader
+        title="Pipeline Commercial"
+        subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFA(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}
+        icon={Target}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href="/clients">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Building className="w-4 h-4" /> Clients
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Calculator className="w-4 h-4" /> Calculateur
+              </Button>
+            </Link>
+            <Button onClick={() => setNewOppOpen(true)}
+              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+              <Plus className="w-4 h-4" strokeWidth={3} />
+              Nouvelle opportunité
             </Button>
-          </Link>
-          <Link href="/pricing">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Calculator className="w-4 h-4" /> Calculateur
-            </Button>
-          </Link>
-          <Button onClick={() => setNewOppOpen(true)}
-            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
-            <Plus className="w-4 h-4" strokeWidth={3} />
-            Nouvelle opportunité
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* KPI Row */}
       {!isLoading && (() => {

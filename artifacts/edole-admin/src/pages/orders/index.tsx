@@ -15,6 +15,7 @@ import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 
 type Client = { id: string; name: string };
 type Order = {
@@ -252,6 +253,7 @@ function CancelOrderDialog({ order, onClose, onSuccess }: { order: Order; onClos
 export default function OrdersList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Order | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
@@ -263,9 +265,11 @@ export default function OrdersList() {
     queryFn: () => apiFetch("/api/orders?limit=50"),
   });
 
-  const orders = (data?.data ?? []).filter(o =>
-    !search || o.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    (o.clientName ?? "").toLowerCase().includes(search.toLowerCase())
+  const allOrders = data?.data ?? [];
+  const orders = allOrders.filter(o =>
+    (statusFilter === "all" || o.status === statusFilter) &&
+    (!search || o.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
+    (o.clientName ?? "").toLowerCase().includes(search.toLowerCase()))
   );
 
   const generateInvoice = async (orderId: string) => {
@@ -289,15 +293,27 @@ export default function OrdersList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Bons de commande</h1>
-          <p className="text-sm text-muted-foreground mt-1">Commandes clients validées</p>
-        </div>
-        <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
-          <Plus className="w-4 h-4" strokeWidth={3} /> Créer une commande
-        </Button>
-      </div>
+      <PageHeader
+        title="Bons de commande"
+        subtitle={`${allOrders.length} commande${allOrders.length !== 1 ? "s" : ""} au total`}
+        icon={ShoppingCart}
+        actions={
+          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+            <Plus className="w-4 h-4" strokeWidth={3} /> Créer une commande
+          </Button>
+        }
+      />
+      <StatusTabs
+        tabs={[
+          { key: "all",       label: "Toutes",      count: allOrders.length },
+          { key: "draft",     label: "Brouillons",  count: allOrders.filter(o => o.status === "draft").length },
+          { key: "confirmed", label: "Confirmées",  count: allOrders.filter(o => o.status === "confirmed").length },
+          { key: "delivered", label: "Livrées",     count: allOrders.filter(o => o.status === "delivered").length },
+          { key: "cancelled", label: "Annulées",    count: allOrders.filter(o => o.status === "cancelled").length },
+        ]}
+        active={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">

@@ -15,6 +15,7 @@ import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 
 type ViewMode = "list" | "kanban" | "calendar";
 
@@ -172,19 +173,22 @@ export default function TasksList() {
   const { data, isLoading } = useListTasks();
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
 
   const allTasks = data?.data || [];
 
   const tasks = useMemo(() => {
-    if (!search.trim()) return allTasks;
+    let result = allTasks;
+    if (statusFilter !== "all") result = result.filter((t: any) => t.status === statusFilter);
+    if (!search.trim()) return result;
     const q = search.toLowerCase();
-    return allTasks.filter((t: any) =>
+    return result.filter((t: any) =>
       t.title?.toLowerCase().includes(q) ||
       t.projectName?.toLowerCase().includes(q) ||
       t.assigneeName?.toLowerCase().includes(q)
     );
-  }, [allTasks, search]);
+  }, [allTasks, search, statusFilter]);
 
   const calendarBuckets = useMemo(() => {
     const today = new Date();
@@ -204,21 +208,28 @@ export default function TasksList() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Tâches</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {allTasks.length} tâche{allTasks.length !== 1 ? "s" : ""} · Liste · Kanban · Calendrier
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
-        >
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Nouvelle tâche
-        </Button>
-      </div>
+      <PageHeader
+        title="Tâches"
+        subtitle={`${allTasks.length} tâche${allTasks.length !== 1 ? "s" : ""} au total`}
+        icon={CheckSquare}
+        actions={
+          <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+            Nouvelle tâche
+          </Button>
+        }
+      />
+      <StatusTabs
+        tabs={[
+          { key: "all",         label: "Toutes",      count: allTasks.length },
+          { key: "todo",        label: "À faire",     count: allTasks.filter((t: any) => t.status === "todo").length },
+          { key: "in_progress", label: "En cours",    count: allTasks.filter((t: any) => t.status === "in_progress").length },
+          { key: "review",      label: "En révision", count: allTasks.filter((t: any) => t.status === "review").length },
+          { key: "done",        label: "Terminées",   count: allTasks.filter((t: any) => t.status === "done").length },
+        ]}
+        active={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       <Card className="shadow-sm border-border">
         <CardHeader className="pb-4 border-b border-border/50">
