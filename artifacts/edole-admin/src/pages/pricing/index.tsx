@@ -154,7 +154,16 @@ interface PricingResult {
 type RecType = "danger" | "warning" | "success" | "info";
 interface Recommendation { type: RecType; title: string; msg: string; }
 
-type CatalogCollab = { id: string; firstName: string; lastName: string; position?: string | null; department?: string | null; baseSalary?: string | null; employerChargeRate: string; weeklyHours: string; employmentStatus: string };
+type CatalogCollab = {
+  id: string; firstName: string; lastName: string;
+  position?: string | null; department?: string | null;
+  baseSalary?: string | null; employerChargeRate: string;
+  weeklyHours: string; employmentStatus: string;
+  transportAllowance?: string | null;
+  housingAllowance?: string | null;
+  mealAllowance?: string | null;
+  otherBenefitsMonthly?: string | null;
+};
 type CatalogEquipment = { id: string; name: string; code: string; dailyRate: number; categoryName?: string };
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -716,6 +725,12 @@ function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 
+  const collabBenefits = (c: CatalogCollab) =>
+    (parseFloat(c.transportAllowance ?? "0") || 0) +
+    (parseFloat(c.housingAllowance ?? "0") || 0) +
+    (parseFloat(c.mealAllowance ?? "0") || 0) +
+    (parseFloat(c.otherBenefitsMonthly ?? "0") || 0);
+
   const handleConfirm = () => {
     const lines: LaborLineItem[] = collabs
       .filter(c => selected.has(c.id))
@@ -726,7 +741,7 @@ function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
         contractType: c.employmentStatus ?? "CDI",
         monthlySalaryBrut: parseFloat(c.baseSalary ?? "0") || 0,
         employerChargeRate: parseFloat(c.employerChargeRate) || laborSettings.employerChargeRate,
-        benefitsMonthly: 0,
+        benefitsMonthly: collabBenefits(c),
         weeklyHours: parseFloat(c.weeklyHours) || laborSettings.weeklyHours,
         allocatedHours: hours[c.id] ?? 8,
       }));
@@ -747,17 +762,31 @@ function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
           {collabs.map(c => {
             const sel = selected.has(c.id);
             const salary = parseFloat(c.baseSalary ?? "0") || 0;
+            const transport = parseFloat(c.transportAllowance ?? "0") || 0;
+            const housing  = parseFloat(c.housingAllowance ?? "0") || 0;
+            const meal     = parseFloat(c.mealAllowance ?? "0") || 0;
+            const other    = parseFloat(c.otherBenefitsMonthly ?? "0") || 0;
+            const totalBenefits = transport + housing + meal + other;
             return (
               <div key={c.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-purple-300 bg-purple-50" : "border-slate-200 hover:bg-slate-50"}`} onClick={() => toggle(c.id)}>
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm">{c.firstName} {c.lastName}</div>
                     <div className="text-xs text-muted-foreground">{c.position ?? "—"} · {c.department ?? "—"}</div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      Salaire brut : {salary > 0 ? formatFCFA(salary) : "non renseigné"} /mois
+                      Salaire brut : <span className="font-semibold">{salary > 0 ? formatFCFA(salary) : "non renseigné"}</span> /mois
                     </div>
+                    {totalBenefits > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {transport > 0 && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">Transp. {formatFCFA(transport)}</span>}
+                        {housing  > 0 && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">Log. {formatFCFA(housing)}</span>}
+                        {meal     > 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Repas {formatFCFA(meal)}</span>}
+                        {other    > 0 && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">Autres {formatFCFA(other)}</span>}
+                        <span className="text-[10px] text-slate-500">= {formatFCFA(totalBenefits)} avantages</span>
+                      </div>
+                    )}
                   </div>
-                  <input type="checkbox" checked={sel} readOnly className="w-4 h-4" />
+                  <input type="checkbox" checked={sel} readOnly className="w-4 h-4 ml-2 shrink-0" />
                 </div>
                 {sel && (
                   <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
