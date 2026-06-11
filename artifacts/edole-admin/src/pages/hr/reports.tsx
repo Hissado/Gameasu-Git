@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   CheckCircle2, AlertTriangle, Clock, CalendarOff, Banknote,
   Users, FileSignature, ArrowRightLeft, Download, RefreshCw,
-  FileBarChart2,
+  FileBarChart2, ChevronDown, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -300,14 +301,97 @@ function renderCell(col: ColDef, val: unknown) {
   return <span>{String(val)}</span>;
 }
 
+// ─── MultiSelect ──────────────────────────────────────────────────────────────
+
+function MultiSelect({
+  options,
+  selected,
+  onChange,
+  placeholder = "Tous",
+  className,
+}: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const toggle = (value: string) =>
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value]);
+
+  const label =
+    selected.length === 0
+      ? placeholder
+      : selected.length === 1
+        ? (options.find(o => o.value === selected[0])?.label ?? "1 sélectionné")
+        : `${selected.length} sélectionnés`;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "h-9 min-w-44 flex items-center justify-between gap-2 rounded-lg border px-3 text-sm bg-white transition-colors",
+            selected.length > 0
+              ? "border-orange-300 text-orange-700 hover:bg-orange-50"
+              : "border-slate-200 text-slate-700 hover:bg-slate-50",
+            className
+          )}
+        >
+          <span className="truncate max-w-[140px]">{label}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            {selected.length > 0 && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={e => { e.stopPropagation(); onChange([]); }}
+                onKeyDown={e => { if (e.key === "Enter") { e.stopPropagation(); onChange([]); } }}
+                className="rounded p-0.5 hover:bg-orange-100"
+              >
+                <X className="h-3 w-3" />
+              </span>
+            )}
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          </div>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2 shadow-lg" align="start">
+        <div className="max-h-64 overflow-y-auto space-y-0.5">
+          {options.map(opt => {
+            const checked = selected.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-slate-50 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(opt.value)}
+                  className="h-3.5 w-3.5 accent-orange-500 rounded"
+                />
+                <span className={cn("text-sm", checked ? "font-medium text-slate-800" : "text-slate-600")}>
+                  {opt.label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function HrReports() {
   const [reportType, setReportType] = useState<ReportType>("attendance");
   const [from, setFrom] = useState(firstOfMonth());
   const [to, setTo] = useState(thisMonth());
-  const [departmentId, setDepartmentId] = useState("");
-  const [collaboratorId, setCollaboratorId] = useState("");
+  const [departmentIds, setDepartmentIds] = useState<string[]>([]);
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [period, setPeriod] = useState(currentPeriod());
   const [expiringBefore, setExpiringBefore] = useState("");
   const [extraFilters, setExtraFilters] = useState<Record<string, string>>({});
@@ -328,14 +412,14 @@ export default function HrReports() {
   // ── Build query params ──
   const params = useMemo(() => {
     const p = new URLSearchParams();
-    if (departmentId) p.set("departmentId", departmentId);
-    if (collaboratorId) p.set("collaboratorId", collaboratorId);
+    if (departmentIds.length > 0) p.set("departmentIds", departmentIds.join(","));
+    if (collaboratorIds.length > 0) p.set("collaboratorIds", collaboratorIds.join(","));
     if (def.hasDateRange) { if (from) p.set("from", from); if (to) p.set("to", to); }
     if (reportType === "payroll" && period) p.set("period", period);
     if (reportType === "contracts" && expiringBefore) p.set("expiringBefore", expiringBefore);
     for (const [k, v] of Object.entries(extraFilters)) { if (v) p.set(k, v); }
     return p.toString();
-  }, [reportType, departmentId, collaboratorId, from, to, period, expiringBefore, extraFilters, def.hasDateRange]);
+  }, [reportType, departmentIds, collaboratorIds, from, to, period, expiringBefore, extraFilters, def.hasDateRange]);
 
   const { data, isLoading, refetch } = useQuery<{ count: number; rows: Record<string, unknown>[]; totals?: Record<string, number> }>({
     queryKey: ["hr-reports", reportType, params],
@@ -352,6 +436,8 @@ export default function HrReports() {
   function handleReportChange(id: ReportType) {
     setReportType(id);
     setExtraFilters({});
+    setDepartmentIds([]);
+    setCollaboratorIds([]);
   }
 
   // ── KPI cards ──
@@ -464,30 +550,28 @@ export default function HrReports() {
               </div>
             )}
 
-            {/* Department */}
+            {/* Department — multi-select */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">Département</label>
-              <Select value={departmentId || "__all__"} onValueChange={v => setDepartmentId(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="h-9 w-44 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Tous les départements</SelectItem>
-                  {(depts ?? []).map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={(depts ?? []).map(d => ({ value: d.id, label: d.name }))}
+                selected={departmentIds}
+                onChange={setDepartmentIds}
+                placeholder="Tous les départements"
+                className="w-52"
+              />
             </div>
 
-            {/* Collaborator */}
+            {/* Collaborator — multi-select */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">Collaborateur</label>
-              <Select value={collaboratorId || "__all__"} onValueChange={v => setCollaboratorId(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="h-9 w-48 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Tous les collaborateurs</SelectItem>
-                  {(collabs ?? []).map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={(collabs ?? []).map(c => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))}
+                selected={collaboratorIds}
+                onChange={setCollaboratorIds}
+                placeholder="Tous les collaborateurs"
+                className="w-52"
+              />
             </div>
 
             {/* Extra filters per report type */}

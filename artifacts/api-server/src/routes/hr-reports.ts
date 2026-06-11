@@ -1,13 +1,5 @@
 /**
- * Rapports RH — 8 types de rapports connectés aux données existantes.
- * GET /api/hr/reports/attendance      — Présences par collaborateur
- * GET /api/hr/reports/lateness        — Retards & anomalies
- * GET /api/hr/reports/worked-hours    — Heures travaillées détaillées
- * GET /api/hr/reports/leaves          — Congés & absences
- * GET /api/hr/reports/headcount       — Effectifs
- * GET /api/hr/reports/payroll         — Paie par collaborateur
- * GET /api/hr/reports/contracts       — Contrats (+ expirations)
- * GET /api/hr/reports/movements       — Mouvements du personnel
+ * Rapports RH — 8 types de rapports, filtres multi-sélection département/collaborateur.
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -17,7 +9,7 @@ import {
   attendanceSessionsTable, attendanceFlagsTable,
   payslipsTable,
 } from "@workspace/db";
-import { and, eq, gte, lte, isNull, desc } from "drizzle-orm";
+import { and, eq, gte, lte, isNull, desc, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -25,6 +17,12 @@ router.use(requireAuth);
 router.use(requireManagerOrAbove);
 
 // ── Helpers ───────────────────────────────────────────────────────────
+
+function parseIds(param: string | string[] | undefined): string[] {
+  if (!param) return [];
+  if (Array.isArray(param)) return param.filter(Boolean);
+  return param.split(",").map(s => s.trim()).filter(Boolean);
+}
 
 async function getCollabMap(orgId: string) {
   const rows = await db.select({
@@ -47,16 +45,24 @@ async function getDeptMap(orgId: string) {
   return new Map(rows.map(r => [r.id, r.name]));
 }
 
+function filterByDepts(deptIds: string[], deptId: string | null | undefined) {
+  if (deptIds.length === 0) return true;
+  return !!deptId && deptIds.includes(deptId);
+}
+
 // ── 1. Présences ──────────────────────────────────────────────────────
 
 router.get("/hr/reports/attendance", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { from, to, collaboratorId, departmentId } = req.query as Record<string, string>;
+    const { from, to, collaboratorIds: cParam, departmentIds: dParam } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(attendanceSessionsTable.organizationId, orgId)];
     if (from) filters.push(gte(attendanceSessionsTable.workDate, from));
     if (to) filters.push(lte(attendanceSessionsTable.workDate, to));
-    if (collaboratorId) filters.push(eq(attendanceSessionsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(attendanceSessionsTable.collaboratorId, collabIds));
 
     const sessions = await db.select({
       collaboratorId: attendanceSessionsTable.collaboratorId,
@@ -71,7 +77,7 @@ router.get("/hr/reports/attendance", async (req, res, next) => {
     const byCollab = new Map<string, { name: string; dept: string; sessions: typeof sessions }>();
     for (const s of sessions) {
       const c = collabMap.get(s.collaboratorId);
-      if (departmentId && c?.departmentId !== departmentId) continue;
+      if (!filterByDepts(deptIds, c?.departmentId)) continue;
       if (!byCollab.has(s.collaboratorId)) {
         const deptName = c?.departmentId ? (deptMap.get(c.departmentId) ?? "—") : "—";
         byCollab.set(s.collaboratorId, { name: c ? `${c.firstName} ${c.lastName}` : "Inconnu", dept: deptName, sessions: [] });
@@ -82,8 +88,7 @@ router.get("/hr/reports/attendance", async (req, res, next) => {
     const rows = Array.from(byCollab.entries()).map(([, d]) => {
       const totalMin = d.sessions.reduce((sum, s) => sum + (s.effectiveMinutes ?? 0), 0);
       return {
-        collaborateur: d.name,
-        departement: d.dept,
+        collaborateur: d.name, departement: d.dept,
         joursPresents: d.sessions.length,
         totalHeures: Math.round(totalMin / 6) / 10,
         retards: d.sessions.filter(s => s.isLate).length,
@@ -108,11 +113,14 @@ router.get("/hr/reports/attendance", async (req, res, next) => {
 router.get("/hr/reports/lateness", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { from, to, collaboratorId, departmentId, kind } = req.query as Record<string, string>;
+    const { from, to, collaboratorIds: cParam, departmentIds: dParam, kind } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(attendanceFlagsTable.organizationId, orgId)];
     if (from) filters.push(gte(attendanceFlagsTable.workDate, from));
     if (to) filters.push(lte(attendanceFlagsTable.workDate, to));
-    if (collaboratorId) filters.push(eq(attendanceFlagsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(attendanceFlagsTable.collaboratorId, collabIds));
     if (kind) filters.push(eq(attendanceFlagsTable.kind, kind));
 
     const flags = await db.select({
@@ -127,17 +135,14 @@ router.get("/hr/reports/lateness", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = flags
-      .filter(f => !departmentId || collabMap.get(f.collaboratorId)?.departmentId === departmentId)
+      .filter(f => filterByDepts(deptIds, collabMap.get(f.collaboratorId)?.departmentId))
       .map(f => {
         const c = collabMap.get(f.collaboratorId);
         return {
           collaborateur: c ? `${c.firstName} ${c.lastName}` : "Inconnu",
           departement: c?.departmentId ? (deptMap.get(c.departmentId) ?? "—") : "—",
-          date: f.workDate,
-          anomalie: f.kind,
-          severite: f.severity,
-          resolu: f.isResolved ? "Oui" : "Non",
-          description: f.description ?? "—",
+          date: f.workDate, anomalie: f.kind, severite: f.severity,
+          resolu: f.isResolved ? "Oui" : "Non", description: f.description ?? "—",
         };
       });
 
@@ -150,11 +155,14 @@ router.get("/hr/reports/lateness", async (req, res, next) => {
 router.get("/hr/reports/worked-hours", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { from, to, collaboratorId, departmentId } = req.query as Record<string, string>;
+    const { from, to, collaboratorIds: cParam, departmentIds: dParam } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(attendanceSessionsTable.organizationId, orgId)];
     if (from) filters.push(gte(attendanceSessionsTable.workDate, from));
     if (to) filters.push(lte(attendanceSessionsTable.workDate, to));
-    if (collaboratorId) filters.push(eq(attendanceSessionsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(attendanceSessionsTable.collaboratorId, collabIds));
 
     const sessions = await db.select({
       collaboratorId: attendanceSessionsTable.collaboratorId,
@@ -169,7 +177,7 @@ router.get("/hr/reports/worked-hours", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = sessions
-      .filter(s => !departmentId || collabMap.get(s.collaboratorId)?.departmentId === departmentId)
+      .filter(s => filterByDepts(deptIds, collabMap.get(s.collaboratorId)?.departmentId))
       .map(s => {
         const c = collabMap.get(s.collaboratorId);
         const effective = s.effectiveMinutes ?? 0;
@@ -203,11 +211,14 @@ router.get("/hr/reports/worked-hours", async (req, res, next) => {
 router.get("/hr/reports/leaves", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { from, to, collaboratorId, departmentId, type, status } = req.query as Record<string, string>;
+    const { from, to, collaboratorIds: cParam, departmentIds: dParam, type, status } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(leaveRequestsTable.organizationId, orgId)];
     if (from) filters.push(gte(leaveRequestsTable.startDate, from));
     if (to) filters.push(lte(leaveRequestsTable.endDate, to));
-    if (collaboratorId) filters.push(eq(leaveRequestsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(leaveRequestsTable.collaboratorId, collabIds));
     if (type) filters.push(eq(leaveRequestsTable.type, type));
     if (status) filters.push(eq(leaveRequestsTable.status, status));
 
@@ -224,18 +235,15 @@ router.get("/hr/reports/leaves", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = requests
-      .filter(r => !departmentId || collabMap.get(r.collaboratorId)?.departmentId === departmentId)
+      .filter(r => filterByDepts(deptIds, collabMap.get(r.collaboratorId)?.departmentId))
       .map(r => {
         const c = collabMap.get(r.collaboratorId);
         return {
           collaborateur: c ? `${c.firstName} ${c.lastName}` : "Inconnu",
           departement: c?.departmentId ? (deptMap.get(c.departmentId) ?? "—") : "—",
-          type: r.type,
-          debut: r.startDate,
-          fin: r.endDate,
+          type: r.type, debut: r.startDate, fin: r.endDate,
           jours: Math.round(Number(r.days ?? 0) * 10) / 10,
-          statut: r.status,
-          raison: r.reason ?? "—",
+          statut: r.status, raison: r.reason ?? "—",
         };
       });
 
@@ -252,9 +260,13 @@ router.get("/hr/reports/leaves", async (req, res, next) => {
 router.get("/hr/reports/headcount", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { departmentId, status, contractType } = req.query as Record<string, string>;
+    const { departmentIds: dParam, collaboratorIds: cParam, status, contractType } = req.query as Record<string, string>;
+    const deptIds = parseIds(dParam);
+    const collabIds = parseIds(cParam);
+
     const filters = [eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)];
-    if (departmentId) filters.push(eq(collaboratorsTable.departmentId, departmentId));
+    if (deptIds.length > 0) filters.push(inArray(collaboratorsTable.departmentId, deptIds));
+    if (collabIds.length > 0) filters.push(inArray(collaboratorsTable.id, collabIds));
     if (status) filters.push(eq(collaboratorsTable.employmentStatus, status));
 
     const collabs = await db.select({
@@ -269,23 +281,18 @@ router.get("/hr/reports/headcount", async (req, res, next) => {
     }).from(collaboratorsTable).where(and(...filters)).orderBy(collaboratorsTable.lastName);
 
     const deptMap = await getDeptMap(orgId);
-
     const positions = await db.select({ id: positionsTable.id, title: positionsTable.title })
       .from(positionsTable).where(eq(positionsTable.organizationId, orgId));
     const posMap = new Map(positions.map(p => [p.id, p.title]));
 
     const contractRows = await db.select({
       collaboratorId: contractsTable.collaboratorId,
-      type: contractsTable.type,
-      status: contractsTable.status,
-      endDate: contractsTable.endDate,
+      type: contractsTable.type, status: contractsTable.status, endDate: contractsTable.endDate,
     }).from(contractsTable).where(eq(contractsTable.organizationId, orgId));
 
     const activeContracts = new Map<string, { type: string; status: string; endDate: string | null }>();
     for (const c of contractRows) {
-      if (!activeContracts.has(c.collaboratorId) || c.status === "active") {
-        activeContracts.set(c.collaboratorId, c);
-      }
+      if (!activeContracts.has(c.collaboratorId) || c.status === "active") activeContracts.set(c.collaboratorId, c);
     }
 
     const rows = collabs
@@ -309,9 +316,12 @@ router.get("/hr/reports/headcount", async (req, res, next) => {
 router.get("/hr/reports/payroll", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { period, collaboratorId, departmentId, status } = req.query as Record<string, string>;
+    const { period, collaboratorIds: cParam, departmentIds: dParam, status } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(payslipsTable.organizationId, orgId)];
-    if (collaboratorId) filters.push(eq(payslipsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(payslipsTable.collaboratorId, collabIds));
     if (period) filters.push(eq(payslipsTable.period, period));
     if (status) filters.push(eq(payslipsTable.status, status));
 
@@ -329,7 +339,7 @@ router.get("/hr/reports/payroll", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = payslips
-      .filter(p => !departmentId || collabMap.get(p.collaboratorId)?.departmentId === departmentId)
+      .filter(p => filterByDepts(deptIds, collabMap.get(p.collaboratorId)?.departmentId))
       .map(p => {
         const c = collabMap.get(p.collaboratorId);
         return {
@@ -362,9 +372,12 @@ router.get("/hr/reports/payroll", async (req, res, next) => {
 router.get("/hr/reports/contracts", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { collaboratorId, departmentId, type, status, expiringBefore } = req.query as Record<string, string>;
+    const { collaboratorIds: cParam, departmentIds: dParam, type, status, expiringBefore } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(contractsTable.organizationId, orgId)];
-    if (collaboratorId) filters.push(eq(contractsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(contractsTable.collaboratorId, collabIds));
     if (type) filters.push(eq(contractsTable.type, type));
     if (status) filters.push(eq(contractsTable.status, status));
     if (expiringBefore) filters.push(lte(contractsTable.endDate, expiringBefore));
@@ -382,16 +395,13 @@ router.get("/hr/reports/contracts", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = contracts
-      .filter(c => !departmentId || collabMap.get(c.collaboratorId)?.departmentId === departmentId)
+      .filter(c => filterByDepts(deptIds, collabMap.get(c.collaboratorId)?.departmentId))
       .map(c => {
         const collab = collabMap.get(c.collaboratorId);
         return {
           collaborateur: collab ? `${collab.firstName} ${collab.lastName}` : "Inconnu",
           departement: collab?.departmentId ? (deptMap.get(collab.departmentId) ?? "—") : "—",
-          type: c.type,
-          statut: c.status,
-          debut: c.startDate,
-          fin: c.endDate ?? null,
+          type: c.type, statut: c.status, debut: c.startDate, fin: c.endDate ?? null,
           salaireMensuel: c.monthlySalary ? Math.round(Number(c.monthlySalary)) : null,
           poste: c.jobTitle ?? "—",
         };
@@ -406,11 +416,14 @@ router.get("/hr/reports/contracts", async (req, res, next) => {
 router.get("/hr/reports/movements", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { from, to, collaboratorId, departmentId, type } = req.query as Record<string, string>;
+    const { from, to, collaboratorIds: cParam, departmentIds: dParam, type } = req.query as Record<string, string>;
+    const collabIds = parseIds(cParam);
+    const deptIds = parseIds(dParam);
+
     const filters = [eq(personnelMovementsTable.organizationId, orgId)];
     if (from) filters.push(gte(personnelMovementsTable.effectiveDate, from));
     if (to) filters.push(lte(personnelMovementsTable.effectiveDate, to));
-    if (collaboratorId) filters.push(eq(personnelMovementsTable.collaboratorId, collaboratorId));
+    if (collabIds.length > 0) filters.push(inArray(personnelMovementsTable.collaboratorId, collabIds));
     if (type) filters.push(eq(personnelMovementsTable.type, type));
 
     const movements = await db.select({
@@ -427,13 +440,12 @@ router.get("/hr/reports/movements", async (req, res, next) => {
     const [collabMap, deptMap] = await Promise.all([getCollabMap(orgId), getDeptMap(orgId)]);
 
     const rows = movements
-      .filter(m => !departmentId || collabMap.get(m.collaboratorId)?.departmentId === departmentId)
+      .filter(m => filterByDepts(deptIds, collabMap.get(m.collaboratorId)?.departmentId))
       .map(m => {
         const c = collabMap.get(m.collaboratorId);
         return {
           collaborateur: c ? `${c.firstName} ${c.lastName}` : "Inconnu",
-          type: m.type,
-          dateEffet: m.effectiveDate,
+          type: m.type, dateEffet: m.effectiveDate,
           departementPrecedent: m.previousDepartmentId ? (deptMap.get(m.previousDepartmentId) ?? "—") : "—",
           departementActuel: m.newDepartmentId ? (deptMap.get(m.newDepartmentId) ?? "—") : "—",
           salairePrecedent: m.previousSalary ? Math.round(Number(m.previousSalary)) : null,
