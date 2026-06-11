@@ -368,6 +368,7 @@ router.get("/payroll/payslips", requireManagerOrAbove, async (req, res, next) =>
         mealAllowance: payslipsTable.mealAllowance,
         additions: payslipsTable.additions,
         deductions: payslipsTable.deductions,
+        emailSentAt: payslipsTable.emailSentAt,
         collaboratorName: sql<string>`${collaboratorsTable.firstName} || ' ' || ${collaboratorsTable.lastName}`,
         collaboratorCode: collaboratorsTable.employeeNumber,
         department: collaboratorsTable.department,

@@ -22,8 +22,9 @@ import {
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
-  FileText, Download, Landmark,
+  FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatFCFA } from "@/lib/format";
@@ -109,6 +110,17 @@ type Payslip = {
   paidAt?: string | null;
   collaboratorName?: string;
   collaboratorCode?: string;
+  emailSentAt?: string | null;
+};
+
+type EmailLog = {
+  id: string;
+  sentAt: string;
+  sentTo: string;
+  provider: string | null;
+  messageId: string | null;
+  status: string;
+  errorMessage: string | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -716,6 +728,9 @@ export default function CollaboratorDetail() {
   const currentYear = new Date().getFullYear();
   const [payslipYear, setPayslipYear] = useState<number>(currentYear);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [emailingId, setEmailingId] = useState<string | null>(null);
+  const [emailLogsPopover, setEmailLogsPopover] = useState<string | null>(null);
+  const [resendConfirmPayslip, setResendConfirmPayslip] = useState<Payslip | null>(null);
 
   const { data: payslipsData, isLoading: payslipsLoading } = useQuery<Payslip[]>({
     queryKey: ["payslips-collab", id, payslipYear, isManagerOrAbove],
@@ -733,6 +748,28 @@ export default function CollaboratorDetail() {
 
   const payslips = (payslipsData ?? []).filter((p) => p.period.startsWith(String(payslipYear)));
   const availableYears = Array.from(new Set((payslipsData ?? []).map((p) => Number(p.period.split("-")[0])))).sort((a, b) => b - a);
+
+  const { data: emailLogsData, isFetching: emailLogsFetching, refetch: refetchEmailLogs } = useQuery<{ logs: EmailLog[] }>({
+    queryKey: ["payslip-email-logs-detail", emailLogsPopover],
+    queryFn: () => apiFetch<{ logs: EmailLog[] }>(`/api/payroll/payslips/${emailLogsPopover}/email-logs`),
+    enabled: !!emailLogsPopover,
+    staleTime: 0,
+  });
+
+  const handleSendEmail = async (payslip: Payslip) => {
+    setEmailingId(payslip.id);
+    try {
+      await apiFetch(`/api/payroll/payslips/${payslip.id}/send-email`, { method: "POST" });
+      toast.success(`Bulletin transmis par email`);
+      queryClient.invalidateQueries({ queryKey: ["payslips-collab", id] });
+      if (emailLogsPopover === payslip.id) refetchEmailLogs();
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de l'envoi");
+    } finally {
+      setEmailingId(null);
+      setResendConfirmPayslip(null);
+    }
+  };
 
   const handleDownloadPdf = async (payslip: Payslip) => {
     setDownloadingId(payslip.id);
@@ -1237,7 +1274,8 @@ export default function CollaboratorDetail() {
                       <th className="text-right pb-2 pr-4 font-medium">IRPP</th>
                       <th className="text-right pb-2 pr-4 font-medium">Salaire net</th>
                       <th className="text-center pb-2 pr-4 font-medium">Statut</th>
-                      <th className="text-right pb-2 font-medium">PDF</th>
+                      <th className="text-right pb-2 pr-4 font-medium">PDF</th>
+                      {isManagerOrAbove && <th className="text-center pb-2 font-medium w-[140px]">Email</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1256,7 +1294,7 @@ export default function CollaboratorDetail() {
                             {PAYSLIP_STATUS_LABEL[p.status] ?? p.status}
                           </Badge>
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 pr-4 text-right">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1271,6 +1309,101 @@ export default function CollaboratorDetail() {
                             PDF
                           </Button>
                         </td>
+                        {isManagerOrAbove && (
+                          <td className="py-3 text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex items-center gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant={p.emailSentAt ? "outline" : "ghost"}
+                                        className={`h-7 px-2 text-xs gap-1 ${p.emailSentAt ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : ""}`}
+                                        disabled={emailingId === p.id}
+                                        onClick={() => {
+                                          if (p.emailSentAt) {
+                                            setResendConfirmPayslip(p);
+                                          } else {
+                                            handleSendEmail(p);
+                                          }
+                                        }}
+                                      >
+                                        {emailingId === p.id
+                                          ? <RefreshCw className="w-3 h-3 animate-spin" />
+                                          : p.emailSentAt
+                                            ? <MailCheck className="w-3 h-3" />
+                                            : <Mail className="w-3 h-3" />
+                                        }
+                                        {p.emailSentAt ? "Renvoi" : "Envoyer"}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    {p.emailSentAt && (
+                                      <TooltipContent side="left" className="text-xs">
+                                        Envoyé le {new Date(p.emailSentAt).toLocaleDateString("fr-FR")} — cliquer pour renvoyer
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                                {p.emailSentAt && (
+                                  <Popover
+                                    open={emailLogsPopover === p.id}
+                                    onOpenChange={(open) => setEmailLogsPopover(open ? p.id : null)}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                                        <Clock className="w-3 h-3" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent side="left" align="start" className="w-80 p-0">
+                                      <div className="px-3 py-2 border-b bg-muted/40">
+                                        <p className="text-xs font-semibold text-foreground">Historique des envois</p>
+                                        <p className="text-[10px] text-muted-foreground">{formatPeriod(p.period)}</p>
+                                      </div>
+                                      <div className="max-h-56 overflow-y-auto">
+                                        {emailLogsFetching ? (
+                                          <div className="flex items-center justify-center py-6">
+                                            <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                                          </div>
+                                        ) : !emailLogsData?.logs?.length ? (
+                                          <p className="text-xs text-muted-foreground text-center py-6">Aucun envoi enregistré</p>
+                                        ) : (
+                                          <ul className="divide-y">
+                                            {emailLogsData.logs.map((log) => (
+                                              <li key={log.id} className="px-3 py-2 flex items-start gap-2">
+                                                <span className="mt-0.5 shrink-0">
+                                                  {log.status === "delivered"
+                                                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                    : <XCircle className="w-3.5 h-3.5 text-red-500" />
+                                                  }
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                  <p className="text-[11px] font-medium truncate">{log.sentTo}</p>
+                                                  <p className="text-[10px] text-muted-foreground">
+                                                    {new Date(log.sentAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                    {log.provider && log.provider !== "unknown" && <> · {log.provider}</>}
+                                                  </p>
+                                                  {log.errorMessage && (
+                                                    <p className="text-[10px] text-red-500 mt-0.5 truncate" title={log.errorMessage}>{log.errorMessage}</p>
+                                                  )}
+                                                </div>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+                              </div>
+                              {p.emailSentAt && (
+                                <span className="text-[10px] text-emerald-600">
+                                  ✓ {new Date(p.emailSentAt).toLocaleDateString("fr-FR")}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -1372,6 +1505,32 @@ export default function CollaboratorDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* DIALOG CONFIRMATION RENVOI EMAIL */}
+      <Dialog open={!!resendConfirmPayslip} onOpenChange={(open) => { if (!open) setResendConfirmPayslip(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MailCheck className="w-5 h-5 text-primary" />
+              Renvoyer le bulletin par email
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2 text-sm text-muted-foreground">
+            <p>Ce bulletin a déjà été envoyé le <strong className="text-foreground">{resendConfirmPayslip?.emailSentAt ? new Date(resendConfirmPayslip.emailSentAt).toLocaleDateString("fr-FR") : "—"}</strong>.</p>
+            <p>Voulez-vous l'envoyer à nouveau à <strong className="text-foreground">{(collaborator as any)?.firstName} {(collaborator as any)?.lastName}</strong> ?</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setResendConfirmPayslip(null)}>Annuler</Button>
+            <Button
+              disabled={emailingId === resendConfirmPayslip?.id}
+              onClick={() => resendConfirmPayslip && handleSendEmail(resendConfirmPayslip)}
+            >
+              {emailingId === resendConfirmPayslip?.id ? <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" /> : <Mail className="w-4 h-4 mr-1.5" />}
+              Renvoyer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* EDIT DIALOG */}
       {editOpen && isManagerOrAbove && (
