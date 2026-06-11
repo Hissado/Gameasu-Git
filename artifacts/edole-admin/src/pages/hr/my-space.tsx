@@ -19,7 +19,7 @@ import { formatFCFA } from "@/lib/format";
 import {
   User, CalendarDays, FolderArchive, Banknote, Phone, MapPin, Shield,
   Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download,
-  Receipt, ChevronDown, ChevronRight
+  Receipt, ChevronDown, ChevronRight, Building2, AlertCircle
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -243,6 +243,44 @@ export default function MySpacePage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Coordonnées bancaires */}
+          <Card>
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5" />Coordonnées bancaires
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              {profile.bankName || profile.bankCode || profile.bankAccountNumber ? (
+                <div className="space-y-2 text-sm">
+                  {profile.bankName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-xs">Banque</span>
+                      <span className="font-medium">{profile.bankName}</span>
+                    </div>
+                  )}
+                  {profile.bankCode && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-xs">Code BCEAO</span>
+                      <span className="font-mono font-medium">{profile.bankCode}</span>
+                    </div>
+                  )}
+                  {profile.bankAccountNumber && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-xs">N° de compte</span>
+                      <span className="font-mono font-medium">{profile.bankAccountNumber}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 p-2.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p className="text-xs leading-snug">Aucune coordonnée bancaire enregistrée. Contactez votre gestionnaire RH pour les renseigner.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* KPIs rapides */}
           <div className="grid grid-cols-2 gap-3">
