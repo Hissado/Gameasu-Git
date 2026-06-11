@@ -351,8 +351,8 @@ function EditCollaboratorDialog({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={form.email} onChange={e => set("email", e.target.value)} />
+                <Label htmlFor="email">Email professionnel</Label>
+                <Input id="email" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="prenom.nom@entreprise.com" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">Téléphone</Label>
@@ -868,8 +868,10 @@ export default function CollaboratorDetail() {
             <div className="flex items-start gap-3">
               <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email</p>
-                <p className="font-medium mt-0.5 break-all">{collaborator.email || "Non renseigné"}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email professionnel</p>
+                <p className={`font-medium mt-0.5 break-all ${!collaborator.email ? "text-amber-600 italic text-sm" : ""}`}>
+                  {collaborator.email || "Non renseigné"}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">

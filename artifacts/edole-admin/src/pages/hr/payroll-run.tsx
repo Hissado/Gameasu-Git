@@ -22,6 +22,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const API = "/api";
 
@@ -60,7 +61,7 @@ const STATUS_COLOR: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = { draft: "Brouillon", validated: "Validé", paid: "Payé" };
 
 type LineItem = {
-  collaboratorId: string; firstName: string; lastName: string; department?: string; jobTitle?: string;
+  collaboratorId: string; firstName: string; lastName: string; email?: string | null; department?: string; jobTitle?: string;
   baseSalary: number; transportAllowance: number; housingAllowance: number;
   lineItemId: string | null;
   regularHours: number; overtimeHours: number; leaveHours: number; absenceHours: number;
@@ -777,9 +778,27 @@ export default function PayrollRun() {
                     const isDownloading = downloadingId === l.collaboratorId;
                     const isEmailing = emailingId === payslipId;
                     const emailSentAt = payslipId ? emailSentByPayslip[payslipId] : null;
+                    const hasEmail = !!l.email;
                     return (
                       <tr key={l.collaboratorId} className="border-t hover:bg-muted/20">
-                        <td className="px-4 py-2.5 font-medium">{l.firstName} {l.lastName}<div className="text-xs text-muted-foreground">{l.department}</div></td>
+                        <td className="px-4 py-2.5 font-medium">
+                          <div className="flex items-center gap-1.5">
+                            {l.firstName} {l.lastName}
+                            {!hasEmail && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="text-xs">
+                                    Aucun email renseigné
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{l.department}</div>
+                        </td>
                         <td className="px-4 py-2.5 text-right">{formatFCFA(totalGross)}</td>
                         <td className="px-4 py-2.5 text-right text-red-600">{formatFCFA(cnss)}</td>
                         <td className="px-4 py-2.5 text-right text-red-600">{formatFCFA(irppIpts)}</td>
@@ -815,30 +834,43 @@ export default function PayrollRun() {
                         <td className="px-4 py-2.5 text-center">
                           {payslipId ? (
                             <div className="flex flex-col items-center gap-0.5">
-                              <Button
-                                size="sm"
-                                variant={emailSentAt ? "outline" : "ghost"}
-                                className={`h-7 px-2 text-xs gap-1 ${emailSentAt ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : ""}`}
-                                disabled={isEmailing}
-                                onClick={async () => {
-                                  setEmailingId(payslipId);
-                                  try {
-                                    await fetchJSON(`${API}/payroll/payslips/${payslipId}/send-email`, { method: "POST" });
-                                    toast({ title: "Email envoyé", description: `Bulletin transmis à ${l.firstName} ${l.lastName}` });
-                                    refetchRunDetail();
-                                  } catch (e: any) {
-                                    toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
-                                  } finally { setEmailingId(null); }
-                                }}
-                              >
-                                {isEmailing
-                                  ? <RefreshCw className="w-3 h-3 animate-spin" />
-                                  : emailSentAt
-                                    ? <MailCheck className="w-3 h-3" />
-                                    : <Mail className="w-3 h-3" />
-                                }
-                                {emailSentAt ? "Renvoi" : "Envoyer"}
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex">
+                                      <Button
+                                        size="sm"
+                                        variant={emailSentAt ? "outline" : "ghost"}
+                                        className={`h-7 px-2 text-xs gap-1 ${emailSentAt ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50" : ""}`}
+                                        disabled={isEmailing || !hasEmail}
+                                        onClick={async () => {
+                                          setEmailingId(payslipId);
+                                          try {
+                                            await fetchJSON(`${API}/payroll/payslips/${payslipId}/send-email`, { method: "POST" });
+                                            toast({ title: "Email envoyé", description: `Bulletin transmis à ${l.firstName} ${l.lastName}` });
+                                            refetchRunDetail();
+                                          } catch (e: any) {
+                                            toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
+                                          } finally { setEmailingId(null); }
+                                        }}
+                                      >
+                                        {isEmailing
+                                          ? <RefreshCw className="w-3 h-3 animate-spin" />
+                                          : emailSentAt
+                                            ? <MailCheck className="w-3 h-3" />
+                                            : <Mail className="w-3 h-3" />
+                                        }
+                                        {emailSentAt ? "Renvoi" : "Envoyer"}
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  {!hasEmail && (
+                                    <TooltipContent side="left" className="text-xs">
+                                      Aucun email renseigné pour ce collaborateur
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
                               {emailSentAt && (
                                 <span className="text-[10px] text-emerald-600">
                                   ✓ {new Date(emailSentAt).toLocaleDateString("fr-FR")}
