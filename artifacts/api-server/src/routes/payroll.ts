@@ -800,6 +800,11 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
 
+    // Only validated or paid cycles can have their payslips sent by email
+    if (run.status !== "validated" && run.status !== "paid") {
+      res.status(422).json({ error: "Seuls les cycles validés ou payés peuvent être envoyés par email" }); return;
+    }
+
     const payslips = await db
       .select({
         id: payslipsTable.id,
@@ -829,7 +834,11 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
       .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
       .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
       .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
-      .where(eq(payslipsTable.payrollRunId, run.id))
+      .where(and(
+        eq(payslipsTable.payrollRunId, run.id),
+        // Only send validated or paid payslips
+        sql`${payslipsTable.status} IN ('validated', 'paid')`,
+      ))
       .orderBy(asc(collaboratorsTable.lastName));
 
     if (payslips.length === 0) {
@@ -853,10 +862,23 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
     const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
     const orgName = org?.name ?? "Gaméasù";
 
-    const results = await Promise.allSettled(
-      payslips.map(async (p) => {
-        if (!p.collaboratorEmail) return { status: "skipped" as const, id: p.id };
+    // Rate-limited sequential send: process one at a time with a 500 ms pause
+    // between each to stay well within Resend's 2 req/s free-tier limit.
+    const DELAY_MS = 500;
+    const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
+    type SendResult = { status: "sent" | "skipped" | "failed"; id: string };
+    const results: SendResult[] = [];
+
+    for (let i = 0; i < payslips.length; i++) {
+      const p = payslips[i];
+
+      if (!p.collaboratorEmail) {
+        results.push({ status: "skipped", id: p.id });
+        continue;
+      }
+
+      try {
         const pass = new PassThrough();
         const chunks: Buffer[] = [];
         pass.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -946,36 +968,35 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
             status: "failed",
             errorMessage: result.error ?? "Échec inconnu",
           });
-          throw new Error(result.error ?? "Échec envoi");
+          results.push({ status: "failed", id: p.id });
+        } else {
+          await Promise.all([
+            db.update(payslipsTable)
+              .set({ emailSentAt: sentAt })
+              .where(eq(payslipsTable.id, p.id)),
+            db.insert(payslipEmailLogsTable).values({
+              payslipId: p.id,
+              sentAt,
+              sentTo: p.collaboratorEmail,
+              provider: result.provider ?? "unknown",
+              messageId: result.messageId ?? null,
+              status: "delivered",
+            }),
+          ]);
+          results.push({ status: "sent", id: p.id });
         }
-
-        await Promise.all([
-          db.update(payslipsTable)
-            .set({ emailSentAt: sentAt })
-            .where(eq(payslipsTable.id, p.id)),
-          db.insert(payslipEmailLogsTable).values({
-            payslipId: p.id,
-            sentAt,
-            sentTo: p.collaboratorEmail,
-            provider: result.provider ?? "unknown",
-            messageId: result.messageId ?? null,
-            status: "delivered",
-          }),
-        ]);
-
-        return { status: "sent" as const, id: p.id };
-      })
-    );
-
-    let sent = 0, failed = 0, skipped = 0;
-    for (const r of results) {
-      if (r.status === "fulfilled") {
-        if (r.value.status === "sent") sent++;
-        else skipped++;
-      } else {
-        failed++;
+      } catch (err: any) {
+        req.log.error({ err, payslipId: p.id }, "send-all-emails: error sending payslip");
+        results.push({ status: "failed", id: p.id });
       }
+
+      // Rate-limit: pause between sends except after the last one
+      if (i < payslips.length - 1) await sleep(DELAY_MS);
     }
+
+    const sent = results.filter(r => r.status === "sent").length;
+    const failed = results.filter(r => r.status === "failed").length;
+    const skipped = results.filter(r => r.status === "skipped").length;
 
     res.json({ sent, failed, skipped });
   } catch (e) { next(e); }

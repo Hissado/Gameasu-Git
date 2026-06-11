@@ -229,6 +229,15 @@ export default function PayrollRun() {
   const [emailingId, setEmailingId] = useState<string | null>(null);
   const [emailLogsPopover, setEmailLogsPopover] = useState<string | null>(null);
 
+  type BulkEmailPhase = "confirm" | "sending" | "done";
+  const [emailBulkDialog, setEmailBulkDialog] = useState<{
+    open: boolean;
+    phase: BulkEmailPhase;
+    progress: number;
+    result?: { sent: number; failed: number; skipped: number };
+  }>({ open: false, phase: "confirm", progress: 0 });
+  const emailBulkProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   type EmailLog = { id: string; sentAt: string; sentTo: string; provider: string | null; messageId: string | null; status: string; errorMessage: string | null };
   const { data: emailLogsData, isFetching: emailLogsFetching } = useQuery<{ logs: EmailLog[] }>({
     queryKey: ["payslip-email-logs", emailLogsPopover],
@@ -667,33 +676,16 @@ export default function PayrollRun() {
               <ChevronLeft className="w-4 h-4 mr-1" />Retour modifier
             </Button>
             <div className="flex items-center gap-2 flex-wrap">
-              {Object.keys(payslipByCollab).length > 0 && (
+              {Object.keys(payslipByCollab).length > 0 && (run?.status === "validated" || run?.status === "paid") && (
                 <>
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={sendingEmails}
-                    onClick={async () => {
-                      setSendingEmails(true);
-                      try {
-                        const r = await fetchJSON(`${API}/payroll/runs/${runId}/send-emails`, { method: "POST" });
-                        const parts: string[] = [];
-                        if (r.sent > 0) parts.push(`${r.sent} bulletin${r.sent > 1 ? "s" : ""} envoyé${r.sent > 1 ? "s" : ""}`);
-                        if (r.skipped > 0) parts.push(`${r.skipped} ignoré${r.skipped > 1 ? "s" : ""} (email manquant)`);
-                        if (r.failed > 0) parts.push(`${r.failed} échec${r.failed > 1 ? "s" : ""}`);
-                        toast({
-                          title: r.sent > 0 ? "Bulletins envoyés par email" : "Aucun email envoyé",
-                          description: parts.join(", "),
-                          variant: r.failed > 0 ? "destructive" : "default",
-                        });
-                        refetchRunDetail();
-                      } catch (e: any) {
-                        toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
-                      } finally { setSendingEmails(false); }
-                    }}
+                    onClick={() => setEmailBulkDialog({ open: true, phase: "confirm", progress: 0 })}
                   >
-                    {sendingEmails ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Mail className="w-4 h-4 mr-1" />}
-                    Envoyer tous par email
+                    <Mail className="w-4 h-4 mr-1" />
+                    Envoyer à tous
                   </Button>
                   <Button
                     variant="outline"
@@ -966,6 +958,157 @@ export default function PayrollRun() {
           </div>
         </div>
       )}
+
+      {/* ─── Dialog Envoi en masse par email ─── */}
+      <Dialog
+        open={emailBulkDialog.open}
+        onOpenChange={open => {
+          if (!open && emailBulkDialog.phase !== "sending") {
+            if (emailBulkProgressRef.current) { clearInterval(emailBulkProgressRef.current); emailBulkProgressRef.current = null; }
+            setEmailBulkDialog({ open: false, phase: "confirm", progress: 0 });
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          {emailBulkDialog.phase === "confirm" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-primary" />
+                  Envoyer les bulletins par email
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-2 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Les bulletins de paie seront envoyés à tous les collaborateurs ayant une adresse email renseignée.
+                </p>
+                <div className="bg-muted/50 rounded-lg px-4 py-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bulletins total</span>
+                    <span className="font-semibold">{Object.keys(payslipByCollab).length}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-muted-foreground">Avec email</span>
+                    <span className="font-semibold text-emerald-700">{localItems.filter(l => !!l.email).length}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-muted-foreground">Sans email (ignorés)</span>
+                    <span className="font-semibold text-amber-600">{localItems.filter(l => !l.email).length}</span>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setEmailBulkDialog({ open: false, phase: "confirm", progress: 0 })}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setSendingEmails(true);
+                    const total = Math.max(Object.keys(payslipByCollab).length, 1);
+                    setEmailBulkDialog(s => ({ ...s, phase: "sending", progress: 0 }));
+                    // Animate progress toward 90% while the request is in-flight
+                    let prog = 0;
+                    const step = 90 / (total * 1.5);
+                    emailBulkProgressRef.current = setInterval(() => {
+                      prog = Math.min(prog + step, 88);
+                      setEmailBulkDialog(s => ({ ...s, progress: prog }));
+                    }, 400);
+                    try {
+                      const r = await fetchJSON(`${API}/payroll/runs/${runId}/send-emails`, { method: "POST" });
+                      if (emailBulkProgressRef.current) { clearInterval(emailBulkProgressRef.current); emailBulkProgressRef.current = null; }
+                      setEmailBulkDialog({ open: true, phase: "done", progress: 100, result: r });
+                      refetchRunDetail();
+                    } catch (e: any) {
+                      if (emailBulkProgressRef.current) { clearInterval(emailBulkProgressRef.current); emailBulkProgressRef.current = null; }
+                      setEmailBulkDialog({ open: false, phase: "confirm", progress: 0 });
+                      toast({ title: "Erreur envoi email", description: e.message, variant: "destructive" });
+                    } finally {
+                      setSendingEmails(false);
+                    }
+                  }}
+                >
+                  <Mail className="w-4 h-4 mr-1.5" />
+                  Envoyer à tous
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {emailBulkDialog.phase === "sending" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 animate-spin text-primary" />
+                  Envoi en cours…
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Envoi des bulletins à {localItems.filter(l => !!l.email).length} collaborateur{localItems.filter(l => !!l.email).length > 1 ? "s" : ""}…
+                </p>
+                <div className="space-y-1.5">
+                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${emailBulkDialog.progress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-right">{Math.round(emailBulkDialog.progress)}%</p>
+                </div>
+                <p className="text-xs text-center text-muted-foreground">Ne fermez pas cette fenêtre.</p>
+              </div>
+            </>
+          )}
+
+          {emailBulkDialog.phase === "done" && emailBulkDialog.result && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {emailBulkDialog.result.failed === 0
+                    ? <MailCheck className="w-5 h-5 text-emerald-600" />
+                    : <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  }
+                  Envoi terminé
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-3 space-y-3">
+                <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full w-full transition-all duration-500" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-3">
+                    <div className="text-2xl font-bold text-emerald-700">{emailBulkDialog.result.sent}</div>
+                    <div className="text-xs text-emerald-600 mt-0.5">Envoyé{emailBulkDialog.result.sent > 1 ? "s" : ""}</div>
+                  </div>
+                  <div className={`border rounded-lg px-3 py-3 ${emailBulkDialog.result.failed > 0 ? "bg-red-50 border-red-200" : "bg-muted/40 border-border"}`}>
+                    <div className={`text-2xl font-bold ${emailBulkDialog.result.failed > 0 ? "text-red-700" : "text-muted-foreground"}`}>{emailBulkDialog.result.failed}</div>
+                    <div className={`text-xs mt-0.5 ${emailBulkDialog.result.failed > 0 ? "text-red-600" : "text-muted-foreground"}`}>Échec{emailBulkDialog.result.failed > 1 ? "s" : ""}</div>
+                  </div>
+                  <div className={`border rounded-lg px-3 py-3 ${emailBulkDialog.result.skipped > 0 ? "bg-amber-50 border-amber-200" : "bg-muted/40 border-border"}`}>
+                    <div className={`text-2xl font-bold ${emailBulkDialog.result.skipped > 0 ? "text-amber-700" : "text-muted-foreground"}`}>{emailBulkDialog.result.skipped}</div>
+                    <div className={`text-xs mt-0.5 ${emailBulkDialog.result.skipped > 0 ? "text-amber-600" : "text-muted-foreground"}`}>Ignoré{emailBulkDialog.result.skipped > 1 ? "s" : ""}</div>
+                  </div>
+                </div>
+                {emailBulkDialog.result.skipped > 0 && (
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded px-3 py-2">
+                    {emailBulkDialog.result.skipped} collaborateur{emailBulkDialog.result.skipped > 1 ? "s" : ""} ignoré{emailBulkDialog.result.skipped > 1 ? "s" : ""} — aucune adresse email renseignée.
+                  </p>
+                )}
+                {emailBulkDialog.result.failed > 0 && (
+                  <p className="text-xs text-red-700 bg-red-50 rounded px-3 py-2">
+                    {emailBulkDialog.result.failed} envoi{emailBulkDialog.result.failed > 1 ? "s" : ""} échoué{emailBulkDialog.result.failed > 1 ? "s" : ""}. Vérifiez l'historique individuel pour le détail.
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setEmailBulkDialog({ open: false, phase: "confirm", progress: 0 })}>
+                  Fermer
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Dialog Action en masse ─── */}
       <Dialog open={bulkDialog.action !== null} onOpenChange={open => { if (!open) setBulkDialog({ action: null }); }}>
