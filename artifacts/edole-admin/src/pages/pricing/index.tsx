@@ -18,7 +18,7 @@ import {
   TrendingUp, CheckCircle2, Package, Truck, Users, Wrench, DollarSign,
   Calculator, Lightbulb, Target, Landmark, AlertTriangle, Shield,
   Building2, Megaphone, Banknote, HardHat, Settings2, ChevronDown, ChevronUp,
-  AlertCircle, RefreshCw, ArrowRight, Clock, Percent, Tag,
+  AlertCircle, RefreshCw, ArrowRight, Clock, Percent, Tag, BarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,17 +73,28 @@ interface StructureSectionBudget {
   monthlyBudget: number;  // budget mensuel réel FCFA
 }
 
+type BurnRatePeriod = "3m" | "6m" | "12m" | "ytd";
+
+const BURN_RATE_PERIOD_LABELS: Record<BurnRatePeriod, string> = {
+  "3m":  "3 derniers mois",
+  "6m":  "6 derniers mois",
+  "12m": "12 derniers mois",
+  "ytd": "Depuis début d'année (YTD)",
+};
+
 interface StructureCostConfig {
   enabled: boolean;
   // Shared allocation (applied to ALL sections simultaneously)
   allocationMode: "pct" | "capacity";
   dealDurationMonths: number;
   dealAllocationPct: number;     // mode pct: % direct
-  monthlyCapacity: number;       // mode capacity: capacité totale mensuelle
+  monthlyCapacity: number;       // mode capacity: capacité totale mensuelle (fallback si pas de données compta)
   dealConsumption: number;       // mode capacity: part de ce deal
   capacityUnit: string;
-  /** Auto-calcule dealConsumption/dealAllocationPct depuis les heures MO du scénario */
+  /** Auto-calcule dealConsumption/dealAllocationPct depuis les coûts directs réels */
   autoAllocation: boolean;
+  /** Période de calcul du burn rate réel (auto-allocation) */
+  burnRatePeriod: BurnRatePeriod;
   // Per-section monthly budgets
   operational: StructureSectionBudget;
   admin: StructureSectionBudget;
@@ -211,10 +222,11 @@ const DEFAULT_STRUCTURE_COSTS: StructureCostConfig = {
   allocationMode: "pct",
   dealDurationMonths: 1,
   dealAllocationPct: 0,
-  monthlyCapacity: 160,
+  monthlyCapacity: 0,
   dealConsumption: 0,
-  capacityUnit: "h",
+  capacityUnit: "FCFA",
   autoAllocation: false,
+  burnRatePeriod: "ytd",
   operational: { monthlyBudget: 0 },
   admin:        { monthlyBudget: 0 },
   commercial:   { monthlyBudget: 0 },
@@ -285,6 +297,26 @@ type RealBurnRates = {
 };
 
 /** Maps SYSCOHADA class 6 balance rows to the 4 structure sections (monthly average). */
+function getBurnRateDateRange(
+  period: BurnRatePeriod,
+  ytdPeriod?: { from?: string; to?: string },
+): { from: string; to: string; months: number } {
+  const now = new Date();
+  const to = now.toISOString().slice(0, 10);
+  if (period === "ytd") {
+    const from = ytdPeriod?.from ?? `${now.getFullYear()}-01-01`;
+    const toDate = ytdPeriod?.to ?? to;
+    const start = new Date(from);
+    const end = new Date(toDate);
+    const months = Math.max(1, Math.round((end.getTime() - start.getTime()) / (30.4375 * 24 * 3600 * 1000)));
+    return { from, to: toDate, months };
+  }
+  const monthsBack = period === "3m" ? 3 : period === "6m" ? 6 : 12;
+  const d = new Date(now);
+  d.setMonth(d.getMonth() - monthsBack);
+  return { from: d.toISOString().slice(0, 10), to, months: monthsBack };
+}
+
 function mapClass6ToSections(rows: BalanceRow[], months: number): RealBurnRates {
   const sums = { operational: 0, admin: 0, commercial: 0, financial: 0 };
   for (const r of rows) {
@@ -388,7 +420,7 @@ function findPriceForMargin(
   return findPriceForNetMargin(totalCost, targetPct, ytdProfit, brackets, taxEnabled);
 }
 
-function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
+function calculate(scenario: Scenario, fc: CorporateTaxConfig, burnRateMonthlyTotal?: number): PricingResult {
   const qty = Math.max(1, scenario.quantity);
   const discountPct = Math.max(0, Math.min(100, scenario.discountPct ?? 0));
   const byCategory: Record<CostCategory, number> = {
@@ -428,11 +460,13 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
     + (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0)
     + (scenario.depreciationItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
   const rawCfg = scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS;
+  // Dénominateur : burn rate réel (passé en paramètre) ou fallback sur monthlyCapacity manuel
+  const autoDenominator = burnRateMonthlyTotal ?? (rawCfg.monthlyCapacity > 0 ? rawCfg.monthlyCapacity : 0);
   const effectiveCfg: StructureCostConfig = rawCfg.autoAllocation && rawCfg.enabled && totalDirectCostsForAuto > 0
     ? rawCfg.allocationMode === "capacity"
       ? { ...rawCfg, dealConsumption: totalDirectCostsForAuto }
-      : { ...rawCfg, dealAllocationPct: rawCfg.monthlyCapacity > 0
-            ? Math.min(100, (totalDirectCostsForAuto / rawCfg.monthlyCapacity) * 100)
+      : { ...rawCfg, dealAllocationPct: autoDenominator > 0
+            ? Math.min(100, (totalDirectCostsForAuto / autoDenominator) * 100)
             : rawCfg.dealAllocationPct }
     : rawCfg;
   const sc = computeStructureCosts(effectiveCfg);
@@ -1295,7 +1329,7 @@ function CostSection({
 // ─── UnifiedStructurePanel ────────────────────────────────────────────────────
 
 function UnifiedStructurePanel({
-  config, onUpdate, ytdCharges, ytdMonthsElapsed, realBurnRates, ytdRevenues, priceHT, directCostsAmount,
+  config, onUpdate, ytdCharges, ytdMonthsElapsed, realBurnRates, ytdRevenues, priceHT, directCostsAmount, periodBurnRate,
 }: {
   config: StructureCostConfig;
   onUpdate: (patch: Partial<StructureCostConfig>) => void;
@@ -1305,10 +1339,14 @@ function UnifiedStructurePanel({
   ytdRevenues: number;
   priceHT: number;
   directCostsAmount: number;
+  periodBurnRate: RealBurnRates | null;
 }) {
-  // Auto-allocation: compute effective values from direct costs (MO + opérations) in FCFA
-  const autoEffectivePct = config.monthlyCapacity > 0 && directCostsAmount > 0
-    ? Math.min(100, (directCostsAmount / config.monthlyCapacity) * 100)
+  // Auto-allocation denominator: real burn rate (preferred) or manual monthlyCapacity fallback
+  const autoDenominator = periodBurnRate?.total ?? (config.monthlyCapacity > 0 ? config.monthlyCapacity : 0);
+  const hasBurnRateData = !!periodBurnRate?.total;
+
+  const autoEffectivePct = autoDenominator > 0 && directCostsAmount > 0
+    ? Math.min(100, (directCostsAmount / autoDenominator) * 100)
     : 0;
 
   // Build effective config (override dealConsumption/dealAllocationPct when auto is on)
@@ -1493,27 +1531,69 @@ function UnifiedStructurePanel({
           <div className="space-y-2">
             <Label className="text-xs font-medium block">Part de votre activité représentée par ce deal (%)</Label>
             {config.autoAllocation && directCostsAmount > 0 ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800 w-32">
-                    {autoEffectivePct.toFixed(1)}%
-                  </div>
-                  <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
-                    {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} budget = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
-                  </span>
-                </div>
+              <div className="space-y-3">
+                {/* Sélecteur de période burn rate */}
                 <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Budget mensuel total coûts directs (FCFA) :</Label>
-                  <Input type="number" min="1"
-                    value={config.monthlyCapacity || ""}
-                    placeholder="ex. 50000000"
-                    onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
-                    className="h-7 text-xs w-40" />
+                  <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Période burn rate :</Label>
+                  <Select
+                    value={config.burnRatePeriod ?? "ytd"}
+                    onValueChange={v => onUpdate({ burnRatePeriod: v as BurnRatePeriod })}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-52">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.entries(BURN_RATE_PERIOD_LABELS) as [BurnRatePeriod, string][]).map(([k, label]) => (
+                        <SelectItem key={k} value={k}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {autoEffectivePct >= 99 && (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    Budget mensuel trop bas — saisissez le total mensuel des coûts directs de votre structure en FCFA (ex. 50 000 000).
+                {hasBurnRateData ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800 w-32">
+                        {autoEffectivePct.toFixed(1)}%
+                      </div>
+                      <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
+                        {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(autoDenominator))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-700">
+                      <BarChart2 className="w-3 h-3 shrink-0" />
+                      <span>Burn rate moyen comptabilité : <strong>{formatFCFA(Math.round(autoDenominator))}/mois</strong> · {BURN_RATE_PERIOD_LABELS[config.burnRatePeriod ?? "ytd"]}</span>
+                    </div>
+                    {autoEffectivePct >= 99 && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        Quote-part ≥ 99% — vérifiez le burn rate comptable de la période.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      Aucune écriture comptable sur cette période. Saisissez le burn rate manuellement :
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Burn rate mensuel (FCFA) :</Label>
+                      <Input type="number" min="1"
+                        value={config.monthlyCapacity || ""}
+                        placeholder="ex. 50000000"
+                        onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
+                        className="h-7 text-xs w-44" />
+                    </div>
+                    {config.monthlyCapacity > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="h-9 px-3 flex items-center bg-slate-50 border border-slate-300 rounded-md text-sm font-bold text-slate-800 w-32">
+                          {autoEffectivePct.toFixed(1)}%
+                        </div>
+                        <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded-lg font-semibold">
+                          {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1546,7 +1626,9 @@ function UnifiedStructurePanel({
             )}
             <p className="text-[10px] text-muted-foreground">
               {config.autoAllocation && directCostsAmount > 0
-                ? "Calculé automatiquement : coûts directs du deal ÷ budget mensuel direct total."
+                ? hasBurnRateData
+                  ? `Calculé automatiquement : coûts directs du deal ÷ burn rate moyen comptable (${BURN_RATE_PERIOD_LABELS[config.burnRatePeriod ?? "ytd"]}).`
+                  : "Calculé automatiquement : coûts directs du deal ÷ burn rate mensuel (saisie manuelle — aucune donnée comptable)."
                 : autoSharePct > 0
                   ? `Suggestion calculée : prix HT du deal ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))}/mois) = ${(Math.round(autoSharePct * 10) / 10).toFixed(1)}%`
                   : "Ex. ce deal représente 20% de votre activité ce mois. Activez le mode Auto pour calculer depuis les coûts directs saisis."}
@@ -1554,27 +1636,42 @@ function UnifiedStructurePanel({
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Sélecteur période burn rate — mode capacity + auto ON */}
+            {config.autoAllocation && (
+              <div className="flex items-center gap-2">
+                <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Période burn rate :</Label>
+                <Select
+                  value={config.burnRatePeriod ?? "ytd"}
+                  onValueChange={v => onUpdate({ burnRatePeriod: v as BurnRatePeriod })}
+                >
+                  <SelectTrigger className="h-7 text-xs w-52">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(BURN_RATE_PERIOD_LABELS) as [BurnRatePeriod, string][]).map(([k, label]) => (
+                      <SelectItem key={k} value={k}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 items-end">
               <div className="col-span-2">
                 <Label className="text-xs font-medium mb-1.5 block">
-                  {config.autoAllocation ? "Budget mensuel total coûts directs (FCFA)" : "Capacité mensuelle totale"}
+                  Capacité mensuelle totale
                 </Label>
                 <div className="flex gap-1.5">
                   <Input type="number" min="1"
                     value={config.monthlyCapacity || ""}
-                    placeholder={config.autoAllocation ? "ex. 50000000" : "ex. 160"}
+                    placeholder="ex. 160"
                     onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
                     className="h-9 text-sm flex-1" />
-                  {!config.autoAllocation && (
-                    <Input value={config.capacityUnit} placeholder="h"
-                      onChange={e => onUpdate({ capacityUnit: e.target.value })}
-                      className="h-9 text-sm w-20" />
-                  )}
+                  <Input value={config.capacityUnit} placeholder="h"
+                    onChange={e => onUpdate({ capacityUnit: e.target.value })}
+                    className="h-9 text-sm w-20" />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {config.autoAllocation
-                    ? "Total mensuel des coûts directs de votre structure (MO + opérations + matières, en FCFA)"
-                    : "Capacité totale de votre structure par mois (ex. 160h, 10 projets…)"}
+                  Capacité totale de votre structure par mois (ex. 160h, 10 projets…)
                 </p>
               </div>
               <div>
@@ -1591,7 +1688,7 @@ function UnifiedStructurePanel({
                     className="h-9 text-sm" />
                 )}
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {config.autoAllocation && directCostsAmount > 0 ? "Coûts directs du deal" : `${config.capacityUnit || "FCFA"} consommés`}
+                  {config.autoAllocation && directCostsAmount > 0 ? "Coûts directs du deal" : `${config.capacityUnit || "h"} consommés`}
                 </p>
               </div>
             </div>
@@ -1599,9 +1696,9 @@ function UnifiedStructurePanel({
               <div className={`border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${config.autoAllocation ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200"}`}>
                 <ArrowRight className={`w-3 h-3 shrink-0 ${config.autoAllocation ? "text-emerald-500" : "text-muted-foreground"}`} />
                 <span className={config.autoAllocation ? "text-emerald-700" : "text-muted-foreground"}>
-                  {config.autoAllocation ? formatFCFA(Math.round(directCostsAmount)) : formatFCFA(config.dealConsumption)} / {formatFCFA(config.monthlyCapacity)} budget = <strong className={config.autoAllocation ? "text-emerald-900" : "text-slate-800"}>
+                  {config.autoAllocation ? formatFCFA(Math.round(directCostsAmount)) : formatFCFA(config.dealConsumption)} / {config.monthlyCapacity} {config.capacityUnit || "h"} = <strong className={config.autoAllocation ? "text-emerald-900" : "text-slate-800"}>
                     {Math.min(100, ((config.autoAllocation ? directCostsAmount : config.dealConsumption) / config.monthlyCapacity) * 100).toFixed(1)}%
-                  </strong> du budget mensuel direct
+                  </strong> de la capacité mensuelle
                   {config.autoAllocation && <span className="ml-1 text-[10px] font-semibold bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full">AUTO</span>}
                 </span>
               </div>
@@ -1820,7 +1917,7 @@ export default function PricingCalculator() {
     return Math.max(1, Math.round(ms / (30.44 * 24 * 60 * 60 * 1000)));
   }, [ytdData?.period?.from]);
 
-  // Real burn rates from SYSCOHADA class 6 balance
+  // Real burn rates — YTD (used for autoFill of per-section budgets)
   const { data: class6Balance } = useQuery<{ data: BalanceRow[] }>({
     queryKey: ["class6-balance-ytd", ytdData?.period?.from, ytdData?.period?.to],
     queryFn: () => {
@@ -1838,6 +1935,29 @@ export default function PricingCalculator() {
     const rates = mapClass6ToSections(class6Balance.data, ytdMonthsElapsed);
     return rates.hasData ? rates : null;
   }, [class6Balance, ytdMonthsElapsed]);
+
+  // Period-specific burn rate for auto-allocation denominator
+  const burnRatePeriod: BurnRatePeriod = (scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).burnRatePeriod ?? "ytd";
+  const burnRateDateRange = useMemo(
+    () => getBurnRateDateRange(burnRatePeriod, ytdData?.period),
+    [burnRatePeriod, ytdData?.period?.from, ytdData?.period?.to],
+  );
+  const { data: periodClass6Data } = useQuery<{ data: BalanceRow[] }>({
+    queryKey: ["class6-burnrate", burnRateDateRange.from, burnRateDateRange.to],
+    queryFn: () => {
+      const qs = new URLSearchParams({ classNum: "6" });
+      qs.set("from", burnRateDateRange.from);
+      qs.set("to",   burnRateDateRange.to);
+      return apiFetch(`/api/accounting/balance?${qs}`);
+    },
+    enabled: !!burnRateDateRange.from,
+    staleTime: 5 * 60 * 1000,
+  });
+  const periodBurnRate = useMemo<RealBurnRates | null>(() => {
+    if (!periodClass6Data?.data?.length) return null;
+    const rates = mapClass6ToSections(periodClass6Data.data, burnRateDateRange.months);
+    return rates.hasData ? rates : null;
+  }, [periodClass6Data, burnRateDateRange.months]);
 
   const addScenario = () => {
     const ns: Scenario = { ...scenario, id: uid(), name: `Scénario ${scenarios.length + 1}` };
@@ -1861,7 +1981,7 @@ export default function PricingCalculator() {
   }, [scenarios]);
 
   // ─── Compute ──────────────────────────────────────────────────────────────
-  const result = useMemo(() => calculate(scenario, fiscalConfig), [scenario, fiscalConfig]);
+  const result = useMemo(() => calculate(scenario, fiscalConfig, periodBurnRate?.total), [scenario, fiscalConfig, periodBurnRate]);
   const recommendations = useMemo(() => generateRecommendations(result, scenario, fiscalConfig), [result, scenario, fiscalConfig]);
 
   // ─── Cost totals per section ──────────────────────────────────────────────
@@ -2138,6 +2258,7 @@ export default function PricingCalculator() {
                         ytdRevenues={ytdData?.ytdRevenues ?? 0}
                         priceHT={result.priceHT}
                         directCostsAmount={totalLaborCost + totalDirectCost + totalOperational + totalDepr}
+                        periodBurnRate={periodBurnRate}
                       />
                     ) : (
                       <div className="space-y-5">
