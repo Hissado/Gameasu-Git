@@ -19,6 +19,7 @@ import {
   Calculator, Lightbulb, Target, Landmark, AlertTriangle, Shield,
   Building2, Megaphone, Banknote, HardHat, Settings2, ChevronDown, ChevronUp,
   AlertCircle, RefreshCw, ArrowRight, Clock, Percent, Tag, BarChart2,
+  ChevronRight, Layers, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -132,6 +133,24 @@ interface StructureCostConfig {
   financial: StructureSectionBudget;
 }
 
+interface DealComponent {
+  id: string;
+  label: string;
+  dealType: DealType;
+  durationValue: number;
+  durationUnit: DealDurationUnit;
+  costItems: CostItem[];
+}
+
+interface DealComponentResult {
+  id: string;
+  label: string;
+  dealType: DealType;
+  directCosts: number;
+  structureCost: number;
+  total: number;
+}
+
 interface TaxBracket {
   id: string; label: string; min: number; max: number | null; rate: number;
 }
@@ -155,6 +174,7 @@ interface Scenario {
   quantity: number;
   period: string;
   dealType?: DealType;
+  dealComponents?: DealComponent[];
   costItems: CostItem[];
   laborLines: LaborLineItem[];
   laborSettings: LaborSettings;
@@ -193,6 +213,7 @@ interface PricingResult {
   netMargin: number; markupPct: number;
   minimumPriceHT: number; recommendedPriceHT: number;
   breakdownLabels: { label: string; value: number; color: string }[];
+  byComponentResult: DealComponentResult[];
 }
 
 type RecType = "danger" | "warning" | "success" | "info";
@@ -461,6 +482,11 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig, burnRateMonthlyTo
     admin: 0, commercial: 0, financial: 0, risk: 0,
   };
 
+  // Deal components (mixte mode)
+  const dealComponents = scenario.dealComponents ?? [];
+  const hasComponents = scenario.dealType === "mixte" && dealComponents.length > 0;
+  const byComponentResult: DealComponentResult[] = [];
+
   // 1. Labor
   let laborTotal = 0;
   for (const line of scenario.laborLines ?? []) {
@@ -484,40 +510,79 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig, burnRateMonthlyTo
     byCategory.depreciation += c; baseCost += c;
   }
 
-  // 4. Structure costs — unified burn rate OR fallback to line items
-  // Auto-allocation : coûts directs (MO + matières + opérations + amortissements) en FCFA
-  const totalDirectCostsForAuto =
-    laborTotal
-    + (scenario.costItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0)
-    + (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0)
-    + (scenario.depreciationItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
+  // 3.5 Component direct costs (mixte mode with components)
+  if (hasComponents) {
+    for (const comp of dealComponents) {
+      for (const item of (comp.costItems ?? []).filter(i => i.alloc !== "pct")) {
+        const c = computeItemCost(item, 0, 0);
+        byCategory[item.category] = (byCategory[item.category] ?? 0) + c;
+        baseCost += c;
+      }
+    }
+  }
+
+  // 4. Structure costs — per-component (mixte) OR unified burn rate OR fallback to line items
   const rawCfg = scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS;
-  // Dénominateur : burn rate réel (passé en paramètre) ou fallback sur monthlyCapacity manuel
   const autoDenominator = burnRateMonthlyTotal ?? (rawCfg.monthlyCapacity > 0 ? rawCfg.monthlyCapacity : 0);
-  const effectiveCfg: StructureCostConfig = rawCfg.autoAllocation && rawCfg.enabled && totalDirectCostsForAuto > 0
-    ? rawCfg.allocationMode === "capacity"
-      ? { ...rawCfg, dealConsumption: totalDirectCostsForAuto }
-      : { ...rawCfg, dealAllocationPct: autoDenominator > 0
-            ? Math.min(100, (totalDirectCostsForAuto / autoDenominator) * 100)
-            : rawCfg.dealAllocationPct }
-    : rawCfg;
-  const sc = computeStructureCosts(effectiveCfg);
-  if ((scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled) {
-    // Unified mode: use computed structure allocations
-    byCategory.operational += sc.operational; baseCost += sc.operational;
-    byCategory.admin       += sc.admin;       baseCost += sc.admin;
-    byCategory.commercial  += sc.commercial;  baseCost += sc.commercial;
-    byCategory.financial   += sc.financial;   baseCost += sc.financial;
+
+  if (hasComponents && rawCfg.enabled) {
+    // Per-component: each component uses its own duration for structure allocation
+    for (const comp of dealComponents) {
+      const compDirectCost = (comp.costItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
+      const compCfg: StructureCostConfig = {
+        ...rawCfg,
+        dealDurationMonths: comp.durationValue,
+        dealDurationUnit: comp.durationUnit,
+        ...(rawCfg.autoAllocation && compDirectCost > 0
+          ? rawCfg.allocationMode === "capacity"
+            ? { dealConsumption: compDirectCost }
+            : { dealAllocationPct: autoDenominator > 0
+                  ? Math.min(100, (compDirectCost / autoDenominator) * 100)
+                  : rawCfg.dealAllocationPct }
+          : {}),
+      };
+      const compSc = computeStructureCosts(compCfg);
+      byCategory.operational += compSc.operational; baseCost += compSc.operational;
+      byCategory.admin       += compSc.admin;       baseCost += compSc.admin;
+      byCategory.commercial  += compSc.commercial;  baseCost += compSc.commercial;
+      byCategory.financial   += compSc.financial;   baseCost += compSc.financial;
+      byComponentResult.push({
+        id: comp.id, label: comp.label, dealType: comp.dealType,
+        directCosts: compDirectCost, structureCost: compSc.total,
+        total: compDirectCost + compSc.total,
+      });
+    }
   } else {
-    // Detail mode: use individual line items (fixed + per_unit)
-    for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc !== "pct")) {
-      const c = computeItemCost(item, 0, 0); byCategory.operational += c; baseCost += c;
-    }
-    for (const item of (scenario.adminItems ?? []).filter(i => i.alloc !== "pct")) {
-      const c = computeItemCost(item, 0, 0); byCategory.admin += c; baseCost += c;
-    }
-    for (const item of (scenario.financialItems ?? []).filter(i => i.alloc !== "pct")) {
-      const c = computeItemCost(item, 0, 0); byCategory.financial += c; baseCost += c;
+    // Standard: unified structure cost computation
+    const totalDirectCostsForAuto =
+      laborTotal
+      + (scenario.costItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0)
+      + (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0)
+      + (scenario.depreciationItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
+    const effectiveCfg: StructureCostConfig = rawCfg.autoAllocation && rawCfg.enabled && totalDirectCostsForAuto > 0
+      ? rawCfg.allocationMode === "capacity"
+        ? { ...rawCfg, dealConsumption: totalDirectCostsForAuto }
+        : { ...rawCfg, dealAllocationPct: autoDenominator > 0
+              ? Math.min(100, (totalDirectCostsForAuto / autoDenominator) * 100)
+              : rawCfg.dealAllocationPct }
+      : rawCfg;
+    const sc = computeStructureCosts(effectiveCfg);
+    if (rawCfg.enabled) {
+      byCategory.operational += sc.operational; baseCost += sc.operational;
+      byCategory.admin       += sc.admin;       baseCost += sc.admin;
+      byCategory.commercial  += sc.commercial;  baseCost += sc.commercial;
+      byCategory.financial   += sc.financial;   baseCost += sc.financial;
+    } else {
+      // Detail mode: use individual line items (fixed + per_unit)
+      for (const item of (scenario.operationalItems ?? []).filter(i => i.alloc !== "pct")) {
+        const c = computeItemCost(item, 0, 0); byCategory.operational += c; baseCost += c;
+      }
+      for (const item of (scenario.adminItems ?? []).filter(i => i.alloc !== "pct")) {
+        const c = computeItemCost(item, 0, 0); byCategory.admin += c; baseCost += c;
+      }
+      for (const item of (scenario.financialItems ?? []).filter(i => i.alloc !== "pct")) {
+        const c = computeItemCost(item, 0, 0); byCategory.financial += c; baseCost += c;
+      }
     }
   }
 
@@ -597,7 +662,7 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig, burnRateMonthlyTo
     }));
 
   return {
-    totalCost, byCategory,
+    totalCost, byCategory, byComponentResult,
     priceHTBrut, discountAmount, priceHT, priceTTC, taxAmount,
     unitCost: totalCost / qty, unitHT: priceHT / qty, unitTTC: priceTTC / qty,
     grossMargin, grossMarginPct,
@@ -1892,6 +1957,10 @@ export default function PricingCalculator() {
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   const [sendDocType, setSendDocType] = useState<DocTarget | null>(null);
   const [activeTab, setActiveTab] = useState("directs");
+  const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
+  const toggleComponent = (id: string) => setExpandedComponents(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
 
   const scenario = scenarios.find(s => s.id === activeScenarioId) ?? scenarios[0];
 
@@ -1960,6 +2029,24 @@ export default function PricingCalculator() {
   const updateStructureCosts = (patch: Partial<StructureCostConfig>) => {
     updateScenario({ structureCosts: { ...(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS), ...patch } });
   };
+
+  const addDealComponent = () => {
+    const comp: DealComponent = { id: uid(), label: "Nouvelle composante", dealType: "service", durationValue: 5, durationUnit: "jours", costItems: [] };
+    updateScenario({ dealComponents: [...(scenario.dealComponents ?? []), comp] });
+    setExpandedComponents(prev => new Set([...prev, comp.id]));
+  };
+  const updateDealComponent = (id: string, patch: Partial<DealComponent>) =>
+    updateScenario({ dealComponents: (scenario.dealComponents ?? []).map(c => c.id === id ? { ...c, ...patch } : c) });
+  const removeDealComponent = (id: string) =>
+    updateScenario({ dealComponents: (scenario.dealComponents ?? []).filter(c => c.id !== id) });
+  const addComponentCostItem = (compId: string) => {
+    const item: CostItem = { id: uid(), label: "", category: "direct", alloc: "fixed", amount: 0 };
+    updateScenario({ dealComponents: (scenario.dealComponents ?? []).map(c => c.id === compId ? { ...c, costItems: [...(c.costItems ?? []), item] } : c) });
+  };
+  const updateComponentItem = (compId: string, itemId: string, patch: Partial<CostItem>) =>
+    updateScenario({ dealComponents: (scenario.dealComponents ?? []).map(c => c.id === compId ? { ...c, costItems: (c.costItems ?? []).map(i => i.id === itemId ? { ...i, ...patch } : i) } : c) });
+  const removeComponentItem = (compId: string, itemId: string) =>
+    updateScenario({ dealComponents: (scenario.dealComponents ?? []).map(c => c.id === compId ? { ...c, costItems: (c.costItems ?? []).filter(i => i.id !== itemId) } : c) });
 
   // How many months elapsed since fiscal year start (for auto-fill from P&L)
   const ytdMonthsElapsed = useMemo(() => {
@@ -2153,6 +2240,158 @@ export default function PricingCalculator() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* ── Composantes du deal (mixte mode) ── */}
+            {scenario.dealType === "mixte" && (
+              <Card className="shadow-sm border-slate-200">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-[#C8A24B]" />
+                      <CardTitle className="text-sm">Composantes du deal</CardTitle>
+                      {(scenario.dealComponents ?? []).length > 0 && (
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                          {(scenario.dealComponents ?? []).length} composante{(scenario.dealComponents ?? []).length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <Button size="sm" onClick={addDealComponent}
+                      className="h-7 text-xs gap-1 bg-slate-800 hover:bg-slate-900 text-white">
+                      <Plus className="w-3.5 h-3.5" />Ajouter
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Chaque composante a son propre type, durée et coûts directs. Les frais de structure sont alloués indépendamment par composante.
+                  </p>
+                </CardHeader>
+                <CardContent className="pt-0 px-0 pb-0">
+                  {(scenario.dealComponents ?? []).length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground text-xs px-4">
+                      <Layers className="w-9 h-9 mx-auto mb-2 opacity-15" />
+                      <p className="font-medium">Aucune composante — cliquez sur "Ajouter"</p>
+                      <p className="mt-1 opacity-60 max-w-xs mx-auto">Ex. : "Phase déploiement 3 semaines" + "Maintenance mensuelle 12 mois" + "Location équipement 7 jours"</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {(scenario.dealComponents ?? []).map((comp, idx) => {
+                        const isExpanded = expandedComponents.has(comp.id);
+                        const compResult = result.byComponentResult?.find(r => r.id === comp.id);
+                        const compRawTotal = (comp.costItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
+                        return (
+                          <div key={comp.id} className={`border-b border-slate-100 last:border-b-0 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}>
+                            {/* Component header row */}
+                            <div className="flex items-center gap-2 px-3 py-2.5">
+                              <button onClick={() => toggleComponent(comp.id)} className="text-slate-400 hover:text-slate-600 shrink-0 w-5">
+                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </button>
+                              <span className="text-base shrink-0">{DEAL_TYPE_META[comp.dealType].icon}</span>
+                              <Input
+                                value={comp.label}
+                                onChange={e => updateDealComponent(comp.id, { label: e.target.value })}
+                                className="h-7 text-xs font-semibold flex-1 min-w-0 border-transparent bg-transparent hover:border-slate-200 focus:border-slate-300 px-1"
+                                placeholder="Nom de la composante…"
+                              />
+                              <Select value={comp.dealType} onValueChange={v => {
+                                const type = v as DealType;
+                                updateDealComponent(comp.id, { dealType: type, durationValue: DEAL_TYPE_META[type].defaultDuration, durationUnit: DEAL_TYPE_META[type].defaultUnit });
+                              }}>
+                                <SelectTrigger className="h-7 w-36 text-[10px] shrink-0"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {(Object.entries(DEAL_TYPE_META) as [DealType, typeof DEAL_TYPE_META[DealType]][]).map(([k, v]) => (
+                                    <SelectItem key={k} value={k} className="text-xs">{v.icon} {v.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Input type="number" min="0.1" step="1"
+                                  value={comp.durationValue}
+                                  onChange={e => updateDealComponent(comp.id, { durationValue: parseFloat(e.target.value) || 1 })}
+                                  className="h-7 w-14 text-xs text-center" />
+                                <div className="flex rounded overflow-hidden border border-slate-200">
+                                  {(["heures","jours","semaines","mois"] as DealDurationUnit[]).map(u => (
+                                    <button key={u}
+                                      onClick={() => updateDealComponent(comp.id, { durationUnit: u })}
+                                      className={`h-7 px-1.5 text-[9px] font-medium border-l border-slate-200 first:border-l-0 transition-colors ${comp.durationUnit === u ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                                      {DEAL_DURATION_UNIT_META[u].short}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="text-xs font-semibold text-slate-700 w-24 text-right shrink-0">
+                                {formatFCFA(Math.round(compResult?.total ?? compRawTotal))}
+                              </div>
+                              <button onClick={() => removeDealComponent(comp.id)} className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Expanded: cost items */}
+                            {isExpanded && (
+                              <div className="px-10 pb-3">
+                                <p className="text-[9px] text-muted-foreground mb-2 italic">{DEAL_TYPE_META[comp.dealType].hint}</p>
+                                <div className="space-y-1.5">
+                                  {(comp.costItems ?? []).map(item => (
+                                    <div key={item.id} className="flex items-center gap-1.5">
+                                      <Input value={item.label}
+                                        onChange={e => updateComponentItem(comp.id, item.id, { label: e.target.value })}
+                                        className="h-7 text-xs flex-1 min-w-0" placeholder="Description du coût…" />
+                                      <div className="flex rounded overflow-hidden border border-slate-200 shrink-0">
+                                        {([{ mode: "fixed" as const, label: "FCFA" }, { mode: "per_unit" as const, label: "/u" }]).map(m => (
+                                          <button key={m.mode}
+                                            onClick={() => updateComponentItem(comp.id, item.id, { alloc: m.mode })}
+                                            className={`h-7 px-2 text-[10px] border-l border-slate-200 first:border-l-0 transition-colors ${item.alloc === m.mode ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                                            {m.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      {item.alloc === "per_unit" && (
+                                        <Input type="number" min="0" value={item.qty ?? 1}
+                                          onChange={e => updateComponentItem(comp.id, item.id, { qty: parseFloat(e.target.value) || 1 })}
+                                          className="h-7 w-14 text-xs text-right shrink-0" placeholder="qté" />
+                                      )}
+                                      <Input type="number" min="0" value={item.amount}
+                                        onChange={e => updateComponentItem(comp.id, item.id, { amount: parseFloat(e.target.value) || 0 })}
+                                        className="h-7 w-28 text-xs text-right shrink-0" placeholder="Montant FCFA" />
+                                      <button onClick={() => removeComponentItem(comp.id, item.id)} className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <button onClick={() => addComponentCostItem(comp.id)}
+                                  className="mt-2 flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 border border-dashed border-slate-200 rounded px-2 py-1 hover:bg-slate-50 transition-colors">
+                                  <Plus className="w-3 h-3" />Ajouter un poste de coût
+                                </button>
+                                {compResult && (compResult.directCosts > 0 || compResult.structureCost > 0) && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-4 text-[10px] text-muted-foreground">
+                                    <span>Directs : <strong className="text-slate-700">{formatFCFA(Math.round(compResult.directCosts))}</strong></span>
+                                    {compResult.structureCost > 0 && (
+                                      <span>Structure allouée : <strong className="text-slate-700">{formatFCFA(Math.round(compResult.structureCost))}</strong></span>
+                                    )}
+                                    <span className="font-semibold text-slate-800">= {formatFCFA(Math.round(compResult.total))}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Consolidated footer */}
+                      {(scenario.dealComponents ?? []).length > 0 && (
+                        <div className="bg-slate-800 px-4 py-2.5 flex items-center justify-between">
+                          <span className="text-xs text-slate-300">
+                            {(scenario.dealComponents ?? []).length} composante{(scenario.dealComponents ?? []).length > 1 ? "s" : ""} · coût de revient consolidé
+                          </span>
+                          <span className="text-sm font-bold text-white">
+                            {formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.total, 0)))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Cost tabs */}
             <Card className="shadow-sm">
@@ -2778,6 +3017,55 @@ export default function PricingCalculator() {
                 </table>
               </CardContent>
             </Card>
+
+            {/* Per-component breakdown */}
+            {result.byComponentResult.length > 0 && (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2 border-b">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#C8A24B]" />Détail par composante
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold text-slate-600">Composante</th>
+                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Directs</th>
+                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Structure</th>
+                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Total</th>
+                        <th className="px-4 py-2 text-right font-semibold text-slate-600">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.byComponentResult.map(comp => {
+                        const sharePct = result.totalCost > 0 ? (comp.total / result.totalCost) * 100 : 0;
+                        return (
+                          <tr key={comp.id} className="border-b border-slate-100 hover:bg-slate-50/30">
+                            <td className="px-4 py-2 text-slate-700 font-medium">
+                              <span className="mr-1">{DEAL_TYPE_META[comp.dealType].icon}</span>{comp.label}
+                            </td>
+                            <td className="px-4 py-2 text-right text-slate-600">{formatFCFA(Math.round(comp.directCosts))}</td>
+                            <td className="px-4 py-2 text-right text-slate-500">{comp.structureCost > 0 ? formatFCFA(Math.round(comp.structureCost)) : "—"}</td>
+                            <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatFCFA(Math.round(comp.total))}</td>
+                            <td className="px-4 py-2 text-right text-muted-foreground">{sharePct.toFixed(1)}%</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="bg-slate-50 border-t border-slate-200">
+                        <td className="px-4 py-2 font-bold text-slate-700">Total composantes</td>
+                        <td className="px-4 py-2 text-right font-semibold">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.directCosts, 0)))}</td>
+                        <td className="px-4 py-2 text-right font-semibold">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.structureCost, 0)))}</td>
+                        <td className="px-4 py-2 text-right font-bold text-slate-900">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.total, 0)))}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-slate-700">
+                          {result.totalCost > 0 ? `${((result.byComponentResult.reduce((s, r) => s + r.total, 0) / result.totalCost) * 100).toFixed(1)}%` : "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Key metrics */}
             <Card className="shadow-sm">
