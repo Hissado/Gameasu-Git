@@ -82,6 +82,34 @@ const BURN_RATE_PERIOD_LABELS: Record<BurnRatePeriod, string> = {
   "ytd": "Depuis début d'année (YTD)",
 };
 
+type DealType = "vente_produit" | "stock" | "service" | "projet" | "location" | "contrat" | "mixte" | "autre";
+type DealDurationUnit = "heures" | "jours" | "semaines" | "mois";
+
+const DEAL_TYPE_META: Record<DealType, {
+  label: string; icon: string; hint: string;
+  defaultUnit: DealDurationUnit; defaultDuration: number;
+}> = {
+  vente_produit: { label: "Vente de produit",       icon: "🛍️",  hint: "Vente d'un produit physique ou numérique. Les frais indirects sont alloués au prorata de la durée de traitement.", defaultUnit: "jours",    defaultDuration: 1 },
+  stock:         { label: "Produit en stock",        icon: "📦",  hint: "Vente depuis le stock existant. Calcul basé sur le coût moyen pondéré + frais de distribution.",                   defaultUnit: "jours",    defaultDuration: 1 },
+  service:       { label: "Service ponctuel",        icon: "🔧",  hint: "Prestation unique. La durée réelle en jours détermine la quote-part des frais de structure.",                      defaultUnit: "jours",    defaultDuration: 5 },
+  projet:        { label: "Projet unique",           icon: "🏗️", hint: "Projet avec début et fin définis. La durée en semaines ou mois détermine l'allocation des frais généraux.",        defaultUnit: "semaines", defaultDuration: 4 },
+  location:      { label: "Location / Équipement",  icon: "🚜",  hint: "Location d'équipement. Amortissement + charges d'exploitation alloués sur la durée de location.",                  defaultUnit: "jours",    defaultDuration: 7 },
+  contrat:       { label: "Contrat récurrent",       icon: "📄",  hint: "Revenu récurrent mensuel. Burn rate mensuel utilisé comme base de comparaison directe.",                           defaultUnit: "mois",     defaultDuration: 1 },
+  mixte:         { label: "Deal mixte",              icon: "🔀",  hint: "Combinaison de produit, service, location… Ajoutez plusieurs lignes avec leur propre logique.",                   defaultUnit: "jours",    defaultDuration: 5 },
+  autre:         { label: "Autre / Personnalisé",    icon: "⚙️",  hint: "Type personnalisé. Ajustez manuellement la durée et les paramètres d'allocation.",                                defaultUnit: "mois",     defaultDuration: 1 },
+};
+
+const DEAL_DURATION_UNIT_META: Record<DealDurationUnit, { short: string; long: string; perMonth: number }> = {
+  heures:   { short: "h",    long: "heures",   perMonth: 160  },
+  jours:    { short: "j",    long: "jours",    perMonth: 22   },
+  semaines: { short: "sem",  long: "semaines", perMonth: 4.33 },
+  mois:     { short: "mois", long: "mois",     perMonth: 1    },
+};
+
+function toEffectiveMonths(value: number, unit: DealDurationUnit): number {
+  return Math.max(0, value) / DEAL_DURATION_UNIT_META[unit].perMonth;
+}
+
 interface StructureCostConfig {
   enabled: boolean;
   // Shared allocation (applied to ALL sections simultaneously)
@@ -95,6 +123,8 @@ interface StructureCostConfig {
   autoAllocation: boolean;
   /** Période de calcul du burn rate réel (auto-allocation) */
   burnRatePeriod: BurnRatePeriod;
+  /** Unité de la durée du deal (pour l'allocation des frais de structure) */
+  dealDurationUnit: DealDurationUnit;
   // Per-section monthly budgets
   operational: StructureSectionBudget;
   admin: StructureSectionBudget;
@@ -124,6 +154,7 @@ interface Scenario {
   unit: string;
   quantity: number;
   period: string;
+  dealType?: DealType;
   costItems: CostItem[];
   laborLines: LaborLineItem[];
   laborSettings: LaborSettings;
@@ -227,6 +258,7 @@ const DEFAULT_STRUCTURE_COSTS: StructureCostConfig = {
   capacityUnit: "FCFA",
   autoAllocation: false,
   burnRatePeriod: "ytd",
+  dealDurationUnit: "mois",
   operational: { monthlyBudget: 0 },
   admin:        { monthlyBudget: 0 },
   commercial:   { monthlyBudget: 0 },
@@ -274,7 +306,7 @@ function computeStructureCosts(cfg: StructureCostConfig): {
   } else {
     effectivePct = Math.min(100, Math.max(0, cfg.dealAllocationPct));
   }
-  const factor = Math.max(0, cfg.dealDurationMonths) * (effectivePct / 100);
+  const factor = toEffectiveMonths(cfg.dealDurationMonths, cfg.dealDurationUnit ?? "mois") * (effectivePct / 100);
   const op = cfg.operational.monthlyBudget * factor;
   const adm = cfg.admin.monthlyBudget * factor;
   const com = cfg.commercial.monthlyBudget * factor;
@@ -1341,6 +1373,11 @@ function UnifiedStructurePanel({
   directCostsAmount: number;
   periodBurnRate: RealBurnRates | null;
 }) {
+  // Duration unit helpers
+  const durationUnit: DealDurationUnit = config.dealDurationUnit ?? "mois";
+  const durationUnitMeta = DEAL_DURATION_UNIT_META[durationUnit];
+  const effectiveDurationMonths = toEffectiveMonths(config.dealDurationMonths, durationUnit);
+
   // Auto-allocation denominator: real burn rate (preferred) or manual monthlyCapacity fallback
   const autoDenominator = periodBurnRate?.total ?? (config.monthlyCapacity > 0 ? config.monthlyCapacity : 0);
   const hasBurnRateData = !!periodBurnRate?.total;
@@ -1482,13 +1519,28 @@ function UnifiedStructurePanel({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs font-medium mb-1.5 block">Durée du deal (mois)</Label>
-            <Input type="number" min="0.1" step="0.5"
-              value={config.dealDurationMonths || ""}
-              placeholder="ex. 1"
-              onChange={e => onUpdate({ dealDurationMonths: parseFloat(e.target.value) || 1 })}
-              className="h-9 text-sm" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Combien de mois ce deal mobilise-t-il votre structure ?</p>
+            <Label className="text-xs font-medium mb-1.5 block">Durée du deal</Label>
+            <div className="flex gap-1">
+              <Input type="number" min="0.1" step={durationUnit === "mois" ? "0.5" : "1"}
+                value={config.dealDurationMonths || ""}
+                placeholder={durationUnit === "heures" ? "ex. 40" : durationUnit === "jours" ? "ex. 5" : durationUnit === "semaines" ? "ex. 4" : "ex. 1"}
+                onChange={e => onUpdate({ dealDurationMonths: parseFloat(e.target.value) || 1 })}
+                className="h-9 text-sm flex-1 min-w-0" />
+              <div className="flex rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                {(["heures","jours","semaines","mois"] as DealDurationUnit[]).map(u => (
+                  <button key={u}
+                    onClick={() => onUpdate({ dealDurationUnit: u })}
+                    className={`h-9 px-1.5 text-[10px] font-medium border-l border-slate-200 first:border-l-0 transition-colors ${durationUnit === u ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                    {DEAL_DURATION_UNIT_META[u].short}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {durationUnit !== "mois"
+                ? `${config.dealDurationMonths} ${durationUnitMeta.long} ≈ ${effectiveDurationMonths.toFixed(2)} mois effectifs`
+                : "Combien de mois ce deal mobilise-t-il votre structure ?"}
+            </p>
           </div>
           <div>
             <Label className="text-xs font-medium mb-1.5 block">Mode d'allocation</Label>
@@ -1556,7 +1608,7 @@ function UnifiedStructurePanel({
                         {autoEffectivePct.toFixed(1)}%
                       </div>
                       <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
-                        {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(autoDenominator))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
+                        {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(autoDenominator))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? ` (≈ ${effectiveDurationMonths.toFixed(2)} mois)` : ""}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] text-emerald-700">
@@ -1590,7 +1642,7 @@ function UnifiedStructurePanel({
                           {autoEffectivePct.toFixed(1)}%
                         </div>
                         <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded-lg font-semibold">
-                          {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
+                          {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? ` (≈ ${effectiveDurationMonths.toFixed(2)} mois)` : ""}
                         </span>
                       </div>
                     )}
@@ -1606,7 +1658,7 @@ function UnifiedStructurePanel({
                   className="h-9 text-sm w-32" />
                 {config.dealAllocationPct > 0 && (
                   <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg">
-                    {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} mois
+                    {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? ` (≈ ${effectiveDurationMonths.toFixed(2)} mois)` : ""}
                   </span>
                 )}
                 {autoSharePct > 0 && Math.abs(autoSharePct - config.dealAllocationPct) > 0.5 && (
@@ -1725,7 +1777,7 @@ function UnifiedStructurePanel({
 
         {sections.map((sec, i) => {
           const monthly = config[sec.key].monthlyBudget;
-          const allocated = monthly * Math.max(0, config.dealDurationMonths) * (sc.effectivePct / 100);
+          const allocated = monthly * effectiveDurationMonths * (sc.effectivePct / 100);
           const realMonthly = realBurnRates?.[sec.key] ?? 0;
           const diff = monthly > 0 && realMonthly > 0 ? monthly - realMonthly : 0;
           const diffPct = realMonthly > 0 && diff !== 0 ? (diff / realMonthly) * 100 : 0;
@@ -1798,7 +1850,7 @@ function UnifiedStructurePanel({
         {sc.total > 0 && (
           <div className="bg-slate-800 px-4 py-3 flex items-center justify-between">
             <div className="text-xs text-slate-300">
-              Quote-part totale ({sc.effectivePct.toFixed(1)}% × {config.dealDurationMonths} mois)
+              Quote-part totale ({sc.effectivePct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? `, ≈ ${effectiveDurationMonths.toFixed(2)} mois` : ""})
             </div>
             <div className="text-sm font-black text-white">{formatFCFA(Math.round(sc.total))}</div>
           </div>
@@ -2045,6 +2097,32 @@ export default function PricingCalculator() {
                   <div className="col-span-2">
                     <Label className="text-xs">Produit / Prestation *</Label>
                     <Input value={scenario.productName} onChange={e => updateScenario({ productName: e.target.value })} placeholder="Nom du produit ou service…" className="h-8 mt-1 text-sm font-semibold" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Nature du deal</Label>
+                    <Select
+                      value={scenario.dealType ?? "__none__"}
+                      onValueChange={v => {
+                        if (v === "__none__") { updateScenario({ dealType: undefined }); return; }
+                        const type = v as DealType;
+                        const meta = DEAL_TYPE_META[type];
+                        updateScenario({ dealType: type });
+                        updateStructureCosts({ dealDurationUnit: meta.defaultUnit, dealDurationMonths: meta.defaultDuration });
+                      }}
+                    >
+                      <SelectTrigger className="h-8 mt-1 text-xs">
+                        <SelectValue placeholder="Choisir le type de deal…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sélectionner…</SelectItem>
+                        {(Object.entries(DEAL_TYPE_META) as [DealType, typeof DEAL_TYPE_META[DealType]][]).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v.icon} {v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {scenario.dealType && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{DEAL_TYPE_META[scenario.dealType].hint}</p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs">Client</Label>
