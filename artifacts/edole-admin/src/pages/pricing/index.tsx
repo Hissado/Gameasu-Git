@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1985,11 +1985,15 @@ export default function PricingCalculator() {
       : DEFAULT_TAX_BRACKETS,
   }), [ytdData, fiscalSettings]);
 
-  // ─── Clients ──────────────────────────────────────────────────────────────
+  // ─── Clients + Prospects ──────────────────────────────────────────────────
   const { data: clientsRes } = useQuery<{ data: { id: string; name: string }[] }>({
     queryKey: ["clients-list-pricing"], queryFn: () => apiFetch("/api/clients?limit=100"),
   });
   const clients = clientsRes?.data ?? [];
+  const { data: prospectsRes } = useQuery<{ data: { id: string; title: string; clientId?: string | null }[] }>({
+    queryKey: ["prospects-list-pricing"], queryFn: () => apiFetch("/api/crm/opportunities?limit=100"),
+  });
+  const prospects = prospectsRes?.data ?? [];
 
   // ─── Mutation helpers ─────────────────────────────────────────────────────
   const updateScenario = useCallback((patch: Partial<Scenario>) => {
@@ -2212,12 +2216,23 @@ export default function PricingCalculator() {
                     )}
                   </div>
                   <div>
-                    <Label className="text-xs">Client</Label>
+                    <Label className="text-xs">Client / Prospect</Label>
                     <Select value={scenario.clientId || "__none__"} onValueChange={v => updateScenario({ clientId: v === "__none__" ? "" : v })}>
                       <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Aucun</SelectItem>
-                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        {clients.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] text-muted-foreground px-2 py-1">Clients</SelectLabel>
+                            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectGroup>
+                        )}
+                        {prospects.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] text-muted-foreground px-2 py-1">Prospects</SelectLabel>
+                            {prospects.map(p => <SelectItem key={`prospect:${p.id}`} value={`prospect:${p.id}`}>{p.title}</SelectItem>)}
+                          </SelectGroup>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
