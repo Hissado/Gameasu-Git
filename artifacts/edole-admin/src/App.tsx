@@ -83,6 +83,7 @@ const HrLeavePolicies = lazy(() => import("@/pages/hr/leave-policies"));
 const HrTeamCalendar = lazy(() => import("@/pages/hr/team-calendar"));
 const HrTimesheets = lazy(() => import("@/pages/hr/timesheets"));
 const HrIndicators = lazy(() => import("@/pages/hr/indicators"));
+const HrReports = lazy(() => import("@/pages/hr/reports"));
 const HrPayrollOffCycle = lazy(() => import("@/pages/hr/payroll-off-cycle"));
 const HrTaxSettings = lazy(() => import("@/pages/hr/tax-settings"));
 const HrContractTemplates = lazy(() => import("@/pages/hr/contract-templates"));
@@ -297,6 +298,7 @@ function AppRouter() {
                 <Route path="/hr/team-calendar" component={HrTeamCalendar} />
                 <Route path="/hr/timesheets" component={HrTimesheets} />
                 <Route path="/hr/indicators" component={HrIndicators} />
+                <Route path="/hr/reports" component={HrReports} />
                 <Route path="/accounting/analytical" component={AccountingAnalytical} />
                 <Route path="/inventory/warehouses" component={InventoryWarehouses} />
 

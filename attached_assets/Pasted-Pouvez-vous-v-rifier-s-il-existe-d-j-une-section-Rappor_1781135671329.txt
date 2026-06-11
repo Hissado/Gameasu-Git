@@ -1,0 +1,128 @@
+Pouvez-vous vérifier s’il existe déjà une section Rapports RH dans le module Ressources humaines / Équipe & Communication ?
+
+Si cette section n’existe pas encore ou si elle est incomplète, merci de la créer ou de l’améliorer afin de permettre la génération de rapports RH complets, professionnels et faciles à filtrer, dans une logique similaire à ce que propose Gusto.
+
+Objectif
+
+Je veux pouvoir générer, consulter, filtrer et exporter des rapports RH directement depuis l’application.
+
+Rapports à prévoir
+
+Merci de prévoir des rapports liés notamment à :
+
+* collaborateurs
+* départements
+* postes / fonctions
+* managers
+* présences & pointage
+* retards
+* absences
+* congés
+* heures travaillées
+* heures supplémentaires
+* pauses
+* kiosks de pointage
+* paie
+* contrats
+* documents RH
+* onboarding
+* mouvements du personnel
+* performance si disponible
+
+Filtres nécessaires
+
+Chaque rapport doit pouvoir être filtré par :
+
+* collaborateur
+* département
+* manager
+* poste / fonction
+* type de contrat
+* statut du collaborateur
+* date
+* période personnalisée
+* mois
+* trimestre
+* année
+* organisation / tenant
+* source de pointage, par exemple application ou kiosk
+* type d’événement RH, si applicable
+
+Fonctionnalités attendues
+
+La section Rapports RH doit permettre de :
+
+* sélectionner un type de rapport
+* appliquer des filtres
+* afficher les résultats dans un tableau clair
+* afficher des indicateurs synthétiques
+* voir les totaux automatiquement
+* exporter les rapports en Excel / CSV / PDF
+* sauvegarder des vues de rapports si possible
+* imprimer les rapports si nécessaire
+* permettre une lecture simple et professionnelle
+
+Exemples de rapports utiles
+
+Ajouter ou prévoir notamment :
+
+* Rapport de présence par collaborateur
+* Rapport de présence par département
+* Rapport des absences
+* Rapport des retards
+* Rapport des heures travaillées
+* Rapport des heures supplémentaires
+* Rapport des pauses
+* Rapport des congés
+* Rapport des pointages kiosk
+* Rapport RH global par période
+* Rapport de paie par collaborateur
+* Rapport de paie par département
+* Rapport des nouveaux collaborateurs
+* Rapport des documents RH manquants
+* Rapport des contrats arrivant à expiration
+
+Intégrations importantes
+
+Les rapports RH doivent être connectés aux données existantes :
+
+* profils collaborateurs
+* départements
+* managers
+* présences & pointage
+* kiosks de pointage
+* congés / absences
+* paie
+* documents RH
+* onboarding
+* permissions
+* organisation / tenant connecté
+
+Logique SaaS / multi-tenant
+
+Comme Gaméasù est une application SaaS, les rapports doivent respecter strictement la logique multi-tenant :
+
+* chaque organisation voit uniquement ses propres données
+* les filtres doivent être limités aux collaborateurs et départements de l’organisation connectée
+* aucune donnée ne doit être visible entre organisations
+* les permissions doivent contrôler qui peut générer, voir, exporter ou imprimer les rapports
+
+Expérience utilisateur
+
+Merci de vous inspirer de la simplicité de Gusto :
+
+* rapports faciles à trouver
+* filtres visibles et simples
+* interface claire
+* tableaux lisibles
+* exports rapides
+* navigation fluide
+* pas de complexité inutile
+
+Résultat attendu
+
+Je veux une vraie section Rapports RH, permettant de générer des rapports propres, filtrables et exportables par collaborateur, département, date, période et autres critères utiles.
+
+Objectif final
+
+Créer une section de reporting RH professionnelle, simple, fiable et directement connectée aux modules RH, Présence & Pointage, Kiosk, Paie et Équipe & Communication.
