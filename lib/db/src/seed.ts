@@ -7,6 +7,7 @@ import {
   ordersTable, proformasTable, invoicesTable, paymentsTable,
   conversationsTable, conversationParticipantsTable, messagesTable, notificationsTable,
 } from "./schema";
+import { eq } from "drizzle-orm";
 
 async function seed() {
   console.log("Seeding database...");
@@ -54,7 +55,7 @@ async function seed() {
     phone: "+237 677 000 004",
     isClient: false,
     isActive: true,
-  }).returning().catch(() => db.select().from(usersTable).limit(1));
+  }).returning().catch(() => db.select().from(usersTable).where(eq(usersTable.email, "collab@edole.africa")));
 
   // CLIENTS
   const [client1] = await db.insert(clientsTable).values({
@@ -236,13 +237,14 @@ async function seed() {
   }
 
   // COLLABORATORS
-  await db.insert(collaboratorsTable).values([
-    { firstName: "Robert", lastName: "Essomba", email: "r.essomba@edole.africa", phone: "+237 677 200 001", position: "Technicien Électricien Senior", department: "Technique", skills: ["Électrotechnique", "HTA/HTB", "SCADA"], isAvailable: true, currentProjectsCount: 1 },
-    { firstName: "Fatima", lastName: "Diallo", email: "f.diallo@edole.africa", phone: "+237 677 200 002", position: "Ingénieure Mécanique", department: "Technique", skills: ["Maintenance industrielle", "Pneumatique", "Hydraulique"], isAvailable: true, currentProjectsCount: 1 },
-    { firstName: "Jean-Baptiste", lastName: "Mfoumou", email: "jb.mfoumou@edole.africa", phone: "+237 677 200 003", position: "Chef de Chantier", department: "Opérations", skills: ["Gestion de chantier", "HSE", "Coordination équipes"], isAvailable: false, currentProjectsCount: 2 },
-    { firstName: "Amina", lastName: "Touré", email: "a.toure@edole.africa", phone: "+237 677 200 004", position: "Logisticienne", department: "Logistique", skills: ["Supply chain", "Douanes CEMAC", "Transport lourd"], isAvailable: true, currentProjectsCount: 0 },
-    { firstName: "Olivier", lastName: "Bekono", email: "o.bekono@edole.africa", phone: "+237 677 200 005", position: "Soudeur Certifié", department: "Technique", skills: ["Soudage TIG/MIG", "Tuyauterie industrielle", "Contrôle qualité"], isAvailable: true, currentProjectsCount: 1 },
-  ]).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Robert", lastName: "Essomba", email: "r.essomba@edole.africa", phone: "+237 677 200 001", position: "Technicien Électricien Senior", department: "Technique", skills: ["Électrotechnique", "HTA/HTB", "SCADA"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Fatima", lastName: "Diallo", email: "f.diallo@edole.africa", phone: "+237 677 200 002", position: "Ingénieure Mécanique", department: "Technique", skills: ["Maintenance industrielle", "Pneumatique", "Hydraulique"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Jean-Baptiste", lastName: "Mfoumou", email: "jb.mfoumou@edole.africa", phone: "+237 677 200 003", position: "Chef de Chantier", department: "Opérations", skills: ["Gestion de chantier", "HSE", "Coordination équipes"], isAvailable: false, currentProjectsCount: 2 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Amina", lastName: "Touré", email: "a.toure@edole.africa", phone: "+237 677 200 004", position: "Logisticienne", department: "Logistique", skills: ["Supply chain", "Douanes CEMAC", "Transport lourd"], isAvailable: true, currentProjectsCount: 0 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Olivier", lastName: "Bekono", email: "o.bekono@edole.africa", phone: "+237 677 200 005", position: "Soudeur Certifié", department: "Technique", skills: ["Soudage TIG/MIG", "Tuyauterie industrielle", "Contrôle qualité"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  if (collab1?.id) {
+    await db.insert(collaboratorsTable).values({ firstName: "Marie", lastName: "Nguema", email: "collab@edole.africa", phone: "+237 677 000 004", position: "Assistante Administrative", department: "Administration", skills: ["Gestion administrative", "Comptabilité", "RH"], isAvailable: true, currentProjectsCount: 0, userId: collab1.id }).catch(() => {});
+  }
 
   // EQUIPMENT CATEGORIES
   const [cat1] = await db.insert(equipmentCategoriesTable).values({ name: "Grues & Levage", description: "Grues mobiles, grues à tour, palans" }).returning().catch(() => []);

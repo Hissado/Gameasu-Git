@@ -682,6 +682,140 @@ function EditCollaboratorDialog({
   );
 }
 
+// ─── Bank Request Panel (manager) ────────────────────────────────────────────
+
+type BankInfoRequest = {
+  id: string;
+  collaboratorId: string;
+  bankName: string | null;
+  bankCode: string | null;
+  bankAccountNumber: string | null;
+  status: string;
+  rejectionReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+};
+
+function BankRequestPanel({ collaboratorId, onApproved }: { collaboratorId: string; onApproved: () => void }) {
+  const queryClient = useQueryClient();
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const { data: requestsData, isLoading } = useQuery<{ data: BankInfoRequest[] }>({
+    queryKey: ["bank-requests-collab", collaboratorId],
+    queryFn: () => apiFetch(`/api/hr/bank-requests?status=pending`),
+    select: (d) => ({ data: d.data.filter((r: BankInfoRequest) => r.collaboratorId === collaboratorId) }),
+  });
+
+  const pendingRequest = requestsData?.data[0] ?? null;
+
+  const approveMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/hr/bank-requests/${pendingRequest!.id}/approve`, { method: "PATCH" }),
+    onSuccess: () => {
+      toast.success("Coordonnées bancaires mises à jour");
+      queryClient.invalidateQueries({ queryKey: ["bank-requests-collab", collaboratorId] });
+      onApproved();
+    },
+    onError: (e: any) => toast.error(e?.message || "Erreur lors de la validation"),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/hr/bank-requests/${pendingRequest!.id}/reject`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rejectionReason: rejectReason || undefined }),
+    }),
+    onSuccess: () => {
+      toast.success("Demande refusée");
+      setRejectOpen(false);
+      setRejectReason("");
+      queryClient.invalidateQueries({ queryKey: ["bank-requests-collab", collaboratorId] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erreur lors du refus"),
+  });
+
+  if (isLoading || !pendingRequest) return null;
+
+  return (
+    <>
+      <div className="pt-2 border-t border-amber-200">
+        <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Landmark className="w-3 h-3" /> Demande bancaire en attente
+        </p>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+          <div className="text-xs space-y-1">
+            {pendingRequest.bankName && (
+              <p className="text-slate-700">
+                <span className="text-slate-500">Banque : </span>
+                <span className="font-medium">{pendingRequest.bankName}
+                  {pendingRequest.bankCode && <span className="text-slate-400 ml-1">(code {pendingRequest.bankCode})</span>}
+                </span>
+              </p>
+            )}
+            {pendingRequest.bankAccountNumber && (
+              <p className="text-slate-700">
+                <span className="text-slate-500">Compte : </span>
+                <span className="font-mono font-medium">{pendingRequest.bankAccountNumber}</span>
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex-1 gap-1"
+              disabled={approveMutation.isPending}
+              onClick={() => approveMutation.mutate()}
+            >
+              {approveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+              Approuver
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50 flex-1 gap-1"
+              onClick={() => setRejectOpen(true)}
+            >
+              <XCircle className="w-3 h-3" /> Refuser
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Refuser la demande bancaire</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Vous pouvez indiquer un motif pour aider l'employé à corriger sa demande.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Motif du refus (optionnel)</Label>
+              <Textarea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                rows={3}
+                placeholder="ex : Numéro de compte invalide, veuillez vérifier…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>Annuler</Button>
+            <Button
+              variant="destructive"
+              disabled={rejectMutation.isPending}
+              onClick={() => rejectMutation.mutate()}
+            >
+              {rejectMutation.isPending ? "Refus…" : "Confirmer le refus"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CollaboratorDetail() {
@@ -994,6 +1128,8 @@ export default function CollaboratorDetail() {
                 )}
               </div>
             )}
+            {/* Demande bancaire en attente */}
+            {isManagerOrAbove && <BankRequestPanel collaboratorId={id} onApproved={() => { queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(id) }); }} />}
             {/* Kiosk code */}
             {isAdmin && (
               <div className="pt-2 border-t border-border/50">

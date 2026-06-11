@@ -437,3 +437,30 @@ export const contractTemplatesTable = pgTable("contract_templates", {
 
 export const insertContractTemplateSchema = createInsertSchema(contractTemplatesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type ContractTemplate = typeof contractTemplatesTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// DEMANDES DE MISE À JOUR COORDONNÉES BANCAIRES
+// ─────────────────────────────────────────────────────────
+export const bankInfoRequestsTable = pgTable("bank_info_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  // Nouvelles coordonnées proposées
+  bankName: text("bank_name"),
+  bankCode: text("bank_code"),
+  bankAccountNumber: text("bank_account_number"),
+  // Workflow : pending | approved | rejected
+  status: text("status").notNull().default("pending"),
+  // Manager qui a traité la demande
+  reviewedById: uuid("reviewed_by_id").references(() => usersTable.id),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("bir_org_idx").on(t.organizationId),
+  collabIdx: index("bir_collab_idx").on(t.collaboratorId),
+  statusIdx: index("bir_status_idx").on(t.status),
+}));
+
+export type BankInfoRequest = typeof bankInfoRequestsTable.$inferSelect;

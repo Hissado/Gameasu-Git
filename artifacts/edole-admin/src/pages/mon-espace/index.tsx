@@ -23,7 +23,7 @@ import {
   Download, Plus, Clock, CheckCircle2, XCircle, AlertCircle, Banknote,
   MapPin, Phone, Mail, Star, TrendingUp, Award, BookOpen, Calendar,
   ListTodo, FolderKanban, ChevronRight, Circle, CheckSquare, ExternalLink,
-  Flame, Timer,
+  Flame, Timer, Landmark, Send, RefreshCw,
 } from "lucide-react";
 import { formatDate, formatFCFA } from "@/lib/format";
 
@@ -73,6 +73,18 @@ type Profile = {
   id: string; firstName: string; lastName: string; jobTitle: string | null;
   avatarUrl: string | null; phone: string | null; email: string | null;
   departmentId: string | null; status: string;
+  bankName: string | null; bankCode: string | null; bankAccountNumber: string | null;
+};
+
+type BankInfoRequest = {
+  id: string;
+  bankName: string | null;
+  bankCode: string | null;
+  bankAccountNumber: string | null;
+  status: string;
+  rejectionReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -765,6 +777,214 @@ function MesTravauxTab({ userId }: { userId?: string }) {
   );
 }
 
+// ── Onglet : Profil & Coordonnées bancaires ───────────────────────────────────
+
+const BANK_REQUEST_STATUS: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+  pending: { label: "En attente de validation", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock className="w-3 h-3" /> },
+  approved: { label: "Approuvé", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
+  rejected: { label: "Refusé", cls: "bg-red-50 text-red-700 border-red-200", icon: <XCircle className="w-3 h-3" /> },
+  cancelled: { label: "Annulé", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: <XCircle className="w-3 h-3" /> },
+};
+
+function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onRefreshProfile: () => void }) {
+  const qc = useQueryClient();
+  const { toast: showToast } = useToast();
+  const [bankName, setBankName] = useState("");
+  const [bankCode, setBankCode] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+
+  const { data: bankRequest, isLoading: loadingRequest, refetch: refetchRequest } = useQuery<BankInfoRequest | null>({
+    queryKey: ["me-bank-request"],
+    queryFn: () => apiFetch("/api/hr/me/bank-request"),
+    retry: false,
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: () => apiFetch("/api/hr/me/bank-request", {
+      method: "POST",
+      body: { bankName: bankName || undefined, bankCode: bankCode || undefined, bankAccountNumber: bankAccountNumber || undefined },
+    }),
+    onSuccess: () => {
+      showToast({ title: "Demande envoyée", description: "Votre demande est en attente de validation par un manager." });
+      setFormOpen(false);
+      setBankName(""); setBankCode(""); setBankAccountNumber("");
+      qc.invalidateQueries({ queryKey: ["me-bank-request"] });
+    },
+    onError: (e: any) => showToast({ title: "Erreur", description: e?.body?.error ?? "Impossible de soumettre la demande", variant: "destructive" }),
+  });
+
+  const hasCurrent = profile?.bankName || profile?.bankAccountNumber;
+  const pendingRequest = bankRequest?.status === "pending" ? bankRequest : null;
+
+  const openForm = () => {
+    if (pendingRequest) {
+      setBankName(pendingRequest.bankName ?? "");
+      setBankCode(pendingRequest.bankCode ?? "");
+      setBankAccountNumber(pendingRequest.bankAccountNumber ?? "");
+    } else {
+      setBankName(profile?.bankName ?? "");
+      setBankCode(profile?.bankCode ?? "");
+      setBankAccountNumber(profile?.bankAccountNumber ?? "");
+    }
+    setFormOpen(true);
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Coordonnées bancaires actuelles */}
+      <Card className="border-slate-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <Landmark className="w-4 h-4 text-[#C8A24B]" /> Coordonnées bancaires enregistrées
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Ces informations sont utilisées pour le virement de votre salaire.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {hasCurrent ? (
+            <div className="space-y-2 text-sm">
+              {profile?.bankName && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Banque</span>
+                  <span className="font-medium text-slate-800">
+                    {profile.bankName}
+                    {profile.bankCode && <span className="text-xs text-slate-400 ml-1.5">(code {profile.bankCode})</span>}
+                  </span>
+                </div>
+              )}
+              {profile?.bankAccountNumber && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">N° de compte</span>
+                  <span className="font-mono font-medium text-slate-800">{profile.bankAccountNumber}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 py-3 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p className="text-sm">Aucune coordonnée bancaire enregistrée. Soumettez vos informations pour recevoir vos virements.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Statut de la dernière demande */}
+      {bankRequest && (
+        <Card className="border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Send className="w-4 h-4 text-slate-500" /> Dernière demande de modification
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const s = BANK_REQUEST_STATUS[bankRequest.status] ?? BANK_REQUEST_STATUS["pending"];
+                  return (
+                    <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium ${s.cls}`}>
+                      {s.icon} {s.label}
+                    </span>
+                  );
+                })()}
+              </div>
+              <span className="text-xs text-slate-400">{formatDate(bankRequest.createdAt)}</span>
+            </div>
+            <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-1">
+              {bankRequest.bankName && <p><span className="text-slate-400">Banque :</span> <span className="font-medium">{bankRequest.bankName}{bankRequest.bankCode && ` (code ${bankRequest.bankCode})`}</span></p>}
+              {bankRequest.bankAccountNumber && <p><span className="text-slate-400">Compte :</span> <span className="font-mono font-medium">{bankRequest.bankAccountNumber}</span></p>}
+            </div>
+            {bankRequest.status === "rejected" && bankRequest.rejectionReason && (
+              <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <span><strong>Motif du refus :</strong> {bankRequest.rejectionReason}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bouton soumettre / corriger */}
+      <div className="flex justify-end">
+        <Button
+          onClick={openForm}
+          className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2"
+          disabled={pendingRequest !== null}
+        >
+          <Landmark className="w-4 h-4" />
+          {hasCurrent ? "Corriger mes coordonnées bancaires" : "Soumettre mes coordonnées bancaires"}
+        </Button>
+      </div>
+      {pendingRequest && (
+        <p className="text-xs text-slate-400 text-right -mt-3">
+          Une demande est déjà en attente de validation. Attendez la réponse du manager avant de resoumettre.
+        </p>
+      )}
+
+      {/* Dialog formulaire */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Landmark className="w-4 h-4 text-[#C8A24B]" />
+              {hasCurrent ? "Corriger mes coordonnées bancaires" : "Soumettre mes coordonnées bancaires"}
+            </DialogTitle>
+            <DialogDescription>
+              Votre demande sera transmise à un manager pour validation avant d'être appliquée.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="bankName">Nom de la banque</Label>
+              <Input
+                id="bankName"
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                placeholder="ex : Ecobank Togo"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bankCode">Code banque BCEAO <span className="text-xs text-slate-400">(3 chiffres)</span></Label>
+              <Input
+                id="bankCode"
+                value={bankCode}
+                onChange={e => setBankCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                placeholder="ex : 024"
+                maxLength={3}
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bankAccountNumber">Numéro de compte / IBAN</Label>
+              <Input
+                id="bankAccountNumber"
+                value={bankAccountNumber}
+                onChange={e => setBankAccountNumber(e.target.value)}
+                placeholder="ex : TG53TG0090604310346500400070"
+                maxLength={50}
+                className="font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>Annuler</Button>
+            <Button
+              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+              disabled={(!bankName && !bankCode && !bankAccountNumber) || submitMutation.isPending}
+              onClick={() => submitMutation.mutate()}
+            >
+              {submitMutation.isPending ? "Envoi…" : "Soumettre la demande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function MonEspace() {
@@ -827,7 +1047,7 @@ export default function MonEspace() {
       </div>
 
       <Tabs defaultValue="travaux">
-        <TabsList className="grid grid-cols-7 h-auto p-1 bg-slate-100 rounded-xl mb-2">
+        <TabsList className="grid grid-cols-8 h-auto p-1 bg-slate-100 rounded-xl mb-2">
           <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <ListTodo className="w-4 h-4" /> Mes Travaux
           </TabsTrigger>
@@ -848,6 +1068,9 @@ export default function MonEspace() {
           </TabsTrigger>
           <TabsTrigger value="training" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <GraduationCap className="w-4 h-4" /> Formations
+          </TabsTrigger>
+          <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+            <Landmark className="w-4 h-4" /> Profil
           </TabsTrigger>
         </TabsList>
 
@@ -871,6 +1094,9 @@ export default function MonEspace() {
         </TabsContent>
         <TabsContent value="training">
           <FormationsTab trainings={trainings} evaluations={evaluations} loadingT={loadingTrainings} loadingE={loadingEvals} />
+        </TabsContent>
+        <TabsContent value="profil">
+          <ProfilTab profile={profile ?? null} onRefreshProfile={() => qc.invalidateQueries({ queryKey: ["me-profile"] })} />
         </TabsContent>
       </Tabs>
     </div>
