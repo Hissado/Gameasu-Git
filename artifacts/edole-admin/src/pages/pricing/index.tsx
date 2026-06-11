@@ -1493,13 +1493,29 @@ function UnifiedStructurePanel({
           <div className="space-y-2">
             <Label className="text-xs font-medium block">Part de votre activité représentée par ce deal (%)</Label>
             {config.autoAllocation && directCostsAmount > 0 ? (
-              <div className="flex items-center gap-2">
-                <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800 w-32">
-                  {autoEffectivePct.toFixed(1)}%
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="h-9 px-3 flex items-center bg-emerald-50 border border-emerald-300 rounded-md text-sm font-bold text-emerald-800 w-32">
+                    {autoEffectivePct.toFixed(1)}%
+                  </div>
+                  <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
+                    {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} budget = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
+                  </span>
                 </div>
-                <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg font-semibold">
-                  {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(config.monthlyCapacity)} budget = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} mois
-                </span>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Budget mensuel total coûts directs (FCFA) :</Label>
+                  <Input type="number" min="1"
+                    value={config.monthlyCapacity || ""}
+                    placeholder="ex. 50000000"
+                    onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
+                    className="h-7 text-xs w-40" />
+                </div>
+                {autoEffectivePct >= 99 && (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    Budget mensuel trop bas — saisissez le total mensuel des coûts directs de votre structure en FCFA (ex. 50 000 000).
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -1533,25 +1549,33 @@ function UnifiedStructurePanel({
                 ? "Calculé automatiquement : coûts directs du deal ÷ budget mensuel direct total."
                 : autoSharePct > 0
                   ? `Suggestion calculée : prix HT du deal ÷ CA mensuel moyen (${formatFCFA(Math.round(monthlyRevenue))}/mois) = ${(Math.round(autoSharePct * 10) / 10).toFixed(1)}%`
-                  : "Ex. ce deal représente 20% de votre activité ce mois. Activez le mode Auto si vous avez des lignes MO."}
+                  : "Ex. ce deal représente 20% de votre activité ce mois. Activez le mode Auto pour calculer depuis les coûts directs saisis."}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2 items-end">
               <div className="col-span-2">
-                <Label className="text-xs font-medium mb-1.5 block">Capacité mensuelle totale</Label>
+                <Label className="text-xs font-medium mb-1.5 block">
+                  {config.autoAllocation ? "Budget mensuel total coûts directs (FCFA)" : "Capacité mensuelle totale"}
+                </Label>
                 <div className="flex gap-1.5">
                   <Input type="number" min="1"
                     value={config.monthlyCapacity || ""}
-                    placeholder="ex. 160"
+                    placeholder={config.autoAllocation ? "ex. 50000000" : "ex. 160"}
                     onChange={e => onUpdate({ monthlyCapacity: parseFloat(e.target.value) || 1 })}
                     className="h-9 text-sm flex-1" />
-                  <Input value={config.capacityUnit} placeholder="h"
-                    onChange={e => onUpdate({ capacityUnit: e.target.value })}
-                    className="h-9 text-sm w-20" />
+                  {!config.autoAllocation && (
+                    <Input value={config.capacityUnit} placeholder="h"
+                      onChange={e => onUpdate({ capacityUnit: e.target.value })}
+                      className="h-9 text-sm w-20" />
+                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Capacité totale de votre structure par mois (ex. 160h, 10 projets…)</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {config.autoAllocation
+                    ? "Total mensuel des coûts directs de votre structure (MO + opérations + matières, en FCFA)"
+                    : "Capacité totale de votre structure par mois (ex. 160h, 10 projets…)"}
+                </p>
               </div>
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Part de ce deal</Label>
