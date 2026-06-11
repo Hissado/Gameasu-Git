@@ -2219,7 +2219,7 @@ export default function PricingCalculator() {
                     <Label className="text-xs">Client / Prospect</Label>
                     <Select value={scenario.clientId || "__none__"} onValueChange={v => updateScenario({ clientId: v === "__none__" ? "" : v })}>
                       <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" className="max-h-64 overflow-y-auto">
                         <SelectItem value="__none__">Aucun</SelectItem>
                         {clients.length > 0 && (
                           <SelectGroup>
