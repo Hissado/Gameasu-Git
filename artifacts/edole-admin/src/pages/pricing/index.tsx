@@ -126,12 +126,20 @@ interface Scenario {
   marginTarget: number;
   taxRate: number;
   taxMode: TaxMode;
+  // Remise commerciale (appliquée après le calcul du prix, réduit la marge)
+  discountPct: number;
 }
 
 interface PricingResult {
   totalCost: number;
   byCategory: Record<CostCategory, number>;
-  priceHT: number; priceTTC: number; taxAmount: number;
+  /** Prix catalogue HT avant remise */
+  priceHTBrut: number;
+  /** Montant de la remise */
+  discountAmount: number;
+  /** Prix HT après remise (= prix facturé) */
+  priceHT: number;
+  priceTTC: number; taxAmount: number;
   unitCost: number; unitHT: number; unitTTC: number;
   grossMargin: number; grossMarginPct: number;
   operatingMargin: number; operatingMarginPct: number;
@@ -210,7 +218,10 @@ const DEFAULT_SCENARIO: Scenario = {
   financialItems: [], riskItems: [], depreciationItems: [],
   structureCosts: { ...DEFAULT_STRUCTURE_COSTS },
   marginMode: "net", marginTarget: 25, taxRate: 18, taxMode: "on_top",
+  discountPct: 0,
 };
+
+const STORAGE_KEY = "gameasutech:pricing:scenarios:v1";
 
 const CHART_COLORS = ["#3B82F6","#8B5CF6","#F59E0B","#10B981","#0EA5E9","#64748B","#A855F7","#EF4444","#F97316","#84CC16","#EC4899","#6366F1"];
 
@@ -353,8 +364,21 @@ function findPriceForNetMargin(totalCost: number, targetPct: number, ytdProfit: 
   return (lo + hi) / 2;
 }
 
+/** Compute recommended price for a given margin mode and target */
+function findPriceForMargin(
+  totalCost: number, mode: MarginMode, targetPct: number,
+  ytdProfit: number, brackets: TaxBracket[], taxEnabled: boolean
+): number {
+  if (totalCost <= 0) return 0;
+  if (mode === "markup") return totalCost * (1 + targetPct / 100);
+  if (mode === "gross") return totalCost / Math.max(0.001, 1 - Math.min(targetPct / 100, 0.999));
+  // net mode: binary search accounting for IS
+  return findPriceForNetMargin(totalCost, targetPct, ytdProfit, brackets, taxEnabled);
+}
+
 function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
   const qty = Math.max(1, scenario.quantity);
+  const discountPct = Math.max(0, Math.min(100, scenario.discountPct ?? 0));
   const byCategory: Record<CostCategory, number> = {
     direct: 0, purchase: 0, logistics: 0, tax_input: 0, other: 0,
     labor: 0, operational: 0, depreciation: 0,
@@ -439,13 +463,17 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
 
   const totalCost = baseCost;
 
-  // 6. Final price HT
-  let priceHT = 0;
+  // 6. Prix catalogue HT (avant remise)
+  let priceHTBrut = 0;
   if (scenario.marginMode === "markup") {
-    priceHT = totalCost * (1 + scenario.marginTarget / 100);
+    priceHTBrut = totalCost * (1 + scenario.marginTarget / 100);
   } else {
-    priceHT = totalCost / Math.max(0.001, 1 - Math.min(scenario.marginTarget / 100, 0.999));
+    priceHTBrut = totalCost / Math.max(0.001, 1 - Math.min(scenario.marginTarget / 100, 0.999));
   }
+
+  // 7. Remise commerciale → prix HT facturé
+  const discountAmount = priceHTBrut * (discountPct / 100);
+  const priceHT = priceHTBrut - discountAmount;
 
   const taxAmount = scenario.taxMode === "on_top"
     ? priceHT * (scenario.taxRate / 100)
@@ -455,7 +483,7 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
   const grossMarginPct = priceHT > 0 ? (grossMargin / priceHT) * 100 : 0;
   const markupPct = totalCost > 0 ? (grossMargin / totalCost) * 100 : 0;
 
-  // 7. IS incrémental
+  // 8. IS incrémental (calculé sur la marge brute après remise)
   const { incrementalTax, effectiveRate, marginalRate } = fc.enabled
     ? computeCorporateTax(fc.ytdProfitBeforeTax, grossMargin, fc.brackets)
     : { incrementalTax: 0, effectiveRate: 0, marginalRate: 0 };
@@ -463,11 +491,11 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
   const netProfit = grossMargin - incrementalTax;
   const netMarginPct = priceHT > 0 ? (netProfit / priceHT) * 100 : 0;
 
-  // 8. Prix cibles
-  const minimumPriceHT    = findPriceForNetMargin(totalCost, 0, fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
-  const recommendedPriceHT = findPriceForNetMargin(totalCost, scenario.marginTarget, fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
+  // 9. Prix cibles — respectent le marginMode choisi
+  const minimumPriceHT     = findPriceForMargin(totalCost, scenario.marginMode, 0,                    fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
+  const recommendedPriceHT = findPriceForMargin(totalCost, scenario.marginMode, scenario.marginTarget, fc.ytdProfitBeforeTax, fc.brackets, fc.enabled);
 
-  // 9. Breakdown for chart (only non-zero categories)
+  // 10. Breakdown for chart (only non-zero categories)
   const breakdownLabels = Object.entries(byCategory)
     .filter(([, v]) => v > 0)
     .map(([k, v], i) => ({
@@ -478,7 +506,7 @@ function calculate(scenario: Scenario, fc: CorporateTaxConfig): PricingResult {
 
   return {
     totalCost, byCategory,
-    priceHT, priceTTC, taxAmount,
+    priceHTBrut, discountAmount, priceHT, priceTTC, taxAmount,
     unitCost: totalCost / qty, unitHT: priceHT / qty, unitTTC: priceTTC / qty,
     grossMargin, grossMarginPct,
     operatingMargin: grossMargin, operatingMarginPct: grossMarginPct,
@@ -1023,8 +1051,10 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
 
 // ─── SendToDocDialog ──────────────────────────────────────────────────────────
 
+type DocTarget = "proforma" | "order" | "invoice";
+
 function SendToDocDialog({ open, onClose, result, scenario, docType }: {
-  open: boolean; onClose: () => void; result: PricingResult; scenario: Scenario; docType: "proforma" | "order";
+  open: boolean; onClose: () => void; result: PricingResult; scenario: Scenario; docType: DocTarget;
 }) {
   const { data: clientsRes } = useQuery<{ data: { id: string; name: string }[] }>({
     queryKey: ["clients-list"], queryFn: () => apiFetch("/api/clients?limit=100"), enabled: open,
@@ -1036,20 +1066,54 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
 
   const amount = useUnit ? result.unitTTC : result.priceTTC;
 
+  const buildNotes = () => {
+    const parts = [
+      `[Calculateur tarifaire] ${scenario.productName || "Prestation"}`,
+      `Coût de revient : ${formatFCFA(Math.round(result.totalCost))}`,
+    ];
+    if (result.discountAmount > 0) {
+      parts.push(`Prix catalogue : ${formatFCFA(Math.round(result.priceHTBrut))} → Remise ${(scenario.discountPct ?? 0).toFixed(1)}% (−${formatFCFA(Math.round(result.discountAmount))})`);
+    }
+    parts.push(
+      `Prix HT : ${formatFCFA(Math.round(result.priceHT))}`,
+      `TVA (${scenario.taxRate}%) : ${formatFCFA(Math.round(result.taxAmount))}`,
+      `Prix TTC : ${formatFCFA(Math.round(result.priceTTC))}`,
+      `Marge brute : ${result.grossMarginPct.toFixed(1)}%`,
+      `Marge nette : ${result.netMarginPct.toFixed(1)}%`,
+    );
+    if (result.corporateTax > 0) parts.push(`IS incrémental : ${formatFCFA(Math.round(result.corporateTax))}`);
+    return parts.join(" · ");
+  };
+
   const handleCreate = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
     setSaving(true);
     try {
-      await apiFetch(docType === "proforma" ? "/api/proformas" : "/api/orders", {
+      const endpoint = docType === "proforma" ? "/api/proformas" : docType === "invoice" ? "/api/invoices" : "/api/orders";
+      await apiFetch(endpoint, {
         method: "POST",
         body: JSON.stringify({
           clientId, totalAmount: Math.round(amount), currency: "XOF",
-          notes: `[Calculateur tarifaire] ${scenario.productName || "Prestation"} — Coût : ${formatFCFA(result.totalCost)}, Marge brute : ${result.grossMarginPct.toFixed(1)}%, Marge nette : ${result.netMarginPct.toFixed(1)}%${result.corporateTax > 0 ? `, IS : ${formatFCFA(Math.round(result.corporateTax))}` : ""}`,
+          notes: buildNotes(),
+          ...(docType === "invoice" ? { status: "draft", dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10) } : {}),
         }),
       });
-      toast.success(docType === "proforma" ? "Devis créé avec succès" : "Commande créée avec succès");
+      const labels: Record<DocTarget, string> = { proforma: "Devis créé", order: "Commande créée", invoice: "Facture créée" };
+      toast.success(`${labels[docType]} avec succès`);
       onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
+  };
+
+  const docIcons: Record<DocTarget, React.ReactNode> = {
+    proforma: <FileSignature className="w-5 h-5 text-[#C8A24B]" />,
+    order:    <ShoppingCart className="w-5 h-5 text-[#C8A24B]" />,
+    invoice:  <Banknote className="w-5 h-5 text-[#C8A24B]" />,
+  };
+  const docTitles: Record<DocTarget, string> = {
+    proforma: "Créer un devis", order: "Créer une commande", invoice: "Créer une facture",
+  };
+  const docBtnLabels: Record<DocTarget, string> = {
+    proforma: "Créer le devis", order: "Créer la commande", invoice: "Créer la facture",
   };
 
   return (
@@ -1057,18 +1121,28 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {docType === "proforma" ? <FileSignature className="w-5 h-5 text-[#C8A24B]" /> : <ShoppingCart className="w-5 h-5 text-[#C8A24B]" />}
-            {docType === "proforma" ? "Créer un devis" : "Créer une commande"}
+            {docIcons[docType]}{docTitles[docType]}
           </DialogTitle>
           <DialogDescription>Les données du calculateur seront reportées dans le document.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">
             <div className="font-semibold">{scenario.productName || "Prestation non nommée"}</div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Prix HT :</span><span className="font-semibold">{formatFCFA(result.priceHT)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">TVA ({scenario.taxRate}%) :</span><span>{formatFCFA(result.taxAmount)}</span></div>
+            {result.discountAmount > 0 && (
+              <div className="flex justify-between text-slate-500 line-through text-xs">
+                <span>Prix catalogue HT :</span><span>{formatFCFA(Math.round(result.priceHTBrut))}</span>
+              </div>
+            )}
+            {result.discountAmount > 0 && (
+              <div className="flex justify-between text-red-600 text-xs">
+                <span>Remise ({(scenario.discountPct ?? 0).toFixed(1)}%) :</span>
+                <span>−{formatFCFA(Math.round(result.discountAmount))}</span>
+              </div>
+            )}
+            <div className="flex justify-between"><span className="text-muted-foreground">Prix HT :</span><span className="font-semibold">{formatFCFA(Math.round(result.priceHT))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">TVA ({scenario.taxRate}%) :</span><span>{formatFCFA(Math.round(result.taxAmount))}</span></div>
             {result.corporateTax > 0 && <div className="flex justify-between text-orange-700"><span>IS incrémental :</span><span className="font-semibold">{formatFCFA(Math.round(result.corporateTax))}</span></div>}
-            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B]">{formatFCFA(result.priceTTC)}</span></div>
+            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B]">{formatFCFA(Math.round(result.priceTTC))}</span></div>
           </div>
           <div>
             <Label>Client *</Label>
@@ -1080,23 +1154,22 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
           {scenario.quantity > 1 && (
             <div className="flex gap-2">
               <Button size="sm" variant={!useUnit ? "default" : "outline"} onClick={() => setUseUnit(false)} className={!useUnit ? "bg-[#C8A24B] text-white" : ""}>
-                Global ({formatFCFA(result.priceTTC)})
+                Global ({formatFCFA(Math.round(result.priceTTC))})
               </Button>
               <Button size="sm" variant={useUnit ? "default" : "outline"} onClick={() => setUseUnit(true)} className={useUnit ? "bg-[#C8A24B] text-white" : ""}>
-                Unitaire ({formatFCFA(result.unitTTC)})
+                Unitaire ({formatFCFA(Math.round(result.unitTTC))})
               </Button>
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : label(docType)}</Button>
+          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : docBtnLabels[docType]}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-function label(d: "proforma"|"order") { return d === "proforma" ? "Créer le devis" : "Créer la commande"; }
 
 // ─── ScenarioCard ─────────────────────────────────────────────────────────────
 
@@ -1523,13 +1596,25 @@ function UnifiedStructurePanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+function loadSavedScenarios(): Scenario[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Scenario[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [];
+  } catch { return []; }
+}
+
 export default function PricingCalculator() {
-  const [scenarios, setScenarios] = useState<Scenario[]>([{ ...DEFAULT_SCENARIO, id: uid() }]);
+  const [scenarios, setScenarios] = useState<Scenario[]>(() => {
+    const saved = loadSavedScenarios();
+    return saved.length > 0 ? saved : [{ ...DEFAULT_SCENARIO, id: uid() }];
+  });
   const [activeScenarioId, setActiveScenarioId] = useState<string>(scenarios[0].id);
   const [showHRDialog, setShowHRDialog] = useState(false);
   const [showEquipDialog, setShowEquipDialog] = useState(false);
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
-  const [sendDocType, setSendDocType] = useState<"proforma" | "order" | null>(null);
+  const [sendDocType, setSendDocType] = useState<DocTarget | null>(null);
   const [activeTab, setActiveTab] = useState("directs");
 
   const scenario = scenarios.find(s => s.id === activeScenarioId) ?? scenarios[0];
@@ -1632,6 +1717,11 @@ export default function PricingCalculator() {
     setScenarios(prev => [...prev, ns]);
     setActiveScenarioId(ns.id);
   };
+
+  // ─── Auto-save to localStorage ────────────────────────────────────────────
+  React.useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios)); } catch { /* ignore quota errors */ }
+  }, [scenarios]);
 
   // ─── Compute ──────────────────────────────────────────────────────────────
   const result = useMemo(() => calculate(scenario, fiscalConfig), [scenario, fiscalConfig]);
@@ -2088,6 +2178,45 @@ export default function PricingCalculator() {
                       <Button size="sm" variant={scenario.taxMode === "included" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "included" ? "bg-[#C8A24B] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "included" })}>TVA incluse</Button>
                     </div>
                   </div>
+
+                  {/* Remise commerciale */}
+                  <div className="col-span-2 border-t border-slate-100 pt-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label className="text-xs flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-red-500" />
+                        Remise commerciale (%)
+                      </Label>
+                      {(scenario.discountPct ?? 0) > 0 && result.priceHTBrut > 0 && (
+                        <span className="text-[10px] text-red-600 font-semibold bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                          −{formatFCFA(Math.round(result.discountAmount))} · marge brute après remise : {result.grossMarginPct.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min="0" max="100" step="0.5"
+                        value={scenario.discountPct ?? 0}
+                        onChange={e => updateScenario({ discountPct: Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)) })}
+                        className="flex-1 h-8 text-xs"
+                        placeholder="0"
+                      />
+                      <span className="text-sm font-semibold text-muted-foreground">%</span>
+                    </div>
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
+                      {[0, 5, 10, 15, 20].map(v => (
+                        <Button key={v} size="sm" variant="outline"
+                          className={`h-6 text-xs px-2 ${(scenario.discountPct ?? 0) === v ? "bg-red-500 text-white border-red-500" : ""}`}
+                          onClick={() => updateScenario({ discountPct: v })}>
+                          {v === 0 ? "Aucune" : `−${v}%`}
+                        </Button>
+                      ))}
+                    </div>
+                    {(scenario.discountPct ?? 0) > 0 && result.priceHTBrut > 0 && (
+                      <div className="mt-2 text-[10px] text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+                        Prix catalogue : <strong>{formatFCFA(Math.round(result.priceHTBrut))}</strong> → remise {(scenario.discountPct ?? 0)}% → Prix HT facturé : <strong className="text-slate-800">{formatFCFA(Math.round(result.priceHT))}</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -2178,8 +2307,14 @@ export default function PricingCalculator() {
               </div>
               <div className="bg-gradient-to-br from-[#C8A24B] to-[#a8862f] text-white rounded-xl p-4 shadow">
                 <div className="text-xs text-amber-100 font-medium mb-1">Prix de vente HT</div>
-                <div className="text-xl font-bold">{formatFCFA(result.priceHT)}</div>
-                {scenario.quantity > 1 && <div className="text-xs text-amber-100 mt-0.5">Unit. : {formatFCFA(result.unitHT)}</div>}
+                {result.discountAmount > 0 && (
+                  <div className="text-xs text-amber-200 line-through leading-none mb-0.5">{formatFCFA(Math.round(result.priceHTBrut))}</div>
+                )}
+                <div className="text-xl font-bold">{formatFCFA(Math.round(result.priceHT))}</div>
+                {result.discountAmount > 0 && (
+                  <div className="text-[10px] text-amber-100 mt-0.5">Remise {(scenario.discountPct ?? 0)}% : −{formatFCFA(Math.round(result.discountAmount))}</div>
+                )}
+                {scenario.quantity > 1 && !result.discountAmount && <div className="text-xs text-amber-100 mt-0.5">Unit. : {formatFCFA(Math.round(result.unitHT))}</div>}
               </div>
               <div className="bg-blue-600 text-white rounded-xl p-4 shadow">
                 <div className="text-xs text-blue-100 font-medium mb-1">TVA ({scenario.taxRate}%)</div>
@@ -2246,9 +2381,16 @@ export default function PricingCalculator() {
                   <tbody>
                     <tr className="border-b border-slate-100 hover:bg-slate-50/50">
                       <td className="px-4 py-2.5 text-slate-600 font-medium">Chiffre d'affaires HT</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatFCFA(result.priceHT)}</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatFCFA(Math.round(result.priceHT))}</td>
                       <td className="px-4 py-2.5 text-right text-muted-foreground">100%</td>
                     </tr>
+                    {result.discountAmount > 0 && (
+                      <tr className="border-b border-slate-100 hover:bg-red-50/20">
+                        <td className="px-4 py-1.5 text-red-500 pl-6">— Remise commerciale ({(scenario.discountPct ?? 0)}%)</td>
+                        <td className="px-4 py-1.5 text-right text-red-600 font-semibold">−{formatFCFA(Math.round(result.discountAmount))}</td>
+                        <td className="px-4 py-1.5 text-right text-red-400">{result.priceHTBrut > 0 ? `${((result.discountAmount / result.priceHTBrut) * 100).toFixed(1)}%` : "—"}</td>
+                      </tr>
+                    )}
                     {[
                       { label: "— Coûts directs", val: result.byCategory.direct + result.byCategory.purchase + result.byCategory.logistics + result.byCategory.tax_input + result.byCategory.other },
                       { label: "— Main-d'œuvre", val: result.byCategory.labor },
@@ -2370,6 +2512,9 @@ export default function PricingCalculator() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => setSendDocType("order")} className="gap-1.5 text-xs flex-1">
                 <ShoppingCart className="w-3.5 h-3.5" />Créer commande
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setSendDocType("invoice")} className="gap-1.5 text-xs flex-1 border-[#C8A24B] text-[#C8A24B] hover:bg-[#C8A24B]/10">
+                <Banknote className="w-3.5 h-3.5" />Créer facture
               </Button>
             </div>
           </div>
