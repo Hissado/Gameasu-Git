@@ -1710,6 +1710,7 @@ export default function PricingCalculator() {
     return saved.length > 0 ? saved : [{ ...DEFAULT_SCENARIO, id: uid() }];
   });
   const [activeScenarioId, setActiveScenarioId] = useState<string>(scenarios[0].id);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showHRDialog, setShowHRDialog] = useState(false);
   const [showEquipDialog, setShowEquipDialog] = useState(false);
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
@@ -1817,6 +1818,16 @@ export default function PricingCalculator() {
     setActiveScenarioId(ns.id);
   };
 
+  const resetScenario = useCallback(() => {
+    setScenarios(prev => prev.map(s =>
+      s.id === activeScenarioId
+        ? { ...DEFAULT_SCENARIO, id: s.id, name: s.name }
+        : s
+    ));
+    setShowResetConfirm(false);
+    toast.success("Scénario réinitialisé");
+  }, [activeScenarioId]);
+
   // ─── Auto-save to localStorage ────────────────────────────────────────────
   React.useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios)); } catch { /* ignore quota errors */ }
@@ -1861,6 +1872,14 @@ export default function PricingCalculator() {
               </Button>
             ))}
             <Button size="sm" variant="outline" onClick={addScenario} className="gap-1"><Plus className="w-3.5 h-3.5" />Scénario</Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={() => setShowResetConfirm(true)} className="text-muted-foreground hover:text-destructive h-8 w-8 p-0">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Réinitialiser le scénario</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -2708,6 +2727,27 @@ export default function PricingCalculator() {
             </Card>
           </div>
         </div>
+
+        {/* ── Reset confirm ── */}
+        <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-amber-500" />
+                Réinitialiser le scénario
+              </DialogTitle>
+              <DialogDescription>
+                Toutes les lignes de coûts, les paramètres de marge et les informations générales du scénario <strong>«&nbsp;{scenario.name}&nbsp;»</strong> seront effacés. Cette action est irréversible.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowResetConfirm(false)}>Annuler</Button>
+              <Button variant="destructive" onClick={resetScenario} className="gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" />Réinitialiser
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ── Dialogs ── */}
         <LoadFromHRDialog open={showHRDialog} onClose={() => setShowHRDialog(false)}
