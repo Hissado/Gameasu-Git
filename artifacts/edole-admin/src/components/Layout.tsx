@@ -87,9 +87,10 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Finance",
     icon: Landmark,
     items: [
-      { name: "Comptabilité",      path: "/accounting", icon: Calculator, moduleKey: "accounting" },
-      { name: "Budgets & prévisions", path: "/fpa",     icon: TrendingUp, moduleKey: "financial_planning" },
-      { name: "Rapports",          path: "/reports",    icon: BarChart3,  moduleKey: "reports" },
+      { name: "Comptabilité",      path: "/accounting",              icon: Calculator, moduleKey: "accounting" },
+      { name: "Immobilisations",   path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
+      { name: "Budgets & prévisions", path: "/fpa",                  icon: TrendingUp, moduleKey: "financial_planning" },
+      { name: "Rapports",          path: "/reports",                  icon: BarChart3,  moduleKey: "reports" },
     ],
   },
   {

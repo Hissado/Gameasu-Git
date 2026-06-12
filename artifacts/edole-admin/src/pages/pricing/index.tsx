@@ -790,7 +790,13 @@ function CostItemRow({
 type DeprExtras = {
   transport: number; install: number; deposit: number;
   maintenance: number; insurance: number;
-  purchaseCost: number; lifespanYears: number;
+  purchaseCost: number; lifespanYears: number; residualValue: number;
+};
+
+type FixedAssetLight = {
+  id: string; code: string; label: string; category?: string | null;
+  acquisitionCost: number; residualValue: number; usefulLifeYears: number;
+  depreciationMethod: string; status: string; netBookValue: number;
 };
 
 function parseDeprNotes(notes?: string): Partial<DeprExtras> {
@@ -815,10 +821,12 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   // Owned data
   const [purchaseCost, setPurchaseCost]   = useState(saved.purchaseCost ?? 0);
   const [lifespanYears, setLifespanYears] = useState(saved.lifespanYears ?? 5);
+  const [residualValue, setResidualValue] = useState(saved.residualValue ?? 0);
+  const [deprMethod, setDeprMethod]       = useState<string>("linear");
   const [maintenance, setMaintenance]     = useState(saved.maintenance ?? 0);
   const [insurance, setInsurance]         = useState(saved.insurance ?? 0);
 
-  // Equipment catalog (shared, lightweight)
+  // Equipment catalog
   const { data: eqRes } = useQuery<{ data: Array<{ id: string; name: string; code: string; dailyRate: number | null; categoryName?: string }> }>({
     queryKey: ["equipment-depr-picker"],
     queryFn: () => apiFetch("/api/equipment?limit=200"),
@@ -826,9 +834,19 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   });
   const equipList = eqRes?.data ?? [];
 
+  // Fixed assets (Immobilisations) — for owned mode
+  const { data: assetsRes } = useQuery<{ data: FixedAssetLight[] }>({
+    queryKey: ["fixed-assets-depr-picker"],
+    queryFn: () => apiFetch("/api/accounting/fixed-assets"),
+    staleTime: 120_000,
+    enabled: mode === "owned",
+  });
+  const assetList = assetsRes?.data ?? [];
+
   const lifespanDays    = Math.max(1, Math.round(lifespanYears * 365));
+  const depreciable     = Math.max(0, purchaseCost - residualValue);
   const days            = item.qty ?? 0;
-  const ownedDailyRate  = purchaseCost > 0 ? Math.round(purchaseCost / lifespanDays) : item.amount;
+  const ownedDailyRate  = depreciable > 0 ? Math.round(depreciable / lifespanDays) : item.amount;
   const baseDailyRate   = mode === "owned" ? ownedDailyRate : item.amount;
   const baseTotal       = baseDailyRate * days;
   const rentalExtras    = transport + install;
@@ -836,7 +854,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   const total           = baseTotal + (mode === "rental" ? rentalExtras : ownedExtras);
 
   const persist = (overrides: Partial<DeprExtras> = {}) => {
-    const payload: DeprExtras = { transport, install, deposit, purchaseCost, lifespanYears, maintenance, insurance, ...overrides };
+    const payload: DeprExtras = { transport, install, deposit, purchaseCost, lifespanYears, residualValue, maintenance, insurance, ...overrides };
     onUpdate({ notes: JSON.stringify(payload) });
   };
 
@@ -851,9 +869,23 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
     }
   };
 
+  const handleAssetSelect = (assetId: string) => {
+    const a = assetList.find(x => x.id === assetId);
+    if (!a) return;
+    const newPurchase = a.acquisitionCost;
+    const newLifespan = a.usefulLifeYears;
+    const newResidual = a.residualValue;
+    setPurchaseCost(newPurchase);
+    setLifespanYears(newLifespan);
+    setResidualValue(newResidual);
+    setDeprMethod(a.depreciationMethod);
+    onUpdate({ label: `${a.label} (${a.code})` });
+    persist({ purchaseCost: newPurchase, lifespanYears: newLifespan, residualValue: newResidual });
+  };
+
   const handleDays     = (v: number) => onUpdate({ qty: v });
   const handleRate     = (v: number) => onUpdate({ amount: v });
-  const saveOwned      = () => { onUpdate({ amount: ownedDailyRate }); persist({ purchaseCost, lifespanYears, maintenance, insurance }); };
+  const saveOwned      = () => { onUpdate({ amount: ownedDailyRate }); persist({ purchaseCost, lifespanYears, residualValue, maintenance, insurance }); };
 
   return (
     <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-3">
@@ -868,8 +900,8 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
         </button>
       </div>
 
-      {/* Sélecteur depuis le catalogue */}
-      {equipList.length > 0 && (
+      {/* Sélecteur contextuel selon le mode */}
+      {mode === "rental" && equipList.length > 0 && (
         <div>
           <p className="text-[10px] text-muted-foreground mb-1">Importer depuis le catalogue Équipements (optionnel)</p>
           <Select onValueChange={handleEquipSelect}>
@@ -884,6 +916,43 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+      {mode === "owned" && (
+        <div className="grid grid-cols-1 gap-2">
+          {assetList.length > 0 && (
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">📂 Importer depuis les Immobilisations (auto-remplit les données)</p>
+              <Select onValueChange={handleAssetSelect}>
+                <SelectTrigger className="h-8 text-xs border-lime-300 bg-lime-50"><SelectValue placeholder="Choisir une immobilisation…" /></SelectTrigger>
+                <SelectContent position="popper" className="max-h-56 overflow-y-auto">
+                  {assetList.filter(a => a.status === "active").map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="font-medium">{a.label}</span>
+                      <span className="text-muted-foreground ml-1 text-[10px]">({a.code})</span>
+                      <span className="text-lime-700 ml-2 text-[10px]">{formatFCFA(a.acquisitionCost)}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {equipList.length > 0 && (
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Ou depuis le catalogue Équipements (nom uniquement)</p>
+              <Select onValueChange={handleEquipSelect}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Choisir un équipement…" /></SelectTrigger>
+                <SelectContent position="popper" className="max-h-56 overflow-y-auto">
+                  {equipList.map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      <span className="font-medium">{e.name}</span>
+                      <span className="text-muted-foreground ml-1">({e.code})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       )}
 
@@ -975,46 +1044,62 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
       {/* ── MODE : POSSÉDÉ ── */}
       {mode === "owned" && (
         <div className="space-y-2.5">
-          {/* Données d'achat */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Données d'achat — 3 colonnes */}
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Prix d'achat</p>
               <Input type="number" min="0" value={purchaseCost || ""}
                 onChange={e => { const v = parseFloat(e.target.value) || 0; setPurchaseCost(v); persist({ purchaseCost: v }); }}
-                className="h-8 text-xs" placeholder="Ex : 21 000 000 FCFA" />
+                className="h-8 text-xs" placeholder="0 FCFA" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1">Durée de vie (années)</p>
+              <p className="text-[10px] text-muted-foreground mb-1">Valeur résiduelle</p>
+              <Input type="number" min="0" value={residualValue || ""}
+                onChange={e => { const v = parseFloat(e.target.value) || 0; setResidualValue(v); persist({ residualValue: v }); }}
+                className="h-8 text-xs" placeholder="0 FCFA" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Durée de vie</p>
               <div className="flex gap-1">
                 <Input type="number" min="0.5" step="0.5" value={lifespanYears || ""}
                   onChange={e => { const v = parseFloat(e.target.value) || 1; setLifespanYears(v); persist({ lifespanYears: v }); }}
                   className="h-8 text-xs text-right flex-1 min-w-0" placeholder="5" />
                 <span className="h-8 flex items-center text-[10px] text-muted-foreground px-1 shrink-0">ans</span>
               </div>
-              <div className="flex gap-1 mt-1">
-                {[1, 2, 5, 10, 20].map(y => (
-                  <button key={y} onClick={() => { setLifespanYears(y); persist({ lifespanYears: y }); }}
-                    className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}>
-                    {y} an{y > 1 ? "s" : ""}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
+          <div className="flex gap-1">
+            {[1, 2, 5, 10, 20].map(y => (
+              <button key={y} onClick={() => { setLifespanYears(y); persist({ lifespanYears: y }); }}
+                className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}>
+                {y} an{y > 1 ? "s" : ""}
+              </button>
+            ))}
+          </div>
 
-          {/* Coût journalier calculé */}
+          {/* Coût journalier calculé — avec valeur résiduelle */}
           {purchaseCost > 0 && (
-            <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
-                <span className="text-[10px] text-lime-800">
-                  Coût journalier : <strong>{formatFCFA(ownedDailyRate)}/j</strong>
-                  <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespanDays} j)</span>
-                </span>
-              </div>
-              <div className="text-[9px] text-lime-600 text-right">
-                <div>{formatFCFA(Math.round(ownedDailyRate * 30))}/mois</div>
-                <div>{formatFCFA(Math.round(ownedDailyRate * 365))}/an</div>
+            <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
+                  <div className="text-[10px] text-lime-800 space-y-0.5">
+                    <div>
+                      Amortissable : <strong>{formatFCFA(depreciable)}</strong>
+                      {residualValue > 0 && <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} − {formatFCFA(residualValue)})</span>}
+                    </div>
+                    <div>
+                      Coût journalier : <strong>{formatFCFA(ownedDailyRate)}/j</strong>
+                      <span className="text-lime-600 ml-1">÷ {lifespanDays} j</span>
+                      {deprMethod === "linear" && <span className="ml-2 text-[9px] bg-lime-200 text-lime-800 px-1 py-0.5 rounded">Linéaire</span>}
+                      {deprMethod === "declining_balance" && <span className="ml-2 text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded">Dégressif</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[9px] text-lime-600 text-right shrink-0">
+                  <div>{formatFCFA(Math.round(ownedDailyRate * 30))}/mois</div>
+                  <div>{formatFCFA(Math.round(ownedDailyRate * 365))}/an</div>
+                </div>
               </div>
             </div>
           )}
