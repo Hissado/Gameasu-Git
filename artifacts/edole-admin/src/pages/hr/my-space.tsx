@@ -19,7 +19,7 @@ import { formatFCFA } from "@/lib/format";
 import {
   User, CalendarDays, FolderArchive, Banknote, Phone, MapPin, Shield,
   Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download,
-  Receipt, ChevronDown, ChevronRight, Building2, AlertCircle
+  Receipt, ChevronDown, ChevronRight, Building2, AlertCircle, ArrowDownToLine, TrendingUp, CalendarCheck
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -97,6 +97,12 @@ export default function MySpacePage() {
     enabled: !!profile,
   });
 
+  const { data: transfersData } = useQuery<{ data: any[] }>({
+    queryKey: ["hr-me-transfers"],
+    queryFn: () => apiFetch("/api/hr/me/transfers"),
+    enabled: !!profile,
+  });
+
   const updateProfileMut = useMutation({
     mutationFn: () => apiFetch("/api/hr/me/profile", { method: "PATCH", body: JSON.stringify(profileForm) }),
     onSuccess: () => { toast({ title: "Profil mis à jour" }); setEditProfile(false); qc.invalidateQueries({ queryKey: ["hr-me-profile"] }); },
@@ -155,6 +161,21 @@ export default function MySpacePage() {
   const payslips = payslipsData?.data ?? [];
   const docs = docsData?.data ?? [];
   const contributions = contributionsData?.data ?? [];
+  const transfers = transfersData?.data ?? [];
+
+  const currentYear = new Date().getFullYear();
+  const executedThisYear = transfers.filter((t: any) => {
+    if (t.status !== "completed" || !t.completedAt) return false;
+    return new Date(t.completedAt).getFullYear() === currentYear;
+  });
+  const annualNetTotal = executedThisYear.reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
+  const annualCount = executedThisYear.length;
+  const annualMonths = new Set(
+    executedThisYear.map((t: any) => {
+      const d = new Date(t.completedAt);
+      return `${d.getFullYear()}-${d.getMonth()}`;
+    })
+  ).size;
 
   const pendingLeaves = leaves.filter((l: any) => l.status === "pending").length;
   const totalBalanceDays = balances.reduce((sum: number, b: any) => sum + (Number(b.remaining) > 0 ? Number(b.remaining) : 0), 0);
@@ -311,6 +332,7 @@ export default function MySpacePage() {
               <TabsTrigger value="cotisations" className="gap-1.5"><Receipt className="w-4 h-4" />Cotisations</TabsTrigger>
               <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents</TabsTrigger>
               <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations</TabsTrigger>
+              <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements</TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}
@@ -615,6 +637,105 @@ export default function MySpacePage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Virements */}
+            <TabsContent value="virements" className="mt-4">
+              <div className="space-y-4">
+                {/* Bandeau récapitulatif annuel */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card className="bg-emerald-50 border-emerald-200">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-emerald-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-emerald-700 font-medium">Total net reçu {currentYear}</p>
+                        <p className="text-xl font-bold text-emerald-800">{formatFCFA(annualNetTotal)}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <ArrowDownToLine className="w-5 h-5 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-700 font-medium">Virements effectués</p>
+                        <p className="text-xl font-bold text-blue-800">{annualCount}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-violet-50 border-violet-200">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-violet-100 rounded-lg">
+                        <CalendarCheck className="w-5 h-5 text-violet-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-violet-700 font-medium">Mois couverts</p>
+                        <p className="text-xl font-bold text-violet-800">{annualMonths} / 12</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Liste de tous les virements */}
+                <Card>
+                  <CardContent className="p-0">
+                    {transfers.length === 0 ? (
+                      <div className="py-12 text-center text-muted-foreground">
+                        <ArrowDownToLine className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">Aucun virement enregistré</p>
+                        <p className="text-xs mt-1 text-muted-foreground">Vos virements de salaire apparaîtront ici une fois traités.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-xs uppercase text-muted-foreground border-b">
+                          <tr>
+                            <th className="text-left px-4 py-2.5">Référence</th>
+                            <th className="text-left px-4 py-2.5">Période</th>
+                            <th className="text-left px-4 py-2.5">Date</th>
+                            <th className="text-right px-4 py-2.5">Montant net</th>
+                            <th className="text-center px-4 py-2.5">Statut</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transfers.map((t: any) => {
+                            const date = t.completedAt ?? t.submittedAt ?? t.createdAt;
+                            const isCurrentYear = date ? new Date(date).getFullYear() === currentYear : false;
+                            const statusConfig: Record<string, { label: string; cls: string }> = {
+                              completed: { label: "Exécuté", cls: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+                              submitted: { label: "Soumis", cls: "bg-blue-100 text-blue-800 border-blue-200" },
+                              processing: { label: "En cours", cls: "bg-amber-100 text-amber-800 border-amber-200" },
+                              pending: { label: "En attente", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+                              failed: { label: "Échoué", cls: "bg-red-100 text-red-800 border-red-200" },
+                              cancelled: { label: "Annulé", cls: "bg-slate-100 text-slate-500 border-slate-200" },
+                            };
+                            const sc = statusConfig[t.status] ?? { label: t.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                            return (
+                              <tr key={t.id} className={`border-t hover:bg-muted/20 ${isCurrentYear ? "" : "opacity-60"}`}>
+                                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{t.reference}</td>
+                                <td className="px-4 py-2.5 font-medium">{t.period ?? "—"}</td>
+                                <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                                  {date ? new Date(date).toLocaleDateString("fr-FR") : "—"}
+                                </td>
+                                <td className="px-4 py-2.5 text-right font-semibold text-emerald-700">
+                                  {formatFCFA(Number(t.amount))}
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${sc.cls}`}>
+                                    {sc.label}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Attestations */}

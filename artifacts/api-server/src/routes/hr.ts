@@ -26,6 +26,7 @@ import {
   attendanceSessionsTable,
   attendanceFlagsTable,
   usersTable,
+  bankTransferOrdersTable,
 } from "@workspace/db";
 import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
@@ -1519,6 +1520,62 @@ router.get("/hr/me/contributions", async (req, res, next) => {
         ipts: toN(p.ipts),
         status: p.status,
         irppDetail: computeIrppDetail(revenuAnnuel),
+      };
+    });
+
+    res.json({ data });
+  } catch (e) { next(e); }
+});
+
+/** GET /hr/me/transfers — virements bancaires reçus par l'employé connecté */
+router.get("/hr/me/transfers", async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = req.authUser!.organizationId;
+    const collab = await getMyCollab(userId, orgId);
+    if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
+
+    const orders = await db.select({
+      id: bankTransferOrdersTable.id,
+      reference: bankTransferOrdersTable.reference,
+      status: bankTransferOrdersTable.status,
+      currency: bankTransferOrdersTable.currency,
+      transferLines: bankTransferOrdersTable.transferLines,
+      payrollRunId: bankTransferOrdersTable.payrollRunId,
+      completedAt: bankTransferOrdersTable.completedAt,
+      submittedAt: bankTransferOrdersTable.submittedAt,
+      createdAt: bankTransferOrdersTable.createdAt,
+    })
+      .from(bankTransferOrdersTable)
+      .where(and(
+        eq(bankTransferOrdersTable.organizationId, orgId),
+        sql`${bankTransferOrdersTable.transferLines} @> ${JSON.stringify([{ collaboratorId: collab.id }])}::jsonb`
+      ))
+      .orderBy(desc(bankTransferOrdersTable.createdAt));
+
+    const payrollRunIds = [...new Set(orders.map(o => o.payrollRunId).filter(Boolean))] as string[];
+    let periodMap = new Map<string, string>();
+    if (payrollRunIds.length > 0) {
+      const runs = await db.select({ id: payrollRunsTable.id, period: payrollRunsTable.period })
+        .from(payrollRunsTable)
+        .where(inArray(payrollRunsTable.id, payrollRunIds));
+      periodMap = new Map(runs.map(r => [r.id, r.period]));
+    }
+
+    const data = orders.map(o => {
+      const lines = (o.transferLines ?? []) as Array<{ collaboratorId: string; amount: number; name?: string }>;
+      const myLine = lines.find(l => l.collaboratorId === collab.id);
+      const period = o.payrollRunId ? (periodMap.get(o.payrollRunId) ?? null) : null;
+      return {
+        id: o.id,
+        reference: o.reference,
+        status: o.status,
+        currency: o.currency,
+        amount: myLine?.amount ?? 0,
+        period,
+        completedAt: o.completedAt,
+        submittedAt: o.submittedAt,
+        createdAt: o.createdAt,
       };
     });
 
