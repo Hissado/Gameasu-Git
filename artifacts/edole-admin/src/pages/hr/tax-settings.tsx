@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Save, Info, Percent, Trash2, Send, ShieldCheck, XCircle, Clock, FileText, RefreshCw } from "lucide-react";
+import { Plus, Save, Info, Percent, Trash2, Send, ShieldCheck, XCircle, Clock, FileText, RefreshCw, AlertTriangle } from "lucide-react";
 
 type Bracket = { id?: string; fromAmount: number; toAmount: number | null; rate: number; sortOrder?: number };
 type Exemption = { id: string; collaboratorId?: string; exemptionType: string; fixedAmount?: number; percentage?: number; reason?: string; startDate?: string; endDate?: string; isActive: boolean; firstName?: string; lastName?: string };
@@ -24,6 +24,7 @@ type TaxDeclaration = {
   period: string;
   status: string;
   totalAmount: number;
+  dueDate?: string | null;
   referenceNumber?: string | null;
   submittedAt?: string | null;
   validatedAt?: string | null;
@@ -207,6 +208,7 @@ export default function TaxSettings() {
                           <th className="px-4 py-2 text-left">Type</th>
                           <th className="px-4 py-2 text-left">Statut</th>
                           <th className="px-4 py-2 text-right">Montant</th>
+                          <th className="px-4 py-2 text-left">Échéance</th>
                           <th className="px-4 py-2 text-left">Référence</th>
                           <th className="px-4 py-2 text-left">Soumis le</th>
                           <th className="px-4 py-2 text-left">Validé le</th>
@@ -218,16 +220,38 @@ export default function TaxSettings() {
                         {groupedByPeriod[period].map(d => {
                           const si = DECL_STATUS_INFO[d.status] ?? DECL_STATUS_INFO.draft;
                           const Icon = si.icon;
+                          const today = new Date().toISOString().split("T")[0];
+                          const isOverdue = d.status === "generated" && d.dueDate != null && d.dueDate < today;
+                          const isDueSoon = d.status === "generated" && d.dueDate != null && !isOverdue && d.dueDate <= new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
                           return (
-                            <tr key={d.id} className="border-t hover:bg-muted/20">
+                            <tr key={d.id} className={`border-t hover:bg-muted/20 ${isOverdue ? "bg-red-50/40" : ""}`}>
                               <td className="px-4 py-3 font-semibold">{TYPE_LABELS[d.type] ?? d.type}</td>
                               <td className="px-4 py-3">
-                                <Badge variant="outline" className={`text-xs ${si.badgeClass}`}>
-                                  <Icon className="w-3 h-3 mr-1" />
-                                  {si.label}
-                                </Badge>
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className={`text-xs ${si.badgeClass}`}>
+                                    <Icon className="w-3 h-3 mr-1" />
+                                    {si.label}
+                                  </Badge>
+                                  {isOverdue && (
+                                    <Badge variant="outline" className="text-[10px] border-red-300 text-red-700 bg-red-50 gap-1">
+                                      <AlertTriangle className="w-2.5 h-2.5" />En retard
+                                    </Badge>
+                                  )}
+                                  {isDueSoon && (
+                                    <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50 gap-1">
+                                      <AlertTriangle className="w-2.5 h-2.5" />Échéance proche
+                                    </Badge>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-right font-mono font-medium">{formatFCFA(d.totalAmount)}</td>
+                              <td className="px-4 py-3 text-xs">
+                                {d.dueDate ? (
+                                  <span className={isOverdue ? "text-red-600 font-semibold" : isDueSoon ? "text-amber-600 font-semibold" : "text-muted-foreground"}>
+                                    {fmtDate(d.dueDate)}
+                                  </span>
+                                ) : <span className="text-muted-foreground">—</span>}
+                              </td>
                               <td className="px-4 py-3 font-mono text-xs">
                                 {d.referenceNumber ?? <span className="text-muted-foreground italic">—</span>}
                               </td>

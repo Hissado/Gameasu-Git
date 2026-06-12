@@ -20,6 +20,14 @@ import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
 import { randomBytes } from "crypto";
 import PDFDocument from "pdfkit";
+import { checkTaxAlertsForOrg } from "../services/tax-alerts";
+
+function computeDueDate(period: string): string {
+  const [year, month] = period.split("-").map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-15`;
+}
 
 const router = Router();
 router.use(requireAuth);
@@ -236,6 +244,7 @@ router.post("/hr/tax-declarations/generate/:runId", requireManagerOrAbove, async
     const orgId = req.authUser!.organizationId;
     const run = await db.query.payrollRunsTable.findFirst({ where: and(eq(payrollRunsTable.id, req.params.runId), eq(payrollRunsTable.organizationId, orgId)) });
     if (!run) return res.status(404).json({ error: "Run non trouvé" });
+    const dueDate = computeDueDate(run.period);
     const declarations = [];
     const types: Array<{ type: "irpp" | "cnss" | "ipts"; amount: string | null | undefined }> = [
       { type: "irpp", amount: run.totalIrpp },
@@ -249,12 +258,22 @@ router.post("/hr/tax-declarations/generate/:runId", requireManagerOrAbove, async
         period: run.period,
         totalAmount: String(amount ?? 0),
         status: "generated",
+        dueDate,
         createdById: req.authUser!.userId,
         details: { payrollRunId: run.id },
       }).returning();
       declarations.push({ ...row, totalAmount: toNum(row.totalAmount) });
     }
     res.status(201).json(declarations);
+  } catch (e) { next(e); }
+});
+
+// Vérifier les déclarations en retard et envoyer des alertes (déclenché manuellement ou par le planificateur)
+router.post("/hr/tax-declarations/check-alerts", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const result = await checkTaxAlertsForOrg(orgId);
+    res.json({ sent: result.sent, declarations: result.declarations.map(r => ({ ...r, totalAmount: toNum(r.totalAmount) })) });
   } catch (e) { next(e); }
 });
 

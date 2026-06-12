@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   Download, FileText, Building2, Percent, Users, ArrowLeft,
   CheckCircle, ChevronRight, RefreshCw, Info,
-  Send, Clock, ShieldCheck, XCircle, Calendar, BarChart3,
+  Send, Clock, ShieldCheck, XCircle, Calendar, BarChart3, AlertTriangle,
 } from "lucide-react";
 
 const API = "/api";
@@ -47,6 +47,7 @@ type TaxDeclaration = {
   period: string;
   status: string;
   totalAmount: number;
+  dueDate?: string | null;
   referenceNumber?: string | null;
   submittedAt?: string | null;
   validatedAt?: string | null;
@@ -265,6 +266,10 @@ function DeclStatusRow({ decl, typeLabel, onSubmit, onValidate }: {
   const info = DECL_STATUS[status] ?? DECL_STATUS.draft;
   const Icon = info.icon;
 
+  const today = new Date().toISOString().split("T")[0];
+  const isOverdue = decl?.status === "generated" && decl.dueDate != null && decl.dueDate < today;
+  const isDueSoon = decl?.status === "generated" && decl.dueDate != null && !isOverdue && decl.dueDate <= new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-b last:border-0">
       <div className="flex items-center gap-3 min-w-0 flex-wrap">
@@ -278,6 +283,21 @@ function DeclStatusRow({ decl, typeLabel, onSubmit, onValidate }: {
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
             <Clock className="w-3.5 h-3.5" />Non enregistré
           </div>
+        )}
+        {isOverdue && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 text-[10px] font-semibold">
+            <AlertTriangle className="w-3 h-3" />En retard
+          </span>
+        )}
+        {isDueSoon && !isOverdue && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 border border-amber-300 px-2 py-0.5 text-[10px] font-semibold">
+            <AlertTriangle className="w-3 h-3" />Échéance proche
+          </span>
+        )}
+        {decl?.dueDate && decl.status === "generated" && (
+          <span className="text-xs text-muted-foreground">
+            Échéance : <span className={isOverdue ? "text-red-600 font-semibold" : isDueSoon ? "text-amber-600 font-semibold" : ""}>{fmtDate(decl.dueDate)}</span>
+          </span>
         )}
         {decl?.submittedAt && (
           <span className="text-xs text-muted-foreground">
@@ -650,6 +670,19 @@ export default function PayrollDeclarations() {
   });
 
   const cnssDecl = taxDecls.find(d => d.type === "cnss");
+
+  // Déclencher la vérification des alertes au chargement (une fois par session)
+  React.useEffect(() => {
+    const key = "tax-alert-check";
+    const last = sessionStorage.getItem(key);
+    const today = new Date().toISOString().split("T")[0];
+    if (last === today) return;
+    const token = localStorage.getItem("auth_token");
+    fetch(`${API}/hr/tax-declarations/check-alerts`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    }).then(() => sessionStorage.setItem(key, today)).catch(() => {});
+  }, []);
   const irppDecl = taxDecls.find(d => d.type === "irpp");
   const iptsDecl = taxDecls.find(d => d.type === "ipts");
 

@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { initRealtime } from "./lib/realtime";
 import { seedSyscohada } from "./services/syscohada-seed";
 import { seedHr } from "./services/hr-seed";
+import { startTaxAlertScheduler } from "./services/tax-alerts";
 
 const rawPort = process.env["PORT"];
 
@@ -38,4 +39,6 @@ httpServer.listen(port, async () => {
   } catch (e) {
     logger.error({ err: e }, "SYSCOHADA seed failed");
   }
+
+  startTaxAlertScheduler();
 });
