@@ -792,17 +792,22 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   onUpdate: (u: Partial<CostItem>) => void;
   onRemove: () => void;
 }) {
-  const [showCalc, setShowCalc] = useState(false);
-  const [calcAchat, setCalcAchat] = useState(0);
-  const [calcDuree, setCalcDuree] = useState(1825);
+  const [mode, setMode] = useState<"rental" | "owned">("rental");
+  const [purchaseCost, setPurchaseCost] = useState(0);
+  const [lifespan, setLifespan] = useState(1825);
 
-  const dailyRate = item.amount;
   const days = item.qty ?? 0;
+  const dailyRate = mode === "owned" && lifespan > 0
+    ? Math.round(purchaseCost / lifespan)
+    : item.amount;
   const total = dailyRate * days;
-  const computedDailyRate = calcDuree > 0 ? Math.round(calcAchat / calcDuree) : 0;
+
+  const handleDaysChange = (v: number) => onUpdate({ qty: v });
+  const handleRentalRateChange = (v: number) => onUpdate({ amount: v });
 
   return (
-    <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-2.5">
+    <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-3">
+      {/* Header */}
       <div className="flex items-center gap-2">
         <Input
           value={item.label}
@@ -815,104 +820,117 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
             {formatFCFA(Math.round(total))}
           </span>
         )}
-        <button
-          onClick={() => setShowCalc(!showCalc)}
-          className={`h-8 w-7 flex items-center justify-center transition-colors ${showCalc ? "text-lime-600" : "text-slate-400 hover:text-lime-600"}`}
-          title="Calculer l'amortissement d'un équipement en propriété"
-        >
-          <Calculator className="w-3.5 h-3.5" />
-        </button>
         <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div>
-          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Tarif journalier (FCFA)</p>
-          <Input
-            type="number" min="0" step="any"
-            value={item.amount || ""}
-            onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
-            className="h-8 text-xs text-right"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Nombre de jours</p>
-          <Input
-            type="number" min="0" step="1"
-            value={item.qty ?? ""}
-            onChange={e => onUpdate({ qty: parseFloat(e.target.value) || 0 })}
-            className="h-8 text-xs text-right"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Total</p>
-          <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
-            {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
-          </div>
-        </div>
+      {/* Mode toggle */}
+      <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-medium">
+        <button
+          onClick={() => setMode("rental")}
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "rental" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
+        >
+          <Truck className="w-3 h-3" /> Vous le louez
+        </button>
+        <button
+          onClick={() => setMode("owned")}
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "owned" ? "bg-lime-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
+        >
+          <HardHat className="w-3 h-3" /> Vous le possédez
+        </button>
       </div>
 
-      {total > 0 && (
-        <div className="flex items-center gap-1.5 text-[10px] text-lime-700">
-          <span className="bg-lime-50 border border-lime-100 px-1.5 py-0.5 rounded font-mono">{formatFCFA(item.amount)}/j</span>
-          <span className="text-slate-400">×</span>
-          <span className="bg-lime-50 border border-lime-100 px-1.5 py-0.5 rounded font-mono">{days} jour{days > 1 ? "s" : ""}</span>
-          <span className="text-slate-400">=</span>
-          <span className="bg-lime-100 border border-lime-200 px-1.5 py-0.5 rounded font-mono font-bold">{formatFCFA(Math.round(total))}</span>
-        </div>
-      )}
-
-      {showCalc && (
-        <div className="border border-slate-200 rounded-lg bg-slate-50 p-3 space-y-2.5">
-          <div className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
-            <Calculator className="w-3.5 h-3.5 text-lime-600" />
-            Calculer le tarif journalier — matériel en propriété
+      {/* Fields selon le mode */}
+      {mode === "rental" ? (
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">Prix de location / jour</p>
+            <Input
+              type="number" min="0" step="any"
+              value={item.amount || ""}
+              onChange={e => handleRentalRateChange(parseFloat(e.target.value) || 0)}
+              className="h-8 text-xs text-right"
+              placeholder="0 FCFA"
+            />
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Divisez le coût d'achat par la durée de vie estimée pour obtenir le coût d'usage journalier à imputer au projet.
-          </p>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">Jours utilisés sur ce projet</p>
+            <Input
+              type="number" min="0" step="1"
+              value={item.qty ?? ""}
+              onChange={e => handleDaysChange(parseFloat(e.target.value) || 0)}
+              className="h-8 text-xs text-right"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">Coût total</p>
+            <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
+              {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Coût d'acquisition (FCFA)</p>
+              <p className="text-[10px] text-muted-foreground mb-1">Prix d'achat de l'équipement</p>
               <Input
                 type="number" min="0"
-                value={calcAchat || ""}
-                onChange={e => setCalcAchat(parseFloat(e.target.value) || 0)}
-                className="h-7 text-xs"
-                placeholder="Ex : 21 000 000"
+                value={purchaseCost || ""}
+                onChange={e => setPurchaseCost(parseFloat(e.target.value) || 0)}
+                className="h-8 text-xs"
+                placeholder="Ex : 21 000 000 FCFA"
               />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Durée de vie estimée</p>
-              <Select value={String(calcDuree)} onValueChange={v => setCalcDuree(Number(v))}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+              <p className="text-[10px] text-muted-foreground mb-1">Durée de vie de l'équipement</p>
+              <Select value={String(lifespan)} onValueChange={v => setLifespan(Number(v))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="365">1 an (365 j)</SelectItem>
-                  <SelectItem value="730">2 ans (730 j)</SelectItem>
-                  <SelectItem value="1825">5 ans (1 825 j)</SelectItem>
-                  <SelectItem value="3650">10 ans (3 650 j)</SelectItem>
-                  <SelectItem value="7300">20 ans (7 300 j)</SelectItem>
+                  <SelectItem value="365">1 an</SelectItem>
+                  <SelectItem value="730">2 ans</SelectItem>
+                  <SelectItem value="1825">5 ans</SelectItem>
+                  <SelectItem value="3650">10 ans</SelectItem>
+                  <SelectItem value="7300">20 ans</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          {computedDailyRate > 0 && (
-            <div className="flex items-center justify-between bg-white border border-lime-200 rounded-lg p-2.5">
+          {purchaseCost > 0 && (
+            <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2 flex items-center gap-2">
+              <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
               <span className="text-[10px] text-lime-800">
-                {formatFCFA(calcAchat)} ÷ {calcDuree} j = <strong>{formatFCFA(computedDailyRate)} / jour</strong>
+                Coût d'usage journalier : <strong>{formatFCFA(dailyRate)} / jour</strong>
+                <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespan} jours)</span>
               </span>
-              <Button
-                size="sm" variant="outline"
-                className="h-6 text-[10px] border-lime-300 text-lime-700 hover:bg-lime-50"
-                onClick={() => { onUpdate({ amount: computedDailyRate }); setShowCalc(false); }}
-              >
-                Utiliser ce tarif
-              </Button>
             </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Jours utilisés sur ce projet</p>
+              <Input
+                type="number" min="0" step="1"
+                value={item.qty ?? ""}
+                onChange={e => handleDaysChange(parseFloat(e.target.value) || 0)}
+                className="h-8 text-xs text-right"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Coût total imputé au projet</p>
+              <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
+                {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+              </div>
+            </div>
+          </div>
+          {total > 0 && (
+            <Button size="sm" variant="outline"
+              className="w-full h-7 text-xs border-lime-200 text-lime-700 hover:bg-lime-50"
+              onClick={() => onUpdate({ amount: dailyRate })}>
+              Enregistrer ({formatFCFA(dailyRate)}/j × {days} j = {formatFCFA(Math.round(total))})
+            </Button>
           )}
         </div>
       )}
@@ -2652,32 +2670,6 @@ export default function PricingCalculator() {
                         <Button size="sm" variant="outline" onClick={() => setShowEquipDialog(true)} className="text-xs gap-1 border-lime-200 text-lime-700 hover:bg-lime-50 h-7">
                           <HardHat className="w-3.5 h-3.5" />Importer depuis Équipements
                         </Button>
-                      </div>
-
-                      {/* Guide visuel à 2 situations */}
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-2.5">
-                          <div className="text-[10px] font-bold text-blue-800 mb-1 flex items-center gap-1">
-                            <Truck className="w-3 h-3" /> Location externe
-                          </div>
-                          <div className="text-[10px] text-blue-700 leading-relaxed">
-                            Entrez le <strong>tarif de location</strong> du prestataire et le nombre de jours.
-                          </div>
-                          <div className="mt-1.5 font-mono text-[9px] bg-blue-100 text-blue-800 px-1.5 py-1 rounded">
-                            50 000 FCFA/j × 12 j = 600 000 FCFA
-                          </div>
-                        </div>
-                        <div className="bg-lime-50 border border-lime-100 rounded-lg p-2.5">
-                          <div className="text-[10px] font-bold text-lime-800 mb-1 flex items-center gap-1">
-                            <HardHat className="w-3 h-3" /> Matériel en propriété
-                          </div>
-                          <div className="text-[10px] text-lime-700 leading-relaxed">
-                            Cliquez <strong>🧮</strong> pour calculer le tarif journalier depuis le coût d'achat ÷ durée de vie.
-                          </div>
-                          <div className="mt-1.5 font-mono text-[9px] bg-lime-100 text-lime-800 px-1.5 py-1 rounded">
-                            21 000 000 ÷ 3 650 j = 5 753 FCFA/j
-                          </div>
-                        </div>
                       </div>
 
                       {/* Liste des équipements */}
