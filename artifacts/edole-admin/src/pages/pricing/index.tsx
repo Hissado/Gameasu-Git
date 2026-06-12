@@ -794,11 +794,12 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
 }) {
   const [mode, setMode] = useState<"rental" | "owned">("rental");
   const [purchaseCost, setPurchaseCost] = useState(0);
-  const [lifespan, setLifespan] = useState(1825);
+  const [lifespanYears, setLifespanYears] = useState(5);
 
+  const lifespanDays = Math.max(1, Math.round(lifespanYears * 365));
   const days = item.qty ?? 0;
-  const dailyRate = mode === "owned" && lifespan > 0
-    ? Math.round(purchaseCost / lifespan)
+  const dailyRate = mode === "owned" && lifespanDays > 0
+    ? Math.round(purchaseCost / lifespanDays)
     : item.amount;
   const total = dailyRate * days;
 
@@ -885,17 +886,25 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
               />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1">Durée de vie de l'équipement</p>
-              <Select value={String(lifespan)} onValueChange={v => setLifespan(Number(v))}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="365">1 an</SelectItem>
-                  <SelectItem value="730">2 ans</SelectItem>
-                  <SelectItem value="1825">5 ans</SelectItem>
-                  <SelectItem value="3650">10 ans</SelectItem>
-                  <SelectItem value="7300">20 ans</SelectItem>
-                </SelectContent>
-              </Select>
+              <p className="text-[10px] text-muted-foreground mb-1">Durée de vie (années)</p>
+              <div className="flex gap-1">
+                <Input
+                  type="number" min="0.5" step="0.5"
+                  value={lifespanYears || ""}
+                  onChange={e => setLifespanYears(parseFloat(e.target.value) || 1)}
+                  className="h-8 text-xs text-right flex-1 min-w-0"
+                  placeholder="Ex : 5"
+                />
+                <span className="h-8 flex items-center text-[10px] text-muted-foreground px-1 shrink-0">ans</span>
+              </div>
+              <div className="flex gap-1 mt-1">
+                {[1, 2, 5, 10, 20].map(y => (
+                  <button key={y}
+                    onClick={() => setLifespanYears(y)}
+                    className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}
+                  >{y} an{y > 1 ? "s" : ""}</button>
+                ))}
+              </div>
             </div>
           </div>
           {purchaseCost > 0 && (
@@ -903,7 +912,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
               <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
               <span className="text-[10px] text-lime-800">
                 Coût d'usage journalier : <strong>{formatFCFA(dailyRate)} / jour</strong>
-                <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespan} jours)</span>
+                <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespanDays} jours)</span>
               </span>
             </div>
           )}
