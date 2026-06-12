@@ -439,6 +439,90 @@ function GlobalAuditLog() {
   );
 }
 
+type StatusDialog = {
+  orderId: string;
+  status: "submitted" | "completed" | "failed";
+  bankReference: string;
+  errorMessage: string;
+} | null;
+
+function StatusChangeDialog({
+  dialog,
+  onClose,
+  onConfirm,
+  isPending,
+}: {
+  dialog: NonNullable<StatusDialog>;
+  onClose: () => void;
+  onConfirm: (bankReference: string, errorMessage: string) => void;
+  isPending: boolean;
+}) {
+  const [bankReference, setBankReference] = useState(dialog.bankReference);
+  const [errorMessage, setErrorMessage] = useState(dialog.errorMessage);
+
+  const isFailed = dialog.status === "failed";
+  const title =
+    dialog.status === "submitted"
+      ? "Soumettre à la banque"
+      : dialog.status === "completed"
+      ? "Marquer comme exécuté"
+      : "Marquer comme échoué";
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {!isFailed && (
+            <div>
+              <Label className="mb-1.5 block">
+                Référence banque{" "}
+                <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
+              </Label>
+              <Input
+                placeholder="ex. BCEAO-2026-00123"
+                value={bankReference}
+                onChange={(e) => setBankReference(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Référence retournée par la banque pour cet ordre de virement.
+              </p>
+            </div>
+          )}
+          {isFailed && (
+            <div>
+              <Label className="mb-1.5 block">
+                Motif d'échec{" "}
+                <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
+              </Label>
+              <Textarea
+                rows={3}
+                placeholder="ex. Compte bénéficiaire inexistant, fonds insuffisants…"
+                value={errorMessage}
+                onChange={(e) => setErrorMessage(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
+            Annuler
+          </Button>
+          <Button
+            variant={isFailed ? "destructive" : "default"}
+            disabled={isPending}
+            onClick={() => onConfirm(bankReference, errorMessage)}
+          >
+            {isPending ? "En cours…" : "Confirmer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function TransferOrders() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -447,6 +531,7 @@ export default function TransferOrders() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [showAudit, setShowAudit] = useState(false);
   const [form, setForm] = useState({ reference: "", totalAmount: "", notes: "" });
+  const [statusDialog, setStatusDialog] = useState<StatusDialog>(null);
 
   const { data: orders, isLoading } = useQuery<TransferOrder[]>({
     queryKey: ["transfer-orders"],
@@ -483,17 +568,34 @@ export default function TransferOrders() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status, bankReference, errorMessage }: { id: string; status: string; bankReference?: string; errorMessage?: string }) =>
       apiFetch(`/api/payroll/transfer-orders/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          ...(bankReference ? { bankReference } : {}),
+          ...(errorMessage ? { errorMessage } : {}),
+        }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transfer-orders"] });
       if (detailId) qc.invalidateQueries({ queryKey: ["transfer-audit", detailId] });
+      qc.invalidateQueries({ queryKey: ["transfer-audit-global"] });
+      setStatusDialog(null);
       toast({ title: "Statut mis à jour" });
     },
+    onError: (err: Error) =>
+      toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
+
+  function openStatusDialog(orderId: string, status: "submitted" | "completed" | "failed") {
+    setStatusDialog({ orderId, status, bankReference: "", errorMessage: "" });
+  }
+
+  function confirmStatusChange(bankReference: string, errorMessage: string) {
+    if (!statusDialog) return;
+    updateMut.mutate({ id: statusDialog.orderId, status: statusDialog.status, bankReference, errorMessage });
+  }
 
   const detail = (orders ?? []).find((o) => o.id === detailId) ?? null;
   const validatedRuns = (runs ?? []).filter((r) => r.status === "validated");
@@ -685,7 +787,7 @@ export default function TransferOrders() {
                               variant="ghost"
                               className="h-7 w-7"
                               title="Soumettre à la banque"
-                              onClick={() => updateMut.mutate({ id: o.id, status: "submitted" })}
+                              onClick={() => openStatusDialog(o.id, "submitted")}
                             >
                               <Send className="w-4 h-4 text-blue-600" />
                             </Button>
@@ -697,7 +799,7 @@ export default function TransferOrders() {
                                 variant="ghost"
                                 className="h-7 w-7"
                                 title="Marquer exécuté"
-                                onClick={() => updateMut.mutate({ id: o.id, status: "completed" })}
+                                onClick={() => openStatusDialog(o.id, "completed")}
                               >
                                 <CheckCircle className="w-4 h-4 text-emerald-600" />
                               </Button>
@@ -706,7 +808,7 @@ export default function TransferOrders() {
                                 variant="ghost"
                                 className="h-7 w-7"
                                 title="Marquer échoué"
-                                onClick={() => updateMut.mutate({ id: o.id, status: "failed" })}
+                                onClick={() => openStatusDialog(o.id, "failed")}
                               >
                                 <XCircle className="w-4 h-4 text-red-500" />
                               </Button>
@@ -768,6 +870,16 @@ export default function TransferOrders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog confirmation changement de statut */}
+      {statusDialog && (
+        <StatusChangeDialog
+          dialog={statusDialog}
+          onClose={() => setStatusDialog(null)}
+          onConfirm={confirmStatusChange}
+          isPending={updateMut.isPending}
+        />
+      )}
 
       {/* Dialog détail ordre */}
       {detail && (
