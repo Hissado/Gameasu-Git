@@ -1158,7 +1158,17 @@ function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
           <DialogDescription>Sélectionnez les équipements utilisés et le nombre de jours d'usage.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          {equipment.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucun équipement trouvé</p>}
+          {equipment.length === 0 && (
+            <div className="text-center py-8 space-y-2">
+              <HardHat className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="text-sm font-medium text-slate-600">Aucun équipement dans le catalogue</p>
+              <p className="text-xs text-muted-foreground">Ajoutez d'abord vos équipements dans le module <strong>Équipements</strong>, puis revenez ici pour les importer.</p>
+              <a href="/equipment" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-lime-700 font-medium hover:underline mt-1">
+                <ArrowRight className="w-3.5 h-3.5" />Aller au module Équipements
+              </a>
+            </div>
+          )}
           {equipment.map(e => {
             const sel = selected.has(e.id);
             return (
