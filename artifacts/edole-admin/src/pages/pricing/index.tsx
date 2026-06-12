@@ -2440,36 +2440,17 @@ export default function PricingCalculator() {
                       defaultCategory="direct">
                       <div className="flex flex-wrap gap-2 mb-3">
                         {(["direct","purchase","logistics","tax_input","other"] as CostCategory[]).map(cat => (
-                          <button key={cat} onClick={() => addItem("costItems", cat)}
+                          <button key={cat}
+                            onClick={() => cat === "purchase" ? setShowInventoryDialog(true) : addItem("costItems", cat)}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed hover:bg-slate-50 transition-colors"
                             style={{ borderColor: CATEGORIES[cat].color, color: CATEGORIES[cat].color }}>
                             <Plus className="w-3 h-3" />{CATEGORIES[cat].label}
+                            {cat === "purchase" && (() => {
+                              const n = scenario.costItems.filter(i => i.category === "purchase").length;
+                              return n > 0 ? <span className="ml-1 bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 text-[9px] font-bold">{n}</span> : null;
+                            })()}
                           </button>
                         ))}
-                      </div>
-                      <div className="border border-emerald-200 rounded-xl bg-emerald-50/60 p-3 mb-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-start gap-2">
-                            <ShoppingCart className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <div>
-                              <div className="text-xs font-semibold text-emerald-800">Achats &amp; Approvisionnement — synchronisé avec Produits / Stock</div>
-                              <div className="text-[10px] text-emerald-700 mt-0.5">
-                                Sélectionnez des produits du catalogue : le prix d'achat est récupéré automatiquement depuis la fiche produit.
-                              </div>
-                            </div>
-                          </div>
-                          <Button size="sm" onClick={() => setShowInventoryDialog(true)}
-                            className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5 h-8">
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            Importer depuis le catalogue
-                          </Button>
-                        </div>
-                        {scenario.costItems.some(i => i.category === "purchase") && (
-                          <div className="mt-2 pt-2 border-t border-emerald-200 text-[10px] text-emerald-700 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            {scenario.costItems.filter(i => i.category === "purchase").length} article{scenario.costItems.filter(i => i.category === "purchase").length > 1 ? "s" : ""} du catalogue intégrés dans le calcul
-                          </div>
-                        )}
                       </div>
                     </CostSection>
                   </TabsContent>

@@ -1,0 +1,40 @@
+Pouvez-vous intégrer directement la partie **“Achats & Approvisionnement — synchronisée avec Produits / Stock”** dans la section **+ Achats & Approvisionnement**, au lieu de l’afficher comme un bloc séparé ?
+
+### Objectif
+
+Je veux que cette fonctionnalité fasse partie intégrante du workflow **Achats & Approvisionnement**, de manière plus naturelle, plus fluide et plus professionnelle.
+
+### Problème actuel
+
+Actuellement, cette partie apparaît comme un bloc distinct avec le bouton **“Importer depuis le catalogue”**.
+Je préférerais que cette logique soit intégrée directement dans la section ou l’action **+ Achats & Approvisionnement**, afin que l’utilisateur puisse ajouter ou importer des produits sans avoir une séparation visuelle inutile.
+
+### Ce qu’il faut faire
+
+Merci de revoir cette partie pour que :
+
+* le bouton **+ Achats & Approvisionnement** ouvre directement l’interface d’ajout
+* l’utilisateur puisse sélectionner des produits depuis le catalogue **Produits / Stock**
+* le prix d’achat soit récupéré automatiquement depuis la fiche produit
+* les produits sélectionnés soient ajoutés directement dans la tarification
+* la synchronisation avec **Produits / Stock** reste active
+* l’interface soit plus simple, plus propre et moins répétitive
+
+### Logique attendue
+
+Quand l’utilisateur clique sur **+ Achats & Approvisionnement**, il doit pouvoir :
+
+1. choisir un produit existant depuis le catalogue
+2. voir le prix d’achat automatiquement récupéré
+3. ajouter la quantité
+4. ajuster les frais si nécessaire
+5. ajouter la ligne au calcul de tarification
+6. garder le lien avec le stock / produit d’origine
+
+### Résultat attendu
+
+Je veux que la section **Achats & Approvisionnement** soit mieux intégrée, plus fluide et plus intuitive, sans bloc séparé inutile.
+
+### Objectif final
+
+Avoir une logique où **+ Achats & Approvisionnement** devient le point d’entrée principal pour ajouter des achats, importer depuis le catalogue Produits / Stock, récupérer automatiquement les prix d’achat, et alimenter directement le calcul de tarification.
