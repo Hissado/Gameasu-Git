@@ -872,20 +872,26 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   const handleAssetSelect = (assetId: string) => {
     const a = assetList.find(x => x.id === assetId);
     if (!a) return;
-    const newPurchase = a.acquisitionCost;
-    const newLifespan = a.usefulLifeYears;
-    const newResidual = a.residualValue;
-    setPurchaseCost(newPurchase);
-    setLifespanYears(newLifespan);
-    setResidualValue(newResidual);
+    setPurchaseCost(a.acquisitionCost);
+    setLifespanYears(a.usefulLifeYears);
+    setResidualValue(a.residualValue);
     setDeprMethod(a.depreciationMethod);
-    onUpdate({ label: `${a.label} (${a.code})` });
-    persist({ purchaseCost: newPurchase, lifespanYears: newLifespan, residualValue: newResidual });
+    // Single onUpdate call to avoid stale-closure overwrite
+    const notesPayload: DeprExtras = {
+      transport, install, deposit, maintenance, insurance,
+      purchaseCost: a.acquisitionCost,
+      lifespanYears: a.usefulLifeYears,
+      residualValue: a.residualValue,
+    };
+    onUpdate({ label: `${a.label} (${a.code})`, notes: JSON.stringify(notesPayload) });
   };
 
-  const handleDays     = (v: number) => onUpdate({ qty: v });
-  const handleRate     = (v: number) => onUpdate({ amount: v });
-  const saveOwned      = () => { onUpdate({ amount: ownedDailyRate }); persist({ purchaseCost, lifespanYears, residualValue, maintenance, insurance }); };
+  const handleDays = (v: number) => onUpdate({ qty: v });
+  const handleRate = (v: number) => onUpdate({ amount: v });
+  const saveOwned  = () => {
+    const notesPayload: DeprExtras = { transport, install, deposit, maintenance, insurance, purchaseCost, lifespanYears, residualValue };
+    onUpdate({ amount: ownedDailyRate, notes: JSON.stringify(notesPayload) });
+  };
 
   return (
     <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-3">
