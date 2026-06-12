@@ -1,0 +1,129 @@
+Pouvez-vous corriger et améliorer la logique de calcul liée aux **équipements** dans la section **Tarification**, notamment pour distinguer clairement deux cas : **équipement loué** et **équipement possédé** ?
+
+### Objectif
+
+Je veux que la logique soit plus cohérente et automatique selon le choix de l’utilisateur :
+
+* si l’utilisateur choisit **“Vous le louez”**, le système doit utiliser les données liées à la location de l’équipement
+* si l’utilisateur choisit **“Vous le possédez”**, le système doit utiliser les données comptables de l’équipement détenu par l’entreprise, notamment l’amortissement / dépréciation
+
+---
+
+## 1. Cas : “Vous le louez”
+
+Quand l’utilisateur clique sur **“Vous le louez”**, cela doit uniquement permettre d’ajouter les données liées à une location d’équipement.
+
+### Logique attendue
+
+Le système doit permettre d’importer ou sélectionner un équipement depuis le module **Équipements / Locations**, puis récupérer les informations nécessaires à la tarification.
+
+À prévoir :
+
+* choix de l’équipement loué
+* coût de location
+* durée de location
+* tarif journalier / hebdomadaire / mensuel
+* frais de transport si applicable
+* frais d’installation si applicable
+* dépôt / caution si applicable
+* quantité
+* durée d’utilisation dans le deal
+* coût total de location calculé automatiquement
+
+### Important
+
+Dans ce cas, le système ne doit pas appliquer la logique d’amortissement comptable, car l’équipement n’appartient pas à l’entreprise.
+
+---
+
+## 2. Cas : “Vous le possédez”
+
+Quand l’utilisateur clique sur **“Vous le possédez”**, le système doit utiliser les équipements que l’entreprise possède déjà et qui sont enregistrés dans le module **Équipements** et/ou dans la partie **Comptabilité / Immobilisations**.
+
+### Logique attendue
+
+Quand on choisit un équipement possédé, son coût doit se calculer automatiquement à partir des données déjà paramétrées dans l’application, notamment :
+
+* prix d’achat de l’équipement
+* date d’acquisition
+* durée de vie utile
+* méthode d’amortissement / dépréciation
+* valeur résiduelle si disponible
+* amortissement mensuel
+* coût journalier estimé
+* coût horaire estimé si applicable
+* coût d’utilisation sur la durée du deal
+* frais de maintenance
+* assurance
+* autres charges liées à l’équipement
+
+### Exemple
+
+Si un équipement a été ajouté dans la comptabilité avec :
+
+* prix d’achat : 12 000
+* durée de vie utile : 4 ans
+* amortissement linéaire
+* valeur résiduelle : 0
+
+Le système doit automatiquement calculer :
+
+* amortissement annuel
+* amortissement mensuel
+* coût journalier ou horaire
+* coût réel d’utilisation pour le deal selon la durée choisie
+
+---
+
+## 3. Automatisation attendue
+
+Je veux que le système évite les saisies manuelles inutiles.
+
+Quand l’utilisateur sélectionne un équipement possédé :
+
+* son prix d’achat doit se récupérer automatiquement
+* sa durée de vie utile doit se récupérer automatiquement
+* sa méthode d’amortissement doit se récupérer automatiquement
+* son coût d’utilisation doit se calculer automatiquement
+* le montant doit se refléter directement dans la tarification
+
+Quand l’utilisateur sélectionne un équipement loué :
+
+* son coût de location doit se récupérer automatiquement
+* la durée de location doit être prise en compte
+* le coût total de location doit se calculer automatiquement
+* le montant doit se refléter directement dans la tarification
+
+---
+
+## 4. Connexions avec les autres modules
+
+Merci de vérifier que cette logique est bien connectée à :
+
+* **Équipements**
+* **Locations**
+* **Comptabilité**
+* **Immobilisations**
+* **Tarification**
+* **Projets**
+* **Services**
+* **Opérations**
+* **Rapports**
+
+---
+
+## 5. Résultat attendu
+
+Je veux une logique claire :
+
+### Si l’équipement est loué :
+
+Le coût vient de la location.
+
+### Si l’équipement est possédé :
+
+Le coût vient de l’équipement enregistré dans les immobilisations / comptabilité, avec calcul automatique basé sur l’amortissement, la durée de vie utile et les paramètres configurés.
+
+### Objectif final
+
+La section **Tarification** doit pouvoir calculer automatiquement le coût réel d’un équipement selon qu’il est **loué** ou **possédé**, sans saisie manuelle inutile, avec une synchronisation propre entre Équipements, Locations, Comptabilité et Tarification.

@@ -787,159 +787,296 @@ function CostItemRow({
 
 // ─── DepreciationItemRow ──────────────────────────────────────────────────────
 
+type DeprExtras = {
+  transport: number; install: number; deposit: number;
+  maintenance: number; insurance: number;
+  purchaseCost: number; lifespanYears: number;
+};
+
+function parseDeprNotes(notes?: string): Partial<DeprExtras> {
+  try { return JSON.parse(notes ?? "{}"); } catch { return {}; }
+}
+
 function DepreciationItemRow({ item, onUpdate, onRemove }: {
   item: CostItem;
   onUpdate: (u: Partial<CostItem>) => void;
   onRemove: () => void;
 }) {
+  const saved = parseDeprNotes(item.notes);
+
   const [mode, setMode] = useState<"rental" | "owned">("rental");
-  const [purchaseCost, setPurchaseCost] = useState(0);
-  const [lifespanYears, setLifespanYears] = useState(5);
+  const [showExtras, setShowExtras] = useState(false);
 
-  const lifespanDays = Math.max(1, Math.round(lifespanYears * 365));
-  const days = item.qty ?? 0;
-  const dailyRate = mode === "owned" && lifespanDays > 0
-    ? Math.round(purchaseCost / lifespanDays)
-    : item.amount;
-  const total = dailyRate * days;
+  // Rental extras
+  const [transport, setTransport] = useState(saved.transport ?? 0);
+  const [install, setInstall]     = useState(saved.install ?? 0);
+  const [deposit, setDeposit]     = useState(saved.deposit ?? 0);
 
-  const handleDaysChange = (v: number) => onUpdate({ qty: v });
-  const handleRentalRateChange = (v: number) => onUpdate({ amount: v });
+  // Owned data
+  const [purchaseCost, setPurchaseCost]   = useState(saved.purchaseCost ?? 0);
+  const [lifespanYears, setLifespanYears] = useState(saved.lifespanYears ?? 5);
+  const [maintenance, setMaintenance]     = useState(saved.maintenance ?? 0);
+  const [insurance, setInsurance]         = useState(saved.insurance ?? 0);
+
+  // Equipment catalog (shared, lightweight)
+  const { data: eqRes } = useQuery<{ data: Array<{ id: string; name: string; code: string; dailyRate: number | null; categoryName?: string }> }>({
+    queryKey: ["equipment-depr-picker"],
+    queryFn: () => apiFetch("/api/equipment?limit=200"),
+    staleTime: 120_000,
+  });
+  const equipList = eqRes?.data ?? [];
+
+  const lifespanDays    = Math.max(1, Math.round(lifespanYears * 365));
+  const days            = item.qty ?? 0;
+  const ownedDailyRate  = purchaseCost > 0 ? Math.round(purchaseCost / lifespanDays) : item.amount;
+  const baseDailyRate   = mode === "owned" ? ownedDailyRate : item.amount;
+  const baseTotal       = baseDailyRate * days;
+  const rentalExtras    = transport + install;
+  const ownedExtras     = maintenance + insurance;
+  const total           = baseTotal + (mode === "rental" ? rentalExtras : ownedExtras);
+
+  const persist = (overrides: Partial<DeprExtras> = {}) => {
+    const payload: DeprExtras = { transport, install, deposit, purchaseCost, lifespanYears, maintenance, insurance, ...overrides };
+    onUpdate({ notes: JSON.stringify(payload) });
+  };
+
+  const handleEquipSelect = (equipId: string) => {
+    const eq = equipList.find(e => e.id === equipId);
+    if (!eq) return;
+    const label = `${eq.name} (${eq.code})`;
+    if (mode === "rental" && eq.dailyRate) {
+      onUpdate({ label, amount: eq.dailyRate });
+    } else {
+      onUpdate({ label });
+    }
+  };
+
+  const handleDays     = (v: number) => onUpdate({ qty: v });
+  const handleRate     = (v: number) => onUpdate({ amount: v });
+  const saveOwned      = () => { onUpdate({ amount: ownedDailyRate }); persist({ purchaseCost, lifespanYears, maintenance, insurance }); };
 
   return (
     <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-3">
+
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Input
-          value={item.label}
-          onChange={e => onUpdate({ label: e.target.value })}
-          placeholder="Ex : Générateur Caterpillar, Véhicule 4×4, Licence AutoCAD…"
-          className="h-8 text-xs flex-1"
-        />
-        {total > 0 && (
-          <span className="text-xs font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded shrink-0">
-            {formatFCFA(Math.round(total))}
-          </span>
-        )}
+        <Input value={item.label} onChange={e => onUpdate({ label: e.target.value })}
+          placeholder="Nom de l'équipement…" className="h-8 text-xs flex-1" />
+        {total > 0 && <span className="text-xs font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded shrink-0">{formatFCFA(Math.round(total))}</span>}
         <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
+      {/* Sélecteur depuis le catalogue */}
+      {equipList.length > 0 && (
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-1">Importer depuis le catalogue Équipements (optionnel)</p>
+          <Select onValueChange={handleEquipSelect}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Choisir un équipement…" /></SelectTrigger>
+            <SelectContent position="popper" className="max-h-56 overflow-y-auto">
+              {equipList.map(e => (
+                <SelectItem key={e.id} value={e.id}>
+                  <span className="font-medium">{e.name}</span>
+                  <span className="text-muted-foreground ml-1">({e.code})</span>
+                  {e.dailyRate ? <span className="text-lime-700 ml-2 text-[10px]">{formatFCFA(e.dailyRate)}/j</span> : null}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Mode toggle */}
       <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-medium">
-        <button
-          onClick={() => setMode("rental")}
-          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "rental" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
-        >
+        <button onClick={() => setMode("rental")}
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "rental" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
           <Truck className="w-3 h-3" /> Vous le louez
         </button>
-        <button
-          onClick={() => setMode("owned")}
-          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "owned" ? "bg-lime-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
-        >
+        <button onClick={() => setMode("owned")}
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "owned" ? "bg-lime-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
           <HardHat className="w-3 h-3" /> Vous le possédez
         </button>
       </div>
 
-      {/* Fields selon le mode */}
-      {mode === "rental" ? (
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1">Prix de location / jour</p>
-            <Input
-              type="number" min="0" step="any"
-              value={item.amount || ""}
-              onChange={e => handleRentalRateChange(parseFloat(e.target.value) || 0)}
-              className="h-8 text-xs text-right"
-              placeholder="0 FCFA"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1">Jours utilisés sur ce projet</p>
-            <Input
-              type="number" min="0" step="1"
-              value={item.qty ?? ""}
-              onChange={e => handleDaysChange(parseFloat(e.target.value) || 0)}
-              className="h-8 text-xs text-right"
-              placeholder="0"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1">Coût total</p>
-            <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
-              {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+      {/* ── MODE : LOCATION ── */}
+      {mode === "rental" && (
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Prix de location / jour</p>
+              <Input type="number" min="0" step="any" value={item.amount || ""}
+                onChange={e => handleRate(parseFloat(e.target.value) || 0)}
+                className="h-8 text-xs text-right" placeholder="0 FCFA" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Jours d'utilisation</p>
+              <Input type="number" min="0" step="1" value={item.qty ?? ""}
+                onChange={e => handleDays(parseFloat(e.target.value) || 0)}
+                className="h-8 text-xs text-right" placeholder="0" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Sous-total location</p>
+              <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-blue-700 bg-blue-50 rounded-md border border-blue-100">
+                {baseTotal > 0 ? formatFCFA(Math.round(baseTotal)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+              </div>
             </div>
           </div>
+
+          {/* Frais annexes */}
+          <div>
+            <button onClick={() => setShowExtras(!showExtras)}
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-slate-700 transition-colors">
+              {showExtras ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showExtras ? "Masquer les frais annexes" : "+ Frais annexes (transport, installation, caution…)"}
+            </button>
+            {showExtras && (
+              <div className="mt-2 space-y-2 pl-2 border-l-2 border-blue-100">
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">Transport / livraison</p>
+                    <Input type="number" min="0" value={transport || ""}
+                      onChange={e => { const v = parseFloat(e.target.value) || 0; setTransport(v); persist({ transport: v }); }}
+                      className="h-7 text-xs text-right" placeholder="0 FCFA" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">Installation / montage</p>
+                    <Input type="number" min="0" value={install || ""}
+                      onChange={e => { const v = parseFloat(e.target.value) || 0; setInstall(v); persist({ install: v }); }}
+                      className="h-7 text-xs text-right" placeholder="0 FCFA" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">Caution / dépôt</p>
+                    <Input type="number" min="0" value={deposit || ""}
+                      onChange={e => { const v = parseFloat(e.target.value) || 0; setDeposit(v); persist({ deposit: v }); }}
+                      className="h-7 text-xs text-right" placeholder="0 FCFA" />
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Non incluse dans le total</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Total location */}
+          {total > 0 && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              <div className="flex items-center justify-between text-[10px]">
+                <div className="space-y-0.5 text-blue-700">
+                  <div>Location : {formatFCFA(item.amount)}/j × {days} j = {formatFCFA(Math.round(baseTotal))}</div>
+                  {rentalExtras > 0 && <div>Frais annexes : {formatFCFA(Math.round(rentalExtras))}</div>}
+                </div>
+                <div className="text-base font-bold text-blue-800">{formatFCFA(Math.round(total))}</div>
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
+      )}
+
+      {/* ── MODE : POSSÉDÉ ── */}
+      {mode === "owned" && (
         <div className="space-y-2.5">
+          {/* Données d'achat */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1">Prix d'achat de l'équipement</p>
-              <Input
-                type="number" min="0"
-                value={purchaseCost || ""}
-                onChange={e => setPurchaseCost(parseFloat(e.target.value) || 0)}
-                className="h-8 text-xs"
-                placeholder="Ex : 21 000 000 FCFA"
-              />
+              <p className="text-[10px] text-muted-foreground mb-1">Prix d'achat</p>
+              <Input type="number" min="0" value={purchaseCost || ""}
+                onChange={e => { const v = parseFloat(e.target.value) || 0; setPurchaseCost(v); persist({ purchaseCost: v }); }}
+                className="h-8 text-xs" placeholder="Ex : 21 000 000 FCFA" />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Durée de vie (années)</p>
               <div className="flex gap-1">
-                <Input
-                  type="number" min="0.5" step="0.5"
-                  value={lifespanYears || ""}
-                  onChange={e => setLifespanYears(parseFloat(e.target.value) || 1)}
-                  className="h-8 text-xs text-right flex-1 min-w-0"
-                  placeholder="Ex : 5"
-                />
+                <Input type="number" min="0.5" step="0.5" value={lifespanYears || ""}
+                  onChange={e => { const v = parseFloat(e.target.value) || 1; setLifespanYears(v); persist({ lifespanYears: v }); }}
+                  className="h-8 text-xs text-right flex-1 min-w-0" placeholder="5" />
                 <span className="h-8 flex items-center text-[10px] text-muted-foreground px-1 shrink-0">ans</span>
               </div>
               <div className="flex gap-1 mt-1">
                 {[1, 2, 5, 10, 20].map(y => (
-                  <button key={y}
-                    onClick={() => setLifespanYears(y)}
-                    className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}
-                  >{y} an{y > 1 ? "s" : ""}</button>
+                  <button key={y} onClick={() => { setLifespanYears(y); persist({ lifespanYears: y }); }}
+                    className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}>
+                    {y} an{y > 1 ? "s" : ""}
+                  </button>
                 ))}
               </div>
             </div>
           </div>
+
+          {/* Coût journalier calculé */}
           {purchaseCost > 0 && (
-            <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2 flex items-center gap-2">
-              <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
-              <span className="text-[10px] text-lime-800">
-                Coût d'usage journalier : <strong>{formatFCFA(dailyRate)} / jour</strong>
-                <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespanDays} jours)</span>
-              </span>
+            <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-3.5 h-3.5 text-lime-600 shrink-0" />
+                <span className="text-[10px] text-lime-800">
+                  Coût journalier : <strong>{formatFCFA(ownedDailyRate)}/j</strong>
+                  <span className="text-lime-600 ml-1">({formatFCFA(purchaseCost)} ÷ {lifespanDays} j)</span>
+                </span>
+              </div>
+              <div className="text-[9px] text-lime-600 text-right">
+                <div>{formatFCFA(Math.round(ownedDailyRate * 30))}/mois</div>
+                <div>{formatFCFA(Math.round(ownedDailyRate * 365))}/an</div>
+              </div>
             </div>
           )}
+
+          {/* Frais récurrents */}
+          <div>
+            <button onClick={() => setShowExtras(!showExtras)}
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-slate-700 transition-colors">
+              {showExtras ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showExtras ? "Masquer les frais récurrents" : "+ Frais récurrents (maintenance, assurance…)"}
+            </button>
+            {showExtras && (
+              <div className="mt-2 grid grid-cols-2 gap-2 pl-2 border-l-2 border-lime-100">
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Maintenance sur ce projet</p>
+                  <Input type="number" min="0" value={maintenance || ""}
+                    onChange={e => { const v = parseFloat(e.target.value) || 0; setMaintenance(v); persist({ maintenance: v }); }}
+                    className="h-7 text-xs text-right" placeholder="0 FCFA" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">Assurance sur ce projet</p>
+                  <Input type="number" min="0" value={insurance || ""}
+                    onChange={e => { const v = parseFloat(e.target.value) || 0; setInsurance(v); persist({ insurance: v }); }}
+                    className="h-7 text-xs text-right" placeholder="0 FCFA" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Jours + total */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Jours utilisés sur ce projet</p>
-              <Input
-                type="number" min="0" step="1"
-                value={item.qty ?? ""}
-                onChange={e => handleDaysChange(parseFloat(e.target.value) || 0)}
-                className="h-8 text-xs text-right"
-                placeholder="0"
-              />
+              <Input type="number" min="0" step="1" value={item.qty ?? ""}
+                onChange={e => handleDays(parseFloat(e.target.value) || 0)}
+                className="h-8 text-xs text-right" placeholder="0" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1">Coût total imputé au projet</p>
+              <p className="text-[10px] text-muted-foreground mb-1">Coût total imputé</p>
               <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
                 {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
               </div>
             </div>
           </div>
+
+          {/* Détail total + bouton enregistrer */}
           {total > 0 && (
-            <Button size="sm" variant="outline"
-              className="w-full h-7 text-xs border-lime-200 text-lime-700 hover:bg-lime-50"
-              onClick={() => onUpdate({ amount: dailyRate })}>
-              Enregistrer ({formatFCFA(dailyRate)}/j × {days} j = {formatFCFA(Math.round(total))})
-            </Button>
+            <div className="space-y-2">
+              <div className="bg-lime-50 border border-lime-100 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between text-[10px]">
+                  <div className="space-y-0.5 text-lime-700">
+                    <div>Amortissement : {formatFCFA(ownedDailyRate)}/j × {days} j = {formatFCFA(Math.round(baseTotal))}</div>
+                    {ownedExtras > 0 && <div>Frais récurrents : {formatFCFA(Math.round(ownedExtras))}</div>}
+                  </div>
+                  <div className="text-base font-bold text-lime-800">{formatFCFA(Math.round(total))}</div>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" className="w-full h-7 text-xs border-lime-200 text-lime-700 hover:bg-lime-50"
+                onClick={saveOwned}>
+                Valider et enregistrer dans le calcul
+              </Button>
+            </div>
           )}
         </div>
       )}
