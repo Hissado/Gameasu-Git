@@ -19,7 +19,7 @@ import {
   usersTable,
   organizationMembersTable,
 } from "@workspace/db";
-import { and, eq, desc, asc, inArray } from "drizzle-orm";
+import { and, eq, desc, asc, inArray, gte, lte, count } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
 import { sendEmail } from "../lib/email";
@@ -795,6 +795,269 @@ router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, as
     ];
 
     const filename = `${order.reference}.xlsx`;
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (e) { next(e); }
+});
+
+// ══════════════════════════════════════════════════════════
+// JOURNAL D'AUDIT GLOBAL DES VIREMENTS
+// ══════════════════════════════════════════════════════════
+
+// GET /api/payroll/transfer-audit-log/authors — auteurs distincts (pour filtre)
+router.get("/payroll/transfer-audit-log/authors", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db
+      .selectDistinct({
+        userId: bankTransferAuditLogTable.userId,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+      })
+      .from(bankTransferAuditLogTable)
+      .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
+      .where(eq(bankTransferAuditLogTable.organizationId, orgId));
+    res.json(rows.filter(r => r.userId != null).map(r => ({
+      userId: r.userId,
+      name: r.firstName ? `${r.firstName} ${r.lastName ?? ""}`.trim() : "Système",
+    })));
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-audit-log — journal global avec filtres + pagination
+router.get("/payroll/transfer-audit-log", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { dateFrom, dateTo, status, userId: authorId, page = "1", limit = "50" } = req.query as Record<string, string>;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    const filters = [eq(bankTransferAuditLogTable.organizationId, orgId)];
+    if (dateFrom) filters.push(gte(bankTransferAuditLogTable.createdAt, new Date(dateFrom)));
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      filters.push(lte(bankTransferAuditLogTable.createdAt, end));
+    }
+    if (status) filters.push(eq(bankTransferAuditLogTable.newStatus, status));
+    if (authorId) filters.push(eq(bankTransferAuditLogTable.userId, authorId));
+
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(bankTransferAuditLogTable)
+      .where(and(...filters));
+
+    const entries = await db
+      .select({
+        id: bankTransferAuditLogTable.id,
+        action: bankTransferAuditLogTable.action,
+        oldStatus: bankTransferAuditLogTable.oldStatus,
+        newStatus: bankTransferAuditLogTable.newStatus,
+        metadata: bankTransferAuditLogTable.metadata,
+        createdAt: bankTransferAuditLogTable.createdAt,
+        userId: bankTransferAuditLogTable.userId,
+        bankTransferOrderId: bankTransferAuditLogTable.bankTransferOrderId,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        reference: bankTransferOrdersTable.reference,
+        totalAmount: bankTransferOrdersTable.totalAmount,
+      })
+      .from(bankTransferAuditLogTable)
+      .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
+      .leftJoin(bankTransferOrdersTable, eq(bankTransferAuditLogTable.bankTransferOrderId, bankTransferOrdersTable.id))
+      .where(and(...filters))
+      .orderBy(desc(bankTransferAuditLogTable.createdAt))
+      .limit(limitNum)
+      .offset(offset);
+
+    res.json({
+      items: entries.map(e => ({
+        ...e,
+        totalAmount: toNum(e.totalAmount),
+        authorName: e.firstName ? `${e.firstName} ${e.lastName ?? ""}`.trim() : "Système",
+      })),
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-audit-log/export.csv
+router.get("/payroll/transfer-audit-log/export.csv", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { dateFrom, dateTo, status, userId: authorId } = req.query as Record<string, string>;
+
+    const filters = [eq(bankTransferAuditLogTable.organizationId, orgId)];
+    if (dateFrom) filters.push(gte(bankTransferAuditLogTable.createdAt, new Date(dateFrom)));
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      filters.push(lte(bankTransferAuditLogTable.createdAt, end));
+    }
+    if (status) filters.push(eq(bankTransferAuditLogTable.newStatus, status));
+    if (authorId) filters.push(eq(bankTransferAuditLogTable.userId, authorId));
+
+    const entries = await db
+      .select({
+        id: bankTransferAuditLogTable.id,
+        action: bankTransferAuditLogTable.action,
+        oldStatus: bankTransferAuditLogTable.oldStatus,
+        newStatus: bankTransferAuditLogTable.newStatus,
+        metadata: bankTransferAuditLogTable.metadata,
+        createdAt: bankTransferAuditLogTable.createdAt,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        reference: bankTransferOrdersTable.reference,
+        totalAmount: bankTransferOrdersTable.totalAmount,
+      })
+      .from(bankTransferAuditLogTable)
+      .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
+      .leftJoin(bankTransferOrdersTable, eq(bankTransferAuditLogTable.bankTransferOrderId, bankTransferOrdersTable.id))
+      .where(and(...filters))
+      .orderBy(desc(bankTransferAuditLogTable.createdAt));
+
+    const statusLabels: Record<string, string> = {
+      submitted: "Soumis", completed: "Exécuté", failed: "Échec",
+      cancelled: "Annulé", processing: "En traitement", pending: "En attente",
+    };
+
+    const csvRows: string[] = [
+      ["Date", "Auteur", "Référence ordre", "Montant (XOF)", "Statut précédent", "Nouveau statut", "Réf. banque", "Message d'erreur"].join(";"),
+    ];
+    for (const e of entries) {
+      const meta = (e.metadata ?? {}) as Record<string, unknown>;
+      csvRows.push([
+        new Date(e.createdAt).toLocaleString("fr-FR"),
+        e.firstName ? `${e.firstName} ${e.lastName ?? ""}`.trim() : "Système",
+        e.reference ?? "",
+        Math.round(toNum(e.totalAmount)),
+        e.oldStatus ? (statusLabels[e.oldStatus] ?? e.oldStatus) : "",
+        e.newStatus ? (statusLabels[e.newStatus] ?? e.newStatus) : "",
+        meta.bankReference ? String(meta.bankReference) : "",
+        meta.errorMessage ? String(meta.errorMessage) : "",
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+    }
+
+    const filename = `journal-audit-virements-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send("\uFEFF" + csvRows.join("\r\n"));
+  } catch (e) { next(e); }
+});
+
+// GET /api/payroll/transfer-audit-log/export.xlsx
+router.get("/payroll/transfer-audit-log/export.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { dateFrom, dateTo, status, userId: authorId } = req.query as Record<string, string>;
+
+    const filters = [eq(bankTransferAuditLogTable.organizationId, orgId)];
+    if (dateFrom) filters.push(gte(bankTransferAuditLogTable.createdAt, new Date(dateFrom)));
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      filters.push(lte(bankTransferAuditLogTable.createdAt, end));
+    }
+    if (status) filters.push(eq(bankTransferAuditLogTable.newStatus, status));
+    if (authorId) filters.push(eq(bankTransferAuditLogTable.userId, authorId));
+
+    const entries = await db
+      .select({
+        id: bankTransferAuditLogTable.id,
+        action: bankTransferAuditLogTable.action,
+        oldStatus: bankTransferAuditLogTable.oldStatus,
+        newStatus: bankTransferAuditLogTable.newStatus,
+        metadata: bankTransferAuditLogTable.metadata,
+        createdAt: bankTransferAuditLogTable.createdAt,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        reference: bankTransferOrdersTable.reference,
+        totalAmount: bankTransferOrdersTable.totalAmount,
+      })
+      .from(bankTransferAuditLogTable)
+      .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
+      .leftJoin(bankTransferOrdersTable, eq(bankTransferAuditLogTable.bankTransferOrderId, bankTransferOrdersTable.id))
+      .where(and(...filters))
+      .orderBy(desc(bankTransferAuditLogTable.createdAt));
+
+    const statusLabels: Record<string, string> = {
+      submitted: "Soumis", completed: "Exécuté", failed: "Échec",
+      cancelled: "Annulé", processing: "En traitement", pending: "En attente",
+    };
+
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Gaméasù Plateforme";
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet("Journal d'audit virements");
+
+    ws.mergeCells("A1:H1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = "Journal d'audit — Ordres de virement";
+    titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(1).height = 30;
+
+    const subParts: string[] = [];
+    if (dateFrom) subParts.push(`Du ${new Date(dateFrom).toLocaleDateString("fr-FR")}`);
+    if (dateTo) subParts.push(`au ${new Date(dateTo).toLocaleDateString("fr-FR")}`);
+    if (status) subParts.push(`Statut : ${statusLabels[status] ?? status}`);
+    subParts.push(`${entries.length} événement(s)`);
+
+    ws.mergeCells("A2:H2");
+    const subCell = ws.getCell("A2");
+    subCell.value = subParts.join("  |  ");
+    subCell.font = { italic: true, size: 10 };
+    subCell.alignment = { horizontal: "center" };
+
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(["Date", "Auteur", "Référence ordre", "Montant (XOF)", "Statut précédent", "Nouveau statut", "Réf. banque", "Message d'erreur"]);
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+      cell.alignment = { horizontal: "center" };
+      cell.border = { bottom: { style: "thin" } };
+    });
+    ws.getRow(4).height = 20;
+
+    let rowIdx = 5;
+    for (const e of entries) {
+      const meta = (e.metadata ?? {}) as Record<string, unknown>;
+      const row = ws.addRow([
+        new Date(e.createdAt).toLocaleString("fr-FR"),
+        e.firstName ? `${e.firstName} ${e.lastName ?? ""}`.trim() : "Système",
+        e.reference ?? "—",
+        Math.round(toNum(e.totalAmount)),
+        e.oldStatus ? (statusLabels[e.oldStatus] ?? e.oldStatus) : "—",
+        e.newStatus ? (statusLabels[e.newStatus] ?? e.newStatus) : "—",
+        meta.bankReference ? String(meta.bankReference) : "",
+        meta.errorMessage ? String(meta.errorMessage) : "",
+      ]);
+      if (rowIdx % 2 === 0) {
+        row.eachCell(cell => {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDF6EE" } };
+        });
+      }
+      row.getCell(4).numFmt = '#,##0" XOF"';
+      rowIdx++;
+    }
+
+    ws.columns = [
+      { width: 22 }, { width: 24 }, { width: 28 }, { width: 20 },
+      { width: 18 }, { width: 18 }, { width: 22 }, { width: 36 },
+    ];
+
+    const filename = `journal-audit-virements-${new Date().toISOString().slice(0, 10)}.xlsx`;
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     await wb.xlsx.write(res);
