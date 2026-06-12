@@ -785,6 +785,141 @@ function CostItemRow({
   );
 }
 
+// ─── DepreciationItemRow ──────────────────────────────────────────────────────
+
+function DepreciationItemRow({ item, onUpdate, onRemove }: {
+  item: CostItem;
+  onUpdate: (u: Partial<CostItem>) => void;
+  onRemove: () => void;
+}) {
+  const [showCalc, setShowCalc] = useState(false);
+  const [calcAchat, setCalcAchat] = useState(0);
+  const [calcDuree, setCalcDuree] = useState(1825);
+
+  const dailyRate = item.amount;
+  const days = item.qty ?? 0;
+  const total = dailyRate * days;
+  const computedDailyRate = calcDuree > 0 ? Math.round(calcAchat / calcDuree) : 0;
+
+  return (
+    <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <Input
+          value={item.label}
+          onChange={e => onUpdate({ label: e.target.value })}
+          placeholder="Ex : Générateur Caterpillar, Véhicule 4×4, Licence AutoCAD…"
+          className="h-8 text-xs flex-1"
+        />
+        {total > 0 && (
+          <span className="text-xs font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded shrink-0">
+            {formatFCFA(Math.round(total))}
+          </span>
+        )}
+        <button
+          onClick={() => setShowCalc(!showCalc)}
+          className={`h-8 w-7 flex items-center justify-center transition-colors ${showCalc ? "text-lime-600" : "text-slate-400 hover:text-lime-600"}`}
+          title="Calculer l'amortissement d'un équipement en propriété"
+        >
+          <Calculator className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Tarif journalier (FCFA)</p>
+          <Input
+            type="number" min="0" step="any"
+            value={item.amount || ""}
+            onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
+            className="h-8 text-xs text-right"
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Nombre de jours</p>
+          <Input
+            type="number" min="0" step="1"
+            value={item.qty ?? ""}
+            onChange={e => onUpdate({ qty: parseFloat(e.target.value) || 0 })}
+            className="h-8 text-xs text-right"
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Total</p>
+          <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
+            {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+          </div>
+        </div>
+      </div>
+
+      {total > 0 && (
+        <div className="flex items-center gap-1.5 text-[10px] text-lime-700">
+          <span className="bg-lime-50 border border-lime-100 px-1.5 py-0.5 rounded font-mono">{formatFCFA(item.amount)}/j</span>
+          <span className="text-slate-400">×</span>
+          <span className="bg-lime-50 border border-lime-100 px-1.5 py-0.5 rounded font-mono">{days} jour{days > 1 ? "s" : ""}</span>
+          <span className="text-slate-400">=</span>
+          <span className="bg-lime-100 border border-lime-200 px-1.5 py-0.5 rounded font-mono font-bold">{formatFCFA(Math.round(total))}</span>
+        </div>
+      )}
+
+      {showCalc && (
+        <div className="border border-slate-200 rounded-lg bg-slate-50 p-3 space-y-2.5">
+          <div className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+            <Calculator className="w-3.5 h-3.5 text-lime-600" />
+            Calculer le tarif journalier — matériel en propriété
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Divisez le coût d'achat par la durée de vie estimée pour obtenir le coût d'usage journalier à imputer au projet.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Coût d'acquisition (FCFA)</p>
+              <Input
+                type="number" min="0"
+                value={calcAchat || ""}
+                onChange={e => setCalcAchat(parseFloat(e.target.value) || 0)}
+                className="h-7 text-xs"
+                placeholder="Ex : 21 000 000"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Durée de vie estimée</p>
+              <Select value={String(calcDuree)} onValueChange={v => setCalcDuree(Number(v))}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="365">1 an (365 j)</SelectItem>
+                  <SelectItem value="730">2 ans (730 j)</SelectItem>
+                  <SelectItem value="1825">5 ans (1 825 j)</SelectItem>
+                  <SelectItem value="3650">10 ans (3 650 j)</SelectItem>
+                  <SelectItem value="7300">20 ans (7 300 j)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {computedDailyRate > 0 && (
+            <div className="flex items-center justify-between bg-white border border-lime-200 rounded-lg p-2.5">
+              <span className="text-[10px] text-lime-800">
+                {formatFCFA(calcAchat)} ÷ {calcDuree} j = <strong>{formatFCFA(computedDailyRate)} / jour</strong>
+              </span>
+              <Button
+                size="sm" variant="outline"
+                className="h-6 text-[10px] border-lime-300 text-lime-700 hover:bg-lime-50"
+                onClick={() => { onUpdate({ amount: computedDailyRate }); setShowCalc(false); }}
+              >
+                Utiliser ce tarif
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LaborLineRow ─────────────────────────────────────────────────────────────
 
 function LaborLineRow({ line, onUpdate, onRemove }: {
@@ -2506,14 +2641,7 @@ export default function PricingCalculator() {
                   {/* ── Tab: Opérations ── */}
                   <TabsContent value="operations" className="mt-0 space-y-5">
 
-                    <div className="bg-lime-50 border border-lime-100 rounded-xl p-3 text-xs text-lime-800 flex gap-2">
-                      <HardHat className="w-4 h-4 shrink-0 mt-0.5 text-lime-600" />
-                      <div>
-                        <strong>Amortissements & équipements</strong> — coûts spécifiques au deal (usage d'équipements, licences, matériel loué…). Les charges récurrentes de structure (carburant, maintenance, frais généraux) sont désormais gérées dans l'onglet <strong>Frais de structure</strong> avec répartition automatique depuis le compte de résultat.
-                      </div>
-                    </div>
-
-                    {/* Amortissements — toujours en mode détail (spécifique par équipement) */}
+                    {/* Amortissements & équipements */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -2525,15 +2653,65 @@ export default function PricingCalculator() {
                           <HardHat className="w-3.5 h-3.5" />Importer depuis Équipements
                         </Button>
                       </div>
-                      <div className="bg-lime-50 border border-lime-100 rounded-lg p-2.5 mb-3 text-xs text-lime-800">
-                        Machines, véhicules, ordinateurs, outils, mobilier, licences longue durée… La quote-part = tarif journalier × jours d'usage, ou amortissement mensuel × taux d'utilisation.
+
+                      {/* Guide visuel à 2 situations */}
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+                          <div className="text-[10px] font-bold text-blue-800 mb-1 flex items-center gap-1">
+                            <Truck className="w-3 h-3" /> Location externe
+                          </div>
+                          <div className="text-[10px] text-blue-700 leading-relaxed">
+                            Entrez le <strong>tarif de location</strong> du prestataire et le nombre de jours.
+                          </div>
+                          <div className="mt-1.5 font-mono text-[9px] bg-blue-100 text-blue-800 px-1.5 py-1 rounded">
+                            50 000 FCFA/j × 12 j = 600 000 FCFA
+                          </div>
+                        </div>
+                        <div className="bg-lime-50 border border-lime-100 rounded-lg p-2.5">
+                          <div className="text-[10px] font-bold text-lime-800 mb-1 flex items-center gap-1">
+                            <HardHat className="w-3 h-3" /> Matériel en propriété
+                          </div>
+                          <div className="text-[10px] text-lime-700 leading-relaxed">
+                            Cliquez <strong>🧮</strong> pour calculer le tarif journalier depuis le coût d'achat ÷ durée de vie.
+                          </div>
+                          <div className="mt-1.5 font-mono text-[9px] bg-lime-100 text-lime-800 px-1.5 py-1 rounded">
+                            21 000 000 ÷ 3 650 j = 5 753 FCFA/j
+                          </div>
+                        </div>
                       </div>
-                      <CostSection title="amortissements" icon={HardHat} color="#84CC16"
-                        items={scenario.depreciationItems} baseCost={result.totalCost} baseHT={result.priceHT}
-                        onAdd={() => addItem("depreciationItems", "depreciation", "per_unit", "j")}
-                        onUpdate={(id, u) => updateItem("depreciationItems", id, u)}
-                        onRemove={(id) => removeItem("depreciationItems", id)}
-                        defaultCategory="depreciation" defaultAlloc="per_unit" defaultQtyUnit="j" />
+
+                      {/* Liste des équipements */}
+                      {(scenario.depreciationItems ?? []).length === 0 ? (
+                        <div className="text-center py-7 text-muted-foreground text-xs border border-dashed border-lime-200 rounded-lg">
+                          <HardHat className="w-6 h-6 mx-auto mb-1.5 opacity-30" />
+                          <div>Aucun équipement ajouté</div>
+                          <div className="text-[10px] mt-0.5">Importez depuis le catalogue ou ajoutez manuellement</div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {(scenario.depreciationItems ?? []).map(item => (
+                            <DepreciationItemRow
+                              key={item.id} item={item}
+                              onUpdate={u => updateItem("depreciationItems", item.id, u)}
+                              onRemove={() => removeItem("depreciationItems", item.id)}
+                            />
+                          ))}
+                          {totalDepr > 0 && (
+                            <div className="flex justify-between text-xs border-t border-lime-100 pt-2 mt-1 pr-1">
+                              <span className="text-muted-foreground font-medium flex items-center gap-1">
+                                <Calculator className="w-3 h-3" />Total amortissements
+                              </span>
+                              <span className="font-bold text-lime-700">{formatFCFA(Math.round(totalDepr))}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <Button size="sm" variant="outline"
+                        onClick={() => addItem("depreciationItems", "depreciation", "per_unit", "j")}
+                        className="w-full h-7 text-xs border-dashed border-lime-300 text-lime-700 hover:bg-lime-50 mt-2">
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Ajouter un équipement manuellement
+                      </Button>
                     </div>
                   </TabsContent>
 
