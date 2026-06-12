@@ -516,6 +516,141 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
             }
           }
         }
+
+        // ── Email aux bénéficiaires quand le virement est exécuté ──────
+        if (body.status === "completed") {
+          const lines = (row.transferLines ?? []) as Array<{
+            collaboratorId?: string;
+            amount?: number;
+            name?: string;
+            iban?: string;
+          }>;
+
+          if (lines.length > 0) {
+            const collaboratorIds = lines
+              .map(l => l.collaboratorId)
+              .filter((id): id is string => Boolean(id));
+
+            // Récupérer les collaborateurs de cette organisation uniquement
+            const collabRows = collaboratorIds.length
+              ? await db.select({
+                  id: collaboratorsTable.id,
+                  firstName: collaboratorsTable.firstName,
+                  lastName: collaboratorsTable.lastName,
+                  professionalEmail: collaboratorsTable.professionalEmail,
+                  userId: collaboratorsTable.userId,
+                })
+                .from(collaboratorsTable)
+                .where(and(
+                  eq(collaboratorsTable.organizationId, orgId),
+                  inArray(collaboratorsTable.id, collaboratorIds),
+                ))
+              : [];
+
+            // Récupérer les emails des comptes utilisateur liés — uniquement
+            // ceux qui sont membres de cette organisation
+            const orgMemberUserIds = new Set(members.map(m => m.userId).filter((id): id is string => id !== null));
+            const linkedUserIds = collabRows
+              .map(c => c.userId)
+              .filter((id): id is string => id !== null && orgMemberUserIds.has(id));
+            const userEmailRows = linkedUserIds.length
+              ? await db.select({ id: usersTable.id, email: usersTable.email })
+                  .from(usersTable)
+                  .where(inArray(usersTable.id, linkedUserIds))
+              : [];
+            const userEmailMap = new Map(userEmailRows.map(u => [u.id, u.email]));
+
+            // Récupérer la période depuis le run de paie — filtré par organisation
+            let period: string | null = null;
+            if (row.payrollRunId) {
+              const [runRow] = await db.select({ period: payrollRunsTable.period })
+                .from(payrollRunsTable)
+                .where(and(
+                  eq(payrollRunsTable.organizationId, orgId),
+                  eq(payrollRunsTable.id, row.payrollRunId),
+                ));
+              period = runRow?.period ?? null;
+            }
+
+            const periodLabel = period
+              ? new Date(`${period}-01`).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+              : null;
+
+            const collabMap = new Map(collabRows.map(c => [c.id, c]));
+            const sentEmails = new Set<string>();
+
+            for (const line of lines) {
+              if (!line.collaboratorId) continue;
+              const collab = collabMap.get(line.collaboratorId);
+              if (!collab) continue;
+
+              const recipientEmail =
+                collab.professionalEmail ||
+                (collab.userId ? userEmailMap.get(collab.userId) : null);
+              if (!recipientEmail) continue;
+
+              // Dédupliquer : un seul email par adresse
+              if (sentEmails.has(recipientEmail)) continue;
+              sentEmails.add(recipientEmail);
+
+              const recipientName = line.name || `${collab.firstName ?? ""} ${collab.lastName ?? ""}`.trim();
+              const netAmount = formatFCFA(toNum(line.amount));
+              const subjectEmployee = `Votre virement de salaire a été exécuté${periodLabel ? ` — ${periodLabel}` : ""}`;
+
+              const htmlEmployee = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+  <div style="background:#1e1e2e;padding:24px 32px;">
+    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gaméasù</span>
+    <span style="color:#9ca3af;font-size:14px;margin-left:12px;">RH · Paie</span>
+  </div>
+  <div style="padding:32px;border:1px solid #e5e7eb;border-top:none;">
+    <h2 style="margin:0 0 8px;color:#111827;">Votre virement a été effectué</h2>
+    <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">Bonjour <strong>${recipientName}</strong>,</p>
+    <p style="font-size:14px;color:#374151;margin:0 0 24px;">
+      Nous vous informons que votre virement de salaire a été exécuté avec succès par votre employeur.
+    </p>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;">
+      <div style="font-size:12px;color:#166534;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Montant net viré</div>
+      <div style="font-size:32px;font-weight:700;color:#16a34a;">${netAmount}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      ${periodLabel ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:40%;">Période</td><td style="padding:8px 0;font-weight:600;font-size:14px;">${periodLabel}</td></tr>` : ""}
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Référence de l'ordre</td><td style="padding:8px 0;font-family:monospace;font-size:14px;">${row.reference}</td></tr>
+      ${row.bankReference ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Réf. banque</td><td style="padding:8px 0;font-family:monospace;font-size:14px;">${row.bankReference}</td></tr>` : ""}
+      <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Date d'exécution</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleDateString("fr-FR")}</td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:13px;margin:0;">
+      Ce virement devrait apparaître sur votre compte bancaire dans un délai de 1 à 3 jours ouvrés selon votre établissement.<br>
+      Ce message est envoyé automatiquement par Gaméasù. Ne pas répondre à cet email.
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center;">© ${new Date().getFullYear()} Gaméasù — Tous droits réservés</div>
+</div>`;
+
+              const textEmployee = [
+                `Bonjour ${recipientName},`,
+                ``,
+                `Votre virement de salaire a été exécuté avec succès.`,
+                ``,
+                `Montant net : ${netAmount}`,
+                periodLabel ? `Période : ${periodLabel}` : null,
+                `Référence : ${row.reference}`,
+                row.bankReference ? `Réf. banque : ${row.bankReference}` : null,
+                `Date : ${new Date().toLocaleDateString("fr-FR")}`,
+                ``,
+                `Ce virement devrait apparaître sur votre compte dans 1 à 3 jours ouvrés.`,
+              ].filter(Boolean).join("\n");
+
+              sendEmail({
+                to: recipientEmail,
+                subject: subjectEmployee,
+                html: htmlEmployee,
+                text: textEmployee,
+                category: "bank_transfer_employee",
+              }).catch(() => {/* ne pas bloquer */});
+            }
+          }
+        }
       } catch {/* ne pas bloquer la réponse si notifications échouent */}
     }
 
