@@ -88,6 +88,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Finance",
     icon: Landmark,
     items: [
+      { name: "Intelligence",          path: "/finance/intelligence",    icon: Brain,      moduleKey: "accounting" },
       { name: "Comptabilité",         path: "/accounting",              icon: Calculator, moduleKey: "accounting" },
       { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
       { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,   moduleKey: "accounting" },
