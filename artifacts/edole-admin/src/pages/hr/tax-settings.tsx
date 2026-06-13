@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { HrShell } from "./_layout";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { Plus, Save, Info, Percent, Trash2, Send, ShieldCheck, XCircle, Clock, FileText, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Save, Info, Percent, Trash2, Send, ShieldCheck, XCircle, Clock, FileText, RefreshCw, AlertTriangle, Paperclip, ExternalLink, Upload, X } from "lucide-react";
 
 type Bracket = { id?: string; fromAmount: number; toAmount: number | null; rate: number; sortOrder?: number };
 type Exemption = { id: string; collaboratorId?: string; exemptionType: string; fixedAmount?: number; percentage?: number; reason?: string; startDate?: string; endDate?: string; isActive: boolean; firstName?: string; lastName?: string };
@@ -29,6 +29,7 @@ type TaxDeclaration = {
   submittedAt?: string | null;
   validatedAt?: string | null;
   notes?: string | null;
+  attachmentPath?: string | null;
   createdAt: string;
 };
 
@@ -61,6 +62,57 @@ export default function TaxSettings() {
   const [patchDate, setPatchDate] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetId = useRef<string | null>(null);
+
+  const handleAttachFile = (declId: string) => {
+    uploadTargetId.current = declId;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const declId = uploadTargetId.current;
+    if (!file || !declId) return;
+    e.target.value = "";
+
+    setUploadingId(declId);
+    try {
+      const urlRes = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      if (!urlRes.ok) throw new Error("Impossible d'obtenir l'URL d'upload");
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      const putRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error("Échec de l'upload vers le stockage");
+
+      await apiFetch(`/api/hr/tax-declarations/${declId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ attachmentPath: objectPath }),
+      });
+
+      qc.invalidateQueries({ queryKey: ["all-tax-declarations"] });
+      toast({ title: "Accusé de réception joint avec succès" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Échec de l'upload", variant: "destructive" });
+    } finally {
+      setUploadingId(null);
+      uploadTargetId.current = null;
+    }
+  };
+
+  const removeAttachmentMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/hr/tax-declarations/${id}`, { method: "PATCH", body: JSON.stringify({ attachmentPath: null }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["all-tax-declarations"] }); toast({ title: "Pièce jointe supprimée" }); },
+  });
 
   const { data: bracketsData } = useQuery<{ brackets: Bracket[]; isDefault: boolean }>({
     queryKey: ["irpp-brackets"],
@@ -141,6 +193,14 @@ export default function TaxSettings() {
 
   return (
     <HrShell title="Fiscalité RH" subtitle="Barème IRPP, exonérations et registre fiscal des déclarations">
+      {/* Input file caché — utilisé pour l'upload d'accusé de réception */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       <Tabs defaultValue="register">
         <TabsList className="mb-6">
           <TabsTrigger value="register">Registre fiscal</TabsTrigger>
@@ -212,6 +272,7 @@ export default function TaxSettings() {
                           <th className="px-4 py-2 text-left">Référence</th>
                           <th className="px-4 py-2 text-left">Soumis le</th>
                           <th className="px-4 py-2 text-left">Validé le</th>
+                          <th className="px-4 py-2 text-left">Pièce jointe</th>
                           <th className="px-4 py-2 text-left">Notes</th>
                           <th className="px-4 py-2 w-36"></th>
                         </tr>
@@ -257,6 +318,46 @@ export default function TaxSettings() {
                               </td>
                               <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(d.submittedAt)}</td>
                               <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(d.validatedAt)}</td>
+                              <td className="px-4 py-3">
+                                {d.attachmentPath ? (
+                                  <div className="flex items-center gap-1">
+                                    <a
+                                      href={`/api/storage${d.attachmentPath}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                    >
+                                      <Paperclip className="w-3 h-3" />
+                                      Voir
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-5 w-5 text-muted-foreground hover:text-red-500"
+                                      title="Supprimer la pièce jointe"
+                                      onClick={() => removeAttachmentMut.mutate(d.id)}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                    disabled={uploadingId === d.id}
+                                    onClick={() => handleAttachFile(d.id)}
+                                  >
+                                    {uploadingId === d.id ? (
+                                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <Upload className="w-3 h-3 mr-1" />
+                                    )}
+                                    {uploadingId === d.id ? "Upload…" : "Joindre"}
+                                  </Button>
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-xs text-muted-foreground max-w-[140px] truncate">{d.notes ?? "—"}</td>
                               <td className="px-4 py-3 text-right">
                                 <div className="flex items-center gap-1 justify-end">

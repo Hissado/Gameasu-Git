@@ -63,6 +63,8 @@ export const taxDeclarationsTable = pgTable("tax_declarations", {
   // Détails calculés (jsonb)
   details: jsonb("details").default({}),
   notes: text("notes"),
+  // Accusé de réception CNSS/OTR (objectPath depuis Object Storage)
+  attachmentPath: text("attachment_path"),
   createdById: uuid("created_by_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

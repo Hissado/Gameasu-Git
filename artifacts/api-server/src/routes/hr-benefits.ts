@@ -288,6 +288,7 @@ router.patch("/hr/tax-declarations/:id", requireManagerOrAbove, async (req, res,
       submittedAt: z.string().optional(),
       validatedAt: z.string().optional(),
       notes: z.string().optional(),
+      attachmentPath: z.string().nullable().optional(),
     }).parse(req.body);
     const updates: Record<string, unknown> = {
       status: body.status,
@@ -295,6 +296,7 @@ router.patch("/hr/tax-declarations/:id", requireManagerOrAbove, async (req, res,
       notes: body.notes,
       dueDate: body.dueDate,
       totalAmount: body.totalAmount != null ? String(body.totalAmount) : undefined,
+      attachmentPath: body.attachmentPath !== undefined ? body.attachmentPath : undefined,
     };
     if (body.status === "submitted") {
       updates.submittedAt = body.submittedAt ? new Date(body.submittedAt) : new Date();
