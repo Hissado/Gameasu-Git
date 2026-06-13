@@ -2530,6 +2530,8 @@ export default function PricingCalculator() {
   // ─── Cost totals per section ──────────────────────────────────────────────
   const totalLaborCost = useMemo(() => (scenario.laborLines ?? []).reduce((sum, l) => sum + computeLaborLineCost(l).totalCost, 0), [scenario.laborLines]);
   const totalDirectCost = useMemo(() => (scenario.costItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
+  const totalDirectCostOnly = useMemo(() => (scenario.costItems ?? []).filter(i => i.category !== "purchase").reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
+  const totalPurchaseCost = useMemo(() => (scenario.costItems ?? []).filter(i => i.category === "purchase").reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
   const totalOperational = useMemo(() => (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.operationalItems, result]);
   const totalAdmin = useMemo(() => (scenario.adminItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.adminItems, result]);
   const totalCommercial = useMemo(() => (scenario.commercialItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.commercialItems, result]);
@@ -2814,10 +2816,11 @@ export default function PricingCalculator() {
                 <CardHeader className="pb-0 border-b">
                   <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-transparent p-0 pb-3">
                     {[
-                      { value: "directs",     label: "Coûts directs",  badge: totalDirectCost,   color: "bg-blue-100 text-blue-700" },
-                      { value: "labor",       label: "Main-d'œuvre",   badge: totalLaborCost,    color: "bg-purple-100 text-purple-700" },
-                      { value: "operations",  label: "Opérations",          badge: totalDepr,                  color: "bg-lime-100 text-lime-700" },
-                      { value: "generaux",    label: "Frais de structure",  badge: (scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? (computeStructureCosts(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).total + totalRisk) : (totalOperational + totalAdmin + totalCommercial + totalFinancial + totalRisk), color: "bg-slate-100 text-slate-700" },
+                      { value: "directs",     label: "Coûts directs",              badge: totalDirectCostOnly, color: "bg-blue-100 text-blue-700" },
+                      { value: "achats",      label: "Achats & Approvisionnement", badge: totalPurchaseCost,   color: "bg-emerald-100 text-emerald-700" },
+                      { value: "labor",       label: "Main-d'œuvre",               badge: totalLaborCost,      color: "bg-purple-100 text-purple-700" },
+                      { value: "operations",  label: "Opérations",                 badge: totalDepr,           color: "bg-lime-100 text-lime-700" },
+                      { value: "generaux",    label: "Frais de structure",         badge: (scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? (computeStructureCosts(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).total + totalRisk) : (totalOperational + totalAdmin + totalCommercial + totalFinancial + totalRisk), color: "bg-slate-100 text-slate-700" },
                     ].map(t => (
                       <button key={t.value} onClick={() => setActiveTab(t.value)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
@@ -2833,26 +2836,42 @@ export default function PricingCalculator() {
                   {/* ── Tab: Coûts directs ── */}
                   <TabsContent value="directs" className="mt-0">
                     <CostSection title="directs" icon={Package} color="#3B82F6"
-                      items={scenario.costItems} baseCost={result.totalCost} baseHT={result.priceHT}
+                      items={(scenario.costItems ?? []).filter(i => i.category !== "purchase")}
+                      baseCost={result.totalCost} baseHT={result.priceHT}
                       onAdd={() => addItem("costItems", "direct")}
                       onUpdate={(id, u) => updateItem("costItems", id, u)}
                       onRemove={(id) => removeItem("costItems", id)}
                       defaultCategory="direct">
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {(["direct","purchase","logistics","tax_input","other"] as CostCategory[]).map(cat => (
-                          <button key={cat}
-                            onClick={() => cat === "purchase" ? setShowInventoryDialog(true) : addItem("costItems", cat)}
-                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border border-dashed hover:bg-slate-50 transition-colors"
-                            style={{ borderColor: CATEGORIES[cat].color, color: CATEGORIES[cat].color }}>
-                            <Plus className="w-3 h-3" />{CATEGORIES[cat].label}
-                            {cat === "purchase" && (() => {
-                              const n = scenario.costItems.filter(i => i.category === "purchase").length;
-                              return n > 0 ? <span className="ml-1 bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 text-[9px] font-bold">{n}</span> : null;
-                            })()}
-                          </button>
-                        ))}
-                      </div>
                     </CostSection>
+                  </TabsContent>
+
+                  {/* ── Tab: Achats & Approvisionnement ── */}
+                  <TabsContent value="achats" className="mt-0 space-y-3">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => addItem("costItems", "purchase")} className="text-xs gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                        <Plus className="w-3.5 h-3.5" />Ajouter un achat
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowInventoryDialog(true)} className="text-xs gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                        <Package className="w-3.5 h-3.5" />Importer depuis Produits / Stock
+                      </Button>
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 text-xs text-emerald-800">
+                      <strong>Achats & Approvisionnement :</strong> matières premières, fournitures, marchandises, sous-traitance — prix d'achat récupéré automatiquement depuis le catalogue Produits / Stock.
+                    </div>
+                    <CostSection title="achats" icon={Package} color="#10B981"
+                      items={(scenario.costItems ?? []).filter(i => i.category === "purchase")}
+                      baseCost={result.totalCost} baseHT={result.priceHT}
+                      onAdd={() => addItem("costItems", "purchase")}
+                      onUpdate={(id, u) => updateItem("costItems", id, u)}
+                      onRemove={(id) => removeItem("costItems", id)}
+                      defaultCategory="purchase">
+                    </CostSection>
+                    {totalPurchaseCost > 0 && (
+                      <div className="flex justify-between items-center text-sm border-t border-emerald-100 pt-2">
+                        <span className="text-muted-foreground font-medium flex items-center gap-1"><Calculator className="w-3.5 h-3.5" />Total Achats & Approvisionnement</span>
+                        <span className="font-bold text-emerald-700">{formatFCFA(Math.round(totalPurchaseCost))}</span>
+                      </div>
+                    )}
                   </TabsContent>
 
                   {/* ── Tab: Main-d'œuvre ── */}
