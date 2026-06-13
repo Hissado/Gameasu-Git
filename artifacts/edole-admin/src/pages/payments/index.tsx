@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building } from "lucide-react";
+import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
@@ -19,7 +19,7 @@ import { PageHeader } from "@/components/ui/page-header";
 type Invoice = {
   id: string; referenceNumber: string; status: string;
   totalAmount: number | null; paidAmount: number | null;
-  clientName: string | null;
+  clientName: string | null; clientId: string | null;
 };
 
 type Payment = {
@@ -157,12 +157,53 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
                   ))}
                 </SelectContent>
               </Select>
-              {selectedInvoice && (
-                <p className="text-xs text-muted-foreground">
-                  Solde restant :{" "}
-                  <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
-                </p>
-              )}
+                {selectedInvoice && (() => {
+                const amtNum = Number(amount) || 0;
+                const diff = amtNum - remaining;
+                const isExact = amtNum > 0 && Math.abs(diff) < 1;
+                const isOver = amtNum > 0 && diff > 1;
+                const isPartial = amtNum > 0 && diff < -1;
+                const otherInvoices = unpaidInvoices.filter(
+                  (i) => i.id !== invoiceId && i.clientId === selectedInvoice.clientId
+                );
+                return (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Solde restant :{" "}
+                      <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
+                    </p>
+                    {amtNum > 0 && (
+                      <div className={`flex items-center gap-1.5 text-xs rounded px-2 py-1 border ${
+                        isExact ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                        isOver ? "bg-orange-50 border-orange-200 text-orange-700" :
+                        "bg-amber-50 border-amber-200 text-amber-700"
+                      }`}>
+                        {isExact && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {!isExact && <AlertCircle className="w-3.5 h-3.5" />}
+                        {isExact && "Correspondance exacte — facture soldée"}
+                        {isPartial && `Paiement partiel — il restera ${formatFCFA(Math.abs(diff))} à payer`}
+                        {isOver && `Trop-perçu de ${formatFCFA(diff)} — à justifier`}
+                      </div>
+                    )}
+                    {otherInvoices.length > 0 && (
+                      <div className="border rounded p-2 bg-muted/30 space-y-1">
+                        <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">
+                          Autres factures en attente — {selectedInvoice.clientName ?? "même client"}
+                        </p>
+                        {otherInvoices.slice(0, 3).map((oi) => (
+                          <div key={oi.id} className="flex items-center justify-between text-xs">
+                            <span className="font-mono text-primary">{oi.referenceNumber}</span>
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <ArrowRight className="w-3 h-3" />
+                              {formatFCFA(Math.max(0, (oi.totalAmount ?? 0) - (oi.paidAmount ?? 0)))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

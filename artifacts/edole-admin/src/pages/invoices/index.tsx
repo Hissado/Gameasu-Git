@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer } from "lucide-react";
+import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer, Link2 } from "lucide-react";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -336,6 +336,7 @@ export default function InvoicesList() {
   const [cancelTarget, setCancelTarget] = useState<Invoice | null>(null);
   const [sendEmailTarget, setSendEmailTarget] = useState<Invoice | null>(null);
   const [creditNoteTarget, setCreditNoteTarget] = useState<Invoice | null>(null);
+  const [generatingLinkId, setGeneratingLinkId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Invoice[] }>({
     queryKey: ["invoices"],
@@ -534,6 +535,21 @@ export default function InvoicesList() {
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-amber-600 border-amber-200 hover:bg-amber-50"
                               onClick={() => setCreditNoteTarget(inv)}>
                               <MinusCircle className="w-3 h-3" /> Avoir
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              className="h-7 text-xs gap-0.5 text-violet-600 border-violet-200 hover:bg-violet-50"
+                              disabled={generatingLinkId === inv.id}
+                              onClick={async () => {
+                                setGeneratingLinkId(inv.id);
+                                try {
+                                  const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" });
+                                  const url = `${window.location.origin}/facture/${r.token}`;
+                                  await navigator.clipboard.writeText(url);
+                                  toast.success("Lien copié dans le presse-papiers");
+                                } catch { toast.error("Erreur lors de la génération du lien"); }
+                                finally { setGeneratingLinkId(null); }
+                              }}>
+                              <Link2 className="w-3 h-3" /> Lien
                             </Button>
                             {canEditDoc && (
                               <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"

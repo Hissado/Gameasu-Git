@@ -102,6 +102,8 @@ const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
 const CommercialServices = lazy(() => import("@/pages/commercial/services"));
 const DocumentsHub = lazy(() => import("@/pages/documents/_wrapper"));
 const FinanceIntelligence = lazy(() => import("@/pages/finance/intelligence"));
+const TresoreriePage = lazy(() => import("@/pages/finance/tresorerie"));
+const RecouvrementPage = lazy(() => import("@/pages/recouvrement/index"));
 const HrIntelligence = lazy(() => import("@/pages/hr/intelligence"));
 const NotificationsDigest = lazy(() => import("@/pages/notifications/digest"));
 const UniversalSearch = lazy(() => import("@/pages/search/index"));
@@ -110,6 +112,7 @@ const BriefingPage = lazy(() => import("@/pages/briefing/index"));
 const ApprovalsQueue = lazy(() => import("@/pages/approvals/index"));
 const AnomalyCenter = lazy(() => import("@/pages/anomalies/index"));
 const SuperAdminCockpit = lazy(() => import("@/pages/super-admin/index"));
+const PublicInvoicePage = lazy(() => import("@/pages/public-invoice"));
 const OrgTuner = lazy(() => import("@/pages/org-tuner/index"));
 const QuickActions = lazy(() => import("@/pages/quick-actions/index"));
 const OperationsCommandCenter = lazy(() => import("@/pages/operations/index"));
@@ -187,6 +190,9 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/facture/:token">
+        <Suspense fallback={<PageFallback />}><PublicInvoicePage /></Suspense>
+      </Route>
       <Route path="/accept-invitation">
         <Suspense fallback={<PageFallback />}><AcceptInvitation /></Suspense>
       </Route>
@@ -307,6 +313,8 @@ function AppRouter() {
                 <Route path="/sales/scoring" component={CrmHub} />
                 <Route path="/documents/intelligence" component={DocumentsHub} />
                 <Route path="/finance/intelligence" component={FinanceIntelligence} />
+                <Route path="/finance/tresorerie" component={TresoreriePage} />
+                <Route path="/recouvrement" component={RecouvrementPage} />
                 <Route path="/hr/intelligence" component={HrIntelligence} />
                 <Route path="/notifications/digest" component={NotificationsDigest} />
                 <Route path="/search" component={UniversalSearch} />

@@ -12,6 +12,7 @@ import {
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
+  Banknote, Flame,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -87,10 +88,12 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Finance",
     icon: Landmark,
     items: [
-      { name: "Comptabilité",      path: "/accounting",              icon: Calculator, moduleKey: "accounting" },
-      { name: "Immobilisations",   path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
-      { name: "Budgets & prévisions", path: "/fpa",                  icon: TrendingUp, moduleKey: "financial_planning" },
-      { name: "Rapports",          path: "/reports",                  icon: BarChart3,  moduleKey: "reports" },
+      { name: "Comptabilité",         path: "/accounting",              icon: Calculator, moduleKey: "accounting" },
+      { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
+      { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,   moduleKey: "accounting" },
+      { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,      moduleKey: "accounting" },
+      { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp, moduleKey: "financial_planning" },
+      { name: "Rapports",             path: "/reports",                  icon: BarChart3,  moduleKey: "reports" },
     ],
   },
   {

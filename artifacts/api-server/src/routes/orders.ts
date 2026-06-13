@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable, salesLinesTable, creditNotesTable, organizationsTable } from "@workspace/db";
-import { eq, sql, isNull, and, desc } from "drizzle-orm";
+import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable, salesLinesTable, creditNotesTable, organizationsTable, clientEmailLogsTable } from "@workspace/db";
+import { eq, sql, isNull, and, desc, ne } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import { requireManagerOrAbove } from "../middlewares/auth";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
 import { logger } from "../lib/logger";
@@ -146,6 +147,59 @@ router.put("/proformas/:id", requireManagerOrAbove, async (req, res) => {
   }
 
   return res.json({ ...pro, totalAmount: toNum(pro.totalAmount), caution: toNum(pro.caution), generatedInvoice });
+});
+
+// INVOICES — Suggest match (lettrage) — MUST come before /:id route
+router.get("/invoices/suggest-match", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { clientId, amount } = req.query as Record<string, string>;
+    const amtNum = amount ? Number(amount) : null;
+
+    const rows = await db
+      .select({ inv: invoicesTable, clientName: clientsTable.name })
+      .from(invoicesTable)
+      .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(
+        and(
+          eq(invoicesTable.organizationId, orgId),
+          clientId ? eq(invoicesTable.clientId, clientId as any) : sql`true`,
+          ne(invoicesTable.status, "paid"),
+          ne(invoicesTable.status, "cancelled"),
+        )
+      )
+      .orderBy(desc(invoicesTable.createdAt))
+      .limit(50);
+
+    const suggestions = rows.map((r) => {
+      const total = toNum(r.inv.totalAmount) ?? 0;
+      const paid = toNum(r.inv.paidAmount) ?? 0;
+      const remaining = Math.max(0, total - paid);
+      let confidence: "exact" | "partial" | "low" = "low";
+      if (amtNum !== null) {
+        const diff = Math.abs(amtNum - remaining);
+        const pct = remaining > 0 ? diff / remaining : 1;
+        if (pct < 0.001) confidence = "exact";
+        else if (pct < 0.3) confidence = "partial";
+      }
+      return {
+        invoiceId: r.inv.id,
+        reference: r.inv.referenceNumber,
+        clientName: r.clientName,
+        totalAmount: total,
+        paidAmount: paid,
+        remaining,
+        status: r.inv.status,
+        dueDate: r.inv.dueDate,
+        confidence,
+      };
+    }).sort((a, b) => {
+      const order = { exact: 0, partial: 1, low: 2 };
+      return order[a.confidence] - order[b.confidence];
+    });
+
+    return res.json({ suggestions });
+  } catch (e) { next(e); }
 });
 
 // INVOICES
@@ -1014,6 +1068,89 @@ router.get("/credit-notes", async (req, res, next) => {
     });
   } catch (e) { next(e); }
 });
+
+// ─── RELANCE RECOUVREMENT (avec log + dunning status) ────────────────────────
+router.post("/invoices/:id/relance", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { subject, body, promiseDate, promiseAmount } = req.body as {
+      subject?: string; body?: string; promiseDate?: string; promiseAmount?: number;
+    };
+
+    const rows = await db
+      .select({ inv: invoicesTable, clientId: clientsTable.id, clientEmail: clientsTable.email, clientName: clientsTable.name })
+      .from(invoicesTable)
+      .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)))
+      .limit(1);
+
+    if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
+    const { inv, clientId, clientEmail, clientName } = rows[0];
+
+    const outstanding = (toNum(inv.totalAmount) ?? 0) - (toNum(inv.paidAmount) ?? 0);
+    const todayISO = new Date().toISOString().slice(0, 10);
+
+    // Update dunning fields on invoice
+    const updatePayload: Record<string, any> = {
+      dunningStatus: "relanced",
+      lastDunnedAt: todayISO,
+    };
+    if (promiseDate) updatePayload["promisedPaymentDate"] = promiseDate;
+    if (promiseAmount != null && promiseAmount > 0) updatePayload["promisedPaymentAmount"] = promiseAmount.toString();
+
+    await db.update(invoicesTable).set(updatePayload)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, inv.id)));
+
+    // Log to clientEmailLogs if clientId exists
+    if (clientId) {
+      const emailSubject = subject?.trim() || `Relance — Facture ${inv.referenceNumber}`;
+      const emailBody = body?.trim() || `Relance de paiement pour la facture ${inv.referenceNumber} — solde dû : ${new Intl.NumberFormat("fr-FR").format(outstanding)} FCFA.`;
+      await db.insert(clientEmailLogsTable).values({
+        organizationId: orgId,
+        clientId,
+        direction: "outbound",
+        subject: emailSubject,
+        fromAddress: req.authUser!.email ?? "noreply@gameasutech.com",
+        toAddress: clientEmail ?? "—",
+        preview: emailBody.slice(0, 160),
+        body: emailBody,
+        status: "logged",
+      });
+    }
+
+    await writeAudit(req, "invoice_relanced", "invoice", inv.id, {
+      promiseDate, promiseAmount, outstanding,
+    });
+
+    return res.json({
+      ok: true,
+      invoiceId: inv.id,
+      dunningStatus: "relanced",
+      lastDunnedAt: todayISO,
+      promisedPaymentDate: promiseDate ?? null,
+      promisedPaymentAmount: promiseAmount ?? null,
+    });
+  } catch (e) { next(e); }
+});
+
+// ─── LIEN PUBLIC FACTURE ──────────────────────────────────────────────────────
+router.post("/invoices/:id/generate-public-link", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [inv] = await db.select().from(invoicesTable)
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+    if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
+
+    const token = inv.publicToken ?? randomUUID().replace(/-/g, "");
+    if (!inv.publicToken) {
+      await db.update(invoicesTable).set({ publicToken: token })
+        .where(eq(invoicesTable.id, inv.id));
+    }
+    return res.json({ token, url: `/facture/${token}` });
+  } catch (e) { next(e); }
+});
+
+// NOTE: GET /public/invoices/:token est dans orders-public.ts (route publique sans auth)
 
 router.get("/invoices/:id/credit-notes", async (req, res, next) => {
   try {

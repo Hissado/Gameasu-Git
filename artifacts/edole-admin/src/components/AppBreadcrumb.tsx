@@ -168,6 +168,8 @@ const ROUTES: Array<{ pattern: RegExp; crumbs: Crumb[] }> = [
 
   // ── Finance Intelligence ────────────────────────────────────────
   { pattern: /^\/finance\/intelligence/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Finance", href: "/finance" }, { label: "Intelligence" }] },
+  { pattern: /^\/finance\/tresorerie/,   crumbs: [{ label: "Accueil", href: "/" }, { label: "Finance", href: "/finance" }, { label: "Trésorerie" }] },
+  { pattern: /^\/recouvrement/,          crumbs: [{ label: "Accueil", href: "/" }, { label: "Recouvrement" }] },
 
   // ── Documents ──────────────────────────────────────────────────
   { pattern: /^\/documents\//, crumbs: [{ label: "Accueil", href: "/" }, { label: "Documents" }, { label: "Prévisualisation" }] },

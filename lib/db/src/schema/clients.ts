@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, boolean, numeric, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
@@ -14,6 +14,8 @@ export const clientsTable = pgTable("clients", {
   website: text("website"),
   logoUrl: text("logo_url"),
   status: text("status").notNull().default("prospect"),
+  creditLimit: numeric("credit_limit", { precision: 15, scale: 2 }),
+  paymentTermsDays: integer("payment_terms_days").default(30),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

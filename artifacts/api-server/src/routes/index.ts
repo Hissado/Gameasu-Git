@@ -62,6 +62,7 @@ import storageRouter from "./storage";
 import inventoryRouter from "./inventory";
 import analyticsManagementRouter from "./analyticsManagement";
 import pricingRouter, { pricingPublicRouter } from "./pricing";
+import ordersPublicRouter from "./orders-public";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
@@ -81,6 +82,7 @@ router.use(kioskPublicRouter);
 router.use(storageRouter);
 router.use(marketingPublicRouter);
 router.use(pricingPublicRouter);
+router.use(ordersPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout

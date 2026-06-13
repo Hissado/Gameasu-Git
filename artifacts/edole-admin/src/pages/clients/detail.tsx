@@ -47,7 +47,8 @@ function relDate(d: string | Date) {
   return fmtDate(d);
 }
 
-type Client = { id: string; name: string; email?: string; phone?: string; website?: string; industry?: string; address?: string; status: string };
+type Client = { id: string; name: string; email?: string; phone?: string; website?: string; industry?: string; address?: string; status: string; creditLimit?: number | null; paymentTermsDays?: number | null };
+type CreditRisk = { encours: number; overdueAmount: number; overdueCount: number; creditLimit: number | null; paymentTermsDays: number | null; utilisationPct: number | null; riskScore: "low" | "medium" | "high" | "critical" };
 type Engagement = { id: string; name: string; isRecurring: boolean; status: string; recurrencePattern?: any; clientName?: string };
 type Project = { id: string; name: string; status: string; progress?: number };
 type Task = { id: string; title: string; status: string; priority: string; serviceId?: string; projectId?: string; dueDate?: string };
@@ -78,6 +79,9 @@ export default function ClientDetailWorkspace() {
 
   const { data: client, isLoading } = useQuery<Client>({
     queryKey: ["client", id], queryFn: () => apiFetch(`/api/clients/${id}`), enabled: !!id,
+  });
+  const { data: creditRisk } = useQuery<CreditRisk>({
+    queryKey: ["client-credit-risk", id], queryFn: () => apiFetch(`/api/clients/${id}/credit-risk`), enabled: !!id,
   });
   const { data: engagements } = useQuery<{ data: Engagement[] }>({
     queryKey: ["client-engagements", id], queryFn: () => apiFetch(`/api/engagements?clientId=${id}`), enabled: !!id,
@@ -128,6 +132,68 @@ export default function ClientDetailWorkspace() {
         <StatCard icon={CheckSquare}  label="Tâches"        value="—" />
         <StatCard icon={FolderOpen}   label="Documents"     value="—" />
       </div>
+
+      {/* Credit Risk Panel */}
+      {creditRisk && (
+        <div className={`rounded-xl border p-4 grid grid-cols-2 md:grid-cols-4 gap-4 ${
+          creditRisk.riskScore === "critical" ? "bg-red-50 border-red-200" :
+          creditRisk.riskScore === "high" ? "bg-orange-50 border-orange-200" :
+          creditRisk.riskScore === "medium" ? "bg-amber-50 border-amber-200" :
+          "bg-emerald-50/40 border-emerald-200/60"
+        }`}>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Encours</p>
+            <p className={`text-xl font-bold mt-0.5 ${creditRisk.encours > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+              {formatFCFA(creditRisk.encours)}
+            </p>
+            {creditRisk.creditLimit && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                / {formatFCFA(creditRisk.creditLimit)}
+                {creditRisk.utilisationPct !== null && (
+                  <span className={`ml-1 font-semibold ${creditRisk.utilisationPct >= 80 ? "text-red-600" : creditRisk.utilisationPct >= 60 ? "text-amber-600" : "text-emerald-600"}`}>
+                    ({creditRisk.utilisationPct}%)
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">En retard</p>
+            <p className={`text-xl font-bold mt-0.5 ${creditRisk.overdueAmount > 0 ? "text-red-600" : "text-emerald-700"}`}>
+              {creditRisk.overdueAmount > 0 ? formatFCFA(creditRisk.overdueAmount) : "Aucun"}
+            </p>
+            {creditRisk.overdueCount > 0 && (
+              <p className="text-xs text-red-600 font-medium">{creditRisk.overdueCount} facture{creditRisk.overdueCount > 1 ? "s" : ""}</p>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Délai paiement</p>
+            <p className="text-xl font-bold mt-0.5">{creditRisk.paymentTermsDays ? `${creditRisk.paymentTermsDays}j` : "—"}</p>
+          </div>
+          <div className="flex flex-col items-start md:items-end justify-center">
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Score risque</p>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
+              creditRisk.riskScore === "critical" ? "bg-red-100 border-red-300 text-red-700" :
+              creditRisk.riskScore === "high" ? "bg-orange-100 border-orange-300 text-orange-700" :
+              creditRisk.riskScore === "medium" ? "bg-amber-100 border-amber-300 text-amber-700" :
+              "bg-emerald-100 border-emerald-300 text-emerald-700"
+            }`}>
+              {creditRisk.riskScore === "critical" && "🔴 Critique"}
+              {creditRisk.riskScore === "high" && "🟠 Élevé"}
+              {creditRisk.riskScore === "medium" && "🟡 Modéré"}
+              {creditRisk.riskScore === "low" && "🟢 Faible"}
+            </span>
+            {creditRisk.creditLimit && creditRisk.utilisationPct !== null && (
+              <div className="w-24 bg-slate-200 rounded-full h-1.5 mt-2">
+                <div className={`h-1.5 rounded-full transition-all ${
+                  creditRisk.utilisationPct >= 80 ? "bg-red-500" :
+                  creditRisk.utilisationPct >= 60 ? "bg-amber-500" : "bg-emerald-500"
+                }`} style={{ width: `${Math.min(100, creditRisk.utilisationPct)}%` }} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="360" className="w-full">

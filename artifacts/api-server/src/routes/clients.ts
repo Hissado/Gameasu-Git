@@ -64,13 +64,69 @@ router.put("/clients/:id", requirePermission("clients.manage"), async (req, res)
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
-  const { name, email, phone, industry, address, website, status } = req.body;
-  const [client] = await db.update(clientsTable).set({ name, email, phone, industry, address, website, status }).where(and(
+  const { name, email, phone, industry, address, website, status, creditLimit, paymentTermsDays } = req.body;
+  const update: Record<string, unknown> = { name, email, phone, industry, address, website, status };
+  if (creditLimit !== undefined) update.creditLimit = creditLimit === "" || creditLimit === null ? null : Number(creditLimit);
+  if (paymentTermsDays !== undefined) update.paymentTermsDays = paymentTermsDays === "" || paymentTermsDays === null ? null : Number(paymentTermsDays);
+  const [client] = await db.update(clientsTable).set(update).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
     eq(clientsTable.id, req.params.id),
   )).returning();
   if (!client) { res.status(404).json({ error: "Not found" }); return; }
   res.json(client); return;
+});
+
+// ── Credit Risk ──────────────────────────────────────────────────────────────
+
+router.get("/clients/:id/credit-risk", requirePermission("clients.read"), async (req, res) => {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+    res.status(403).json({ error: "Accès refusé" }); return;
+  }
+  const [client] = await db.select({
+    id: clientsTable.id, creditLimit: clientsTable.creditLimit, paymentTermsDays: clientsTable.paymentTermsDays,
+  }).from(clientsTable).where(and(
+    eq(clientsTable.organizationId, req.authUser!.organizationId),
+    eq(clientsTable.id, req.params.id),
+  )).limit(1);
+  if (!client) { res.status(404).json({ error: "Not found" }); return; }
+
+  const invoices = await db.select({
+    id: invoicesTable.id, status: invoicesTable.status,
+    totalAmount: invoicesTable.totalAmount, paidAmount: invoicesTable.paidAmount,
+    dueDate: invoicesTable.dueDate,
+  }).from(invoicesTable).where(and(
+    eq(invoicesTable.organizationId, req.authUser!.organizationId),
+    eq(invoicesTable.clientId, req.params.id),
+  ));
+
+  const now = Date.now();
+  let encours = 0;
+  let overdueAmount = 0;
+  let overdueCount = 0;
+  for (const inv of invoices) {
+    if (["paid", "cancelled"].includes(inv.status)) continue;
+    const remaining = (Number(inv.totalAmount) || 0) - (Number(inv.paidAmount) || 0);
+    encours += remaining;
+    if (inv.dueDate && new Date(inv.dueDate).getTime() < now) {
+      overdueAmount += remaining;
+      overdueCount++;
+    }
+  }
+
+  const limit = client.creditLimit ? Number(client.creditLimit) : null;
+  const utilisationPct = limit && limit > 0 ? Math.round((encours / limit) * 100) : null;
+
+  let riskScore: "low" | "medium" | "high" | "critical";
+  if (overdueAmount > 0 && overdueCount >= 2) riskScore = "critical";
+  else if (overdueAmount > 0) riskScore = "high";
+  else if (utilisationPct !== null && utilisationPct >= 80) riskScore = "medium";
+  else riskScore = "low";
+
+  res.json({
+    encours, overdueAmount, overdueCount,
+    creditLimit: limit, paymentTermsDays: client.paymentTermsDays,
+    utilisationPct, riskScore,
+  }); return;
 });
 
 router.delete("/clients/:id", requirePermission("clients.manage"), async (req, res) => {

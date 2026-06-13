@@ -50,6 +50,11 @@ export const invoicesTable = pgTable("invoices", {
   dueDate: text("due_date"),
   issuedAt: text("issued_at"),
   notes: text("notes"),
+  publicToken: text("public_token").unique(),
+  dunningStatus: text("dunning_status").default("none"),
+  lastDunnedAt: text("last_dunned_at"),
+  promisedPaymentDate: text("promised_payment_date"),
+  promisedPaymentAmount: numeric("promised_payment_amount", { precision: 15, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
