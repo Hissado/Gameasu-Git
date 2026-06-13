@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useMemo, useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +43,7 @@ import {
   Star,
   MoreHorizontal,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   ArrowLeft,
   Layers,
@@ -57,8 +58,11 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
   Table2,
+  GripVertical,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   ResponsiveContainer,
   LineChart,
@@ -1344,6 +1348,286 @@ type ManagementReport = {
   hasData: boolean;
 };
 
+// ─── Exec Summary Config types ──────────────────────────────────────────────
+
+type SectionThreshold = {
+  metric?: "revenueChange" | "margin" | "cashPosition" | "avgProgress" | "debtorsDays" | "expenseRatio";
+  greenMin?: number;
+  orangeMin?: number;
+};
+
+type SectionCfg = {
+  id: string;
+  title: string;
+  enabled: boolean;
+  order: number;
+  thresholds: SectionThreshold;
+};
+
+const DEFAULT_EXEC_SECTIONS: SectionCfg[] = [
+  { id: "commercial",    title: "Performance commerciale",  enabled: true,  order: 0, thresholds: { metric: "revenueChange", greenMin: 5,  orangeMin: 0  } },
+  { id: "profitability", title: "Rentabilité",              enabled: true,  order: 1, thresholds: { metric: "margin",        greenMin: 20, orangeMin: 10 } },
+  { id: "liquidity",     title: "Liquidité & Trésorerie",   enabled: true,  order: 2, thresholds: { metric: "cashPosition"                               } },
+  { id: "operations",    title: "Activité opérationnelle",  enabled: true,  order: 3, thresholds: { metric: "avgProgress",   greenMin: 75, orangeMin: 40 } },
+  { id: "hr",            title: "Ressources humaines",      enabled: false, order: 4, thresholds: {}                                                      },
+  { id: "receivables",   title: "Créances & Recouvrement",  enabled: false, order: 5, thresholds: { metric: "debtorsDays",   greenMin: 30, orangeMin: 60 } },
+];
+
+const SECTION_ICONS: Record<string, React.ElementType> = {
+  commercial: TrendingUp, profitability: BarChart2, liquidity: Banknote,
+  operations: Briefcase,  hr: Users,                receivables: Receipt,
+};
+
+const METRIC_LABELS: Record<string, string> = {
+  revenueChange: "Croissance revenus (%)",
+  margin:        "Marge nette (%)",
+  cashPosition:  "Position de trésorerie",
+  avgProgress:   "Avancement projets (%)",
+  debtorsDays:   "DSO — jours créances (↓ meilleur)",
+  expenseRatio:  "Ratio charges/produits (%)",
+};
+
+function computeSectionSignal(
+  id: string,
+  thresholds: SectionThreshold,
+  d: ManagementReport,
+): "positive" | "neutral" | "warning" {
+  const { greenMin, orangeMin } = thresholds;
+  switch (id) {
+    case "commercial": {
+      const rc = d.prev.revenues > 0
+        ? Math.round(((d.finance.revenues - d.prev.revenues) / d.prev.revenues) * 1000) / 10
+        : null;
+      if (rc === null) return "neutral";
+      return rc >= (greenMin ?? 5) ? "positive" : rc >= (orangeMin ?? 0) ? "neutral" : "warning";
+    }
+    case "profitability":
+      return d.finance.netResult > 0
+        ? d.finance.margin >= (greenMin ?? 20) ? "positive" : d.finance.margin >= (orangeMin ?? 10) ? "neutral" : "neutral"
+        : "warning";
+    case "liquidity":
+      return d.liquidity.cashPosition >= 0 && d.liquidity.workingCapital >= 0 ? "positive"
+        : d.liquidity.cashPosition < 0 ? "warning" : "neutral";
+    case "operations":
+      if (d.operations.overdueProjects > 0) return "warning";
+      return d.operations.avgProgress >= (greenMin ?? 75) ? "positive" : d.operations.avgProgress >= (orangeMin ?? 40) ? "neutral" : "neutral";
+    case "hr":
+      return d.hr.activeCollab > 0 ? "positive" : "neutral";
+    case "receivables":
+      return d.liquidity.debtorsDays <= (greenMin ?? 30) ? "positive"
+        : d.liquidity.debtorsDays <= (orangeMin ?? 60) ? "neutral" : "warning";
+    default:
+      return "neutral";
+  }
+}
+
+function buildSectionContent(id: string, d: ManagementReport): { headline: string; body: string } {
+  const f = d.finance; const liq = d.liquidity; const ops = d.operations;
+  const rc = d.prev.revenues > 0 ? Math.round(((f.revenues - d.prev.revenues) / d.prev.revenues) * 1000) / 10 : null;
+  switch (id) {
+    case "commercial": return {
+      headline: rc !== null
+        ? rc >= 0 ? `Activité commerciale en progression de ${rc}% sur la période`
+          : `Activité commerciale en recul de ${Math.abs(rc)}% par rapport à N-1`
+        : f.revenues > 0 ? "Activité commerciale active sur la période" : "Aucune donnée de produits enregistrée sur la période",
+      body: (() => {
+        const base = f.revenues > 0 ? `Les produits de la période s'établissent à ${formatFCFA(f.revenues)}.` : `Aucun produit comptabilisé sur cette période.`;
+        const comp = rc !== null && d.prev.revenues > 0 ? ` La période N-1 affichait ${formatFCFA(d.prev.revenues)}, soit un écart de ${rc >= 0 ? "+" : ""}${rc}%.` : "";
+        const ar = liq.arOutstanding > 0 ? ` À noter : ${formatFCFA(liq.arOutstanding)} de créances clients restent à encaisser${liq.arOverdue > 0 ? `, dont ${formatFCFA(liq.arOverdue)} présentent un dépassement d'échéance` : ""}.` : "";
+        return base + comp + ar;
+      })(),
+    };
+    case "profitability": return {
+      headline: f.netResult > 0 ? `Résultat bénéficiaire — marge nette de ${f.margin}%`
+        : f.netResult === 0 ? "Résultat à l'équilibre sur la période" : `Résultat déficitaire — marge nette de ${f.margin}%`,
+      body: (() => {
+        const net = f.netResult !== 0 ? `Le résultat net de la période est de ${formatFCFA(f.netResult)}` : "Le résultat net est à l'équilibre";
+        const margin = f.margin !== 0 ? `, représentant une marge nette de ${f.margin}%.` : ".";
+        const ebitda = f.ebitda !== 0 && f.ebitda !== f.netResult ? ` L'EBITDA s'établit à ${formatFCFA(f.ebitda)}, reflétant la capacité de génération de cash avant amortissements.` : "";
+        const exp = f.expenses > 0 ? ` Le ratio charges / produits est de ${f.operatingExpenseRatio}%${f.operatingExpenseRatio < 80 ? " — niveau sain" : f.operatingExpenseRatio < 100 ? " — à surveiller" : " — supérieur à 100%"}.` : "";
+        const top = d.expenseBreakdown[0] ? ` Premier poste de charges : ${d.expenseBreakdown[0].label} (${d.expenseBreakdown[0].percent}% du total).` : "";
+        return net + margin + ebitda + exp + top;
+      })(),
+    };
+    case "liquidity": return {
+      headline: liq.cashPosition >= 0
+        ? liq.workingCapital >= 0 ? "Trésorerie positive — fonds de roulement sain" : "Trésorerie positive mais fonds de roulement sous pression"
+        : "Trésorerie négative — vigilance requise sur la liquidité",
+      body: (() => {
+        const cash = liq.cashPosition !== 0 ? `La position de trésorerie nette est de ${formatFCFA(liq.cashPosition)}.` : "La position de trésorerie est nulle sur la période.";
+        const wc = ` Le fonds de roulement s'établit à ${formatFCFA(liq.workingCapital)}, soit la marge disponible après couverture des engagements à court terme.`;
+        const ap = liq.apOutstanding > 0 ? ` Les dettes fournisseurs en cours représentent ${formatFCFA(liq.apOutstanding)}${liq.apOverdue > 0 ? `, dont ${formatFCFA(liq.apOverdue)} en dépassement d'échéance` : ""}.` : "";
+        return cash + wc + ap;
+      })(),
+    };
+    case "operations": return {
+      headline: ops.activeProjects > 0
+        ? ops.overdueProjects === 0 ? `${ops.activeProjects} projets actifs — exécution dans les délais`
+          : `${ops.activeProjects} projets actifs — ${ops.overdueProjects} projet${ops.overdueProjects > 1 ? "s" : ""} en retard`
+        : "Aucun projet actif enregistré sur la période",
+      body: (() => {
+        const base = ops.totalProjects > 0 ? `Le portefeuille compte ${ops.totalProjects} projets au total, dont ${ops.activeProjects} en cours et ${ops.completedProjects} achevés.` : "Aucun projet enregistré sur cette période.";
+        const budget = ops.totalBudget > 0 ? ` Le budget cumulé des projets actifs s'élève à ${formatFCFA(ops.totalBudget)}.` : "";
+        const progress = ops.activeProjects > 0 ? ` L'avancement moyen est de ${ops.avgProgress}%${ops.avgProgress >= 75 ? " — excellent rythme" : ops.avgProgress >= 40 ? " — progression régulière" : " — rythme à accélérer"}.` : "";
+        const hr = d.hr.activeCollab > 0 ? ` L'équipe mobilisée compte ${d.hr.activeCollab} collaborateurs actifs.` : "";
+        return base + budget + progress + hr;
+      })(),
+    };
+    case "hr": return {
+      headline: d.hr.activeCollab > 0 ? `${d.hr.activeCollab} collaborateurs actifs sur la période` : "Aucun collaborateur actif enregistré",
+      body: (() => {
+        const base = `L'effectif actif compte ${d.hr.activeCollab} collaborateur${d.hr.activeCollab > 1 ? "s" : ""}.`;
+        const types = Object.entries(d.hr.byContractType);
+        const byType = types.length > 0 ? ` Répartition : ${types.map(([k, v]) => `${v} contrat${Number(v) > 1 ? "s" : ""} ${k}`).join(", ")}.` : "";
+        return base + byType;
+      })(),
+    };
+    case "receivables": return {
+      headline: liq.debtorsDays <= 30 ? `Recouvrement excellent — DSO de ${liq.debtorsDays} jours`
+        : liq.debtorsDays <= 60 ? `Recouvrement correct — DSO de ${liq.debtorsDays} jours`
+        : `Délai de recouvrement élevé — DSO de ${liq.debtorsDays} jours`,
+      body: (() => {
+        const ar = `Les créances clients s'élèvent à ${formatFCFA(liq.arOutstanding)}.`;
+        const overdue = liq.arOverdue > 0
+          ? ` Dont ${formatFCFA(liq.arOverdue)} en dépassement d'échéance (${liq.arOutstanding > 0 ? Math.round((liq.arOverdue / liq.arOutstanding) * 100) : 0}% de l'encours).`
+          : " Aucune créance en dépassement d'échéance.";
+        return ar + overdue + ` DSO actuel : ${liq.debtorsDays} jours.`;
+      })(),
+    };
+    default:
+      return { headline: "Section non disponible", body: "" };
+  }
+}
+
+// ─── Dialog de configuration du Résumé Exécutif ─────────────────────────────
+
+function ExecSummaryConfigDialog({
+  open, onClose, sections, onSave, isSaving,
+}: {
+  open: boolean; onClose: () => void;
+  sections: SectionCfg[]; onSave: (s: SectionCfg[]) => void; isSaving: boolean;
+}) {
+  const [draft, setDraft] = useState<SectionCfg[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) setDraft([...sections].sort((a, b) => a.order - b.order));
+  }, [open, sections]);
+
+  const toggle    = (id: string) => setDraft(d => d.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
+  const moveUp    = (idx: number) => setDraft(d => { if (idx === 0) return d; const n = [...d]; [n[idx-1], n[idx]] = [n[idx], n[idx-1]]; return n.map((s, i) => ({ ...s, order: i })); });
+  const moveDown  = (idx: number) => setDraft(d => { if (idx >= d.length-1) return d; const n = [...d]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n.map((s, i) => ({ ...s, order: i })); });
+  const setTitle  = (id: string, title: string) => setDraft(d => d.map(s => s.id === id ? { ...s, title } : s));
+  const setThresh = (id: string, key: keyof SectionThreshold, val: unknown) =>
+    setDraft(d => d.map(s => s.id === id ? { ...s, thresholds: { ...s.thresholds, [key]: val } } : s));
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="w-5 h-5 text-primary" />
+            Configurer le Résumé Exécutif
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Activez les sections, ajustez leur ordre et définissez vos seuils d'alerte.
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-2 mt-2">
+          {draft.map((section, idx) => {
+            const Icon = SECTION_ICONS[section.id] ?? FileText;
+            const isExp = expanded === section.id;
+            const hasThresh = !!(section.thresholds.metric && section.thresholds.metric !== "cashPosition");
+            return (
+              <div key={section.id} className={`rounded-lg border transition-all ${section.enabled ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50/60"}`}>
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <GripVertical className="w-4 h-4 text-slate-300 shrink-0 cursor-grab" />
+                  <Switch checked={section.enabled} onCheckedChange={() => toggle(section.id)} />
+                  <Icon className={`w-4 h-4 shrink-0 ${section.enabled ? "text-primary" : "text-slate-400"}`} />
+                  <input
+                    value={section.title}
+                    onChange={(e) => setTitle(section.id, e.target.value)}
+                    className="flex-1 text-sm font-medium bg-transparent border-0 outline-none focus:ring-0 placeholder:text-slate-400 min-w-0"
+                  />
+                  {hasThresh && (
+                    <button
+                      className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-0.5 px-2 py-1 rounded hover:bg-slate-100 transition-colors"
+                      onClick={() => setExpanded(isExp ? null : section.id)}
+                    >
+                      Seuils <ChevronDown className={`w-3 h-3 transition-transform ${isExp ? "rotate-180" : ""}`} />
+                    </button>
+                  )}
+                  <div className="flex gap-0.5 shrink-0">
+                    <button onClick={() => moveUp(idx)} disabled={idx === 0}
+                      className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors">
+                      <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                    </button>
+                    <button onClick={() => moveDown(idx)} disabled={idx === draft.length - 1}
+                      className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors">
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                    </button>
+                  </div>
+                </div>
+
+                {isExp && hasThresh && (
+                  <div className="px-12 pb-3 pt-1 border-t border-slate-100 bg-slate-50/80">
+                    <p className="text-xs text-slate-500 mb-2 mt-1 font-medium">
+                      {METRIC_LABELS[section.thresholds.metric ?? ""] ?? "Seuils"}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-500 block mb-1">
+                          {section.thresholds.metric === "debtorsDays" ? "🟢 Seuil vert (max jours)" : "🟢 Seuil favorable (min %)"}
+                        </label>
+                        <input
+                          type="number"
+                          value={section.thresholds.greenMin ?? ""}
+                          onChange={(e) => setThresh(section.id, "greenMin", e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder={section.thresholds.metric === "debtorsDays" ? "ex: 30" : "ex: 20"}
+                          className="w-full h-8 rounded-md border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 block mb-1">
+                          {section.thresholds.metric === "debtorsDays" ? "🟡 Seuil orange (max jours)" : "🟡 Seuil stable (min %)"}
+                        </label>
+                        <input
+                          type="number"
+                          value={section.thresholds.orangeMin ?? ""}
+                          onChange={(e) => setThresh(section.id, "orangeMin", e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder={section.thresholds.metric === "debtorsDays" ? "ex: 60" : "ex: 10"}
+                          className="w-full h-8 rounded-md border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      {section.thresholds.metric === "debtorsDays"
+                        ? "≤ seuil vert = favorable · entre les deux = stable · > seuil orange = attention"
+                        : "≥ seuil vert = favorable · entre les deux = stable · < seuil orange = attention"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
+          <strong>Astuce :</strong> Les sections désactivées n'apparaissent pas dans le résumé mais leurs données restent calculées. Utilisez les flèches ↑↓ pour réorganiser.
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={() => onSave(draft)} disabled={isSaving} className="gap-2">
+            {isSaving ? <><RefreshCcw className="w-3.5 h-3.5 animate-spin" />Enregistrement…</> : "Enregistrer la configuration"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function FinanceTab({ periodQuery, period, comparePeriod, compareMode = "none" }: TabProps) {
   return (
     <Tabs defaultValue="billing" className="w-full">
@@ -2486,10 +2770,32 @@ function HealthRow({ label, value, prev, target, targetLabel, importance, higher
 }
 
 function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
+  const queryClient = useQueryClient();
+  const [cfgOpen, setCfgOpen] = useState(false);
+
   const { data, isLoading } = useQuery<ManagementReport>({
     queryKey: ["report", "management", periodQuery],
     queryFn: () => apiFetch(`/api/reports/management?${periodQuery}`),
   });
+
+  const { data: cfgData } = useQuery<{ sections: SectionCfg[] }>({
+    queryKey: ["exec-summary-config"],
+    queryFn: () => apiFetch("/api/reports/exec-summary-config"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const saveConfig = useMutation({
+    mutationFn: (sections: SectionCfg[]) =>
+      apiFetch("/api/reports/exec-summary-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sections }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exec-summary-config"] });
+      setCfgOpen(false);
+    },
+  });
+
+  const activeSections = (cfgData?.sections ?? DEFAULT_EXEC_SECTIONS)
+    .filter(s => s.enabled)
+    .sort((a, b) => a.order - b.order);
 
   const generatedAt = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -2515,106 +2821,16 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const fmtDate2 = (iso: string) => { const [y,mo,dd] = iso.slice(0,10).split("-").map(Number); return new Date(y, mo-1, dd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
   const periodLabel = `${fmtDate2(d.period.from)} – ${fmtDate2(d.period.to)}`;
 
-  // Insights auto-générés (résumé exécutif)
+  // Changements période vs N-1 (utilisés dans la table Santé financière)
   const revenueChange = pctChange(f.revenues, d.prev.revenues);
   const expenseChange = pctChange(f.expenses, d.prev.expenses);
   const netChange = pctChange(f.netResult, d.prev.netResult);
-
-  // ── Signaux de statut pour le résumé exécutif ────────────────
-  const revenueSignal: "positive" | "neutral" | "warning" =
-    revenueChange === null ? "neutral" : revenueChange >= 5 ? "positive" : revenueChange >= 0 ? "neutral" : "warning";
-  const profitSignal: "positive" | "neutral" | "warning" =
-    f.netResult > 0 ? "positive" : f.netResult === 0 ? "neutral" : "warning";
-  const liquiditySignal: "positive" | "neutral" | "warning" =
-    liq.cashPosition >= 0 && liq.workingCapital >= 0 ? "positive" : liq.cashPosition < 0 ? "warning" : "neutral";
-  const opsSignal: "positive" | "neutral" | "warning" =
-    ops.overdueProjects === 0 && ops.avgProgress >= 50 ? "positive" : ops.overdueProjects > 0 ? "warning" : "neutral";
 
   const signalConfig = {
     positive: { dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Situation favorable" },
     neutral:  { dot: "bg-sky-400",     badge: "bg-sky-50 text-sky-700 border-sky-200",             label: "Situation stable" },
     warning:  { dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200",       label: "Point d'attention" },
   };
-
-  // ── Textes narratifs — ton direction générale ─────────────────
-  const revHeadline = revenueChange !== null
-    ? revenueChange >= 0
-      ? `Activité commerciale en progression de ${revenueChange}% sur la période`
-      : `Activité commerciale en recul de ${Math.abs(revenueChange)}% par rapport à N-1`
-    : f.revenues > 0
-      ? `Activité commerciale active sur la période`
-      : `Aucune donnée de produits enregistrée sur la période`;
-
-  const revBody = (() => {
-    const base = f.revenues > 0
-      ? `Les produits de la période s'établissent à ${formatFCFA(f.revenues)}.`
-      : `Aucun produit comptabilisé sur cette période — les données d'encaissements issus des factures indiquent toutefois une activité en cours.`;
-    const comp = revenueChange !== null && d.prev.revenues > 0
-      ? ` La période N-1 affichait ${formatFCFA(d.prev.revenues)}, soit un écart de ${revenueChange >= 0 ? "+" : ""}${revenueChange}%.`
-      : "";
-    const arNote = liq.arOutstanding > 0
-      ? ` À noter : ${formatFCFA(liq.arOutstanding)} de créances clients restent à encaisser${liq.arOverdue > 0 ? `, dont ${formatFCFA(liq.arOverdue)} présentent un dépassement d'échéance` : ""}.`
-      : "";
-    return base + comp + arNote;
-  })();
-
-  const profitHeadline = f.netResult > 0
-    ? `Résultat bénéficiaire — marge nette de ${f.margin}%`
-    : f.netResult === 0
-      ? `Résultat à l'équilibre sur la période`
-      : `Résultat déficitaire — marge nette de ${f.margin}%`;
-
-  const profitBody = (() => {
-    const net = f.netResult !== 0
-      ? `Le résultat net de la période est de ${formatFCFA(f.netResult)}`
-      : `Le résultat net est à l'équilibre`;
-    const margin = f.margin !== 0 ? `, représentant une marge nette de ${f.margin}%.` : ".";
-    const ebitdaNote = f.ebitda !== 0 && f.ebitda !== f.netResult
-      ? ` L'EBITDA s'établit à ${formatFCFA(f.ebitda)}, reflétant la capacité de génération de cash avant amortissements.`
-      : "";
-    const expNote = f.expenses > 0
-      ? ` Le ratio charges / produits est de ${f.operatingExpenseRatio}%${f.operatingExpenseRatio < 80 ? " — niveau sain" : f.operatingExpenseRatio < 100 ? " — à surveiller" : " — supérieur à 100%, situation à redresser"}.`
-      : "";
-    const topExp = d.expenseBreakdown[0]
-      ? ` Premier poste de charges : ${d.expenseBreakdown[0].label} (${d.expenseBreakdown[0].percent}% du total).`
-      : "";
-    return net + margin + ebitdaNote + expNote + topExp;
-  })();
-
-  const liquidityHeadline = liq.cashPosition >= 0
-    ? liq.workingCapital >= 0
-      ? `Trésorerie positive — fonds de roulement sain`
-      : `Trésorerie positive mais fonds de roulement sous pression`
-    : `Trésorerie négative — vigilance requise sur la liquidité`;
-
-  const liquidityBody = (() => {
-    const cash = liq.cashPosition !== 0
-      ? `La position de trésorerie nette est de ${formatFCFA(liq.cashPosition)}.`
-      : `La position de trésorerie est nulle sur la période.`;
-    const wc = ` Le fonds de roulement s'établit à ${formatFCFA(liq.workingCapital)}, soit la marge disponible après couverture des engagements à court terme.`;
-    const ap = liq.apOutstanding > 0
-      ? ` Les dettes fournisseurs en cours représentent ${formatFCFA(liq.apOutstanding)}${liq.apOverdue > 0 ? `, dont ${formatFCFA(liq.apOverdue)} en dépassement d'échéance` : ""}.`
-      : "";
-    return cash + wc + ap;
-  })();
-
-  const opsHeadline = ops.activeProjects > 0
-    ? ops.overdueProjects === 0
-      ? `${ops.activeProjects} projets actifs — exécution dans les délais`
-      : `${ops.activeProjects} projets actifs — ${ops.overdueProjects} projet${ops.overdueProjects > 1 ? "s" : ""} en retard à solder`
-    : `Aucun projet actif enregistré sur la période`;
-
-  const opsBody = (() => {
-    const base = ops.totalProjects > 0
-      ? `Le portefeuille compte ${ops.totalProjects} projets au total, dont ${ops.activeProjects} en cours et ${ops.completedProjects} achevés.`
-      : `Aucun projet enregistré sur cette période.`;
-    const budget = ops.totalBudget > 0 ? ` Le budget cumulé des projets actifs s'élève à ${formatFCFA(ops.totalBudget)}.` : "";
-    const progress = ops.activeProjects > 0
-      ? ` L'avancement moyen est de ${ops.avgProgress}%${ops.avgProgress >= 75 ? " — excellent rythme" : ops.avgProgress >= 40 ? " — progression régulière" : " — rythme à accélérer"}.`
-      : "";
-    const hr = d.hr.activeCollab > 0 ? ` L'équipe mobilisée compte ${d.hr.activeCollab} collaborateurs actifs.` : "";
-    return base + budget + progress + hr;
-  })();
 
   // Points d'attention
   const watchpoints: string[] = [];
@@ -2675,33 +2891,36 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               </CardTitle>
               <CardDescription className="mt-0.5">{periodLabel} · Usage exclusif Direction &amp; Gouvernance</CardDescription>
             </div>
-            <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                [revenueSignal, profitSignal, liquiditySignal, opsSignal].some(s => s === "warning") ? "bg-amber-400" : "bg-emerald-400"
-              }`} />
-              {[revenueSignal, profitSignal, liquiditySignal, opsSignal].some(s => s === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5 text-slate-500 hover:text-slate-700"
+                onClick={() => setCfgOpen(true)}>
+                <Settings2 className="w-3.5 h-3.5" /> Configurer
+              </Button>
+              <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "bg-amber-400" : "bg-emerald-400"
+                }`} />
+                {activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
+              </div>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          {/* Sections thématiques */}
-          {([
-            { signal: revenueSignal,   icon: TrendingUp, headline: revHeadline,     body: revBody,     theme: "Performance commerciale" },
-            { signal: profitSignal,    icon: BarChart2,  headline: profitHeadline,  body: profitBody,  theme: "Rentabilité" },
-            { signal: liquiditySignal, icon: Banknote,   headline: liquidityHeadline, body: liquidityBody, theme: "Liquidité & Trésorerie" },
-            { signal: opsSignal,       icon: Briefcase,  headline: opsHeadline,     body: opsBody,     theme: "Activité opérationnelle" },
-          ] as const).map(({ signal, icon: Icon, headline, body, theme }) => {
+          {/* Sections thématiques dynamiques */}
+          {activeSections.map((section) => {
+            const signal = computeSectionSignal(section.id, section.thresholds, d);
             const cfg = signalConfig[signal];
+            const Icon = SECTION_ICONS[section.id] ?? FileText;
+            const { headline, body } = buildSectionContent(section.id, d);
             return (
-              <div key={theme} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-                {/* Bande colorée latérale */}
+              <div key={section.id} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
                 <div className={`w-1 shrink-0 ${signal === "positive" ? "bg-emerald-400" : signal === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
                 <div className="flex-1 px-5 py-4">
                   <div className="flex items-start justify-between gap-3 mb-1.5">
                     <div className="flex items-center gap-2">
                       <Icon className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{theme}</span>
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{section.title}</span>
                     </div>
                     <span className={`shrink-0 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.badge}`}>
                       {cfg.label}
@@ -3062,6 +3281,13 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
         Rapport généré le {generatedAt} · Données au {new Date(d.period.to).toLocaleDateString("fr-FR")} · Gaméasù Analytics
       </div>
 
+      <ExecSummaryConfigDialog
+        open={cfgOpen}
+        onClose={() => setCfgOpen(false)}
+        sections={cfgData?.sections ?? DEFAULT_EXEC_SECTIONS}
+        onSave={(s) => saveConfig.mutate(s)}
+        isSaving={saveConfig.isPending}
+      />
     </div>
   );
 }

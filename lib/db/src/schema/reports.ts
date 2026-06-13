@@ -2,6 +2,18 @@ import { pgTable, text, timestamp, uuid, integer, jsonb } from "drizzle-orm/pg-c
 import { usersTable } from "./users";
 import { organizationsTable } from "./saas";
 
+export type ExecSummarySectionConfig = {
+  id: string;
+  title: string;
+  enabled: boolean;
+  order: number;
+  thresholds: {
+    metric?: string;
+    greenMin?: number;
+    orangeMin?: number;
+  };
+};
+
 export const dailyStockReportsTable = pgTable("daily_stock_reports", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
@@ -17,3 +29,12 @@ export const dailyStockReportsTable = pgTable("daily_stock_reports", {
 });
 
 export type DailyStockReport = typeof dailyStockReportsTable.$inferSelect;
+
+export const execSummaryConfigsTable = pgTable("exec_summary_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().unique().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  sections: jsonb("sections").$type<ExecSummarySectionConfig[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ExecSummaryConfig = typeof execSummaryConfigsTable.$inferSelect;

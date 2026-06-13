@@ -34,7 +34,9 @@ import {
   chartOfAccountsTable,
   bankAccountsTable,
   bankTransactionsTable,
+  execSummaryConfigsTable,
 } from "@workspace/db";
+import type { ExecSummarySectionConfig } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 
@@ -2289,6 +2291,44 @@ router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req
   } catch (e) { next(e); }
 });
 
+// ── Exec Summary Config ──────────────────────────────────────────────────────
+
+const DEFAULT_EXEC_SECTIONS: ExecSummarySectionConfig[] = [
+  { id: "commercial",    title: "Performance commerciale",  enabled: true,  order: 0, thresholds: { metric: "revenueChange", greenMin: 5,  orangeMin: 0  } },
+  { id: "profitability", title: "Rentabilité",              enabled: true,  order: 1, thresholds: { metric: "margin",        greenMin: 20, orangeMin: 10 } },
+  { id: "liquidity",     title: "Liquidité & Trésorerie",   enabled: true,  order: 2, thresholds: { metric: "cashPosition"                               } },
+  { id: "operations",    title: "Activité opérationnelle",  enabled: true,  order: 3, thresholds: { metric: "avgProgress",   greenMin: 75, orangeMin: 40 } },
+  { id: "hr",            title: "Ressources humaines",      enabled: false, order: 4, thresholds: {}                                                      },
+  { id: "receivables",   title: "Créances & Recouvrement",  enabled: false, order: 5, thresholds: { metric: "debtorsDays",   greenMin: 30, orangeMin: 60 } },
+];
+
+router.get("/reports/exec-summary-config", requireAuth, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [cfg] = await db.select().from(execSummaryConfigsTable).where(eq(execSummaryConfigsTable.organizationId, orgId));
+    if (!cfg || !cfg.sections?.length) return void res.json({ sections: DEFAULT_EXEC_SECTIONS });
+    const savedIds = new Set(cfg.sections.map((s: ExecSummarySectionConfig) => s.id));
+    const merged = [
+      ...cfg.sections,
+      ...DEFAULT_EXEC_SECTIONS.filter(s => !savedIds.has(s.id)).map((s, i) => ({ ...s, order: cfg.sections.length + i })),
+    ];
+    res.json({ sections: merged });
+  } catch (e) { next(e); }
+});
+
+router.put("/reports/exec-summary-config", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { sections } = req.body as { sections: ExecSummarySectionConfig[] };
+    if (!Array.isArray(sections)) return void res.status(400).json({ error: "sections must be an array" });
+    const [existing] = await db.select({ id: execSummaryConfigsTable.id }).from(execSummaryConfigsTable).where(eq(execSummaryConfigsTable.organizationId, orgId));
+    if (existing) {
+      await db.update(execSummaryConfigsTable).set({ sections, updatedAt: new Date() }).where(eq(execSummaryConfigsTable.organizationId, orgId));
+    } else {
+      await db.insert(execSummaryConfigsTable).values({ organizationId: orgId, sections });
+    }
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 export default router;
-
-

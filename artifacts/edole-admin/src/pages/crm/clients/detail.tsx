@@ -21,6 +21,7 @@ import {
   ShoppingCart, Banknote, User, Plus, FileText, Receipt,
   Wallet, ClipboardList, TrendingUp, CheckCircle2, AlertCircle,
   Calendar, ChevronRight, UserCheck, Star, CreditCard, Clock,
+  ShieldAlert, ShieldCheck, ShieldX,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,6 +56,13 @@ type CommercialData = {
   orders: OrderItem[];
   invoices: InvoiceItem[];
   payments: PaymentItem[];
+};
+
+type CreditRisk = {
+  encours: number; overdueAmount: number; overdueCount: number;
+  creditLimit: number | null; paymentTermsDays: number | null;
+  utilisationPct: number | null;
+  riskScore: "low" | "medium" | "high" | "critical";
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -314,8 +322,16 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  const { data: creditRisk } = useQuery<CreditRisk>({
+    queryKey: ["client-credit-risk", id],
+    queryFn: () => apiFetch(`/api/clients/${id}/credit-risk`),
+    enabled: !!id,
+    staleTime: 2 * 60 * 1000,
+  });
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["client-commercial", id] });
+    qc.invalidateQueries({ queryKey: ["client-credit-risk", id] });
     qc.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
   };
 
@@ -512,25 +528,99 @@ export default function ClientDetail() {
           {/* ─ Aperçu ─ */}
           {tab === "apercu" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <Card className="md:col-span-1">
-                <CardHeader className="pb-3"><CardTitle className="text-sm">Coordonnées</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {[
-                    { icon: Mail, label: "Email", value: client.email },
-                    { icon: Phone, label: "Téléphone", value: client.phone },
-                    { icon: Globe, label: "Site web", value: client.website },
-                    { icon: MapPin, label: "Adresse", value: client.address },
-                  ].map(({ icon: Icon, label, value }) => (
-                    <div key={label} className="flex items-start gap-2">
-                      <Icon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
-                        <p className="text-sm font-medium mt-0.5">{(value as string) || "—"}</p>
+              <div className="md:col-span-1 space-y-4">
+                <Card>
+                  <CardHeader className="pb-3"><CardTitle className="text-sm">Coordonnées</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {[
+                      { icon: Mail, label: "Email", value: client.email },
+                      { icon: Phone, label: "Téléphone", value: client.phone },
+                      { icon: Globe, label: "Site web", value: client.website },
+                      { icon: MapPin, label: "Adresse", value: client.address },
+                    ].map(({ icon: Icon, label, value }) => (
+                      <div key={label} className="flex items-start gap-2">
+                        <Icon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
+                          <p className="text-sm font-medium mt-0.5">{(value as string) || "—"}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* ── Crédit & Risque ─────────────────────────────── */}
+                {creditRisk && (() => {
+                  const riskCfg = {
+                    low:      { label: "Faible",    cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: ShieldCheck,  dot: "bg-emerald-400" },
+                    medium:   { label: "Modéré",    cls: "bg-amber-50 text-amber-700 border-amber-200",       icon: ShieldAlert,  dot: "bg-amber-400"   },
+                    high:     { label: "Élevé",     cls: "bg-orange-50 text-orange-700 border-orange-200",    icon: ShieldAlert,  dot: "bg-orange-400"  },
+                    critical: { label: "Critique",  cls: "bg-red-50 text-red-700 border-red-200",             icon: ShieldX,      dot: "bg-red-500"     },
+                  }[creditRisk.riskScore];
+                  const RiskIcon = riskCfg.icon;
+                  const pct = creditRisk.utilisationPct;
+                  return (
+                    <Card className={`border ${creditRisk.riskScore === "low" ? "border-slate-200" : creditRisk.riskScore === "critical" ? "border-red-200" : "border-amber-200"}`}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm flex items-center gap-1.5">
+                            <RiskIcon className="w-4 h-4" />
+                            Crédit & Risque
+                          </CardTitle>
+                          <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 flex items-center gap-1 ${riskCfg.cls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${riskCfg.dot}`} />
+                            {riskCfg.label}
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Encours</p>
+                            <p className={`text-sm font-bold ${creditRisk.encours > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+                              {formatFCFA(creditRisk.encours)}
+                            </p>
+                            {creditRisk.creditLimit && (
+                              <p className="text-[11px] text-muted-foreground">/ {formatFCFA(creditRisk.creditLimit)}</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">En retard</p>
+                            <p className={`text-sm font-bold ${creditRisk.overdueAmount > 0 ? "text-red-600" : "text-emerald-700"}`}>
+                              {creditRisk.overdueAmount > 0 ? formatFCFA(creditRisk.overdueAmount) : "Aucun"}
+                            </p>
+                            {creditRisk.overdueCount > 0 && (
+                              <p className="text-[11px] text-red-600">{creditRisk.overdueCount} facture{creditRisk.overdueCount > 1 ? "s" : ""}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {pct !== null && creditRisk.creditLimit && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Utilisation</p>
+                              <span className={`text-xs font-bold ${pct >= 80 ? "text-red-600" : pct >= 60 ? "text-amber-600" : "text-emerald-600"}`}>{pct}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-red-500" : pct >= 60 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                style={{ width: `${Math.min(pct, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {creditRisk.paymentTermsDays && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            Conditions : {creditRisk.paymentTermsDays} jours
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+              </div>
 
               <div className="md:col-span-2 space-y-4">
                 <Card>
