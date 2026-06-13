@@ -314,7 +314,7 @@ export default function RecouvrementPage() {
     <div className="space-y-5">
       <PageHeader
         title="Recouvrement"
-        description="Tableau de bord des créances en retard, relances et promesses de paiement."
+        subtitle="Tableau de bord des créances en retard, relances et promesses de paiement."
       />
 
       {/* KPIs */}

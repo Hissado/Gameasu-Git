@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building, CheckCircle2, AlertCircle, ArrowRight, Sparkles, ArrowDownRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
@@ -57,6 +58,26 @@ function getMethodBadge(method: string | null) {
   );
 }
 
+// ─── Types suggest-match ──────────────────────────────────────────────────────
+
+type SuggestMatch = {
+  invoiceId: string;
+  reference: string;
+  clientName: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  remaining: number;
+  status: string;
+  dueDate: string | null;
+  confidence: "exact" | "partial" | "low";
+};
+
+const CONFIDENCE_CFG: Record<string, { label: string; cls: string }> = {
+  exact:   { label: "Correspondance exacte", cls: "bg-emerald-50 border-emerald-300 text-emerald-700" },
+  partial: { label: "Correspondance partielle", cls: "bg-amber-50 border-amber-300 text-amber-700" },
+  low:     { label: "Faible correspondance", cls: "bg-slate-50 border-slate-200 text-slate-500" },
+};
+
 // ─── RecordPaymentDialog ──────────────────────────────────────────────────────
 
 function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
@@ -76,6 +97,23 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showSuggest, setShowSuggest] = useState(false);
+
+  const amtNum = Number(amount) || 0;
+
+  const { data: suggestData, isFetching: loadingSuggest } = useQuery<{ suggestions: SuggestMatch[] }>({
+    queryKey: ["suggest-match", amtNum],
+    queryFn: () => apiFetch(`/api/invoices/suggest-match?amount=${amtNum}`),
+    enabled: showSuggest && amtNum > 0,
+    staleTime: 30_000,
+  });
+
+  const suggestions = suggestData?.suggestions ?? [];
+  const topSuggestions = suggestions.slice(0, 5);
+
+  useEffect(() => {
+    if (amtNum > 0 && !invoiceId) setShowSuggest(true);
+  }, [amtNum, invoiceId]);
 
   const selectedInvoice = unpaidInvoices.find((i) => i.id === invoiceId);
   const remaining = selectedInvoice
@@ -84,10 +122,17 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
 
   const handleInvoiceChange = (id: string) => {
     setInvoiceId(id);
+    setShowSuggest(false);
     const inv = unpaidInvoices.find((i) => i.id === id);
     if (inv) {
       setAmount(String(Math.max(0, (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0))));
     }
+  };
+
+  const handleApplySuggestion = (s: SuggestMatch) => {
+    setInvoiceId(s.invoiceId);
+    setAmount(String(s.remaining));
+    setShowSuggest(false);
   };
 
   const handleSave = async () => {
@@ -119,7 +164,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-[#C8A24B]" /> Saisir un encaissement
@@ -141,6 +186,69 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
           </div>
         ) : (
           <div className="space-y-4 py-2">
+
+            {/* ── Montant en premier pour déclencher suggest-match ── */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Montant reçu (FCFA) *</Label>
+                <Input
+                  type="number" min="1"
+                  value={amount}
+                  onChange={(e) => { setAmount(e.target.value); if (invoiceId) setShowSuggest(false); }}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Mode de paiement</Label>
+                <Select value={method} onValueChange={setMethod}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank">Virement bancaire</SelectItem>
+                    <SelectItem value="cash">Espèces</SelectItem>
+                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                    <SelectItem value="check">Chèque</SelectItem>
+                    <SelectItem value="other">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* ── Suggestions de lettrage ── */}
+            {amtNum > 0 && !invoiceId && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                    <Sparkles className="w-3.5 h-3.5" /> Suggestions de lettrage
+                  </p>
+                  {loadingSuggest && <span className="text-[10px] text-muted-foreground animate-pulse">Recherche…</span>}
+                </div>
+                {topSuggestions.length === 0 && !loadingSuggest && (
+                  <p className="text-xs text-muted-foreground">Aucune facture ne correspond à ce montant.</p>
+                )}
+                {topSuggestions.map((s) => {
+                  const cfg = CONFIDENCE_CFG[s.confidence];
+                  return (
+                    <div
+                      key={s.invoiceId}
+                      className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 cursor-pointer hover:shadow-sm transition-shadow ${cfg.cls}`}
+                      onClick={() => handleApplySuggestion(s)}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-mono font-semibold truncate">{s.reference}</p>
+                        <p className="text-[10px] truncate">{s.clientName ?? "—"} · reste {formatFCFA(s.remaining)}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant="outline" className={`text-[9px] h-4 px-1 ${cfg.cls}`}>{cfg.label}</Badge>
+                        <ArrowDownRight className="w-3.5 h-3.5 opacity-60" />
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[10px] text-muted-foreground">Cliquez sur une suggestion pour la sélectionner automatiquement.</p>
+              </div>
+            )}
+
+            {/* ── Sélection facture ── */}
             <div className="space-y-1">
               <Label>Facture à encaisser *</Label>
               <Select value={invoiceId} onValueChange={handleInvoiceChange}>
@@ -157,8 +265,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
                   ))}
                 </SelectContent>
               </Select>
-                {selectedInvoice && (() => {
-                const amtNum = Number(amount) || 0;
+              {selectedInvoice && (() => {
                 const diff = amtNum - remaining;
                 const isExact = amtNum > 0 && Math.abs(diff) < 1;
                 const isOver = amtNum > 0 && diff > 1;
@@ -169,8 +276,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
                 return (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Solde restant :{" "}
-                      <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
+                      Solde restant : <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
                     </p>
                     {amtNum > 0 && (
                       <div className={`flex items-center gap-1.5 text-xs rounded px-2 py-1 border ${
@@ -178,8 +284,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
                         isOver ? "bg-orange-50 border-orange-200 text-orange-700" :
                         "bg-amber-50 border-amber-200 text-amber-700"
                       }`}>
-                        {isExact && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {!isExact && <AlertCircle className="w-3.5 h-3.5" />}
+                        {isExact ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
                         {isExact && "Correspondance exacte — facture soldée"}
                         {isPartial && `Paiement partiel — il restera ${formatFCFA(Math.abs(diff))} à payer`}
                         {isOver && `Trop-perçu de ${formatFCFA(diff)} — à justifier`}
@@ -207,28 +312,6 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Montant (FCFA) *</Label>
-                <Input
-                  type="number" min="1"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Mode de paiement</Label>
-                <Select value={method} onValueChange={setMethod}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bank">Virement bancaire</SelectItem>
-                    <SelectItem value="cash">Espèces</SelectItem>
-                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                    <SelectItem value="check">Chèque</SelectItem>
-                    <SelectItem value="other">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-1">
                 <Label>Date d'encaissement</Label>
                 <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />

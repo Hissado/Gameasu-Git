@@ -113,7 +113,7 @@ export default function TresoreriePage() {
     <div className="space-y-5">
       <PageHeader
         title="Trésorerie prévisionnelle"
-        description="Position de trésorerie, prévisions d'encaissements et cash runway."
+        subtitle="Position de trésorerie, prévisions d'encaissements et cash runway."
       />
 
       {/* KPI row */}
