@@ -1326,6 +1326,12 @@ type ReconciliationReport = {
   hasData: boolean;
 };
 
+type MgmtHealthCheck = {
+  cat: string; label: string; curr: number; prev: number | null;
+  target: string; targetNum: number | null; achieved: boolean;
+  importance: string; isMoney: boolean; isPercent: boolean;
+};
+
 type ManagementReport = {
   period: { from: string; to: string };
   prev: { revenues: number; expenses: number; netResult: number; margin: number; from: string; to: string };
@@ -1338,6 +1344,18 @@ type ManagementReport = {
     cashPosition: number; arOutstanding: number; arOverdue: number;
     apOutstanding: number; apOverdue: number; workingCapital: number;
     debtorsDays: number; creditorsDays: number;
+  };
+  ytd?: {
+    revenues: number; expenses: number; netResult: number; margin: number; oer: number;
+    prevRevenues: number; prevExpenses: number; prevNetResult: number; prevMargin: number; prevOer: number;
+    from: string; to: string;
+  };
+  breakEven?: {
+    bep: number | null; fixedCosts: number; variableCosts: number;
+    contributionRatio: number; operatingResult: number;
+  };
+  healthScore?: {
+    score: number; achieved: number; total: number; checks: MgmtHealthCheck[];
   };
   series: Array<{ month: string; revenues: number; expenses: number; netResult: number }>;
   topArClients: Array<{ name: string; outstanding: number; overdue: number; percent: number }>;
@@ -2769,9 +2787,12 @@ function HealthRow({ label, value, prev, target, targetLabel, importance, higher
   );
 }
 
+type MgmtPageId = "overview" | "keyfigures" | "health" | "breakeven" | "revenues" | "receivables" | "expenses" | "operations";
+
 function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const queryClient = useQueryClient();
   const [cfgOpen, setCfgOpen] = useState(false);
+  const [activePage, setActivePage] = useState<MgmtPageId>("overview");
 
   const { data, isLoading } = useQuery<ManagementReport>({
     queryKey: ["report", "management", periodQuery],
@@ -2802,6 +2823,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   if (isLoading) return (
     <div className="space-y-4 pt-4">
       <Skeleton className="h-32 w-full rounded-xl" />
+      <Skeleton className="h-10 w-full rounded-lg" />
       <Skeleton className="h-48 w-full" />
       <Skeleton className="h-64 w-full" />
     </div>
@@ -2818,13 +2840,15 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const f = d.finance;
   const liq = d.liquidity;
   const ops = d.operations;
+  const ytd = d.ytd ?? { revenues: f.revenues, expenses: f.expenses, netResult: f.netResult, margin: f.margin, oer: f.operatingExpenseRatio, prevRevenues: 0, prevExpenses: 0, prevNetResult: 0, prevMargin: 0, prevOer: 0, from: "", to: "" };
+  const be  = d.breakEven ?? { bep: null, fixedCosts: f.expenses, variableCosts: 0, contributionRatio: 0, operatingResult: f.netResult };
+  const hs  = d.healthScore ?? { score: 0, achieved: 0, total: 0, checks: [] };
+
   const fmtDate2 = (iso: string) => { const [y,mo,dd] = iso.slice(0,10).split("-").map(Number); return new Date(y, mo-1, dd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
   const periodLabel = `${fmtDate2(d.period.from)} – ${fmtDate2(d.period.to)}`;
+  const yearLabel = new Date(d.period.to).getFullYear();
 
-  // Changements période vs N-1 (utilisés dans la table Santé financière)
-  const revenueChange = pctChange(f.revenues, d.prev.revenues);
-  const expenseChange = pctChange(f.expenses, d.prev.expenses);
-  const netChange = pctChange(f.netResult, d.prev.netResult);
+  const prevOerNum = d.prev.revenues > 0 ? Math.round((d.prev.expenses / d.prev.revenues) * 1000) / 10 : 0;
 
   const signalConfig = {
     positive: { dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Situation favorable" },
@@ -2832,7 +2856,6 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
     warning:  { dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200",       label: "Point d'attention" },
   };
 
-  // Points d'attention
   const watchpoints: string[] = [];
   if (liq.arOverdue > 0) watchpoints.push(`${formatFCFA(liq.arOverdue)} de créances clients en dépassement d'échéance — recouvrement à prioriser.`);
   if (liq.apOverdue > 0) watchpoints.push(`${formatFCFA(liq.apOverdue)} de dettes fournisseurs en dépassement d'échéance — régularisation recommandée.`);
@@ -2841,8 +2864,31 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   if (f.netResult < 0) watchpoints.push(`Le résultat net est déficitaire. Une révision du plan de charges est à envisager.`);
   if (f.operatingExpenseRatio > 100) watchpoints.push(`Le ratio charges / produits dépasse 100% — les charges excèdent les produits sur la période.`);
 
+  const PAGES: Array<{ id: MgmtPageId; label: string; num: number; icon: React.ElementType }> = [
+    { id: "overview",    label: "Résumé Exécutif",     num: 1, icon: FileText        },
+    { id: "keyfigures",  label: "Chiffres Clés",        num: 2, icon: LayoutDashboard },
+    { id: "health",      label: "Santé Financière",     num: 3, icon: Scale           },
+    { id: "breakeven",   label: "Seuil de Rentabilité", num: 4, icon: BarChart3       },
+    { id: "revenues",    label: "Produits vs Charges",  num: 5, icon: BarChart2       },
+    { id: "receivables", label: "Créances & Fourn.",    num: 6, icon: Receipt        },
+    { id: "expenses",    label: "Ventilation Charges",  num: 7, icon: ArrowDownRight  },
+    { id: "operations",  label: "Opérations & RH",      num: 8, icon: Briefcase       },
+  ];
+
+  const hsColor = hs.score >= 70 ? "text-emerald-600" : hs.score >= 40 ? "text-amber-600" : "text-red-600";
+  const hsStatus = hs.score >= 70 ? "Santé satisfaisante" : hs.score >= 40 ? "Points d'amélioration" : "Situation préoccupante";
+  const hsRingColor = hs.score >= 70 ? "#10B981" : hs.score >= 40 ? "#F59E0B" : "#EF4444";
+  const beChartData = [
+    { name: "Produits", value: Math.max(f.revenues, 1), fill: "#10B981" },
+    { name: "Seuil rentab.", value: be.bep ?? f.expenses, fill: "#F97316" },
+  ];
+  const impColor: Record<string, string> = {
+    "Critique": "text-red-600 bg-red-50", "Élevé": "text-amber-600 bg-amber-50",
+    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-slate-500 bg-slate-50",
+  };
+
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-4 pt-4">
 
       {/* ── En-tête rapport ──────────────────────────────────────────── */}
       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
@@ -2852,7 +2898,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               <Briefcase className="w-5 h-5 text-primary" />
               <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Rapport de Gestion</span>
             </div>
-            <h1 className="text-2xl font-bold leading-tight">Tableau de bord exécutif</h1>
+            <h1 className="text-2xl font-bold leading-tight">Management Reporting Center</h1>
             <p className="text-slate-400 text-sm mt-1">{periodLabel}</p>
           </div>
           <div className="text-right text-xs text-slate-500 mt-1">
@@ -2863,8 +2909,6 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
             </div>
           </div>
         </div>
-
-        {/* Barre résumé rapide */}
         <div className="bg-slate-800 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-700">
           {[
             { label: "Produits", value: fmtCompact(f.revenues) + " FCFA", color: "text-emerald-400" },
@@ -2880,333 +2924,550 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
         </div>
       </div>
 
-      {/* ── Résumé exécutif ───────────────────────────────────────── */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-4 border-b border-slate-100">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Résumé exécutif
-              </CardTitle>
-              <CardDescription className="mt-0.5">{periodLabel} · Usage exclusif Direction &amp; Gouvernance</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5 text-slate-500 hover:text-slate-700"
-                onClick={() => setCfgOpen(true)}>
-                <Settings2 className="w-3.5 h-3.5" /> Configurer
-              </Button>
-              <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "bg-amber-400" : "bg-emerald-400"
-                }`} />
-                {activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          {/* Sections thématiques dynamiques */}
-          {activeSections.map((section) => {
-            const signal = computeSectionSignal(section.id, section.thresholds, d);
-            const cfg = signalConfig[signal];
-            const Icon = SECTION_ICONS[section.id] ?? FileText;
-            const { headline, body } = buildSectionContent(section.id, d);
-            return (
-              <div key={section.id} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-                <div className={`w-1 shrink-0 ${signal === "positive" ? "bg-emerald-400" : signal === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
-                <div className="flex-1 px-5 py-4">
-                  <div className="flex items-start justify-between gap-3 mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{section.title}</span>
-                    </div>
-                    <span className={`shrink-0 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.badge}`}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold text-slate-800 mb-1">{headline}</p>
-                  <p className="text-sm text-slate-500 leading-relaxed">{body}</p>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Points d'attention */}
-          {watchpoints.length > 0 && (
-            <div className="mx-5 my-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="text-sm font-semibold text-amber-800">
-                  {watchpoints.length === 1 ? "Point d'attention" : `${watchpoints.length} points d'attention`}
-                </span>
-              </div>
-              <ul className="space-y-1">
-                {watchpoints.map((wp, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-500 shrink-0" />
-                    {wp}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Chiffres clés ─────────────────────────────────────────── */}
-      <div>
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Chiffres clés</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            {
-              title: "Produits", value: fmtCompact(f.revenues) + " FCFA",
-              trend: <TrendBadge curr={f.revenues} prev={d.prev.revenues} />,
-              sub: `Les produits sur la période s'élèvent à ${formatFCFA(f.revenues)}.${revenueChange !== null ? ` C'est une ${revenueChange >= 0 ? "hausse" : "baisse"} de ${Math.abs(revenueChange)}% vs N-1 (${formatFCFA(d.prev.revenues)}).` : ""}`,
-              color: "border-l-emerald-500",
-            },
-            {
-              title: "Charges", value: fmtCompact(f.expenses) + " FCFA",
-              trend: <TrendBadge curr={f.expenses} prev={d.prev.expenses} higherIsBetter={false} />,
-              sub: `Les charges totales s'élèvent à ${formatFCFA(f.expenses)}.${expenseChange !== null ? ` Évolution de ${expenseChange >= 0 ? "+" : ""}${expenseChange}% vs N-1 (${formatFCFA(d.prev.expenses)}).` : ""}`,
-              color: "border-l-red-400",
-            },
-            {
-              title: "Ratio charges / produits", value: `${f.operatingExpenseRatio}%`,
-              trend: <TrendBadge curr={f.operatingExpenseRatio} prev={d.prev.revenues > 0 ? Math.round((d.prev.expenses / d.prev.revenues) * 1000) / 10 : 0} higherIsBetter={false} />,
-              sub: `Le ratio charges/produits de la période est de ${f.operatingExpenseRatio}%. Un ratio inférieur à 80% est généralement considéré sain.`,
-              color: "border-l-amber-400",
-            },
-            {
-              title: "Marge nette", value: `${f.margin}%`,
-              trend: <TrendBadge curr={f.margin} prev={d.prev.margin} />,
-              sub: `La marge nette de la période est de ${f.margin}%.${netChange !== null ? ` Résultat N-1 : ${formatFCFA(d.prev.netResult)} (marge : ${d.prev.margin}%).` : ""}`,
-              color: f.margin >= 0 ? "border-l-primary" : "border-l-red-500",
-            },
-          ].map(item => (
-            <div key={item.title} className={`bg-white border border-slate-200 rounded-lg p-4 border-l-4 ${item.color} shadow-sm`}>
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{item.title}</span>
-                {item.trend}
-              </div>
-              <div className="text-2xl font-bold text-slate-900 mb-2">{item.value}</div>
-              <p className="text-xs text-slate-500 leading-relaxed">{item.sub}</p>
-            </div>
-          ))}
-        </div>
+      {/* ── Navigation pages du rapport ──────────────────────────────── */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {PAGES.map(p => {
+          const Icon = p.icon;
+          const isActive = activePage === p.id;
+          return (
+            <button key={p.id} onClick={() => setActivePage(p.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all border ${
+                isActive ? "bg-primary text-white border-primary shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+              }`}>
+              <span className={`text-[10px] font-bold ${isActive ? "opacity-70" : "opacity-40"}`}>{p.num}</span>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{p.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── Santé financière ──────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Scale className="w-4 h-4 text-primary" />
-              Santé financière
-            </CardTitle>
-            <CardDescription>{periodLabel} vs N-1</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="py-2 px-3 text-left text-xs font-semibold text-slate-600">Indicateur</th>
-                  <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">Période</th>
-                  <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">N-1</th>
-                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Cible</th>
-                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Évolution</th>
-                  <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Importance</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Croissance</td></tr>
-                <HealthRow label="Produits totaux" value={f.revenues} prev={d.prev.revenues} importance="Élevé" />
-                <HealthRow label="Résultat net" value={f.netResult} prev={d.prev.netResult} importance="Élevé" />
-                <HealthRow label="Marge nette" value={`${f.margin}%`} prev={`${d.prev.margin}%`} importance="Élevé" />
-                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Rentabilité</td></tr>
-                <HealthRow label="Ratio charges/produits" value={`${f.operatingExpenseRatio}%`} prev={d.prev.revenues > 0 ? `${Math.round((d.prev.expenses / d.prev.revenues) * 1000) / 10}%` : "N/A"} target="< 80%" importance="Élevé" higherIsBetter={false} />
-                <HealthRow label="EBITDA" value={f.ebitda} prev={d.prev.netResult} importance="Moyen" />
-                <HealthRow label="Marge brute" value={`${f.grossMargin}%`} prev="N/A" importance="Moyen" />
-                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Liquidité</td></tr>
-                <HealthRow label="Trésorerie" value={liq.cashPosition} prev={0} target="≥ 0" importance="Élevé" />
-                <HealthRow label="Créances clients" value={liq.arOutstanding} prev={0} importance="Moyen" higherIsBetter={false} />
-                <HealthRow label="Délai de recouvrement" value={`${liq.debtorsDays}j`} prev="—" target="< 60j" importance="Moyen" higherIsBetter={false} />
-                <HealthRow label="Délai de règlement" value={`${liq.creditorsDays}j`} prev="—" target="< 90j" importance="Faible" />
-                <tr className="bg-slate-50"><td colSpan={6} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Solvabilité</td></tr>
-                <HealthRow label="Fonds de roulement" value={liq.workingCapital} prev={0} target="≥ 0" importance="Élevé" />
-                <HealthRow label="Dettes fournisseurs" value={liq.apOutstanding} prev={0} importance="Moyen" higherIsBetter={false} />
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Produits vs Charges — graphique ────────────────────────── */}
-      {d.series.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-primary" />
-              Produits vs Charges — Évolution mensuelle
-            </CardTitle>
-            <CardDescription>
-              {d.series.length > 0 && (() => {
-                const bestMonth = [...d.series].sort((a, b) => b.revenues - a.revenues)[0];
-                const worstMonth = [...d.series].sort((a, b) => a.revenues - b.revenues)[0];
-                const totalRev = d.series.reduce((s, m) => s + m.revenues, 0);
-                const avgRev = Math.round(totalRev / d.series.length);
-                return `Produits cumulés : ${formatFCFA(totalRev)}. Moyenne mensuelle : ${formatFCFA(avgRev)}. Meilleur mois : ${bestMonth.month} (${formatFCFA(bestMonth.revenues)}) ; pire mois : ${worstMonth.month} (${formatFCFA(worstMonth.revenues)}).`;
-              })()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={d.series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => formatFCFA(v)} />
-                  <Legend />
-                  <Bar dataKey="revenues" name="Produits" fill="#10B981" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="expenses" name="Charges" fill="#F97316" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Créances clients (AR) ─────────────────────────────────── */}
-      {d.topArClients.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-primary" />
-              Soldes clients — Créances en cours
-            </CardTitle>
-            <CardDescription>Clients avec encours non réglé · Total : {formatFCFA(liq.arOutstanding)}{liq.arOverdue > 0 ? ` dont ${formatFCFA(liq.arOverdue)} en retard` : ""}</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b">
-                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Client</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
-                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.topArClients.map((c) => (
-                  <tr key={c.name} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-2.5 px-4 font-medium text-slate-800">{c.name}</td>
-                    <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(c.outstanding)}</td>
-                    <td className={`py-2.5 px-4 text-right tabular-nums ${c.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
-                      {c.overdue > 0 ? formatFCFA(c.overdue) : "—"}
-                    </td>
-                    <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{c.percent}%</td>
-                    <td className="py-2.5 px-4">
-                      <div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto">
-                        <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(c.percent, 100)}%` }} />
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 1 — RÉSUMÉ EXÉCUTIF
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "overview" && (
+        <div className="space-y-6">
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Résumé exécutif
+                  </CardTitle>
+                  <CardDescription className="mt-0.5">{periodLabel} · Usage exclusif Direction &amp; Gouvernance</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5 text-slate-500 hover:text-slate-700"
+                    onClick={() => setCfgOpen(true)}>
+                    <Settings2 className="w-3.5 h-3.5" /> Configurer
+                  </Button>
+                  <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "bg-amber-400" : "bg-emerald-400"}`} />
+                    {activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {activeSections.map((section) => {
+                const signal = computeSectionSignal(section.id, section.thresholds, d);
+                const cfg = signalConfig[signal];
+                const Icon = SECTION_ICONS[section.id] ?? FileText;
+                const { headline, body } = buildSectionContent(section.id, d);
+                return (
+                  <div key={section.id} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                    <div className={`w-1 shrink-0 ${signal === "positive" ? "bg-emerald-400" : signal === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
+                    <div className="flex-1 px-5 py-4">
+                      <div className="flex items-start justify-between gap-3 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{section.title}</span>
+                        </div>
+                        <span className={`shrink-0 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.badge}`}>{cfg.label}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+                      <p className="text-sm font-semibold text-slate-800 mb-1">{headline}</p>
+                      <p className="text-sm text-slate-500 leading-relaxed">{body}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              {watchpoints.length > 0 && (
+                <div className="mx-5 my-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="text-sm font-semibold text-amber-800">
+                      {watchpoints.length === 1 ? "Point d'attention" : `${watchpoints.length} points d'attention`}
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {watchpoints.map((wp, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
+                        <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-500 shrink-0" />
+                        {wp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* ── Charges par compte ────────────────────────────────────── */}
-      {d.expenseBreakdown.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ArrowDownRight className="w-4 h-4 text-red-500" />
-              Ventilation des charges
-            </CardTitle>
-            <CardDescription>Top postes de charges (classe 6) · Total : {formatFCFA(f.expenses)}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {d.expenseBreakdown.map((e) => (
-                <div key={e.code} className="flex items-center gap-3">
-                  <div className="w-28 shrink-0">
-                    <span className="font-mono text-xs text-slate-400">{e.code}</span>
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 2 — CHIFFRES CLÉS (FORMICA-style Key Figures)
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "keyfigures" && (
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <LayoutDashboard className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-slate-700">Chiffres Clés — {periodLabel}</h3>
+            </div>
+            <p className="text-xs text-slate-500">Métriques Période vs Exercice en cours (YTD au {new Date(d.period.to).toLocaleDateString("fr-FR")})</p>
+          </div>
+          {[
+            {
+              p: { label: "Produits — Période", value: f.revenues, prev: d.prev.revenues, desc: `Les produits sur la période s'élèvent à ${formatFCFA(f.revenues)}.`, color: "border-l-emerald-500", higherIsBetter: true as boolean, isPercent: false as boolean },
+              y: { label: `Produits — Exercice ${yearLabel} (YTD)`, value: ytd.revenues, prev: ytd.prevRevenues, desc: `Cumul produits depuis le 1er janvier ${yearLabel} : ${formatFCFA(ytd.revenues)}.`, color: "border-l-emerald-500", higherIsBetter: true as boolean, isPercent: false as boolean },
+            },
+            {
+              p: { label: "Charges — Période", value: f.expenses, prev: d.prev.expenses, desc: `Les charges totales sur la période s'élèvent à ${formatFCFA(f.expenses)}.`, color: "border-l-red-400", higherIsBetter: false as boolean, isPercent: false as boolean },
+              y: { label: `Charges — Exercice ${yearLabel} (YTD)`, value: ytd.expenses, prev: ytd.prevExpenses, desc: `Cumul charges depuis le 1er janvier ${yearLabel} : ${formatFCFA(ytd.expenses)}.`, color: "border-l-red-400", higherIsBetter: false as boolean, isPercent: false as boolean },
+            },
+            {
+              p: { label: "Ratio Charges/Produits — Période", value: f.operatingExpenseRatio, prev: prevOerNum, desc: `Un ratio < 80% est sain. Période : ${f.operatingExpenseRatio}%.`, color: "border-l-amber-400", higherIsBetter: false as boolean, isPercent: true as boolean },
+              y: { label: `Ratio Charges/Produits — Exercice ${yearLabel} (YTD)`, value: ytd.oer, prev: ytd.prevOer, desc: `Ratio cumulatif depuis le 1er janvier ${yearLabel} : ${ytd.oer}%.`, color: "border-l-amber-400", higherIsBetter: false as boolean, isPercent: true as boolean },
+            },
+            {
+              p: { label: "Marge Nette — Période", value: f.margin, prev: d.prev.margin, desc: `La marge nette de la période est de ${f.margin}%. Résultat net : ${formatFCFA(f.netResult)}.`, color: f.margin >= 0 ? "border-l-primary" : "border-l-red-500", higherIsBetter: true as boolean, isPercent: true as boolean },
+              y: { label: `Marge Nette — Exercice ${yearLabel} (YTD)`, value: ytd.margin, prev: ytd.prevMargin, desc: `Marge nette cumulée : ${ytd.margin}%. Résultat net YTD : ${formatFCFA(ytd.netResult)}.`, color: ytd.margin >= 0 ? "border-l-primary" : "border-l-red-500", higherIsBetter: true as boolean, isPercent: true as boolean },
+            },
+          ].map((row, i) => (
+            <div key={i} className="grid md:grid-cols-2 gap-4">
+              {[row.p, row.y].map(card => (
+                <div key={card.label} className={`bg-white border border-slate-200 rounded-lg p-5 border-l-4 ${card.color} shadow-sm`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide leading-tight">{card.label}</span>
+                    <TrendBadge curr={card.value} prev={card.prev} higherIsBetter={card.higherIsBetter} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-sm text-slate-700 truncate">{e.label}</span>
-                      <span className="text-sm font-semibold tabular-nums shrink-0 ml-2">{formatFCFA(e.amount)}</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full">
-                      <div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(e.percent, 100)}%` }} />
-                    </div>
+                  <div className="text-3xl font-bold text-slate-900 mb-2">
+                    {card.isPercent ? `${card.value}%` : fmtCompact(card.value) + " FCFA"}
                   </div>
-                  <span className="text-xs text-slate-400 w-10 text-right shrink-0">{e.percent}%</span>
+                  <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
-      {/* ── Soldes fournisseurs (AP) ───────────────────────────────── */}
-      {d.topApSuppliers.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-amber-500" />
-              Soldes fournisseurs — Dettes en cours
-            </CardTitle>
-            <CardDescription>Fournisseurs avec dettes non réglées · Total : {formatFCFA(liq.apOutstanding)}{liq.apOverdue > 0 ? ` dont ${formatFCFA(liq.apOverdue)} en retard` : ""}</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b">
-                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
-                  <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
-                  <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.topApSuppliers.map((s) => (
-                  <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
-                    <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.outstanding)}</td>
-                    <td className={`py-2.5 px-4 text-right tabular-nums ${s.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
-                      {s.overdue > 0 ? formatFCFA(s.overdue) : "—"}
-                    </td>
-                    <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
-                    <td className="py-2.5 px-4">
-                      <div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto">
-                        <div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${Math.min(s.percent, 100)}%` }} />
-                      </div>
-                    </td>
-                  </tr>
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 3 — SANTÉ FINANCIÈRE (FORMICA-style Financial Health)
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "health" && (
+        <div className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="flex flex-col items-center justify-center py-6">
+              <div className="relative w-28 h-28 mb-3">
+                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+                  <circle cx="60" cy="60" r="50" fill="none" stroke={hsRingColor} strokeWidth="12"
+                    strokeDasharray={`${2 * Math.PI * 50 * hs.score / 100} ${2 * Math.PI * 50 * (1 - hs.score / 100)}`}
+                    strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-black ${hsColor}`}>{hs.score}%</span>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Indice de Santé</div>
+              <div className={`text-sm font-bold mt-1 ${hsColor}`}>{hsStatus}</div>
+            </Card>
+            <Card className="flex flex-col items-center justify-center py-6">
+              <div className="text-5xl font-black text-slate-800 mb-1">
+                {hs.achieved}<span className="text-2xl text-slate-400">/{hs.total}</span>
+              </div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Objectifs atteints</div>
+              <div className="mt-3 flex flex-wrap justify-center gap-1 px-4">
+                {hs.checks.map((c, i) => (
+                  <span key={i} className={`w-5 h-5 rounded-full flex items-center justify-center ${c.achieved ? "bg-emerald-100" : "bg-red-100"}`}>
+                    <CheckCircle2 className={`w-3 h-3 ${c.achieved ? "text-emerald-600" : "text-red-400"}`} />
+                  </span>
                 ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+              </div>
+            </Card>
+            <Card className="flex flex-col items-center justify-center py-6">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Période analysée</div>
+              <div className="text-sm font-bold text-slate-800 text-center px-4">{periodLabel}</div>
+              <div className="text-xs text-slate-400 mt-2">vs N-1</div>
+              <div className="text-sm text-slate-600 font-medium mt-1 text-center px-4">{fmtDate2(d.prev.from)} – {fmtDate2(d.prev.to)}</div>
+              <div className={`mt-3 text-xs font-medium px-3 py-1 rounded-full ${watchpoints.length === 0 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                {watchpoints.length === 0 ? "Aucun point d'attention" : `${watchpoints.length} point${watchpoints.length > 1 ? "s" : ""} d'attention`}
+              </div>
+            </Card>
+          </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-primary" />
+                  Tableau de santé financière
+                </CardTitle>
+                <CardDescription>{periodLabel} vs N-1</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-slate-600">Indicateur</th>
+                      <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">Période</th>
+                      <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">N-1</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Cible</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Période vs Cible</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Atteint</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Importance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {["Croissance", "Rentabilité", "Liquidité", "Solvabilité"].map(cat => {
+                      const rows = hs.checks.filter(c => c.cat === cat);
+                      if (rows.length === 0) return null;
+                      return (
+                        <React.Fragment key={cat}>
+                          <tr className="bg-slate-50">
+                            <td colSpan={7} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{cat}</td>
+                          </tr>
+                          {rows.map((c, i) => {
+                            const currFmt = c.isPercent ? `${c.curr}%` : c.isMoney ? formatFCFA(c.curr) : String(c.curr);
+                            const prevFmt = c.prev !== null ? (c.isPercent ? `${c.prev}%` : c.isMoney ? formatFCFA(c.prev) : String(c.prev)) : "—";
+                            const diffFromTarget = c.targetNum !== null ? c.curr - c.targetNum : null;
+                            const vsTarget = diffFromTarget !== null
+                              ? (c.isMoney ? formatFCFA(diffFromTarget) : `${Math.round(diffFromTarget * 10) / 10}${c.isPercent ? "%" : ""}`)
+                              : "—";
+                            return (
+                              <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50">
+                                <td className="py-2.5 px-3 text-sm text-slate-700">{c.label}</td>
+                                <td className="py-2.5 px-3 text-right text-sm font-semibold tabular-nums">{currFmt}</td>
+                                <td className="py-2.5 px-3 text-right text-sm text-slate-500 tabular-nums">{prevFmt}</td>
+                                <td className="py-2.5 px-3 text-center text-xs text-slate-400">{c.target}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  {diffFromTarget !== null
+                                    ? <span className={`text-xs font-medium tabular-nums ${c.achieved ? "text-emerald-600" : "text-red-500"}`}>{vsTarget}</span>
+                                    : <span className="text-xs text-slate-300">—</span>}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  {c.achieved
+                                    ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
+                                    : <AlertTriangle className="w-4 h-4 text-red-400 mx-auto" />}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${impColor[c.importance] ?? "text-slate-500"}`}>{c.importance}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* ── Projets & Opérations ──────────────────────────────────── */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-primary" />
-              Projets & Opérations
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 4 — SEUIL DE RENTABILITÉ (Break-Even)
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "breakeven" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { label: "Seuil de rentabilité", value: be.bep !== null ? fmtCompact(be.bep) + " FCFA" : "N/A", cls: "bg-orange-50 border-orange-200 text-orange-700" },
+              { label: "Chiffre d'affaires", value: fmtCompact(f.revenues) + " FCFA", cls: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+              { label: "Charges opérationnelles", value: fmtCompact(f.expenses) + " FCFA", cls: "bg-red-50 border-red-200 text-red-700" },
+              { label: "Charges fixes", value: fmtCompact(be.fixedCosts) + " FCFA", cls: "bg-slate-50 border-slate-200 text-slate-700" },
+              { label: "Charges variables", value: fmtCompact(be.variableCosts) + " FCFA", cls: "bg-sky-50 border-sky-200 text-sky-700" },
+              { label: be.operatingResult >= 0 ? "Résultat d'exploitation" : "Perte d'exploitation", value: fmtCompact(Math.abs(be.operatingResult)) + " FCFA", cls: be.operatingResult >= 0 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700" },
+            ].map(m => (
+              <div key={m.label} className={`rounded-lg border p-3 ${m.cls}`}>
+                <div className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">{m.label}</div>
+                <div className="text-xl font-bold">{m.value}</div>
+              </div>
+            ))}
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Visualisation — Seuil de Rentabilité
+              </CardTitle>
+              <CardDescription>{periodLabel}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={beChartData} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                    <Bar dataKey="value" name="Valeur" radius={[4, 4, 0, 0]}>
+                      {beChartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Analyse automatique
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                {be.bep !== null
+                  ? `Le seuil de rentabilité pour la période ${periodLabel} s'élève à ${formatFCFA(be.bep)}. Il représente le chiffre d'affaires à partir duquel l'entité couvre intégralement ses charges opérationnelles.`
+                  : "Le seuil de rentabilité ne peut être calculé (aucun produit enregistré sur la période). "}
+                {" "}
+                {be.bep !== null && f.revenues >= be.bep
+                  ? `La période est bénéficiaire : le chiffre d'affaires de ${formatFCFA(f.revenues)} dépasse le seuil, générant un résultat d'exploitation de ${formatFCFA(be.operatingResult)}.`
+                  : be.bep !== null && f.revenues < be.bep
+                    ? `La période est déficitaire : il manque ${formatFCFA(be.bep - f.revenues)} de chiffre d'affaires supplémentaire pour atteindre l'équilibre (perte : ${formatFCFA(Math.abs(be.operatingResult))}).`
+                    : ""}
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                {[
+                  { label: "Marge sur coûts variables", value: `${Math.round(be.contributionRatio * 100)}%` },
+                  { label: "Couverture charges fixes", value: f.revenues > 0 && be.fixedCosts > 0 ? `${Math.round((f.revenues / be.fixedCosts) * 100)}%` : "N/A" },
+                  { label: "Charges fixes / CA", value: f.revenues > 0 ? `${Math.round((be.fixedCosts / f.revenues) * 100)}%` : "N/A" },
+                  { label: "Charges variables / CA", value: f.revenues > 0 ? `${Math.round((be.variableCosts / f.revenues) * 100)}%` : "N/A" },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-50 rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">{s.label}</div>
+                    <div className="text-lg font-bold text-slate-800">{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 5 — PRODUITS VS CHARGES
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "revenues" && (
+        <div className="space-y-4">
+          {d.series.length === 0
+            ? <Card><CardContent className="py-12 text-center text-slate-400 text-sm">Aucune donnée mensuelle disponible.</CardContent></Card>
+            : <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart2 className="w-4 h-4 text-primary" />
+                    Produits vs Charges — Évolution mensuelle
+                  </CardTitle>
+                  <CardDescription>
+                    {(() => {
+                      const best = [...d.series].sort((a, b) => b.revenues - a.revenues)[0];
+                      const worst = [...d.series].sort((a, b) => a.revenues - b.revenues)[0];
+                      const total = d.series.reduce((s, m) => s + m.revenues, 0);
+                      const avg = Math.round(total / d.series.length);
+                      return `Produits cumulés : ${formatFCFA(total)}. Moyenne : ${formatFCFA(avg)}. Meilleur mois : ${best.month} (${formatFCFA(best.revenues)}) ; pire : ${worst.month} (${formatFCFA(worst.revenues)}).`;
+                    })()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={d.series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                        <Legend />
+                        <Bar dataKey="revenues" name="Produits" fill="#10B981" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="expenses" name="Charges" fill="#F97316" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    Résultat net mensuel
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={d.series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                        <Bar dataKey="netResult" name="Résultat net" radius={[3, 3, 0, 0]}>
+                          {d.series.map((entry, i) => <Cell key={i} fill={entry.netResult >= 0 ? "#10B981" : "#EF4444"} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          }
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 6 — CRÉANCES & FOURNISSEURS
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "receivables" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "Créances clients", value: formatFCFA(liq.arOutstanding), color: "text-primary", sub: `Dont ${formatFCFA(liq.arOverdue)} en retard` },
+              { label: "DSO", value: `${liq.debtorsDays}j`, color: "text-slate-700", sub: "Délai moyen de recouvrement" },
+              { label: "Dettes fournisseurs", value: formatFCFA(liq.apOutstanding), color: "text-amber-600", sub: `Dont ${formatFCFA(liq.apOverdue)} en retard` },
+              { label: "DPO", value: `${liq.creditorsDays}j`, color: "text-slate-700", sub: "Délai moyen de paiement" },
+            ].map(k => (
+              <Card key={k.label} className="p-3">
+                <div className="text-xs text-slate-500 mb-1">{k.label}</div>
+                <div className={`text-xl font-bold ${k.color}`}>{k.value}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{k.sub}</div>
+              </Card>
+            ))}
+          </div>
+          {d.topArClients.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-primary" />
+                  Soldes clients — Créances en cours
+                </CardTitle>
+                <CardDescription>Total : {formatFCFA(liq.arOutstanding)}{liq.arOverdue > 0 ? ` dont ${formatFCFA(liq.arOverdue)} en retard` : ""}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Client</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                      <th className="py-2 px-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.topArClients.map(c => (
+                      <tr key={c.name} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-2.5 px-4 font-medium text-slate-800">{c.name}</td>
+                        <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(c.outstanding)}</td>
+                        <td className={`py-2.5 px-4 text-right tabular-nums ${c.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>{c.overdue > 0 ? formatFCFA(c.overdue) : "—"}</td>
+                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{c.percent}%</td>
+                        <td className="py-2.5 px-4"><div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(c.percent, 100)}%` }} /></div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+          {d.topApSuppliers.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-amber-500" />
+                  Soldes fournisseurs — Dettes en cours
+                </CardTitle>
+                <CardDescription>Total : {formatFCFA(liq.apOutstanding)}{liq.apOverdue > 0 ? ` dont ${formatFCFA(liq.apOverdue)} en retard` : ""}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                      <th className="py-2 px-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.topApSuppliers.map(s => (
+                      <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
+                        <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.outstanding)}</td>
+                        <td className={`py-2.5 px-4 text-right tabular-nums ${s.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>{s.overdue > 0 ? formatFCFA(s.overdue) : "—"}</td>
+                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
+                        <td className="py-2.5 px-4"><div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${Math.min(s.percent, 100)}%` }} /></div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 7 — VENTILATION DES CHARGES
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "expenses" && (
+        <div className="space-y-4">
+          {d.expenseBreakdown.length === 0
+            ? <Card><CardContent className="py-12 text-center text-slate-400 text-sm">Aucune donnée de charges disponible.</CardContent></Card>
+            : <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ArrowDownRight className="w-4 h-4 text-red-500" />
+                  Ventilation des charges
+                </CardTitle>
+                <CardDescription>Top postes de charges (classe 6) · Total : {formatFCFA(f.expenses)}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {d.expenseBreakdown.map(e => (
+                    <div key={e.code} className="flex items-center gap-3">
+                      <div className="w-28 shrink-0"><span className="font-mono text-xs text-slate-400">{e.code}</span></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-sm text-slate-700 truncate">{e.label}</span>
+                          <span className="text-sm font-semibold tabular-nums shrink-0 ml-2">{formatFCFA(e.amount)}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(e.percent, 100)}%` }} /></div>
+                      </div>
+                      <span className="text-xs text-slate-400 w-10 text-right shrink-0">{e.percent}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          }
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          PAGE 8 — OPÉRATIONS & RH
+      ════════════════════════════════════════════════════════════════ */}
+      {activePage === "operations" && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-primary" />
+                Projets & Opérations
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -3275,6 +3536,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ── Note de bas de rapport ────────────────────────────────── */}
       <div className="text-center py-3 text-xs text-slate-400 border-t border-slate-200">

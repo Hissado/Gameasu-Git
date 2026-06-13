@@ -2262,6 +2262,78 @@ router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req
     const debtorsDays   = dailyRevenue   > 0 ? Math.round(arOutstanding   / dailyRevenue)   : 0;
     const creditorsDays = dailyPurchases > 0 ? Math.round(apOutstanding   / dailyPurchases) : 0;
 
+    // ── YTD (Cumul depuis le 1er janvier de l'exercice) ──────────────
+    const ytdFromStr     = `${toDate.getFullYear()}-01-01`;
+    const prevYtdToStr   = `${toDate.getFullYear() - 1}-${toIso.slice(5)}`;
+    const prevYtdFromStr = `${toDate.getFullYear() - 1}-01-01`;
+
+    let ytdRevenues = revenues, ytdExpenses = expenses;
+    if (fromIso > ytdFromStr) {
+      const ytdLines = await db.select({
+        classNum: chartOfAccountsTable.classNum,
+        debit:    journalEntryLinesTable.debit,
+        credit:   journalEntryLinesTable.credit,
+      })
+      .from(journalEntryLinesTable)
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+      .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+      .where(and(
+        eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"),
+        gte(journalEntriesTable.entryDate, ytdFromStr), lte(journalEntriesTable.entryDate, toIso),
+      ));
+      ytdRevenues = ytdLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+      ytdExpenses = ytdLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    }
+    const ytdNetResult = ytdRevenues - ytdExpenses;
+    const ytdMargin    = ytdRevenues > 0 ? Math.round((ytdNetResult / ytdRevenues) * 1000) / 10 : 0;
+    const ytdOer       = ytdRevenues > 0 ? Math.round((ytdExpenses  / ytdRevenues) * 1000) / 10 : 0;
+
+    const prevYtdLines = prevYtdFromStr <= prevYtdToStr ? await db.select({
+      classNum: chartOfAccountsTable.classNum,
+      debit:    journalEntryLinesTable.debit,
+      credit:   journalEntryLinesTable.credit,
+    })
+    .from(journalEntryLinesTable)
+    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+    .where(and(
+      eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"),
+      gte(journalEntriesTable.entryDate, prevYtdFromStr), lte(journalEntriesTable.entryDate, prevYtdToStr),
+    )) : [];
+    const prevYtdRevenues  = prevYtdLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+    const prevYtdExpenses  = prevYtdLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const prevYtdNetResult = prevYtdRevenues - prevYtdExpenses;
+    const prevYtdMargin    = prevYtdRevenues > 0 ? Math.round((prevYtdNetResult / prevYtdRevenues) * 1000) / 10 : 0;
+    const prevYtdOer       = prevYtdRevenues > 0 ? Math.round((prevYtdExpenses  / prevYtdRevenues) * 1000) / 10 : 0;
+
+    // ── Seuil de rentabilité (Break-Even) ─────────────────────────────
+    const bepVariableCosts = Math.min(totalPurchases, expenses);
+    const bepFixedCosts    = Math.max(0, expenses - bepVariableCosts);
+    const bepContribRatio  = revenues > 0 ? (revenues - bepVariableCosts) / revenues : 0;
+    const bepPoint         = bepContribRatio > 0 ? Math.round(bepFixedCosts / bepContribRatio) : (expenses > 0 ? expenses : null);
+    const bepOperatingResult = revenues - expenses;
+
+    // ── Score de santé financière ──────────────────────────────────────
+    const prevOerNum = prevRevenues > 0 ? Math.round((prevExpenses / prevRevenues) * 1000) / 10 : 0;
+    const wc         = cashPosition + arOutstanding - apOutstanding;
+    const healthChecks = [
+      { cat: "Croissance",  label: "Revenus totaux",         curr: revenues,              prev: prevRevenues,   target: "Croissant",  targetNum: null as number | null, achieved: revenues >= prevRevenues,         importance: "Élevé",    isMoney: true,  isPercent: false },
+      { cat: "Croissance",  label: "Résultat net",           curr: netResult,             prev: prevNetResult,  target: "Croissant",  targetNum: null as number | null, achieved: netResult >= prevNetResult,         importance: "Élevé",    isMoney: true,  isPercent: false },
+      { cat: "Croissance",  label: "Marge nette",            curr: margin,                prev: prevMargin,     target: "Croissante", targetNum: null as number | null, achieved: margin >= prevMargin,               importance: "Élevé",    isMoney: false, isPercent: true  },
+      { cat: "Croissance",  label: "Trésorerie",             curr: cashPosition,          prev: null as number | null, target: "≥ 0", targetNum: 0 as number | null,    achieved: cashPosition >= 0,                  importance: "Élevé",    isMoney: true,  isPercent: false },
+      { cat: "Rentabilité", label: "Ratio charges/produits", curr: operatingExpenseRatio, prev: prevOerNum,     target: "≤ 80%",      targetNum: 80 as number | null,   achieved: operatingExpenseRatio <= 80,        importance: "Élevé",    isMoney: false, isPercent: true  },
+      { cat: "Rentabilité", label: "Résultat net ≥ 0",       curr: netResult,             prev: null as number | null, target: "≥ 0", targetNum: 0 as number | null,    achieved: netResult >= 0,                     importance: "Critique", isMoney: true,  isPercent: false },
+      { cat: "Rentabilité", label: "Marge nette ≥ 0%",       curr: margin,                prev: null as number | null, target: "≥ 0%", targetNum: 0 as number | null,  achieved: margin >= 0,                        importance: "Critique", isMoney: false, isPercent: true  },
+      { cat: "Liquidité",   label: "Trésorerie ≥ 0",         curr: cashPosition,          prev: null as number | null, target: "≥ 0", targetNum: 0 as number | null,    achieved: cashPosition >= 0,                  importance: "Élevé",    isMoney: true,  isPercent: false },
+      { cat: "Liquidité",   label: "Fonds de roulement",     curr: wc,                    prev: null as number | null, target: "≥ 0", targetNum: 0 as number | null,    achieved: wc >= 0,                            importance: "Critique", isMoney: true,  isPercent: false },
+      { cat: "Liquidité",   label: "Créances en retard",     curr: arOverdue,             prev: null as number | null, target: "0",   targetNum: 0 as number | null,    achieved: arOverdue === 0,                    importance: "Moyen",    isMoney: true,  isPercent: false },
+      { cat: "Solvabilité", label: "Dettes en retard",       curr: apOverdue,             prev: null as number | null, target: "0",   targetNum: 0 as number | null,    achieved: apOverdue === 0,                    importance: "Élevé",    isMoney: true,  isPercent: false },
+      { cat: "Solvabilité", label: "Capitaux propres (FR)",  curr: wc,                    prev: null as number | null, target: "≥ 0", targetNum: 0 as number | null,    achieved: wc >= 0,                            importance: "Critique", isMoney: true,  isPercent: false },
+    ];
+    const healthAchieved = healthChecks.filter(c => c.achieved).length;
+    const healthTotal    = healthChecks.length;
+    const healthScorePct = Math.round((healthAchieved / healthTotal) * 100);
+
     res.json({
       period: { from: fromIso, to: toIso },
       prev: { revenues: prevRevenues, expenses: prevExpenses, netResult: prevNetResult, margin: prevMargin, from: prevFromIso, to: prevToIso },
@@ -2275,6 +2347,17 @@ router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req
         workingCapital: cashPosition + arOutstanding - apOutstanding,
         debtorsDays, creditorsDays,
       },
+      ytd: {
+        revenues: ytdRevenues, expenses: ytdExpenses, netResult: ytdNetResult,
+        margin: ytdMargin, oer: ytdOer,
+        prevRevenues: prevYtdRevenues, prevExpenses: prevYtdExpenses, prevNetResult: prevYtdNetResult,
+        prevMargin: prevYtdMargin, prevOer: prevYtdOer, from: ytdFromStr, to: toIso,
+      },
+      breakEven: {
+        bep: bepPoint, fixedCosts: bepFixedCosts, variableCosts: bepVariableCosts,
+        contributionRatio: bepContribRatio, operatingResult: bepOperatingResult,
+      },
+      healthScore: { score: healthScorePct, achieved: healthAchieved, total: healthTotal, checks: healthChecks },
       series,
       topArClients,
       topApSuppliers,
