@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-echo "yes" | pnpm --filter db push || true
+pnpm --filter @workspace/db run push-force || true

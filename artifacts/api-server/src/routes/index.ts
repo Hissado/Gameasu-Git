@@ -63,6 +63,7 @@ import inventoryRouter from "./inventory";
 import analyticsManagementRouter from "./analyticsManagement";
 import pricingRouter, { pricingPublicRouter } from "./pricing";
 import ordersPublicRouter from "./orders-public";
+import migrationRouter from "./migration";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
@@ -150,6 +151,7 @@ router.use(client360Router);
 router.use(kioskAdminRouter);
 router.use(storageRouter);
 router.use(pricingRouter);
+router.use(migrationRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

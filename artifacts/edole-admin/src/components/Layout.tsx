@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight, Database } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, CheckSquare, Briefcase, Wrench, Truck,
@@ -110,6 +110,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Admin",
     icon: Shield,
     items: [
+      { name: "Migration & Import", path: "/migration", icon: Database, moduleKey: "workspace_settings" },
       { name: "Paramètres",    path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings" },
       { name: "Abonnement",    path: "/billing",             icon: CreditCard, moduleKey: "billing_subscription" },
       { name: "Console admin", path: "/admin",               icon: Shield,     moduleKey: "administration",    secondary: true },

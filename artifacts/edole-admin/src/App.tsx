@@ -162,6 +162,7 @@ const MonEspace = lazy(() => import("@/pages/mon-espace/index"));
 const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
 const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
 const ManagementPDFPage = lazy(() => import("@/pages/reports/management-pdf"));
+const MigrationPage = lazy(() => import("@/pages/migration/index"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -321,6 +322,7 @@ function AppRouter() {
                 <Route path="/finance/intelligence" component={FinanceIntelligence} />
                 <Route path="/finance/tresorerie" component={TresoreriePage} />
                 <Route path="/recouvrement" component={RecouvrementPage} />
+                <Route path="/migration" component={MigrationPage} />
                 <Route path="/hr/intelligence" component={HrIntelligence} />
                 <Route path="/notifications/digest" component={NotificationsDigest} />
                 <Route path="/search" component={UniversalSearch} />
