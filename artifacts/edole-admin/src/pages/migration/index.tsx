@@ -210,7 +210,7 @@ export default function MigrationPage() {
       <PageHeader
         title="Migration & Import des données"
         subtitle="Importez vos données existantes dans Gaméasù étape par étape"
-        icon={<Database className="w-5 h-5" />}
+        icon={Database}
       />
 
       {/* ── Tabs ──────────────────────────────────────────────────────────── */}
