@@ -54,6 +54,7 @@ import approvalsQueueRouter from "./approvalsQueue";
 import anomalyDetectionRouter from "./anomalyDetection";
 import superAdminCockpitRouter from "./superAdminCockpit";
 import superAdminStructuresRouter, { publicOnboardingRouter } from "./superAdminStructures";
+import marketingPublicRouter from "./marketing-public";
 import orgTunerRouter from "./orgTuner";
 import operationsRouter from "./operations";
 import kioskAdminRouter, { kioskPublicRouter } from "./kiosk";
@@ -71,12 +72,13 @@ import { seedRbac } from "../lib/rbac/seed";
 
 const router: IRouter = Router();
 
-// Routes publiques (login, health)
+// Routes publiques (login, health, tracking marketing, formulaires)
 router.use(healthRouter);
 router.use(authRouter);
 router.use(publicOnboardingRouter);
 router.use(kioskPublicRouter);
 router.use(storageRouter);
+router.use(marketingPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout

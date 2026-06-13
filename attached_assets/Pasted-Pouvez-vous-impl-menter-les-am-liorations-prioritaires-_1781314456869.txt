@@ -1,0 +1,531 @@
+Pouvez-vous implémenter les améliorations prioritaires du module **Marketing de Gaméasù**, en suivant l’analyse ci-dessous par niveau de priorité ?
+
+Je ne veux pas seulement une analyse.
+Je veux une **implémentation concrète**, progressive, propre, sécurisée et prête à tester dans l’application.
+
+L’objectif est de transformer le module Marketing en un vrai système opérationnel capable de gérer les campagnes, l’envoi réel des messages, le tracking, la capture de leads, la segmentation, les automatisations et les connexions avec le CRM.
+
+---
+
+# Objectif général
+
+Améliorer le module **Marketing** de Gaméasù afin qu’il devienne réellement fonctionnel et connecté aux autres modules :
+
+* Clients
+* Prospects
+* Pipeline CRM
+* Opportunités
+* Devis
+* Commandes
+* Factures
+* Rapports
+* Notifications
+* Automatisations
+
+L’ensemble doit respecter la logique SaaS / multi-tenant :
+
+* chaque organisation a ses propres campagnes
+* chaque organisation a ses propres connexions marketing
+* chaque organisation a ses propres contacts, prospects, audiences et statistiques
+* aucune donnée ne doit être partagée entre organisations
+
+---
+
+# 🔴 Priorité 1 — Urgent / Bloquant pour un usage réel
+
+## 1. Envoi réel des campagnes
+
+Actuellement, les campagnes existent dans la base, mais elles ne déclenchent pas réellement d’envoi email, SMS ou WhatsApp.
+
+Merci de câbler l’envoi réel des campagnes depuis le backend, notamment au moment de :
+
+`POST /api/marketing/campaigns/:id/send`
+
+### Canaux à connecter
+
+#### Email
+
+Utiliser **Resend**, déjà installé dans le projet via l’intégration Replit.
+
+À prévoir :
+
+* connexion Resend
+* récupération des credentials depuis la configuration marketing de l’organisation
+* envoi des emails aux destinataires sélectionnés
+* gestion des erreurs d’envoi
+* statut envoyé / échoué / en attente
+* logs d’envoi
+* sauvegarde dans l’historique de campagne
+
+#### SMS
+
+Prévoir l’architecture pour l’envoi SMS via :
+
+* Twilio
+* ou Orange SMS API, particulièrement utile dans le contexte Afrique de l’Ouest
+
+À prévoir :
+
+* stockage sécurisé des credentials
+* connexion par organisation
+* envoi SMS
+* statut d’envoi
+* logs
+* gestion des erreurs
+
+#### WhatsApp
+
+Prévoir l’intégration avec :
+
+* WhatsApp Business Cloud API / Meta
+
+À prévoir :
+
+* configuration par organisation
+* templates si nécessaire
+* envoi WhatsApp
+* statut d’envoi
+* logs
+* gestion des erreurs
+
+### Table de connexion
+
+La table `marketingChannelConnectionsTable` est prévue pour stocker les credentials.
+
+Merci de :
+
+* vérifier cette table
+* l’alimenter correctement
+* connecter les credentials au bon tenant / organization_id
+* éviter tout credential en dur dans le code
+* utiliser les variables d’environnement lorsque nécessaire
+* sécuriser les données sensibles
+
+---
+
+## 2. Tracking des ouvertures et des clics
+
+Actuellement, sans tracking pixel ni liens redirigés, les champs comme `openCount` et `clickCount` restent à zéro.
+
+Merci d’implémenter un vrai système de tracking.
+
+### Tracking des ouvertures email
+
+Pour les emails, ajouter un pixel invisible :
+
+* image 1×1
+* générée par le backend
+* injectée automatiquement dans les emails envoyés
+* liée à la campagne
+* liée au destinataire
+* liée à l’organisation
+
+Créer un endpoint du type :
+
+`GET /api/marketing/track/open/:token`
+
+Cet endpoint doit :
+
+* valider le token
+* enregistrer l’ouverture
+* mettre à jour `openCount`
+* sauvegarder l’événement dans l’historique
+* retourner une image 1×1 transparente
+
+### Tracking des clics
+
+Pour tous les canaux supportés, créer une logique de liens trackés.
+
+Créer un endpoint du type :
+
+`GET /api/marketing/track/click/:token`
+
+Cet endpoint doit :
+
+* retrouver la campagne
+* retrouver le destinataire
+* retrouver le lien original
+* enregistrer le clic
+* mettre à jour `clickCount`
+* rediriger vers l’URL finale
+* sauvegarder l’événement dans l’historique
+
+### Données à enregistrer
+
+Pour chaque ouverture ou clic, enregistrer au minimum :
+
+* organization_id
+* campaign_id
+* recipient_id
+* channel
+* event_type
+* event_date
+* token
+* user_agent si disponible
+* ip_address si pertinent
+* original_url pour les clics
+
+---
+
+# 🟠 Priorité 2 — Important / Manque visible à l’utilisation
+
+## 3. Formulaires publics et capture de leads
+
+La page existe actuellement mais affiche seulement **“sous-module en préparation”**.
+
+Merci de créer un vrai système de formulaires publics.
+
+### À créer
+
+Un builder simple de formulaires permettant de configurer :
+
+* nom du formulaire
+* slug public
+* champs visibles
+* champs obligatoires
+* type de champ
+* message de confirmation
+* campagne liée si applicable
+* source du lead
+* tags
+* automatisation à déclencher après soumission
+
+### Endpoint public
+
+Créer un endpoint public :
+
+`POST /api/public/forms/:slug/submit`
+
+Cet endpoint doit :
+
+* recevoir les données du formulaire
+* valider les champs obligatoires
+* identifier l’organisation via le formulaire
+* créer ou mettre à jour un prospect dans `prospectsTable`
+* enregistrer la source du lead
+* associer le lead à la campagne si applicable
+* déclencher les automatisations configurées
+* retourner un message de succès propre
+
+---
+
+## 4. Éditeur de messages avec personnalisation
+
+Le textarea brut actuel n’est pas suffisant pour créer des campagnes professionnelles.
+
+Merci d’ajouter un éditeur de messages plus avancé.
+
+### Pour les emails
+
+Prévoir au minimum :
+
+* éditeur Markdown ou Rich Text
+* support des titres
+* paragraphes
+* liens
+* boutons
+* listes
+* mise en forme simple
+* aperçu rendu
+
+### Variables de personnalisation
+
+Ajouter un système visuel de variables, par exemple :
+
+* `{{nom}}`
+* `{{prenom}}`
+* `{{entreprise}}`
+* `{{email}}`
+* `{{telephone}}`
+* `{{montant_facture}}`
+* `{{date_echeance}}`
+* `{{nom_commercial}}`
+
+L’utilisateur doit pouvoir insérer ces variables facilement depuis un bouton ou menu.
+
+### Aperçu rendu
+
+Ajouter un bouton :
+
+**Aperçu rendu**
+
+Ce bouton doit remplacer les variables avec des données réelles ou de démonstration afin que l’utilisateur voie le message final avant envoi.
+
+---
+
+## 5. Intégration campagne → pipeline commercial
+
+Actuellement, une campagne ne peut pas être liée à une opportunité CRM, un devis ou une commande.
+
+Merci d’ajouter une vraie connexion entre Marketing et Pipeline commercial.
+
+### À faire
+
+Ajouter les champs nécessaires, par exemple :
+
+* `opportunityId`
+* `quoteId`
+* `orderId`
+* `clientId`
+* `prospectId`
+
+### Dans les fiches CRM / Clients
+
+Ajouter une section :
+
+**Campagnes associées**
+
+Cette section doit afficher :
+
+* campagnes liées au client
+* campagnes liées au prospect
+* campagnes liées à l’opportunité
+* statut de la campagne
+* ouverture / clics
+* date d’envoi
+* conversion éventuelle
+
+### Objectif
+
+Permettre de comprendre quelles campagnes influencent :
+
+* les prospects
+* les opportunités
+* les devis
+* les commandes
+* les ventes
+
+---
+
+## 6. Segmentation comportementale
+
+Les audiences dynamiques ne doivent pas se limiter uniquement au statut, à la source ou aux tags.
+
+Merci d’ajouter une segmentation basée sur l’historique et le comportement.
+
+### Nouveaux critères à ajouter
+
+Créer des critères comme :
+
+* contact ayant reçu une campagne
+* contact ayant ouvert une campagne
+* contact ayant cliqué sur une campagne
+* contact ayant répondu à une campagne si disponible
+* client ayant une facture impayée depuis X jours
+* client dont le dernier achat date de plus de N mois
+* prospect sans interaction depuis X jours
+* client avec volume d’achat supérieur à X
+* client ayant demandé un devis mais pas encore commandé
+* prospect provenant d’un formulaire spécifique
+
+### Objectif
+
+Permettre des audiences dynamiques plus intelligentes, connectées au comportement réel des clients et prospects.
+
+---
+
+# 🟡 Priorité 3 — Optionnel / Valeur ajoutée pour montée en gamme
+
+## 7. Lead scoring
+
+Ajouter une logique de **score commercial / score prospect**.
+
+Chaque prospect ou contact doit pouvoir recevoir un score basé sur ses interactions.
+
+### Exemples de scoring
+
+* ouverture email : +2
+* clic email : +5
+* formulaire rempli : +10
+* demande de devis : +15
+* facture payée : +20
+* absence d’interaction pendant 90 jours : -5
+
+### Objectif
+
+Permettre d’identifier les prospects les plus chauds et de prioriser les actions commerciales.
+
+---
+
+## 8. A/B testing
+
+Ajouter une logique simple de test A/B pour les campagnes.
+
+### À prévoir
+
+* création de deux variantes d’une même campagne
+* envoi à deux sous-groupes
+* comparaison automatique des performances
+* taux d’ouverture
+* taux de clic
+* taux de conversion si disponible
+* variante gagnante
+
+---
+
+## 9. Attribution marketing
+
+Ajouter une logique d’attribution permettant de savoir quelles campagnes ont influencé un contact.
+
+### Champs à prévoir
+
+Ajouter par exemple :
+
+* `firstTouchCampaignId`
+* `lastTouchCampaignId`
+
+Sur :
+
+* clients
+* prospects
+* opportunités si pertinent
+
+### Objectif
+
+Comprendre :
+
+* quelle campagne a créé le premier contact
+* quelle campagne a contribué à la conversion
+* quelles campagnes génèrent le plus de résultats
+
+---
+
+## 10. Landing pages légères
+
+Créer un système simple de pages publiques générées depuis Gaméasù.
+
+Exemple d’URL :
+
+`/p/nom-campagne`
+
+### Fonctionnalités minimales
+
+Chaque landing page doit pouvoir contenir :
+
+* titre
+* texte de présentation
+* image ou bannière si disponible
+* bouton d’appel à l’action
+* formulaire de capture
+* lien avec une campagne
+* tracking des visites si possible
+
+---
+
+## 11. RGPD / Consentement / Données personnelles
+
+Ajouter une logique plus complète de gestion des données personnelles.
+
+### À prévoir
+
+* opt-in
+* opt-out
+* désinscription
+* preuve de consentement datée
+* historique du consentement
+* export des données d’un contact
+* anonymisation
+* suppression / droit à l’oubli
+* blocage d’envoi aux contacts désinscrits
+
+### Important
+
+Aucune campagne ne doit être envoyée à un contact qui s’est désinscrit ou qui n’a pas donné son consentement si cette règle est activée.
+
+---
+
+# Exigences techniques
+
+Merci de vérifier et modifier si nécessaire :
+
+* backend
+* routes API
+* tables
+* schémas Drizzle / ORM
+* validations
+* permissions
+* frontend
+* composants
+* formulaires
+* états de chargement
+* messages d’erreur
+* notifications
+* logs
+* tests manuels
+
+---
+
+# Permissions à prévoir
+
+Ajouter ou vérifier les permissions suivantes :
+
+* voir les campagnes
+* créer une campagne
+* modifier une campagne
+* envoyer une campagne
+* supprimer une campagne
+* gérer les connexions marketing
+* voir les statistiques
+* gérer les formulaires
+* gérer les audiences
+* exporter les données
+* gérer les consentements
+
+---
+
+# Résultat attendu
+
+Je veux un module Marketing beaucoup plus opérationnel, avec :
+
+* envoi réel email / SMS / WhatsApp
+* tracking ouvertures et clics
+* formulaires publics fonctionnels
+* capture automatique de leads
+* éditeur de message professionnel
+* variables personnalisées
+* aperçu rendu
+* lien avec CRM / pipeline / devis / commandes
+* segmentation comportementale
+* lead scoring
+* A/B testing
+* attribution marketing
+* landing pages légères
+* RGPD / consentement complet
+
+---
+
+# Ordre d’implémentation recommandé
+
+Merci d’implémenter dans cet ordre :
+
+1. Envoi réel des campagnes
+2. Tracking des ouvertures et clics
+3. Formulaires publics et capture de leads
+4. Éditeur de messages avec personnalisation
+5. Intégration avec pipeline commercial
+6. Segmentation comportementale
+7. Lead scoring
+8. A/B testing
+9. Attribution marketing
+10. Landing pages
+11. RGPD / consentements
+
+---
+
+# Sortie finale obligatoire
+
+À la fin, merci de fournir :
+
+1. les fichiers créés
+2. les fichiers modifiés
+3. les tables créées ou modifiées
+4. les endpoints créés
+5. les composants frontend créés
+6. les permissions ajoutées
+7. les variables d’environnement nécessaires
+8. les intégrations configurées
+9. les fonctionnalités prêtes à tester
+10. les éléments encore à compléter si nécessaire
+
+Règle finale :
+**ne vous limitez pas à expliquer. Implémentez directement dans l’application.**

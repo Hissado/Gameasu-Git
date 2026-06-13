@@ -107,9 +107,15 @@ export const campaignRecipientsTable = pgTable("campaign_recipients", {
   status: text("status").notNull().default("pending"),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   errorMsg: text("error_msg"),
+  openToken: text("open_token"),
+  clickToken: text("click_token"),
+  openedAt: timestamp("opened_at", { withTimezone: true }),
+  clickedAt: timestamp("clicked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   byCampaign: index("campaign_recipients_campaign_idx").on(t.campaignId),
+  byOpenToken: index("campaign_recipients_open_token_idx").on(t.openToken),
+  byClickToken: index("campaign_recipients_click_token_idx").on(t.clickToken),
 }));
 
 // ─── AUTOMATIONS ────────────────────────────────────────────────
@@ -250,3 +256,46 @@ export type MarketingAlertRule = typeof marketingAlertRulesTable.$inferSelect;
 export type MarketingAlertLog = typeof marketingAlertLogsTable.$inferSelect;
 export type MarketingConsent = typeof marketingConsentTable.$inferSelect;
 export type MarketingChannelConnection = typeof marketingChannelConnectionsTable.$inferSelect;
+
+// ─── MARKETING FORMS (capture de leads) ─────────────────────────
+export const marketingFormsTable = pgTable("marketing_forms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  fields: jsonb("fields").$type<Array<{
+    name: string; label: string;
+    type: "text" | "email" | "phone" | "textarea" | "select" | "checkbox";
+    required: boolean; options?: string[]; placeholder?: string;
+  }>>().notNull().default([]),
+  confirmationMessage: text("confirmation_message"),
+  sourceTag: text("source_tag"),
+  automationId: uuid("automation_id").references(() => marketingAutomationsTable.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").notNull().default(true),
+  submissionsCount: integer("submissions_count").notNull().default(0),
+  createdBy: uuid("created_by").references(() => usersTable.id, { onDelete: "set null" }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  byOrgSlug: index("marketing_forms_org_slug_idx").on(t.organizationId, t.slug),
+}));
+
+// ─── TRACKING EVENTS ────────────────────────────────────────────
+export const marketingTrackingEventsTable = pgTable("marketing_tracking_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  campaignId: uuid("campaign_id").notNull().references(() => marketingCampaignsTable.id, { onDelete: "cascade" }),
+  recipientId: uuid("recipient_id").references(() => campaignRecipientsTable.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(), // "open" | "click"
+  url: text("url"),
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  byCampaign: index("tracking_events_campaign_idx").on(t.campaignId),
+}));
+
+export type MarketingForm = typeof marketingFormsTable.$inferSelect;
+export type MarketingTrackingEvent = typeof marketingTrackingEventsTable.$inferSelect;

@@ -12,6 +12,7 @@ import {
   marketingAlertLogsTable,
   marketingConsentTable,
   marketingChannelConnectionsTable,
+  marketingFormsTable,
   clientsTable,
   collaboratorsTable,
   usersTable,
@@ -21,8 +22,35 @@ import {
 } from "@workspace/db";
 import { and, eq, isNull, sql, desc, ilike, or, gte, lte, inArray } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
+import { randomUUID } from "node:crypto";
+import { Resend } from "resend";
 
 const router = Router();
+
+// ─── HELPERS ENVOI EMAIL ────────────────────────────────────────
+function getBaseUrl(req: any): string {
+  return process.env["REPLIT_DEV_DOMAIN"]
+    ? `https://${process.env["REPLIT_DEV_DOMAIN"]}`
+    : `${req.protocol}://${req.get("host")}`;
+}
+
+function substituteVars(template: string, vars: Record<string, string | null | undefined>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+}
+
+function buildEmailHtml(body: string, openToken: string, baseUrl: string): string {
+  const html = body
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^# (.+)$/gm, "<h2 style='font-size:20px;margin:16px 0 8px'>$1</h2>")
+    .replace(/^## (.+)$/gm, "<h3 style='font-size:16px;margin:12px 0 6px'>$1</h3>")
+    .replace(/^- (.+)$/gm, "<li style='margin:4px 0'>$1</li>")
+    .replace(/\n\n/g, "</p><p style='margin:10px 0'>")
+    .replace(/\n/g, "<br/>");
+  const pixel = `<img src="${baseUrl}/api/marketing/track/open/${openToken}" width="1" height="1" style="display:none;width:1px;height:1px" alt="" />`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#333"><p style="margin:10px 0">${html}</p>${pixel}</body></html>`;
+}
 
 // ─── PROSPECTS ──────────────────────────────────────────────────
 router.get("/prospects", async (req, res) => {
@@ -459,28 +487,31 @@ router.post("/marketing/campaigns/:id/schedule", requireManagerOrAbove, async (r
   return res.json(c);
 });
 
-// Envoi (simulation : log en console + insertion des destinataires).
-// Pour brancher un vrai provider, lire marketing_channel_connections et appeler le SDK ici.
+// Envoi réel via Resend si un provider email est configuré pour l'organisation,
+// sinon mode simulation (insertion destinataires sans envoi).
 router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, res) => {
   try {
-    const [c] = await db.select().from(marketingCampaignsTable).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id))).limit(1);
+    const orgId = req.authUser!.organizationId;
+    const [c] = await db.select().from(marketingCampaignsTable)
+      .where(and(eq(marketingCampaignsTable.organizationId, orgId), eq(marketingCampaignsTable.id, req.params.id))).limit(1);
     if (!c) return res.status(404).json({ error: "Not found" });
     if (c.status === "sent") return res.status(409).json({ error: "Déjà envoyée" });
 
-    // Résoudre l'audience : nouvelle audience prioritaire, sinon segment legacy.
+    // Résoudre l'audience
     let recipients: Array<{ audienceType: string; refId: string | null; name: string; email: string | null; phone: string | null }> = [];
     if (c.audienceId) {
-      const [a] = await db.select().from(marketingAudiencesTable).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, c.audienceId))).limit(1);
+      const [a] = await db.select().from(marketingAudiencesTable)
+        .where(and(eq(marketingAudiencesTable.organizationId, orgId), eq(marketingAudiencesTable.id, c.audienceId))).limit(1);
       if (a) {
-        const contacts = await resolveAudienceContacts(a, req.authUser!.organizationId);
+        const contacts = await resolveAudienceContacts(a, orgId);
         recipients = contacts.map((x) => ({ audienceType: x.type, refId: x.id, name: x.name, email: x.email, phone: x.phone }));
       }
     } else {
-      recipients = await buildAudience(req.authUser!.organizationId, c.segment as any);
+      recipients = await buildAudience(orgId, c.segment as any);
     }
 
-    // Filtre consentement (scopé à l'organisation)
-    const consents = await db.select().from(marketingConsentTable).where(eq(marketingConsentTable.organizationId, req.authUser!.organizationId));
+    // Filtre consentement
+    const consents = await db.select().from(marketingConsentTable).where(eq(marketingConsentTable.organizationId, orgId));
     const optOut = new Set(consents.filter((x) => !x.optIn && (x.channel === c.channel || c.channel === "multi")).map((x) => `${x.contactType}:${x.contactId}`));
     recipients = recipients.filter((r) => !r.refId || !optOut.has(`${r.audienceType}:${r.refId}`));
 
@@ -492,13 +523,67 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
     const valid = recipients.filter(hasContact);
     const failed = recipients.length - valid.length;
 
-    if (valid.length > 0) {
+    // Générer les tokens de tracking par destinataire
+    const validWithTokens = valid.map((r) => ({
+      ...r, openToken: randomUUID(), clickToken: randomUUID(),
+    }));
+
+    // ── Envoi réel via Resend (canal email uniquement) ──────────
+    let sendMode: "resend" | "preview" = "preview";
+    let actualSent = 0;
+    let actualFailed = 0;
+
+    if (c.channel === "email" || c.channel === "multi") {
+      const [emailConn] = await db.select().from(marketingChannelConnectionsTable)
+        .where(and(
+          eq(marketingChannelConnectionsTable.organizationId, orgId),
+          eq(marketingChannelConnectionsTable.channel, "email"),
+          eq(marketingChannelConnectionsTable.isActive, true),
+        )).limit(1);
+
+      const apiKey = emailConn?.config?.apiKey as string | undefined;
+      if (apiKey) {
+        sendMode = "resend";
+        const resend = new Resend(apiKey);
+        const fromEmail = (emailConn.config?.fromEmail as string) || "noreply@gameasutech.com";
+        const fromName = (emailConn.config?.fromName as string) || "Gaméasù";
+        const baseUrl = getBaseUrl(req);
+
+        for (const r of validWithTokens.filter((x) => x.email)) {
+          try {
+            const personalizedBody = substituteVars(c.body, {
+              nom: r.name, prenom: r.name?.split(" ")[0] ?? "",
+              email: r.email ?? "", telephone: r.phone ?? "",
+            });
+            await resend.emails.send({
+              from: `${fromName} <${fromEmail}>`,
+              to: r.email!,
+              subject: substituteVars(c.subject ?? c.name, { nom: r.name, email: r.email ?? "" }),
+              html: buildEmailHtml(personalizedBody, r.openToken, baseUrl),
+            });
+            actualSent++;
+          } catch (sendErr: any) {
+            actualFailed++;
+            req.log.warn({ err: sendErr?.message, email: r.email }, "Resend: échec envoi");
+          }
+        }
+
+        // Mettre à jour le statut de la connexion
+        await db.update(marketingChannelConnectionsTable)
+          .set({ lastCheckAt: new Date(), status: "ok" })
+          .where(eq(marketingChannelConnectionsTable.id, emailConn.id));
+      }
+    }
+
+    // ── Insérer les destinataires avec tokens ───────────────────
+    if (validWithTokens.length > 0) {
       await db.insert(campaignRecipientsTable).values(
-        valid.map((r) => ({
-          organizationId: req.authUser!.organizationId,
+        validWithTokens.map((r) => ({
+          organizationId: orgId,
           campaignId: c.id, audienceType: r.audienceType, refId: r.refId,
           name: r.name, email: r.email, phone: r.phone,
           status: "sent" as const, sentAt: new Date(),
+          openToken: r.openToken, clickToken: r.clickToken,
         })),
       );
     }
@@ -506,7 +591,7 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
       const invalids = recipients.filter((r) => !hasContact(r));
       await db.insert(campaignRecipientsTable).values(
         invalids.map((r) => ({
-          organizationId: req.authUser!.organizationId,
+          organizationId: orgId,
           campaignId: c.id, audienceType: r.audienceType, refId: r.refId,
           name: r.name, email: r.email, phone: r.phone,
           status: "failed" as const,
@@ -518,22 +603,20 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
     const [updated] = await db.update(marketingCampaignsTable).set({
       status: "sent", sentAt: new Date(),
       recipientsCount: recipients.length, sentCount: valid.length, failedCount: failed,
-    }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, c.id))).returning();
+    }).where(and(eq(marketingCampaignsTable.organizationId, orgId), eq(marketingCampaignsTable.id, c.id))).returning();
 
-    // Incrémenter le volume du canal (compteur 30j approximatif, scopé org)
     if (valid.length > 0 && c.channel !== "multi") {
       await db.update(marketingChannelConnectionsTable).set({
         volume30d: sql`${marketingChannelConnectionsTable.volume30d} + ${valid.length}`,
-        lastCheckAt: new Date(),
       }).where(and(
-        eq(marketingChannelConnectionsTable.organizationId, req.authUser!.organizationId),
+        eq(marketingChannelConnectionsTable.organizationId, orgId),
         eq(marketingChannelConnectionsTable.channel, c.channel),
         eq(marketingChannelConnectionsTable.isActive, true),
       ));
     }
 
-    console.log(`[MARKETING] Campagne "${c.name}" envoyée — ${valid.length}/${recipients.length} ${c.channel}(s) délivrés (mode simulation)`);
-    return res.json({ campaign: updated, sent: valid.length, failed });
+    req.log.info({ campaignId: c.id, sendMode, sent: valid.length, failed, actualSent, actualFailed }, "Campagne envoyée");
+    return res.json({ campaign: updated, sent: valid.length, failed, sendMode, actualSent, actualFailed });
   } catch (e: any) { return res.status(500).json({ error: e.message }); }
 });
 
@@ -1018,6 +1101,62 @@ router.get("/marketing/calendar", async (req, res) => {
   }
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   return res.json({ events });
+});
+
+// ─── FORMULAIRES MARKETING (CRUD) ───────────────────────────────
+
+router.get("/marketing/forms", async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const forms = await db.select().from(marketingFormsTable)
+      .where(and(eq(marketingFormsTable.organizationId, orgId), isNull(marketingFormsTable.deletedAt)))
+      .orderBy(desc(marketingFormsTable.createdAt));
+    return res.json({ data: forms });
+  } catch (e: any) { return res.status(500).json({ error: e.message }); }
+});
+
+router.post("/marketing/forms", requireManagerOrAbove, async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { name, slug, description, fields, confirmationMessage, sourceTag, automationId, isActive } = req.body;
+    if (!name) return res.status(400).json({ error: "Le nom est requis" });
+    if (!fields || !Array.isArray(fields)) return res.status(400).json({ error: "Les champs sont requis" });
+    const [form] = await db.insert(marketingFormsTable).values({
+      organizationId: orgId, name, slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      description: description || null, fields, confirmationMessage: confirmationMessage || null,
+      sourceTag: sourceTag || "form", automationId: automationId || null,
+      isActive: isActive ?? true, createdBy: req.authUser!.id,
+    }).returning();
+    return res.status(201).json(form);
+  } catch (e: any) { return res.status(500).json({ error: e.message }); }
+});
+
+router.put("/marketing/forms/:id", requireManagerOrAbove, async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { name, slug, description, fields, confirmationMessage, sourceTag, automationId, isActive } = req.body;
+    const [form] = await db.update(marketingFormsTable)
+      .set({
+        name, slug, description: description ?? null, fields,
+        confirmationMessage: confirmationMessage ?? null,
+        sourceTag: sourceTag ?? "form", automationId: automationId ?? null,
+        isActive: isActive ?? true, updatedAt: new Date(),
+      })
+      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, req.params.id), isNull(marketingFormsTable.deletedAt)))
+      .returning();
+    if (!form) return res.status(404).json({ error: "Not found" });
+    return res.json(form);
+  } catch (e: any) { return res.status(500).json({ error: e.message }); }
+});
+
+router.delete("/marketing/forms/:id", requireManagerOrAbove, async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    await db.update(marketingFormsTable)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, req.params.id)));
+    return res.json({ ok: true });
+  } catch (e: any) { return res.status(500).json({ error: e.message }); }
 });
 
 export default router;
