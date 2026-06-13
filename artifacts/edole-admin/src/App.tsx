@@ -161,6 +161,7 @@ const KioskManagement = lazy(() => import("@/pages/kiosk-management/index"));
 const MonEspace = lazy(() => import("@/pages/mon-espace/index"));
 const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
 const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
+const ManagementPDFPage = lazy(() => import("@/pages/reports/management-pdf"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -202,6 +203,11 @@ function AppRouter() {
       <Route path="/documents/:type/:id/print">
         <ProtectedRoute>
           <Suspense fallback={<PageFallback />}><PrintDocument /></Suspense>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/reports/management/pdf">
+        <ProtectedRoute>
+          <Suspense fallback={<PageFallback />}><ManagementPDFPage /></Suspense>
         </ProtectedRoute>
       </Route>
       <Route>

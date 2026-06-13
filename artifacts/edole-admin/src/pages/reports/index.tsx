@@ -2901,11 +2901,20 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
             <h1 className="text-2xl font-bold leading-tight">Management Reporting Center</h1>
             <p className="text-slate-400 text-sm mt-1">{periodLabel}</p>
           </div>
-          <div className="text-right text-xs text-slate-500 mt-1">
-            <div>Généré le {generatedAt}</div>
-            <div className="mt-1 flex items-center justify-end gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${f.netResult >= 0 ? "bg-emerald-400" : "bg-red-400"}`} />
-              <span className="text-slate-400">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</span>
+          <div className="flex flex-col items-end gap-2 mt-1">
+            <button
+              onClick={() => window.open(`/reports/management/pdf?${periodQuery}`, "_blank")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
+              title="Ouvrir le rapport PDF professionnel dans un nouvel onglet"
+            >
+              <FileText className="w-3.5 h-3.5" /> Rapport PDF
+            </button>
+            <div className="text-right text-xs text-slate-500">
+              <div>Généré le {generatedAt}</div>
+              <div className="mt-1 flex items-center justify-end gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${f.netResult >= 0 ? "bg-emerald-400" : "bg-red-400"}`} />
+                <span className="text-slate-400">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</span>
+              </div>
             </div>
           </div>
         </div>
