@@ -1,0 +1,67 @@
+Pouvez-vous réaliser une **évaluation complète du site HighRadius** : https://www.highradius.com/ afin d’identifier clairement les produits, solutions, modules et fonctionnalités qu’ils proposent ?
+
+### Objectif
+
+Je veux comprendre l’offre globale de HighRadius, notamment leurs solutions financières, leurs produits SaaS, leurs modules d’automatisation et les problématiques qu’ils adressent pour les entreprises.
+
+### Ce qu’il faut analyser
+
+Merci d’étudier le site et de présenter clairement :
+
+* les principaux produits proposés
+* les solutions par domaine fonctionnel
+* les modules disponibles
+* les cas d’usage ciblés
+* les types d’entreprises visées
+* les fonctionnalités clés
+* les bénéfices mis en avant
+* les technologies utilisées ou mentionnées, notamment IA, automatisation, finance, cash management, AR/AP, trésorerie, etc.
+* la logique de navigation du site
+* le positionnement commercial de HighRadius
+* les éléments différenciants
+
+### Points à vérifier en priorité
+
+Merci de porter une attention particulière aux solutions liées à :
+
+* gestion de la trésorerie
+* comptes clients / accounts receivable
+* recouvrement
+* cash application
+* déductions
+* credit management
+* facturation
+* paiements
+* prévisions de trésorerie
+* automatisation financière
+* intelligence artificielle appliquée à la finance
+
+### Comparaison avec Gaméasù
+
+Après l’analyse, merci d’indiquer quelles idées, fonctionnalités ou modules pourraient inspirer Gaméasù, notamment pour renforcer :
+
+* le module Finance
+* le module Comptabilité
+* le module Trésorerie
+* le module Facturation
+* le module Encaissements
+* le module Recouvrement
+* le module Reporting
+* le module IA / automatisation
+
+### Résultat attendu
+
+Je veux une synthèse structurée avec :
+
+1. résumé de HighRadius
+2. liste de leurs produits et solutions
+3. description de chaque solution
+4. fonctionnalités clés identifiées
+5. forces du positionnement
+6. idées applicables à Gaméasù
+7. modules ou fonctionnalités à ajouter dans Gaméasù
+8. recommandations prioritaires
+
+### Objectif final
+
+Comprendre comment HighRadius structure ses produits financiers et identifier les meilleures idées à adapter dans Gaméasù pour rendre notre plateforme plus puissante, plus professionnelle et plus compétitive.
