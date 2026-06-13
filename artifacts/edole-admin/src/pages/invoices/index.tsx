@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer, Link2 } from "lucide-react";
+import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer, Link2, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -517,7 +518,7 @@ export default function InvoicesList() {
                       </TableCell>
                       <TableCell>
                         {!isCancelled && (
-                          <div className="flex items-center gap-1 flex-wrap">
+                          <div className="flex items-center gap-1">
                             {canPay && (
                               <Button size="sm" onClick={() => setPayingInvoice(inv)}
                                 className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white">
@@ -528,42 +529,60 @@ export default function InvoicesList() {
                               onClick={() => setSendEmailTarget(inv)}>
                               <Mail className="w-3 h-3" /> Email
                             </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
-                              onClick={() => window.open(`/documents/invoice/${inv.id}/print`, "_blank")}>
-                              <Printer className="w-3 h-3" /> PDF
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-amber-600 border-amber-200 hover:bg-amber-50"
-                              onClick={() => setCreditNoteTarget(inv)}>
-                              <MinusCircle className="w-3 h-3" /> Avoir
-                            </Button>
-                            <Button size="sm" variant="outline"
-                              className="h-7 text-xs gap-0.5 text-violet-600 border-violet-200 hover:bg-violet-50"
-                              disabled={generatingLinkId === inv.id}
-                              onClick={async () => {
-                                setGeneratingLinkId(inv.id);
-                                try {
-                                  const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" });
-                                  const url = `${window.location.origin}/facture/${r.token}`;
-                                  await navigator.clipboard.writeText(url);
-                                  toast.success("Lien copié dans le presse-papiers");
-                                } catch { toast.error("Erreur lors de la génération du lien"); }
-                                finally { setGeneratingLinkId(null); }
-                              }}>
-                              <Link2 className="w-3 h-3" /> Lien
-                            </Button>
-                            {canEditDoc && (
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
-                                onClick={() => setEditTarget(inv)}>
-                                <Pencil className="w-3 h-3 mr-0.5" /> Modifier
-                              </Button>
-                            )}
-                            {(canCancelDoc || isCancelBlocked) && (
-                              <Button size="sm" variant="ghost"
-                                className={`h-7 text-xs ${isCancelBlocked ? "text-slate-400 cursor-not-allowed" : "text-red-600 hover:bg-red-50 hover:text-red-700"}`}
-                                onClick={() => setCancelTarget(inv)}>
-                                <XCircle className="w-3 h-3 mr-0.5" /> Annuler
-                              </Button>
-                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-slate-500 border-slate-200">
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                  className="text-xs gap-2 cursor-pointer"
+                                  onClick={() => window.open(`/documents/invoice/${inv.id}/print`, "_blank")}>
+                                  <Printer className="w-3.5 h-3.5 text-slate-500" /> Télécharger PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-xs gap-2 cursor-pointer text-violet-700 focus:text-violet-700"
+                                  disabled={generatingLinkId === inv.id}
+                                  onClick={async () => {
+                                    setGeneratingLinkId(inv.id);
+                                    try {
+                                      const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" });
+                                      const url = `${window.location.origin}/facture/${r.token}`;
+                                      await navigator.clipboard.writeText(url);
+                                      toast.success("Lien public copié dans le presse-papiers");
+                                    } catch { toast.error("Erreur lors de la génération du lien"); }
+                                    finally { setGeneratingLinkId(null); }
+                                  }}>
+                                  <Link2 className="w-3.5 h-3.5" /> Copier lien public
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-xs gap-2 cursor-pointer text-amber-700 focus:text-amber-700"
+                                  onClick={() => setCreditNoteTarget(inv)}>
+                                  <MinusCircle className="w-3.5 h-3.5" /> Créer un avoir
+                                </DropdownMenuItem>
+                                {canEditDoc && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-xs gap-2 cursor-pointer"
+                                      onClick={() => setEditTarget(inv)}>
+                                      <Pencil className="w-3.5 h-3.5 text-slate-500" /> Modifier
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {(canCancelDoc || isCancelBlocked) && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className={`text-xs gap-2 cursor-pointer ${isCancelBlocked ? "opacity-40 pointer-events-none" : "text-red-600 focus:text-red-600"}`}
+                                      onClick={() => setCancelTarget(inv)}>
+                                      <XCircle className="w-3.5 h-3.5" /> Annuler la facture
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         )}
                       </TableCell>
