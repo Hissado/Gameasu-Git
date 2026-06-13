@@ -547,7 +547,7 @@ export default function InvoicesList() {
                                   onClick={async () => {
                                     setGeneratingLinkId(inv.id);
                                     try {
-                                      const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" });
+                                      const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" }) as { token: string };
                                       const url = `${window.location.origin}/facture/${r.token}`;
                                       await navigator.clipboard.writeText(url);
                                       toast.success("Lien public copié dans le presse-papiers");

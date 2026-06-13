@@ -40,7 +40,23 @@ import {
   Building2,
   BookOpen,
   Percent,
+  Star,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeft,
+  Layers,
+  BarChart3,
+  Settings2,
+  Zap,
+  RefreshCcw,
+  PlusCircle,
+  Copy,
+  Share2,
+  Printer,
+  LayoutDashboard,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   ResponsiveContainer,
   LineChart,
@@ -257,113 +273,678 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 // PAGE
 // ════════════════════════════════════════════════════════════════
 
-const REPORT_TAB_GROUPS: TabNavGroup[] = [
+// ────────────────────────────────────────────────────────────────
+// Catalogue de rapports — données statiques
+// ────────────────────────────────────────────────────────────────
+
+type CatalogReport = { id: string; name: string; desc: string; tab: string };
+type CatalogCategory = { id: string; label: string; icon: any; reports: CatalogReport[] };
+
+const REPORT_CATALOG: CatalogCategory[] = [
   {
-    label: "Synthèse",
-    items: [{ value: "overview", label: "Vue d'ensemble", icon: TrendingUp }],
-  },
-  {
-    label: "Finance & Commerce",
-    items: [
-      { value: "finance", label: "Finance", icon: Banknote },
-      { value: "sales", label: "Ventes", icon: ShoppingCart },
-      { value: "purchases", label: "Achats", icon: Package },
+    id: "vue-ensemble", label: "Vue d'ensemble de l'entreprise", icon: TrendingUp,
+    reports: [
+      { id: "snapshot",            name: "Snapshot de l'entreprise",          desc: "Vue synthétique multi-module sur la période",          tab: "overview" },
+      { id: "management-report",   name: "Rapport de gestion",                desc: "Synthèse exécutive avec ratios et tendances",          tab: "finance" },
+      { id: "income-statement",    name: "Compte de résultat",                desc: "Produits et charges SYSCOHADA",                        tab: "finance" },
+      { id: "balance-sheet",       name: "Bilan",                             desc: "Actif, passif et capitaux propres",                    tab: "finance" },
+      { id: "cash-flow",           name: "Flux de trésorerie",                desc: "Encaissements et décaissements sur la période",        tab: "finance" },
+      { id: "trial-balance",       name: "Balance de vérification",           desc: "Balance des comptes par classe SYSCOHADA",             tab: "finance" },
+      { id: "fiscal-synthesis",    name: "Synthèse fiscale",                  desc: "TVA collectée, déductible, IS et indicateurs fiscaux", tab: "finance" },
+      { id: "general-ledger",      name: "Grand livre",                       desc: "Toutes les écritures par compte",                     tab: "finance" },
     ],
   },
   {
-    label: "Opérations",
-    items: [
-      { value: "projects", label: "Projets", icon: Briefcase },
-      { value: "hr", label: "RH", icon: Users },
-      { value: "parc", label: "Parc", icon: Wrench },
+    id: "creances-clients", label: "Ce que les clients doivent", icon: Receipt,
+    reports: [
+      { id: "aged-receivables",    name: "Balance âgée clients — résumé",     desc: "Encours par tranche : 0-30 / 30-60 / 60-90 / 90+j",  tab: "sales" },
+      { id: "collections",         name: "Rapport de recouvrement",           desc: "Clients prioritaires, score et relances",             tab: "sales" },
+      { id: "customer-balance",    name: "Solde clients",                     desc: "Encours total par client",                            tab: "sales" },
+      { id: "open-invoices",       name: "Factures ouvertes",                 desc: "Toutes les factures non soldées",                     tab: "sales" },
+      { id: "invoices-payments",   name: "Factures et paiements reçus",       desc: "Historique complet des encaissements",                tab: "sales" },
+    ],
+  },
+  {
+    id: "ventes-clients", label: "Ventes et clients", icon: ShoppingCart,
+    reports: [
+      { id: "sales-summary",       name: "Résumé des ventes",                 desc: "CA, commandes et proformas sur la période",           tab: "sales" },
+      { id: "sales-by-client",     name: "Ventes par client",                 desc: "Top clients et détail des ventes",                    tab: "sales" },
+      { id: "pipeline",            name: "Pipeline commercial",               desc: "Opportunités par étape (Lead → Signé)",               tab: "sales" },
+      { id: "conversion-rate",     name: "Taux de conversion proformas",      desc: "Proformas converties en commandes",                   tab: "sales" },
+    ],
+  },
+  {
+    id: "inventaire", label: "Inventaire & Parc matériel", icon: Package,
+    reports: [
+      { id: "stock-snapshot",      name: "Bilan journalier du parc",          desc: "Disponible, loué, maintenance — snapshot temps réel", tab: "parc" },
+      { id: "stock-movements",     name: "Mouvements d'équipements",          desc: "Historique des entrées et sorties 24h",               tab: "parc" },
+    ],
+  },
+  {
+    id: "fournisseurs", label: "Ce que l'entreprise doit", icon: Scale,
+    reports: [
+      { id: "aged-payables",       name: "Balance âgée fournisseurs — résumé", desc: "Dettes par ancienneté (0-30-60-90+j)",              tab: "purchases" },
+      { id: "unpaid-suppliers",    name: "Factures fournisseurs impayées",    desc: "Toutes les factures fournisseurs en attente",         tab: "purchases" },
+      { id: "supplier-payments",   name: "Paiements fournisseurs",            desc: "Historique des règlements fournisseurs",              tab: "purchases" },
+    ],
+  },
+  {
+    id: "depenses", label: "Dépenses et fournisseurs", icon: Banknote,
+    reports: [
+      { id: "purchases-summary",   name: "Résumé des achats",                 desc: "Total des achats sur la période",                    tab: "purchases" },
+      { id: "purchases-by-vendor", name: "Achats par fournisseur",            desc: "Détail des achats par fournisseur",                  tab: "purchases" },
+      { id: "disbursements",       name: "Décaissements",                     desc: "Toutes les sorties de trésorerie",                   tab: "finance" },
+    ],
+  },
+  {
+    id: "projets", label: "Projets & Opérations", icon: Briefcase,
+    reports: [
+      { id: "projects-overview",   name: "Vue d'ensemble projets",            desc: "Tous les projets, statuts et budgets",               tab: "projects" },
+      { id: "project-performance", name: "Performance par projet",            desc: "Avancement, budget consommé et retards",             tab: "projects" },
+      { id: "workload",            name: "Charge de travail équipe",          desc: "Répartition des tâches par collaborateur",           tab: "projects" },
+    ],
+  },
+  {
+    id: "rh-paie", label: "RH et paie", icon: Users,
+    reports: [
+      { id: "hr-overview",         name: "Effectifs et présences",            desc: "Actifs, absences et anomalies de pointage",          tab: "hr" },
+      { id: "salary-mass",         name: "Masse salariale",                   desc: "Total brut, cotisations et net mensuel",             tab: "hr" },
+      { id: "turnover",            name: "Taux de turnover",                  desc: "Entrées, sorties et renouvellement des effectifs",   tab: "hr" },
+      { id: "attendance-flags",    name: "Anomalies de pointage",             desc: "Retards, départs anticipés, pointages manquants",    tab: "hr" },
+    ],
+  },
+  {
+    id: "comptable", label: "Pour mon comptable", icon: BookOpen,
+    reports: [
+      { id: "reconciliation",      name: "Rapprochement bancaire",            desc: "Rapprochement des relevés bancaires",                tab: "finance" },
+      { id: "journal-entries",     name: "Journal des écritures",             desc: "Toutes les écritures comptables par date",           tab: "finance" },
+      { id: "income-detail",       name: "Compte de résultat — détail",       desc: "CR avec ventilation par classe de compte",           tab: "finance" },
+      { id: "balance-sheet-detail",name: "Bilan — détail",                    desc: "Bilan avec détail par compte",                      tab: "finance" },
     ],
   },
 ];
 
-export default function ReportsPage() {
-  const pf = usePeriodFilter("month");
-  const [tab, setTab] = useState("overview");
+// ────────────────────────────────────────────────────────────────
+// Hook favoris (localStorage)
+// ────────────────────────────────────────────────────────────────
+
+function useFavorites() {
+  const [favs, setFavs] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("gamasuu-report-favs") ?? "[]") as string[]; }
+    catch { return []; }
+  });
+  const toggle = (id: string) => setFavs(prev => {
+    const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+    localStorage.setItem("gamasuu-report-favs", JSON.stringify(next));
+    return next;
+  });
+  return { favs, toggle };
+}
+
+// ────────────────────────────────────────────────────────────────
+// StandardCatalogTab
+// ────────────────────────────────────────────────────────────────
+
+function StandardCatalogTab({ onOpen }: { onOpen: (tabTarget: string, reportName: string) => void }) {
+  const { favs, toggle } = useFavorites();
+  const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggleCollapse = (id: string) =>
+    setCollapsed(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+
+  const q = search.trim().toLowerCase();
+  const favoriteReports = REPORT_CATALOG.flatMap(c => c.reports).filter(r => favs.includes(r.id));
+
+  const filteredCatalog = q
+    ? REPORT_CATALOG.map(cat => ({ ...cat, reports: cat.reports.filter(r => r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q)) })).filter(c => c.reports.length > 0)
+    : REPORT_CATALOG;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rapports & analytique</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Pilotage transversal : finance, ventes, projets, RH et parc — exports PDF/Excel inclus.
-          </p>
+    <div className="space-y-4">
+      {/* Search + create */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un rapport…"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>}
         </div>
-        <PeriodFilter
-          preset={pf.preset}
-          onPresetChange={pf.setPreset}
-          customFrom={pf.customFrom}
-          onCustomFromChange={pf.setCustomFrom}
-          customTo={pf.customTo}
-          onCustomToChange={pf.setCustomTo}
-          compareMode={pf.compareMode}
-          onCompareModeChange={pf.setCompareMode}
-          customCompareFrom={pf.customCompareFrom}
-          onCustomCompareFromChange={pf.setCustomCompareFrom}
-          customCompareTo={pf.customCompareTo}
-          onCustomCompareToChange={pf.setCustomCompareTo}
-          period={pf.period}
-          comparePeriod={pf.comparePeriod}
-          showCompare
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+              <PlusCircle className="w-4 h-4" /> Créer un rapport <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen("overview", "Nouveau rapport personnalisé")}>
+              <FileText className="w-3.5 h-3.5" /> Nouveau rapport vierge
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen("finance", "Rapport de gestion")}>
+              <Copy className="w-3.5 h-3.5" /> Dupliquer un rapport existant
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen("finance", "Rapport Budget vs Réel")}>
+              <BarChart3 className="w-3.5 h-3.5" /> Budget vs Réel
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen("finance", "Rapport Trésorerie prévisionnelle")}>
+              <Banknote className="w-3.5 h-3.5" /> Trésorerie prévisionnelle
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      <VerticalTabsShell tabGroups={REPORT_TAB_GROUPS} value={tab} onChange={setTab}>
-        {tab === "overview" && (
-          <OverviewTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "finance" && (
-          <FinanceTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "sales" && (
-          <SalesTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "purchases" && (
-          <PurchasesTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "projects" && (
-          <ProjectsTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "hr" && (
-          <HrTab
-            periodQuery={pf.periodQuery}
-            comparePeriod={pf.comparePeriod}
-            compareMode={pf.compareMode}
-            period={pf.period}
-          />
-        )}
-        {tab === "parc" && <ParcTab />}
-      </VerticalTabsShell>
+      {/* Favoris */}
+      {!q && favoriteReports.length > 0 && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+            <span className="font-semibold text-sm text-amber-800">Favoris</span>
+            <span className="ml-auto text-xs text-amber-600">{favoriteReports.length} rapport{favoriteReports.length > 1 ? "s" : ""}</span>
+          </div>
+          <div className="divide-y">
+            {favoriteReports.map(r => (
+              <ReportRow key={r.id} report={r} isFav tab={r.tab} onOpen={onOpen} onToggleFav={toggle} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Catalogue par catégorie */}
+      {filteredCatalog.map(cat => {
+        const isOpen = !collapsed.has(cat.id);
+        const Icon = cat.icon;
+        return (
+          <div key={cat.id} className="border rounded-lg overflow-hidden">
+            <button
+              onClick={() => toggleCollapse(cat.id)}
+              className="w-full flex items-center gap-2.5 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+            >
+              {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />}
+              <Icon className="w-4 h-4 text-[#C8A24B] shrink-0" />
+              <span className="font-semibold text-sm text-slate-800">{cat.label}</span>
+              <span className="ml-auto text-xs text-slate-400">{cat.reports.length} rapport{cat.reports.length > 1 ? "s" : ""}</span>
+            </button>
+            {isOpen && (
+              <div className="divide-y">
+                {cat.reports.map(r => (
+                  <ReportRow
+                    key={r.id} report={r} tab={r.tab}
+                    isFav={favs.includes(r.id)}
+                    onOpen={onOpen}
+                    onToggleFav={toggle}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {filteredCatalog.length === 0 && (
+        <div className="py-16 text-center text-muted-foreground">
+          <Search className="w-8 h-8 mx-auto mb-3 opacity-20" />
+          <p className="text-sm font-medium">Aucun rapport pour « {search} »</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportRow({ report, tab, isFav, onOpen, onToggleFav }: {
+  report: CatalogReport; tab: string; isFav: boolean;
+  onOpen: (tab: string, name: string) => void;
+  onToggleFav: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 group">
+      <button
+        className="flex-1 text-left min-w-0"
+        onClick={() => onOpen(tab, report.name)}
+      >
+        <span className="text-sm font-medium text-slate-800 hover:text-[#C8A24B] hover:underline underline-offset-2 cursor-pointer leading-tight">
+          {report.name}
+        </span>
+        <span className="block text-xs text-muted-foreground mt-0.5 truncate">{report.desc}</span>
+      </button>
+      <button
+        onClick={() => onToggleFav(report.id)}
+        className={`shrink-0 p-1 rounded transition-colors ${isFav ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-300 group-hover:text-slate-300"}`}
+        title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+      >
+        <Star className={`w-4 h-4 ${isFav ? "fill-amber-400" : ""}`} />
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-all">
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen(tab, report.name)}>
+            <FileText className="w-3.5 h-3.5" /> Ouvrir le rapport
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onToggleFav(report.id)}>
+            <Star className={`w-3.5 h-3.5 ${isFav ? "fill-amber-400 text-amber-400" : ""}`} />
+            {isFav ? "Retirer des favoris" : "Marquer favori"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => { onOpen(tab, report.name); setTimeout(() => downloadAuthed(`/api/reports/${tab}/export.xlsx`, `${report.name}.xlsx`), 300); }}>
+            <Download className="w-3.5 h-3.5" /> Exporter Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen(tab, report.name)}>
+            <Share2 className="w-3.5 h-3.5" /> Partager
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// KPIs tab — synthèse des indicateurs clés
+// ────────────────────────────────────────────────────────────────
+
+function KpisTab({ periodQuery }: { periodQuery: string }) {
+  const { data, isLoading } = useQuery<{
+    finance: { kpi: FinanceReport["kpi"]; series: FinanceReport["series"] };
+    sales: { kpi: SalesReport["kpi"]; series: SalesReport["series"] };
+    projects: { kpi: ProjectsReport["kpi"] };
+    hr: { kpi: HrReport["kpi"] };
+  }>({
+    queryKey: ["report", "overview", periodQuery],
+    queryFn: () => apiFetch(`/api/reports/overview?${periodQuery}`),
+  });
+
+  if (isLoading || !data) return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+    </div>
+  );
+
+  const f = data.finance.kpi;
+  const s = data.sales.kpi;
+  const p = data.projects.kpi;
+  const h = data.hr.kpi;
+
+  const dso = f.outstandingAmount > 0 && f.collectedAmount > 0
+    ? Math.round((f.outstandingAmount / (f.collectedAmount + f.outstandingAmount)) * 30)
+    : 0;
+
+  const kpiGroups = [
+    {
+      label: "Finance & Recouvrement",
+      icon: Banknote,
+      color: "text-emerald-600",
+      kpis: [
+        { label: "CA facturé", value: formatFCFA(f.invoicedAmount), accent: "primary" as const },
+        { label: "Encaissé", value: formatFCFA(f.collectedAmount), accent: "success" as const, hint: `${f.collectionRate.toFixed(0)}% taux de recouvrement` },
+        { label: "Encours clients", value: formatFCFA(f.outstandingAmount), accent: f.outstandingAmount > 0 ? "warning" as const : "default" as const },
+        { label: "Impayés en retard", value: formatFCFA(f.overdueAmount), accent: f.overdueAmount > 0 ? "danger" as const : "success" as const, hint: `${f.overdueCount} facture${f.overdueCount > 1 ? "s" : ""}` },
+        { label: "DSO (jours)", value: `${dso} j`, accent: dso > 45 ? "danger" as const : dso > 30 ? "warning" as const : "success" as const },
+      ],
+    },
+    {
+      label: "Ventes & Pipeline",
+      icon: ShoppingCart,
+      color: "text-blue-600",
+      kpis: [
+        { label: "Commandes", value: String(s.ordersCount), accent: "default" as const, hint: formatFCFA(s.ordersAmount) },
+        { label: "CA commandes", value: formatFCFA(s.ordersAmount), accent: "primary" as const },
+        { label: "Proformas", value: String(s.proformasCount), accent: "default" as const },
+        { label: "Taux conversion", value: `${s.conversionRate.toFixed(0)}%`, accent: s.conversionRate >= 50 ? "success" as const : s.conversionRate >= 25 ? "warning" as const : "danger" as const },
+        { label: "Pipeline actif", value: formatFCFA(s.pipelineValue), accent: "default" as const, hint: `${s.pipelineCount} opportunité${s.pipelineCount > 1 ? "s" : ""}` },
+      ],
+    },
+    {
+      label: "Projets & Opérations",
+      icon: Briefcase,
+      color: "text-violet-600",
+      kpis: [
+        { label: "Projets actifs", value: String(p.activeCount), accent: "primary" as const },
+        { label: "En retard", value: String(p.overdueCount), accent: p.overdueCount > 0 ? "danger" as const : "success" as const },
+        { label: "Budget total", value: formatFCFA(p.totalBudget), accent: "default" as const },
+        { label: "Avancement moyen", value: `${p.avgProgress.toFixed(0)}%`, accent: p.avgProgress >= 75 ? "success" as const : p.avgProgress >= 40 ? "warning" as const : "default" as const },
+      ],
+    },
+    {
+      label: "RH & Effectifs",
+      icon: Users,
+      color: "text-orange-600",
+      kpis: [
+        { label: "Effectif actif", value: String(h.active), accent: "default" as const },
+        { label: "En congé", value: String(h.onLeave), accent: h.onLeave > 0 ? "warning" as const : "default" as const },
+        { label: "Heures travaillées", value: `${h.totalHours.toFixed(0)} h`, accent: "default" as const },
+        { label: "Anomalies pointage", value: String(h.unresolvedFlags), accent: h.unresolvedFlags > 5 ? "danger" as const : h.unresolvedFlags > 0 ? "warning" as const : "success" as const },
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {kpiGroups.map(group => {
+        const GroupIcon = group.icon;
+        return (
+          <div key={group.label}>
+            <h3 className={`flex items-center gap-2 font-bold text-sm uppercase tracking-wider mb-3 ${group.color}`}>
+              <GroupIcon className="w-4 h-4" /> {group.label}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {group.kpis.map(kpi => <Kpi key={kpi.label} label={kpi.label} value={kpi.value} accent={kpi.accent} hint={"hint" in kpi ? (kpi as any).hint : undefined} />)}
+            </div>
+          </div>
+        );
+      })}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Évolution CA vs Encaissé</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={data.finance.series} barSize={12}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} />
+                <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="facture" name="Facturé" fill="#C8A24B" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="encaisse" name="Encaissé" fill="#10B981" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-primary" /> Évolution commandes</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={data.sales.series}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} />
+                <Tooltip formatter={(v: number) => formatFCFA(v)} />
+                <Line type="monotone" dataKey="amount" name="CA" stroke="#C8A24B" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Dashboards tab
+// ────────────────────────────────────────────────────────────────
+
+function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void }) {
+  const dashboards = [
+    { id: "finance-dashboard", title: "Tableau de bord Finance", desc: "CA, encours, flux, marge — synthèse financière", icon: Banknote, tab: "finance", color: "from-emerald-50 to-white border-emerald-200" },
+    { id: "sales-dashboard",   title: "Tableau de bord Ventes",  desc: "Pipeline, commandes, conversions, top clients", icon: ShoppingCart, tab: "sales", color: "from-blue-50 to-white border-blue-200" },
+    { id: "projects-dashboard",title: "Tableau de bord Projets", desc: "Avancement, budgets, retards, charge équipe",    icon: Briefcase, tab: "projects", color: "from-violet-50 to-white border-violet-200" },
+    { id: "hr-dashboard",      title: "Tableau de bord RH",      desc: "Effectifs, présences, masse salariale, turnover",icon: Users, tab: "hr", color: "from-orange-50 to-white border-orange-200" },
+    { id: "ops-dashboard",     title: "Tableau de bord Parc",    desc: "Inventaire, locations, maintenances en cours",   icon: Wrench, tab: "parc", color: "from-slate-50 to-white border-slate-200" },
+    { id: "overview-dashboard",title: "Vue d'ensemble globale",  desc: "Tous modules — tableau de pilotage exécutif",    icon: LayoutDashboard, tab: "overview", color: "from-amber-50 to-white border-amber-200" },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {dashboards.map(d => {
+          const Icon = d.icon;
+          return (
+            <button key={d.id} onClick={() => onOpen(d.tab, d.title)}
+              className={`text-left border bg-gradient-to-br ${d.color} rounded-xl p-5 hover:shadow-md transition-shadow group`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="p-2 bg-white rounded-lg shadow-sm border"><Icon className="w-5 h-5 text-[#C8A24B]" /></div>
+                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors mt-1" />
+              </div>
+              <p className="font-semibold text-sm text-slate-800 mb-1">{d.title}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{d.desc}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Rapports personnalisés tab (scaffold)
+// ────────────────────────────────────────────────────────────────
+
+function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => void }) {
+  const modules = [
+    { id: "accounting", label: "Comptabilité", icon: BarChart3 },
+    { id: "finance",    label: "Finance",       icon: Banknote },
+    { id: "sales",      label: "Ventes",        icon: ShoppingCart },
+    { id: "hr",         label: "RH",            icon: Users },
+    { id: "projects",   label: "Projets",       icon: Briefcase },
+    { id: "inventory",  label: "Inventaire",    icon: Package },
+  ];
+  const [module, setModule] = useState("sales");
+  const [cols, setCols] = useState<string[]>(["Date", "Client", "Montant TTC", "Statut"]);
+  const allCols = ["Date", "Référence", "Client", "Fournisseur", "Compte", "Département", "Projet", "Montant HT", "Taxes", "Montant TTC", "Paiement", "Solde", "Statut", "Responsable", "Notes"];
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><Settings2 className="w-4 h-4 text-[#C8A24B]" /> Créer un rapport personnalisé</CardTitle>
+          <CardDescription>Choisissez la source de données, les colonnes, les filtres et les regroupements.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Source de données</p>
+            <div className="flex flex-wrap gap-2">
+              {modules.map(m => {
+                const Icon = m.icon;
+                return (
+                  <button key={m.id} onClick={() => setModule(m.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${module === m.id ? "bg-[#C8A24B] text-white border-[#C8A24B]" : "bg-white border-slate-200 text-slate-600 hover:border-[#C8A24B] hover:text-[#C8A24B]"}`}>
+                    <Icon className="w-3.5 h-3.5" /> {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Colonnes affichées</p>
+            <div className="flex flex-wrap gap-1.5">
+              {allCols.map(c => {
+                const active = cols.includes(c);
+                return (
+                  <button key={c} onClick={() => setCols(prev => active ? prev.filter(x => x !== c) : [...prev, c])}
+                    className={`px-2.5 py-1 rounded text-xs border transition-colors ${active ? "bg-slate-800 text-white border-slate-800" : "bg-white border-slate-200 text-slate-600 hover:border-slate-400"}`}>
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "Période",     placeholder: "Ce mois-ci" },
+              { label: "Client",      placeholder: "Tous les clients" },
+              { label: "Département", placeholder: "Tous les dép." },
+              { label: "Statut",      placeholder: "Tous les statuts" },
+            ].map(f => (
+              <div key={f.label} className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">{f.label}</label>
+                <select className="w-full text-xs border border-input rounded px-2 py-1.5 bg-background text-slate-600">
+                  <option>{f.placeholder}</option>
+                </select>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={() => onOpen(module, "Rapport personnalisé")} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+              <Zap className="w-4 h-4" /> Générer le rapport
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <Download className="w-4 h-4" /> Exporter Excel
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <Share2 className="w-4 h-4" /> Sauvegarder le modèle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Performance center tab
+// ────────────────────────────────────────────────────────────────
+
+function PerformanceTab({ onOpen }: { onOpen: (tab: string, name: string) => void }) {
+  const reports = [
+    { name: "Résumé exécutif mensuel",     icon: TrendingUp,  tab: "overview", desc: "Synthèse globale pour les dirigeants" },
+    { name: "Performance financière",       icon: Banknote,    tab: "finance",  desc: "CA, marges, trésorerie et ratios" },
+    { name: "Analyse des revenus",          icon: BarChart3,   tab: "sales",    desc: "Évolution et composition du CA" },
+    { name: "Analyse des dépenses",         icon: Package,     tab: "purchases",desc: "Achats et dépenses par catégorie" },
+    { name: "Budget vs Réel",               icon: Scale,       tab: "finance",  desc: "Écarts budgétaires par axe" },
+    { name: "Performance par projet",       icon: Briefcase,   tab: "projects", desc: "Avancement, budget, retards" },
+    { name: "Performance par client",       icon: Building2,   tab: "sales",    desc: "CA, encours et risque par client" },
+    { name: "Rapport de recouvrement",      icon: AlertTriangle, tab: "sales",  desc: "DSO, impayés et score de relance" },
+    { name: "Rapport KPIs stratégiques",    icon: Zap,         tab: "overview", desc: "Indicateurs clés transverses" },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {reports.map(r => {
+          const Icon = r.icon;
+          return (
+            <button key={r.name} onClick={() => onOpen(r.tab, r.name)}
+              className="text-left border rounded-xl p-4 hover:border-[#C8A24B] hover:bg-amber-50/30 transition-all group">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="w-4 h-4 text-[#C8A24B]" />
+                <span className="font-semibold text-sm text-slate-800 group-hover:text-[#C8A24B] transition-colors">{r.name}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{r.desc}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// ReportViewer — affiche un rapport existant avec bouton retour
+// ────────────────────────────────────────────────────────────────
+
+function ReportViewer({ tab, reportName, pf, onBack }: {
+  tab: string; reportName: string;
+  pf: ReturnType<typeof usePeriodFilter>;
+  onBack: () => void;
+}) {
+  const tabProps = {
+    periodQuery: pf.periodQuery,
+    comparePeriod: pf.comparePeriod,
+    compareMode: pf.compareMode,
+    period: pf.period,
+  };
+  return (
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-slate-600 hover:text-slate-900">
+          <ArrowLeft className="w-4 h-4" /> Retour au catalogue
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-bold truncate">{reportName}</h2>
+        </div>
+        <PeriodFilter
+          preset={pf.preset} onPresetChange={pf.setPreset}
+          customFrom={pf.customFrom} onCustomFromChange={pf.setCustomFrom}
+          customTo={pf.customTo} onCustomToChange={pf.setCustomTo}
+          compareMode={pf.compareMode} onCompareModeChange={pf.setCompareMode}
+          customCompareFrom={pf.customCompareFrom} onCustomCompareFromChange={pf.setCustomCompareFrom}
+          customCompareTo={pf.customCompareTo} onCustomCompareToChange={pf.setCustomCompareTo}
+          period={pf.period} comparePeriod={pf.comparePeriod} showCompare
+        />
+      </div>
+      {tab === "overview"  && <OverviewTab  {...tabProps} />}
+      {tab === "finance"   && <FinanceTab   {...tabProps} />}
+      {tab === "sales"     && <SalesTab     {...tabProps} />}
+      {tab === "purchases" && <PurchasesTab {...tabProps} />}
+      {tab === "projects"  && <ProjectsTab  {...tabProps} />}
+      {tab === "hr"        && <HrTab        {...tabProps} />}
+      {tab === "parc"      && <ParcTab />}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Page principale — structure QuickBooks-style
+// ────────────────────────────────────────────────────────────────
+
+const MAIN_TABS = [
+  { id: "catalog",     label: "Rapports standards",    icon: Layers },
+  { id: "custom",      label: "Rapports personnalisés", icon: Settings2 },
+  { id: "management",  label: "Rapports de gestion",   icon: BarChart3 },
+  { id: "kpis",        label: "KPIs",                  icon: Zap },
+  { id: "dashboards",  label: "Tableaux de bord",      icon: LayoutDashboard },
+  { id: "performance", label: "Centre de performance", icon: TrendingUp },
+];
+
+export default function ReportsPage() {
+  const pf = usePeriodFilter("month");
+  const [mainTab, setMainTab] = useState("catalog");
+  const [viewingReport, setViewingReport] = useState<{ tab: string; name: string } | null>(null);
+
+  const handleOpen = (tab: string, name: string) => setViewingReport({ tab, name });
+  const handleBack = () => setViewingReport(null);
+
+  if (viewingReport) {
+    return (
+      <div className="space-y-0 animate-in fade-in duration-300">
+        <ReportViewer tab={viewingReport.tab} reportName={viewingReport.name} pf={pf} onBack={handleBack} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col gap-1 mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Rapports</h1>
+        <p className="text-sm text-muted-foreground">Centre de reporting — finance, ventes, projets, RH et parc</p>
+      </div>
+
+      {/* Tab bar QuickBooks-style */}
+      <div className="border-b border-border mb-6">
+        <div className="flex items-center gap-0 overflow-x-auto">
+          {MAIN_TABS.map(t => {
+            const Icon = t.icon;
+            const active = mainTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setMainTab(t.id)}
+                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                  active
+                    ? "border-[#C8A24B] text-[#C8A24B]"
+                    : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" /> {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tab content */}
+      <div className="animate-in fade-in duration-300">
+        {mainTab === "catalog"     && <StandardCatalogTab onOpen={handleOpen} />}
+        {mainTab === "custom"      && <CustomReportsTab onOpen={handleOpen} />}
+        {mainTab === "management"  && <ReportViewer tab="finance" reportName="Rapports de gestion" pf={pf} onBack={() => {}} />}
+        {mainTab === "kpis"        && <KpisTab periodQuery={pf.periodQuery} />}
+        {mainTab === "dashboards"  && <DashboardsTab onOpen={handleOpen} />}
+        {mainTab === "performance" && <PerformanceTab onOpen={handleOpen} />}
+      </div>
     </div>
   );
 }
