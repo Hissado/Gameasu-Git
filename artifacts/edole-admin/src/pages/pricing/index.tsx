@@ -751,13 +751,26 @@ function CostItemRow({
           <SelectItem value="per_unit">Par unité</SelectItem>
         </SelectContent>
       </Select>
-      <Input
-        type="number" min="0" step="any"
-        value={item.amount}
-        onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
-        className="h-8 text-xs text-right"
-        placeholder={item.alloc === "pct" ? "%" : "FCFA"}
-      />
+      {item.alloc === "pct" ? (
+        <div className="relative">
+          <Input
+            type="number" min="0" max="100" step="any"
+            value={item.amount}
+            onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
+            className="h-8 text-xs text-right pr-6"
+            placeholder="0"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium pointer-events-none">%</span>
+        </div>
+      ) : (
+        <Input
+          type="number" min="0" step="any"
+          value={item.amount}
+          onChange={e => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
+          className="h-8 text-xs text-right"
+          placeholder="FCFA"
+        />
+      )}
       {item.alloc === "per_unit" ? (
         <div className="flex gap-1">
           <Input
