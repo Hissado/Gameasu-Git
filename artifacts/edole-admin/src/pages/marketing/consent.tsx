@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, MessageSquare, Phone, ShieldCheck, ShieldOff } from "lucide-react";
+import { Mail, MessageSquare, Phone, ShieldCheck, ShieldOff, Download } from "lucide-react";
 
 type Consent = { id: string; contactType: string; contactId: string; channel: string; optIn: boolean; source?: string; preferredLanguage?: string; updatedAt: string };
 type Contact = { type: string; id: string; name: string; email: string | null; phone: string | null; company: string | null };
@@ -32,7 +32,6 @@ export default function ConsentPage() {
     queryFn: () => apiFetch("/api/marketing/contacts?limit=500"),
   });
 
-  // Index consent par (type:id:channel)
   const consentMap = useMemo(() => {
     const m = new Map<string, Consent>();
     for (const c of consents?.data ?? []) m.set(`${c.contactType}:${c.contactId}:${c.channel}`, c);
@@ -68,11 +67,53 @@ export default function ConsentPage() {
 
   const getOptIn = (c: Contact, channel: string) => {
     const entry = consentMap.get(`${c.type}:${c.id}:${channel}`);
-    return entry ? entry.optIn : true; // par défaut opt-in
+    return entry ? entry.optIn : true;
+  };
+
+  const exportCsv = () => {
+    const allContacts = contacts?.data || [];
+    const rows: string[] = [
+      ["Contact", "Type", "Société", "Email", "Téléphone", "Canal", "Consentement", "Source", "Date mise à jour"].join(";"),
+    ];
+    for (const c of allContacts) {
+      for (const ch of ["email", "sms", "whatsapp"]) {
+        const key = `${c.type}:${c.id}:${ch}`;
+        const entry = consentMap.get(key);
+        const optInLabel = entry ? (entry.optIn ? "opt-in" : "opt-out") : "défaut (opt-in)";
+        rows.push([
+          `"${c.name.replace(/"/g, '""')}"`,
+          c.type,
+          `"${(c.company || "").replace(/"/g, '""')}"`,
+          c.email || "",
+          c.phone || "",
+          ch,
+          optInLabel,
+          entry?.source || "",
+          entry ? new Date(entry.updatedAt).toLocaleDateString("fr-FR") : "",
+        ].join(";"));
+      }
+    }
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registre-consentements-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export CSV téléchargé", description: `${allContacts.length * 3} entrées exportées` });
   };
 
   return (
-    <MarketingShell title="Consentement & préférences" subtitle="Opt-in / opt-out par contact et par canal — journal complet">
+    <MarketingShell
+      title="Consentement & préférences"
+      subtitle="Opt-in / opt-out par contact et par canal — registre RGPD"
+      actions={
+        <Button variant="outline" onClick={exportCsv} disabled={!contacts?.data?.length}>
+          <Download className="w-4 h-4 mr-2" /> Exporter le registre CSV
+        </Button>
+      }
+    >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <Card><CardContent className="p-4"><div className="text-xs uppercase text-muted-foreground font-bold">Entrées</div><div className="text-2xl font-bold mt-1">{stats.total}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs uppercase text-muted-foreground font-bold">Opt-in</div><div className="text-2xl font-bold mt-1 text-emerald-600">{stats.optIn}</div></CardContent></Card>
@@ -81,7 +122,10 @@ export default function ConsentPage() {
           <div className="text-xs uppercase text-muted-foreground font-bold mb-1">Par canal</div>
           <div className="space-y-0.5 text-xs">
             {stats.byChannel.map((c) => (
-              <div key={c.channel} className="flex justify-between"><span className="capitalize">{c.channel}</span><span><span className="text-emerald-600 font-medium">{c.optIn}</span> · <span className="text-rose-600">{c.optOut}</span></span></div>
+              <div key={c.channel} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 capitalize">{channelIcon[c.channel]}<span>{c.channel}</span></div>
+                <span><span className="text-emerald-600 font-medium">{c.optIn}</span> · <span className="text-rose-600">{c.optOut}</span></span>
+              </div>
             ))}
           </div>
         </CardContent></Card>

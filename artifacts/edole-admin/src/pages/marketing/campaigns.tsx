@@ -27,11 +27,71 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const channelIcon = (c: string) => c === "email" ? <Mail className="w-3 h-3" /> : c === "sms" ? <MessageSquare className="w-3 h-3" /> : c === "whatsapp" ? <Phone className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />;
 
+function renderMarkdown(text: string): string {
+  return text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^### (.+)$/gm, "<h4 class='font-bold text-sm mt-2 mb-1'>$1</h4>")
+    .replace(/^## (.+)$/gm, "<h3 class='font-bold text-base mt-3 mb-1'>$1</h3>")
+    .replace(/^# (.+)$/gm, "<h2 class='font-bold text-lg mt-3 mb-1'>$1</h2>")
+    .replace(/^- (.+)$/gm, "<li class='ml-4 list-disc'>$1</li>")
+    .replace(/\n\n/g, "</p><p class='mb-2'>")
+    .replace(/\n/g, "<br />");
+}
+
+function MarkdownPreview({ content, channel, subject }: { content: string; channel: string; subject?: string }) {
+  if (!content) {
+    return (
+      <div className="border rounded-lg min-h-[160px] p-4 text-sm text-muted-foreground flex items-center justify-center bg-muted/20">
+        Aucun contenu à prévisualiser.
+      </div>
+    );
+  }
+
+  if (channel === "sms" || channel === "whatsapp") {
+    return (
+      <div className="flex justify-center py-2">
+        <div className="max-w-xs w-full">
+          <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${channel === "whatsapp" ? "bg-[#dcf8c6] text-gray-900" : "bg-blue-500 text-white"}`}>
+            <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1 text-right">
+            {content.length} caractère{content.length > 1 ? "s" : ""}
+            {channel === "sms" && content.length > 160 && <span className="text-amber-500 ml-1">— {Math.ceil(content.length / 160)} SMS</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg min-h-[160px] bg-white p-5">
+      {subject && (
+        <div className="text-sm font-bold mb-3 pb-3 border-b text-gray-800">
+          Objet : {subject}
+        </div>
+      )}
+      <div
+        className="text-sm text-gray-700 leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: `<p class='mb-2'>${renderMarkdown(content)}</p>` }}
+      />
+      <div className="mt-4 pt-3 border-t text-[10px] text-muted-foreground">
+        Variables disponibles : <code className="bg-muted px-1 rounded">{"{{nom}}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{{email}}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{{société}}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{{montant}}"}</code>
+      </div>
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Campaign | null>(null);
+  const [bodyTab, setBodyTab] = useState<"edit" | "preview">("edit");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const empty = { name: "", channel: "email", subject: "", body: "", audienceId: "", templateId: "", scheduledAt: "", audiences: [] as string[], statusFilter: "" };
@@ -105,7 +165,7 @@ export default function CampaignsPage() {
 
   const toggleAudience = (a: string) => setForm({ ...form, audiences: form.audiences.includes(a) ? form.audiences.filter((x: string) => x !== a) : [...form.audiences, a] });
 
-  const openNew = () => { setEdit(null); setForm(empty); setOpen(true); };
+  const openNew = () => { setEdit(null); setForm(empty); setBodyTab("edit"); setOpen(true); };
   const openEdit = (c: Campaign) => {
     setEdit(c);
     setForm({
@@ -114,6 +174,7 @@ export default function CampaignsPage() {
       scheduledAt: c.scheduledAt ? c.scheduledAt.slice(0, 16) : "",
       audiences: c.segment?.audiences || [], statusFilter: c.segment?.statusFilter || "",
     });
+    setBodyTab("edit");
     setOpen(true);
   };
   const applyTemplate = (id: string) => {
@@ -208,8 +269,52 @@ export default function CampaignsPage() {
               </div>
             </div>
 
-            {(form.channel === "email" || form.channel === "multi") && <div><label className="text-xs font-medium">Sujet</label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></div>}
-            <div><label className="text-xs font-medium">Message *</label><Textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={6} /></div>
+            {(form.channel === "email" || form.channel === "multi") && (
+              <div><label className="text-xs font-medium">Sujet</label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium">Message *</label>
+                <div className="flex border rounded-md text-xs overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setBodyTab("edit")}
+                    className={`px-3 py-1.5 transition-colors ${bodyTab === "edit" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                  >
+                    Éditer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBodyTab("preview")}
+                    className={`px-3 py-1.5 border-l transition-colors ${bodyTab === "preview" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                  >
+                    <Eye className="w-3 h-3 inline mr-1" />Aperçu
+                  </button>
+                </div>
+              </div>
+              {bodyTab === "edit" ? (
+                <>
+                  <Textarea
+                    value={form.body}
+                    onChange={(e) => setForm({ ...form, body: e.target.value })}
+                    rows={8}
+                    placeholder={`Bonjour {{nom}},\n\nVotre message ici…\n\n**Texte en gras**, *italique*, # Titre`}
+                    className="font-mono text-sm"
+                  />
+                  <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-2">
+                    <span>Variables :</span>
+                    {["{{nom}}", "{{email}}", "{{société}}", "{{montant}}", "{{date}}"].map((v) => (
+                      <code key={v} className="bg-muted px-1 rounded cursor-pointer hover:bg-primary/10"
+                        onClick={() => setForm({ ...form, body: form.body + v })}>{v}</code>
+                    ))}
+                    <span className="text-muted-foreground/70">· Markdown supporté : **gras**, *italique*, # Titre, - liste</span>
+                  </div>
+                </>
+              ) : (
+                <MarkdownPreview content={form.body} channel={form.channel} subject={form.subject} />
+              )}
+            </div>
 
             <div className="border-t pt-3">
               <label className="text-xs font-medium mb-2 block">Audience cible</label>

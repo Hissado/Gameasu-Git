@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Workflow, Play, Power, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { Plus, Workflow, Play, Power, Pencil, Trash2, ArrowRight, Zap, Mail, MessageSquare, Phone, Clock, Tag, Users, UserCheck, RefreshCw, Bell } from "lucide-react";
 
 type Automation = {
   id: string; name: string; description?: string; trigger: string;
@@ -44,6 +44,56 @@ const STEP_KINDS = [
   { k: "add_to_audience", l: "Ajouter à une audience" },
   { k: "wait", l: "Attendre N heures" },
 ];
+
+const STEP_STYLE: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+  send_email:       { bg: "bg-blue-100",    text: "text-blue-700",   icon: <Mail className="w-3 h-3" /> },
+  send_sms:         { bg: "bg-green-100",   text: "text-green-700",  icon: <MessageSquare className="w-3 h-3" /> },
+  send_whatsapp:    { bg: "bg-emerald-100", text: "text-emerald-700",icon: <Phone className="w-3 h-3" /> },
+  create_task:      { bg: "bg-violet-100",  text: "text-violet-700", icon: <Workflow className="w-3 h-3" /> },
+  notify_user:      { bg: "bg-amber-100",   text: "text-amber-700",  icon: <Bell className="w-3 h-3" /> },
+  assign_commercial:{ bg: "bg-cyan-100",    text: "text-cyan-700",   icon: <UserCheck className="w-3 h-3" /> },
+  change_status:    { bg: "bg-slate-100",   text: "text-slate-700",  icon: <RefreshCw className="w-3 h-3" /> },
+  add_tag:          { bg: "bg-pink-100",    text: "text-pink-700",   icon: <Tag className="w-3 h-3" /> },
+  add_to_audience:  { bg: "bg-indigo-100",  text: "text-indigo-700", icon: <Users className="w-3 h-3" /> },
+  wait:             { bg: "bg-orange-100",  text: "text-orange-700", icon: <Clock className="w-3 h-3" /> },
+};
+
+function FlowDiagram({ trigger, steps }: { trigger: string; steps: any[] }) {
+  const triggerLabel = TRIGGERS.find((t) => t.k === trigger)?.l || trigger;
+  return (
+    <div className="flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-muted">
+      {/* Trigger node */}
+      <div className="flex-shrink-0 flex items-center gap-1.5 bg-violet-100 text-violet-800 rounded-lg px-3 py-1.5 text-xs font-semibold border border-violet-200">
+        <Zap className="w-3 h-3 flex-shrink-0" />
+        <span className="whitespace-nowrap">{triggerLabel}</span>
+      </div>
+
+      {steps.length === 0 ? (
+        <>
+          <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+          <div className="flex-shrink-0 border border-dashed rounded-lg px-3 py-1.5 text-xs text-muted-foreground">
+            Aucune étape
+          </div>
+        </>
+      ) : (
+        steps.map((s: any, i: number) => {
+          const style = STEP_STYLE[s.kind] || { bg: "bg-muted", text: "text-muted-foreground", icon: <Workflow className="w-3 h-3" /> };
+          const label = STEP_KINDS.find((x) => x.k === s.kind)?.l || s.kind;
+          const detail = s.kind === "wait" && s.delayHours ? ` (${s.delayHours}h)` : s.kind === "add_tag" && s.tag ? ` "${s.tag}"` : "";
+          return (
+            <React.Fragment key={i}>
+              <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+              <div className={`flex-shrink-0 flex items-center gap-1.5 ${style.bg} ${style.text} rounded-lg px-3 py-1.5 text-xs font-medium border border-current/20`}>
+                <span className="w-4 h-4 rounded-full bg-white/60 text-[9px] flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
+                <span className="flex items-center gap-1">{style.icon}<span className="whitespace-nowrap">{label}{detail}</span></span>
+              </div>
+            </React.Fragment>
+          );
+        })
+      )}
+    </div>
+  );
+}
 
 export default function AutomationsPage() {
   const { toast } = useToast();
@@ -111,25 +161,21 @@ export default function AutomationsPage() {
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-semibold flex items-center gap-2"><Workflow className="w-4 h-4 text-primary" /> {a.name}</div>
+                    <div className="font-semibold flex items-center gap-2">
+                      <Workflow className="w-4 h-4 text-primary" /> {a.name}
+                    </div>
                     {a.description && <div className="text-xs text-muted-foreground mt-0.5">{a.description}</div>}
                   </div>
                   <Badge className={a.isActive ? "bg-emerald-100 text-emerald-700 border-0" : "bg-slate-100 text-slate-700 border-0"}>
                     {a.isActive ? "Actif" : "Inactif"}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <Badge variant="outline">{TRIGGERS.find((t) => t.k === a.trigger)?.l || a.trigger}</Badge>
-                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">{(a.steps || []).length} étape(s)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(a.steps || []).slice(0, 5).map((s: any, i: number) => (
-                    <Badge key={i} variant="secondary" className="text-[10px]">{STEP_KINDS.find((x) => x.k === s.kind)?.l || s.kind}</Badge>
-                  ))}
-                </div>
+
+                {/* Diagramme de flux visuel */}
+                <FlowDiagram trigger={a.trigger} steps={a.steps || []} />
+
                 <div className="text-xs text-muted-foreground flex justify-between border-t pt-2">
-                  <span>Exécutions : {a.runsCount}</span>
+                  <span>Exécutions : <span className="font-semibold text-foreground">{a.runsCount}</span></span>
                   <span>{a.lastRunAt ? `Dernière : ${new Date(a.lastRunAt).toLocaleString("fr-FR")}` : "Jamais exécuté"}</span>
                 </div>
                 <div className="flex justify-end gap-1">
@@ -163,6 +209,14 @@ export default function AutomationsPage() {
               </div>
             )}
 
+            {/* Aperçu du flux en cours de création */}
+            {form.name && (
+              <div className="bg-muted/30 rounded-lg p-3 border">
+                <div className="text-[11px] uppercase font-bold text-muted-foreground mb-2">Aperçu du flux</div>
+                <FlowDiagram trigger={form.trigger} steps={form.steps} />
+              </div>
+            )}
+
             <div className="border-t pt-3">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium">Étapes</label>
@@ -172,26 +226,29 @@ export default function AutomationsPage() {
                 <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded">Aucune étape pour le moment.</div>
               ) : (
                 <div className="space-y-2">
-                  {form.steps.map((s: any, i: number) => (
-                    <div key={i} className="border rounded p-3 space-y-2 bg-muted/20">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">{i + 1}</span>
-                        <select value={s.kind} onChange={(e) => updateStep(i, { kind: e.target.value })} className="flex-1 border rounded h-9 px-2 text-xs">
-                          {STEP_KINDS.map((k) => <option key={k.k} value={k.k}>{k.l}</option>)}
-                        </select>
-                        <Button size="icon" variant="ghost" onClick={() => removeStep(i)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                  {form.steps.map((s: any, i: number) => {
+                    const style = STEP_STYLE[s.kind] || { bg: "bg-muted", text: "text-muted-foreground", icon: null };
+                    return (
+                      <div key={i} className={`border rounded-lg p-3 space-y-2 ${style.bg}/40`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-full ${style.bg} ${style.text} text-xs flex items-center justify-center font-bold border`}>{i + 1}</span>
+                          <select value={s.kind} onChange={(e) => updateStep(i, { kind: e.target.value })} className="flex-1 border rounded h-9 px-2 text-xs bg-background">
+                            {STEP_KINDS.map((k) => <option key={k.k} value={k.k}>{k.l}</option>)}
+                          </select>
+                          <Button size="icon" variant="ghost" onClick={() => removeStep(i)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                        </div>
+                        {["send_email", "send_sms", "send_whatsapp"].includes(s.kind) && (
+                          <>
+                            {s.kind === "send_email" && <Input placeholder="Sujet" value={s.subject || ""} onChange={(e) => updateStep(i, { subject: e.target.value })} className="text-xs h-8" />}
+                            <Textarea placeholder="Contenu du message" value={s.body || ""} onChange={(e) => updateStep(i, { body: e.target.value })} rows={2} className="text-xs" />
+                          </>
+                        )}
+                        {s.kind === "wait" && <Input type="number" placeholder="Heures" value={s.delayHours || ""} onChange={(e) => updateStep(i, { delayHours: Number(e.target.value) })} className="text-xs h-8" />}
+                        {s.kind === "add_tag" && <Input placeholder="Tag" value={s.tag || ""} onChange={(e) => updateStep(i, { tag: e.target.value })} className="text-xs h-8" />}
+                        {s.kind === "change_status" && <Input placeholder="Nouveau statut" value={s.status || ""} onChange={(e) => updateStep(i, { status: e.target.value })} className="text-xs h-8" />}
                       </div>
-                      {["send_email", "send_sms", "send_whatsapp"].includes(s.kind) && (
-                        <>
-                          {s.kind === "send_email" && <Input placeholder="Sujet" value={s.subject || ""} onChange={(e) => updateStep(i, { subject: e.target.value })} className="text-xs h-8" />}
-                          <Textarea placeholder="Contenu du message" value={s.body || ""} onChange={(e) => updateStep(i, { body: e.target.value })} rows={2} className="text-xs" />
-                        </>
-                      )}
-                      {s.kind === "wait" && <Input type="number" placeholder="Heures" value={s.delayHours || ""} onChange={(e) => updateStep(i, { delayHours: Number(e.target.value) })} className="text-xs h-8" />}
-                      {s.kind === "add_tag" && <Input placeholder="Tag" value={s.tag || ""} onChange={(e) => updateStep(i, { tag: e.target.value })} className="text-xs h-8" />}
-                      {s.kind === "change_status" && <Input placeholder="Nouveau statut" value={s.status || ""} onChange={(e) => updateStep(i, { status: e.target.value })} className="text-xs h-8" />}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

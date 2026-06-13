@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { MarketingShell } from "./_layout";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, RefreshCw, Pencil, Trash2, Users, Eye } from "lucide-react";
+import { Plus, RefreshCw, Pencil, Trash2, Users, Eye, Loader2 } from "lucide-react";
 
 type Audience = {
   id: string; name: string; description?: string; type: string;
@@ -46,6 +46,28 @@ export default function AudiencesPage() {
     queryKey: ["marketing-audience", detailId],
     queryFn: () => apiFetch(`/api/marketing/audiences/${detailId}`),
     enabled: !!detailId,
+  });
+
+  // Preview dynamique : reconstruit les params depuis le formulaire
+  const previewParams = useMemo(() => {
+    if (!open || form.type !== "dynamic") return null;
+    const p = new URLSearchParams();
+    if (form.sources.length) p.set("sources", form.sources.join(","));
+    if (form.status) p.set("status", form.status);
+    const tagsArr: string[] = form.tags
+      ? form.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
+      : [];
+    if (tagsArr.length) p.set("tags", tagsArr.join(","));
+    if (form.requireEmail) p.set("requireEmail", "true");
+    if (form.requirePhone) p.set("requirePhone", "true");
+    return p.toString();
+  }, [open, form.type, form.sources, form.status, form.tags, form.requireEmail, form.requirePhone]);
+
+  const { data: livePreview, isFetching: previewLoading } = useQuery<{ total: number; breakdown: Record<string, number> }>({
+    queryKey: ["audience-live-preview", previewParams],
+    queryFn: () => apiFetch(`/api/marketing/contacts?${previewParams}&limit=1`),
+    enabled: open && form.type === "dynamic" && previewParams !== null,
+    staleTime: 800,
   });
 
   const upsert = useMutation({
@@ -189,6 +211,31 @@ export default function AudiencesPage() {
             <div><label className="text-xs font-medium">Inactif depuis (jours)</label>
               <Input type="number" value={form.inactiveSinceDays} onChange={(e) => setForm({ ...form, inactiveSinceDays: e.target.value })} placeholder="90" />
             </div>
+
+            {/* Preview en temps réel */}
+            {form.type === "dynamic" && (
+              <div className={`border rounded-lg p-3 flex items-center justify-between transition-colors ${previewLoading ? "bg-muted/30" : (livePreview ? "bg-primary/5 border-primary/20" : "bg-muted/20")}`}>
+                <div className="flex items-center gap-2">
+                  {previewLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    : <Users className="w-4 h-4 text-primary" />
+                  }
+                  <span className="text-sm font-medium">
+                    {previewLoading ? "Calcul en cours…" : livePreview
+                      ? <><span className="text-primary font-bold">{livePreview.total.toLocaleString("fr-FR")} contact{livePreview.total > 1 ? "s" : ""}</span> correspondent à ces critères</>
+                      : "Aperçu en temps réel"
+                    }
+                  </span>
+                </div>
+                {livePreview && !previewLoading && livePreview.breakdown && (
+                  <div className="flex gap-2">
+                    {Object.entries(livePreview.breakdown).map(([k, v]) => (
+                      <Badge key={k} variant="secondary" className="text-[10px] capitalize">{k} : {v as number}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>

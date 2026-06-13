@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { MarketingShell } from "./_layout";
-import { Plus, Send, Mail, MessageSquare, Phone, Users, Workflow, BellRing, ArrowUpRight, Sparkles } from "lucide-react";
+import { Plus, Send, Mail, MessageSquare, Phone, Users, Workflow, BellRing, ArrowUpRight, Sparkles, ChevronRight } from "lucide-react";
 
 type Overview = {
   campaigns: { total: number; active: number; scheduled: number; sent: number; draft: number };
@@ -59,6 +59,9 @@ export default function MarketingOverview() {
             <KpiCard label="Alertes auto" value={num(data.alerts.total)} hint={`${data.alerts.active} actives · ${num(data.alerts.sent)} envoyées`} icon={<BellRing className="w-4 h-4" />} />
             <KpiCard label="Prospects" value={num(data.prospects.total)} hint={`${data.prospects.converted} convertis`} icon={<Sparkles className="w-4 h-4" />} />
           </div>
+
+          {/* Mini-funnel marketing */}
+          <MarketingFunnel data={data} />
 
           {/* Channels + top campaigns */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -126,13 +129,74 @@ export default function MarketingOverview() {
               <QuickAction href="/marketing/alerts" icon={<BellRing />} label="Programmer une alerte" />
               <QuickAction href="/marketing/templates" icon={<Mail />} label="Modèle email" />
               <QuickAction href="/marketing/templates" icon={<MessageSquare />} label="Modèle SMS" />
-              <QuickAction href="/marketing/contacts" icon={<UserSquare2Icon />} label="Voir les contacts" />
-              <QuickAction href="/marketing/analytics" icon={<BarChartIcon />} label="Analyser la performance" />
+              <QuickAction href="/marketing/contacts" icon={<Users />} label="Voir les contacts" />
+              <QuickAction href="/marketing/analytics" icon={<ArrowUpRight />} label="Analyser la performance" />
             </CardContent>
           </Card>
         </div>
       )}
     </MarketingShell>
+  );
+}
+
+function MarketingFunnel({ data }: { data: Overview }) {
+  const steps = [
+    { label: "Contacts (audiences)", value: data.audiences.contacts, color: "bg-blue-500", hint: "contacts dans vos audiences" },
+    { label: "Destinataires ciblés", value: data.delivery.recipients, color: "bg-indigo-500", hint: "destinataires de campagnes" },
+    { label: "Messages envoyés", value: data.delivery.sent, color: "bg-violet-500", hint: "messages délivrés" },
+    { label: "Ouvertures", value: data.delivery.opens, color: "bg-amber-500", hint: "messages ouverts" },
+    { label: "Clics", value: data.delivery.clicks, color: "bg-orange-500", hint: "clics enregistrés" },
+    { label: "Conversions", value: data.prospects.converted, color: "bg-emerald-500", hint: "prospects convertis en clients" },
+  ];
+  const max = Math.max(...steps.map((s) => s.value), 1);
+
+  return (
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle className="text-base">Entonnoir marketing</CardTitle>
+      </CardHeader>
+      <CardContent className="p-5">
+        <div className="space-y-3">
+          {steps.map((s, i) => {
+            const ratio = s.value / max;
+            const dropPct = i > 0 && steps[i - 1].value > 0
+              ? ((s.value / steps[i - 1].value) * 100).toFixed(0)
+              : null;
+            return (
+              <div key={i} className="flex items-center gap-3 group">
+                <div className="w-40 text-xs text-right text-muted-foreground leading-tight">{s.label}</div>
+                <div className="flex-1 relative h-8">
+                  <div className="absolute inset-0 bg-muted rounded-lg" />
+                  <div
+                    className={`absolute inset-y-0 left-0 ${s.color} rounded-lg transition-all duration-500`}
+                    style={{ width: `${Math.max(ratio * 100, 1)}%` }}
+                  />
+                  <div className="absolute inset-0 flex items-center px-3 gap-2">
+                    <span className="text-xs font-mono font-bold text-white drop-shadow-sm">{s.value.toLocaleString("fr-FR")}</span>
+                    <span className="text-[10px] text-white/80 hidden group-hover:inline">{s.hint}</span>
+                  </div>
+                </div>
+                <div className="w-14 text-right">
+                  {dropPct !== null ? (
+                    <span className={`text-xs font-medium ${Number(dropPct) < 30 ? "text-rose-500" : Number(dropPct) < 60 ? "text-amber-500" : "text-emerald-600"}`}>
+                      {dropPct}%
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">base</span>
+                  )}
+                </div>
+                {i < steps.length - 1 && (
+                  <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0 -ml-2" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground text-right">
+          % = taux de conversion vers l'étape suivante
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -161,7 +225,3 @@ function QuickAction({ href, icon, label }: { href: string; icon: React.ReactNod
     </Link>
   );
 }
-
-// Mini SVG icons referenced in JSX above (avoid circular imports)
-function UserSquare2Icon() { return <Users className="w-4 h-4" />; }
-function BarChartIcon() { return <ArrowUpRight className="w-4 h-4" />; }
