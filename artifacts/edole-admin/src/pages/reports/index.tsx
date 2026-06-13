@@ -2138,7 +2138,7 @@ function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {
     </CardContent></Card>
   );
 
-  const fmtDate = (iso: string) => { const [y,mo,d] = iso.split("-").map(Number); return new Date(y, mo-1, d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
+  const fmtDate = (iso: string) => { const [y,mo,d] = iso.slice(0,10).split("-").map(Number); return new Date(y, mo-1, d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
   const periodLabel = `${fmtDate(data.period.from)} – ${fmtDate(data.period.to)}`;
   const hasFilters = !!(search || methodFilter !== "all");
 
@@ -2512,7 +2512,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   const f = d.finance;
   const liq = d.liquidity;
   const ops = d.operations;
-  const fmtDate2 = (iso: string) => { const [y,mo,dd] = iso.split("-").map(Number); return new Date(y, mo-1, dd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
+  const fmtDate2 = (iso: string) => { const [y,mo,dd] = iso.slice(0,10).split("-").map(Number); return new Date(y, mo-1, dd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); };
   const periodLabel = `${fmtDate2(d.period.from)} – ${fmtDate2(d.period.to)}`;
 
   // Insights auto-générés (résumé exécutif)
