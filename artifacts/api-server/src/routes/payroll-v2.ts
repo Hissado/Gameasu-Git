@@ -1621,10 +1621,44 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       )
       .orderBy(asc(payrollRunsTable.period));
 
+    // Déclarations fiscales de l'année (tous types)
+    const declRows = await db
+      .select({
+        id: taxDeclarationsTable.id,
+        type: taxDeclarationsTable.type,
+        period: taxDeclarationsTable.period,
+        status: taxDeclarationsTable.status,
+        totalAmount: taxDeclarationsTable.totalAmount,
+        referenceNumber: taxDeclarationsTable.referenceNumber,
+        submittedAt: taxDeclarationsTable.submittedAt,
+        validatedAt: taxDeclarationsTable.validatedAt,
+      })
+      .from(taxDeclarationsTable)
+      .where(
+        and(
+          eq(taxDeclarationsTable.organizationId, orgId),
+          sql`${taxDeclarationsTable.period} LIKE ${year + "-%"}`,
+          inArray(taxDeclarationsTable.type, ["cnss", "irpp", "ipts"])
+        )
+      )
+      .orderBy(asc(taxDeclarationsTable.period));
+
+    type DeclEntry = { id: string; status: string; totalAmount: string | null; referenceNumber: string | null; submittedAt: Date | null; validatedAt: Date | null };
+    type DeclStatusMap = Record<string, { cnss?: DeclEntry; irpp?: DeclEntry; ipts?: DeclEntry }>;
+    const declarationStatus: DeclStatusMap = {};
+    for (const d of declRows) {
+      if (!declarationStatus[d.period]) declarationStatus[d.period] = {};
+      const entry: DeclEntry = { id: d.id, status: d.status, totalAmount: d.totalAmount, referenceNumber: d.referenceNumber, submittedAt: d.submittedAt, validatedAt: d.validatedAt };
+      if (d.type === "cnss") declarationStatus[d.period].cnss = entry;
+      else if (d.type === "irpp") declarationStatus[d.period].irpp = entry;
+      else if (d.type === "ipts") declarationStatus[d.period].ipts = entry;
+    }
+
     if (runs.length === 0) {
       return res.json({
         year,
         months: [],
+        declarationStatus,
         cnss: { rows: [], totaux: { totalBrut: 0, totalSal: 0, totalPat: 0, totalCnss: 0 } },
         irpp: { rows: [], totaux: { totalBrut: 0, totalCnssEmployee: 0, revImposableAnnuel: 0, irppTheorique: 0, irppVerse: 0, ecart: 0, totalIpts: 0, totalNet: 0 } },
       });
@@ -1847,6 +1881,69 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
         wsBar.addRow([t.de.toLocaleString("fr-FR"), t.a ? t.a.toLocaleString("fr-FR") : "Illimité", `${(t.taux * 100).toFixed(0)} %`]);
       }
 
+      // ── Onglet Statut des Déclarations ───────────────────────────
+      const wsDecl = wb.addWorksheet("Statut Déclarations");
+      wsDecl.columns = [
+        { key: "mois", width: 14 }, { key: "cnss", width: 22 },
+        { key: "irpp", width: 22 }, { key: "ipts", width: 22 },
+        { key: "alerte", width: 34 },
+      ];
+
+      wsDecl.mergeCells("A1:E1");
+      const declTitle = wsDecl.getCell("A1");
+      declTitle.value = `STATUT DES DÉCLARATIONS FISCALES — Exercice ${year}`;
+      declTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      declTitle.alignment = { horizontal: "center", vertical: "middle" };
+      wsDecl.getRow(1).height = 28;
+
+      wsDecl.mergeCells("A2:E2");
+      wsDecl.getCell("A2").value = "Statuts : Non enregistré | Enregistré | Soumis | Validé | Rejeté";
+      wsDecl.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
+      wsDecl.getCell("A2").alignment = { horizontal: "center" };
+      wsDecl.getRow(2).height = 18;
+      wsDecl.addRow([]);
+
+      const declHdr = wsDecl.addRow(["Mois", "CNSS", "IRPP", "IPTS", "Alerte"]);
+      applyHeaderStyle(declHdr);
+
+      const DECL_STATUS_LABEL: Record<string, string> = {
+        draft: "Non enregistré", generated: "Enregistré", submitted: "Soumis",
+        validated: "Validé", rejected: "Rejeté",
+      };
+
+      for (const m of months) {
+        const ds = declarationStatus[m] ?? {};
+        const cnssStatus = ds.cnss?.status ?? "draft";
+        const irppStatus = ds.irpp?.status ?? "draft";
+        const iptsStatus = ds.ipts?.status ?? "draft";
+        const isCompliant = ["submitted", "validated"].includes(cnssStatus) &&
+          ["submitted", "validated"].includes(irppStatus);
+        const dr = wsDecl.addRow([
+          m,
+          DECL_STATUS_LABEL[cnssStatus] ?? cnssStatus,
+          DECL_STATUS_LABEL[irppStatus] ?? irppStatus,
+          DECL_STATUS_LABEL[iptsStatus] ?? iptsStatus,
+          isCompliant ? "" : "⚠ Déclaration(s) non soumise(s)",
+        ]);
+        dr.height = 18;
+        dr.eachCell((cell, col) => {
+          cell.border = { top: { style: "hair" }, bottom: { style: "hair" }, left: { style: "hair" }, right: { style: "hair" } };
+          if (!isCompliant) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEE2E2" } };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDF4" } };
+          }
+          if (col === 5 && !isCompliant) cell.font = { color: { argb: "FFB91C1C" }, bold: true };
+          if (col >= 2 && col <= 4) {
+            const st = col === 2 ? cnssStatus : col === 3 ? irppStatus : iptsStatus;
+            if (st === "validated") cell.font = { color: { argb: "FF15803D" } };
+            else if (st === "submitted") cell.font = { color: { argb: "FFB45309" } };
+            else if (st === "rejected") cell.font = { color: { argb: "FFB91C1C" }, bold: true };
+            else cell.font = { color: { argb: "FF6B7280" } };
+          }
+        });
+      }
+
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       res.setHeader("Content-Disposition", `attachment; filename="Recapitulatif_Annuel_CNSS_IRPP_${year}.xlsx"`);
       await wb.xlsx.write(res);
@@ -1856,6 +1953,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
     res.json({
       year,
       months,
+      declarationStatus,
       cnss: { rows: cnssRows, totaux: cnssTotaux },
       irpp: { rows: irppRows, totaux: irppTotaux },
     });

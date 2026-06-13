@@ -91,9 +91,16 @@ type AnnualIrppRow = {
   irppTheorique: number; irppVerse: number; ecart: number;
   totalIpts: number; totalNet: number;
 };
+type DeclEntry = {
+  id: string; status: string; totalAmount: string | null;
+  referenceNumber: string | null; submittedAt: string | null; validatedAt: string | null;
+};
+type DeclStatusMap = Record<string, { cnss?: DeclEntry; irpp?: DeclEntry; ipts?: DeclEntry }>;
+
 type AnnualData = {
   year: string;
   months: string[];
+  declarationStatus: DeclStatusMap;
   cnss: {
     rows: AnnualCnssRow[];
     totaux: { totalBrut: number; totalSal: number; totalPat: number; totalCnss: number };
@@ -348,6 +355,24 @@ type AnnualViewProps = {
   onTabChange: (t: "cnss" | "irpp") => void;
 };
 
+const DECL_STATUS_UI: Record<string, { label: string; bg: string; text: string }> = {
+  draft:     { label: "Non enregistré", bg: "bg-gray-100",    text: "text-gray-500" },
+  generated: { label: "Enregistré",     bg: "bg-blue-50",     text: "text-blue-600" },
+  submitted: { label: "Soumis",         bg: "bg-amber-50",    text: "text-amber-700" },
+  validated: { label: "Validé",         bg: "bg-emerald-50",  text: "text-emerald-700" },
+  rejected:  { label: "Rejeté",         bg: "bg-red-100",     text: "text-red-700" },
+};
+
+function DeclBadge({ status }: { status?: string }) {
+  const s = status ?? "draft";
+  const ui = DECL_STATUS_UI[s] ?? DECL_STATUS_UI.draft;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${ui.bg} ${ui.text}`}>
+      {ui.label}
+    </span>
+  );
+}
+
 function AnnualView({ selectedYear, onYearChange, annualData, isLoading, annualTab, onTabChange }: AnnualViewProps) {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -427,6 +452,79 @@ function AnnualView({ selectedYear, onYearChange, annualData, isLoading, annualT
           <p className="text-sm text-muted-foreground max-w-sm">
             Aucun cycle de paie validé ou payé n'a été trouvé pour l'exercice {selectedYear}.
           </p>
+        </div>
+      )}
+
+      {/* ─── Statut des déclarations par mois ─── */}
+      {!isLoading && annualData && months.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            Statut des déclarations par mois
+          </h3>
+          <div className="rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                <tr>
+                  <th className="px-3 py-2.5 text-left">Mois</th>
+                  <th className="px-3 py-2.5 text-center">CNSS</th>
+                  <th className="px-3 py-2.5 text-center">IRPP</th>
+                  <th className="px-3 py-2.5 text-center">IPTS</th>
+                  <th className="px-3 py-2.5 text-left">Conformité</th>
+                </tr>
+              </thead>
+              <tbody>
+                {months.map(m => {
+                  const ds = annualData.declarationStatus?.[m] ?? {};
+                  const cnssStatus = ds.cnss?.status ?? "draft";
+                  const irppStatus = ds.irpp?.status ?? "draft";
+                  const iptsStatus = ds.ipts?.status ?? "draft";
+                  const isCompliant = ["submitted", "validated"].includes(cnssStatus) &&
+                    ["submitted", "validated"].includes(irppStatus);
+                  return (
+                    <tr
+                      key={m}
+                      className={`border-t ${isCompliant ? "hover:bg-muted/20" : "bg-red-50 hover:bg-red-100"}`}
+                    >
+                      <td className="px-3 py-2.5 font-mono text-xs font-medium">{m}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <DeclBadge status={cnssStatus} />
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <DeclBadge status={irppStatus} />
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <DeclBadge status={iptsStatus} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {isCompliant ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
+                            <CheckCircle className="w-3.5 h-3.5" />Conforme
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-red-700 font-semibold">
+                            <AlertTriangle className="w-3.5 h-3.5" />Non soumis
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {months.some(m => {
+            const ds = annualData.declarationStatus?.[m] ?? {};
+            return !(["submitted", "validated"].includes(ds.cnss?.status ?? "draft") &&
+              ["submitted", "validated"].includes(ds.irpp?.status ?? "draft"));
+          }) && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 text-sm text-red-800">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                <strong>Mois non conformes détectés.</strong> Les mois surlignés en rouge n'ont pas de déclaration CNSS ou IRPP soumise. Régularisez avant la clôture fiscale.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
