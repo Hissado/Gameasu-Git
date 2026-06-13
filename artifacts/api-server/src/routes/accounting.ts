@@ -76,7 +76,37 @@ router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) =
 // EXERCICES FISCAUX
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/fiscal-periods", async (req, res) => {
-  const rows = await db.select().from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId)).orderBy(desc(fiscalPeriodsTable.startDate));
+  const orgId = req.authUser!.organizationId;
+  // Auto-seed des exercices fiscaux 2015-2030 si l'org n'en a pas encore assez
+  const existing = await db.select({ startDate: fiscalPeriodsTable.startDate })
+    .from(fiscalPeriodsTable)
+    .where(eq(fiscalPeriodsTable.organizationId, orgId));
+  const existingYears = new Set(existing.map((r) => r.startDate.slice(0, 4)));
+  const yearsToCreate: Array<{ name: string; startDate: string; endDate: string }> = [];
+  for (let y = 2015; y <= 2030; y++) {
+    if (!existingYears.has(String(y))) {
+      yearsToCreate.push({
+        name: `Exercice ${y}`,
+        startDate: `${y}-01-01`,
+        endDate: `${y}-12-31`,
+      });
+    }
+  }
+  if (yearsToCreate.length > 0) {
+    const currentYear = new Date().getFullYear();
+    await db.insert(fiscalPeriodsTable).values(
+      yearsToCreate.map((p) => ({
+        organizationId: orgId,
+        name: p.name,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        status: p.startDate.slice(0, 4) === String(currentYear) ? "open" : (parseInt(p.startDate) < currentYear ? "closed" : "open"),
+      }))
+    );
+  }
+  const rows = await db.select().from(fiscalPeriodsTable)
+    .where(eq(fiscalPeriodsTable.organizationId, orgId))
+    .orderBy(desc(fiscalPeriodsTable.startDate));
   return res.json({ data: rows });
 });
 

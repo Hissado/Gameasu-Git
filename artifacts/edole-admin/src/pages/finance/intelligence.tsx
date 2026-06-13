@@ -215,7 +215,7 @@ export default function FinanceIntelligencePage() {
             <CardContent className="space-y-2">
               {collections.isLoading && <Loader2 className="w-5 h-5 animate-spin mx-auto my-4" />}
               {collections.data?.ranked.length === 0 && <p className="text-xs italic text-muted-foreground">Aucun impayé à relancer.</p>}
-              {collections.data?.ranked.slice(0, 30).map((r, i) => {
+              {collections.data?.ranked.slice(0, 10).map((r, i) => {
                 const t = TIER[r.tier];
                 return (
                   <Link key={r.invoiceId} href={`/invoices/${r.invoiceId}`}>
@@ -248,6 +248,25 @@ export default function FinanceIntelligencePage() {
                   </Link>
                 );
               })}
+              {(collections.data?.count ?? 0) > 10 && (
+                <div className="pt-2 border-t">
+                  <Link href="/recouvrement">
+                    <Button variant="outline" size="sm" className="w-full gap-2 text-primary border-primary/30 hover:bg-primary/5">
+                      <Flame className="w-3.5 h-3.5" />
+                      Voir le tableau de recouvrement complet ({collections.data!.count} factures)
+                    </Button>
+                  </Link>
+                </div>
+              )}
+              {collections.data?.ranked && collections.data.ranked.length > 0 && collections.data.count <= 10 && (
+                <div className="pt-2 border-t">
+                  <Link href="/recouvrement">
+                    <Button variant="ghost" size="sm" className="w-full gap-2 text-muted-foreground hover:text-primary">
+                      Ouvrir le module Recouvrement →
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

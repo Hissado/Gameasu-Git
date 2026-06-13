@@ -9,8 +9,8 @@
  * doit rester déterministe et auditable.
  */
 import { Router, type IRouter } from "express";
-import { db, invoicesTable, paymentsTable, clientsTable } from "@workspace/db";
-import { and, eq, ne } from "drizzle-orm";
+import { db, invoicesTable, paymentsTable, clientsTable, clientEmailLogsTable } from "@workspace/db";
+import { and, eq, ne, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
 
 const router: IRouter = Router();
@@ -426,6 +426,41 @@ router.get("/finance/intelligence/collections", requirePermission("accounting.re
       totalOutstanding: ranked.reduce((s, r) => s + r.outstanding, 0),
       ranked: ranked.slice(0, 100),
     });
+  } catch (e) { next(e); }
+});
+
+// ────────────────────────────────────────────────────────────────
+// HISTORIQUE DES RELANCES
+// ────────────────────────────────────────────────────────────────
+router.get("/finance/intelligence/relance-history", requirePermission("accounting.read"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const limit = Math.min(parseInt(String(req.query.limit ?? "50")), 100);
+
+    const rows = await db
+      .select({
+        id: clientEmailLogsTable.id,
+        clientId: clientEmailLogsTable.clientId,
+        clientName: clientsTable.name,
+        subject: clientEmailLogsTable.subject,
+        preview: clientEmailLogsTable.preview,
+        sentAt: clientEmailLogsTable.sentAt,
+        status: clientEmailLogsTable.status,
+        fromAddress: clientEmailLogsTable.fromAddress,
+        toAddress: clientEmailLogsTable.toAddress,
+      })
+      .from(clientEmailLogsTable)
+      .leftJoin(clientsTable, eq(clientsTable.id, clientEmailLogsTable.clientId))
+      .where(
+        and(
+          eq(clientEmailLogsTable.organizationId, orgId),
+          eq(clientEmailLogsTable.direction, "outbound"),
+        )
+      )
+      .orderBy(desc(clientEmailLogsTable.sentAt))
+      .limit(limit);
+
+    return res.json({ count: rows.length, data: rows });
   } catch (e) { next(e); }
 });
 

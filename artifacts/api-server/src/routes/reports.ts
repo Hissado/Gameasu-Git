@@ -872,6 +872,248 @@ router.get("/reports/hr/export.xlsx", requireAuth, requireManagerOrAbove, async 
 });
 
 // ════════════════════════════════════════════════════════════════
+// CSV HELPER + EXPORTS CSV
+// ════════════════════════════════════════════════════════════════
+
+function sendCsv(res: import("express").Response, rows: (string | number)[][], filename: string) {
+  const csv = rows
+    .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send("\uFEFF" + csv);
+}
+
+router.get("/reports/finance/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const r = await buildFinanceReport(period);
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport Finance"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["Indicateur", "Valeur"],
+      ["Chiffre d'affaires facturé", r.kpi.invoicedAmount],
+      ["Encaissements reçus", r.kpi.collectedAmount],
+      ["Encours total", r.kpi.outstandingAmount],
+      ["Encours en retard", r.kpi.overdueAmount],
+      ["Factures émises", r.kpi.invoicedCount],
+      ["Factures soldées", r.kpi.paidCount],
+      ["Taux de recouvrement (%)", r.kpi.collectionRate],
+      [],
+      ["Mois", "Facturé (FCFA)", "Encaissé (FCFA)"],
+      ...r.series.map((s) => [s.month, s.facture, s.encaisse]),
+      [],
+      ["Top clients", "Nombre de factures", "Montant facturé (FCFA)"],
+      ...r.topClients.map((c) => [c.name, c.count, Math.round(c.amount)]),
+    ];
+    if (r.overdueList.length) {
+      rows.push([]);
+      rows.push(["Référence", "Client", "Échéance", "Restant dû (FCFA)"]);
+      r.overdueList.forEach((o) => rows.push([o.reference, o.clientName, o.dueDate || "—", Math.round(o.outstanding)]));
+    }
+    sendCsv(res, rows, `rapport-finance-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/sales/export.csv", requireAuth, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const r = await buildSalesReport(period);
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport Ventes"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["Indicateur", "Valeur"],
+      ["Commandes (nombre)", r.kpi.ordersCount],
+      ["Commandes (montant FCFA)", r.kpi.ordersAmount],
+      ["Proformas émises", r.kpi.proformasCount],
+      ["Proformas converties", r.kpi.proformasConverted],
+      ["Taux de conversion (%)", r.kpi.conversionRate],
+      ["Pipeline — valeur potentielle (FCFA)", Math.round(r.kpi.pipelineValue)],
+      [],
+      ["Mois", "Commandes", "Montant (FCFA)"],
+      ...r.series.map((s) => [s.month, s.count, s.amount]),
+      [],
+      ["Top clients", "Commandes", "Montant (FCFA)"],
+      ...r.topClients.map((c) => [c.name, c.count, Math.round(c.amount)]),
+      [],
+      ["Pipeline — Étape", "Opportunités", "Valeur potentielle (FCFA)"],
+      ...Object.entries(r.pipeline).map(([stage, v]) => [stage, v.count, Math.round(v.value)]),
+    ];
+    sendCsv(res, rows, `rapport-ventes-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/projects/export.csv", requireAuth, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const r = await buildProjectsReport(period);
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport Projets"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["Indicateur", "Valeur"],
+      ["Projets total", r.kpi.totalCount],
+      ["Projets actifs", r.kpi.activeCount],
+      ["Projets en retard", r.kpi.overdueCount],
+      ["Nouveaux (période)", r.kpi.newInPeriod],
+      ["Clôturés (période)", r.kpi.completedInPeriod],
+      ["Budget total (FCFA)", Math.round(r.kpi.totalBudget)],
+      ["Budget actif (FCFA)", Math.round(r.kpi.activeBudget)],
+      ["Avancement moyen (%)", r.kpi.avgProgress],
+      [],
+      ["Projet", "Statut", "Avancement (%)", "Budget (FCFA)", "Client"],
+      ...r.topProjects.map((p) => [p.name, PROJECT_STATUS_FR[p.status] ?? p.status, p.progress, Math.round(p.budget), p.clientName]),
+    ];
+    if (r.overdueList.length) {
+      rows.push([]);
+      rows.push(["Projets en retard", "Échéance", "Avancement (%)", "Client"]);
+      r.overdueList.forEach((p) => rows.push([p.name, p.endDate || "—", p.progress, p.clientName]));
+    }
+    sendCsv(res, rows, `rapport-projets-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/hr/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const r = await buildHrReport(period);
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport RH"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["Indicateur", "Valeur"],
+      ["Effectif total", r.kpi.total],
+      ["Actifs", r.kpi.active],
+      ["En congé", r.kpi.onLeave],
+      ["Sortis", r.kpi.terminated],
+      ["Heures pointées (période)", r.kpi.totalHours],
+      ["Collaborateurs ayant pointé", r.kpi.distinctCollabs],
+      ["Retards", r.kpi.lateCount],
+      ["Départs anticipés", r.kpi.earlyLeaveCount],
+      ["Anomalies non résolues", r.kpi.unresolvedFlags],
+      ["Contrats expirants ≤ 60 j", r.kpi.expiringContracts],
+      [],
+      ["Département", "Effectif actif"],
+      ...Object.entries(r.byDepartment).map(([d, n]) => [d, n]),
+      [],
+      ["Top collaborateurs", "Heures pointées"],
+      ...r.topPerformers.map((p) => [p.name, p.hours]),
+    ];
+    if (r.expiringList.length) {
+      rows.push([]);
+      rows.push(["Contrat expirant", "Type", "Échéance", "Poste"]);
+      r.expiringList.forEach((c) => rows.push([c.collaborator, CONTRACT_TYPE_FR[c.type?.toLowerCase()] ?? c.type, c.endDate || "—", c.jobTitle || "—"]));
+    }
+    sendCsv(res, rows, `rapport-rh-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/overview/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const [finance, sales, projects, hr] = await Promise.all([
+      buildFinanceReport(period),
+      buildSalesReport(period),
+      buildProjectsReport(period),
+      buildHrReport(period),
+    ]);
+    const wb = new ExcelJS.Workbook();
+
+    // Onglet Finance
+    const wsF = wb.addWorksheet("Finance");
+    applyExcelBranding(wsF, "Synthèse Finance", period);
+    wsF.columns = [{ width: 36 }, { width: 22 }, { width: 22 }];
+    wsF.addRow([]);
+    styleHeaderRow(wsF.addRow(["Indicateur", "Valeur"]));
+    [
+      ["Chiffre d'affaires facturé", formatFCFA(finance.kpi.invoicedAmount)],
+      ["Encaissements reçus", formatFCFA(finance.kpi.collectedAmount)],
+      ["Taux de recouvrement", `${finance.kpi.collectionRate} %`],
+      ["Encours en retard", formatFCFA(finance.kpi.overdueAmount)],
+    ].forEach((l) => wsF.addRow(l));
+
+    // Onglet Ventes
+    const wsS = wb.addWorksheet("Ventes");
+    applyExcelBranding(wsS, "Synthèse Ventes", period);
+    wsS.columns = [{ width: 36 }, { width: 22 }, { width: 22 }];
+    wsS.addRow([]);
+    styleHeaderRow(wsS.addRow(["Indicateur", "Valeur"]));
+    [
+      ["Commandes", String(sales.kpi.ordersCount)],
+      ["Montant commandes", formatFCFA(sales.kpi.ordersAmount)],
+      ["Taux conversion proforma", `${sales.kpi.conversionRate} %`],
+      ["Pipeline valeur", formatFCFA(sales.kpi.pipelineValue)],
+    ].forEach((l) => wsS.addRow(l));
+
+    // Onglet Projets
+    const wsP = wb.addWorksheet("Projets");
+    applyExcelBranding(wsP, "Synthèse Projets", period);
+    wsP.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 22 }];
+    wsP.addRow([]);
+    styleHeaderRow(wsP.addRow(["Indicateur", "Valeur"]));
+    [
+      ["Projets actifs", String(projects.kpi.activeCount)],
+      ["Projets en retard", String(projects.kpi.overdueCount)],
+      ["Avancement moyen", `${projects.kpi.avgProgress} %`],
+      ["Budget total", formatFCFA(projects.kpi.totalBudget)],
+    ].forEach((l) => wsP.addRow(l));
+    wsP.addRow([]);
+    styleHeaderRow(wsP.addRow(["Projet", "Statut", "Avancement (%)", "Budget", "Client"]));
+    projects.topProjects.forEach((p) => wsP.addRow([p.name, PROJECT_STATUS_FR[p.status] ?? p.status, p.progress, p.budget, p.clientName]));
+
+    // Onglet RH
+    const wsH = wb.addWorksheet("RH");
+    applyExcelBranding(wsH, "Synthèse RH", period);
+    wsH.columns = [{ width: 36 }, { width: 22 }];
+    wsH.addRow([]);
+    styleHeaderRow(wsH.addRow(["Indicateur", "Valeur"]));
+    [
+      ["Effectif total", String(hr.kpi.total)],
+      ["Actifs", String(hr.kpi.active)],
+      ["Heures pointées", String(hr.kpi.totalHours)],
+      ["Anomalies non résolues", String(hr.kpi.unresolvedFlags)],
+    ].forEach((l) => wsH.addRow(l));
+
+    await sendXlsx(res, wb, `rapport-synthese-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/overview/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const [finance, sales, projects, hr] = await Promise.all([
+      buildFinanceReport(period),
+      buildSalesReport(period),
+      buildProjectsReport(period),
+      buildHrReport(period),
+    ]);
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport de Synthèse"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["=== FINANCE ==="],
+      ["CA facturé (FCFA)", finance.kpi.invoicedAmount, "Encaissé (FCFA)", finance.kpi.collectedAmount],
+      ["Encours en retard (FCFA)", finance.kpi.overdueAmount, "Taux recouvrement (%)", finance.kpi.collectionRate],
+      [],
+      ["=== VENTES ==="],
+      ["Commandes", sales.kpi.ordersCount, "Montant (FCFA)", sales.kpi.ordersAmount],
+      ["Pipeline (FCFA)", Math.round(sales.kpi.pipelineValue), "Taux conversion (%)", sales.kpi.conversionRate],
+      [],
+      ["=== PROJETS ==="],
+      ["Actifs", projects.kpi.activeCount, "En retard", projects.kpi.overdueCount],
+      ["Avancement moyen (%)", projects.kpi.avgProgress, "Budget total (FCFA)", Math.round(projects.kpi.totalBudget)],
+      [],
+      ["=== RH ==="],
+      ["Effectif total", hr.kpi.total, "Actifs", hr.kpi.active],
+      ["Heures pointées", hr.kpi.totalHours, "Anomalies", hr.kpi.unresolvedFlags],
+    ];
+    sendCsv(res, rows, `rapport-synthese-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
 // VUE D'ENSEMBLE — agrégat compact pour le tableau de bord rapports
 // ════════════════════════════════════════════════════════════════
 

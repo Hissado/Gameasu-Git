@@ -55,6 +55,8 @@ import {
   Share2,
   Printer,
   LayoutDashboard,
+  FileSpreadsheet,
+  Table2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -832,6 +834,137 @@ function PerformanceTab({ onOpen }: { onOpen: (tab: string, name: string) => voi
 }
 
 // ────────────────────────────────────────────────────────────────
+// ExportToolbar — barre d'export universelle (Excel, CSV, PDF, Imprimer, Partager)
+// ────────────────────────────────────────────────────────────────
+
+const EXPORT_MAP: Record<string, { xlsxUrl?: string; csvUrl?: string; pdfUrl?: string; label: string }> = {
+  overview:  { xlsxUrl: "/api/reports/overview/export.xlsx", csvUrl: "/api/reports/overview/export.csv",   label: "Synthèse" },
+  finance:   { xlsxUrl: "/api/reports/finance/export.xlsx",  csvUrl: "/api/reports/finance/export.csv",    label: "Finance" },
+  sales:     { xlsxUrl: "/api/reports/sales/export.xlsx",    csvUrl: "/api/reports/sales/export.csv",      label: "Ventes" },
+  projects:  { xlsxUrl: "/api/reports/projects/export.xlsx", csvUrl: "/api/reports/projects/export.csv",   label: "Projets" },
+  hr:        { xlsxUrl: "/api/reports/hr/export.xlsx",       csvUrl: "/api/reports/hr/export.csv",         label: "RH" },
+  parc:      { pdfUrl:  "/api/reports/stock-daily/pdf",                                                    label: "Parc" },
+  purchases: {                                                                                              label: "Achats" },
+};
+
+function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQuery: string; reportName: string }) {
+  const cfg = EXPORT_MAP[tab] ?? { label: tab };
+  const today = new Date().toISOString().slice(0, 10);
+  const slug = cfg.label.toLowerCase().replace(/\s+/g, "-");
+
+  function handleShare() {
+    const url = `${window.location.origin}${window.location.pathname}?tab=${tab}&${periodQuery}`;
+    navigator.clipboard.writeText(url).then(
+      () => alert("Lien copié dans le presse-papiers !"),
+      () => alert("Impossible de copier le lien."),
+    );
+  }
+
+  const hasExport = cfg.xlsxUrl || cfg.csvUrl || cfg.pdfUrl;
+
+  return (
+    <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* Bouton Excel */}
+      {cfg.xlsxUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          onClick={() => downloadAuthed(`${cfg.xlsxUrl}?${periodQuery}`, `rapport-${slug}-${today}.xlsx`)}
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+        </Button>
+      )}
+
+      {/* Bouton CSV */}
+      {cfg.csvUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 border-sky-200 text-sky-700 hover:bg-sky-50"
+          onClick={() => downloadAuthed(`${cfg.csvUrl}?${periodQuery}`, `rapport-${slug}-${today}.csv`)}
+        >
+          <Table2 className="w-3.5 h-3.5" /> CSV
+        </Button>
+      )}
+
+      {/* Bouton PDF (endpoint dédié) */}
+      {cfg.pdfUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50"
+          onClick={() => downloadAuthed(`${cfg.pdfUrl}`, `rapport-${slug}-${today}.pdf`)}
+        >
+          <FileText className="w-3.5 h-3.5" /> PDF
+        </Button>
+      )}
+
+      {/* Bouton Imprimer — toujours disponible */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 text-xs gap-1.5"
+        onClick={() => window.print()}
+        title="Imprimer / Sauvegarder en PDF via le navigateur"
+      >
+        <Printer className="w-3.5 h-3.5" /> Imprimer
+      </Button>
+
+      {/* Bouton Partager */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 text-xs gap-1.5"
+        onClick={handleShare}
+        title="Copier le lien de ce rapport"
+      >
+        <Share2 className="w-3.5 h-3.5" /> Partager
+      </Button>
+
+      {/* Menu "…" pour les formats supplémentaires */}
+      {hasExport && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1.5">
+              Exporter — {reportName}
+            </p>
+            <DropdownMenuSeparator />
+            {cfg.xlsxUrl && (
+              <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={() => downloadAuthed(`${cfg.xlsxUrl}?${periodQuery}`, `rapport-${slug}-${today}.xlsx`)}>
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Exporter en Excel (.xlsx)
+              </DropdownMenuItem>
+            )}
+            {cfg.csvUrl && (
+              <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={() => downloadAuthed(`${cfg.csvUrl}?${periodQuery}`, `rapport-${slug}-${today}.csv`)}>
+                <Table2 className="w-4 h-4 text-sky-600" /> Exporter en CSV
+              </DropdownMenuItem>
+            )}
+            {cfg.pdfUrl && (
+              <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={() => downloadAuthed(`${cfg.pdfUrl}`, `rapport-${slug}-${today}.pdf`)}>
+                <FileText className="w-4 h-4 text-rose-600" /> Exporter en PDF
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={() => window.print()}>
+              <Printer className="w-4 h-4 text-slate-500" /> Imprimer / Sauvegarder PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={handleShare}>
+              <Share2 className="w-4 h-4 text-slate-500" /> Copier le lien de partage
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
 // ReportViewer — affiche un rapport existant avec bouton retour
 // ────────────────────────────────────────────────────────────────
 
@@ -848,13 +981,18 @@ function ReportViewer({ tab, reportName, pf, onBack }: {
   };
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-slate-600 hover:text-slate-900">
-          <ArrowLeft className="w-4 h-4" /> Retour au catalogue
+      {/* Ligne 1 : navigation + titre + exports */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-slate-600 hover:text-slate-900 shrink-0">
+          <ArrowLeft className="w-4 h-4" /> Retour
         </Button>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold truncate">{reportName}</h2>
         </div>
+        <ExportToolbar tab={tab} periodQuery={pf.periodQuery} reportName={reportName} />
+      </div>
+      {/* Ligne 2 : filtre de période */}
+      <div className="flex items-center gap-2 flex-wrap pb-1 border-b">
         <PeriodFilter
           preset={pf.preset} onPresetChange={pf.setPreset}
           customFrom={pf.customFrom} onCustomFromChange={pf.setCustomFrom}

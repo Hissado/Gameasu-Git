@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, Printer } from "lucide-react";
+import { Plus, Search, Filter, ShoppingCart, Calendar, Building, Receipt, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, Printer, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
@@ -45,6 +45,12 @@ const CANCEL_RULES: Record<string, { allowed: boolean; needsReason: boolean; war
 
 // ─── NewOrderDialog ───────────────────────────────────────────────────────────
 
+type CreditRisk = {
+  encours: number; overdueAmount: number; overdueCount: number;
+  creditLimit: number | null; utilisationPct: number | null;
+  riskScore: "low" | "medium" | "high" | "critical";
+};
+
 function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { data: clientsData } = useQuery<{ data: Client[] }>({ queryKey: ["clients-list"], queryFn: () => apiFetch("/api/clients?limit=100") });
   const clients = clientsData?.data ?? [];
@@ -54,6 +60,20 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [lines, setLines] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
   const totals = computeTotals(lines);
+
+  const { data: creditRisk } = useQuery<CreditRisk>({
+    queryKey: ["credit-risk", clientId],
+    queryFn: () => apiFetch(`/api/clients/${clientId}/credit-risk`),
+    enabled: !!clientId,
+    staleTime: 30_000,
+  });
+
+  const orderTotal = totals.totalTTC;
+  const projectedEncours = creditRisk ? creditRisk.encours + orderTotal : null;
+  const overLimit = creditRisk?.creditLimit && projectedEncours !== null && projectedEncours > creditRisk.creditLimit;
+  const utilisationAfter = creditRisk?.creditLimit && creditRisk.creditLimit > 0 && projectedEncours !== null
+    ? Math.round((projectedEncours / creditRisk.creditLimit) * 100)
+    : null;
 
   const handleSave = async () => {
     if (!clientId) { toast.error("Sélectionnez un client"); return; }
@@ -101,6 +121,38 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </Select>
             </div>
           </div>
+
+          {/* ── Alerte limite de crédit ── */}
+          {creditRisk && creditRisk.creditLimit && (
+            <div className={`rounded-lg border p-3 text-sm flex items-start gap-3 ${
+              overLimit
+                ? "border-red-300 bg-red-50 text-red-800"
+                : utilisationAfter !== null && utilisationAfter >= 80
+                ? "border-orange-300 bg-orange-50 text-orange-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}>
+              <CreditCard className="w-4 h-4 mt-0.5 shrink-0" />
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <p className="font-semibold text-xs">
+                  {overLimit ? "⚠️ Limite de crédit dépassée" : "Encours client"}
+                </p>
+                <p className="text-[11px]">
+                  Encours actuel : <strong>{formatFCFA(creditRisk.encours)}</strong>
+                  {orderTotal > 0 && <> · Cette commande : <strong>{formatFCFA(orderTotal)}</strong> → Total projeté : <strong>{formatFCFA(projectedEncours ?? 0)}</strong></>}
+                </p>
+                <p className="text-[11px]">
+                  Limite autorisée : <strong>{formatFCFA(creditRisk.creditLimit)}</strong>
+                  {utilisationAfter !== null && <> · Utilisation : <strong>{utilisationAfter}%</strong></>}
+                  {creditRisk.overdueCount > 0 && <span className="ml-2 text-red-700 font-bold"> · {creditRisk.overdueCount} facture(s) échue(s)</span>}
+                </p>
+                {overLimit && (
+                  <p className="text-[11px] font-semibold mt-1">
+                    Cette commande dépasse la limite de crédit de {formatFCFA((projectedEncours ?? 0) - creditRisk.creditLimit)}. Vous pouvez quand même l'enregistrer.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Lignes de la commande</Label>
             <LineItemsEditor lines={lines} onChange={setLines} />

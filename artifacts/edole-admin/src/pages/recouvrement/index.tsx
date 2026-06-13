@@ -11,11 +11,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Flame, Mail, Calendar, Clock, AlertTriangle, CheckCircle2, Search } from "lucide-react";
+import { Loader2, Flame, Mail, Calendar, Clock, AlertTriangle, CheckCircle2, Search, History } from "lucide-react";
 import { formatFCFA, formatFCFACompact, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "wouter";
+
+type RelanceLog = {
+  id: string;
+  clientId: string | null;
+  clientName: string | null;
+  subject: string;
+  preview: string | null;
+  sentAt: string;
+  status: string;
+  toAddress: string | null;
+};
 
 type CollectionItem = {
   invoiceId: string;
@@ -242,6 +253,10 @@ export default function RecouvrementPage() {
     queryKey: ["recouvrement-overview"],
     queryFn: () => apiFetch("/api/finance/intelligence/overview"),
   });
+  const history = useQuery<{ count: number; data: RelanceLog[] }>({
+    queryKey: ["recouvrement-history"],
+    queryFn: () => apiFetch("/api/finance/intelligence/relance-history?limit=100"),
+  });
 
   const ov = overview.data;
   const allItems = collections.data?.ranked ?? [];
@@ -408,6 +423,10 @@ export default function RecouvrementPage() {
             <TabsTrigger value="90plus" className="text-red-800 font-bold">
               +90 j ({byBucket["90plus"].length})
             </TabsTrigger>
+            <TabsTrigger value="historique" className="text-muted-foreground ml-auto">
+              <History className="w-3.5 h-3.5 mr-1.5" />
+              Historique ({history.data?.count ?? 0})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
@@ -434,6 +453,71 @@ export default function RecouvrementPage() {
           <TabsContent value="31-60" className="mt-4"><BucketTab items={byBucket["31-60"]} /></TabsContent>
           <TabsContent value="61-90" className="mt-4"><BucketTab items={byBucket["61-90"]} /></TabsContent>
           <TabsContent value="90plus" className="mt-4"><BucketTab items={byBucket["90plus"]} /></TabsContent>
+
+          <TabsContent value="historique" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <History className="w-4 h-4 text-muted-foreground" />
+                  Historique des relances envoyées
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {history.isLoading ? (
+                  <div className="py-10 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
+                ) : !history.data?.data.length ? (
+                  <div className="py-12 text-center">
+                    <Mail className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-muted-foreground text-sm">Aucune relance envoyée pour l'instant.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Client</TableHead>
+                          <TableHead>Objet</TableHead>
+                          <TableHead>Destinataire</TableHead>
+                          <TableHead>Date d'envoi</TableHead>
+                          <TableHead>Aperçu</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {history.data.data.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              {log.clientId ? (
+                                <Link href={`/clients/${log.clientId}`}>
+                                  <span className="text-sm font-medium hover:underline cursor-pointer text-primary">
+                                    {log.clientName ?? "—"}
+                                  </span>
+                                </Link>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[200px]">
+                              <p className="text-sm truncate font-medium">{log.subject}</p>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{log.toAddress ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(log.sentAt)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[240px]">
+                              <p className="text-xs text-muted-foreground truncate">{log.preview ?? "—"}</p>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       )}
 
