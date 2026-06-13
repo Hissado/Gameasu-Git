@@ -1,0 +1,318 @@
+Pouvez-vous concevoir et implémenter une logique complète d’implémentation, onboarding client et migration des données pour Gaméasù ?
+
+Contexte
+
+Une organisation peut vouloir utiliser Gaméasù alors qu’elle possède déjà un système existant : Excel, QuickBooks, Sage, Odoo, Zoho, Xero, logiciel RH, logiciel comptable, CRM, outil de facturation, ou même des fichiers internes.
+
+Je veux donc mettre en place une vraie méthode professionnelle permettant de migrer ses données vers Gaméasù de manière structurée, fiable et simple.
+
+⸻
+
+Objectif général
+
+Créer un processus complet permettant à une nouvelle organisation de :
+
+* configurer son espace Gaméasù
+* importer ses données existantes
+* mapper ses anciennes données avec les modules Gaméasù
+* vérifier les données avant import
+* corriger les erreurs
+* valider la migration
+* commencer à utiliser l’application avec ses vraies données
+
+⸻
+
+1. Créer un module “Migration & Implémentation”
+
+Ajouter une section dédiée, par exemple :
+
+Paramètres → Migration & Implémentation
+
+ou
+
+Administration → Import des données
+
+Cette section doit permettre de gérer :
+
+* l’onboarding d’une nouvelle organisation
+* l’import des données
+* le mapping des champs
+* la validation des fichiers
+* le suivi de progression
+* l’historique des imports
+* les erreurs détectées
+* les données importées avec succès
+
+⸻
+
+2. Templates Excel / CSV à fournir
+
+Créer des templates Excel et CSV standards que les clients pourront télécharger, remplir, puis importer dans Gaméasù.
+
+Prévoir des templates pour les principales données :
+
+Données organisationnelles
+
+* informations de l’entreprise
+* départements
+* sites / agences
+* centres de coûts
+* utilisateurs
+* rôles et permissions
+
+Clients & CRM
+
+* clients
+* prospects
+* contacts
+* opportunités CRM
+* pipeline commercial
+* historique commercial
+
+Ventes
+
+* produits / services
+* devis
+* commandes
+* factures clients
+* encaissements
+* avoirs
+* soldes clients ouverts
+
+Comptabilité & Finance
+
+* plan comptable
+* balances d’ouverture
+* écritures comptables
+* comptes bancaires
+* transactions bancaires
+* factures fournisseurs
+* paiements fournisseurs
+* immobilisations
+* budgets
+
+Ressources humaines
+
+* collaborateurs
+* contrats
+* salaires
+* départements
+* managers
+* présences
+* congés
+* pointages
+* données de paie
+
+Opérations
+
+* projets
+* services
+* tâches
+* équipements
+* stock
+* locations
+* documents
+
+⸻
+
+3. Mapping des données
+
+Le système doit permettre de faire un mapping intelligent entre les colonnes du fichier importé et les champs de Gaméasù.
+
+Exemple
+
+Si le client importe un fichier avec les colonnes :
+
+* Nom client
+* Téléphone
+* Email
+* Solde dû
+* Adresse
+
+Le système doit permettre de les mapper vers :
+
+* client_name
+* phone
+* email
+* outstanding_balance
+* address
+
+Fonctionnalités attendues
+
+* détection automatique des colonnes
+* suggestion de mapping
+* possibilité de modifier manuellement le mapping
+* sauvegarde du mapping pour réutilisation future
+* validation avant import
+* affichage des erreurs ligne par ligne
+* aperçu des données avant import
+
+⸻
+
+4. Validation des données avant import
+
+Avant l’import final, le système doit vérifier :
+
+* champs obligatoires manquants
+* doublons
+* mauvais formats de dates
+* mauvais formats de montants
+* emails invalides
+* numéros de téléphone invalides
+* codes comptables inexistants
+* clients inexistants liés à des factures
+* collaborateurs inexistants liés à des pointages
+* incohérences entre factures, paiements et soldes
+* erreurs de devise
+* erreurs de tenant / organisation
+
+Le système doit afficher un rapport clair :
+
+* nombre de lignes valides
+* nombre de lignes en erreur
+* erreurs à corriger
+* avertissements
+* données prêtes à importer
+
+⸻
+
+5. Import progressif par module
+
+La migration doit pouvoir se faire étape par étape, par exemple :
+
+1. Organisation
+2. Utilisateurs
+3. Départements
+4. Clients
+5. Produits / services
+6. Factures
+7. Encaissements
+8. Fournisseurs
+9. Comptabilité
+10. RH
+11. Stock
+12. Projets
+13. Documents
+
+Chaque étape doit avoir un statut :
+
+* Non commencé
+* En cours
+* À corriger
+* Validé
+* Importé avec succès
+
+⸻
+
+6. Gestion des soldes d’ouverture
+
+Prévoir une logique spécifique pour les soldes d’ouverture :
+
+* balance comptable d’ouverture
+* soldes clients ouverts
+* soldes fournisseurs ouverts
+* factures non payées
+* paiements partiels
+* stocks initiaux
+* immobilisations existantes
+* congés restants des collaborateurs
+* avances ou acomptes
+
+Ces données doivent être importées proprement afin que Gaméasù démarre avec une situation correcte.
+
+⸻
+
+7. Historique et audit trail
+
+Chaque import doit être traçable.
+
+Enregistrer :
+
+* organisation concernée
+* utilisateur ayant lancé l’import
+* fichier importé
+* date et heure
+* module concerné
+* nombre de lignes importées
+* nombre de lignes rejetées
+* erreurs détectées
+* mapping utilisé
+* statut final
+* possibilité de télécharger le rapport d’import
+
+⸻
+
+8. Sécurité et multi-tenant
+
+Comme Gaméasù est une plateforme SaaS, toute la migration doit respecter la logique multi-tenant :
+
+* les données importées doivent être liées à la bonne organisation
+* aucune donnée ne doit être visible entre organisations
+* seuls les utilisateurs autorisés peuvent importer
+* les imports doivent respecter les rôles et permissions
+* les fichiers importés doivent être sécurisés
+* les données sensibles doivent être protégées
+
+⸻
+
+9. Assistant d’implémentation guidé
+
+Créer un assistant ou wizard d’implémentation permettant de guider le client étape par étape.
+
+Exemple de parcours
+
+1. Bienvenue dans l’implémentation Gaméasù
+2. Télécharger les templates Excel / CSV
+3. Remplir les fichiers
+4. Importer les fichiers
+5. Mapper les colonnes
+6. Corriger les erreurs
+7. Valider l’import
+8. Vérifier les données dans les modules
+9. Finaliser la migration
+
+Ajouter une barre de progression globale avec le pourcentage d’avancement.
+
+⸻
+
+10. Exports de templates
+
+Chaque template doit être téléchargeable en :
+
+* Excel
+* CSV
+
+Chaque fichier doit contenir :
+
+* une feuille de données à remplir
+* une feuille d’instructions
+* des exemples de lignes
+* les champs obligatoires
+* les formats attendus
+* les valeurs acceptées
+* les explications des colonnes
+
+⸻
+
+11. Résultat attendu
+
+Je veux que Gaméasù dispose d’un vrai système professionnel d’implémentation et migration de données, permettant à une organisation qui utilise déjà un autre système de transférer ses données facilement vers Gaméasù.
+
+Le système doit permettre :
+
+* téléchargement de templates Excel / CSV
+* import des données
+* mapping des colonnes
+* validation avant import
+* correction des erreurs
+* import progressif par module
+* suivi de progression
+* audit trail
+* gestion des soldes d’ouverture
+* sécurité multi-tenant
+
+⸻
+
+Objectif final
+
+Faire de Gaméasù une application SaaS réellement prête pour l’onboarding client, avec une méthode claire pour migrer les données depuis un ancien système vers Gaméasù sans confusion, sans perte de données et avec un contrôle professionnel.
