@@ -218,16 +218,30 @@ router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
 
 // PAYMENTS
 router.get("/payments", async (req, res) => {
-  const { invoiceId, clientId, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { invoiceId: filterInvoiceId, clientId, page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
-  const orgFilter = eq(paymentsTable.organizationId, req.authUser!.organizationId);
-  const data = await db.select().from(paymentsTable).where(orgFilter).limit(limitNum).offset(offset);
-  const count = await db.select({ count: sql<number>`count(*)` }).from(paymentsTable).where(orgFilter);
+  const orgId = req.authUser!.organizationId;
+  const conds = [eq(paymentsTable.organizationId, orgId)];
+  if (filterInvoiceId) conds.push(eq(paymentsTable.invoiceId, filterInvoiceId));
+  if (clientId) conds.push(eq(invoicesTable.clientId, clientId));
+  const where = and(...conds);
+
+  const rows = await db.select({
+    pay: paymentsTable,
+    invoiceRef: invoicesTable.referenceNumber,
+    clientName: clientsTable.name,
+  }).from(paymentsTable)
+    .leftJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
+    .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+    .where(where).limit(limitNum).offset(offset)
+    .orderBy(desc(paymentsTable.paidAt));
+
+  const count = await db.select({ count: sql<number>`count(*)` }).from(paymentsTable).where(eq(paymentsTable.organizationId, orgId));
   return res.json({
-    data: data.map(p => ({ ...p, amount: toNum(p.amount) })),
+    data: rows.map(r => ({ ...r.pay, amount: toNum(r.pay.amount), invoiceRef: r.invoiceRef, clientName: r.clientName })),
     total: Number(count[0].count), page: pageNum, limit: limitNum,
   });
 });
@@ -317,6 +331,44 @@ router.get("/clients/:id/commercial", async (req, res, next) => {
 });
 
 // ─── POST /proformas/:id/generate-invoice ─────────────────────────────────────
+router.post("/proformas/:id/generate-order", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [pro] = await db.select().from(proformasTable)
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+    if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
+
+    const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    const [order] = await db.insert(ordersTable).values({
+      organizationId: orgId,
+      referenceNumber: refNum,
+      proformaId: pro.id,
+      clientId: pro.clientId,
+      status: "confirmed",
+      totalAmount: pro.totalAmount,
+      currency: pro.currency ?? "XOF",
+      notes: `Commande générée depuis le devis ${pro.referenceNumber}`,
+    }).returning();
+
+    const proLines = await getLines(orgId, "proforma", pro.id);
+    if (proLines.length > 0) {
+      await replaceLines(orgId, "order", order.id, proLines.map(l => ({
+        description: l.description,
+        quantity: Number(l.quantity),
+        unitPriceFcfa: Number(l.unitPriceFcfa),
+        discountPct: Number(l.discountPct),
+        taxRatePct: Number(l.taxRatePct),
+        productId: l.productId,
+      })));
+    }
+
+    await db.update(proformasTable).set({ status: "approved" })
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, pro.id)));
+
+    res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
+  } catch (e) { next(e); }
+});
+
 router.post("/proformas/:id/generate-invoice", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;

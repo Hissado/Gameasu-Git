@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { MinusCircle, Search, Building, FileText, CheckCircle2 } from "lucide-react";
+import { MinusCircle, Search, Building, FileText, CheckCircle2, Link2 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -65,14 +66,18 @@ export default function CreditNotesList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Notes de crédit / Avoirs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Corrections et remises sur factures émises
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Avoirs"
+        subtitle="Notes de crédit et corrections sur factures émises"
+        icon={MinusCircle}
+        actions={
+          <Link href="/invoices">
+            <button className="inline-flex items-center gap-1.5 text-xs font-medium text-[#C8A24B] border border-[#C8A24B]/40 rounded-lg px-3 py-1.5 hover:bg-[#C8A24B]/10 transition-colors">
+              <Link2 className="w-3.5 h-3.5" />Créer un avoir depuis les Factures
+            </button>
+          </Link>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border shadow-sm">

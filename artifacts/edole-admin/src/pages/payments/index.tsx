@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet } from "lucide-react";
+import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
@@ -26,6 +26,7 @@ type Payment = {
   id: string; invoiceId: string; amount: number | null;
   method: string | null; reference: string | null;
   paidAt: string | null; createdAt: string;
+  invoiceRef: string | null; clientName: string | null;
 };
 
 const METHODS: Record<string, string> = {
@@ -236,7 +237,8 @@ export default function PaymentsList() {
   const payments = (data?.data ?? []).filter((p) =>
     !search ||
     (p.reference ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    p.invoiceId.toLowerCase().includes(search.toLowerCase())
+    (p.invoiceRef ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (p.clientName ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const totalEncaisse = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
@@ -290,7 +292,8 @@ export default function PaymentsList() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="font-semibold text-slate-600">N° Facture liée</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Client</TableHead>
+                  <TableHead className="font-semibold text-slate-600">N° Facture</TableHead>
                   <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Moyen de paiement</TableHead>
                   <TableHead className="hidden md:table-cell font-semibold text-slate-600">Réf. transaction</TableHead>
                   <TableHead className="text-right font-semibold text-slate-600">Montant encaissé</TableHead>
@@ -299,7 +302,7 @@ export default function PaymentsList() {
               <TableBody>
                 {payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <CreditCard className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-lg font-medium text-slate-600">Aucun paiement enregistré.</p>
@@ -317,9 +320,19 @@ export default function PaymentsList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="bg-blue-50 text-blue-700 font-mono text-xs px-2 py-0.5 rounded border border-blue-200">
-                          {payment.invoiceId.substring(0, 8).toUpperCase()}…
-                        </span>
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <Landmark className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="font-medium">{payment.clientName ?? "—"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {payment.invoiceRef ? (
+                          <span className="bg-blue-50 text-blue-700 font-mono text-xs px-2 py-0.5 rounded border border-blue-200">
+                            {payment.invoiceRef}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {getMethodBadge(payment.method)}

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock, Mail, Printer } from "lucide-react";
+import { Plus, Search, FileText, Receipt, CheckCircle2, Building, Pencil, XCircle, AlertTriangle, Clock, Mail, Printer, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
@@ -277,6 +277,7 @@ export default function ProformasList() {
   const [cancelTarget, setCancelTarget] = useState<Proforma | null>(null);
   const [sendEmailTarget, setSendEmailTarget] = useState<Proforma | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [generatingOrderId, setGeneratingOrderId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Proforma[] }>({
     queryKey: ["proformas"],
@@ -302,6 +303,18 @@ export default function ProformasList() {
       if (msg.includes("déjà générée")) toast.info("Une facture existe déjà pour ce devis");
       else toast.error(msg || "Erreur lors de la génération");
     } finally { setGeneratingId(null); }
+  };
+
+  const generateOrder = async (id: string) => {
+    setGeneratingOrderId(id);
+    try {
+      await apiFetch(`/api/proformas/${id}/generate-order`, { method: "POST" });
+      toast.success("Commande confirmée créée depuis le devis");
+      qc.invalidateQueries({ queryKey: ["proformas"] });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de la création de la commande");
+    } finally { setGeneratingOrderId(null); }
   };
 
   const changeStatus = useMutation({
@@ -418,6 +431,12 @@ export default function ProformasList() {
                               onClick={() => window.open(`/documents/proforma/${p.id}/print`, "_blank")}>
                               <Printer className="w-3 h-3" /> PDF
                             </Button>
+                            {(p.status === "draft" || p.status === "sent") && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                disabled={generatingOrderId === p.id} onClick={() => generateOrder(p.id)}>
+                                <ShoppingCart className="w-3 h-3" />{generatingOrderId === p.id ? "…" : "Commande"}
+                              </Button>
+                            )}
                             {p.status !== "rejected" && p.status !== "cancelled" && (
                               <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white"
                                 disabled={generatingId === p.id} onClick={() => generateInvoice(p.id)}>
