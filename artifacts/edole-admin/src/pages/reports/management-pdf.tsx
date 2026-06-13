@@ -10,6 +10,7 @@ type ExpBreakdown = { code: string; label: string; amount: number; percent: numb
 type HealthCheck  = { cat: string; label: string; curr: number; prev: number | null; target: string; targetNum: number | null; achieved: boolean; importance: string; isPercent: boolean; isMoney: boolean };
 
 type ManagementReport = {
+  org?: { name: string; legalName: string; logoUrl: string | null; country: string };
   period: { from: string; to: string };
   prev: { revenues: number; expenses: number; netResult: number; margin: number; from: string; to: string };
   finance: {
@@ -315,6 +316,7 @@ export default function ManagementPDFPage() {
   );
 
   const d = data;
+  const orgName = d.org?.name ?? "Mon Organisation";
   const f = d.finance;
   const liq = d.liquidity;
   const ops = d.operations;
@@ -349,7 +351,7 @@ export default function ManagementPDFPage() {
   function PageFooter({ page, total = 8 }: { page: number; total?: number }) {
     return (
       <div className="page-footer">
-        <div className="pf-logo">Gaméa<span>sù</span></div>
+        <div className="pf-logo">{orgName}</div>
         <div className="pf-info">{periodLabel} · Confidentiel · Réservé à l'usage de la Direction</div>
         <div className="pf-info">Page {page} / {total}</div>
       </div>
@@ -380,7 +382,7 @@ export default function ManagementPDFPage() {
         <div className="pdf-page">
           <div className="cover-header">
             <div>
-              <div className="cover-logo">Gaméa<span>sù</span></div>
+              <div className="cover-logo">{orgName}</div>
               <div className="cover-subtitle">Rapport de Gestion · Management Reporting</div>
               <div className="cover-title">Management<br />Reporting Center</div>
               <div className="cover-period">Période analysée : {periodLabel}</div>
@@ -1010,7 +1012,7 @@ export default function ManagementPDFPage() {
             </div>
 
             <div style={{ marginTop: 18, padding: "12px 14px", background: "#0f172a", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>Gaméa<span style={{ color: "#f97316" }}>sù</span></div>
+              <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>{orgName}</div>
               <div style={{ fontSize: 10.5, color: "rgba(255,255,255,.5)", textAlign: "center" }}>
                 Management Reporting Center · {periodLabel} · Généré le {generatedAt}
               </div>

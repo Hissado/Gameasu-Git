@@ -35,6 +35,7 @@ import {
   bankAccountsTable,
   bankTransactionsTable,
   execSummaryConfigsTable,
+  organizationsTable,
 } from "@workspace/db";
 import type { ExecSummarySectionConfig } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
@@ -2334,7 +2335,21 @@ router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req
     const healthTotal    = healthChecks.length;
     const healthScorePct = Math.round((healthAchieved / healthTotal) * 100);
 
+    // ── Infos organisation ───────────────────────────────────────────────────
+    const [orgRow] = await db.select({
+      name: organizationsTable.name,
+      legalName: organizationsTable.legalName,
+      logoUrl: organizationsTable.logoUrl,
+      country: organizationsTable.country,
+    }).from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+
     res.json({
+      org: {
+        name:      orgRow?.name      ?? "Mon Organisation",
+        legalName: orgRow?.legalName ?? orgRow?.name ?? "Mon Organisation",
+        logoUrl:   orgRow?.logoUrl   ?? null,
+        country:   orgRow?.country   ?? "TG",
+      },
       period: { from: fromIso, to: toIso },
       prev: { revenues: prevRevenues, expenses: prevExpenses, netResult: prevNetResult, margin: prevMargin, from: prevFromIso, to: prevToIso },
       finance: {
