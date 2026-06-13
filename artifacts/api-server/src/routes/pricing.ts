@@ -21,7 +21,7 @@ function formatDate(d: Date): string {
 }
 
 // ─── LIST ──────────────────────────────────────────────────────────────────────
-router.get("/api/pricing/scenarios", async (req, res) => {
+router.get("/pricing/scenarios", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { q, limit = "50", offset = "0" } = req.query as Record<string, string>;
 
@@ -64,7 +64,7 @@ router.get("/api/pricing/scenarios", async (req, res) => {
 });
 
 // ─── GET ONE ──────────────────────────────────────────────────────────────────
-router.get("/api/pricing/scenarios/:id", async (req, res) => {
+router.get("/pricing/scenarios/:id", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const [row] = await db
     .select({
@@ -103,7 +103,7 @@ router.get("/api/pricing/scenarios/:id", async (req, res) => {
 });
 
 // ─── CREATE ───────────────────────────────────────────────────────────────────
-router.post("/api/pricing/scenarios", async (req, res) => {
+router.post("/pricing/scenarios", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const userId = req.authUser!.userId;
 
@@ -141,7 +141,7 @@ router.post("/api/pricing/scenarios", async (req, res) => {
 });
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
-router.put("/api/pricing/scenarios/:id", async (req, res) => {
+router.put("/pricing/scenarios/:id", async (req, res) => {
   const orgId = req.authUser!.organizationId;
 
   const [existing] = await db
@@ -190,7 +190,7 @@ router.put("/api/pricing/scenarios/:id", async (req, res) => {
 });
 
 // ─── DELETE (soft) ────────────────────────────────────────────────────────────
-router.delete("/api/pricing/scenarios/:id", async (req, res) => {
+router.delete("/pricing/scenarios/:id", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   await db
     .update(pricingScenariosTable)
@@ -205,7 +205,7 @@ router.delete("/api/pricing/scenarios/:id", async (req, res) => {
 });
 
 // ─── DUPLICATE ────────────────────────────────────────────────────────────────
-router.post("/api/pricing/scenarios/:id/duplicate", async (req, res) => {
+router.post("/pricing/scenarios/:id/duplicate", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const userId = req.authUser!.userId;
 
@@ -247,7 +247,7 @@ router.post("/api/pricing/scenarios/:id/duplicate", async (req, res) => {
 });
 
 // ─── TOGGLE SHARE ─────────────────────────────────────────────────────────────
-router.patch("/api/pricing/scenarios/:id/share", async (req, res) => {
+router.patch("/pricing/scenarios/:id/share", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { enabled } = req.body as { enabled: boolean };
 
@@ -268,7 +268,7 @@ router.patch("/api/pricing/scenarios/:id/share", async (req, res) => {
 });
 
 // ─── LINK DOCUMENTS ───────────────────────────────────────────────────────────
-router.patch("/api/pricing/scenarios/:id/links", async (req, res) => {
+router.patch("/pricing/scenarios/:id/links", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { opportunityId, proformaId, orderId, invoiceId } = req.body;
 
@@ -294,7 +294,7 @@ router.patch("/api/pricing/scenarios/:id/links", async (req, res) => {
 });
 
 // ─── EXPORT PDF ───────────────────────────────────────────────────────────────
-router.get("/api/pricing/scenarios/:id/export.pdf", async (req, res) => {
+router.get("/pricing/scenarios/:id/export.pdf", async (req, res) => {
   const orgId = req.authUser!.organizationId;
 
   const [row] = await db
@@ -413,7 +413,7 @@ export default router;
 // ─── PUBLIC SHARE ─────────────────────────────────────────────────────────────
 export const pricingPublicRouter = Router();
 
-pricingPublicRouter.get("/api/public/pricing/:token", async (req, res) => {
+pricingPublicRouter.get("/public/pricing/:token", async (req, res) => {
   const [row] = await db
     .select({
       id: pricingScenariosTable.id,
