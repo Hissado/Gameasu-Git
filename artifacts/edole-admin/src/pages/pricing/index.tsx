@@ -2838,7 +2838,6 @@ export default function PricingCalculator() {
                       <button key={t.value} onClick={() => setActiveTab(t.value)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
                         {t.label}
-                        {t.badge > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === t.value ? "bg-white/20 text-white" : t.color}`}>{formatFCFA(Math.round(t.badge))}</span>}
                       </button>
                     ))}
                   </TabsList>
