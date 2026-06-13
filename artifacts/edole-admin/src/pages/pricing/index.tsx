@@ -19,7 +19,8 @@ import {
   Calculator, Lightbulb, Target, Landmark, AlertTriangle, Shield,
   Building2, Megaphone, Banknote, HardHat, Settings2, ChevronDown, ChevronUp,
   AlertCircle, RefreshCw, ArrowRight, Clock, Percent, Tag, BarChart2,
-  ChevronRight, Layers, X,
+  ChevronRight, Layers, X, Save, Share2, Copy, Check, FolderOpen,
+  GitCompare, Link2, ExternalLink, CloudUpload, Eye, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -218,6 +219,18 @@ interface PricingResult {
 
 type RecType = "danger" | "warning" | "success" | "info";
 interface Recommendation { type: RecType; title: string; msg: string; }
+
+interface SavedScenarioMeta {
+  id: string;
+  name: string;
+  description?: string | null;
+  productName?: string | null;
+  clientName?: string | null;
+  shareToken: string;
+  shareEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 type CatalogCollab = {
   id: string; firstName: string; lastName: string;
@@ -2370,6 +2383,18 @@ export default function PricingCalculator() {
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   const [sendDocType, setSendDocType] = useState<DocTarget | null>(null);
   const [activeTab, setActiveTab] = useState("directs");
+
+  // ─── Save / Share / PDF state ─────────────────────────────────────────────
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareEnabled, setShareEnabled] = useState(false);
+  const [showScenarioList, setShowScenarioList] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showCompareDialog, setShowCompareDialog] = useState(false);
+  const [savedScenariosMeta, setSavedScenariosMeta] = useState<SavedScenarioMeta[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
   const toggleComponent = (id: string) => setExpandedComponents(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
@@ -2411,6 +2436,7 @@ export default function PricingCalculator() {
   // ─── Mutation helpers ─────────────────────────────────────────────────────
   const updateScenario = useCallback((patch: Partial<Scenario>) => {
     setScenarios(prev => prev.map(s => s.id === activeScenarioId ? { ...s, ...patch } : s));
+    setIsDirty(true);
   }, [activeScenarioId]);
 
   const addItem = (field: keyof Scenario, cat: CostCategory, alloc: AllocMethod = "fixed", qtyUnit?: string) => {
@@ -2519,6 +2545,162 @@ export default function PricingCalculator() {
     const ns: Scenario = { ...scenario, id: uid(), name: `Scénario ${scenarios.length + 1}` };
     setScenarios(prev => [...prev, ns]);
     setActiveScenarioId(ns.id);
+    setSavedId(null);
+    setShareToken(null);
+    setShareEnabled(false);
+    setIsDirty(false);
+  };
+
+  // ─── API: Enregistrer ─────────────────────────────────────────────────────
+  const saveScenario = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: scenario.name || "Scénario sans titre",
+        description: scenario.description ?? null,
+        productName: scenario.productName ?? null,
+        clientId: scenario.clientId && !scenario.clientId.startsWith("prospect:") ? scenario.clientId : null,
+        scenarioData: scenario as unknown as Record<string, unknown>,
+        resultData: result as unknown as Record<string, unknown>,
+        notes: null,
+      };
+      let saved: SavedScenarioMeta & { shareToken: string; shareEnabled: boolean };
+      if (savedId) {
+        saved = await apiFetch(`/api/pricing/scenarios/${savedId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        saved = await apiFetch("/api/pricing/scenarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+      setSavedId(saved.id);
+      setShareToken(saved.shareToken);
+      setShareEnabled(saved.shareEnabled);
+      setIsDirty(false);
+      toast.success("Scénario enregistré");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ─── API: Liste des scénarios sauvegardés ─────────────────────────────────
+  const loadScenariosList = async () => {
+    try {
+      const res = await apiFetch("/api/pricing/scenarios?limit=50") as { data: SavedScenarioMeta[] };
+      setSavedScenariosMeta(res.data ?? []);
+    } catch { /* ignore */ }
+  };
+
+  // ─── API: Charger un scénario sauvegardé ─────────────────────────────────
+  const loadSavedScenario = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/pricing/scenarios/${id}`) as {
+        id: string; name: string; scenarioData: Scenario;
+        shareToken: string; shareEnabled: boolean;
+      };
+      if (!res.scenarioData) { toast.error("Données du scénario introuvables"); return; }
+      const loaded = { ...res.scenarioData, id: uid() };
+      setScenarios(prev => [...prev, loaded]);
+      setActiveScenarioId(loaded.id);
+      setSavedId(res.id);
+      setShareToken(res.shareToken);
+      setShareEnabled(res.shareEnabled);
+      setIsDirty(false);
+      setShowScenarioList(false);
+      toast.success(`Scénario "${res.name}" chargé`);
+    } catch {
+      toast.error("Erreur lors du chargement");
+    }
+  };
+
+  // ─── API: Dupliquer ───────────────────────────────────────────────────────
+  const duplicateScenarioAPI = async () => {
+    if (!savedId) {
+      const ns: Scenario = { ...scenario, id: uid(), name: `${scenario.name} (copie)` };
+      setScenarios(prev => [...prev, ns]);
+      setActiveScenarioId(ns.id);
+      setSavedId(null);
+      setShareToken(null);
+      setShareEnabled(false);
+      setIsDirty(true);
+      toast.success("Scénario dupliqué (non sauvegardé)");
+      return;
+    }
+    try {
+      const dup = await apiFetch(
+        `/api/pricing/scenarios/${savedId}/duplicate`,
+        { method: "POST" },
+      ) as SavedScenarioMeta & { shareToken: string; shareEnabled: boolean };
+      const loaded = await apiFetch(`/api/pricing/scenarios/${dup.id}`) as {
+        id: string; name: string; scenarioData: Scenario;
+        shareToken: string; shareEnabled: boolean;
+      };
+      if (loaded.scenarioData) {
+        const ns = { ...loaded.scenarioData, id: uid(), name: dup.name };
+        setScenarios(prev => [...prev, ns]);
+        setActiveScenarioId(ns.id);
+      }
+      setSavedId(dup.id);
+      setShareToken(dup.shareToken);
+      setShareEnabled(dup.shareEnabled);
+      setIsDirty(false);
+      toast.success(`Scénario dupliqué : "${dup.name}"`);
+    } catch {
+      toast.error("Erreur lors de la duplication");
+    }
+  };
+
+  // ─── API: Partage ─────────────────────────────────────────────────────────
+  const toggleShare = async () => {
+    if (!savedId) { toast("Enregistrez d'abord le scénario"); return; }
+    try {
+      const res = await apiFetch(`/api/pricing/scenarios/${savedId}/share`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !shareEnabled }),
+      }) as { shareEnabled: boolean };
+      setShareEnabled(res.shareEnabled);
+      toast.success(res.shareEnabled ? "Lien de partage activé" : "Partage désactivé");
+    } catch {
+      toast.error("Erreur lors du changement de partage");
+    }
+  };
+
+  // ─── Export PDF ───────────────────────────────────────────────────────────
+  const exportPDF = async () => {
+    if (!savedId) {
+      // Auto-save then export
+      await saveScenario();
+    }
+    if (savedId || true) {
+      // Re-read savedId after potential save
+      setTimeout(() => {
+        setSavedId(prev => {
+          if (prev) window.open(`/api/pricing/scenarios/${prev}/export.pdf`, "_blank");
+          else toast("Enregistrement nécessaire avant l'export PDF");
+          return prev;
+        });
+      }, 100);
+    }
+  };
+
+  const shareUrl = shareToken
+    ? `${window.location.origin}/pricing/share/${shareToken}`
+    : null;
+
+  const copyShareLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
   };
 
   const resetScenario = useCallback(() => {
@@ -2556,35 +2738,114 @@ export default function PricingCalculator() {
     <TooltipProvider>
       <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header — ligne 1 : titre + actions */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#C8A24B]/15 flex items-center justify-center">
               <Calculator className="w-5 h-5 text-[#C8A24B]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">Calculateur tarifaire</h1>
-              <p className="text-xs text-muted-foreground">Pricing stratégique · coût complet · impact IS</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                Pricing stratégique · coût complet · impact IS
+                {savedId && !isDirty && (
+                  <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                    <Check className="w-3 h-3" />Enregistré
+                  </span>
+                )}
+                {savedId && isDirty && (
+                  <span className="inline-flex items-center gap-1 text-amber-500 font-medium">
+                    <CloudUpload className="w-3 h-3" />Modifications non sauvegardées
+                  </span>
+                )}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {scenarios.map(s => (
-              <Button key={s.id} size="sm" variant={s.id === activeScenarioId ? "default" : "outline"}
-                className={s.id === activeScenarioId ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}
-                onClick={() => setActiveScenarioId(s.id)}>
-                {s.name}
-              </Button>
-            ))}
-            <Button size="sm" variant="outline" onClick={addScenario} className="gap-1"><Plus className="w-3.5 h-3.5" />Scénario</Button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Mes scénarios sauvegardés */}
+            <Button size="sm" variant="outline"
+              onClick={() => { loadScenariosList(); setShowScenarioList(true); }}
+              className="gap-1.5 text-xs">
+              <FolderOpen className="w-3.5 h-3.5" />Mes scénarios
+            </Button>
+
+            {/* Enregistrer */}
+            <Button size="sm"
+              onClick={saveScenario}
+              disabled={isSaving}
+              className={`gap-1.5 text-xs ${savedId && !isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-[#C8A24B] hover:bg-[#b8922b] text-white"}`}>
+              {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {isSaving ? "Enregistrement…" : savedId && !isDirty ? "Enregistré" : "Enregistrer"}
+            </Button>
+
+            {/* Dupliquer */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={() => setShowResetConfirm(true)} className="text-muted-foreground hover:text-destructive h-8 w-8 p-0">
-                  <RefreshCw className="w-3.5 h-3.5" />
+                <Button size="sm" variant="outline" onClick={duplicateScenarioAPI} className="gap-1.5 text-xs">
+                  <Copy className="w-3.5 h-3.5" />Dupliquer
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Réinitialiser le scénario</TooltipContent>
+              <TooltipContent>Créer une copie du scénario actuel</TooltipContent>
+            </Tooltip>
+
+            {/* Exporter PDF */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={exportPDF} className="gap-1.5 text-xs">
+                  <Download className="w-3.5 h-3.5" />PDF
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exporter en PDF professionnel</TooltipContent>
+            </Tooltip>
+
+            {/* Partager */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline"
+                  onClick={() => { if (!savedId) { saveScenario().then(() => setShowShareDialog(true)); } else setShowShareDialog(true); }}
+                  className={`gap-1.5 text-xs ${shareEnabled ? "border-emerald-300 text-emerald-700 bg-emerald-50" : ""}`}>
+                  <Share2 className="w-3.5 h-3.5" />Partager
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Générer un lien de partage</TooltipContent>
+            </Tooltip>
+
+            {/* Comparer */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline"
+                  onClick={() => { loadScenariosList(); setShowCompareDialog(true); }}
+                  className="gap-1.5 text-xs">
+                  <GitCompare className="w-3.5 h-3.5" />Comparer
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Comparer plusieurs scénarios côte à côte</TooltipContent>
             </Tooltip>
           </div>
+        </div>
+
+        {/* Header — ligne 2 : onglets scénarios */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {scenarios.map(s => (
+            <Button key={s.id} size="sm" variant={s.id === activeScenarioId ? "default" : "outline"}
+              className={s.id === activeScenarioId ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}
+              onClick={() => setActiveScenarioId(s.id)}>
+              {s.name}
+            </Button>
+          ))}
+          <Button size="sm" variant="outline" onClick={addScenario} className="gap-1">
+            <Plus className="w-3.5 h-3.5" />Nouveau scénario
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="ghost" onClick={() => setShowResetConfirm(true)} className="text-muted-foreground hover:text-destructive h-8 w-8 p-0">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Réinitialiser le scénario</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="grid grid-cols-12 gap-4">
@@ -3712,6 +3973,196 @@ export default function PricingCalculator() {
         {sendDocType && (
           <SendToDocDialog open={true} onClose={() => setSendDocType(null)} result={result} scenario={scenario} docType={sendDocType} />
         )}
+
+        {/* ── Dialog : Mes scénarios sauvegardés ── */}
+        <Dialog open={showScenarioList} onOpenChange={setShowScenarioList}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-[#C8A24B]" />
+                Mes scénarios sauvegardés
+              </DialogTitle>
+              <DialogDescription>Chargez un scénario pour l'ouvrir dans le calculateur.</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-2 py-2">
+              {savedScenariosMeta.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground text-sm">
+                  <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium">Aucun scénario sauvegardé</p>
+                  <p className="text-xs mt-1 opacity-70">Cliquez sur « Enregistrer » pour sauvegarder le scénario actuel.</p>
+                </div>
+              ) : (
+                savedScenariosMeta.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
+                    <div className="w-8 h-8 rounded-lg bg-[#C8A24B]/10 flex items-center justify-center shrink-0">
+                      <Calculator className="w-4 h-4 text-[#C8A24B]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">{s.name}</div>
+                      {s.productName && <div className="text-xs text-muted-foreground truncate">{s.productName}</div>}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {s.clientName && <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{s.clientName}</span>}
+                        {s.shareEnabled && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Link2 className="w-2.5 h-2.5" />Partagé</span>}
+                        <span className="text-[10px] text-muted-foreground">Modifié le {new Date(s.updatedAt).toLocaleDateString("fr-FR")}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {s.id === savedId && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Actif</span>
+                      )}
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                        onClick={() => loadSavedScenario(s.id)}>
+                        <Eye className="w-3 h-3" />Charger
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
+                        onClick={async () => {
+                          await apiFetch(`/api/pricing/scenarios/${s.id}`, { method: "DELETE" });
+                          setSavedScenariosMeta(prev => prev.filter(x => x.id !== s.id));
+                          if (savedId === s.id) setSavedId(null);
+                          toast.success("Scénario supprimé");
+                        }}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowScenarioList(false)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Dialog : Partager ── */}
+        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-[#C8A24B]" />
+                Partager le scénario
+              </DialogTitle>
+              <DialogDescription>
+                Partagez un lien en lecture seule de ce scénario avec un client ou collaborateur.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {/* Toggle partage */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50">
+                <div>
+                  <div className="text-sm font-semibold">Lien de partage</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {shareEnabled ? "Le lien est actif — toute personne avec le lien peut voir ce scénario" : "Activez le partage pour générer un lien"}
+                  </div>
+                </div>
+                <Switch checked={shareEnabled} onCheckedChange={() => toggleShare()} />
+              </div>
+
+              {/* Lien copiable */}
+              {shareEnabled && shareUrl && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-slate-100 text-xs text-slate-700 font-mono truncate border border-slate-200">
+                      {shareUrl}
+                    </div>
+                    <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={copyShareLink}>
+                      {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedLink ? "Copié !" : "Copier"}
+                    </Button>
+                  </div>
+                  <Button size="sm" variant="ghost" className="w-full gap-1.5 text-xs text-muted-foreground"
+                    onClick={() => window.open(shareUrl, "_blank")}>
+                    <ExternalLink className="w-3.5 h-3.5" />Ouvrir le lien dans un nouvel onglet
+                  </Button>
+                </div>
+              )}
+
+              {/* Info PDF */}
+              <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50 text-xs text-muted-foreground space-y-1">
+                <div className="font-medium text-slate-700 mb-1">Vous pouvez aussi :</div>
+                <div className="flex items-center gap-2">
+                  <Download className="w-3.5 h-3.5 text-[#C8A24B] shrink-0" />
+                  <span>Exporter un PDF professionnel et l'envoyer par email</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileSignature className="w-3.5 h-3.5 text-[#C8A24B] shrink-0" />
+                  <span>Convertir en devis via le bouton « Créer un devis »</span>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fermer</Button>
+              <Button onClick={exportPDF} className="gap-1.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+                <Download className="w-3.5 h-3.5" />Exporter PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Dialog : Comparer des scénarios ── */}
+        <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GitCompare className="w-4 h-4 text-[#C8A24B]" />
+                Comparer des scénarios
+              </DialogTitle>
+              <DialogDescription>
+                Comparaison des résultats de pricing côte à côte.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto">
+              {savedScenariosMeta.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  <GitCompare className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium">Aucun scénario sauvegardé</p>
+                  <p className="text-xs mt-1 opacity-70">Enregistrez au moins deux scénarios pour les comparer.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-900 text-white">
+                        <th className="text-left px-4 py-3 font-semibold w-40">Indicateur</th>
+                        {savedScenariosMeta.slice(0, 4).map(s => (
+                          <th key={s.id} className={`text-center px-3 py-3 font-semibold ${s.id === savedId ? "text-[#C8A24B]" : "text-white"}`}>
+                            <div className="truncate max-w-[140px] mx-auto">{s.name}</div>
+                            {s.productName && <div className="text-[9px] font-normal text-slate-400 truncate max-w-[140px] mx-auto">{s.productName}</div>}
+                            {s.id === savedId && <div className="text-[9px] font-medium text-[#C8A24B] mt-0.5">● Actif</div>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { label: "Client", key: "clientName", fmt: (v: any) => v ?? "—" },
+                        { label: "Modifié le", key: "updatedAt", fmt: (v: any) => new Date(v).toLocaleDateString("fr-FR") },
+                        { label: "Partage", key: "shareEnabled", fmt: (v: any) => v ? "✓ Actif" : "Désactivé" },
+                      ].map((row, i) => (
+                        <tr key={row.key} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                          <td className="px-4 py-2.5 text-muted-foreground font-medium">{row.label}</td>
+                          {savedScenariosMeta.slice(0, 4).map(s => (
+                            <td key={s.id} className="px-3 py-2.5 text-center">
+                              {row.fmt((s as any)[row.key])}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
+                    <Info className="w-3.5 h-3.5 inline mr-1" />
+                    Pour voir les montants comparés côte à côte, chargez chaque scénario dans le calculateur et notez les résultats. Les données complètes sont disponibles dans chaque PDF.
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCompareDialog(false)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </TooltipProvider>
   );

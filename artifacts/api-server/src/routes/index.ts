@@ -61,6 +61,7 @@ import kioskAdminRouter, { kioskPublicRouter } from "./kiosk";
 import storageRouter from "./storage";
 import inventoryRouter from "./inventory";
 import analyticsManagementRouter from "./analyticsManagement";
+import pricingRouter, { pricingPublicRouter } from "./pricing";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
@@ -72,13 +73,14 @@ import { seedRbac } from "../lib/rbac/seed";
 
 const router: IRouter = Router();
 
-// Routes publiques (login, health, tracking marketing, formulaires)
+// Routes publiques (login, health, tracking marketing, formulaires, partage pricing)
 router.use(healthRouter);
 router.use(authRouter);
 router.use(publicOnboardingRouter);
 router.use(kioskPublicRouter);
 router.use(storageRouter);
 router.use(marketingPublicRouter);
+router.use(pricingPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -145,6 +147,7 @@ router.use(attendanceRouter);
 router.use(client360Router);
 router.use(kioskAdminRouter);
 router.use(storageRouter);
+router.use(pricingRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

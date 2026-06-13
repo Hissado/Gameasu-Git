@@ -30,3 +30,4 @@ export * from "./kiosk";
 export * from "./onboarding";
 export * from "./expenses";
 export * from "./benefits";
+export * from "./pricing";
