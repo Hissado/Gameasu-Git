@@ -688,7 +688,7 @@ function generateRecommendations(result: PricingResult, scenario: Scenario, fc: 
   if (priceHT < totalCost) {
     recs.push({ type: "danger", title: "Vente à perte", msg: "Ce prix est inférieur au coût de revient complet. Vous vendez à perte. Augmentez votre prix ou réduisez vos coûts." });
   } else if (grossMarginPct < 5) {
-    recs.push({ type: "danger", title: "Marge critique (< 5%)", msg: "La marge brute est insuffisante pour absorber les aléas et charges non comptabilisées." });
+    recs.push({ type: "danger", title: "Marge critique (< 5%)", msg: "La marge sur coût complet est insuffisante pour absorber les aléas et charges non comptabilisées." });
   } else if (grossMarginPct < 15) {
     recs.push({ type: "warning", title: "Marge faible (< 15%)", msg: "Ce prix couvre les coûts mais la marge reste fragile face aux imprévus opérationnels." });
   }
@@ -2543,7 +2543,6 @@ export default function PricingCalculator() {
   // ─── Cost totals per section ──────────────────────────────────────────────
   const totalLaborCost = useMemo(() => (scenario.laborLines ?? []).reduce((sum, l) => sum + computeLaborLineCost(l).totalCost, 0), [scenario.laborLines]);
   const totalDirectCost = useMemo(() => (scenario.costItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
-  const totalDirectCostOnly = useMemo(() => (scenario.costItems ?? []).filter(i => i.category !== "purchase").reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
   const totalPurchaseCost = useMemo(() => (scenario.costItems ?? []).filter(i => i.category === "purchase").reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.costItems, result]);
   const totalOperational = useMemo(() => (scenario.operationalItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.operationalItems, result]);
   const totalAdmin = useMemo(() => (scenario.adminItems ?? []).reduce((s, i) => s + computeItemCost(i, result.totalCost, result.priceHT), 0), [scenario.adminItems, result]);
@@ -2828,13 +2827,10 @@ export default function PricingCalculator() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <CardHeader className="pb-0 border-b">
                   <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-transparent p-0 pb-3">
-                    {[
-                      { value: "directs",     label: "Coûts directs",              badge: totalDirectCostOnly, color: "bg-blue-100 text-blue-700" },
-                      { value: "achats",      label: "Achats & Approvisionnement", badge: totalPurchaseCost,   color: "bg-emerald-100 text-emerald-700" },
-                      { value: "labor",       label: "Main-d'œuvre",               badge: totalLaborCost,      color: "bg-purple-100 text-purple-700" },
-                      { value: "operations",  label: "Opérations",                 badge: totalDepr,           color: "bg-lime-100 text-lime-700" },
-                      { value: "generaux",    label: "Frais de structure",         badge: (scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? (computeStructureCosts(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).total + totalRisk) : (totalOperational + totalAdmin + totalCommercial + totalFinancial + totalRisk), color: "bg-slate-100 text-slate-700" },
-                    ].map(t => (
+                    {(["directs","achats","labor","operations","generaux"] as const).map(v => ({
+                      value: v,
+                      label: { directs: "Coûts directs", achats: "Achats & Approvisionnement", labor: "Main-d'œuvre", operations: "Opérations", generaux: "Frais de structure" }[v],
+                    })).map(t => (
                       <button key={t.value} onClick={() => setActiveTab(t.value)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
                         {t.label}
@@ -3420,7 +3416,8 @@ export default function PricingCalculator() {
                       </tr>
                     )}
                     {[
-                      { label: "— Coûts directs", val: result.byCategory.direct + result.byCategory.purchase + result.byCategory.logistics + result.byCategory.tax_input + result.byCategory.other },
+                      { label: "— Coûts directs", val: result.byCategory.direct + result.byCategory.logistics + result.byCategory.tax_input + result.byCategory.other },
+                      { label: "— Achats & Approvisionnement", val: result.byCategory.purchase },
                       { label: "— Main-d'œuvre", val: result.byCategory.labor },
                       { label: "— Charges opérat.", val: result.byCategory.operational },
                       { label: "— Amortissements", val: result.byCategory.depreciation },
@@ -3435,23 +3432,20 @@ export default function PricingCalculator() {
                         <td className="px-4 py-1.5 text-right text-muted-foreground">{result.priceHT > 0 ? `${((row.val / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
                       </tr>
                     ))}
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <td className="px-4 py-2.5 font-bold text-slate-700">Marge brute</td>
-                      <td className={`px-4 py-2.5 text-right font-bold ${result.grossMargin < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(result.grossMargin)}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold ${result.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</td>
-                    </tr>
-                    {fiscalConfig.enabled && (<>
-                      <tr className="border-b border-slate-100 hover:bg-orange-50/20">
-                        <td className="px-4 py-2 text-slate-600">Résultat avant IS</td>
-                        <td className="px-4 py-2 text-right font-semibold">{formatFCFA(result.profitBeforeTax)}</td>
-                        <td className="px-4 py-2 text-right text-muted-foreground">{result.priceHT > 0 ? `${result.operatingMarginPct.toFixed(1)}%` : "—"}</td>
+                    {fiscalConfig.enabled && (
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        <td className="px-4 py-2.5 font-bold text-slate-700">Résultat avant IS</td>
+                        <td className={`px-4 py-2.5 text-right font-bold ${result.grossMargin < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(result.grossMargin)}</td>
+                        <td className={`px-4 py-2.5 text-right font-semibold ${result.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</td>
                       </tr>
+                    )}
+                    {fiscalConfig.enabled && (
                       <tr className="border-b border-slate-100 hover:bg-orange-50/20">
                         <td className="px-4 py-2 text-orange-700 pl-6">— IS incrémental ({result.effectiveTaxRate.toFixed(1)}% effectif / {result.marginalTaxRate.toFixed(0)}% marginal)</td>
                         <td className="px-4 py-2 text-right text-orange-700 font-semibold">{formatFCFA(Math.round(result.corporateTax))}</td>
                         <td className="px-4 py-2 text-right text-orange-500">{result.priceHT > 0 ? `${((result.corporateTax / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
                       </tr>
-                    </>)}
+                    )}
                     <tr className="bg-[#C8A24B]/10">
                       <td className="px-4 py-3 font-bold text-[#8a6b2a]">{fiscalConfig.enabled ? "Bénéfice net après IS" : "Marge nette"}</td>
                       <td className={`px-4 py-3 text-right font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{formatFCFA(result.netProfit)}</td>
@@ -3519,7 +3513,7 @@ export default function PricingCalculator() {
               <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-slate-50 rounded-lg p-2.5">
-                    <div className="text-xs text-muted-foreground mb-1">Marge brute</div>
+                    <div className="text-xs text-muted-foreground mb-1">Marge sur coût complet</div>
                     <div className={`text-xl font-bold ${result.grossMarginPct < 10 ? "text-red-500" : result.grossMarginPct < 20 ? "text-amber-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</div>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-2.5">
@@ -3537,7 +3531,7 @@ export default function PricingCalculator() {
                     <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 text-center">
                       <div className="text-xs text-orange-600 mb-1">Taux effectif IS</div>
                       <div className="text-lg font-bold text-orange-700">{result.effectiveTaxRate.toFixed(1)}%</div>
-                      <div className="text-[10px] text-muted-foreground">IS / marge brute deal</div>
+                      <div className="text-[10px] text-muted-foreground">IS / résultat avant IS</div>
                     </div>
                     <div className="bg-orange-50 border border-orange-100 rounded-lg p-2.5 text-center">
                       <div className="text-xs text-orange-600 mb-1">Taux marginal IS</div>

@@ -1,0 +1,206 @@
+Pouvez-vous revoir en profondeur tout le **Calculateur tarifaire / Tarification** afin de vérifier si tout fonctionne correctement, si les calculs sont fiables, si les données sont bien synchronisées avec les autres modules, et si les scénarios de tarification sont bien pris en compte ?
+
+### Objectif
+
+Je veux m’assurer que le calculateur tarifaire est réellement fiable, cohérent, professionnel et prêt à être utilisé dans l’application.
+
+Il faut vérifier à la fois :
+
+* la logique métier
+* les formules de calcul
+* les synchronisations avec les autres modules
+* les scénarios de tarification
+* les bugs éventuels
+* le design
+* les formats d’écriture
+* l’expérience utilisateur globale
+
+---
+
+## 1. Vérification des calculs
+
+Merci de contrôler si tous les calculs sont corrects, notamment :
+
+* coûts directs
+* achats & approvisionnement
+* main-d’œuvre
+* opérations
+* équipements
+* locations
+* frais de structure
+* frais indirects
+* burn rate
+* taxes
+* remises
+* marge brute
+* marge nette
+* coût complet
+* prix minimum
+* prix recommandé
+* prix final
+* rentabilité estimée
+* bénéfice avant impôt
+* bénéfice après impôt
+* impact fiscal si applicable
+
+Les formules doivent être cohérentes, logiques et ne doivent pas générer de résultats incohérents.
+
+---
+
+## 2. Vérification des synchronisations
+
+Merci de vérifier que le calculateur est bien connecté aux autres sections de l’application, notamment :
+
+* Produits / Stock
+* Achats & Approvisionnement
+* Services
+* Équipements
+* Locations
+* Opérations
+* Collaborateurs / RH
+* Paie
+* Présences & Pointage
+* Comptabilité
+* Fiscalité
+* Clients
+* Devis
+* Commandes
+* Factures
+* Rapports
+
+### Logique attendue
+
+* les coûts produits doivent venir automatiquement du stock
+* les achats doivent récupérer les prix d’achat réels
+* la main-d’œuvre doit utiliser les coûts RH / paie
+* les équipements possédés doivent utiliser l’amortissement et les paramètres comptables
+* les équipements loués doivent utiliser le coût de location
+* les frais de structure doivent pouvoir utiliser une logique de burn rate
+* les taxes doivent venir des paramètres fiscaux
+* une tarification validée doit pouvoir générer un devis
+* le devis doit pouvoir évoluer vers commande puis facture
+* les résultats doivent remonter dans les rapports
+
+---
+
+## 3. Vérification des scénarios
+
+Merci de vérifier que les différents scénarios sont bien pris en compte :
+
+* vente de produit
+* produit en stock
+* service ponctuel
+* projet unique
+* location
+* contrat récurrent
+* deal mixte
+* tarification personnalisée
+* scénario optimiste
+* scénario réaliste
+* scénario conservateur
+* comparaison entre plusieurs prix
+* variation des marges
+* variation des quantités
+* variation de la durée
+* variation des coûts directs et indirects
+
+Le calculateur doit s’adapter au type réel de deal, sans forcer tous les cas dans une seule logique.
+
+---
+
+## 4. Vérification des bugs
+
+Merci de tester sérieusement le calculateur pour détecter :
+
+* boutons qui ne fonctionnent pas
+* champs qui ne se sauvegardent pas
+* calculs qui ne se mettent pas à jour
+* données non synchronisées
+* erreurs d’affichage
+* mauvais formats de montants
+* mauvaises conversions
+* problèmes de décimales
+* erreurs dans les totaux
+* pertes de données après modification
+* problèmes sur mobile ou tablette
+* incohérences entre sections
+
+Corriger tous les bugs trouvés.
+
+---
+
+## 5. Vérification du design et de l’UX
+
+Merci de revoir aussi l’interface pour qu’elle soit :
+
+* claire
+* simple
+* professionnelle
+* bien organisée
+* facile à comprendre
+* cohérente avec le reste de Gaméasù
+* moins complexe visuellement
+* adaptée desktop, tablette et mobile
+
+Vérifier notamment :
+
+* alignement des sections
+* ordre des onglets
+* lisibilité des champs
+* cohérence des boutons
+* hiérarchie visuelle
+* cartes de résumé
+* tableaux
+* formulaires
+* couleurs
+* espacements
+* responsive design
+
+---
+
+## 6. Vérification des formats d’écriture
+
+Merci de corriger tous les problèmes de wording, libellés et formats visibles dans le calculateur.
+
+Vérifier notamment :
+
+* fautes d’orthographe
+* termes anglais restants
+* libellés peu clairs
+* formats de montants
+* formats de pourcentages
+* formats de dates
+* noms des sections
+* messages d’erreur
+* messages de confirmation
+* placeholders
+* boutons
+* statuts
+* colonnes de tableaux
+
+L’interface doit être en français professionnel, clair et cohérent.
+
+---
+
+## 7. Résultat attendu
+
+Je veux un calculateur tarifaire :
+
+* fiable
+* bien synchronisé
+* logique
+* sans bugs majeurs
+* simple à utiliser
+* bien présenté
+* professionnel
+* connecté aux autres modules
+* capable de gérer plusieurs types de deals
+* capable de produire des calculs cohérents et exploitables
+
+---
+
+## Objectif final
+
+Faire du **Calculateur tarifaire** un vrai outil stratégique de pricing, capable d’aider l’utilisateur à fixer ses prix correctement, comprendre ses coûts, analyser ses marges, comparer ses scénarios et transformer facilement une tarification en devis, commande ou facture.
+
+Merci de prendre le temps de tester, corriger, améliorer et documenter les changements effectués.
