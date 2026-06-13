@@ -13,6 +13,7 @@ import {
   projectsTable,
   equipmentTable,
   organizationsTable,
+  suppliersTable,
 } from "@workspace/db/schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -203,6 +204,22 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
+    id: "suppliers",
+    label: "Fournisseurs",
+    icon: "Briefcase",
+    description: "Fournisseurs, sous-traitants, prestataires",
+    category: "Achats",
+    fields: [
+      { key: "code",         label: "Code fournisseur",     required: true,  type: "string", examples: "F0001",                aliases: ["code", "ref", "numero", "code_fournisseur", "supplier_code"] },
+      { key: "name",         label: "Nom / Raison sociale", required: true,  type: "string", examples: "BATIM SARL",           aliases: ["nom", "name", "raison_sociale", "fournisseur", "supplier", "entreprise"] },
+      { key: "email",        label: "Email",                required: false, type: "email",  examples: "contact@batim.tg",     aliases: ["email", "mail", "courriel", "e-mail"] },
+      { key: "phone",        label: "Téléphone",            required: false, type: "phone",  examples: "+228 90 00 00 00",     aliases: ["telephone", "tel", "phone", "mobile", "portable"] },
+      { key: "address",      label: "Adresse",              required: false, type: "string", examples: "Rue du Commerce, Lomé", aliases: ["adresse", "address", "domicile", "siege"] },
+      { key: "taxId",        label: "N° Contribuable / RCCM", required: false, type: "string", examples: "TG2024B1234",      aliases: ["numero_contribuable", "tax_id", "rccm", "nif", "siret", "identifiant_fiscal"] },
+      { key: "paymentTerms", label: "Conditions de paiement", required: false, type: "string", examples: "30 jours net",      aliases: ["conditions_paiement", "payment_terms", "delai_paiement", "echeance"] },
+    ],
+  },
+  {
     id: "equipment",
     label: "Équipements",
     icon: "Wrench",
@@ -381,6 +398,7 @@ export async function executeImport(
     case "chart_of_accounts": return importChartOfAccounts(parsedFile, mapping, orgId, db, result);
     case "projects":     return importProjects(parsedFile, mapping, orgId, db, result);
     case "equipment":    return importEquipment(parsedFile, mapping, orgId, db, result);
+    case "suppliers":    return importSuppliers(parsedFile, mapping, orgId, db, result);
     default: throw new Error(`Exécuteur non implémenté pour : ${parsedFile.module}`);
   }
 }
@@ -630,6 +648,36 @@ async function importProjects(f: ParsedFile, mapping: Record<string, string>, or
       }).returning({ id: projectsTable.id });
       r.ids.push(rec.id);
       r.imported++;
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Suppliers ─────────────────────────────────────────────────────────────────
+
+async function importSuppliers(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.code || !o.name) { r.errors.push({ row: i + 2, message: "Code et nom fournisseur obligatoires" }); r.skipped++; continue; }
+    try {
+      const [rec] = await db.insert(suppliersTable).values({
+        id: randomUUID(), organizationId: orgId,
+        code: o.code,
+        name: o.name,
+        email: o.email || null,
+        phone: o.phone || null,
+        address: o.address || null,
+        taxId: o.taxId || null,
+        paymentTerms: o.paymentTerms || null,
+        isActive: true,
+      }).onConflictDoNothing().returning({ id: suppliersTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Code déjà existant : "${o.code}"` }); r.skipped++; }
     } catch (e) {
       r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
       r.skipped++;

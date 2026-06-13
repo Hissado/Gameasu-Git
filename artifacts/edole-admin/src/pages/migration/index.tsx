@@ -75,7 +75,7 @@ const ICONS: Record<string, React.ComponentType<any>> = {
 const CAT_COLORS: Record<string, string> = {
   CRM: "bg-blue-100 text-blue-700", RH: "bg-purple-100 text-purple-700",
   Ventes: "bg-emerald-100 text-emerald-700", Comptabilité: "bg-amber-100 text-amber-700",
-  Opérations: "bg-orange-100 text-orange-700",
+  Opérations: "bg-orange-100 text-orange-700", Achats: "bg-cyan-100 text-cyan-700",
 };
 
 // ── Step enum ────────────────────────────────────────────────────────────────
@@ -708,4 +708,5 @@ const MODULES_LABELS: Record<string, string> = {
   clients: "Clients", contacts: "Contacts", collaborators: "Collaborateurs",
   invoices: "Factures clients", payments: "Encaissements",
   chart_of_accounts: "Plan comptable", projects: "Projets", equipment: "Équipements",
+  suppliers: "Fournisseurs",
 };
