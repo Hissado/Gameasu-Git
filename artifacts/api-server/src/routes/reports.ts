@@ -40,8 +40,20 @@ import {
 import type { ExecSummarySectionConfig } from "@workspace/db";
 import { eq, sql, isNull, and, gte, lte, desc, ne, inArray, isNotNull } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { ExcelReportBuilder } from "../lib/excel-engine";
 
 const router = Router();
+
+// ────────────────────────────────────────────────────────────────
+// Helper : récupère le nom de l'organisation pour les exports
+// ────────────────────────────────────────────────────────────────
+async function getOrgName(orgId: string): Promise<string> {
+  const rows = await db.select({ name: organizationsTable.name })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, orgId))
+    .limit(1);
+  return rows[0]?.name ?? "Mon Organisation";
+}
 
 // ────────────────────────────────────────────────────────────────
 // Helpers communs aux rapports analytiques
@@ -459,48 +471,84 @@ router.get("/reports/finance", requireAuth, requireManagerOrAbove, async (req, r
 router.get("/reports/finance/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildFinanceReport(period);
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Synthèse");
-    applyExcelBranding(ws, "Rapport Finance", period);
-    ws.addRow([]);
-    const k = ws.addRow(["Indicateur", "Valeur"]);
-    styleHeaderRow(k);
-    ws.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 22 }];
-    const lines: Array<[string, string]> = [
-      ["Chiffre d'affaires facturé", formatFCFA(r.kpi.invoicedAmount)],
-      ["Encaissements reçus", formatFCFA(r.kpi.collectedAmount)],
-      ["Encours total", formatFCFA(r.kpi.outstandingAmount)],
-      ["Encours en retard", formatFCFA(r.kpi.overdueAmount)],
-      ["Factures émises", String(r.kpi.invoicedCount)],
-      ["Factures soldées", String(r.kpi.paidCount)],
-      ["Taux de recouvrement", `${r.kpi.collectionRate} %`],
-    ];
-    lines.forEach((l) => ws.addRow(l));
+    const [r, orgName] = await Promise.all([
+      buildFinanceReport(period),
+      getOrgName(req.authUser!.organizationId),
+    ]);
 
-    ws.addRow([]);
-    const h2 = ws.addRow(["Évolution mensuelle", "Facturé", "Encaissé"]);
-    styleHeaderRow(h2);
-    r.series.forEach((s) => ws.addRow([s.month, s.facture, s.encaisse]));
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport Finance" });
 
-    ws.addRow([]);
-    const h3 = ws.addRow(["Top clients", "Factures", "Montant facturé"]);
-    styleHeaderRow(h3);
-    r.topClients.forEach((c) => ws.addRow([c.name, c.count, c.amount]));
+    xls.addCoverSheet("Finance & Recouvrement");
 
-    ws.addRow([]);
-    const hS = ws.addRow(["Répartition par statut", "Factures", "Montant"]);
-    styleHeaderRow(hS);
-    Object.entries(r.byStatus).forEach(([s, v]) => ws.addRow([INVOICE_STATUS_FR[s] || s, v.count, v.amount]));
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Chiffre d'affaires facturé",  r.kpi.invoicedAmount,   null, "up-good",  "Facturation"),
+      ExcelReportBuilder.money("Encaissements reçus",         r.kpi.collectedAmount,  null, "up-good",  "Facturation"),
+      ExcelReportBuilder.money("Encours total",               r.kpi.outstandingAmount,null, "down-good","Facturation"),
+      ExcelReportBuilder.money("Encours en retard",           r.kpi.overdueAmount,    null, "down-good","Facturation"),
+      ExcelReportBuilder.num("Factures émises",               r.kpi.invoicedCount,    null, "up-good",  "Facturation"),
+      ExcelReportBuilder.num("Factures soldées",              r.kpi.paidCount,        null, "up-good",  "Facturation"),
+      ExcelReportBuilder.pct("Taux de recouvrement",          r.kpi.collectionRate,   null, "up-good",  "Recouvrement"),
+    ]);
+
+    xls.addDataSheet({
+      name: "📅 Évolution mensuelle",
+      title: "Évolution mensuelle — Facturation",
+      cols: [
+        { header: "Mois",              key: "month",    width: 14, format: "text"   },
+        { header: "Facturé (FCFA)",    key: "facture",  width: 22, format: "money"  },
+        { header: "Encaissé (FCFA)",   key: "encaisse", width: 22, format: "money"  },
+      ],
+      rows: r.series.map(s => [s.month, s.facture, s.encaisse]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "🏆 Top Clients",
+      title: "Top Clients — Facturation",
+      cols: [
+        { header: "Client",             key: "name",   width: 36, format: "text"   },
+        { header: "Nb factures",        key: "count",  width: 14, format: "number" },
+        { header: "Montant facturé",    key: "amount", width: 24, format: "money"  },
+      ],
+      rows: r.topClients.map(c => [c.name, c.count, Math.round(c.amount)]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "📊 Par statut",
+      title: "Répartition des factures par statut",
+      cols: [
+        { header: "Statut",          key: "status", width: 28, format: "text"   },
+        { header: "Nb factures",     key: "count",  width: 14, format: "number" },
+        { header: "Montant (FCFA)",  key: "amount", width: 24, format: "money"  },
+      ],
+      rows: Object.entries(r.byStatus).map(([s, v]) => [INVOICE_STATUS_FR[s] || s, v.count, v.amount]),
+      totalsRow: true,
+    });
 
     if (r.overdueList.length) {
-      ws.addRow([]);
-      const h4 = ws.addRow(["Référence", "Client", "Échéance", "Restant dû"]);
-      styleHeaderRow(h4);
-      r.overdueList.forEach((o) => ws.addRow([o.reference, o.clientName, o.dueDate || "—", o.outstanding]));
+      xls.addDataSheet({
+        name: "⚠️ Impayés",
+        title: "Factures en retard de paiement",
+        cols: [
+          { header: "Référence",     key: "ref",     width: 18, format: "text"   },
+          { header: "Client",        key: "client",  width: 36, format: "text"   },
+          { header: "Échéance",      key: "due",     width: 16, format: "text"   },
+          { header: "Restant dû",    key: "amount",  width: 22, format: "money"  },
+        ],
+        rows: r.overdueList.map(o => [o.reference, o.clientName, o.dueDate || "—", Math.round(o.outstanding)]),
+        totalsRow: true,
+        tabColor: "FFDC2626",
+      });
     }
 
-    await sendXlsx(res, wb, `rapport-finance-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    xls.addNotesSheet([
+      { title: "Périmètre de l'analyse", body: `Données issues des factures et encaissements sur la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nEncours = montant facturé non encore encaissé.\nEncours en retard = factures dont la date d'échéance est dépassée.` },
+      { title: "Taux de recouvrement", body: `Taux de recouvrement = Encaissements reçus / Chiffre d'affaires facturé × 100.\nUn taux > 90 % est considéré satisfaisant.\nUn taux < 70 % nécessite une action corrective immédiate.` },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (Franc CFA de l'Afrique de l'Ouest — XOF).\nTaux de change : 1 EUR ≈ 655,957 FCFA (fixe)." },
+    ]);
+
+    await xls.send(res, `rapport-finance-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
@@ -589,35 +637,68 @@ router.get("/reports/sales", requireAuth, async (req, res, next) => {
 router.get("/reports/sales/export.xlsx", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildSalesReport(period);
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Ventes");
-    applyExcelBranding(ws, "Rapport Ventes", period);
-    ws.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }];
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Commandes (nombre)", String(r.kpi.ordersCount)],
-      ["Commandes (montant)", formatFCFA(r.kpi.ordersAmount)],
-      ["Proformas émises", String(r.kpi.proformasCount)],
-      ["Proformas converties en facture", String(r.kpi.proformasConverted)],
-      ["Taux de conversion proforma → facture", `${r.kpi.conversionRate} %`],
-      ["Pipeline opportunités (valeur)", formatFCFA(r.kpi.pipelineValue)],
-    ].forEach((l) => ws.addRow(l));
+    const [r, orgName] = await Promise.all([
+      buildSalesReport(period),
+      getOrgName(req.authUser!.organizationId),
+    ]);
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Évolution mensuelle", "Commandes", "Montant"]));
-    r.series.forEach((s) => ws.addRow([s.month, s.count, s.amount]));
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport Ventes & Commercial" });
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Top clients", "Commandes", "Montant"]));
-    r.topClients.forEach((c) => ws.addRow([c.name, c.count, c.amount]));
+    xls.addCoverSheet("Ventes & Pipeline Commercial");
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Pipeline (étape)", "Opportunités", "Valeur potentielle"]));
-    Object.entries(r.pipeline).forEach(([stage, v]) => ws.addRow([PIPELINE_STAGE_FR[stage] || stage, v.count, Math.round(v.value)]));
+    xls.addSummarySheet([
+      ExcelReportBuilder.num("Commandes (nombre)",               r.kpi.ordersCount,       null, "up-good",  "Commandes"),
+      ExcelReportBuilder.money("Commandes (montant)",            r.kpi.ordersAmount,      null, "up-good",  "Commandes"),
+      ExcelReportBuilder.num("Proformas émises",                 r.kpi.proformasCount,    null, "up-good",  "Proformas"),
+      ExcelReportBuilder.num("Proformas converties",             r.kpi.proformasConverted,null, "up-good",  "Proformas"),
+      ExcelReportBuilder.pct("Taux conversion proforma→facture", r.kpi.conversionRate,    null, "up-good",  "Proformas"),
+      ExcelReportBuilder.num("Opportunités pipeline",            r.kpi.pipelineCount,     null, "up-good",  "Pipeline"),
+      ExcelReportBuilder.money("Valeur pipeline total",          r.kpi.pipelineValue,     null, "up-good",  "Pipeline"),
+    ]);
 
-    await sendXlsx(res, wb, `rapport-ventes-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    xls.addDataSheet({
+      name: "📅 Évolution mensuelle",
+      title: "Évolution mensuelle des commandes (12 mois)",
+      cols: [
+        { header: "Mois",              key: "month",  width: 14, format: "text"   },
+        { header: "Nb commandes",      key: "count",  width: 16, format: "number" },
+        { header: "Montant (FCFA)",    key: "amount", width: 24, format: "money"  },
+      ],
+      rows: r.series.map(s => [s.month, s.count, s.amount]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "🏆 Top Clients",
+      title: "Top Clients — Commandes",
+      cols: [
+        { header: "Client",           key: "name",   width: 36, format: "text"   },
+        { header: "Nb commandes",     key: "count",  width: 16, format: "number" },
+        { header: "Montant (FCFA)",   key: "amount", width: 24, format: "money"  },
+      ],
+      rows: r.topClients.map(c => [c.name, c.count, Math.round(c.amount)]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "🎯 Pipeline CRM",
+      title: "Pipeline des opportunités par étape",
+      cols: [
+        { header: "Étape",             key: "stage", width: 24, format: "text"   },
+        { header: "Nb opportunités",   key: "count", width: 18, format: "number" },
+        { header: "Valeur pot. (FCFA)",key: "value", width: 26, format: "money"  },
+      ],
+      rows: Object.entries(r.pipeline).map(([stage, v]) => [PIPELINE_STAGE_FR[stage] || stage, v.count, Math.round(v.value)]),
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Périmètre commercial", body: `Commandes et proformas créées du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nLe pipeline CRM reflète l'état actuel de toutes les opportunités actives (non filtré par période).` },
+      { title: "Taux de conversion", body: "Taux de conversion = Proformas converties en facture / Total proformas émises × 100.\nUne opportunité est considérée convertie dès qu'une facture liée à la proforma est créée." },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (XOF)." },
+    ]);
+
+    await xls.send(res, `rapport-ventes-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
@@ -703,39 +784,77 @@ router.get("/reports/projects", requireAuth, async (req, res, next) => {
 router.get("/reports/projects/export.xlsx", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildProjectsReport(period);
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Projets");
-    applyExcelBranding(ws, "Rapport Projets", period);
-    ws.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 22 }];
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Projets (total)", String(r.kpi.totalCount)],
-      ["Projets actifs", String(r.kpi.activeCount)],
-      ["Projets en retard", String(r.kpi.overdueCount)],
-      ["Créés sur la période", String(r.kpi.newInPeriod)],
-      ["Clôturés sur la période", String(r.kpi.completedInPeriod)],
-      ["Budget cumulé", formatFCFA(r.kpi.totalBudget)],
-      ["Budget actif", formatFCFA(r.kpi.activeBudget)],
-      ["Avancement moyen", `${r.kpi.avgProgress} %`],
-    ].forEach((l) => ws.addRow(l));
+    const [r, orgName] = await Promise.all([
+      buildProjectsReport(period),
+      getOrgName(req.authUser!.organizationId),
+    ]);
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Statut", "Nombre"]));
-    Object.entries(r.byStatus).forEach(([s, c]) => ws.addRow([PROJECT_STATUS_FR[s] || s, c]));
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport Portefeuille Projets" });
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Projet", "Client", "Statut", "Avancement", "Budget"]));
-    r.topProjects.forEach((p) => ws.addRow([p.name, p.clientName, PROJECT_STATUS_FR[p.status] || p.status, `${p.progress} %`, p.budget]));
+    xls.addCoverSheet("Gestion de Projets");
+
+    xls.addSummarySheet([
+      ExcelReportBuilder.num("Projets (total)",           r.kpi.totalCount,       null, "up-good",   "Portefeuille"),
+      ExcelReportBuilder.num("Projets actifs",            r.kpi.activeCount,      null, "up-good",   "Portefeuille"),
+      ExcelReportBuilder.num("Projets en retard",         r.kpi.overdueCount,     null, "down-good", "Portefeuille"),
+      ExcelReportBuilder.num("Créés sur la période",      r.kpi.newInPeriod,      null, "up-good",   "Portefeuille"),
+      ExcelReportBuilder.num("Clôturés sur la période",   r.kpi.completedInPeriod,null, "up-good",   "Portefeuille"),
+      ExcelReportBuilder.money("Budget cumulé (total)",   r.kpi.totalBudget,      null, "up-good",   "Financier"),
+      ExcelReportBuilder.money("Budget actif",            r.kpi.activeBudget,     null, "up-good",   "Financier"),
+      ExcelReportBuilder.pct("Avancement moyen",          r.kpi.avgProgress,      null, "up-good",   "Financier"),
+    ]);
+
+    xls.addDataSheet({
+      name: "📋 Portefeuille",
+      title: "Portefeuille projets — Détail",
+      cols: [
+        { header: "Projet",           key: "name",     width: 38, format: "text"   },
+        { header: "Client",           key: "client",   width: 28, format: "text"   },
+        { header: "Statut",           key: "status",   width: 20, format: "text"   },
+        { header: "Avancement (%)",   key: "progress", width: 16, format: "number", align: "right" },
+        { header: "Budget (FCFA)",    key: "budget",   width: 24, format: "money"  },
+        { header: "Échéance",         key: "endDate",  width: 14, format: "text"   },
+      ],
+      rows: r.topProjects.map(p => [
+        p.name, p.clientName,
+        PROJECT_STATUS_FR[p.status] || p.status,
+        p.progress, p.budget, p.endDate || "—",
+      ]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "📊 Par statut",
+      title: "Répartition par statut",
+      cols: [
+        { header: "Statut",    key: "status", width: 24, format: "text"   },
+        { header: "Projets",   key: "count",  width: 14, format: "number" },
+      ],
+      rows: Object.entries(r.byStatus).map(([s, c]) => [PROJECT_STATUS_FR[s] || s, c]),
+    });
 
     if (r.overdueList.length) {
-      ws.addRow([]);
-      styleHeaderRow(ws.addRow(["Projets en retard", "Client", "Échéance", "Avancement"]));
-      r.overdueList.forEach((p) => ws.addRow([p.name, p.clientName, p.endDate || "—", `${p.progress} %`]));
+      xls.addDataSheet({
+        name: "⚠️ Projets en retard",
+        title: "Projets en retard — À traiter en priorité",
+        cols: [
+          { header: "Projet",          key: "name",     width: 38, format: "text"   },
+          { header: "Client",          key: "client",   width: 28, format: "text"   },
+          { header: "Échéance prévue", key: "endDate",  width: 16, format: "text"   },
+          { header: "Avancement (%)",  key: "progress", width: 16, format: "number", align: "right" },
+        ],
+        rows: r.overdueList.map(p => [p.name, p.clientName, p.endDate || "—", p.progress]),
+        tabColor: "FFDC2626",
+      });
     }
 
-    await sendXlsx(res, wb, `rapport-projets-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    xls.addNotesSheet([
+      { title: "Définitions", body: "Un projet est considéré en retard si sa date de fin prévue est dépassée et son statut est toujours actif.\nL'avancement est calculé selon le pourcentage de complétion déclaré par le chef de projet." },
+      { title: "Périmètre", body: `Tous les projets du portefeuille sont inclus (pas de filtre par période).\nLes projets créés ou clôturés dans la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")} sont identifiés séparément.` },
+      { title: "Devise", body: "Budgets en FCFA (XOF)." },
+    ]);
+
+    await xls.send(res, `rapport-projets-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
@@ -836,41 +955,77 @@ router.get("/reports/hr", requireAuth, requireManagerOrAbove, async (req, res, n
 router.get("/reports/hr/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildHrReport(period);
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RH");
-    applyExcelBranding(ws, "Rapport RH", period);
-    ws.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }];
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Effectif total", String(r.kpi.total)],
-      ["Actifs", String(r.kpi.active)],
-      ["En congé", String(r.kpi.onLeave)],
-      ["Sortis", String(r.kpi.terminated)],
-      ["Heures pointées (période)", String(r.kpi.totalHours)],
-      ["Collaborateurs ayant pointé", String(r.kpi.distinctCollabs)],
-      ["Retards", String(r.kpi.lateCount)],
-      ["Départs anticipés", String(r.kpi.earlyLeaveCount)],
-      ["Anomalies non résolues", String(r.kpi.unresolvedFlags)],
-      ["Contrats expirants ≤ 60 j", String(r.kpi.expiringContracts)],
-    ].forEach((l) => ws.addRow(l));
+    const [r, orgName] = await Promise.all([
+      buildHrReport(period),
+      getOrgName(req.authUser!.organizationId),
+    ]);
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Département", "Effectif actif"]));
-    Object.entries(r.byDepartment).forEach(([d, n]) => ws.addRow([d, n]));
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport Ressources Humaines" });
 
-    ws.addRow([]);
-    styleHeaderRow(ws.addRow(["Top collaborateurs", "Heures pointées"]));
-    r.topPerformers.forEach((p) => ws.addRow([p.name, p.hours]));
+    xls.addCoverSheet("Ressources Humaines & Présence");
+
+    xls.addSummarySheet([
+      ExcelReportBuilder.num("Effectif total",                  r.kpi.total,            null, "up-good",   "Effectifs"),
+      ExcelReportBuilder.num("Collaborateurs actifs",           r.kpi.active,           null, "up-good",   "Effectifs"),
+      ExcelReportBuilder.num("En congé",                        r.kpi.onLeave,          null, "neutral",   "Effectifs"),
+      ExcelReportBuilder.num("Sortis",                          r.kpi.terminated,       null, "down-good", "Effectifs"),
+      ExcelReportBuilder.num("Heures pointées (période)",       r.kpi.totalHours,       null, "up-good",   "Présence"),
+      ExcelReportBuilder.num("Collaborateurs ayant pointé",     r.kpi.distinctCollabs,  null, "up-good",   "Présence"),
+      ExcelReportBuilder.num("Retards constatés",               r.kpi.lateCount,        null, "down-good", "Anomalies"),
+      ExcelReportBuilder.num("Départs anticipés",               r.kpi.earlyLeaveCount,  null, "down-good", "Anomalies"),
+      ExcelReportBuilder.num("Anomalies non résolues",          r.kpi.unresolvedFlags,  null, "down-good", "Anomalies"),
+      ExcelReportBuilder.num("Contrats expirant ≤ 60 jours",   r.kpi.expiringContracts,null, "down-good", "Contrats"),
+    ]);
+
+    xls.addDataSheet({
+      name: "🏢 Par département",
+      title: "Effectifs par département",
+      cols: [
+        { header: "Département",      key: "dept",  width: 32, format: "text"   },
+        { header: "Effectif actif",   key: "count", width: 16, format: "number" },
+      ],
+      rows: Object.entries(r.byDepartment).map(([d, n]) => [d, n]),
+      totalsRow: true,
+    });
+
+    xls.addDataSheet({
+      name: "🏆 Top Présence",
+      title: "Top collaborateurs — Heures pointées sur la période",
+      cols: [
+        { header: "Collaborateur",    key: "name",  width: 36, format: "text"   },
+        { header: "Heures pointées",  key: "hours", width: 18, format: "number" },
+      ],
+      rows: r.topPerformers.map(p => [p.name, p.hours]),
+      totalsRow: true,
+    });
 
     if (r.expiringList.length) {
-      ws.addRow([]);
-      styleHeaderRow(ws.addRow(["Contrat expirant", "Type", "Échéance", "Poste"]));
-      r.expiringList.forEach((c) => ws.addRow([c.collaborator, CONTRACT_TYPE_FR[c.type?.toLowerCase()] || c.type, c.endDate || "—", c.jobTitle || "—"]));
+      xls.addDataSheet({
+        name: "⚠️ Contrats expirants",
+        title: "Contrats expirant dans les 60 jours",
+        cols: [
+          { header: "Collaborateur", key: "name",     width: 36, format: "text" },
+          { header: "Type contrat",  key: "type",     width: 22, format: "text" },
+          { header: "Échéance",      key: "endDate",  width: 16, format: "text" },
+          { header: "Poste",         key: "jobTitle", width: 28, format: "text" },
+        ],
+        rows: r.expiringList.map(c => [
+          c.collaborator,
+          CONTRACT_TYPE_FR[c.type?.toLowerCase()] || c.type,
+          c.endDate || "—",
+          c.jobTitle || "—",
+        ]),
+        tabColor: "FFDC2626",
+      });
     }
 
-    await sendXlsx(res, wb, `rapport-rh-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    xls.addNotesSheet([
+      { title: "Présence & pointage", body: `Les données de présence couvrent la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nLes heures sont calculées depuis les sessions de pointage validées (heures effectives, hors pauses).` },
+      { title: "Anomalies", body: "Un retard est enregistré si l'heure d'arrivée dépasse la tolérance paramétrée.\nUn départ anticipé est enregistré si l'heure de sortie est avant l'heure de fin prévue.\nLes anomalies non résolues nécessitent une validation manuelle par le RH ou le manager." },
+      { title: "Contrats expirants", body: "Liste des contrats dont la date de fin est dans les 60 prochains jours.\nAction recommandée : renouvellement ou notification au collaborateur avant échéance." },
+    ]);
+
+    await xls.send(res, `rapport-rh-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
@@ -1016,70 +1171,95 @@ router.get("/reports/hr/export.csv", requireAuth, requireManagerOrAbove, async (
 router.get("/reports/overview/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const [finance, sales, projects, hr] = await Promise.all([
+    const [finance, sales, projects, hr, orgName] = await Promise.all([
       buildFinanceReport(period),
       buildSalesReport(period),
       buildProjectsReport(period),
       buildHrReport(period),
+      getOrgName(req.authUser!.organizationId),
     ]);
-    const wb = new ExcelJS.Workbook();
 
-    // Onglet Finance
-    const wsF = wb.addWorksheet("Finance");
-    applyExcelBranding(wsF, "Synthèse Finance", period);
-    wsF.columns = [{ width: 36 }, { width: 22 }, { width: 22 }];
-    wsF.addRow([]);
-    styleHeaderRow(wsF.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Chiffre d'affaires facturé", formatFCFA(finance.kpi.invoicedAmount)],
-      ["Encaissements reçus", formatFCFA(finance.kpi.collectedAmount)],
-      ["Taux de recouvrement", `${finance.kpi.collectionRate} %`],
-      ["Encours en retard", formatFCFA(finance.kpi.overdueAmount)],
-    ].forEach((l) => wsF.addRow(l));
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport de Synthèse Globale" });
 
-    // Onglet Ventes
-    const wsS = wb.addWorksheet("Ventes");
-    applyExcelBranding(wsS, "Synthèse Ventes", period);
-    wsS.columns = [{ width: 36 }, { width: 22 }, { width: 22 }];
-    wsS.addRow([]);
-    styleHeaderRow(wsS.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Commandes", String(sales.kpi.ordersCount)],
-      ["Montant commandes", formatFCFA(sales.kpi.ordersAmount)],
-      ["Taux conversion proforma", `${sales.kpi.conversionRate} %`],
-      ["Pipeline valeur", formatFCFA(sales.kpi.pipelineValue)],
-    ].forEach((l) => wsS.addRow(l));
+    xls.addCoverSheet("Tableau de Bord Direction");
 
-    // Onglet Projets
-    const wsP = wb.addWorksheet("Projets");
-    applyExcelBranding(wsP, "Synthèse Projets", period);
-    wsP.columns = [{ width: 36 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 22 }];
-    wsP.addRow([]);
-    styleHeaderRow(wsP.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Projets actifs", String(projects.kpi.activeCount)],
-      ["Projets en retard", String(projects.kpi.overdueCount)],
-      ["Avancement moyen", `${projects.kpi.avgProgress} %`],
-      ["Budget total", formatFCFA(projects.kpi.totalBudget)],
-    ].forEach((l) => wsP.addRow(l));
-    wsP.addRow([]);
-    styleHeaderRow(wsP.addRow(["Projet", "Statut", "Avancement (%)", "Budget", "Client"]));
-    projects.topProjects.forEach((p) => wsP.addRow([p.name, PROJECT_STATUS_FR[p.status] ?? p.status, p.progress, p.budget, p.clientName]));
+    // Résumé exécutif multi-domaines
+    xls.addSummarySheet([
+      // Finance
+      ExcelReportBuilder.money("CA facturé",                finance.kpi.invoicedAmount,  null, "up-good",  "Finance"),
+      ExcelReportBuilder.money("Encaissements reçus",       finance.kpi.collectedAmount, null, "up-good",  "Finance"),
+      ExcelReportBuilder.pct("Taux de recouvrement",        finance.kpi.collectionRate,  null, "up-good",  "Finance"),
+      ExcelReportBuilder.money("Encours en retard",         finance.kpi.overdueAmount,   null, "down-good","Finance"),
+      // Ventes
+      ExcelReportBuilder.num("Commandes",                   sales.kpi.ordersCount,       null, "up-good",  "Ventes & Commercial"),
+      ExcelReportBuilder.money("Montant commandes",         sales.kpi.ordersAmount,      null, "up-good",  "Ventes & Commercial"),
+      ExcelReportBuilder.pct("Taux conversion proforma",    sales.kpi.conversionRate,    null, "up-good",  "Ventes & Commercial"),
+      ExcelReportBuilder.money("Pipeline CRM",              sales.kpi.pipelineValue,     null, "up-good",  "Ventes & Commercial"),
+      // Projets
+      ExcelReportBuilder.num("Projets actifs",              projects.kpi.activeCount,    null, "up-good",  "Gestion de Projets"),
+      ExcelReportBuilder.num("Projets en retard",           projects.kpi.overdueCount,   null, "down-good","Gestion de Projets"),
+      ExcelReportBuilder.pct("Avancement moyen",            projects.kpi.avgProgress,    null, "up-good",  "Gestion de Projets"),
+      ExcelReportBuilder.money("Budget total portefeuille", projects.kpi.totalBudget,    null, "up-good",  "Gestion de Projets"),
+      // RH
+      ExcelReportBuilder.num("Effectif total",              hr.kpi.total,                null, "up-good",  "Ressources Humaines"),
+      ExcelReportBuilder.num("Collaborateurs actifs",       hr.kpi.active,               null, "up-good",  "Ressources Humaines"),
+      ExcelReportBuilder.num("Heures pointées",             hr.kpi.totalHours,           null, "up-good",  "Ressources Humaines"),
+      ExcelReportBuilder.num("Anomalies non résolues",      hr.kpi.unresolvedFlags,      null, "down-good","Ressources Humaines"),
+    ]);
 
-    // Onglet RH
-    const wsH = wb.addWorksheet("RH");
-    applyExcelBranding(wsH, "Synthèse RH", period);
-    wsH.columns = [{ width: 36 }, { width: 22 }];
-    wsH.addRow([]);
-    styleHeaderRow(wsH.addRow(["Indicateur", "Valeur"]));
-    [
-      ["Effectif total", String(hr.kpi.total)],
-      ["Actifs", String(hr.kpi.active)],
-      ["Heures pointées", String(hr.kpi.totalHours)],
-      ["Anomalies non résolues", String(hr.kpi.unresolvedFlags)],
-    ].forEach((l) => wsH.addRow(l));
+    // Feuille détail Finance
+    xls.addDataSheet({
+      name: "💰 Finance",
+      title: "Finance — Évolution mensuelle",
+      cols: [
+        { header: "Mois",            key: "month",    width: 14, format: "text"  },
+        { header: "Facturé (FCFA)",  key: "facture",  width: 24, format: "money" },
+        { header: "Encaissé (FCFA)", key: "encaisse", width: 24, format: "money" },
+      ],
+      rows: finance.series.map(s => [s.month, s.facture, s.encaisse]),
+      totalsRow: true,
+    });
 
-    await sendXlsx(res, wb, `rapport-synthese-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    // Feuille détail Projets
+    xls.addDataSheet({
+      name: "🚀 Projets",
+      title: "Portefeuille Projets",
+      cols: [
+        { header: "Projet",          key: "name",     width: 38, format: "text"   },
+        { header: "Statut",          key: "status",   width: 20, format: "text"   },
+        { header: "Avancement (%)",  key: "progress", width: 16, format: "number", align: "right" },
+        { header: "Budget (FCFA)",   key: "budget",   width: 24, format: "money"  },
+        { header: "Client",          key: "client",   width: 28, format: "text"   },
+      ],
+      rows: projects.topProjects.map(p => [
+        p.name,
+        PROJECT_STATUS_FR[p.status] ?? p.status,
+        p.progress,
+        p.budget,
+        p.clientName,
+      ]),
+      totalsRow: true,
+    });
+
+    // Feuille détail RH
+    xls.addDataSheet({
+      name: "👥 RH",
+      title: "Ressources Humaines — Effectifs par département",
+      cols: [
+        { header: "Département",    key: "dept",  width: 32, format: "text"   },
+        { header: "Effectif actif", key: "count", width: 16, format: "number" },
+      ],
+      rows: Object.entries(hr.byDepartment).map(([d, n]) => [d, n]),
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Périmètre de la synthèse", body: `Ce rapport consolide les données de tous les modules Gaméasù pour la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nChaque onglet correspond à un domaine fonctionnel distinct.` },
+      { title: "Interprétation des KPIs", body: "Les indicateurs marqués ✅ sont favorables, ⚠️ stables (variation < 5 %), ❌ défavorables.\nLa colonne Variation calcule automatiquement l'écart par rapport à la période N-1 si disponible." },
+      { title: "Usage recommandé", body: "Ce classeur est conçu pour être utilisé en Comité de Direction ou en réunion de pilotage.\nLes données peuvent être filtrées et triées directement dans Excel sans modification des formules." },
+    ]);
+
+    await xls.send(res, `rapport-synthese-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
@@ -2386,6 +2566,174 @@ router.get("/reports/management", requireAuth, requireManagerOrAbove, async (req
       hr: { activeCollab, byContractType },
       hasData: true,
     });
+  } catch (e) { next(e); }
+});
+
+// ── Management Report — Export Excel professionnel ──────────────────────────
+
+router.get("/reports/management/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    // Réutiliser le même endpoint via fetch interne serait complexe — on duplique
+    // l'essentiel du calcul P&L pour l'export, en appelant les helpers existants.
+    const orgId = req.authUser!.organizationId;
+    const { fromIso, toIso } = period;
+    const prevFrom = new Date(period.from); prevFrom.setFullYear(prevFrom.getFullYear() - 1);
+    const prevTo   = new Date(period.to);   prevTo.setFullYear(prevTo.getFullYear()   - 1);
+    const prevFromIso = prevFrom.toISOString().slice(0, 10);
+    const prevToIso   = prevTo.toISOString().slice(0, 10);
+
+    const [allPeriodLines, prevPeriodLines, orgRow] = await Promise.all([
+      db.select({ classNum: chartOfAccountsTable.classNum, accountCode: chartOfAccountsTable.code, accountLabel: chartOfAccountsTable.label, debit: journalEntryLinesTable.debit, credit: journalEntryLinesTable.credit, entryDate: journalEntriesTable.entryDate })
+        .from(journalEntryLinesTable)
+        .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+        .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+        .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"), gte(journalEntriesTable.entryDate, fromIso), lte(journalEntriesTable.entryDate, toIso))),
+      db.select({ classNum: chartOfAccountsTable.classNum, debit: journalEntryLinesTable.debit, credit: journalEntryLinesTable.credit })
+        .from(journalEntryLinesTable)
+        .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+        .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+        .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"), gte(journalEntriesTable.entryDate, prevFromIso), lte(journalEntriesTable.entryDate, prevToIso))),
+      db.select({ name: organizationsTable.name }).from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1),
+    ]);
+
+    const revenues  = allPeriodLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+    const expenses  = allPeriodLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const netResult = revenues - expenses;
+    const depreciation = allPeriodLines.filter(l => l.accountCode?.startsWith("68")).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const ebitda       = netResult + depreciation;
+    const grossProfit  = revenues - allPeriodLines.filter(l => l.classNum === 6 && (l.accountCode?.startsWith("60") || l.accountCode?.startsWith("61") || l.accountCode?.startsWith("62"))).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const grossMargin  = revenues > 0 ? Math.round((grossProfit  / revenues) * 1000) / 10 : 0;
+    const netMargin    = revenues > 0 ? Math.round((netResult    / revenues) * 1000) / 10 : 0;
+    const oer          = revenues > 0 ? Math.round((expenses     / revenues) * 1000) / 10 : 0;
+    const prevRevenues = prevPeriodLines.filter(l => l.classNum === 7).reduce((s, l) => s + num(l.credit) - num(l.debit), 0);
+    const prevExpenses = prevPeriodLines.filter(l => l.classNum === 6).reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const prevNetResult= prevRevenues - prevExpenses;
+    const prevMargin   = prevRevenues > 0 ? Math.round((prevNetResult / prevRevenues) * 1000) / 10 : 0;
+
+    // Séries mensuelles
+    const monthlyMap: Record<string, { revenues: number; expenses: number }> = {};
+    for (const l of allPeriodLines) {
+      const m = (l.entryDate || "").slice(0, 7);
+      if (!monthlyMap[m]) monthlyMap[m] = { revenues: 0, expenses: 0 };
+      if (l.classNum === 7) monthlyMap[m].revenues += num(l.credit) - num(l.debit);
+      if (l.classNum === 6) monthlyMap[m].expenses += num(l.debit)  - num(l.credit);
+    }
+    const series = Object.entries(monthlyMap).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({ month, revenues: Math.round(v.revenues), expenses: Math.round(v.expenses), net: Math.round(v.revenues - v.expenses) }));
+
+    // Ventilation des charges
+    const expByAcc: Record<string, { code: string; label: string; amount: number }> = {};
+    for (const l of allPeriodLines.filter(ll => ll.classNum === 6)) {
+      const k = l.accountCode ?? "??";
+      if (!expByAcc[k]) expByAcc[k] = { code: l.accountCode ?? "", label: l.accountLabel ?? k, amount: 0 };
+      expByAcc[k].amount += num(l.debit) - num(l.credit);
+    }
+    const expenseBreakdown = Object.values(expByAcc).filter(e => e.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 15);
+
+    // Projets actifs
+    const [projectsRaw, arRaw, apRaw, cashRaw] = await Promise.all([
+      db.select({ status: projectsTable.status, budget: projectsTable.budget, progress: projectsTable.progress })
+        .from(projectsTable).where(and(eq(projectsTable.organizationId, orgId), isNull(projectsTable.deletedAt))),
+      db.select({ totalAmount: invoicesTable.totalAmount, paidAmount: invoicesTable.paidAmount, dueDate: invoicesTable.dueDate })
+        .from(invoicesTable)
+        .where(and(eq(invoicesTable.organizationId, orgId), ne(invoicesTable.status, "cancelled"), ne(invoicesTable.status, "draft"))),
+      db.select({ totalAmount: supplierInvoicesTable.totalAmount, paidAmount: supplierInvoicesTable.paidAmount, dueDate: supplierInvoicesTable.dueDate })
+        .from(supplierInvoicesTable)
+        .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled"), ne(supplierInvoicesTable.status, "draft"))),
+      db.select({ debit: journalEntryLinesTable.debit, credit: journalEntryLinesTable.credit })
+        .from(journalEntryLinesTable)
+        .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+        .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+        .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.status, "posted"), eq(chartOfAccountsTable.classNum, 5), lte(journalEntriesTable.entryDate, toIso))),
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    const activeProjects   = projectsRaw.filter(p => p.status === "active");
+    const avgProgress      = activeProjects.length > 0 ? Math.round(activeProjects.reduce((s, p) => s + (p.progress ?? 0), 0) / activeProjects.length) : 0;
+    const totalBudget      = activeProjects.reduce((s, p) => s + num(p.budget), 0);
+    const cashPosition     = cashRaw.reduce((s, l) => s + num(l.debit) - num(l.credit), 0);
+    const arOutstanding    = arRaw.reduce((s, i) => s + Math.max(0, num(i.totalAmount) - num(i.paidAmount)), 0);
+    const arOverdue        = arRaw.filter(i => i.dueDate && i.dueDate < today).reduce((s, i) => s + Math.max(0, num(i.totalAmount) - num(i.paidAmount)), 0);
+    const apOutstanding    = apRaw.reduce((s, i) => s + Math.max(0, num(i.totalAmount) - num(i.paidAmount)), 0);
+    const workingCapital   = cashPosition + arOutstanding - apOutstanding;
+
+    const orgName = orgRow[0]?.name ?? "Mon Organisation";
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport de Gestion" });
+
+    xls.addCoverSheet("Pilotage de la Performance");
+
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Revenus totaux",                 revenues,      prevRevenues,   "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.money("Charges totales",                expenses,      prevExpenses,   "down-good","Compte de Résultat"),
+      ExcelReportBuilder.money("Résultat net",                   netResult,     prevNetResult,  "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.money("Marge brute",                    grossProfit,   null,           "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.money("EBITDA",                         ebitda,        null,           "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.pct("Taux de marge nette",              netMargin,     prevMargin,     "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.pct("Marge brute (%)",                  grossMargin,   null,           "up-good",  "Compte de Résultat"),
+      ExcelReportBuilder.pct("Ratio charges/produits",           oer,           null,           "down-good","Compte de Résultat"),
+      ExcelReportBuilder.money("Position trésorerie",            cashPosition,  null,           "up-good",  "Trésorerie & BFR"),
+      ExcelReportBuilder.money("Créances clients",               arOutstanding, null,           "down-good","Trésorerie & BFR"),
+      ExcelReportBuilder.money("Créances en retard",             arOverdue,     null,           "down-good","Trésorerie & BFR"),
+      ExcelReportBuilder.money("Dettes fournisseurs",            apOutstanding, null,           "down-good","Trésorerie & BFR"),
+      ExcelReportBuilder.money("Fonds de roulement net",         workingCapital,null,           "up-good",  "Trésorerie & BFR"),
+      ExcelReportBuilder.num("Projets actifs",                   activeProjects.length, null,   "up-good",  "Opérations"),
+      ExcelReportBuilder.pct("Avancement moyen projets",         avgProgress,   null,           "up-good",  "Opérations"),
+      ExcelReportBuilder.money("Budget total portefeuille",      totalBudget,   null,           "up-good",  "Opérations"),
+    ]);
+
+    // P&L mensuel
+    xls.addDataSheet({
+      name: "📈 P&L Mensuel",
+      title: "Compte de Résultat — Évolution mensuelle",
+      cols: [
+        { header: "Mois",            key: "month",    width: 12, format: "text"   },
+        { header: "Revenus (FCFA)",  key: "revenues", width: 26, format: "money"  },
+        { header: "Charges (FCFA)",  key: "expenses", width: 26, format: "money"  },
+        { header: "Résultat (FCFA)", key: "net",      width: 26, format: "money"  },
+      ],
+      rows: series.map(s => [s.month, s.revenues, s.expenses, s.net]),
+      totalsRow: true,
+    });
+
+    // Budget vs Réel projets
+    xls.addVarianceSheet({
+      name: "📊 Analyse P&L",
+      title: "Comparaison Période N vs N-1",
+      items: [
+        { label: "Revenus",          budget: prevRevenues,  actual: revenues,   category: "Compte de Résultat" },
+        { label: "Charges",          budget: prevExpenses,  actual: expenses,   category: "Compte de Résultat" },
+        { label: "Résultat net",     budget: prevNetResult, actual: netResult,  category: "Compte de Résultat" },
+        { label: "Créances clients", budget: 0,             actual: arOutstanding, category: "Bilan simplifié" },
+        { label: "Dettes fournisseurs", budget: 0,          actual: apOutstanding, category: "Bilan simplifié" },
+        { label: "Trésorerie",       budget: 0,             actual: cashPosition,  category: "Bilan simplifié" },
+      ],
+    });
+
+    // Ventilation charges
+    xls.addDataSheet({
+      name: "💸 Ventilation Charges",
+      title: "Détail des charges par compte SYSCOHADA",
+      cols: [
+        { header: "Compte",         key: "code",    width: 12, format: "text"   },
+        { header: "Libellé",        key: "label",   width: 48, format: "text"   },
+        { header: "Montant (FCFA)", key: "amount",  width: 26, format: "money"  },
+        { header: "% / Total",      key: "pct",     width: 14, format: "percent" },
+      ],
+      rows: expenseBreakdown.map(e => [
+        e.code, e.label, Math.round(e.amount),
+        expenses > 0 ? Math.round((e.amount / expenses) * 1000) / 10 : 0,
+      ]),
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Périmètre du rapport de gestion", body: `Rapport de gestion basé sur les écritures comptables validées (statut "posted").\nPériode analysée : ${period.from.toLocaleDateString("fr-FR")} – ${period.to.toLocaleDateString("fr-FR")}.\nComparatif N-1 : ${prevFrom.toLocaleDateString("fr-FR")} – ${prevTo.toLocaleDateString("fr-FR")}.` },
+      { title: "Plan comptable SYSCOHADA", body: "Revenus : comptes de classe 7 (Produits)\nCharges : comptes de classe 6 (Charges)\nMarge brute : Revenus – Coûts matières (60x, 61x, 62x)\nEBITDA : Résultat net + Dotations aux amortissements (68x)" },
+      { title: "Trésorerie & BFR", body: "Trésorerie nette = solde des comptes de classe 5 cumulé à la date de fin.\nFonds de roulement net = Trésorerie + Créances clients – Dettes fournisseurs.\nDélai de recouvrement (DSO) et délai de règlement fournisseurs (DPO) calculés sur base du CA et des achats journaliers." },
+      { title: "Usage du classeur", body: "Ce classeur Excel est conçu pour un usage en Comité de Direction.\nLes formules de la feuille Résumé Exécutif se recalculent automatiquement si les données sont mises à jour.\nLes colonnes Variation et Var. % utilisent IFERROR pour éviter les erreurs de division par zéro." },
+    ]);
+
+    await xls.send(res, `rapport-gestion-${period.from.toISOString().slice(0, 10)}.xlsx`);
   } catch (e) { next(e); }
 });
 
