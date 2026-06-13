@@ -1,0 +1,82 @@
+Pouvez-vous réaliser une **étude comparative complète entre HubSpot Marketing Hub et le module Marketing de Gaméasù**, afin d’identifier clairement les fonctionnalités marketing qui manquent encore dans notre application ?
+
+### Objectif
+
+Je veux comprendre si Gaméasù possède déjà les fonctionnalités nécessaires pour gérer un vrai module marketing moderne, ou s’il existe encore des éléments importants à ajouter pour atteindre un niveau plus professionnel, plus complet et plus compétitif.
+
+L’objectif n’est pas de copier HubSpot exactement, mais de s’inspirer de sa logique pour renforcer Gaméasù avec une expérience marketing simple, puissante et adaptée à une plateforme SaaS multi-tenant.
+
+### Ce qu’il faut analyser dans HubSpot Marketing Hub
+
+Merci d’étudier les fonctionnalités principales de HubSpot Marketing Hub, notamment :
+
+* gestion des contacts marketing
+* segmentation des audiences
+* listes dynamiques et listes statiques
+* campagnes marketing
+* email marketing
+* templates d’emails
+* automatisations marketing
+* workflows marketing
+* formulaires
+* landing pages
+* suivi des leads
+* lead scoring
+* suivi des interactions
+* intégration CRM
+* gestion des prospects
+* nurturing
+* SMS / WhatsApp si pertinent
+* calendrier marketing
+* suivi des performances
+* rapports de campagnes
+* analytics marketing
+* A/B testing
+* gestion des consentements
+* conformité RGPD / opt-in / opt-out
+* notifications et rappels
+* intégration avec les ventes
+* attribution marketing
+* intégration avec le pipeline CRM
+
+### Comparaison avec Gaméasù
+
+Après l’étude de HubSpot Marketing Hub, merci de comparer ces fonctionnalités avec ce qui existe actuellement dans Gaméasù.
+
+Pour chaque fonctionnalité, indiquez clairement si elle est :
+
+* **Déjà présente**
+* **Partiellement présente**
+* **Absente — à développer**
+
+### Points à vérifier dans Gaméasù
+
+Merci de vérifier notamment :
+
+* si le module Marketing est bien connecté aux Clients
+* si le module Marketing est bien connecté au Pipeline CRM
+* si les campagnes peuvent être liées aux prospects, clients, opportunités, devis et ventes
+* si les contacts peuvent être segmentés correctement
+* si les emails / SMS / WhatsApp peuvent être envoyés ou préparés
+* si les campagnes peuvent être suivies avec des indicateurs
+* si les performances marketing remontent dans les rapports
+* si les données marketing sont bien isolées par organisation dans la logique SaaS multi-tenant
+* si les permissions contrôlent correctement l’accès aux campagnes et données marketing
+
+### Résultat attendu
+
+Je veux une analyse claire et directement exploitable comprenant :
+
+1. les fonctionnalités Marketing Hub importantes chez HubSpot
+2. ce que Gaméasù possède déjà
+3. ce qui est partiellement couvert
+4. ce qui manque totalement
+5. les écarts prioritaires à corriger
+6. les fonctionnalités à ajouter dans Gaméasù
+7. les améliorations UX recommandées
+8. les connexions nécessaires avec CRM, Clients, Devis, Factures, Rapports et Notifications
+9. une priorisation des développements : urgent, important, optionnel
+
+### Objectif final
+
+Je veux savoir précisément ce qu’il faut ajouter ou améliorer dans Gaméasù pour que son module Marketing devienne plus complet, plus simple, plus puissant et plus proche des standards d’un outil moderne comme HubSpot Marketing Hub.
