@@ -1,0 +1,126 @@
+Can you please review and fix the **Management Report PDF export**?
+
+The current PDF does not look professional. Some amounts are overflowing outside their columns, the alignment is not correct, spacing is inconsistent, and the overall layout does not look ready to share with management, board members, or clients.
+
+### Main issues to fix
+
+Please review the attached PDF carefully and correct the following:
+
+* amounts exceeding or overflowing columns
+* FCFA amounts not formatted properly
+* poor column width adjustment
+* text alignment issues
+* inconsistent spacing between sections
+* cards and tables not well adjusted to the PDF page
+* charts not properly balanced on the page
+* tables looking too compressed or stretched
+* long client names and invoice references not wrapping correctly
+* financial figures not visually clean
+* report not looking like a professional management report
+* PDF export looking like a webpage screenshot instead of a polished report
+
+### Amount formatting
+
+Please improve the formatting of all financial amounts.
+
+For example, instead of displaying amounts in a way that overflows, use a clean format such as:
+
+* `5 085 508 000 FCFA`
+* `218 008 000 FCFA`
+* `80 000 000 FCFA`
+
+Make sure all amounts are:
+
+* readable
+* aligned to the right when displayed in tables
+* properly spaced
+* never cut off
+* never overflowing outside cards or columns
+
+### PDF layout improvements
+
+Please rebuild or improve the PDF layout so it has a clean, professional structure:
+
+* proper page margins
+* correct A4 or Letter format
+* consistent font sizes
+* clean section titles
+* professional spacing
+* cards that fit properly within the page
+* tables that auto-adjust to available width
+* charts that are readable
+* page breaks handled correctly
+* no content cut off at the edges
+* no horizontal overflow
+
+### Tables and lists
+
+Please make sure all tables and lists inside the report are PDF-friendly.
+
+For invoice lists, overdue invoices, client balances, and financial summaries:
+
+* use fixed and responsive column widths
+* wrap long text properly
+* align invoice numbers, client names, dates, and amounts correctly
+* right-align financial amounts
+* avoid excessive empty space
+* avoid content being squeezed
+* keep rows clean and readable
+
+### Design expectations
+
+The PDF should look like a real professional management report, not a raw export.
+
+Please make the design:
+
+* clean
+* premium
+* corporate
+* easy to read
+* board-ready
+* finance-ready
+* suitable for sharing externally
+
+### Export logic
+
+Please review the actual PDF generation logic, not only the screen UI.
+
+Make sure the PDF export has its own optimized print/export layout, including:
+
+* PDF-specific CSS
+* print media styles
+* page break controls
+* proper scaling
+* clean margins
+* hidden unnecessary web navigation elements
+* no broken layout when exported
+
+### Sections to review
+
+Please review the entire Management Report PDF export, including:
+
+* header
+* filters area
+* KPI cards
+* revenue / invoice summary
+* charts
+* top clients
+* status breakdown
+* overdue invoices
+* tables
+* totals
+* footer if applicable
+
+### Final expected result
+
+I want the Management Report PDF to be fully corrected so that:
+
+* no amount exceeds its column
+* all financial numbers are cleanly formatted
+* tables are readable
+* cards are properly aligned
+* charts fit correctly
+* the PDF looks polished and professional
+* the report is ready to share with leadership, board members, clients, or investors
+
+Please implement the fixes directly in the PDF export logic and test the export again to confirm the layout is clean.
