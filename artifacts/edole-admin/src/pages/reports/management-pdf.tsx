@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 
@@ -299,6 +299,8 @@ export default function ManagementPDFPage() {
   const params = new URLSearchParams(search);
   const periodQuery = params.toString();
   const styleRef = useRef<HTMLStyleElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Inject print CSS
   useEffect(() => {
@@ -316,6 +318,29 @@ export default function ManagementPDFPage() {
   });
 
   const generatedAt = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+
+  async function savePdf() {
+    if (!containerRef.current || saving) return;
+    setSaving(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const html2pdf = ((await import("html2pdf.js")) as any).default;
+      const filename = `rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`;
+      await html2pdf()
+        .set({
+          margin: [8, 10, 8, 10],
+          filename,
+          image: { type: "jpeg", quality: 0.97 },
+          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"], before: ".pdf-page" },
+        })
+        .from(containerRef.current)
+        .save();
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (isLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "sans-serif", color: "#64748b", flexDirection: "column", gap: 12 }}>
@@ -383,8 +408,8 @@ export default function ManagementPDFPage() {
         <h1>Rapport de Gestion — Aperçu PDF</h1>
         <span>{periodLabel}</span>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="toolbar-btn btn-print" onClick={() => window.print()}>
-            🖨 Imprimer / Enregistrer PDF
+          <button className="toolbar-btn btn-print" onClick={savePdf} disabled={saving}>
+            {saving ? "⏳ Génération…" : "⬇ Enregistrer PDF"}
           </button>
           <button className="toolbar-btn btn-close" onClick={() => window.close()}>
             ✕ Fermer
@@ -392,7 +417,7 @@ export default function ManagementPDFPage() {
         </div>
       </div>
 
-      <div className="report-container">
+      <div className="report-container" ref={containerRef}>
 
         {/* ══════════════════════════════════════════════════════════════════
             PAGE 1 — COUVERTURE
