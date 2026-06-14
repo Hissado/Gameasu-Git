@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/cockpit/"
+title = "Gaméasù Cockpit"
+version = "1.0.0"
+id = "artifacts/gameasu-cockpit"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/cockpit/" ]
+localPort = 25658
+
+[services.development]
+run = "pnpm --filter @workspace/gameasu-cockpit run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gameasu-cockpit", "run", "build" ]
+publicDir = "artifacts/gameasu-cockpit/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25658"
+BASE_PATH = "/cockpit/"
