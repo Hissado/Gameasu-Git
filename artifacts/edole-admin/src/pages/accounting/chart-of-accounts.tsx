@@ -12,6 +12,19 @@ type Acc = {
   type: string; normalBalance: string; isPostable: boolean;
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  asset:     "Actif",
+  liability: "Passif",
+  equity:    "Capitaux propres",
+  revenue:   "Produit",
+  expense:   "Charge",
+};
+
+const BALANCE_LABELS: Record<string, string> = {
+  debit:  "Débit",
+  credit: "Crédit",
+};
+
 const CLASS_LABELS: Record<number, string> = {
   1: "Capitaux et ressources durables",
   2: "Immobilisations",
@@ -82,8 +95,8 @@ export default function ChartOfAccounts() {
                           {a.label}
                           {!a.isPostable && <Badge variant="outline" className="ml-2 text-xs">Regroupement</Badge>}
                         </td>
-                        <td className="px-5 py-2 text-xs">{a.type}</td>
-                        <td className="px-5 py-2 text-xs uppercase">{a.normalBalance}</td>
+                        <td className="px-5 py-2 text-xs">{TYPE_LABELS[a.type] ?? a.type}</td>
+                        <td className="px-5 py-2 text-xs">{BALANCE_LABELS[a.normalBalance] ?? a.normalBalance}</td>
                       </tr>
                     ))}
                   </tbody>
