@@ -9,6 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { MailCheck, Send, Copy, Inbox } from "lucide-react";
 
 type Inv = { id: string; email: string; firstName: string; lastName: string; role: string; invitedAt?: string; acceptedAt?: string; expiresAt?: string; isActive: boolean };
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super-admin",
+  admin: "Administrateur",
+  manager: "Manager",
+  commercial: "Commercial",
+  collaborator: "Collaborateur",
+};
 type Preview = { to: string; subject: string; sentAt: string; result: { provider: string; delivered: boolean } };
 
 export default function AdminInvitationsPage() {
@@ -58,7 +66,7 @@ export default function AdminInvitationsPage() {
                       <div className="font-medium">{i.firstName} {i.lastName}</div>
                       <div className="text-xs text-muted-foreground">{i.email}</div>
                     </TableCell>
-                    <TableCell><Badge variant="outline" className="font-mono text-xs">{i.role}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{ROLE_LABELS[i.role] ?? i.role}</Badge></TableCell>
                     <TableCell className="text-xs">{i.invitedAt ? new Date(i.invitedAt).toLocaleString("fr-FR") : "—"}</TableCell>
                     <TableCell>{status(i)}</TableCell>
                     <TableCell className="text-xs">{i.expiresAt ? new Date(i.expiresAt).toLocaleString("fr-FR") : "—"}</TableCell>

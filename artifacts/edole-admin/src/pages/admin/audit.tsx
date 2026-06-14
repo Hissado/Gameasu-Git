@@ -27,6 +27,20 @@ const ACTION_COLORS: Record<string, string> = {
   password_reset_complete: "bg-pink-100 text-pink-700",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  create: "Création",
+  update: "Modification",
+  delete: "Suppression",
+  login: "Connexion",
+  login_failed: "Connexion échouée",
+  invite: "Invitation",
+  role_change: "Changement de rôle",
+  permission_change: "Modif. permissions",
+  password_change: "Changement MDP",
+  password_reset_request: "Réinit. MDP demandée",
+  password_reset_complete: "MDP réinitialisé",
+};
+
 export default function AdminAuditPage() {
   const [action, setAction] = useState<string>("_all");
   const [entityType, setEntityType] = useState<string>("_all");
@@ -58,7 +72,7 @@ export default function AdminAuditPage() {
           <SelectTrigger className="w-44"><SelectValue placeholder="Action" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="_all">Toutes les actions</SelectItem>
-            {Object.keys(ACTION_COLORS).map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            {Object.keys(ACTION_COLORS).map(a => <SelectItem key={a} value={a}>{ACTION_LABELS[a] ?? a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={entityType} onValueChange={setEntityType}>
@@ -81,7 +95,7 @@ export default function AdminAuditPage() {
             {(data?.data || []).map(l => (
               <div key={l.id} className="flex items-start gap-3 border rounded-md p-2.5 hover:bg-muted/30">
                 <div className="text-xs text-muted-foreground w-36 shrink-0 mt-0.5">{new Date(l.createdAt).toLocaleString("fr-FR")}</div>
-                <Badge className={`shrink-0 ${ACTION_COLORS[l.action] || "bg-slate-100"}`}>{l.action}</Badge>
+                <Badge className={`shrink-0 ${ACTION_COLORS[l.action] || "bg-slate-100"}`}>{ACTION_LABELS[l.action] ?? l.action}</Badge>
                 <div className="flex-1 min-w-0 text-sm">
                   <div>
                     <span className="font-medium">{l.userEmail || "(système)"}</span>

@@ -10,7 +10,7 @@ import {
   db, organizationsTable, organizationMembersTable, organizationSubscriptionsTable,
   subscriptionPlansTable, billingEventsTable, organizationModulesTable, usersTable,
 } from "@workspace/db";
-import { and, eq, sql, desc, gte } from "drizzle-orm";
+import { and, eq, sql, desc, gte, ne } from "drizzle-orm";
 import type { RequestHandler } from "express";
 
 const router: IRouter = Router();
@@ -125,6 +125,40 @@ router.get("/super-admin/organizations", sa, async (_req, res, next) => {
       };
     });
     return res.json({ count: rows.length, rows });
+  } catch (e) { next(e); }
+});
+
+/**
+ * PATCH /super-admin/organizations/:id/status
+ * Body : { action: "suspend" | "reactivate" }
+ * Suspend ou réactive une organisation et son abonnement courant.
+ */
+router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body as { action: string };
+    if (!["suspend", "reactivate"].includes(action)) {
+      return res.status(400).json({ error: "action doit être 'suspend' ou 'reactivate'" });
+    }
+
+    const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+    if (org.isDefault) return res.status(403).json({ error: "L'organisation par défaut ne peut pas être suspendue" });
+
+    const isActive = action === "reactivate";
+    await db.update(organizationsTable).set({ isActive, updatedAt: new Date() }).where(eq(organizationsTable.id, id));
+
+    // Met aussi à jour le statut de l'abonnement courant
+    const newSubStatus = action === "suspend" ? "suspended" : "active";
+    await db.update(organizationSubscriptionsTable)
+      .set({ status: newSubStatus, updatedAt: new Date() })
+      .where(and(
+        eq(organizationSubscriptionsTable.organizationId, id),
+        eq(organizationSubscriptionsTable.isCurrent, true),
+        ne(organizationSubscriptionsTable.status, "trial"),
+      ));
+
+    return res.json({ ok: true, organizationId: id, action, isActive });
   } catch (e) { next(e); }
 });
 

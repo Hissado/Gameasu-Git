@@ -17,6 +17,14 @@ import { UserPlus, Mail, Copy, Pencil, Power, ShieldCheck, FolderKanban, Search,
 import { Textarea } from "@/components/ui/textarea";
 
 type User = { id: string; email: string; firstName: string; lastName: string; role: string; phone?: string; isActive: boolean; departmentId?: string; mustChangePassword?: boolean; lastLoginAt?: string; invitedAt?: string; acceptedAt?: string };
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super-admin",
+  admin: "Administrateur",
+  manager: "Manager",
+  commercial: "Commercial",
+  collaborator: "Collaborateur",
+};
 type Role = { id: string; code: string; name: string };
 type Dept = { id: string; name: string; code: string };
 type Project = { id: string; name: string };
@@ -96,7 +104,7 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell><Badge variant="outline" className="font-mono text-xs">{u.role}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{ROLE_LABELS[u.role] ?? u.role}</Badge></TableCell>
                     <TableCell className="text-sm">{deptsData?.data?.find(d => d.id === u.departmentId)?.name ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -472,7 +480,7 @@ function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }
             <ShieldCheck className="w-5 h-5 text-primary" />
             Accès — {user.firstName} {user.lastName}
           </DialogTitle>
-          <div className="text-sm text-muted-foreground">{user.email} · <span className="font-mono text-xs">{user.role}</span>
+          <div className="text-sm text-muted-foreground">{user.email} · <span className="font-mono text-xs">{ROLE_LABELS[user.role] ?? user.role}</span>
             {(data?.overrides?.length ?? 0) > 0 && (
               <Badge className="ml-2 bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px]">
                 {data!.overrides.length} surcharge{data!.overrides.length > 1 ? "s" : ""}
