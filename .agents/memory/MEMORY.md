@@ -10,3 +10,4 @@
 - [Payroll leftJoin deduplicate](payroll-leftjoin-dedup.md) — leftJoin on contractsTable in line-items GET produces duplicate rows per collaborator when multiple active contracts exist; always deduplicate by collaboratorId with a Set before inserting or assembling response.
 - [Public API routes before requireAuth](public-routes-pattern.md) — routes that must work without auth must be in a separate router registered BEFORE router.use(requireAuth) in routes/index.ts; see orders-public.ts pattern.
 - [DB push interactive prompt](db-push-workaround.md) — drizzle-kit push blocks on interactive prompts for unique constraints; bypass with a tsx migration script in lib/db/src/ then delete it after running.
+- [Fiscal year auto-seed removed](fiscal-year-autoseed.md) — GET /accounting/fiscal-periods used to auto-create 2015-2030 on every call; removed. Now uses manual creation, DELETE (no FK), and create-next (after closure).

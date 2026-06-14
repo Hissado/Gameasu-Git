@@ -77,44 +77,111 @@ router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) =
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/fiscal-periods", async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  // Auto-seed des exercices fiscaux 2015-2030 si l'org n'en a pas encore assez
-  const existing = await db.select({ startDate: fiscalPeriodsTable.startDate })
-    .from(fiscalPeriodsTable)
-    .where(eq(fiscalPeriodsTable.organizationId, orgId));
-  const existingYears = new Set(existing.map((r) => r.startDate.slice(0, 4)));
-  const yearsToCreate: Array<{ name: string; startDate: string; endDate: string }> = [];
-  for (let y = 2015; y <= 2030; y++) {
-    if (!existingYears.has(String(y))) {
-      yearsToCreate.push({
-        name: `Exercice ${y}`,
-        startDate: `${y}-01-01`,
-        endDate: `${y}-12-31`,
-      });
-    }
-  }
-  if (yearsToCreate.length > 0) {
-    const currentYear = new Date().getFullYear();
-    await db.insert(fiscalPeriodsTable).values(
-      yearsToCreate.map((p) => ({
-        organizationId: orgId,
-        name: p.name,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        status: p.startDate.slice(0, 4) === String(currentYear) ? "open" : (parseInt(p.startDate) < currentYear ? "closed" : "open"),
-      }))
-    );
-  }
   const rows = await db.select().from(fiscalPeriodsTable)
     .where(eq(fiscalPeriodsTable.organizationId, orgId))
     .orderBy(desc(fiscalPeriodsTable.startDate));
-  return res.json({ data: rows });
+  // Enrichir avec stats d'utilisation pour chaque exercice
+  const enriched = await Promise.all(rows.map(async (p) => {
+    const [stats] = await db.select({
+      entries: sql<string>`COUNT(*)`,
+      budgets: sql<string>`(SELECT COUNT(*) FROM budgets WHERE fiscal_period_id = ${p.id})`,
+      months: sql<string>`(SELECT COUNT(*) FROM period_months WHERE fiscal_period_id = ${p.id})`,
+    }).from(journalEntriesTable)
+      .where(eq(journalEntriesTable.fiscalPeriodId, p.id));
+    return {
+      ...p,
+      entryCount: Number(stats?.entries ?? 0),
+      budgetCount: Number(stats?.budgets ?? 0),
+      monthCount: Number(stats?.months ?? 0),
+      isDeletable: Number(stats?.entries ?? 0) === 0
+        && Number(stats?.budgets ?? 0) === 0
+        && Number(stats?.months ?? 0) === 0,
+    };
+  }));
+  return res.json({ data: enriched });
 });
 
 router.post("/accounting/fiscal-periods", requireAdmin, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const { name, startDate, endDate } = req.body;
+  if (!name?.trim() || !startDate || !endDate) {
+    return res.status(400).json({ error: "Nom, date de début et date de fin sont requis" });
+  }
+  if (startDate >= endDate) {
+    return res.status(400).json({ error: "La date de début doit être antérieure à la date de fin" });
+  }
+  // Vérifier qu'aucun exercice ne couvre déjà cette période
+  const [conflict] = await db.select({ id: fiscalPeriodsTable.id })
+    .from(fiscalPeriodsTable)
+    .where(and(
+      eq(fiscalPeriodsTable.organizationId, orgId),
+      sql`(${fiscalPeriodsTable.startDate}, ${fiscalPeriodsTable.endDate}) OVERLAPS (${startDate}::date, ${endDate}::date)`,
+    )).limit(1);
+  if (conflict) {
+    return res.status(409).json({ error: "Un exercice couvre déjà cette période. Supprimez-le d'abord ou ajustez les dates." });
+  }
+  const currentYear = new Date().getFullYear();
+  const periodYear = parseInt(startDate.slice(0, 4));
+  const status = periodYear < currentYear ? "closed" : "open";
   const [p] = await db.insert(fiscalPeriodsTable).values({
-      organizationId: req.authUser!.organizationId, name, startDate, endDate, status: "open" }).returning();
+    organizationId: orgId, name: name.trim(), startDate, endDate, status,
+  }).returning();
   return res.status(201).json(p);
+});
+
+// DELETE /accounting/fiscal-periods/:id — suppression d'un exercice sans données
+router.delete("/accounting/fiscal-periods/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [p] = await db.select().from(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+    if (!p) return res.status(404).json({ error: "Exercice introuvable" });
+    // Vérifier qu'il n'a aucune donnée liée
+    const [stats] = await db.select({
+      entries: sql<string>`(SELECT COUNT(*) FROM journal_entries WHERE fiscal_period_id = ${p.id})`,
+      budgets: sql<string>`(SELECT COUNT(*) FROM budgets WHERE fiscal_period_id = ${p.id})`,
+      months: sql<string>`(SELECT COUNT(*) FROM period_months WHERE fiscal_period_id = ${p.id})`,
+    }).from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.id, p.id));
+    if (Number(stats.entries) > 0 || Number(stats.budgets) > 0 || Number(stats.months) > 0) {
+      return res.status(409).json({ error: "Impossible de supprimer un exercice contenant des écritures, budgets ou périodes de clôture." });
+    }
+    await db.delete(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, p.id)));
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
+// POST /accounting/fiscal-periods/:id/create-next — crée l'exercice suivant après clôture
+router.post("/accounting/fiscal-periods/:id/create-next", requireAdmin, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [current] = await db.select().from(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+    if (!current) return res.status(404).json({ error: "Exercice introuvable" });
+    // L'exercice courant doit être clôturé pour créer le suivant
+    if (current.status !== "closed") {
+      return res.status(400).json({ error: "Clôturez d'abord l'exercice courant avant de créer le suivant." });
+    }
+    // Calculer les dates du prochain exercice (année + 1)
+    const endYear = parseInt(current.endDate.slice(0, 4));
+    const nextStart = `${endYear + 1}-01-01`;
+    const nextEnd = `${endYear + 1}-12-31`;
+    // Vérifier qu'il n'existe pas déjà
+    const [existing] = await db.select({ id: fiscalPeriodsTable.id })
+      .from(fiscalPeriodsTable)
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.startDate, nextStart))).limit(1);
+    if (existing) {
+      return res.status(409).json({ error: `L'exercice ${endYear + 1} existe déjà.`, existingId: existing.id });
+    }
+    const [next] = await db.insert(fiscalPeriodsTable).values({
+      organizationId: orgId,
+      name: `Exercice ${endYear + 1}`,
+      startDate: nextStart,
+      endDate: nextEnd,
+      status: "open",
+    }).returning();
+    return res.status(201).json(next);
+  } catch (e) { next(e); }
 });
 
 router.post("/accounting/fiscal-periods/:id/close", requireAdmin, async (req, res) => {
