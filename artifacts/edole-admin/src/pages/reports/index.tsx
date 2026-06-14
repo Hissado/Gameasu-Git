@@ -855,6 +855,7 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
   const cfg = EXPORT_MAP[tab] ?? { label: tab };
   const today = new Date().toISOString().slice(0, 10);
   const slug = cfg.label.toLowerCase().replace(/\s+/g, "-");
+  const [saving, setSaving] = useState(false);
 
   function handleShare() {
     const url = `${window.location.origin}${window.location.pathname}?tab=${tab}&${periodQuery}`;
@@ -862,6 +863,36 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
       () => alert("Lien copié dans le presse-papiers !"),
       () => alert("Impossible de copier le lien."),
     );
+  }
+
+  async function saveTabAsPdf() {
+    const el = document.getElementById("report-view-content");
+    if (!el || saving) return;
+    setSaving(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("html2canvas") as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("jspdf") as any,
+      ]);
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: "#fff" });
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const totalH = (canvas.height / canvas.width) * pageW;
+      let yMm = 0; let pi = 0;
+      while (yMm < totalH) {
+        if (pi > 0) pdf.addPage();
+        const srcY = Math.round((yMm / pageW) * canvas.width);
+        const srcH = Math.min(Math.round((pageH / pageW) * canvas.width), canvas.height - srcY);
+        const sl = document.createElement("canvas"); sl.width = canvas.width; sl.height = srcH;
+        sl.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        pdf.addImage(sl.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, pageW, (srcH / canvas.width) * pageW);
+        yMm += pageH; pi++;
+      }
+      pdf.save(`rapport-${slug}-${today}.pdf`);
+    } finally { setSaving(false); }
   }
 
   const hasExport = cfg.xlsxUrl || cfg.csvUrl || cfg.pdfUrl;
@@ -904,15 +935,16 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
         </Button>
       )}
 
-      {/* Bouton Imprimer — toujours disponible */}
+      {/* Bouton PDF — toujours disponible */}
       <Button
         variant="outline"
         size="sm"
         className="h-8 text-xs gap-1.5"
-        onClick={() => window.print()}
-        title="Imprimer / Sauvegarder en PDF via le navigateur"
+        onClick={saveTabAsPdf}
+        disabled={saving}
+        title="Télécharger ce rapport en PDF"
       >
-        <Printer className="w-3.5 h-3.5" /> Imprimer
+        <FileText className="w-3.5 h-3.5" /> {saving ? "PDF…" : "PDF"}
       </Button>
 
       {/* Bouton Partager */}
@@ -955,8 +987,8 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={() => window.print()}>
-              <Printer className="w-4 h-4 text-slate-500" /> Imprimer / Sauvegarder PDF
+            <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={saveTabAsPdf} disabled={saving}>
+              <FileText className="w-4 h-4 text-slate-500" /> Enregistrer en PDF
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={handleShare}>
               <Share2 className="w-4 h-4 text-slate-500" /> Copier le lien de partage
@@ -1007,13 +1039,15 @@ function ReportViewer({ tab, reportName, pf, onBack }: {
           period={pf.period} comparePeriod={pf.comparePeriod} showCompare
         />
       </div>
-      {tab === "overview"  && <OverviewTab  {...tabProps} />}
-      {tab === "finance"   && <FinanceTab   {...tabProps} />}
-      {tab === "sales"     && <SalesTab     {...tabProps} />}
-      {tab === "purchases" && <PurchasesTab {...tabProps} />}
-      {tab === "projects"  && <ProjectsTab  {...tabProps} />}
-      {tab === "hr"        && <HrTab        {...tabProps} />}
-      {tab === "parc"      && <ParcTab />}
+      <div id="report-view-content">
+        {tab === "overview"  && <OverviewTab  {...tabProps} />}
+        {tab === "finance"   && <FinanceTab   {...tabProps} />}
+        {tab === "sales"     && <SalesTab     {...tabProps} />}
+        {tab === "purchases" && <PurchasesTab {...tabProps} />}
+        {tab === "projects"  && <ProjectsTab  {...tabProps} />}
+        {tab === "hr"        && <HrTab        {...tabProps} />}
+        {tab === "parc"      && <ParcTab />}
+      </div>
     </div>
   );
 }

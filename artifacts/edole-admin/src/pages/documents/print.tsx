@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA, formatDate } from "@/lib/format";
-import { Printer, Loader2, AlertCircle } from "lucide-react";
+import { Download, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type DocType = "proforma" | "order" | "invoice";
@@ -118,7 +118,40 @@ export default function PrintDocumentPage() {
     }
   }, [loading, doc, docType]);
 
-  const handlePrint = () => window.print();
+  const docRef = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function savePdf() {
+    if (!docRef.current || saving) return;
+    setSaving(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("html2canvas") as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("jspdf") as any,
+      ]);
+      const canvas = await html2canvas(docRef.current, { scale: 2, useCORS: true, logging: false, backgroundColor: "#fff" });
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const totalImgH = (canvas.height / canvas.width) * pageW;
+      let yMm = 0;
+      let pageIdx = 0;
+      while (yMm < totalImgH) {
+        if (pageIdx > 0) pdf.addPage();
+        const srcY = Math.round((yMm / pageW) * canvas.width);
+        const srcH = Math.min(Math.round((pageH / pageW) * canvas.width), canvas.height - srcY);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width; slice.height = srcH;
+        slice.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        pdf.addImage(slice.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, pageW, (srcH / canvas.width) * pageW);
+        yMm += pageH; pageIdx++;
+      }
+      const ref = doc?.referenceNumber ?? "document";
+      pdf.save(`${DOCTYPE_API[docType]}-${ref}-${new Date().toISOString().slice(0,10)}.pdf`);
+    } finally { setSaving(false); }
+  }
 
   if (loading) {
     return (
@@ -171,16 +204,20 @@ export default function PrintDocumentPage() {
             {DOCTYPE_LABELS[docType]} — {doc.referenceNumber}
           </span>
           <Button
-            onClick={handlePrint}
+            onClick={savePdf}
+            disabled={saving}
             className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2"
           >
-            <Printer className="w-4 h-4" />
-            Imprimer / PDF
+            {saving
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</>
+              : <><Download className="w-4 h-4" /> Enregistrer PDF</>
+            }
           </Button>
         </div>
       </div>
 
       <div
+        ref={docRef}
         className="bg-white mx-auto"
         style={{
           width: "210mm",

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { useGetRental, getGetRentalQueryKey } from "@workspace/api-client-react";
 import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,13 +6,40 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, FileText, Calendar, Building, Printer, PlaySquare } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building, Download, PlaySquare } from "lucide-react";
 import { formatFCFA, formatDate } from "@/lib/format";
+
+async function saveDivAsPdf(el: HTMLElement, filename: string) {
+  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    import("html2canvas") as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    import("jspdf") as any,
+  ]);
+  const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: "#fff" });
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const totalH = (canvas.height / canvas.width) * pageW;
+  let yMm = 0; let pi = 0;
+  while (yMm < totalH) {
+    if (pi > 0) pdf.addPage();
+    const srcY = Math.round((yMm / pageW) * canvas.width);
+    const srcH = Math.min(Math.round((pageH / pageW) * canvas.width), canvas.height - srcY);
+    const sl = document.createElement("canvas"); sl.width = canvas.width; sl.height = srcH;
+    sl.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    pdf.addImage(sl.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, pageW, (srcH / canvas.width) * pageW);
+    yMm += pageH; pi++;
+  }
+  pdf.save(filename);
+}
 
 export default function RentalDetail() {
   const [, params] = useRoute("/rentals/:id");
   const id = params?.id || "";
-  
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const { data: rental, isLoading } = useGetRental(id, {
     query: { enabled: !!id, queryKey: getGetRentalQueryKey(id) }
   });
@@ -52,7 +79,7 @@ export default function RentalDetail() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div ref={contentRef} className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
            <Link href="/rentals">
@@ -73,7 +100,7 @@ export default function RentalDetail() {
         <div className="flex flex-col items-end gap-2">
           {getStatusBadge(rental.status)}
           <div className="flex gap-2 mt-2">
-            <Button variant="outline" size="sm"><Printer className="w-4 h-4 mr-2"/> Imprimer</Button>
+            <Button variant="outline" size="sm" disabled={saving} onClick={async () => { if (!contentRef.current) return; setSaving(true); try { await saveDivAsPdf(contentRef.current, `location-${id}-${new Date().toISOString().slice(0,10)}.pdf`); } finally { setSaving(false); } }}><Download className="w-4 h-4 mr-2"/> {saving ? "PDF…" : "Enregistrer PDF"}</Button>
             {rental.status === 'pending' && <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"><PlaySquare className="w-4 h-4 mr-2"/> Démarrer</Button>}
           </div>
         </div>
