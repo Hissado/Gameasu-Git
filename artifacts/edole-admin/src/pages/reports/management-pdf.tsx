@@ -323,20 +323,36 @@ export default function ManagementPDFPage() {
     if (!containerRef.current || saving) return;
     setSaving(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const html2pdf = ((await import("html2pdf.js")) as any).default;
-      const filename = `rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`;
-      await html2pdf()
-        .set({
-          margin: [8, 10, 8, 10],
-          filename,
-          image: { type: "jpeg", quality: 0.97 },
-          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"], before: ".pdf-page" },
-        })
-        .from(containerRef.current)
-        .save();
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("html2canvas") as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        import("jspdf") as any,
+      ]);
+
+      const pages = Array.from(
+        containerRef.current.querySelectorAll<HTMLElement>(".pdf-page")
+      );
+
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();   // 210mm
+      const pageH = pdf.internal.pageSize.getHeight();  // 297mm
+
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.97);
+        // Each div.pdf-page fills one full A4 page
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
+      }
+
+      pdf.save(`rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`);
     } finally {
       setSaving(false);
     }
