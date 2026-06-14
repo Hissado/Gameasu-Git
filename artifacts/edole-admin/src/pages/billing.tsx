@@ -4,12 +4,14 @@ import { useBillingSummary, useBillingEvents, useBillingUsage, useSubscriptionPl
 import { apiFetch } from "@/lib/api";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { PlanBadge } from "@/components/PlanBadge";
+import { StripeCardForm, StripeSetupForm, isStripeConfiguredOnFront } from "@/components/StripeCardForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +19,7 @@ import {
   Check, CheckCircle2, Crown, Calendar, Users, Receipt, ArrowUpRight, RefreshCw,
   CreditCard, Smartphone, Wallet, AlertCircle, Clock, XCircle, Download,
   Settings, Shield, Zap, Phone, FileText, ToggleLeft, ToggleRight, ExternalLink,
+  Repeat, Trash2, PenLine, Star, Bell, Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BRANDING } from "@/config/branding";
@@ -59,12 +62,34 @@ type GatewayConfig = {
   maxAmount: number | null;
 };
 
+type StripeStatus = {
+  stripeConfigured: boolean;
+  autopayEnabled: boolean;
+  savedCard: {
+    brand: string | null;
+    last4: string;
+    expMonth: number | null;
+    expYear: number | null;
+    label: string;
+  } | null;
+  nextAutopayAt: string | null;
+  currentPeriodEnd: string | null;
+};
+
 // ─── Constants ────────────────────────────────────────────────────
 
 const MOBILE_MONEY_METHODS = ["mixx", "flooz", "mobile_money"];
 
 const PAYMENT_METHODS = [
-  { value: "card", label: "Carte bancaire", icon: CreditCard, color: "text-blue-600", desc: "Visa, Mastercard — saisie manuelle de référence" },
+  {
+    value: "card",
+    label: "Carte bancaire",
+    icon: CreditCard,
+    color: "text-blue-600",
+    desc: isStripeConfiguredOnFront
+      ? "Visa, Mastercard — paiement sécurisé Stripe"
+      : "Visa, Mastercard — saisie manuelle de référence",
+  },
   { value: "mixx", label: "Mixx", icon: Smartphone, color: "text-emerald-600", desc: "Mobile Money Togo (Mixx)" },
   { value: "flooz", label: "Flooz", icon: Smartphone, color: "text-orange-500", desc: "Mobile Money Togo (Flooz)" },
 ];
@@ -78,12 +103,12 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 const TX_STATUS_CFG: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending:   { label: "En attente",  cls: "bg-amber-50 text-amber-700 border-amber-200",   icon: Clock },
+  pending:   { label: "En attente",  cls: "bg-amber-50 text-amber-700 border-amber-200",      icon: Clock },
   confirmed: { label: "Confirmé",    cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  failed:    { label: "Échoué",      cls: "bg-red-50 text-red-700 border-red-200",          icon: XCircle },
-  cancelled: { label: "Annulé",      cls: "bg-slate-100 text-slate-600 border-slate-200",   icon: XCircle },
-  expired:   { label: "Expiré",      cls: "bg-slate-100 text-slate-500 border-slate-200",   icon: Clock },
-  refunded:  { label: "Remboursé",   cls: "bg-purple-50 text-purple-700 border-purple-200", icon: RefreshCw },
+  failed:    { label: "Échoué",      cls: "bg-red-50 text-red-700 border-red-200",             icon: XCircle },
+  cancelled: { label: "Annulé",      cls: "bg-slate-100 text-slate-600 border-slate-200",      icon: XCircle },
+  expired:   { label: "Expiré",      cls: "bg-slate-100 text-slate-500 border-slate-200",      icon: Clock },
+  refunded:  { label: "Remboursé",   cls: "bg-purple-50 text-purple-700 border-purple-200",    icon: RefreshCw },
 };
 
 const MODULE_LABELS: Record<string, string> = {
@@ -99,6 +124,10 @@ const MODULE_LABELS: Record<string, string> = {
 };
 
 // ─── PaymentModal ─────────────────────────────────────────────────
+// Gère 3 cas :
+//   • card + Stripe configuré  → PaymentIntent → StripeCardForm
+//   • card + Stripe non configuré → saisie manuelle de référence TPE
+//   • mixx / flooz → numéro de téléphone + référence
 
 function PaymentModal({
   open, onClose, currentPlan, currentSub, onSuccess,
@@ -114,6 +143,13 @@ function PaymentModal({
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveCard, setSaveCard] = useState(false);
+
+  // Pour le flux Stripe : on passe par 2 étapes
+  // étape 1 : choix de méthode + initiation  → étape 2 : formulaire Stripe
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+  const [stripeTxRef, setStripeTxRef] = useState<string | null>(null);
+  const [stripeSucceeded, setStripeSucceeded] = useState(false);
 
   const seats = currentSub?.seats ?? 1;
   const unitPrice = currentSub?.unitPrice ?? 0;
@@ -121,8 +157,35 @@ function PaymentModal({
   const cycle = currentSub?.billingCycle === "annual" ? "an" : "mois";
 
   const isMobileMoney = MOBILE_MONEY_METHODS.includes(method);
+  const useStripeFlow = method === "card" && isStripeConfiguredOnFront;
 
-  const handleSubmit = async () => {
+  const resetStripe = () => {
+    setStripeClientSecret(null);
+    setStripeTxRef(null);
+    setStripeSucceeded(false);
+  };
+
+  const handleClose = () => { resetStripe(); setSaving(false); onClose(); };
+
+  // Flux Stripe : demande un PaymentIntent au backend
+  const handleInitStripe = async () => {
+    setSaving(true);
+    try {
+      const res = await apiFetch("/api/billing/stripe/payment-intent", {
+        method: "POST",
+        body: JSON.stringify({ saveCard, purpose: "renewal" }),
+      }) as { clientSecret: string; txRef: string; amount: number };
+      setStripeClientSecret(res.clientSecret);
+      setStripeTxRef(res.txRef);
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Impossible d'initialiser le paiement Stripe");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Flux manuel (mobile money + carte TPE)
+  const handleSubmitManual = async () => {
     setSaving(true);
     try {
       await apiFetch("/api/billing/pay", {
@@ -139,7 +202,7 @@ function PaymentModal({
         description: "En attente de confirmation. Effectuez le paiement et notifiez votre équipe.",
       });
       onSuccess();
-      onClose();
+      handleClose();
     } catch (e: any) {
       sonnerToast.error(e?.message ?? "Erreur lors de l'initiation du paiement");
     } finally {
@@ -147,8 +210,16 @@ function PaymentModal({
     }
   };
 
+  const handleStripeSuccess = (paymentIntentId: string) => {
+    setStripeSucceeded(true);
+    sonnerToast.success("Paiement en cours de validation", {
+      description: "La confirmation arrivera sous quelques instants via webhook. Votre accès sera renouvelé automatiquement.",
+    });
+    onSuccess();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -169,92 +240,231 @@ function PaymentModal({
             </p>
           </div>
 
-          {/* Choix du mode de paiement */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Mode de paiement</Label>
-            <div className="grid gap-2">
-              {PAYMENT_METHODS.map((pm) => {
-                const Icon = pm.icon;
-                const selected = method === pm.value;
-                return (
-                  <button
-                    key={pm.value}
-                    type="button"
-                    onClick={() => { setMethod(pm.value); setPayerPhone(""); }}
-                    className={`flex items-center gap-3 w-full rounded-lg border px-4 py-3 text-left transition-all ${
-                      selected
-                        ? "border-amber-400 bg-amber-50 shadow-sm"
-                        : "border-border hover:border-amber-200 hover:bg-muted/30"
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 shrink-0 ${pm.color}`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm">{pm.label}</p>
-                      <p className="text-xs text-muted-foreground">{pm.desc}</p>
-                    </div>
-                    {selected && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Champs spécifiques Mobile Money */}
-          {isMobileMoney && (
-            <div className="space-y-3 p-3 rounded-lg border border-amber-200 bg-amber-50/40">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1.5 text-sm">
-                  <Phone className="w-3.5 h-3.5 text-amber-600" /> N° de téléphone payeur
-                </Label>
-                <Input
-                  placeholder="+228 90 00 00 00"
-                  value={payerPhone}
-                  onChange={(e) => setPayerPhone(e.target.value)}
-                />
-              </div>
-              <p className="text-[11px] text-amber-700">
-                Effectuez le paiement depuis votre application mobile puis renseignez la référence de transaction ci-dessous.
-              </p>
+          {/* Formulaire Stripe Elements (étape 2) */}
+          {stripeClientSecret && !stripeSucceeded && (
+            <div className="space-y-4">
+              <Button
+                variant="ghost" size="sm"
+                onClick={resetStripe}
+                className="text-muted-foreground -ml-1 h-7"
+              >
+                ← Choisir un autre mode
+              </Button>
+              <StripeCardForm
+                clientSecret={stripeClientSecret}
+                amount={total}
+                saveCard={saveCard}
+                onSuccess={handleStripeSuccess}
+                onError={(msg) => sonnerToast.error("Paiement refusé", { description: msg })}
+              />
             </div>
           )}
 
-          {/* Référence de transaction */}
-          <div className="space-y-1">
-            <Label className="text-sm">
-              {method === "card" ? "Référence terminal (TPE)" : "Référence de transaction"}&nbsp;
-              <span className="text-muted-foreground font-normal">(optionnel)</span>
-            </Label>
-            <Input
-              placeholder={method === "card" ? "ex: AUTH-2026-XXXX" : "ex: TX-MIXX-XXXX"}
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
+          {/* Succès Stripe */}
+          {stripeSucceeded && (
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+              <p className="font-semibold text-lg">Paiement soumis !</p>
+              <p className="text-sm text-muted-foreground">Confirmation automatique par webhook Stripe en cours.</p>
+              <Button onClick={handleClose}>Fermer</Button>
+            </div>
+          )}
 
-          <div className="space-y-1">
-            <Label className="text-sm">Notes <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
-            <Textarea rows={2} placeholder="Remarques, informations complémentaires…" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
+          {/* Sélection de méthode (étape 1) */}
+          {!stripeClientSecret && !stripeSucceeded && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Mode de paiement</Label>
+                <div className="grid gap-2">
+                  {PAYMENT_METHODS.map((pm) => {
+                    const Icon = pm.icon;
+                    const selected = method === pm.value;
+                    return (
+                      <button
+                        key={pm.value}
+                        type="button"
+                        onClick={() => { setMethod(pm.value); setPayerPhone(""); }}
+                        className={`flex items-center gap-3 w-full rounded-lg border px-4 py-3 text-left transition-all ${
+                          selected
+                            ? "border-amber-400 bg-amber-50 shadow-sm"
+                            : "border-border hover:border-amber-200 hover:bg-muted/30"
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 shrink-0 ${pm.color}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm">{pm.label}</p>
+                          <p className="text-xs text-muted-foreground">{pm.desc}</p>
+                        </div>
+                        {selected && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
+                        {pm.value === "card" && isStripeConfiguredOnFront && (
+                          <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Note sécurité */}
-          <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-200 p-3">
-            <Shield className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-slate-600">
-              La transaction sera créée en statut <strong>En attente</strong>. Votre administrateur la confirmera après réception du paiement. L'abonnement est renouvelé automatiquement à la confirmation.
-            </p>
-          </div>
+              {/* Option sauvegarder la carte (flux Stripe uniquement) */}
+              {useStripeFlow && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-blue-200 bg-blue-50/40">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium">Sauvegarder la carte pour l'autopay</p>
+                      <p className="text-xs text-muted-foreground">Renouvellement automatique au prochain cycle</p>
+                    </div>
+                  </div>
+                  <Switch checked={saveCard} onCheckedChange={setSaveCard} />
+                </div>
+              )}
+
+              {/* Champs Mobile Money */}
+              {isMobileMoney && (
+                <div className="space-y-3 p-3 rounded-lg border border-amber-200 bg-amber-50/40">
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-1.5 text-sm">
+                      <Phone className="w-3.5 h-3.5 text-amber-600" /> N° de téléphone payeur
+                    </Label>
+                    <Input
+                      placeholder="+228 90 00 00 00"
+                      value={payerPhone}
+                      onChange={(e) => setPayerPhone(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-[11px] text-amber-700">
+                    Effectuez le paiement depuis votre application mobile puis renseignez la référence de transaction.
+                  </p>
+                </div>
+              )}
+
+              {/* Référence (Mobile Money ou TPE carte manuelle) */}
+              {(!useStripeFlow) && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-sm">
+                      {method === "card" ? "Référence terminal (TPE)" : "Référence de transaction"}&nbsp;
+                      <span className="text-muted-foreground font-normal">(optionnel)</span>
+                    </Label>
+                    <Input
+                      placeholder={method === "card" ? "ex: AUTH-2026-XXXX" : "ex: TX-MIXX-XXXX"}
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm">Notes <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
+                    <Textarea rows={2} placeholder="Remarques…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                  </div>
+                  <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-200 p-3">
+                    <Shield className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-slate-600">
+                      La transaction sera créée en statut <strong>En attente</strong>. Votre administrateur la confirmera après réception du paiement.
+                    </p>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || total <= 0}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)}`}
-          </Button>
-        </DialogFooter>
+        {/* Footer — seulement si on n'est pas en formulaire Stripe */}
+        {!stripeClientSecret && !stripeSucceeded && (
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} disabled={saving}>Annuler</Button>
+            {useStripeFlow ? (
+              <Button
+                onClick={handleInitStripe}
+                disabled={saving || total <= 0}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)}`}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmitManual}
+                disabled={saving || total <= 0}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)}`}
+              </Button>
+            )}
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── SaveCardModal ────────────────────────────────────────────────
+// Flux SetupIntent : sauvegarde une carte sans débit immédiat.
+
+function SaveCardModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const initSetup = async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch("/api/billing/stripe/setup-intent", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }) as { clientSecret: string };
+      setClientSecret(res.clientSecret);
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Impossible d'initialiser la sauvegarde de carte");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => { setClientSecret(null); onClose(); };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-blue-600" />
+            {clientSecret ? "Enregistrer une carte" : "Activer le paiement automatique"}
+          </DialogTitle>
+          <DialogDescription>
+            Votre carte sera sauvegardée de façon sécurisée par Stripe pour les renouvellements automatiques.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-2">
+          {!clientSecret ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4 space-y-2">
+                {[
+                  "Renouvellement automatique mensuel ou annuel",
+                  "Notification par email avant chaque prélèvement",
+                  "Désactivation possible à tout moment",
+                  "Aucune donnée de carte stockée sur nos serveurs",
+                ].map((feat) => (
+                  <div key={feat} className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-blue-500 shrink-0" />
+                    <span>{feat}</span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={initSetup}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {loading ? "Initialisation…" : "Continuer vers la saisie de carte"}
+              </Button>
+            </div>
+          ) : (
+            <StripeSetupForm
+              clientSecret={clientSecret}
+              onSuccess={() => { sonnerToast.success("Carte enregistrée — autopay activé !"); onSuccess(); handleClose(); }}
+              onError={(msg) => sonnerToast.error("Erreur", { description: msg })}
+            />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -342,7 +552,7 @@ function ReceiptModal({ txId, onClose }: { txId: string; onClose: () => void }) 
   );
 }
 
-// ─── TransactionStatusBadge ───────────────────────────────────────
+// ─── TxBadge ─────────────────────────────────────────────────────
 
 function TxBadge({ status }: { status: string }) {
   const cfg = TX_STATUS_CFG[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200", icon: Clock };
@@ -351,6 +561,228 @@ function TxBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider rounded-full px-2 py-0.5 border ${cfg.cls}`}>
       <Icon className="w-3 h-3" /> {cfg.label}
     </span>
+  );
+}
+
+// ─── AutopayPanel ─────────────────────────────────────────────────
+// Onglet complet : gestion de la carte sauvegardée + autopay toggle
+
+function AutopayPanel({
+  stripeStatus,
+  onRefresh,
+}: {
+  stripeStatus: StripeStatus | undefined;
+  onRefresh: () => void;
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [showSaveCard, setShowSaveCard] = useState(false);
+
+  const enableMutation = useMutation({
+    mutationFn: () => apiFetch("/api/billing/stripe/autopay/enable", { method: "POST", body: JSON.stringify({}) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["stripe-status"] }); onRefresh(); toast({ title: "Autopay activé" }); },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: () => apiFetch("/api/billing/stripe/autopay/disable", { method: "POST", body: JSON.stringify({}) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["stripe-status"] }); onRefresh(); toast({ title: "Autopay désactivé" }); },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const removeCardMutation = useMutation({
+    mutationFn: () => apiFetch("/api/billing/stripe/saved-card", { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["stripe-status"] }); onRefresh(); toast({ title: "Carte supprimée — autopay désactivé" }); },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const stripeConfigured = stripeStatus?.stripeConfigured ?? false;
+  const autopayEnabled = stripeStatus?.autopayEnabled ?? false;
+  const savedCard = stripeStatus?.savedCard ?? null;
+  const nextAutopay = stripeStatus?.nextAutopayAt;
+  const periodEnd = stripeStatus?.currentPeriodEnd;
+
+  if (!stripeConfigured) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center space-y-4">
+          <AlertCircle className="w-10 h-10 mx-auto text-amber-400" />
+          <div>
+            <p className="font-semibold">Stripe non configuré</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+              Pour activer le paiement automatique par carte, l'administrateur doit configurer{" "}
+              <code className="bg-muted px-1 rounded text-xs">STRIPE_SECRET_KEY</code> et{" "}
+              <code className="bg-muted px-1 rounded text-xs">VITE_STRIPE_PUBLISHABLE_KEY</code> dans les variables d'environnement.
+            </p>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            URL webhook Stripe :&nbsp;
+            <code className="bg-muted px-1.5 py-0.5 rounded">…/api/webhooks/stripe</code>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Statut autopay */}
+      <Card className={autopayEnabled ? "border-emerald-200 bg-emerald-50/30" : "border-amber-200 bg-amber-50/20"}>
+        <CardContent className="py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${autopayEnabled ? "bg-emerald-100" : "bg-slate-100"}`}>
+                <Repeat className={`w-5 h-5 ${autopayEnabled ? "text-emerald-600" : "text-slate-400"}`} />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Paiement automatique (autopay)</p>
+                <p className="text-xs text-muted-foreground">
+                  {autopayEnabled
+                    ? nextAutopay
+                      ? `Prochain prélèvement : ${new Date(nextAutopay).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`
+                      : "Actif — prochain prélèvement à l'échéance"
+                    : savedCard
+                    ? "Carte enregistrée, autopay désactivé"
+                    : "Aucune carte enregistrée"}
+                </p>
+              </div>
+            </div>
+            {savedCard && (
+              <Switch
+                checked={autopayEnabled}
+                onCheckedChange={(v) => {
+                  if (v) enableMutation.mutate();
+                  else disableMutation.mutate();
+                }}
+                disabled={enableMutation.isPending || disableMutation.isPending}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Carte sauvegardée */}
+      {savedCard ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-blue-500" /> Carte enregistrée
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4 p-4 rounded-lg border border-blue-200 bg-blue-50/40">
+              <div className="w-12 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">{savedCard.label}</p>
+                {savedCard.expMonth && savedCard.expYear && (
+                  <p className="text-xs text-muted-foreground">
+                    Expire {String(savedCard.expMonth).padStart(2, "0")}/{savedCard.expYear}
+                  </p>
+                )}
+              </div>
+              <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">Vérifiée</Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setShowSaveCard(true)}
+              >
+                <PenLine className="w-3.5 h-3.5 mr-1.5" /> Mettre à jour la carte
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => removeCardMutation.mutate()}
+                disabled={removeCardMutation.isPending}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center space-y-3">
+            <CreditCard className="w-10 h-10 mx-auto text-muted-foreground/30" />
+            <div>
+              <p className="font-medium text-sm">Aucune carte enregistrée</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ajoutez une carte pour activer le renouvellement automatique.
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowSaveCard(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <CreditCard className="w-4 h-4 mr-2" /> Ajouter une carte
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Informations sur l'échéance */}
+      {periodEnd && (
+        <Card className="bg-muted/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="text-sm">
+                <span className="text-muted-foreground">Prochain renouvellement : </span>
+                <span className="font-semibold">
+                  {new Date(periodEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notifications autopay */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Bell className="w-4 h-4 text-amber-500" /> Notifications de renouvellement
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            {[
+              { event: "J-3 avant l'échéance", desc: "Email de rappel de renouvellement", active: autopayEnabled },
+              { event: "Prélèvement réussi", desc: "Email de confirmation avec reçu", active: true },
+              { event: "Prélèvement échoué", desc: "Email d'alerte + notification in-app", active: true },
+            ].map(({ event, desc, active }) => (
+              <div key={event} className="flex items-center gap-3 py-1.5">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${active ? "bg-emerald-400" : "bg-slate-300"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs">{event}</p>
+                  <p className="text-[11px] text-muted-foreground">{desc}</p>
+                </div>
+                <span className={`text-[10px] font-semibold uppercase ${active ? "text-emerald-600" : "text-slate-400"}`}>
+                  {active ? "actif" : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {showSaveCard && (
+        <SaveCardModal
+          open={showSaveCard}
+          onClose={() => setShowSaveCard(false)}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["stripe-status"] });
+            onRefresh();
+            setShowSaveCard(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -449,7 +881,7 @@ function GatewayConfigPanel() {
                 <div className="space-y-1">
                   <Label className="text-xs">URL Webhook</Label>
                   <Input
-                    placeholder="https://…/api/webhooks/payment/…"
+                    placeholder="https://…/api/webhooks/stripe"
                     value={form.webhookUrl ?? ""}
                     onChange={(e) => setForm({ ...form, webhookUrl: e.target.value })}
                   />
@@ -482,7 +914,7 @@ function GatewayConfigPanel() {
                 <Label htmlFor={`sandbox-${gw.gateway}`} className="text-xs cursor-pointer">Mode sandbox (test)</Label>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                🔒 Les clés secrètes (STRIPE_SECRET_KEY, etc.) doivent être configurées via les variables d'environnement — jamais ici.
+                🔒 Les clés secrètes (STRIPE_SECRET_KEY, etc.) doivent être configurées via les variables d'environnement.
               </p>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => saveMutation.mutate(gw.gateway)} disabled={saveMutation.isPending}>
@@ -517,6 +949,12 @@ export default function BillingPage() {
     queryFn: () => apiFetch("/api/billing/payment-transactions"),
   });
 
+  const { data: stripeStatus, refetch: refetchStripe } = useQuery<StripeStatus>({
+    queryKey: ["stripe-status"],
+    queryFn: () => apiFetch("/api/billing/stripe/status"),
+    staleTime: 30_000,
+  });
+
   const [showPayModal, setShowPayModal] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
 
@@ -549,6 +987,8 @@ export default function BillingPage() {
   });
 
   const total = (current?.subscription.unitPrice ?? 0) * (current?.subscription.seats ?? 1);
+  const autopayEnabled = stripeStatus?.autopayEnabled ?? false;
+  const savedCard = stripeStatus?.savedCard;
 
   return (
     <div className="space-y-8">
@@ -562,7 +1002,7 @@ export default function BillingPage() {
       </header>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="overview">Formule</TabsTrigger>
           <TabsTrigger value="payments" className="relative">
             Paiements
@@ -570,6 +1010,12 @@ export default function BillingPage() {
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
                 {pendingCount}
               </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="autopay" className="relative">
+            Autopay
+            {autopayEnabled && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="history">Historique</TabsTrigger>
@@ -616,6 +1062,34 @@ export default function BillingPage() {
                 >
                   <Wallet className="w-4 h-4 mr-2" /> Payer maintenant — {formatFCFA(total)}
                 </Button>
+
+                {/* Statut autopay dans les actions */}
+                {savedCard ? (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
+                    autopayEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}>
+                    <Repeat className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {autopayEnabled
+                        ? `Autopay actif · ${savedCard.label}`
+                        : `Carte enregistrée · autopay désactivé`}
+                    </span>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline" className="w-full justify-between"
+                    onClick={() => {
+                      const tab = document.querySelector('[value="autopay"]') as HTMLButtonElement;
+                      tab?.click();
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Repeat className="w-4 h-4" /> Activer l'autopay
+                    </span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                )}
+
                 <Button
                   variant="outline" className="w-full justify-between"
                   onClick={() => changeCycle.mutate(cycle === "annual" ? "monthly" : "annual", {
@@ -629,14 +1103,12 @@ export default function BillingPage() {
                   </span>
                   <ArrowUpRight className="w-4 h-4" />
                 </Button>
+
                 <Button asChild variant="outline" className="w-full justify-between">
                   <a href={`mailto:sales@${BRANDING.appName.toLowerCase()}.africa`}>
                     Contacter le commercial <ArrowUpRight className="w-4 h-4" />
                   </a>
                 </Button>
-                <p className="text-[11px] text-muted-foreground pt-1">
-                  Le paiement est confirmé manuellement. L'abonnement se renouvelle automatiquement à la confirmation.
-                </p>
               </CardContent>
             </Card>
           </div>
@@ -722,21 +1194,41 @@ export default function BillingPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold">Transactions de paiement</h2>
-              <p className="text-sm text-muted-foreground">Carte bancaire, Mixx, Flooz — confirmez manuellement après réception.</p>
+              <p className="text-sm text-muted-foreground">
+                {isStripeConfiguredOnFront
+                  ? "Carte bancaire (Stripe), Mixx, Flooz — confirmation automatique par webhook."
+                  : "Carte bancaire, Mixx, Flooz — confirmez manuellement après réception."}
+              </p>
             </div>
             <Button onClick={() => setShowPayModal(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
               <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
             </Button>
           </div>
 
+          {/* Statut Stripe */}
+          {isStripeConfiguredOnFront && savedCard && (
+            <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${
+              autopayEnabled
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-blue-200 bg-blue-50 text-blue-800"
+            }`}>
+              {autopayEnabled
+                ? <Repeat className="w-4 h-4 text-emerald-600 shrink-0" />
+                : <CreditCard className="w-4 h-4 text-blue-500 shrink-0" />}
+              <span>
+                {autopayEnabled
+                  ? `Autopay actif — ${savedCard.label} — Renouvellement automatique à l'échéance.`
+                  : `Carte enregistrée : ${savedCard.label} — Autopay désactivé.`}
+              </span>
+            </div>
+          )}
+
           {transactions.length === 0 ? (
             <Card>
               <CardContent className="py-16 text-center">
                 <Wallet className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
                 <p className="text-muted-foreground">Aucune transaction de paiement pour le moment.</p>
-                <Button className="mt-4" onClick={() => setShowPayModal(true)}>
-                  Initier un paiement
-                </Button>
+                <Button className="mt-4" onClick={() => setShowPayModal(true)}>Initier un paiement</Button>
               </CardContent>
             </Card>
           ) : (
@@ -758,6 +1250,7 @@ export default function BillingPage() {
                       {transactions.map((tx) => {
                         const isMobile = MOBILE_MONEY_METHODS.includes(tx.method);
                         const MethodIcon = tx.method === "card" ? CreditCard : Smartphone;
+                        const isStripeCard = tx.method === "card" && tx.gatewayRef?.startsWith("pi_");
                         return (
                           <tr key={tx.id} className="hover:bg-muted/20">
                             <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
@@ -770,18 +1263,22 @@ export default function BillingPage() {
                                   <Phone className="w-3 h-3" /> {tx.payerPhone}
                                 </p>
                               )}
+                              {isStripeCard && (
+                                <p className="text-[10px] text-blue-500 font-mono">{tx.gatewayRef?.slice(0, 18)}…</p>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${tx.method === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-slate-600"}`}>
                                 <MethodIcon className={`w-3.5 h-3.5 ${tx.method === "card" ? "text-blue-500" : tx.method === "mixx" ? "text-emerald-500" : "text-orange-500"}`} />
-                                {tx.method === "card" ? "Carte" : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : "Mobile Money"}
+                                {tx.method === "card" ? (isStripeCard ? "Stripe" : "Carte") : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : "Mobile Money"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">{formatFCFA(tx.amount)}</td>
                             <td className="px-4 py-3"><TxBadge status={tx.status} /></td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center gap-1 justify-end">
-                                {tx.status === "pending" && (
+                                {/* Paiements non-Stripe : confirmation manuelle */}
+                                {tx.status === "pending" && !isStripeCard && (
                                   <>
                                     <Button
                                       size="sm" variant="outline"
@@ -800,6 +1297,10 @@ export default function BillingPage() {
                                       <XCircle className="w-3 h-3" />
                                     </Button>
                                   </>
+                                )}
+                                {/* Paiements Stripe : confirmation automatique par webhook */}
+                                {tx.status === "pending" && isStripeCard && (
+                                  <span className="text-[10px] text-blue-500 italic">Webhook en attente…</span>
                                 )}
                                 {tx.status === "confirmed" && (
                                   <Button
@@ -822,7 +1323,7 @@ export default function BillingPage() {
             </Card>
           )}
 
-          {/* Légende modes de paiement */}
+          {/* Légende */}
           <Card className="bg-muted/30">
             <CardContent className="py-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Modes de paiement acceptés</p>
@@ -842,6 +1343,20 @@ export default function BillingPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Onglet Autopay ── */}
+        <TabsContent value="autopay" className="space-y-4">
+          <div>
+            <h2 className="text-lg font-bold">Paiement automatique</h2>
+            <p className="text-sm text-muted-foreground">
+              Sauvegardez une carte bancaire pour un renouvellement automatique sécurisé via Stripe.
+            </p>
+          </div>
+          <AutopayPanel
+            stripeStatus={stripeStatus}
+            onRefresh={() => { refetchStripe(); refetchTx(); }}
+          />
         </TabsContent>
 
         {/* ── Onglet Historique ── */}
@@ -913,6 +1428,7 @@ export default function BillingPage() {
           onSuccess={() => {
             qc.invalidateQueries({ queryKey: ["payment-transactions"] });
             qc.invalidateQueries({ queryKey: ["billing-events"] });
+            qc.invalidateQueries({ queryKey: ["stripe-status"] });
           }}
         />
       )}

@@ -29,6 +29,8 @@ export const organizationsTable = pgTable("organizations", {
   taxId: text("tax_id"),
   isActive: boolean("is_active").notNull().default(true),
   isDefault: boolean("is_default").notNull().default(false),
+  // Stripe — identifiant client Stripe (cus_xxx), jamais exposé côté front
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
@@ -124,6 +126,17 @@ export const organizationSubscriptionsTable = pgTable("organization_subscription
   currency: text("currency").notNull().default("XOF"),
   notes: text("notes"),
   isCurrent: boolean("is_current").notNull().default(true),
+  // Autopay / renouvellement automatique par carte
+  autopayEnabled: boolean("autopay_enabled").notNull().default(false),
+  // Identifiant du moyen de paiement sauvegardé (pm_xxx) — stocké côté serveur uniquement
+  stripePaymentMethodId: text("stripe_payment_method_id"),
+  // Informations d'affichage de la carte (jamais de numéro complet ni CVV)
+  cardBrand: text("card_brand"),         // visa | mastercard | amex | ...
+  cardLast4: text("card_last4"),
+  cardExpMonth: integer("card_exp_month"),
+  cardExpYear: integer("card_exp_year"),
+  // Date de la prochaine tentative de renouvellement automatique
+  nextAutopayAt: timestamp("next_autopay_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
