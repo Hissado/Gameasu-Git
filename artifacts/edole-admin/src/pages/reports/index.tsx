@@ -750,7 +750,7 @@ const PERIOD_OPTIONS = [
 ];
 
 const GROUP_OPTIONS = [
-  { value: "", label: "Aucun groupement" },
+  { value: "none", label: "Aucun groupement" },
   { value: "client",     label: "Par client / tiers" },
   { value: "month",      label: "Par mois" },
   { value: "department", label: "Par département" },
@@ -782,7 +782,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
   const [module, setModule]     = useState("sales");
   const [period, setPeriod]     = useState("this_month");
   const [statut, setStatut]     = useState("all");
-  const [groupBy, setGroupBy]   = useState("");
+  const [groupBy, setGroupBy]   = useState("none");
   const [sortBy, setSortBy]     = useState("date_desc");
   const [search, setSearch]     = useState("");
   const [generated, setGenerated] = useState(false);
