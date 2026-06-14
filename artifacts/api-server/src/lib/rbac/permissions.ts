@@ -2,7 +2,7 @@ import { db } from "@workspace/db";
 import {
   rolesTable, rolePermissionsTable, permissionsTable,
   userProjectAccessTable, collaboratorsTable, collaboratorAssignmentsTable, usersTable,
-  userClientAccessTable, projectsTable,
+  userClientAccessTable, projectsTable, userPermissionOverridesTable,
 } from "@workspace/db";
 import { eq, and, isNull, or, inArray } from "drizzle-orm";
 
@@ -37,6 +37,18 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
       .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
       .where(eq(rolePermissionsTable.roleId, role.id));
     perms = new Set(rows.map((r) => r.code));
+  }
+
+  // Surcharges individuelles : grant (ajoute) et deny (retire), expirées ignorées.
+  const now = new Date();
+  const overrides = await db
+    .select()
+    .from(userPermissionOverridesTable)
+    .where(eq(userPermissionOverridesTable.userId, userId));
+  for (const ov of overrides) {
+    if (ov.expiresAt && ov.expiresAt < now) continue;
+    if (ov.type === "grant") perms.add(ov.permissionCode);
+    else if (ov.type === "deny") perms.delete(ov.permissionCode);
   }
 
   // Clients accessibles : null si bypass (clients.read_all), sinon table user_client_access.

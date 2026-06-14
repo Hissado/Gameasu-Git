@@ -4,6 +4,7 @@ import {
   rolesTable, permissionsTable, rolePermissionsTable,
   userProjectAccessTable, auditLogsTable, usersTable,
   departmentsTable, projectsTable, userClientAccessTable, clientsTable,
+  userPermissionOverridesTable,
 } from "@workspace/db";
 import { and, eq, ilike, sql, desc, inArray } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -182,7 +183,7 @@ router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), asy
 });
 
 // ════════════════════════════════════════════════════════════════════
-// ACCÈS EFFECTIFS D'UN UTILISATEUR
+// ACCÈS EFFECTIFS D'UN UTILISATEUR (permissions rôle + surcharges)
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/users/:id/effective-permissions", requirePermission("users.read"), async (req, res, next) => {
   try {
@@ -195,9 +196,9 @@ router.get("/admin/users/:id/effective-permissions", requirePermission("users.re
     if (!u) return res.status(404).json({ error: "Introuvable" });
     const isFullAccess = u.role === "super_admin" || u.role === "admin";
     const [roleRow] = await db.select().from(rolesTable).where(eq(rolesTable.code, u.role)).limit(1);
-    let permDetails: { code: string; label: string; category: string }[] = [];
+    let rolePermDetails: { code: string; label: string; category: string }[] = [];
     if (roleRow) {
-      permDetails = await db
+      rolePermDetails = await db
         .select({ code: permissionsTable.code, label: permissionsTable.label, category: permissionsTable.category })
         .from(rolePermissionsTable)
         .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
@@ -213,13 +214,85 @@ router.get("/admin/users/:id/effective-permissions", requirePermission("users.re
       .from(userProjectAccessTable)
       .leftJoin(projectsTable, eq(projectsTable.id, userProjectAccessTable.projectId))
       .where(eq(userProjectAccessTable.userId, u.id));
+    // Surcharges individuelles (actives + expirées)
+    const overrides = await db
+      .select()
+      .from(userPermissionOverridesTable)
+      .where(eq(userPermissionOverridesTable.userId, u.id))
+      .orderBy(desc(userPermissionOverridesTable.createdAt));
+    const now = new Date();
+    const activeOverrides = overrides.filter((ov) => !ov.expiresAt || ov.expiresAt > now);
+    const grantCodes = new Set(activeOverrides.filter((o) => o.type === "grant").map((o) => o.permissionCode));
+    const denyCodes = new Set(activeOverrides.filter((o) => o.type === "deny").map((o) => o.permissionCode));
+    // permissions effectives = (rôle ∪ grants) - denies
+    const effectiveSet = new Set(rolePermDetails.map((p) => p.code));
+    grantCodes.forEach((c) => effectiveSet.add(c));
+    denyCodes.forEach((c) => effectiveSet.delete(c));
     return res.json({
       user: u, role: roleRow ?? null,
       isFullAccess,
-      permissions: permDetails.map((p) => p.code),
-      permissionDetails: permDetails,
+      permissions: Array.from(effectiveSet),
+      permissionDetails: rolePermDetails,
       projectAccess,
+      overrides: activeOverrides,
+      overridesAll: overrides,
     });
+  } catch (e) { return next(e); }
+});
+
+// SURCHARGES DE PERMISSIONS — CRUD
+// ════════════════════════════════════════════════════════════════════
+router.get("/admin/users/:id/permission-overrides", requirePermission("users.read"), async (req, res, next) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    const overrides = await db
+      .select()
+      .from(userPermissionOverridesTable)
+      .where(eq(userPermissionOverridesTable.userId, req.params.id))
+      .orderBy(desc(userPermissionOverridesTable.createdAt));
+    return res.json({ data: overrides });
+  } catch (e) { return next(e); }
+});
+
+router.post("/admin/users/:id/permission-overrides", requirePermission("users.manage"), async (req, res, next) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    const { permissionCode, type, reason, expiresAt } = req.body || {};
+    if (!permissionCode || !type || !["grant", "deny"].includes(type)) {
+      return res.status(400).json({ error: "permissionCode et type (grant|deny) requis" });
+    }
+    const [u] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+    if (!u) return res.status(404).json({ error: "Utilisateur introuvable" });
+    const [ov] = await db
+      .insert(userPermissionOverridesTable)
+      .values({
+        userId: req.params.id, permissionCode, type,
+        reason: reason || null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        grantedBy: req.authUser!.id,
+      })
+      .onConflictDoUpdate({
+        target: [userPermissionOverridesTable.userId, userPermissionOverridesTable.permissionCode],
+        set: { type, reason: reason || null, expiresAt: expiresAt ? new Date(expiresAt) : null, grantedBy: req.authUser!.id },
+      })
+      .returning();
+    invalidatePermissionsCache(req.params.id);
+    await audit(req, "permission_change", { entityType: "user", entityId: req.params.id, payload: { added: { type, permissionCode, reason, expiresAt } } });
+    return res.status(201).json(ov);
+  } catch (e) { return next(e); }
+});
+
+router.delete("/admin/users/:id/permission-overrides/:overrideId", requirePermission("users.manage"), async (req, res, next) => {
+  try {
+    if (!isUuid(req.params.id) || !isUuid(req.params.overrideId)) return res.status(400).json({ error: "id invalide" });
+    const [deleted] = await db
+      .delete(userPermissionOverridesTable)
+      .where(and(eq(userPermissionOverridesTable.id, req.params.overrideId), eq(userPermissionOverridesTable.userId, req.params.id)))
+      .returning();
+    if (!deleted) return res.status(404).json({ error: "Surcharge introuvable" });
+    invalidatePermissionsCache(req.params.id);
+    await audit(req, "permission_change", { entityType: "user", entityId: req.params.id, payload: { removed: deleted } });
+    return res.json({ ok: true });
   } catch (e) { return next(e); }
 });
 

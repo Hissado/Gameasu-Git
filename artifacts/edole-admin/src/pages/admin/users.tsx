@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Copy, Pencil, Power, ShieldCheck, FolderKanban, Search, Eye, X } from "lucide-react";
+import { UserPlus, Mail, Copy, Pencil, Power, ShieldCheck, FolderKanban, Search, Eye, X, Plus, Trash2, AlertCircle, Lock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type User = { id: string; email: string; firstName: string; lastName: string; role: string; phone?: string; isActive: boolean; departmentId?: string; mustChangePassword?: boolean; lastLoginAt?: string; invitedAt?: string; acceptedAt?: string };
 type Role = { id: string; code: string; name: string };
@@ -145,7 +146,7 @@ export default function AdminUsersPage() {
       )}
 
       {effectiveUser && (
-        <EffectivePermissionsDialog user={effectiveUser} onClose={() => setEffectiveUser(null)} />
+        <UserAccessDialog user={effectiveUser} onClose={() => setEffectiveUser(null)} />
       )}
 
       <ConfirmDialog
@@ -386,6 +387,11 @@ function ProjectAccessDialog({ user, onClose }: { user: User; onClose: () => voi
   );
 }
 
+type PermOverride = {
+  id: string; userId: string; permissionCode: string;
+  type: "grant" | "deny"; expiresAt: string | null; reason: string | null;
+  grantedBy: string | null; createdAt: string;
+};
 type EffectivePermsData = {
   user: { id: string; email: string; firstName: string; lastName: string; role: string; isActive: boolean };
   role: { id: string; code: string; name: string } | null;
@@ -393,98 +399,302 @@ type EffectivePermsData = {
   permissions: string[];
   permissionDetails: { code: string; label: string; category: string }[];
   projectAccess: { projectId: string; accessLevel: string; projectName?: string | null }[];
+  overrides: PermOverride[];
 };
+type PermCatalogItem = { id: string; code: string; label: string; category: string };
 
-function EffectivePermissionsDialog({ user, onClose }: { user: User; onClose: () => void }) {
+function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [tab, setTab] = useState<"view" | "manage">("view");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addType, setAddType] = useState<"grant" | "deny">("grant");
+  const [addCode, setAddCode] = useState("");
+  const [addReason, setAddReason] = useState("");
+  const [addExpires, setAddExpires] = useState("");
+  const [codeSearch, setCodeSearch] = useState("");
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin/users/effective-permissions", user.id],
     queryFn: () => apiFetch<EffectivePermsData>(`/api/admin/users/${user.id}/effective-permissions`),
   });
 
+  const { data: catalogData } = useQuery({
+    queryKey: ["admin/permissions"],
+    queryFn: () => apiFetch<{ data: PermCatalogItem[] }>("/api/admin/permissions"),
+    staleTime: 60_000,
+  });
+  const catalog = catalogData?.data ?? [];
+
+  const addMutation = useMutation({
+    mutationFn: (body: { permissionCode: string; type: string; reason: string; expiresAt: string | null }) =>
+      apiFetch(`/api/admin/users/${user.id}/permission-overrides`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin/users/effective-permissions", user.id] });
+      setShowAddForm(false); setAddCode(""); setAddReason(""); setAddExpires(""); setCodeSearch("");
+      toast({ title: "Accès personnalisé enregistré" });
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: e?.message ?? "Erreur" }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (overrideId: string) =>
+      apiFetch(`/api/admin/users/${user.id}/permission-overrides/${overrideId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin/users/effective-permissions", user.id] });
+      toast({ title: "Surcharge supprimée" });
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: e?.message ?? "Erreur" }),
+  });
+
   const grouped = React.useMemo(() => {
     if (!data?.permissionDetails) return {} as Record<string, { code: string; label: string }[]>;
     return data.permissionDetails.reduce<Record<string, { code: string; label: string }[]>>((acc, p) => {
-      (acc[p.category] ||= []).push(p);
-      return acc;
+      (acc[p.category] ||= []).push(p); return acc;
     }, {});
   }, [data]);
 
+  const grantOverrides = data?.overrides?.filter((o) => o.type === "grant") ?? [];
+  const denyOverrides = data?.overrides?.filter((o) => o.type === "deny") ?? [];
+
+  const filteredCatalog = React.useMemo(() => {
+    if (!codeSearch.trim()) return catalog.slice(0, 40);
+    const q = codeSearch.toLowerCase();
+    return catalog.filter((p) => p.code.includes(q) || p.label.toLowerCase().includes(q)).slice(0, 40);
+  }, [catalog, codeSearch]);
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-primary" />
-            Accès effectifs — {user.firstName} {user.lastName}
+      <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col gap-0 p-0 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-3 border-b">
+          <DialogTitle className="flex items-center gap-2 text-base mb-0.5">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            Accès — {user.firstName} {user.lastName}
           </DialogTitle>
-          <div className="text-sm text-muted-foreground">{user.email} · <span className="font-mono">{user.role}</span></div>
-        </DialogHeader>
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">Chargement…</div>
-        ) : data ? (
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {/* Accès global */}
-            <div className="rounded-lg border p-3 flex items-center gap-3">
-              <ShieldCheck className={`w-5 h-5 ${data.isFullAccess ? "text-emerald-600" : "text-primary"}`} />
-              <div>
-                <div className="font-semibold text-sm">
-                  {data.isFullAccess ? "Accès complet (Super Admin / Admin)" : `${data.permissions.length} permission(s) active(s)`}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Rôle : {data.role?.name ?? "Aucun"}
-                  {data.isFullAccess && " — toutes les permissions sont accordées"}
-                </div>
-              </div>
-              {data.isFullAccess && <Badge className="ml-auto bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Accès total</Badge>}
-            </div>
+          <div className="text-sm text-muted-foreground">{user.email} · <span className="font-mono text-xs">{user.role}</span>
+            {(data?.overrides?.length ?? 0) > 0 && (
+              <Badge className="ml-2 bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px]">
+                {data!.overrides.length} surcharge{data!.overrides.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+          {/* Tabs */}
+          <div className="flex gap-1 mt-3">
+            <button onClick={() => setTab("view")} className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${tab === "view" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+              Permissions effectives
+            </button>
+            <button onClick={() => setTab("manage")} className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${tab === "manage" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+              Personnaliser
+            </button>
+          </div>
+        </div>
 
-            {/* Permissions par catégorie */}
-            {!data.isFullAccess && (
-              <div className="space-y-3">
-                <div className="font-semibold text-sm">Permissions par module</div>
-                {Object.keys(grouped).length === 0 ? (
-                  <div className="text-sm text-muted-foreground italic">Aucune permission assignée à ce rôle.</div>
-                ) : Object.entries(grouped).map(([cat, perms]) => (
-                  <div key={cat} className="border rounded-lg overflow-hidden">
-                    <div className="bg-muted/40 px-3 py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{cat}</div>
-                    <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
-                      {perms.map(p => (
-                        <div key={p.code} className="flex items-start gap-1.5 text-xs p-1.5 rounded hover:bg-muted/30">
-                          <span className="text-emerald-500 mt-0.5">✓</span>
-                          <div>
-                            <div className="font-medium">{p.label}</div>
-                            <div className="text-muted-foreground font-mono">{p.code}</div>
-                          </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Chargement…</div>
+          ) : !data ? null : tab === "view" ? (
+            <div className="space-y-4">
+              {/* Résumé */}
+              <div className="rounded-lg border p-3 flex items-center gap-3">
+                <ShieldCheck className={`w-5 h-5 shrink-0 ${data.isFullAccess ? "text-emerald-600" : "text-primary"}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm">
+                    {data.isFullAccess ? "Accès complet — Super Admin / Admin" : `${data.permissions.length} permission(s) effective(s)`}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Rôle : {data.role?.name ?? "Aucun"}
+                    {grantOverrides.length > 0 && ` · +${grantOverrides.length} accordée(s) manuellement`}
+                    {denyOverrides.length > 0 && ` · −${denyOverrides.length} retirée(s)`}
+                  </div>
+                </div>
+                {data.isFullAccess && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shrink-0">Accès total</Badge>}
+              </div>
+
+              {!data.isFullAccess && (
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold">Permissions par module</div>
+                  {Object.keys(grouped).length === 0 ? (
+                    <div className="text-sm text-muted-foreground italic">Aucune permission assignée.</div>
+                  ) : Object.entries(grouped).map(([cat, perms]) => {
+                    const grantedCodes = new Set(grantOverrides.map((o) => o.permissionCode));
+                    const deniedCodes = new Set(denyOverrides.map((o) => o.permissionCode));
+                    return (
+                      <div key={cat} className="border rounded-lg overflow-hidden">
+                        <div className="bg-muted/40 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{cat}</div>
+                        <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-0.5">
+                          {perms.map((p) => {
+                            const isGranted = grantedCodes.has(p.code);
+                            const isDenied = deniedCodes.has(p.code);
+                            return (
+                              <div key={p.code} className={`flex items-start gap-1.5 text-xs p-1.5 rounded ${isDenied ? "opacity-40 line-through" : "hover:bg-muted/30"}`}>
+                                <span className={`mt-0.5 ${isGranted ? "text-blue-500" : "text-emerald-500"}`}>{isDenied ? "✗" : isGranted ? "⊕" : "✓"}</span>
+                                <div>
+                                  <div className="font-medium">{p.label}</div>
+                                  <div className="text-muted-foreground font-mono">{p.code}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
+                      </div>
+                    );
+                  })}
+                  {/* Grants qui ne sont pas dans le rôle */}
+                  {grantOverrides.filter((o) => !data.permissionDetails.some((p) => p.code === o.permissionCode)).length > 0 && (
+                    <div className="border border-blue-200 rounded-lg overflow-hidden">
+                      <div className="bg-blue-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700">Accès supplémentaires personnalisés</div>
+                      <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-0.5">
+                        {grantOverrides.filter((o) => !data.permissionDetails.some((p) => p.code === o.permissionCode)).map((o) => (
+                          <div key={o.id} className="flex items-start gap-1.5 text-xs p-1.5 rounded hover:bg-muted/30">
+                            <span className="text-blue-500 mt-0.5">⊕</span>
+                            <div><div className="font-medium font-mono">{o.permissionCode}</div>{o.reason && <div className="text-muted-foreground">{o.reason}</div>}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {data.projectAccess.length > 0 && (
+                <div>
+                  <div className="font-semibold text-sm mb-2">Accès projets directs ({data.projectAccess.length})</div>
+                  <div className="border rounded-lg overflow-hidden">
+                    {data.projectAccess.map((p) => (
+                      <div key={p.projectId} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
+                        <span className="text-sm truncate">{p.projectName ?? p.projectId}</span>
+                        <Badge variant="outline" className="text-xs">{p.accessLevel === "viewer" ? "Lecture" : p.accessLevel === "editor" ? "Édition" : "Responsable"}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── TAB PERSONNALISER ── */
+            <div className="space-y-5">
+              {data.isFullAccess && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  Cet utilisateur est Admin / Super Admin. Les surcharges sont enregistrées mais n'ont pas d'effet tant que ce rôle est actif.
+                </div>
+              )}
+
+              {/* GRANTS */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-600" /> Permissions accordées en plus</div>
+                  <span className="text-xs text-muted-foreground">{grantOverrides.length} règle{grantOverrides.length !== 1 ? "s" : ""}</span>
+                </div>
+                {grantOverrides.length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic border rounded-lg p-3">Aucune permission ajoutée manuellement.</div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden divide-y">
+                    {grantOverrides.map((o) => (
+                      <div key={o.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30">
+                        <span className="text-emerald-500 text-lg leading-none">⊕</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-mono font-medium">{o.permissionCode}</div>
+                          {o.reason && <div className="text-xs text-muted-foreground truncate">{o.reason}</div>}
+                          {o.expiresAt && <div className="text-xs text-amber-600">Expire le {new Date(o.expiresAt).toLocaleDateString("fr-FR")}</div>}
+                        </div>
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50 shrink-0" onClick={() => removeMutation.mutate(o.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* DENIES */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><Lock className="w-4 h-4 text-red-500" /> Permissions retirées</div>
+                  <span className="text-xs text-muted-foreground">{denyOverrides.length} règle{denyOverrides.length !== 1 ? "s" : ""}</span>
+                </div>
+                {denyOverrides.length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic border rounded-lg p-3">Aucune permission retirée manuellement.</div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden divide-y">
+                    {denyOverrides.map((o) => (
+                      <div key={o.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30">
+                        <span className="text-red-500 text-lg leading-none">⊘</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-mono font-medium line-through text-muted-foreground">{o.permissionCode}</div>
+                          {o.reason && <div className="text-xs text-muted-foreground truncate">{o.reason}</div>}
+                          {o.expiresAt && <div className="text-xs text-amber-600">Expire le {new Date(o.expiresAt).toLocaleDateString("fr-FR")}</div>}
+                        </div>
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:bg-muted shrink-0" onClick={() => removeMutation.mutate(o.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* AJOUTER */}
+              {!showAddForm ? (
+                <Button variant="outline" className="w-full" onClick={() => setShowAddForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> Ajouter une règle d'accès
+                </Button>
+              ) : (
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                  <div className="font-semibold text-sm">Nouvelle règle</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs mb-1 block">Type</Label>
+                      <Select value={addType} onValueChange={(v) => setAddType(v as "grant" | "deny")}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="grant">✓ Accorder</SelectItem>
+                          <SelectItem value="deny">✗ Retirer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1 block">Expiration (optionnelle)</Label>
+                      <Input type="date" value={addExpires} onChange={(e) => setAddExpires(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Permission</Label>
+                    <Input placeholder="Rechercher une permission…" value={codeSearch} onChange={(e) => { setCodeSearch(e.target.value); setAddCode(""); }} className="mb-1" />
+                    {addCode && <div className="text-xs font-mono bg-primary/10 text-primary px-2 py-1 rounded mb-1">Sélection : {addCode}</div>}
+                    <div className="border rounded max-h-40 overflow-y-auto divide-y">
+                      {filteredCatalog.length === 0 ? (
+                        <div className="p-2 text-xs text-muted-foreground text-center">Aucun résultat</div>
+                      ) : filteredCatalog.map((p) => (
+                        <button key={p.code} onClick={() => { setAddCode(p.code); setCodeSearch(p.label); }}
+                          className={`w-full text-left px-2 py-1.5 text-xs hover:bg-muted/40 transition-colors ${addCode === p.code ? "bg-primary/10 font-semibold" : ""}`}>
+                          <span className="font-medium">{p.label}</span>
+                          <span className="text-muted-foreground ml-1 font-mono">{p.code}</span>
+                          <span className="text-muted-foreground ml-1">· {p.category}</span>
+                        </button>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Accès projets */}
-            {data.projectAccess.length > 0 && (
-              <div>
-                <div className="font-semibold text-sm mb-2">Accès projets directs ({data.projectAccess.length})</div>
-                <div className="border rounded-lg overflow-hidden">
-                  {data.projectAccess.map(p => (
-                    <div key={p.projectId} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
-                      <span className="text-sm truncate">{p.projectName ?? p.projectId}</span>
-                      <Badge variant="outline" className="text-xs capitalize">{p.accessLevel === "viewer" ? "Lecture" : p.accessLevel === "editor" ? "Édition" : "Responsable"}</Badge>
-                    </div>
-                  ))}
+                  <div>
+                    <Label className="text-xs mb-1 block">Raison / commentaire (optionnel)</Label>
+                    <Textarea value={addReason} onChange={(e) => setAddReason(e.target.value)} rows={2} placeholder="Ex : Accès temporaire pour audit Q2 2025" />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => { setShowAddForm(false); setAddCode(""); setAddReason(""); setAddExpires(""); setCodeSearch(""); }}>Annuler</Button>
+                    <Button size="sm" disabled={!addCode || addMutation.isPending} onClick={() => addMutation.mutate({ permissionCode: addCode, type: addType, reason: addReason, expiresAt: addExpires || null })}>
+                      {addMutation.isPending ? "…" : "Enregistrer"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-            {!data.isFullAccess && data.projectAccess.length === 0 && (
-              <div className="text-sm text-muted-foreground italic">Aucun accès projet direct — basé sur les assignments RH uniquement.</div>
-            )}
-          </div>
-        ) : null}
-        <DialogFooter>
-          <Button onClick={onClose}>Fermer</Button>
-        </DialogFooter>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t">
+          <Button className="w-full" variant="outline" onClick={onClose}>Fermer</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

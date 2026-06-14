@@ -79,6 +79,24 @@ export const userProjectAccessTable = pgTable("user_project_access", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
+// USER_PERMISSION_OVERRIDES — surcharges individuelles (grant / deny)
+// ─────────────────────────────────────────────────────────────────
+export const userPermissionOverridesTable = pgTable("user_permission_overrides", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  permissionCode: text("permission_code").notNull(),
+  // 'grant' = ajout au-dessus du rôle | 'deny' = retrait même si le rôle le donne
+  type: text("type").notNull().$type<"grant" | "deny">(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  reason: text("reason"),
+  grantedBy: uuid("granted_by").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniqueUserPerm: uniqueIndex("user_perm_overrides_uidx").on(t.userId, t.permissionCode),
+  userIdx: index("user_perm_overrides_user_idx").on(t.userId),
+}));
+
+// ─────────────────────────────────────────────────────────────────
 // AUDIT LOGS
 // ─────────────────────────────────────────────────────────────────
 export const auditLogsTable = pgTable("audit_logs", {
@@ -114,6 +132,7 @@ export type Role = typeof rolesTable.$inferSelect;
 export type Permission = typeof permissionsTable.$inferSelect;
 export type RolePermission = typeof rolePermissionsTable.$inferSelect;
 export type UserProjectAccess = typeof userProjectAccessTable.$inferSelect;
+export type UserPermissionOverride = typeof userPermissionOverridesTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
