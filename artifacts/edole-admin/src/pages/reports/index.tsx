@@ -2898,7 +2898,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               <Briefcase className="w-5 h-5 text-primary" />
               <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Rapport de Gestion</span>
             </div>
-            <h1 className="text-2xl font-bold leading-tight">Management Reporting Center</h1>
+            <h1 className="text-2xl font-bold leading-tight">Rapport de Gestion</h1>
             <p className="text-slate-400 text-sm mt-1">{periodLabel}</p>
           </div>
           <div className="flex flex-col items-end gap-2 mt-1">

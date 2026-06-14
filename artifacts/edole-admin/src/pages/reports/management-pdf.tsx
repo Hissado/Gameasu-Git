@@ -383,8 +383,8 @@ export default function ManagementPDFPage() {
           <div className="cover-header">
             <div>
               <div className="cover-logo">{orgName}</div>
-              <div className="cover-subtitle">Rapport de Gestion · Management Reporting</div>
-              <div className="cover-title">Management<br />Reporting Center</div>
+              <div className="cover-subtitle">Rapport de Gestion</div>
+              <div className="cover-title">Rapport<br />de Gestion</div>
               <div className="cover-period">Période analysée : {periodLabel}</div>
               <div className="cover-status">
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: f.netResult >= 0 ? "#10b981" : "#ef4444", flexShrink: 0 }} />
@@ -1014,7 +1014,7 @@ export default function ManagementPDFPage() {
             <div style={{ marginTop: 18, padding: "12px 14px", background: "#0f172a", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>{orgName}</div>
               <div style={{ fontSize: 10.5, color: "rgba(255,255,255,.5)", textAlign: "center" }}>
-                Management Reporting Center · {periodLabel} · Généré le {generatedAt}
+                Rapport de Gestion · {periodLabel} · Généré le {generatedAt}
               </div>
               <div style={{ fontSize: 10.5, color: "rgba(255,255,255,.4)", fontStyle: "italic" }}>Usage réservé à la Direction</div>
             </div>
