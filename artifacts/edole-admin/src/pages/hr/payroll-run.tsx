@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import { PayslipEmailLogsSheet } from "@/components/payslip-email-logs-sheet";
 
 const API = "/api";
 
@@ -228,7 +228,13 @@ export default function PayrollRun() {
   const [exportingEmailCsv, setExportingEmailCsv] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   const [emailingId, setEmailingId] = useState<string | null>(null);
-  const [emailLogsPopover, setEmailLogsPopover] = useState<string | null>(null);
+  const [emailLogsSheet, setEmailLogsSheet] = useState<{
+    open: boolean;
+    payslipId: string | null;
+    collaboratorName: string;
+    period: string;
+    hasEmail: boolean;
+  }>({ open: false, payslipId: null, collaboratorName: "", period: "", hasEmail: true });
 
   type BulkEmailPhase = "confirm" | "sending" | "done";
   const [emailBulkDialog, setEmailBulkDialog] = useState<{
@@ -238,14 +244,6 @@ export default function PayrollRun() {
     result?: { sent: number; failed: number; skipped: number };
   }>({ open: false, phase: "confirm", progress: 0 });
   const emailBulkProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  type EmailLog = { id: string; sentAt: string; sentTo: string; provider: string | null; messageId: string | null; status: string; errorMessage: string | null };
-  const { data: emailLogsData, isFetching: emailLogsFetching } = useQuery<{ logs: EmailLog[] }>({
-    queryKey: ["payslip-email-logs", emailLogsPopover],
-    queryFn: () => fetchJSON(`${API}/payroll/payslips/${emailLogsPopover}/email-logs`),
-    enabled: !!emailLogsPopover,
-    staleTime: 0,
-  });
 
   useEffect(() => {
     if (data?.lineItems) setLocalItems(data.lineItems);
@@ -895,56 +893,31 @@ export default function PayrollRun() {
                                     )}
                                   </Tooltip>
                                 </TooltipProvider>
-                                {/* Bouton historique (affiché seulement si déjà envoyé) */}
-                                {emailSentAt && (
-                                  <Popover
-                                    open={emailLogsPopover === payslipId}
-                                    onOpenChange={(open) => setEmailLogsPopover(open ? payslipId : null)}
-                                  >
-                                    <PopoverTrigger asChild>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
-                                        <Clock className="w-3 h-3" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent side="left" align="start" className="w-80 p-0">
-                                      <div className="px-3 py-2 border-b bg-muted/40">
-                                        <p className="text-xs font-semibold text-foreground">Historique des envois</p>
-                                        <p className="text-[10px] text-muted-foreground">{l.firstName} {l.lastName}</p>
-                                      </div>
-                                      <div className="max-h-56 overflow-y-auto">
-                                        {emailLogsFetching ? (
-                                          <div className="flex items-center justify-center py-6">
-                                            <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                                          </div>
-                                        ) : !emailLogsData?.logs?.length ? (
-                                          <p className="text-xs text-muted-foreground text-center py-6">Aucun envoi enregistré</p>
-                                        ) : (
-                                          <ul className="divide-y">
-                                            {emailLogsData.logs.map((log) => (
-                                              <li key={log.id} className="px-3 py-2 flex items-start gap-2">
-                                                <span className="mt-0.5 shrink-0">
-                                                  {log.status === "delivered"
-                                                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                                    : <XCircle className="w-3.5 h-3.5 text-red-500" />
-                                                  }
-                                                </span>
-                                                <div className="min-w-0 flex-1">
-                                                  <p className="text-[11px] font-medium truncate">{log.sentTo}</p>
-                                                  <p className="text-[10px] text-muted-foreground">
-                                                    {new Date(log.sentAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                                    {log.provider && log.provider !== "unknown" && <> · {log.provider}</>}
-                                                  </p>
-                                                  {log.errorMessage && (
-                                                    <p className="text-[10px] text-red-500 mt-0.5 truncate" title={log.errorMessage}>{log.errorMessage}</p>
-                                                  )}
-                                                </div>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        )}
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
+                                {/* Bouton historique complet */}
+                                {payslipId && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                                          onClick={() => setEmailLogsSheet({
+                                            open: true,
+                                            payslipId,
+                                            collaboratorName: `${l.firstName} ${l.lastName}`,
+                                            period: run?.period ?? "",
+                                            hasEmail: !!l.email,
+                                          })}
+                                        >
+                                          <Clock className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="left" className="text-xs">
+                                        Voir l'historique des envois
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
                               {emailSentAt && (
@@ -1297,6 +1270,15 @@ export default function PayrollRun() {
           </div>
         </div>
       )}
+      <PayslipEmailLogsSheet
+        open={emailLogsSheet.open}
+        onOpenChange={(open) => setEmailLogsSheet(s => ({ ...s, open }))}
+        payslipId={emailLogsSheet.payslipId}
+        collaboratorName={emailLogsSheet.collaboratorName}
+        period={emailLogsSheet.period}
+        hasEmail={emailLogsSheet.hasEmail}
+        onResent={refetchRunDetail}
+      />
     </HrShell>
   );
 }

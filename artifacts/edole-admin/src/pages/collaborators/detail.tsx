@@ -24,11 +24,11 @@ import {
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
   FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { toast } from "sonner";
+import { PayslipEmailLogsSheet } from "@/components/payslip-email-logs-sheet";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -114,15 +114,6 @@ type Payslip = {
   emailSentAt?: string | null;
 };
 
-type EmailLog = {
-  id: string;
-  sentAt: string;
-  sentTo: string;
-  provider: string | null;
-  messageId: string | null;
-  status: string;
-  errorMessage: string | null;
-};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -871,8 +862,13 @@ export default function CollaboratorDetail() {
   const [payslipYear, setPayslipYear] = useState<number>(currentYear);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [emailingId, setEmailingId] = useState<string | null>(null);
-  const [emailLogsPopover, setEmailLogsPopover] = useState<string | null>(null);
   const [resendConfirmPayslip, setResendConfirmPayslip] = useState<Payslip | null>(null);
+  const [emailLogsSheet, setEmailLogsSheet] = useState<{
+    open: boolean;
+    payslipId: string | null;
+    period: string;
+    hasEmail: boolean;
+  }>({ open: false, payslipId: null, period: "", hasEmail: true });
 
   const { data: payslipsData, isLoading: payslipsLoading } = useQuery<Payslip[]>({
     queryKey: ["payslips-collab", id, payslipYear, isManagerOrAbove],
@@ -891,20 +887,12 @@ export default function CollaboratorDetail() {
   const payslips = (payslipsData ?? []).filter((p) => p.period.startsWith(String(payslipYear)));
   const availableYears = Array.from(new Set((payslipsData ?? []).map((p) => Number(p.period.split("-")[0])))).sort((a, b) => b - a);
 
-  const { data: emailLogsData, isFetching: emailLogsFetching, refetch: refetchEmailLogs } = useQuery<{ logs: EmailLog[] }>({
-    queryKey: ["payslip-email-logs-detail", emailLogsPopover],
-    queryFn: () => apiFetch<{ logs: EmailLog[] }>(`/api/payroll/payslips/${emailLogsPopover}/email-logs`),
-    enabled: !!emailLogsPopover,
-    staleTime: 0,
-  });
-
   const handleSendEmail = async (payslip: Payslip) => {
     setEmailingId(payslip.id);
     try {
       await apiFetch(`/api/payroll/payslips/${payslip.id}/send-email`, { method: "POST" });
       toast.success(`Bulletin transmis par email`);
       queryClient.invalidateQueries({ queryKey: ["payslips-collab", id] });
-      if (emailLogsPopover === payslip.id) refetchEmailLogs();
     } catch (e: any) {
       toast.error(e?.message || "Erreur lors de l'envoi");
     } finally {
@@ -1490,56 +1478,28 @@ export default function CollaboratorDetail() {
                                     )}
                                   </Tooltip>
                                 </TooltipProvider>
-                                {p.emailSentAt && (
-                                  <Popover
-                                    open={emailLogsPopover === p.id}
-                                    onOpenChange={(open) => setEmailLogsPopover(open ? p.id : null)}
-                                  >
-                                    <PopoverTrigger asChild>
-                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                                        onClick={() => setEmailLogsSheet({
+                                          open: true,
+                                          payslipId: p.id,
+                                          period: p.period,
+                                          hasEmail: true,
+                                        })}
+                                      >
                                         <Clock className="w-3 h-3" />
                                       </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent side="left" align="start" className="w-80 p-0">
-                                      <div className="px-3 py-2 border-b bg-muted/40">
-                                        <p className="text-xs font-semibold text-foreground">Historique des envois</p>
-                                        <p className="text-[10px] text-muted-foreground">{formatPeriod(p.period)}</p>
-                                      </div>
-                                      <div className="max-h-56 overflow-y-auto">
-                                        {emailLogsFetching ? (
-                                          <div className="flex items-center justify-center py-6">
-                                            <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                                          </div>
-                                        ) : !emailLogsData?.logs?.length ? (
-                                          <p className="text-xs text-muted-foreground text-center py-6">Aucun envoi enregistré</p>
-                                        ) : (
-                                          <ul className="divide-y">
-                                            {emailLogsData.logs.map((log) => (
-                                              <li key={log.id} className="px-3 py-2 flex items-start gap-2">
-                                                <span className="mt-0.5 shrink-0">
-                                                  {log.status === "delivered"
-                                                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                                    : <XCircle className="w-3.5 h-3.5 text-red-500" />
-                                                  }
-                                                </span>
-                                                <div className="min-w-0 flex-1">
-                                                  <p className="text-[11px] font-medium truncate">{log.sentTo}</p>
-                                                  <p className="text-[10px] text-muted-foreground">
-                                                    {new Date(log.sentAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                                    {log.provider && log.provider !== "unknown" && <> · {log.provider}</>}
-                                                  </p>
-                                                  {log.errorMessage && (
-                                                    <p className="text-[10px] text-red-500 mt-0.5 truncate" title={log.errorMessage}>{log.errorMessage}</p>
-                                                  )}
-                                                </div>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        )}
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                )}
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="text-xs">
+                                      Voir l'historique des envois
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                               {p.emailSentAt && (
                                 <span className="text-[10px] text-emerald-600">
@@ -1676,6 +1636,19 @@ export default function CollaboratorDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* FICHE HISTORIQUE EMAILS BULLETIN */}
+      <PayslipEmailLogsSheet
+        open={emailLogsSheet.open}
+        onOpenChange={(open) => setEmailLogsSheet(s => ({ ...s, open }))}
+        payslipId={emailLogsSheet.payslipId}
+        collaboratorName={`${(collaborator as any)?.firstName ?? ""} ${(collaborator as any)?.lastName ?? ""}`.trim()}
+        period={emailLogsSheet.period}
+        hasEmail={emailLogsSheet.hasEmail}
+        onResent={() => {
+          queryClient.invalidateQueries({ queryKey: ["payslips-collab", id] });
+        }}
+      />
 
       {/* EDIT DIALOG */}
       {editOpen && isManagerOrAbove && (
