@@ -1,0 +1,243 @@
+Pouvez-vous faire un audit complet de l’onglet **FINANCE** visible dans le screenshot, afin de vérifier si toutes les sections fonctionnent correctement, si elles sont bien liées entre elles, si les calculs sont fiables, et si l’expérience utilisateur est propre, cohérente et professionnelle ?
+
+### Sections à vérifier
+
+Merci de revoir toutes les sections du module **Finance** :
+
+* **Intelligence**
+* **Comptabilité**
+* **Immobilisations**
+* **Trésorerie**
+* **Recouvrement**
+* **Clôture des périodes**
+* **Budgets & prévisions**
+* **Rapports**
+
+### Objectif général
+
+Je veux m’assurer que l’onglet Finance fonctionne comme un vrai centre financier intégré, avec une logique cohérente entre :
+
+* comptabilité
+* trésorerie
+* budgets
+* rapports
+* immobilisations
+* recouvrement
+* clôture mensuelle / annuelle
+* intelligence financière
+
+Toutes les sections doivent être connectées entre elles de manière logique, sans données isolées, sans calculs incohérents et sans rupture de workflow.
+
+---
+
+## 1. Vérifier les liens entre les sections
+
+Merci de vérifier si les données circulent correctement entre :
+
+* **Comptabilité → Rapports**
+* **Comptabilité → Clôture des périodes**
+* **Factures / Encaissements → Recouvrement**
+* **Encaissements → Trésorerie**
+* **Trésorerie → Intelligence**
+* **Immobilisations → Comptabilité**
+* **Immobilisations → Amortissements**
+* **Budgets & prévisions → Rapports**
+* **Budgets & prévisions → Intelligence**
+* **Recouvrement → Trésorerie**
+* **Finance → Tableau de bord global**
+
+### Questions à vérifier
+
+* Les écritures comptables alimentent-elles correctement les rapports ?
+* Les encaissements mettent-ils à jour la trésorerie ?
+* Les factures en retard remontent-elles dans le recouvrement ?
+* Les immobilisations génèrent-elles bien les amortissements ?
+* Les budgets sont-ils comparés aux données réelles ?
+* La clôture bloque-t-elle correctement les périodes fermées ?
+* Les rapports utilisent-ils les bonnes données ?
+
+---
+
+## 2. Vérifier les calculs financiers
+
+Merci de contrôler tous les calculs importants :
+
+* soldes comptables
+* bilan
+* résultat
+* trésorerie
+* cash runway
+* prévisions de trésorerie
+* budgets vs réalisés
+* écarts budgétaires
+* DSO
+* encours clients
+* factures en retard
+* vieillissement des créances
+* amortissements
+* immobilisations nettes
+* écritures d’ajustement
+* soldes d’ouverture
+* clôture mensuelle
+* clôture annuelle
+* rapports financiers
+
+Les chiffres doivent être cohérents entre les sections et ne doivent pas changer d’un écran à l’autre sans raison.
+
+---
+
+## 3. Vérifier les scénarios métier
+
+Merci de tester plusieurs scénarios réels :
+
+* création d’une facture puis encaissement
+* facture impayée qui remonte dans le recouvrement
+* paiement partiel d’une facture
+* lettrage paiement ↔ facture
+* import ou saisie d’une immobilisation
+* calcul automatique d’amortissement
+* génération d’un rapport financier
+* création d’un budget
+* comparaison budget vs réalisé
+* clôture d’une période
+* tentative de modification après clôture
+* réouverture d’une période avec autorisation
+* export PDF / Excel des rapports
+
+---
+
+## 4. Vérifier les bugs
+
+Merci de parcourir toutes les pages Finance et corriger :
+
+* boutons qui ne fonctionnent pas
+* pages 404
+* données non synchronisées
+* calculs incohérents
+* totaux incorrects
+* graphiques vides ou faux
+* rapports qui ne se génèrent pas correctement
+* exports PDF / Excel mal formatés
+* problèmes de filtres
+* problèmes de recherche
+* problèmes de sauvegarde
+* erreurs de redirection
+* problèmes sur mobile / tablette
+
+---
+
+## 5. Corriger les termes anglais restants
+
+Merci de vérifier toute l’interface Finance pour supprimer les termes anglais visibles à l’utilisateur.
+
+Par exemple, remplacer :
+
+* `Asset` → **Actif**
+* `Liability` → **Passif**
+* `Equity` → **Capitaux propres**
+* `Revenue` → **Produits / Revenus**
+* `Expense` → **Charges**
+* `Cash Flow` → **Flux de trésorerie**
+* `Trial Balance` → **Balance générale**
+* `General Ledger` → **Grand livre**
+* `Accounts Receivable` → **Créances clients**
+* `Accounts Payable` → **Dettes fournisseurs**
+* `Closing` → **Clôture**
+* `Forecast` → **Prévision**
+* `Status` → **Statut**
+* `Created at` → **Créé le**
+* `Updated at` → **Mis à jour le**
+
+L’interface doit être entièrement en **français professionnel**, cohérent avec le reste de Gaméasù.
+
+---
+
+## 6. Vérifier les chiffres et les débordements
+
+Merci de vérifier tous les montants affichés dans Finance.
+
+Certains chiffres semblent déborder ou dépasser les colonnes / cartes / tableaux.
+
+À corriger :
+
+* montants trop longs qui sortent des cartes
+* colonnes trop étroites
+* FCFA mal positionné
+* chiffres non espacés
+* montants non alignés
+* tableaux mal ajustés
+* exports PDF avec montants qui dépassent
+* graphiques ou KPI cards mal dimensionnés
+
+### Format attendu
+
+Utiliser un format propre, par exemple :
+
+* **5 085 508 000 FCFA**
+* **218 008 000 FCFA**
+* **80 000 000 FCFA**
+
+Les montants doivent être :
+
+* lisibles
+* bien alignés
+* jamais coupés
+* jamais débordants
+* cohérents entre l’écran et les exports
+
+---
+
+## 7. Vérifier le design et l’UX
+
+Merci de revoir le design complet de l’onglet Finance :
+
+* structure des pages
+* ordre des sections
+* lisibilité des KPI
+* clarté des tableaux
+* alignement des cartes
+* responsive desktop / tablette / mobile
+* cohérence des icônes
+* filtres
+* boutons d’action
+* graphiques
+* rapports
+* exports
+* navigation retour
+* messages d’erreur et de confirmation
+
+L’objectif est d’avoir une section Finance simple, claire, premium et prête pour une utilisation professionnelle.
+
+---
+
+## 8. Résultat attendu
+
+Je veux une section **Finance** fiable, propre et cohérente, où :
+
+* toutes les sections sont bien liées
+* les calculs sont corrects
+* les scénarios métier sont bien pris en compte
+* les rapports sont fiables
+* les montants ne débordent plus
+* les termes anglais sont supprimés
+* les bugs sont corrigés
+* le design est propre
+* l’expérience utilisateur est fluide
+
+### Sortie attendue
+
+À la fin, merci de fournir :
+
+1. les bugs identifiés
+2. les bugs corrigés
+3. les calculs vérifiés ou corrigés
+4. les synchronisations améliorées
+5. les termes anglais remplacés
+6. les problèmes de design corrigés
+7. les débordements de chiffres corrigés
+8. les fichiers modifiés
+9. les fonctionnalités prêtes à tester
+
+### Objectif final
+
+Faire de l’onglet **Finance** un vrai module financier professionnel, fiable, bien synchronisé, entièrement en français, avec des calculs justes, des rapports propres et une interface digne d’une application SaaS / ERP premium.

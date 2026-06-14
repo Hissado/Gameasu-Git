@@ -236,7 +236,7 @@ export default function BudgetsListPage() {
                           </Button>
                         )}
                         <a href={`/api/fpa/export/budget/${b.id}.xlsx?token=${encodeURIComponent(localStorage.getItem("auth_token") || "")}`}
-                          download title="Export Excel">
+                          download title="Exporter Excel">
                           <Button size="sm" variant="ghost"><FileSpreadsheet className="w-4 h-4" /></Button>
                         </a>
                         {b.status !== "active" && (

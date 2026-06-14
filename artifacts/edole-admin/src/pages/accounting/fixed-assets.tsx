@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { AccountingShell } from "./_layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,16 +125,16 @@ export default function FixedAssetsPage() {
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Card><CardContent className="p-4">
-          <div className="text-xs uppercase text-muted-foreground">Valeur brute</div>
-          <div className="text-xl font-bold mt-1">{formatFCFA(totalCost)}</div>
+          <div className="text-xs uppercase text-muted-foreground truncate">Valeur brute</div>
+          <div className="text-lg font-bold mt-1 truncate" title={formatFCFA(totalCost)}>{formatFCFACompact(totalCost)}</div>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <div className="text-xs uppercase text-muted-foreground">Cumul amort.</div>
-          <div className="text-xl font-bold mt-1 text-red-600">{formatFCFA(totalAmort)}</div>
+          <div className="text-xs uppercase text-muted-foreground truncate">Cumul amort.</div>
+          <div className="text-lg font-bold mt-1 text-red-600 truncate" title={formatFCFA(totalAmort)}>{formatFCFACompact(totalAmort)}</div>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <div className="text-xs uppercase text-muted-foreground">Valeur nette (VNC)</div>
-          <div className="text-xl font-bold mt-1 text-emerald-600">{formatFCFA(totalNet)}</div>
+          <div className="text-xs uppercase text-muted-foreground truncate">Valeur nette (VNC)</div>
+          <div className="text-lg font-bold mt-1 text-emerald-600 truncate" title={formatFCFA(totalNet)}>{formatFCFACompact(totalNet)}</div>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <div className="text-xs uppercase text-muted-foreground">Taux amortissement</div>
@@ -346,7 +346,7 @@ export default function FixedAssetsPage() {
                   <CalendarDays className="w-4 h-4 text-amber-600" />Plan d'amortissement prévisionnel
                 </CardTitle>
                 <div className="h-52">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1}>
                     <LineChart data={detail.schedule} margin={{ left: 10, right: 10, top: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="year" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />

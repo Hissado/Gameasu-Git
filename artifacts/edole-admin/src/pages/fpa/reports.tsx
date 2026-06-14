@@ -75,7 +75,7 @@ export default function ReportsPage() {
           </div>
           {periodId && (
             <a href={`/api/fpa/export/by-project/${periodId}.xlsx?token=${token()}`} download>
-              <Button variant="outline" size="sm"><FileSpreadsheet className="w-4 h-4 mr-2" />Export Excel</Button>
+              <Button variant="outline" size="sm"><FileSpreadsheet className="w-4 h-4 mr-2" />Exporter Excel</Button>
             </a>
           )}
         </div>

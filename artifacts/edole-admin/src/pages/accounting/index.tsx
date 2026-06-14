@@ -1,7 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { AccountingShell } from "./_layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, TrendingUp, TrendingDown, Scale, Receipt, Building2 } from "lucide-react";
@@ -20,12 +20,12 @@ function KPI({ icon: Icon, label, value, accent }: { icon: any; label: string; v
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs uppercase font-semibold text-muted-foreground tracking-wide">{label}</div>
-            <div className={`text-2xl font-bold mt-1 ${accent ?? ""}`}>{value}</div>
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs uppercase font-semibold text-muted-foreground tracking-wide truncate">{label}</div>
+            <div className={`text-xl font-bold mt-1 truncate ${accent ?? ""}`}>{value}</div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
             <Icon className="w-5 h-5 text-amber-700" />
           </div>
         </div>
@@ -47,10 +47,10 @@ export default function AccountingDashboard() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPI icon={Wallet} label="Trésorerie totale" value={formatFCFA(data.cashTotal)} />
-            <KPI icon={TrendingUp} label="Créances clients" value={formatFCFA(data.creances)} />
-            <KPI icon={TrendingDown} label="Dettes fournisseurs" value={formatFCFA(data.dettes)} />
-            <KPI icon={Scale} label="Résultat du mois" value={formatFCFA(data.resultatMois)} accent={data.resultatMois >= 0 ? "text-emerald-600" : "text-red-600"} />
+            <KPI icon={Wallet} label="Trésorerie totale" value={formatFCFACompact(data.cashTotal)} />
+            <KPI icon={TrendingUp} label="Créances clients" value={formatFCFACompact(data.creances)} />
+            <KPI icon={TrendingDown} label="Dettes fournisseurs" value={formatFCFACompact(data.dettes)} />
+            <KPI icon={Scale} label="Résultat du mois" value={formatFCFACompact(data.resultatMois)} accent={data.resultatMois >= 0 ? "text-emerald-600" : "text-red-600"} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -59,7 +59,7 @@ export default function AccountingDashboard() {
                 <CardTitle className="text-base">Produits vs Charges — 6 derniers mois</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={280} minWidth={1}>
                   <BarChart data={data.monthly}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />

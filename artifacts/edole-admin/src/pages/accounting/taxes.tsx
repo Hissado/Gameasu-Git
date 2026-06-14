@@ -571,7 +571,7 @@ export default function TaxesPage() {
                                 ${tax.isActive
                                   ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-                              {tax.isActive ? "Active" : "Inactive"}
+                              {tax.isActive ? "Actif" : "Inactif"}
                             </button>
                           </TableCell>
                           <TableCell>
