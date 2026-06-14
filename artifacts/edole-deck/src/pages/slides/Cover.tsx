@@ -1,61 +1,91 @@
-import hero from "@assets/screenshots/01-dashboard.jpg";
 import logo from "@assets/edole-logo-transparent.png";
 
 export default function Cover() {
   return (
-    <div className="w-screen h-screen overflow-hidden relative bg-[#0F1115] text-white">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0F1115] via-[#13161c] to-[#0A0B0E]" />
-      <div className="absolute right-[-4vw] top-[9vh] w-[64vw] h-[78vh] rounded-[1.2vw] overflow-hidden ring-1 ring-white/15 shadow-[0_40px_100px_rgba(0,0,0,0.65)] rotate-[-2.5deg] bg-[#0F1115]">
-        <img
-          src={hero}
-          crossOrigin="anonymous"
-          className="absolute h-auto w-[150%] max-w-none left-[-8%] top-[-12%]"
-          style={{ objectFit: "cover" }}
-          alt="Tableau de bord EDOLE — Indicateurs financiers et opérationnels"
-        />
-      </div>
+    <div className="w-screen h-screen overflow-hidden relative bg-white text-[#0F1115] flex flex-col">
 
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(90deg, #0F1115 0%, rgba(15,17,21,0.94) 34%, rgba(15,17,21,0.35) 52%, rgba(15,17,21,0) 64%)",
-        }}
-      />
+      {/* Top bar — orange brand stripe */}
+      <div className="h-[1.1vh] w-full bg-[#F37021]" />
 
-      <div
-        className="absolute inset-0 pointer-events-none mix-blend-screen"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 50vw 55vh at 88% 18%, rgba(255,107,0,0.18), transparent 70%)",
-        }}
-      />
+      {/* Main content */}
+      <div className="flex flex-1 overflow-hidden">
 
-      <div className="relative h-full flex flex-col justify-between px-[6vw] py-[6.5vh]">
-        <img src={logo} crossOrigin="anonymous" alt="édolé — Le numérique au service du BTP" className="h-[10vh] w-auto object-contain self-start" />
+        {/* Left panel — dark sidebar */}
+        <div className="w-[38vw] bg-[#0F1115] flex flex-col justify-between px-[4vw] py-[6vh]">
+          {/* Logo */}
+          <img
+            src={logo}
+            crossOrigin="anonymous"
+            alt="EDOLE"
+            className="h-[7vh] w-auto object-contain self-start"
+          />
 
-        <div className="max-w-[60vw]">
-          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1.5vh]">
-            Une seule plateforme
+          {/* Confidential / report label */}
+          <div>
+            <p className="text-[0.9vw] uppercase tracking-[0.3em] text-white/40 font-semibold mb-[1.5vh]">
+              Document confidentiel
+            </p>
+            <div className="w-10 h-[3px] bg-[#F37021] mb-[4vh]" />
+            <p className="text-[1.05vw] text-white/60 leading-[1.7]">
+              Rapport préparé par<br />
+              <span className="text-white font-semibold">EDOLE Africa</span>
+            </p>
+            <p className="text-[1vw] text-white/45 mt-[2vh] leading-[1.6]">
+              Plateforme de pilotage<br />
+              d'entreprise — Afrique de l'Ouest
+            </p>
           </div>
-          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] mb-[1.5vh]">
-            pour piloter
-          </div>
-          <div className="font-display text-[6.2vw] leading-[0.95] font-extrabold tracking-[-0.035em] text-[#FF6B00] mb-[4.5vh]">
-            vos chantiers.
-          </div>
-          <p className="text-[1.45vw] leading-[1.55] text-white/75 max-w-[46vw]">
-            Clients, services, projets, finances et matériel — unifiés dans
-            un espace de travail pensé pour les entreprises du Bâtiment et
-            des Travaux Publics.
-          </p>
+
+          {/* Bottom — slide number */}
+          <p className="font-mono text-[0.85vw] text-white/30 tracking-[0.2em]">01 / 14</p>
         </div>
 
-        <div className="flex items-end justify-between text-[1vw] text-white/45">
-          <div className="uppercase tracking-[0.3em] text-[0.85vw] font-semibold">Présentation produit · Édition Avril 2026</div>
-          <div className="font-mono tracking-[0.2em] text-white/55">01 / 15</div>
+        {/* Right panel — white content */}
+        <div className="flex-1 flex flex-col justify-between px-[5.5vw] py-[7vh]">
+
+          {/* Top right — company name */}
+          <div className="text-right">
+            <p className="text-[1vw] uppercase tracking-[0.3em] text-[#F37021] font-bold mb-[0.6vh]">
+              Organisation
+            </p>
+            <p className="text-[2.4vw] font-extrabold tracking-tight text-[#0F1115]">
+              EDOLE Africa
+            </p>
+          </div>
+
+          {/* Center — main title block */}
+          <div>
+            <div className="w-14 h-[4px] bg-[#F37021] mb-[3.5vh]" />
+            <p className="text-[1.1vw] uppercase tracking-[0.35em] text-[#0F1115]/50 font-semibold mb-[2.5vh]">
+              Exercice fiscal 2025
+            </p>
+            <h1
+              className="font-extrabold tracking-[-0.03em] text-[#0F1115] leading-[0.9] mb-[3vh]"
+              style={{ fontSize: "clamp(2.8rem, 6.5vw, 7rem)" }}
+            >
+              Rapport<br />
+              <span className="text-[#F37021]">de Gestion</span>
+            </h1>
+            <p className="text-[1.35vw] text-[#0F1115]/55 font-medium tracking-wide">
+              Décembre 2025
+            </p>
+          </div>
+
+          {/* Bottom — tagline */}
+          <div className="flex items-end justify-between">
+            <p className="text-[0.9vw] text-[#0F1115]/40 uppercase tracking-[0.25em]">
+              Rapport de performance · Usage interne
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#F37021]" />
+              <p className="text-[0.85vw] text-[#0F1115]/40 font-mono">2025–2026</p>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Bottom bar */}
+      <div className="h-[0.5vh] w-full bg-[#0F1115]/10" />
     </div>
   );
 }
