@@ -2892,16 +2892,16 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
 
       {/* ── En-tête rapport — design bicolonne ───────────────────────── */}
       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-        {/* Barre orange */}
-        <div className="h-1 w-full bg-[#F37021]" />
+        {/* Barre or Gaméasù */}
+        <div className="h-1 w-full bg-[#C8A24B]" />
         <div className="flex">
-          {/* Colonne gauche sombre */}
-          <div className="bg-[#0F1115] text-white px-5 py-5 flex flex-col justify-between" style={{ minWidth: 200, width: "28%" }}>
+          {/* Colonne gauche — bleu marine Gaméasù */}
+          <div className="bg-[#0F1A3A] text-white px-5 py-5 flex flex-col justify-between" style={{ minWidth: 200, width: "28%" }}>
             <div>
               <p className="text-[9px] uppercase tracking-[0.28em] text-white/40 font-bold">Document confidentiel</p>
-              <div className="w-7 h-[2px] bg-[#F37021] mt-2 mb-3" />
+              <div className="w-7 h-[2px] bg-[#C8A24B] mt-2 mb-3" />
               <p className="text-[11px] text-white/50 leading-[1.6]">Rapport préparé par</p>
-              <p className="text-sm font-bold text-white mt-0.5">EDOLE Africa</p>
+              <p className="text-sm font-bold text-white mt-0.5">Gaméasù</p>
             </div>
             <div className="mt-4">
               <div className="flex items-center gap-1.5">
@@ -2914,9 +2914,9 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           {/* Colonne droite blanche */}
           <div className="flex-1 bg-white px-6 py-5 flex items-start justify-between">
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#F37021] font-bold mb-1">Exercice {yearLabel}</p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#0F1115] leading-[1.0]">
-                Rapport<br /><span className="text-[#F37021]">de Gestion</span>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#C8A24B] font-bold mb-1">Exercice {yearLabel}</p>
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#0F1A3A] leading-[1.0]">
+                Rapport<br /><span className="text-[#C8A24B]">de Gestion</span>
               </h1>
               <p className="text-slate-500 text-sm mt-2">{periodLabel}</p>
             </div>
@@ -2931,7 +2931,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                 </button>
                 <button
                   onClick={() => window.open(`/reports/management/pdf?${periodQuery}`, "_blank")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F37021] text-white hover:bg-[#d96418] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F1A3A] text-white hover:bg-[#1a2d5a] transition-colors"
                   title="Ouvrir le rapport PDF professionnel dans un nouvel onglet"
                 >
                   <FileText className="w-3.5 h-3.5" /> Rapport PDF

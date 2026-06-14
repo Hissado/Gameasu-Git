@@ -114,16 +114,15 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
 .caption { font-size: 10.5px; color: #94a3b8; }
 
 /* ─── Cover — bicolonne dark/white ─── */
-.cover-top-stripe { height: 5px; background: #f37021; }
+.cover-top-stripe { height: 5px; background: #c8a24b; }
 .cover-body { display: flex; min-height: 380px; }
 
 .cover-sidebar {
-  width: 34%; background: #0f1115; color: #fff;
+  width: 34%; background: #0f1a3a; color: #fff;
   padding: 44px 36px; display: flex; flex-direction: column; justify-content: space-between;
 }
-.cover-sidebar-org { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 32px; }
 .cover-sidebar-tag { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,.4); font-weight: 700; }
-.cover-sidebar-rule { width: 32px; height: 2px; background: #f37021; margin: 10px 0 14px; }
+.cover-sidebar-rule { width: 32px; height: 2px; background: #c8a24b; margin: 10px 0 14px; }
 .cover-sidebar-prep { font-size: 11px; color: rgba(255,255,255,.5); line-height: 1.6; }
 .cover-sidebar-name { font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px; }
 .cover-sidebar-status { display: flex; align-items: center; gap: 7px; margin-top: 20px; }
@@ -135,14 +134,14 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
   flex: 1; background: #fff;
   padding: 44px 48px; display: flex; flex-direction: column; justify-content: space-between;
 }
-.cover-main-org { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #f37021; font-weight: 700; text-align: right; margin-bottom: 4px; }
-.cover-main-orgname { font-size: 20px; font-weight: 900; color: #0f1115; text-align: right; letter-spacing: -0.5px; }
+.cover-main-org { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #c8a24b; font-weight: 700; text-align: right; margin-bottom: 4px; }
+.cover-main-orgname { font-size: 20px; font-weight: 900; color: #0f1a3a; text-align: right; letter-spacing: -0.5px; }
 
 .cover-title-block { margin-top: 32px; }
-.cover-rule { width: 40px; height: 3px; background: #f37021; margin-bottom: 20px; }
+.cover-rule { width: 40px; height: 3px; background: #c8a24b; margin-bottom: 20px; }
 .cover-subtitle { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(0,0,0,.4); font-weight: 700; margin-bottom: 8px; }
-.cover-title { font-size: 40px; font-weight: 900; color: #0f1115; line-height: 0.95; margin-bottom: 12px; }
-.cover-title span { color: #f37021; }
+.cover-title { font-size: 40px; font-weight: 900; color: #0f1a3a; line-height: 0.95; margin-bottom: 12px; }
+.cover-title span { color: #c8a24b; }
 .cover-period { font-size: 14px; color: #64748b; margin-top: 16px; font-weight: 500; }
 
 .cover-health { text-align: right; margin-top: auto; padding-top: 24px; }
@@ -406,7 +405,6 @@ export default function ManagementPDFPage() {
             {/* Sidebar sombre */}
             <div className="cover-sidebar">
               <div>
-                <div className="cover-sidebar-org">{orgName}</div>
                 <div className="cover-sidebar-tag">Document confidentiel</div>
                 <div className="cover-sidebar-rule" />
                 <div className="cover-sidebar-prep">Rapport préparé par</div>
