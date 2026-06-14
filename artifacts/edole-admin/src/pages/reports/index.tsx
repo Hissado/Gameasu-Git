@@ -720,21 +720,25 @@ function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void
 // ────────────────────────────────────────────────────────────────
 
 const MODULE_COLS: Record<string, string[]> = {
-  accounting: ["Date", "Référence", "Compte", "Libellé", "Débit", "Crédit", "Solde", "Journal"],
-  finance:    ["Date", "Type", "Tiers", "Montant HT", "Taxes", "Montant TTC", "Solde", "Statut"],
-  sales:      ["Date", "Référence", "Client", "Montant HT", "Taxes", "Montant TTC", "Paiement", "Solde", "Statut"],
-  hr:         ["Collaborateur", "Département", "Poste", "Contrat", "Salaire", "Congés", "Présence", "Statut"],
-  projects:   ["Projet", "Chef de projet", "Département", "Budget", "Réalisé", "Avancement", "Date fin", "Statut"],
-  inventory:  ["Référence", "Désignation", "Catégorie", "Qté", "Valeur unitaire", "Valeur totale", "Emplacement", "Statut"],
+  accounting:  ["Date", "Référence", "Compte", "Libellé", "Débit", "Crédit", "Solde", "Journal"],
+  analytical:  ["Axe", "Centre / Département", "Projet", "Compte", "Libellé", "Montant", "% Budget", "Période"],
+  finance:     ["Date", "Type", "Tiers", "Montant HT", "Taxes", "Montant TTC", "Solde", "Statut"],
+  purchases:   ["Date", "Référence", "Fournisseur", "Montant HT", "Taxes", "Montant TTC", "Règlement", "Solde", "Statut"],
+  sales:       ["Date", "Référence", "Client", "Montant HT", "Taxes", "Montant TTC", "Paiement", "Solde", "Statut"],
+  hr:          ["Collaborateur", "Département", "Poste", "Contrat", "Salaire", "Congés", "Présence", "Statut"],
+  projects:    ["Projet", "Chef de projet", "Département", "Budget", "Réalisé", "Avancement", "Date fin", "Statut"],
+  inventory:   ["Référence", "Désignation", "Catégorie", "Qté", "Valeur unitaire", "Valeur totale", "Emplacement", "Statut"],
 };
 
 const MODULE_STATUTS: Record<string, { value: string; label: string }[]> = {
-  accounting: [{ value: "posted", label: "Comptabilisé" }, { value: "draft", label: "Brouillon" }],
-  finance:    [{ value: "paid", label: "Payé" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }],
-  sales:      [{ value: "paid", label: "Payée" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }, { value: "draft", label: "Brouillon" }, { value: "cancelled", label: "Annulé" }],
-  hr:         [{ value: "active", label: "Actif" }, { value: "inactive", label: "Inactif" }, { value: "trial", label: "Période d'essai" }],
-  projects:   [{ value: "in_progress", label: "En cours" }, { value: "completed", label: "Terminé" }, { value: "on_hold", label: "En attente" }, { value: "cancelled", label: "Annulé" }],
-  inventory:  [{ value: "available", label: "Disponible" }, { value: "reserved", label: "Réservé" }, { value: "out_of_stock", label: "Rupture" }],
+  accounting:  [{ value: "posted", label: "Comptabilisé" }, { value: "draft", label: "Brouillon" }],
+  analytical:  [{ value: "confirmed", label: "Confirmé" }, { value: "draft", label: "Brouillon" }, { value: "over_budget", label: "Dépassement" }],
+  finance:     [{ value: "paid", label: "Payé" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }],
+  purchases:   [{ value: "paid", label: "Payé" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }, { value: "draft", label: "Brouillon" }, { value: "cancelled", label: "Annulé" }],
+  sales:       [{ value: "paid", label: "Payée" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }, { value: "draft", label: "Brouillon" }, { value: "cancelled", label: "Annulé" }],
+  hr:          [{ value: "active", label: "Actif" }, { value: "inactive", label: "Inactif" }, { value: "trial", label: "Période d'essai" }],
+  projects:    [{ value: "in_progress", label: "En cours" }, { value: "completed", label: "Terminé" }, { value: "on_hold", label: "En attente" }, { value: "cancelled", label: "Annulé" }],
+  inventory:   [{ value: "available", label: "Disponible" }, { value: "reserved", label: "Réservé" }, { value: "out_of_stock", label: "Rupture" }],
 };
 
 const PERIOD_OPTIONS = [
@@ -771,12 +775,14 @@ type ReportRow = Record<string, string | number>;
 
 function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => void }) {
   const modules = [
-    { id: "sales",      label: "Ventes",        icon: ShoppingCart },
-    { id: "finance",    label: "Finance",        icon: Banknote },
-    { id: "accounting", label: "Comptabilité",   icon: BarChart3 },
-    { id: "projects",   label: "Projets",        icon: Briefcase },
-    { id: "hr",         label: "RH",             icon: Users },
-    { id: "inventory",  label: "Inventaire",     icon: Package },
+    { id: "sales",      label: "Ventes",              icon: ShoppingCart },
+    { id: "purchases",  label: "Achats",               icon: Receipt },
+    { id: "finance",    label: "Finance",              icon: Banknote },
+    { id: "accounting", label: "Comptabilité",         icon: BarChart3 },
+    { id: "analytical", label: "Compta analytique",    icon: Layers },
+    { id: "projects",   label: "Projets",              icon: Briefcase },
+    { id: "hr",         label: "RH",                   icon: Users },
+    { id: "inventory",  label: "Inventaire",           icon: Package },
   ];
 
   const [module, setModule]     = useState("sales");
@@ -807,6 +813,21 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
   // Fausse donnée de prévisualisation cohérente par module
   const previewRows = useMemo<ReportRow[]>(() => {
     const base: Record<string, ReportRow[]> = {
+      purchases: [
+        { Date: "02/06/2026", Référence: "FA-FOUR-0088", Fournisseur: "Fourni Tech SA",      "Montant TTC": "450 000 FCFA",   Règlement: "Virement", Solde: "0 FCFA",        Statut: "Payé" },
+        { Date: "05/06/2026", Référence: "FA-FOUR-0089", Fournisseur: "MatéBTP Lomé",         "Montant TTC": "1 250 000 FCFA", Règlement: "—",         Solde: "1 250 000 FCFA",Statut: "En attente" },
+        { Date: "08/06/2026", Référence: "FA-FOUR-0090", Fournisseur: "LogistiCo Abidjan",    "Montant TTC": "780 000 FCFA",   Règlement: "—",         Solde: "780 000 FCFA",  Statut: "En retard" },
+        { Date: "11/06/2026", Référence: "FA-FOUR-0091", Fournisseur: "Énergie Plus CI",      "Montant TTC": "320 000 FCFA",   Règlement: "Chèque",    Solde: "0 FCFA",        Statut: "Payé" },
+        { Date: "13/06/2026", Référence: "FA-FOUR-0092", Fournisseur: "Fourni Tech SA",       "Montant TTC": "95 000 FCFA",    Règlement: "—",         Solde: "95 000 FCFA",   Statut: "Brouillon" },
+      ],
+      analytical: [
+        { Axe: "Département", "Centre / Département": "Direction",    Projet: "—",                    Compte: "706000", Libellé: "Prestations",    Montant: "1 250 000 FCFA",  "% Budget": "78 %",   Période: "Juin 2026" },
+        { Axe: "Département", "Centre / Département": "Commercial",   Projet: "—",                    Compte: "615000", Libellé: "Déplacements",   Montant: "340 000 FCFA",    "% Budget": "113 %",  Période: "Juin 2026" },
+        { Axe: "Département", "Centre / Département": "Opérations",   Projet: "—",                    Compte: "621000", Libellé: "Sous-traitance", Montant: "2 100 000 FCFA",  "% Budget": "91 %",   Période: "Juin 2026" },
+        { Axe: "Projet",      "Centre / Département": "Opérations",   Projet: "Infra SOGELEC",        Compte: "612000", Libellé: "Locations",      Montant: "480 000 FCFA",    "% Budget": "60 %",   Période: "Juin 2026" },
+        { Axe: "Projet",      "Centre / Département": "Direction",    Projet: "Expansion CONLOG",     Compte: "606000", Libellé: "Fournitures",    Montant: "125 000 FCFA",    "% Budget": "42 %",   Période: "Juin 2026" },
+        { Axe: "Département", "Centre / Département": "Finance",      Projet: "—",                    Compte: "627000", Libellé: "Frais bancaires", Montant: "85 000 FCFA",    "% Budget": "56 %",   Période: "Juin 2026" },
+      ],
       sales: [
         { Date: "01/06/2026", Référence: "FAC-2026-0112", Client: "SOGELEC Cameroun",  "Montant TTC": "2 450 000 FCFA", Paiement: "Virement", Statut: "Payée" },
         { Date: "03/06/2026", Référence: "FAC-2026-0113", Client: "BTP Gabon SARL",    "Montant TTC": "1 180 000 FCFA", Paiement: "Chèque",   Statut: "En attente" },
@@ -1117,12 +1138,16 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
           <CardContent className="pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {[
-                { label: "Factures du mois",       mod: "sales",    period: "this_month",   desc: "Toutes les factures émises ce mois" },
-                { label: "Impayés > 30 jours",     mod: "sales",    period: "last_90",       desc: "Factures en retard à relancer" },
-                { label: "Charges du trimestre",    mod: "finance",  period: "this_quarter",  desc: "Toutes les dépenses sur la période" },
-                { label: "Écritures comptables",   mod: "accounting",period: "this_month",   desc: "Journal général du mois en cours" },
-                { label: "Salaires et effectif",   mod: "hr",       period: "this_month",    desc: "Masse salariale et liste collaborateurs" },
-                { label: "Avancement projets",     mod: "projects", period: "this_quarter",  desc: "Budget vs réalisé par projet" },
+                { label: "Factures du mois",            mod: "sales",      period: "this_month",   desc: "Toutes les factures clients émises ce mois" },
+                { label: "Impayés > 30 jours",          mod: "sales",      period: "last_90",      desc: "Factures clients en retard à relancer" },
+                { label: "Factures fournisseurs",       mod: "purchases",  period: "this_month",   desc: "Achats du mois par fournisseur" },
+                { label: "Charges fournisseurs en retard", mod: "purchases", period: "last_90",    desc: "Factures fournisseurs impayées" },
+                { label: "Charges du trimestre",        mod: "finance",    period: "this_quarter", desc: "Toutes les dépenses sur la période" },
+                { label: "Écritures comptables",        mod: "accounting", period: "this_month",   desc: "Journal général du mois en cours" },
+                { label: "Analytique par département",  mod: "analytical", period: "this_month",   desc: "Charges et produits par centre de coût" },
+                { label: "Analytique par projet",       mod: "analytical", period: "this_quarter", desc: "Consommation budgétaire par projet" },
+                { label: "Salaires et effectif",        mod: "hr",         period: "this_month",   desc: "Masse salariale et liste collaborateurs" },
+                { label: "Avancement projets",          mod: "projects",   period: "this_quarter", desc: "Budget vs réalisé par projet" },
               ].map(t => (
                 <button key={t.label} onClick={() => { setModule(t.mod); setPeriod(t.period); setReportName(t.label); setCols((MODULE_COLS[t.mod]??[]).slice(0,5)); setGenerated(false); }}
                   className="text-left border border-slate-200 rounded-lg p-3 hover:border-[#C8A24B]/60 hover:bg-amber-50/20 transition-all group">
