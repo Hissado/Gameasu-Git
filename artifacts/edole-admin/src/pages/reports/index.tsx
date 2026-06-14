@@ -2890,53 +2890,71 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   return (
     <div className="space-y-4 pt-4">
 
-      {/* ── En-tête rapport ──────────────────────────────────────────── */}
+      {/* ── En-tête rapport — design bicolonne ───────────────────────── */}
       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-        <div className="bg-slate-900 text-white px-6 py-5 flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Briefcase className="w-5 h-5 text-primary" />
-              <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Rapport de Gestion</span>
+        {/* Barre orange */}
+        <div className="h-1 w-full bg-[#F37021]" />
+        <div className="flex">
+          {/* Colonne gauche sombre */}
+          <div className="bg-[#0F1115] text-white px-5 py-5 flex flex-col justify-between" style={{ minWidth: 200, width: "28%" }}>
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-white/40 font-bold">Document confidentiel</p>
+              <div className="w-7 h-[2px] bg-[#F37021] mt-2 mb-3" />
+              <p className="text-[11px] text-white/50 leading-[1.6]">Rapport préparé par</p>
+              <p className="text-sm font-bold text-white mt-0.5">EDOLE Africa</p>
             </div>
-            <h1 className="text-2xl font-bold leading-tight">Rapport de Gestion</h1>
-            <p className="text-slate-400 text-sm mt-1">{periodLabel}</p>
+            <div className="mt-4">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${f.netResult >= 0 ? "bg-emerald-400" : "bg-red-400"}`} />
+                <span className="text-[10px] text-white/50">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</span>
+              </div>
+              <p className="text-[9px] text-white/25 font-mono mt-1">Généré le {generatedAt}</p>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2 mt-1">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => downloadAuthed(`/api/reports/management/export.xlsx?${periodQuery}`, `rapport-gestion-${new Date().toISOString().slice(0,10)}.xlsx`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-600 transition-colors"
-                title="Télécharger le rapport Excel professionnel multi-feuilles"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
-              </button>
-              <button
-                onClick={() => window.open(`/reports/management/pdf?${periodQuery}`, "_blank")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
-                title="Ouvrir le rapport PDF professionnel dans un nouvel onglet"
-              >
-                <FileText className="w-3.5 h-3.5" /> Rapport PDF
-              </button>
+          {/* Colonne droite blanche */}
+          <div className="flex-1 bg-white px-6 py-5 flex items-start justify-between">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#F37021] font-bold mb-1">Exercice {yearLabel}</p>
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#0F1115] leading-[1.0]">
+                Rapport<br /><span className="text-[#F37021]">de Gestion</span>
+              </h1>
+              <p className="text-slate-500 text-sm mt-2">{periodLabel}</p>
             </div>
-            <div className="text-right text-xs text-slate-500">
-              <div>Généré le {generatedAt}</div>
-              <div className="mt-1 flex items-center justify-end gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${f.netResult >= 0 ? "bg-emerald-400" : "bg-red-400"}`} />
-                <span className="text-slate-400">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</span>
+            <div className="flex flex-col items-end gap-2 mt-1 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => downloadAuthed(`/api/reports/management/export.xlsx?${periodQuery}`, `rapport-gestion-${new Date().toISOString().slice(0,10)}.xlsx`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-600 transition-colors"
+                  title="Télécharger le rapport Excel professionnel multi-feuilles"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+                </button>
+                <button
+                  onClick={() => window.open(`/reports/management/pdf?${periodQuery}`, "_blank")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F37021] text-white hover:bg-[#d96418] transition-colors"
+                  title="Ouvrir le rapport PDF professionnel dans un nouvel onglet"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Rapport PDF
+                </button>
+              </div>
+              <div className="text-right">
+                <p className={`text-xl font-extrabold ${hsColor}`}>{hs.score}%</p>
+                <p className="text-[10px] text-slate-400">{hsStatus}</p>
               </div>
             </div>
           </div>
         </div>
-        <div className="bg-slate-800 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-700">
+        {/* KPI footer blanc */}
+        <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-200">
           {[
-            { label: "Produits", value: fmtCompact(f.revenues) + " FCFA", color: "text-emerald-400" },
-            { label: "Charges", value: fmtCompact(f.expenses) + " FCFA", color: "text-red-400" },
-            { label: "Résultat net", value: fmtCompact(f.netResult) + " FCFA", color: f.netResult >= 0 ? "text-emerald-400" : "text-red-400" },
-            { label: "Trésorerie", value: fmtCompact(liq.cashPosition) + " FCFA", color: liq.cashPosition >= 0 ? "text-sky-400" : "text-red-400" },
+            { label: "Produits", value: fmtCompact(f.revenues) + " FCFA", color: "text-emerald-600" },
+            { label: "Charges",  value: fmtCompact(f.expenses) + " FCFA",  color: "text-red-600" },
+            { label: "Résultat net", value: fmtCompact(f.netResult) + " FCFA", color: f.netResult >= 0 ? "text-emerald-600" : "text-red-600" },
+            { label: "Trésorerie",   value: fmtCompact(liq.cashPosition) + " FCFA", color: liq.cashPosition >= 0 ? "text-sky-600" : "text-red-600" },
           ].map(item => (
             <div key={item.label} className="px-4 first:pl-0">
-              <div className="text-xs text-slate-500">{item.label}</div>
-              <div className={`text-sm font-bold ${item.color}`}>{item.value}</div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{item.label}</div>
+              <div className={`text-sm font-bold mt-0.5 ${item.color}`}>{item.value}</div>
             </div>
           ))}
         </div>

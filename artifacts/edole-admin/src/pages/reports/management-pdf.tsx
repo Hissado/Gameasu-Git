@@ -113,33 +113,52 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
 .body-text { font-size: 12.5px; color: #475569; line-height: 1.65; }
 .caption { font-size: 10.5px; color: #94a3b8; }
 
-/* ─── Cover ─── */
-.cover-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
-  padding: 60px 56px 48px; color: #fff; min-height: 420px;
-  display: flex; flex-direction: column; justify-content: space-between;
+/* ─── Cover — bicolonne dark/white ─── */
+.cover-top-stripe { height: 5px; background: #f37021; }
+.cover-body { display: flex; min-height: 380px; }
+
+.cover-sidebar {
+  width: 34%; background: #0f1115; color: #fff;
+  padding: 44px 36px; display: flex; flex-direction: column; justify-content: space-between;
 }
-.cover-logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 40px; }
-.cover-logo span { color: #f97316; }
-.cover-subtitle { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 6px; }
-.cover-title { font-size: 36px; font-weight: 900; color: #fff; line-height: 1.05; margin-bottom: 6px; }
-.cover-period { font-size: 14px; color: rgba(255,255,255,.7); margin-top: 12px; }
-.cover-status {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 16px; border-radius: 20px;
-  font-size: 12px; font-weight: 700;
-  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
-  margin-top: 28px;
+.cover-sidebar-org { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 32px; }
+.cover-sidebar-tag { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,.4); font-weight: 700; }
+.cover-sidebar-rule { width: 32px; height: 2px; background: #f37021; margin: 10px 0 14px; }
+.cover-sidebar-prep { font-size: 11px; color: rgba(255,255,255,.5); line-height: 1.6; }
+.cover-sidebar-name { font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px; }
+.cover-sidebar-status { display: flex; align-items: center; gap: 7px; margin-top: 20px; }
+.cover-sidebar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cover-sidebar-status-text { font-size: 10px; color: rgba(255,255,255,.45); }
+.cover-sidebar-date { font-size: 9px; color: rgba(255,255,255,.25); font-family: monospace; margin-top: 4px; }
+
+.cover-main {
+  flex: 1; background: #fff;
+  padding: 44px 48px; display: flex; flex-direction: column; justify-content: space-between;
 }
+.cover-main-org { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #f37021; font-weight: 700; text-align: right; margin-bottom: 4px; }
+.cover-main-orgname { font-size: 20px; font-weight: 900; color: #0f1115; text-align: right; letter-spacing: -0.5px; }
+
+.cover-title-block { margin-top: 32px; }
+.cover-rule { width: 40px; height: 3px; background: #f37021; margin-bottom: 20px; }
+.cover-subtitle { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(0,0,0,.4); font-weight: 700; margin-bottom: 8px; }
+.cover-title { font-size: 40px; font-weight: 900; color: #0f1115; line-height: 0.95; margin-bottom: 12px; }
+.cover-title span { color: #f37021; }
+.cover-period { font-size: 14px; color: #64748b; margin-top: 16px; font-weight: 500; }
+
+.cover-health { text-align: right; margin-top: auto; padding-top: 24px; }
+.cover-health-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 4px; }
+.cover-health-score { font-size: 44px; font-weight: 900; line-height: 1; }
+.cover-health-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
 .cover-footer {
-  background: #f8fafc; padding: 24px 56px;
+  background: #f8fafc; padding: 20px 48px 20px 48px;
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   border-top: 1px solid #e2e8f0;
 }
-.cover-kpi { padding: 14px 16px 14px 0; border-right: 1px solid #e2e8f0; }
+.cover-kpi { padding: 12px 16px 12px 0; border-right: 1px solid #e2e8f0; }
 .cover-kpi:last-child { border-right: none; }
-.cover-kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600; margin-bottom: 4px; }
-.cover-kpi-value { font-size: 17px; font-weight: 800; }
+.cover-kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700; margin-bottom: 4px; }
+.cover-kpi-value { font-size: 16px; font-weight: 800; }
 .kpi-green { color: #10b981; } .kpi-red { color: #ef4444; } .kpi-blue { color: #3b82f6; }
 
 /* ─── Page header ─── */
@@ -380,31 +399,53 @@ export default function ManagementPDFPage() {
             PAGE 1 — COUVERTURE
         ══════════════════════════════════════════════════════════════════ */}
         <div className="pdf-page">
-          <div className="cover-header">
-            <div>
-              <div className="cover-logo">{orgName}</div>
-              <div className="cover-subtitle">Rapport de Gestion</div>
-              <div className="cover-title">Rapport<br />de Gestion</div>
-              <div className="cover-period">Période analysée : {periodLabel}</div>
-              <div className="cover-status">
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: f.netResult >= 0 ? "#10b981" : "#ef4444", flexShrink: 0 }} />
-                {f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"} · Généré le {generatedAt}
+          {/* Barre orange */}
+          <div className="cover-top-stripe" />
+          {/* Corps bicolonne */}
+          <div className="cover-body">
+            {/* Sidebar sombre */}
+            <div className="cover-sidebar">
+              <div>
+                <div className="cover-sidebar-org">{orgName}</div>
+                <div className="cover-sidebar-tag">Document confidentiel</div>
+                <div className="cover-sidebar-rule" />
+                <div className="cover-sidebar-prep">Rapport préparé par</div>
+                <div className="cover-sidebar-name">{orgName}</div>
+              </div>
+              <div>
+                <div className="cover-sidebar-status">
+                  <div className="cover-sidebar-dot" style={{ background: f.netResult >= 0 ? "#10b981" : "#ef4444" }} />
+                  <div className="cover-sidebar-status-text">{f.netResult >= 0 ? "Performance positive" : "Résultat déficitaire"}</div>
+                </div>
+                <div className="cover-sidebar-date">Généré le {generatedAt}</div>
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, alignSelf: "flex-end" }}>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700 }}>Score de Santé Financière</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ fontSize: 48, fontWeight: 900, color: hs.score >= 70 ? "#10b981" : hs.score >= 40 ? "#f59e0b" : "#ef4444" }}>{hs.score}%</span>
-                <span style={{ fontSize: 13, color: "rgba(255,255,255,.6)" }}>{hsLabel}</span>
+            {/* Zone blanche */}
+            <div className="cover-main">
+              <div style={{ textAlign: "right" }}>
+                <div className="cover-main-org">Organisation</div>
+                <div className="cover-main-orgname">{orgName}</div>
+              </div>
+              <div className="cover-title-block">
+                <div className="cover-rule" />
+                <div className="cover-subtitle">Exercice fiscal {new Date(d.period.to).getFullYear()}</div>
+                <div className="cover-title">Rapport<br /><span>de Gestion</span></div>
+                <div className="cover-period">Période analysée : {periodLabel}</div>
+              </div>
+              <div className="cover-health">
+                <div className="cover-health-label">Score de Santé Financière</div>
+                <div className="cover-health-score" style={{ color: hsColor }}>{hs.score}%</div>
+                <div className="cover-health-desc">{hsLabel}</div>
               </div>
             </div>
           </div>
+          {/* KPI footer */}
           <div className="cover-footer">
             {[
-              { lbl: "Produits", val: compact(f.revenues) + " FCFA", cls: "kpi-green" },
-              { lbl: "Charges", val: compact(f.expenses) + " FCFA", cls: "kpi-red" },
-              { lbl: "Résultat net", val: compact(f.netResult) + " FCFA", cls: f.netResult >= 0 ? "kpi-green" : "kpi-red" },
-              { lbl: "Trésorerie", val: compact(liq.cashPosition) + " FCFA", cls: liq.cashPosition >= 0 ? "kpi-blue" : "kpi-red" },
+              { lbl: "Produits",    val: compact(f.revenues) + " FCFA",      cls: "kpi-green" },
+              { lbl: "Charges",     val: compact(f.expenses) + " FCFA",      cls: "kpi-red"   },
+              { lbl: "Résultat net",val: compact(f.netResult) + " FCFA",     cls: f.netResult >= 0 ? "kpi-green" : "kpi-red" },
+              { lbl: "Trésorerie",  val: compact(liq.cashPosition) + " FCFA",cls: liq.cashPosition >= 0 ? "kpi-blue" : "kpi-red" },
             ].map(k => (
               <div key={k.lbl} className="cover-kpi">
                 <div className="cover-kpi-label">{k.lbl}</div>
