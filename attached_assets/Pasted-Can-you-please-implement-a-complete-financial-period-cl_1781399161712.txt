@@ -1,0 +1,240 @@
+Can you please implement a complete **financial period closing logic** in the Finance / Accounting section of Gaméasù?
+
+### Objective
+
+I want the Finance section to support proper accounting period closing, similar to professional accounting systems.
+
+The system should allow an organization to close:
+
+* monthly periods
+* quarterly periods if needed
+* year-end periods
+* fiscal years
+
+Once a period is closed, financial data for that period should be protected from accidental changes.
+
+---
+
+## 1. Month-end close
+
+Please create a **Month-End Close** workflow.
+
+The user should be able to:
+
+* select the month to close
+* review all financial activity for that month
+* verify invoices
+* verify payments
+* verify bank transactions
+* verify expenses
+* verify journal entries
+* verify payroll entries if applicable
+* verify depreciation / amortization entries
+* verify taxes and accruals
+* generate a closing checklist
+* approve and lock the month
+
+Once the month is closed:
+
+* transactions dated within that month should no longer be editable by regular users
+* new entries should not be posted into the closed month unless the user has special permission
+* any correction should require an adjusting journal entry or reopening permission
+* reports for that month should be preserved
+
+---
+
+## 2. Year-end close
+
+Please create a **Year-End Close** workflow.
+
+The user should be able to:
+
+* select the fiscal year to close
+* confirm all months are closed
+* review final financial statements
+* review balance sheet
+* review income statement
+* review cash flow
+* review trial balance
+* review retained earnings / opening balance logic
+* close revenue and expense accounts
+* carry forward balance sheet accounts
+* generate opening balances for the new fiscal year
+* lock the fiscal year after approval
+
+Once the year is closed:
+
+* the fiscal year should be locked
+* prior-year transactions should not be editable without special permission
+* reports should remain available for review and export
+* opening balances for the new year should be generated properly
+
+---
+
+## 3. Closing checklist
+
+Add a professional closing checklist for each period.
+
+Example checklist items:
+
+* all customer invoices reviewed
+* all vendor bills reviewed
+* all payments recorded
+* all bank accounts reconciled
+* all payroll entries posted
+* all depreciation entries posted
+* all tax entries reviewed
+* all accruals posted
+* all adjusting entries reviewed
+* trial balance reviewed
+* financial statements generated
+* management report generated
+* period approved for closing
+
+Each checklist item should have:
+
+* status
+* responsible user
+* completion date
+* comments
+* supporting documents if applicable
+
+---
+
+## 4. Permissions
+
+Add role-based permissions for period closing.
+
+Permissions should include:
+
+* view closing periods
+* prepare month-end close
+* approve month-end close
+* reopen closed month
+* prepare year-end close
+* approve year-end close
+* reopen closed fiscal year
+* post adjustment into closed period
+
+Only authorized users should be able to close or reopen a period.
+
+---
+
+## 5. Reopening logic
+
+Please add a controlled reopening workflow.
+
+If a closed period needs to be reopened:
+
+* require a reason
+* require authorization
+* log who reopened it
+* log when it was reopened
+* track changes made after reopening
+* allow the period to be closed again
+
+There must be a clear audit trail.
+
+---
+
+## 6. Audit trail
+
+Every closing action must be tracked.
+
+The audit trail should include:
+
+* organization_id
+* period
+* close type: month-end, quarter-end, year-end
+* user who closed the period
+* date and time closed
+* user who reopened the period if applicable
+* reason for reopening
+* checklist status
+* adjustments made after closing
+* approval history
+
+---
+
+## 7. Reports and exports
+
+For each closed period, the user should be able to generate and export:
+
+* trial balance
+* balance sheet
+* income statement
+* cash flow statement
+* general ledger
+* accounts receivable aging
+* accounts payable aging
+* bank reconciliation report
+* management report
+* closing checklist report
+
+Exports should be available in:
+
+* PDF
+* Excel
+
+---
+
+## 8. SaaS / multi-tenant logic
+
+Because Gaméasù is a SaaS platform, the closing logic must be strictly multi-tenant.
+
+Each organization must have:
+
+* its own fiscal calendar
+* its own closed periods
+* its own closing checklist
+* its own approval workflow
+* its own permissions
+* its own reports
+
+No organization should be able to access or affect another organization’s closing data.
+
+---
+
+## 9. UI / UX
+
+Create a clean and professional interface for financial closing.
+
+Suggested pages:
+
+* Finance → Period Closing
+* Finance → Month-End Close
+* Finance → Year-End Close
+* Finance → Closing History
+* Finance → Closing Checklist
+
+The interface should show:
+
+* open periods
+* closed periods
+* locked fiscal years
+* pending checklist items
+* closing status
+* approval status
+* reopen action if permitted
+
+Use clear French labels if the app is in French:
+
+* Clôture mensuelle
+* Clôture annuelle
+* Période ouverte
+* Période clôturée
+* Exercice clôturé
+* Réouvrir la période
+* Écritures d’ajustement
+* Liste de contrôle
+* Historique de clôture
+
+---
+
+## 10. Expected result
+
+I want Gaméasù to have a true professional financial closing system, allowing organizations to close months and fiscal years properly, lock historical transactions, protect financial reports, manage reopening with permissions, and keep a complete audit trail.
+
+### Final objective
+
+Make the Finance / Accounting section of Gaméasù more reliable, compliant, and professional by adding month-end close, year-end close, closing checklists, locked periods, reopening workflows, audit trail, and closing reports.

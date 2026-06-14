@@ -32,3 +32,4 @@ export * from "./expenses";
 export * from "./benefits";
 export * from "./pricing";
 export * from "./migration";
+export * from "./closing";

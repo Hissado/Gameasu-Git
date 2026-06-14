@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronRight, Database } from "lucide-react";
+import { Menu, X, ChevronRight, Database, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, CheckSquare, Briefcase, Wrench, Truck,
@@ -93,6 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
       { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,   moduleKey: "accounting" },
       { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,      moduleKey: "accounting" },
+      { name: "Clôture des périodes", path: "/accounting/period-close",   icon: CalendarCheck, moduleKey: "accounting" },
       { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp, moduleKey: "financial_planning" },
       { name: "Rapports",             path: "/reports",                  icon: BarChart3,  moduleKey: "reports" },
     ],
