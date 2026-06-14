@@ -1033,15 +1033,33 @@ export default function CollaboratorDetail() {
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-5 text-sm">
-            <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email professionnel</p>
-                <p className={`font-medium mt-0.5 break-all ${!collaborator.email ? "text-amber-600 italic text-sm" : ""}`}>
-                  {collaborator.email || "Non renseigné"}
-                </p>
+            {(collaborator as any).professionalEmail && (
+              <div className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email pro</p>
+                  <p className="font-medium mt-0.5 break-all">{(collaborator as any).professionalEmail}</p>
+                </div>
               </div>
-            </div>
+            )}
+            {collaborator.email && (
+              <div className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email perso</p>
+                  <p className="font-medium mt-0.5 break-all">{collaborator.email}</p>
+                </div>
+              </div>
+            )}
+            {!(collaborator as any).professionalEmail && !collaborator.email && (
+              <div className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email</p>
+                  <p className="font-medium mt-0.5 text-amber-600 italic text-sm">Non renseigné</p>
+                </div>
+              </div>
+            )}
             <div className="flex items-start gap-3">
               <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
               <div>
