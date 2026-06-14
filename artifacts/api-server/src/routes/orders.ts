@@ -301,11 +301,13 @@ router.get("/payments", async (req, res) => {
 });
 
 router.post("/payments", requireManagerOrAbove, async (req, res) => {
-  const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId } = req.body;
+  const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId, payerPhone, transactionStatus } = req.body;
   const [payment] = await db.insert(paymentsTable).values({
     organizationId: req.authUser!.organizationId,
     invoiceId, amount: amount.toString(), currency, method, reference,
     paidAt: paidAt ? new Date(paidAt) : new Date(), notes,
+    payerPhone: payerPhone || null,
+    transactionStatus: transactionStatus || "confirmed",
   }).returning();
 
   // Cumul atomique du paid_amount via SQL : empêche les écrasements concurrents

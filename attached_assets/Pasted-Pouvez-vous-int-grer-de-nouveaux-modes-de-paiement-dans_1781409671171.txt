@@ -1,0 +1,113 @@
+Pouvez-vous intégrer de nouveaux **modes de paiement** dans Gaméasù, notamment :
+
+* **paiement par carte bancaire**
+* **paiement par Mixx**
+* **paiement par Flooz**
+
+### Objectif
+
+Je veux que l’application permette d’enregistrer, gérer et suivre les paiements effectués par carte bancaire et mobile money, en plus des modes de paiement déjà existants.
+
+### Modes de paiement à ajouter
+
+Merci d’ajouter les options suivantes dans tous les écrans concernés :
+
+* Carte bancaire
+* Mixx
+* Flooz
+
+Ces modes de paiement doivent être disponibles notamment dans :
+
+* Factures
+* Encaissements
+* Devis si paiement anticipé ou acompte
+* Commandes
+* Trésorerie
+* Rapports
+* Comptabilité
+* Page publique de facture / lien de paiement si disponible
+
+### Logique attendue
+
+Lorsqu’un utilisateur enregistre un paiement, il doit pouvoir choisir le mode de paiement utilisé :
+
+* Espèces
+* Virement bancaire
+* Chèque
+* Carte bancaire
+* Mixx
+* Flooz
+* autre mode existant
+
+Chaque paiement doit conserver :
+
+* le mode de paiement
+* la référence de transaction
+* le numéro ou identifiant de transaction si applicable
+* le montant payé
+* la date de paiement
+* le client lié
+* la facture liée
+* le statut du paiement
+* l’utilisateur ayant enregistré le paiement
+
+### Paiement par carte bancaire
+
+Pour le paiement par carte, prévoir une logique permettant :
+
+* d’enregistrer un paiement manuel par carte
+* de stocker une référence de transaction
+* de préparer l’intégration future avec une passerelle de paiement
+* de lier le paiement à une facture, commande ou client
+* de faire remonter le paiement dans la trésorerie et la comptabilité
+
+### Paiement par Mixx et Flooz
+
+Pour Mixx et Flooz, prévoir :
+
+* sélection du réseau mobile money
+* numéro de téléphone du payeur si nécessaire
+* référence de transaction
+* statut : en attente, confirmé, échoué, annulé
+* possibilité de confirmation manuelle
+* intégration future avec API si disponible
+* lien avec la facture, l’encaissement, la trésorerie et la comptabilité
+
+### Comptabilité et rapports
+
+Les paiements par carte, Mixx et Flooz doivent être correctement intégrés dans :
+
+* encaissements clients
+* journal de caisse / banque
+* comptes de trésorerie
+* rapports de ventes
+* rapports d’encaissements
+* rapprochement bancaire ou mobile money
+* tableau de bord Finance
+
+### Paramétrage
+
+Merci d’ajouter une section de configuration permettant à chaque organisation de :
+
+* activer ou désactiver les modes de paiement
+* définir les comptes comptables associés
+* ajouter les informations de passerelle ou API si nécessaire
+* gérer les frais de transaction éventuels
+* définir les comptes de règlement pour carte, Mixx et Flooz
+
+### Logique SaaS / multi-tenant
+
+Comme Gaméasù est une plateforme SaaS :
+
+* chaque organisation doit pouvoir configurer ses propres modes de paiement
+* chaque organisation doit avoir ses propres comptes associés
+* les données de paiement doivent rester isolées par organisation
+* les permissions doivent contrôler qui peut créer, confirmer, modifier ou annuler un paiement
+
+### Résultat attendu
+
+Je veux que Gaméasù prenne correctement en charge les paiements par **carte bancaire**, **Mixx** et **Flooz**, avec une logique propre, connectée aux factures, encaissements, trésorerie, comptabilité et rapports.
+
+### Objectif final
+
+Avoir une gestion des paiements plus complète et adaptée au contexte local, notamment pour les paiements mobiles et les paiements par carte.

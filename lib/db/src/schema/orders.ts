@@ -66,6 +66,8 @@ export const paymentsTable = pgTable("payments", {
   amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
   currency: text("currency").default("XOF"),
   method: text("method").notNull(),
+  payerPhone: text("payer_phone"),
+  transactionStatus: text("transaction_status").default("confirmed"),
   reference: text("reference"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   notes: text("notes"),

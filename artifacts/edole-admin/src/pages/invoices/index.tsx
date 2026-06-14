@@ -54,7 +54,9 @@ const CANCEL_RULES: Record<string, { allowed: boolean; needsReason: boolean; war
 };
 
 const METHODS: Record<string, string> = {
-  cash: "Espèces", bank: "Virement", mobile_money: "Mobile Money", check: "Chèque", other: "Autre",
+  cash: "Espèces", bank: "Virement bancaire", bank_transfer: "Virement bancaire",
+  card: "Carte bancaire", mobile_money: "Mobile Money", mixx: "Mixx", flooz: "Flooz",
+  check: "Chèque", other: "Autre",
 };
 
 // ─── RecordPaymentDialog ──────────────────────────────────────────────────────

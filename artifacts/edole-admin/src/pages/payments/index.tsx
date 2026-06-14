@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building, CheckCircle2, AlertCircle, ArrowRight, Sparkles, ArrowDownRight } from "lucide-react";
+import { Plus, Search, Filter, CreditCard, Calendar, Landmark, Smartphone, FileText, Wallet, Building, CheckCircle2, AlertCircle, ArrowRight, Sparkles, ArrowDownRight, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
@@ -26,6 +26,7 @@ type Invoice = {
 type Payment = {
   id: string; invoiceId: string; amount: number | null;
   method: string | null; reference: string | null;
+  payerPhone: string | null; transactionStatus: string | null;
   paidAt: string | null; createdAt: string;
   invoiceRef: string | null; clientName: string | null;
 };
@@ -34,26 +35,50 @@ const METHODS: Record<string, string> = {
   cash: "Espèces",
   bank: "Virement bancaire",
   bank_transfer: "Virement bancaire",
+  card: "Carte bancaire",
   mobile_money: "Mobile Money",
+  mixx: "Mixx",
+  flooz: "Flooz",
   check: "Chèque",
   other: "Autre",
 };
 
-function getMethodBadge(method: string | null) {
+const MOBILE_MONEY_METHODS = ["mobile_money", "mixx", "flooz"];
+
+const TX_STATUSES: Record<string, string> = {
+  pending: "En attente",
+  confirmed: "Confirmé",
+  failed: "Échoué",
+  cancelled: "Annulé",
+};
+
+function getMethodBadge(method: string | null, txStatus?: string | null) {
   const m = method ?? "other";
+  const isMobile = MOBILE_MONEY_METHODS.includes(m);
   const icons: Record<string, React.ReactNode> = {
     bank: <Landmark className="w-4 h-4 text-slate-400" />,
     bank_transfer: <Landmark className="w-4 h-4 text-slate-400" />,
     cash: <CreditCard className="w-4 h-4 text-slate-400" />,
+    card: <CreditCard className="w-4 h-4 text-blue-400" />,
     mobile_money: <Smartphone className="w-4 h-4 text-amber-400" />,
+    mixx: <Smartphone className="w-4 h-4 text-emerald-500" />,
+    flooz: <Smartphone className="w-4 h-4 text-orange-400" />,
     check: <FileText className="w-4 h-4 text-slate-400" />,
   };
   const label = METHODS[m] ?? "Autre";
-  const isMobile = m === "mobile_money";
+  const colorClass = m === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-slate-600";
+  const statusBadge = isMobile && txStatus && txStatus !== "confirmed" ? (
+    <Badge variant="outline" className={`text-[9px] h-4 px-1 ml-1 ${
+      txStatus === "pending" ? "border-amber-300 text-amber-600" :
+      txStatus === "failed" ? "border-red-300 text-red-600" :
+      txStatus === "cancelled" ? "border-slate-300 text-slate-500" : ""
+    }`}>{TX_STATUSES[txStatus] ?? txStatus}</Badge>
+  ) : null;
   return (
-    <span className={`flex items-center gap-1.5 text-sm font-medium ${isMobile ? "text-amber-700" : "text-slate-600"}`}>
+    <span className={`flex items-center gap-1.5 text-sm font-medium ${colorClass}`}>
       {icons[m] ?? <CreditCard className="w-4 h-4 text-slate-400" />}
       {label}
+      {statusBadge}
     </span>
   );
 }
@@ -93,6 +118,8 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
   const [invoiceId, setInvoiceId] = useState("");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("bank");
+  const [payerPhone, setPayerPhone] = useState("");
+  const [transactionStatus, setTransactionStatus] = useState("confirmed");
   const [reference, setReference] = useState("");
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
@@ -150,6 +177,8 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
           reference: reference || undefined,
           paidAt,
           notes: notes || undefined,
+          payerPhone: payerPhone || undefined,
+          transactionStatus,
         }),
       });
       toast.success("Paiement enregistré et comptabilisé automatiquement");
@@ -200,18 +229,58 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
               </div>
               <div className="space-y-1">
                 <Label>Mode de paiement</Label>
-                <Select value={method} onValueChange={setMethod}>
+                <Select value={method} onValueChange={(v) => { setMethod(v); setPayerPhone(""); setTransactionStatus("confirmed"); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="bank">Virement bancaire</SelectItem>
                     <SelectItem value="cash">Espèces</SelectItem>
+                    <SelectItem value="card">Carte bancaire</SelectItem>
                     <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                    <SelectItem value="mixx">Mixx</SelectItem>
+                    <SelectItem value="flooz">Flooz</SelectItem>
                     <SelectItem value="check">Chèque</SelectItem>
                     <SelectItem value="other">Autre</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* ── Champs spécifiques Mobile Money (Mixx / Flooz) ── */}
+            {MOBILE_MONEY_METHODS.includes(method) && (
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-amber-600" />N° de téléphone payeur</Label>
+                  <Input
+                    placeholder="ex: +228 90 00 00 00"
+                    value={payerPhone}
+                    onChange={(e) => setPayerPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Statut de la transaction</Label>
+                  <Select value={transactionStatus} onValueChange={setTransactionStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TX_STATUSES).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="col-span-2 text-[11px] text-amber-700">
+                  La référence de transaction sera saisie ci-dessous. Le statut peut être mis à jour après confirmation de l'opérateur.
+                </p>
+              </div>
+            )}
+
+            {/* ── Champs spécifiques Carte bancaire ── */}
+            {method === "card" && (
+              <div className="p-3 rounded-lg border border-blue-200 bg-blue-50/50">
+                <p className="text-[11px] text-blue-700">
+                  Saisissez la référence de transaction fournie par le terminal de paiement (TPE) ci-dessous. L'intégration avec une passerelle de paiement pourra être configurée ultérieurement.
+                </p>
+              </div>
+            )}
 
             {/* ── Suggestions de lettrage ── */}
             {amtNum > 0 && !invoiceId && (
@@ -459,7 +528,7 @@ export default function PaymentsList() {
                         )}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {getMethodBadge(payment.method)}
+                        {getMethodBadge(payment.method, payment.transactionStatus)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell font-mono text-xs text-slate-500">
                         {payment.reference || "—"}

@@ -198,10 +198,13 @@ export default function SuppliersPage() {
             <div>
               <label className="text-xs font-semibold mb-1 block">Mode</label>
               <select className="border rounded h-9 px-2 text-sm w-full" value={paymentForm.method} onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}>
-                <option value="transfer">Virement</option>
+                <option value="transfer">Virement bancaire</option>
                 <option value="check">Chèque</option>
                 <option value="cash">Espèces</option>
+                <option value="card">Carte bancaire</option>
                 <option value="mobile_money">Mobile Money</option>
+                <option value="mixx">Mixx</option>
+                <option value="flooz">Flooz</option>
               </select>
             </div>
             <div className="col-span-2">

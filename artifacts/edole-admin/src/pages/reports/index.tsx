@@ -2786,8 +2786,8 @@ type DecaissementsReport = {
 };
 
 const METHOD_LABELS: Record<string, string> = {
-  bank_transfer: "Virement bancaire", cash: "Espèces", check: "Chèque",
-  mobile_money: "Mobile Money", card: "Carte bancaire", other: "Autre",
+  bank_transfer: "Virement bancaire", bank: "Virement bancaire", cash: "Espèces", check: "Chèque",
+  mobile_money: "Mobile Money", card: "Carte bancaire", mixx: "Mixx", flooz: "Flooz", other: "Autre",
 };
 
 function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {

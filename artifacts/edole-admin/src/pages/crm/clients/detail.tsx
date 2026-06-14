@@ -91,7 +91,8 @@ const ORD_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 const METHODS: Record<string, string> = {
-  cash: "Espèces", bank: "Virement", mobile_money: "Mobile Money",
+  cash: "Espèces", bank: "Virement bancaire", bank_transfer: "Virement bancaire",
+  card: "Carte bancaire", mobile_money: "Mobile Money", mixx: "Mixx", flooz: "Flooz",
   check: "Chèque", other: "Autre",
 };
 
