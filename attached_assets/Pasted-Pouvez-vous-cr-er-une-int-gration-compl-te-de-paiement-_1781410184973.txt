@@ -1,0 +1,245 @@
+Pouvez-vous créer une **intégration complète de paiement pour les tenants / organisations** dans Gaméasù, afin que chaque organisation puisse payer son abonnement ou ses frais via :
+
+* **Carte bancaire**
+* **Mixx**
+* **Flooz**
+
+### Objectif
+
+Je veux que les tenants puissent régler leurs abonnements, frais d’installation, renouvellements ou autres frais directement depuis Gaméasù, avec des moyens de paiement adaptés au contexte local.
+
+Cette intégration doit être liée au module :
+
+* **Abonnement & facturation**
+* **Paiements**
+* **Facturation tenant**
+* **Comptabilité**
+* **Trésorerie**
+* **Rapports**
+
+---
+
+## 1. Modes de paiement à intégrer
+
+Ajouter les moyens de paiement suivants pour les organisations :
+
+* Carte bancaire
+* Mixx
+* Flooz
+
+Chaque tenant doit pouvoir choisir son mode de paiement lorsqu’il doit payer :
+
+* son abonnement mensuel
+* son abonnement annuel
+* ses frais d’installation
+* une facture SaaS
+* un renouvellement
+* un upgrade de package
+* des utilisateurs supplémentaires
+* des modules additionnels
+
+---
+
+## 2. Paiement par carte bancaire
+
+Créer une intégration pour le paiement par carte bancaire.
+
+### À prévoir
+
+* page de paiement sécurisée
+* paiement par carte
+* confirmation de transaction
+* statut du paiement
+* référence de transaction
+* reçu ou facture générée automatiquement
+* mise à jour automatique de l’abonnement après paiement validé
+* gestion des paiements échoués
+* gestion des remboursements si nécessaire
+
+Prévoir l’architecture pour connecter une passerelle de paiement comme :
+
+* Stripe
+* PayDunya
+* CinetPay
+* Flutterwave
+* ou autre passerelle compatible Afrique / carte bancaire
+
+---
+
+## 3. Paiement par Mixx et Flooz
+
+Créer une intégration pour les paiements mobile money :
+
+* **Mixx**
+* **Flooz**
+
+### À prévoir
+
+* choix du réseau mobile money
+* saisie du numéro de téléphone
+* montant à payer
+* référence de paiement
+* statut : en attente, confirmé, échoué, annulé
+* confirmation manuelle ou automatique selon disponibilité API
+* webhook ou callback si l’API le permet
+* reçu de paiement
+* mise à jour automatique de l’abonnement après paiement confirmé
+
+---
+
+## 4. Logique abonnement tenant
+
+Quand un tenant effectue un paiement confirmé :
+
+* l’abonnement doit être activé ou renouvelé
+* la date de début et la date de fin doivent être mises à jour
+* le statut du tenant doit passer à actif
+* les modules du package choisi doivent être activés
+* le nombre d’utilisateurs autorisés doit être mis à jour
+* une facture doit être générée
+* un reçu doit être disponible
+* le paiement doit apparaître dans l’historique
+
+---
+
+## 5. Page Abonnement & Facturation
+
+Dans l’espace tenant, ajouter une vraie page **Abonnement & Facturation** permettant de voir :
+
+* package actuel
+* statut de l’abonnement
+* date de renouvellement
+* montant à payer
+* factures SaaS
+* historique des paiements
+* moyen de paiement préféré
+* bouton **Payer maintenant**
+* bouton **Changer de package**
+* bouton **Télécharger facture**
+* bouton **Télécharger reçu**
+
+---
+
+## 6. Configuration admin
+
+Créer une section admin permettant de configurer les moyens de paiement.
+
+### À prévoir
+
+* activation / désactivation de Carte bancaire
+* activation / désactivation de Mixx
+* activation / désactivation de Flooz
+* configuration des clés API
+* configuration des webhooks
+* configuration des frais de transaction
+* comptes comptables associés
+* devise par défaut
+* statut sandbox / production
+
+Chaque configuration doit être sécurisée et ne jamais exposer les clés sensibles côté frontend.
+
+---
+
+## 7. Webhooks et statuts
+
+Prévoir une logique robuste de suivi des transactions.
+
+### Statuts à gérer
+
+* En attente
+* Confirmé
+* Échoué
+* Annulé
+* Expiré
+* Remboursé
+
+### Webhooks
+
+Si la passerelle de paiement supporte les webhooks, créer les endpoints nécessaires pour :
+
+* recevoir la confirmation de paiement
+* vérifier la signature
+* mettre à jour le statut de transaction
+* activer l’abonnement
+* générer la facture ou le reçu
+* notifier le tenant
+
+---
+
+## 8. Sécurité
+
+L’intégration doit être sécurisée.
+
+### À respecter
+
+* aucune clé API exposée côté client
+* stockage sécurisé des credentials
+* validation backend obligatoire
+* vérification des montants côté serveur
+* vérification du tenant concerné
+* protection contre les doubles paiements
+* journalisation des transactions
+* audit trail complet
+
+---
+
+## 9. Comptabilité et rapports
+
+Chaque paiement tenant doit être relié à :
+
+* facture SaaS
+* reçu
+* compte client tenant
+* encaissement
+* trésorerie
+* comptabilité
+* rapports d’abonnement
+* rapports de revenus SaaS
+
+Prévoir les écritures ou données nécessaires pour suivre :
+
+* revenus d’abonnement
+* frais d’installation
+* revenus modules additionnels
+* frais de transaction
+* paiements en attente
+* paiements échoués
+* revenus mensuels récurrents
+* revenus annuels récurrents
+
+---
+
+## 10. Notifications
+
+Ajouter des notifications automatiques :
+
+* paiement confirmé
+* paiement échoué
+* abonnement bientôt expiré
+* facture disponible
+* reçu disponible
+* renouvellement réussi
+* renouvellement échoué
+* package activé
+
+Notifications à prévoir :
+
+* notification in-app
+* email
+* éventuellement SMS / WhatsApp plus tard
+
+---
+
+## 11. Résultat attendu
+
+Je veux que Gaméasù permette aux tenants de payer leurs abonnements et frais directement dans l’application via :
+
+* Carte bancaire
+* Mixx
+* Flooz
+
+L’intégration doit être propre, sécurisée, connectée à l’abonnement, à la facturation, à la comptabilité, à la trésorerie et aux rapports.
+
+### Objectif final
+
+Avoir un vrai système de paiement SaaS pour les organisations clientes, adapté aux paiements par carte et mobile money, afin de rendre Gaméasù prêt pour une utilisation commerciale réelle.

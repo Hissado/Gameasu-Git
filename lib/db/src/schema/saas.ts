@@ -220,6 +220,64 @@ export const structureInvitationsTable = pgTable("structure_invitations", {
 export type StructureInvitation = typeof structureInvitationsTable.$inferSelect;
 
 // ─────────────────────────────────────────────────────────────────
+// TRANSACTIONS DE PAIEMENT TENANT
+// Suit chaque tentative de paiement d'abonnement/frais par un tenant
+// ─────────────────────────────────────────────────────────────────
+export const paymentTransactionsTable = pgTable("payment_transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  subscriptionId: uuid("subscription_id").references(() => organizationSubscriptionsTable.id, { onDelete: "set null" }),
+  billingEventId: uuid("billing_event_id").references(() => billingEventsTable.id, { onDelete: "set null" }),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull().default("XOF"),
+  // card | mixx | flooz | mobile_money
+  method: text("method").notNull(),
+  payerPhone: text("payer_phone"),
+  // pending | confirmed | failed | cancelled | expired | refunded
+  status: text("status").notNull().default("pending"),
+  reference: text("reference"),
+  gatewayRef: text("gateway_ref"),
+  receiptNumber: text("receipt_number"),
+  // renewal | setup_fee | upgrade | addon | seats
+  purpose: text("purpose").notNull().default("renewal"),
+  notes: text("notes"),
+  metadata: jsonb("metadata"),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  failedAt: timestamp("failed_at", { withTimezone: true }),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("payment_tx_org_idx").on(t.organizationId),
+  statusIdx: index("payment_tx_status_idx").on(t.status),
+}));
+
+// ─────────────────────────────────────────────────────────────────
+// CONFIGURATION DES PASSERELLES DE PAIEMENT (system-wide)
+// Les clés secrètes ne sont JAMAIS stockées ici — variables d'env uniquement
+// ─────────────────────────────────────────────────────────────────
+export const paymentGatewayConfigsTable = pgTable("payment_gateway_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // stripe | paydunya | cinetpay | flutterwave | mixx_api | flooz_api | manual
+  gateway: text("gateway").notNull(),
+  displayName: text("display_name").notNull(),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  isSandbox: boolean("is_sandbox").notNull().default(true),
+  // Clé publique (safe) — clé secrète via variable d'env uniquement
+  publicKey: text("public_key"),
+  webhookUrl: text("webhook_url"),
+  txFeePercent: text("tx_fee_percent").default("0"),
+  txFeeFixed: integer("tx_fee_fixed").default(0),
+  minAmount: integer("min_amount").default(100),
+  maxAmount: integer("max_amount").default(10000000),
+  config: jsonb("config"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  gatewayUidx: uniqueIndex("payment_gateway_configs_gateway_uidx").on(t.gateway),
+}));
+
+// ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
 // ─────────────────────────────────────────────────────────────────
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
@@ -247,3 +305,10 @@ export type InsertOrganizationSubscription = z.infer<typeof insertOrganizationSu
 export type InsertOrganizationModule = z.infer<typeof insertOrganizationModuleSchema>;
 export type InsertBillingEvent = z.infer<typeof insertBillingEventSchema>;
 export type InsertWorkspaceInvitation = z.infer<typeof insertWorkspaceInvitationSchema>;
+
+export const insertPaymentTransactionSchema = createInsertSchema(paymentTransactionsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPaymentGatewayConfigSchema = createInsertSchema(paymentGatewayConfigsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type PaymentTransaction = typeof paymentTransactionsTable.$inferSelect;
+export type PaymentGatewayConfig = typeof paymentGatewayConfigsTable.$inferSelect;
+export type InsertPaymentTransaction = z.infer<typeof insertPaymentTransactionSchema>;
+export type InsertPaymentGatewayConfig = z.infer<typeof insertPaymentGatewayConfigSchema>;
