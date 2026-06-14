@@ -8,6 +8,7 @@ import {
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getCurrentOrganizationId, getCurrentSubscription } from "../lib/tenant";
 import { requireAdmin } from "../middlewares/auth";
+import { calcPricing } from "../lib/pricing";
 
 const router: IRouter = Router();
 
@@ -170,19 +171,10 @@ router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const { enabled } = req.body ?? {};
-  const current = await getCurrentSubscription(orgId);
-  const included = new Set(current?.plan.includedModules ?? []);
   const moduleKey = req.params.moduleKey;
-  // Si activation alors que pas inclus dans le plan → 403 upgrade required
-  if (enabled && !included.has(moduleKey)) {
-    return res.status(403).json({
-      error: "upgrade_required",
-      message: "Ce module nécessite un plan supérieur.",
-      requiredModule: moduleKey,
-    });
-  }
+  // Nouveau modèle : accès total modules — aucune restriction par plan
   const [row] = await db.update(organizationModulesTable)
-    .set({ enabled: !!enabled, source: enabled ? "plan" : "manual" })
+    .set({ enabled: !!enabled, source: "plan" })
     .where(and(
       eq(organizationModulesTable.organizationId, orgId),
       eq(organizationModulesTable.moduleKey, moduleKey),
@@ -190,7 +182,7 @@ router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req
     .returning();
   if (!row) {
     const [created] = await db.insert(organizationModulesTable).values({
-      organizationId: orgId, moduleKey, enabled: !!enabled, source: enabled ? "plan" : "manual",
+      organizationId: orgId, moduleKey, enabled: !!enabled, source: "plan",
     }).returning();
     return res.json(created);
   }
@@ -209,15 +201,26 @@ router.get("/billing/summary", async (req, res) => {
   const ytdPaid = events
     .filter((e) => e.status === "paid")
     .reduce((s, e) => s + (e.amount ?? 0), 0);
+  // Nouveau modèle : tarification par nombre d'utilisateurs actifs
+  const [{ count: memberCount }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(organizationMembersTable)
+    .where(eq(organizationMembersTable.organizationId, orgId));
+  const userCount = Number(memberCount ?? 0);
+  const pricing = calcPricing(userCount);
   res.json({
     subscription: current?.sub ?? null,
     plan: current?.plan ?? null,
     nextInvoiceAt: current?.sub.currentPeriodEnd ?? null,
-    seats: current?.sub.seats ?? 0,
-    unitPrice: current?.sub.unitPrice ?? 0,
     currency: current?.plan.currency ?? "XOF",
     paidYearToDate: ytdPaid,
     recentEvents: events,
+    // Nouvelle tarification
+    userCount,
+    amountHT: pricing.amountHT,
+    tva: pricing.tva,
+    ttc: pricing.ttc,
+    isEnterprise: pricing.isEnterprise,
   });
 });
 
@@ -234,17 +237,23 @@ router.get("/billing/usage", async (req, res) => {
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const current = await getCurrentSubscription(orgId);
-  if (!current) return res.json({ seatsUsed: 0, seatsTotal: 0, ratio: 0 });
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
     .from(organizationMembersTable)
     .where(eq(organizationMembersTable.organizationId, orgId));
-  const seatsUsed = Number(count ?? 0);
-  const seatsTotal = current.sub.seats ?? 0;
+  const userCount = Number(count ?? 0);
+  const pricing = calcPricing(userCount);
   res.json({
-    seatsUsed,
-    seatsTotal,
-    ratio: seatsTotal > 0 ? seatsUsed / seatsTotal : 0,
-    plan: current.plan,
+    userCount,
+    // Compatibilité ascendante
+    seatsUsed: userCount,
+    seatsTotal: current?.sub.seats ?? userCount,
+    ratio: 1,
+    plan: current?.plan ?? null,
+    // Nouveau modèle tarifaire
+    amountHT: pricing.amountHT,
+    tva: pricing.tva,
+    ttc: pricing.ttc,
+    isEnterprise: pricing.isEnterprise,
   });
 });
 

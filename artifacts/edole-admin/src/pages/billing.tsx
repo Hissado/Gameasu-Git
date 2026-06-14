@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useBillingSummary, useBillingEvents, useBillingUsage, useSubscriptionPlans, useChangePlan, useChangeBillingCycle, useCurrentSubscription } from "@/lib/saas";
+import { useBillingSummary, useBillingEvents, useBillingUsage, useCurrentSubscription } from "@/lib/saas";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA, formatDate } from "@/lib/format";
-import { PlanBadge } from "@/components/PlanBadge";
 import { StripeCardForm, StripeSetupForm, isStripeConfiguredOnFront } from "@/components/StripeCardForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,11 +18,64 @@ import {
   Check, CheckCircle2, Crown, Calendar, Users, Receipt, ArrowUpRight, RefreshCw,
   CreditCard, Smartphone, Wallet, AlertCircle, Clock, XCircle, Download,
   Settings, Shield, Zap, Phone, FileText, ToggleLeft, ToggleRight, ExternalLink,
-  Repeat, Trash2, PenLine, Star, Bell, Info,
+  Repeat, Trash2, PenLine, Star, Bell, Info, Mail, Package,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BRANDING } from "@/config/branding";
 import { toast as sonnerToast } from "sonner";
+
+// ─── Moteur de tarification (côté frontend) ────────────────────────
+const TVA_RATE = 0.18;
+const MAX_AUTO_USERS = 50;
+
+function calcAmountHT(userCount: number): number | null {
+  if (userCount > MAX_AUTO_USERS) return null;
+  if (userCount < 1) return 0;
+  let total = 10_000;
+  const u2to5 = Math.max(0, Math.min(userCount - 1, 4));
+  total += u2to5 * 5_000;
+  const u6to10 = Math.max(0, Math.min(userCount - 5, 5));
+  total += u6to10 * 2_000;
+  const u11to50 = Math.max(0, userCount - 10);
+  total += u11to50 * 1_000;
+  return total;
+}
+
+type PricingCalc = { amountHT: number; tva: number; ttc: number; isEnterprise: false }
+                 | { amountHT: null; tva: null; ttc: null; isEnterprise: true };
+
+function calcPricingFront(userCount: number): PricingCalc {
+  const amountHT = calcAmountHT(userCount);
+  if (amountHT === null) return { amountHT: null, tva: null, ttc: null, isEnterprise: true };
+  const tva = Math.round(amountHT * TVA_RATE);
+  return { amountHT, tva, ttc: amountHT + tva, isEnterprise: false };
+}
+
+const PRICING_TIERS = [
+  { range: "1",      label: "1er utilisateur",         unitPrice: 10_000 },
+  { range: "2–5",    label: "2e – 5e utilisateur",     unitPrice: 5_000  },
+  { range: "6–10",   label: "6e – 10e utilisateur",    unitPrice: 2_000  },
+  { range: "11–50",  label: "11e – 50e utilisateur",   unitPrice: 1_000  },
+  { range: "50+",    label: "Plus de 50 utilisateurs", unitPrice: null   },
+] as const;
+
+const ALL_MODULES: [string, string][] = [
+  ["dashboard",          "Tableau de bord & KPI"],
+  ["sales_crm",          "Ventes & CRM"],
+  ["clients",            "Gestion clients"],
+  ["projects",           "Projets & portefeuille"],
+  ["tasks",              "Tâches & Kanban"],
+  ["accounting",         "Comptabilité & journaux"],
+  ["financial_planning", "FP&A & budgets"],
+  ["team_hr",            "Équipe & RH"],
+  ["operations",         "Opérations & livraisons"],
+  ["inventory_assets",   "Parc & équipements"],
+  ["rentals",            "Locations & inspections"],
+  ["communications",     "Messagerie & appels"],
+  ["reports",            "Rapports & analyses"],
+  ["documents",          "Gestion documentaire"],
+  ["administration",     "Administration & audit"],
+];
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -130,12 +182,15 @@ const MODULE_LABELS: Record<string, string> = {
 //   • mixx / flooz → numéro de téléphone + référence
 
 function PaymentModal({
-  open, onClose, currentPlan, currentSub, onSuccess,
+  open, onClose, userCount, amountHT, tva, ttc, isEnterprise, onSuccess,
 }: {
   open: boolean;
   onClose: () => void;
-  currentPlan: { name: string; code: string } | undefined;
-  currentSub: { seats: number; unitPrice: number; billingCycle: string } | undefined;
+  userCount: number;
+  amountHT: number | null;
+  tva: number | null;
+  ttc: number | null;
+  isEnterprise: boolean;
   onSuccess: () => void;
 }) {
   const [method, setMethod] = useState("card");
@@ -145,16 +200,12 @@ function PaymentModal({
   const [saving, setSaving] = useState(false);
   const [saveCard, setSaveCard] = useState(false);
 
-  // Pour le flux Stripe : on passe par 2 étapes
-  // étape 1 : choix de méthode + initiation  → étape 2 : formulaire Stripe
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [stripeTxRef, setStripeTxRef] = useState<string | null>(null);
   const [stripeSucceeded, setStripeSucceeded] = useState(false);
 
-  const seats = currentSub?.seats ?? 1;
-  const unitPrice = currentSub?.unitPrice ?? 0;
-  const total = unitPrice * seats;
-  const cycle = currentSub?.billingCycle === "annual" ? "an" : "mois";
+  // Le montant facturé = TTC (TVA incluse)
+  const total = ttc ?? 0;
 
   const isMobileMoney = MOBILE_MONEY_METHODS.includes(method);
   const useStripeFlow = method === "card" && isStripeConfiguredOnFront;
@@ -226,18 +277,26 @@ function PaymentModal({
             <Wallet className="w-5 h-5 text-amber-600" /> Payer votre abonnement
           </DialogTitle>
           <DialogDescription>
-            {currentPlan?.name} · {seats} licence{seats > 1 ? "s" : ""} · {cycle}
+            Gaméasù · Accès complet · {userCount} utilisateur{userCount > 1 ? "s" : ""}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Récapitulatif montant */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">Montant à payer</p>
-            <p className="text-3xl font-bold text-amber-900">{formatFCFA(total)}</p>
-            <p className="text-xs text-amber-700 mt-1">
-              {formatFCFA(unitPrice)} × {seats} siège{seats > 1 ? "s" : ""} / {cycle}
-            </p>
+          {/* Récapitulatif HT / TVA / TTC */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2">Récapitulatif</p>
+            <div className="flex justify-between text-sm text-amber-900">
+              <span>Sous-total HT ({userCount} utilisateur{userCount > 1 ? "s" : ""})</span>
+              <span className="font-semibold">{amountHT !== null ? formatFCFA(amountHT) : "—"}</span>
+            </div>
+            <div className="flex justify-between text-sm text-amber-800">
+              <span>TVA 18 %</span>
+              <span>{tva !== null ? formatFCFA(tva) : "—"}</span>
+            </div>
+            <div className="border-t border-amber-200 pt-2 flex justify-between">
+              <span className="font-bold text-amber-900">Total TTC</span>
+              <span className="text-2xl font-bold text-amber-900">{ttc !== null ? formatFCFA(ttc) : "—"}</span>
+            </div>
           </div>
 
           {/* Formulaire Stripe Elements (étape 2) */}
@@ -378,7 +437,7 @@ function PaymentModal({
                 disabled={saving || total <= 0}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)}`}
+                {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)} TTC`}
               </Button>
             ) : (
               <Button
@@ -386,7 +445,7 @@ function PaymentModal({
                 disabled={saving || total <= 0}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)}`}
+                {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)} TTC`}
               </Button>
             )}
           </DialogFooter>
@@ -939,10 +998,7 @@ export default function BillingPage() {
   const { data: summary } = useBillingSummary();
   const { data: events } = useBillingEvents();
   const { data: usage } = useBillingUsage();
-  const { data: plans } = useSubscriptionPlans();
   const { data: current } = useCurrentSubscription();
-  const changePlan = useChangePlan();
-  const changeCycle = useChangeBillingCycle();
 
   const { data: txData, refetch: refetchTx } = useQuery<{ data: PaymentTransaction[] }>({
     queryKey: ["payment-transactions"],
@@ -958,11 +1014,13 @@ export default function BillingPage() {
   const [showPayModal, setShowPayModal] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
 
-  const currentPlanCode = current?.plan.code;
-  const cycle = current?.subscription.billingCycle ?? "monthly";
-
   const transactions = txData?.data ?? [];
   const pendingCount = transactions.filter((t) => t.status === "pending").length;
+
+  // Nouvelle tarification par nombre d'utilisateurs
+  const userCount = (usage as any)?.userCount ?? (usage as any)?.seatsUsed ?? 0;
+  const pricing = useMemo(() => calcPricingFront(userCount), [userCount]);
+  const { amountHT, tva, ttc, isEnterprise } = pricing;
 
   const confirmMutation = useMutation({
     mutationFn: (txId: string) =>
@@ -986,9 +1044,9 @@ export default function BillingPage() {
     onError: (e: any) => toast({ variant: "destructive", title: "Échec", description: e.message }),
   });
 
-  const total = (current?.subscription.unitPrice ?? 0) * (current?.subscription.seats ?? 1);
   const autopayEnabled = stripeStatus?.autopayEnabled ?? false;
   const savedCard = stripeStatus?.savedCard;
+  const nextInvoiceAt = current?.subscription.currentPeriodEnd ?? null;
 
   return (
     <div className="space-y-8">
@@ -1025,27 +1083,66 @@ export default function BillingPage() {
         {/* ── Onglet Formule ── */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Plan actuel */}
+
+            {/* Abonnement actif — nouvelle tarification */}
             <Card className="lg:col-span-2 border-amber-200/60 bg-gradient-to-br from-amber-50/50 to-white">
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/80">Formule active</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <CardTitle className="text-2xl">{current?.plan.name ?? "—"}</CardTitle>
-                    <PlanBadge code={current?.plan.code} name={current?.plan.name} light />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/80 mb-1">Abonnement actif</p>
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-2xl">{BRANDING.appName}</CardTitle>
+                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold">
+                      Accès complet
+                    </Badge>
                   </div>
-                  <p className="text-muted-foreground text-sm mt-2">{current?.plan.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Tous les modules inclus · {userCount} utilisateur{userCount !== 1 ? "s" : ""} actif{userCount !== 1 ? "s" : ""}
+                  </p>
                 </div>
-                <Crown className="w-8 h-8 text-amber-500/80 shrink-0" />
+                <Package className="w-8 h-8 text-amber-500/80 shrink-0" />
               </CardHeader>
-              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                <Stat icon={Users} label="Licences" value={`${usage?.seatsUsed ?? 0} / ${current?.subscription.seats ?? 0}`} />
-                <Stat icon={Calendar} label="Cycle" value={cycle === "annual" ? "Annuel" : "Mensuel"} />
-                <Stat icon={Receipt} label="Prix / siège" value={formatFCFA(current?.subscription.unitPrice ?? 0)} />
-                <Stat icon={CheckCircle2} label="Prochaine échéance" value={current?.subscription.currentPeriodEnd
-                  ? new Date(current.subscription.currentPeriodEnd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
-                  : "—"}
-                />
+              <CardContent className="space-y-4">
+                {isEnterprise ? (
+                  /* Tarification Enterprise (>50 users) */
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <Crown className="w-5 h-5" />
+                      <span className="font-semibold">Tarification personnalisée</span>
+                    </div>
+                    <p className="text-sm text-amber-700">
+                      Votre organisation dépasse 50 utilisateurs. Contactez notre équipe commerciale pour un devis sur-mesure adapté à votre volume.
+                    </p>
+                    <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                      <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B%20${userCount}%20utilisateurs`}>
+                        <Mail className="w-4 h-4 mr-2" /> Demander un devis
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  /* Grille HT / TVA / TTC */
+                  <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground">Sous-total HT ({userCount} utilisateur{userCount !== 1 ? "s" : ""})</span>
+                      <span className="font-semibold tabular-nums">{amountHT !== null ? formatFCFA(amountHT) : "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground">TVA 18 %</span>
+                      <span className="tabular-nums text-sm">{tva !== null ? formatFCFA(tva) : "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 bg-amber-50/60 rounded-b-lg">
+                      <span className="font-bold text-amber-900">Total TTC / mois</span>
+                      <span className="text-2xl font-bold text-amber-800 tabular-nums">{ttc !== null ? formatFCFA(ttc) : "—"}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Prochaine échéance */}
+                {nextInvoiceAt && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Prochaine échéance : <strong>{new Date(nextInvoiceAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</strong></span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1055,15 +1152,23 @@ export default function BillingPage() {
                 <CardTitle className="text-base">Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                  onClick={() => setShowPayModal(true)}
-                  disabled={total <= 0}
-                >
-                  <Wallet className="w-4 h-4 mr-2" /> Payer maintenant — {formatFCFA(total)}
-                </Button>
+                {isEnterprise ? (
+                  <Button asChild className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+                    <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B${userCount}%20utilisateurs`}>
+                      <Mail className="w-4 h-4 mr-2" /> Demander un devis
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={() => setShowPayModal(true)}
+                    disabled={!ttc || ttc <= 0}
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    {ttc ? `Payer — ${formatFCFA(ttc)} TTC` : "Calculer le tarif…"}
+                  </Button>
+                )}
 
-                {/* Statut autopay dans les actions */}
                 {savedCard ? (
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
                     autopayEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"
@@ -1090,22 +1195,8 @@ export default function BillingPage() {
                   </Button>
                 )}
 
-                <Button
-                  variant="outline" className="w-full justify-between"
-                  onClick={() => changeCycle.mutate(cycle === "annual" ? "monthly" : "annual", {
-                    onSuccess: () => toast({ title: "Cycle mis à jour" }),
-                  })}
-                  disabled={changeCycle.isPending}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4" />
-                    {cycle === "annual" ? "Repasser en mensuel" : "Passer en annuel"}
-                  </span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-
                 <Button asChild variant="outline" className="w-full justify-between">
-                  <a href={`mailto:sales@${BRANDING.appName.toLowerCase()}.africa`}>
+                  <a href={`mailto:sales@gameasutech.africa`}>
                     Contacter le commercial <ArrowUpRight className="w-4 h-4" />
                   </a>
                 </Button>
@@ -1113,80 +1204,77 @@ export default function BillingPage() {
             </Card>
           </div>
 
-          {/* Modules inclus */}
+          {/* Grille tarifaire dégressive */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Modules inclus dans votre formule</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-amber-600" /> Grille tarifaire Gaméasù
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Tranche</th>
+                      <th className="px-4 py-3 text-left">Utilisateurs</th>
+                      <th className="px-4 py-3 text-right">Prix unitaire HT / mois</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {PRICING_TIERS.map((tier) => {
+                      const isActive = !isEnterprise && amountHT !== null && (() => {
+                        if (tier.range === "1") return userCount >= 1;
+                        if (tier.range === "2–5") return userCount >= 2;
+                        if (tier.range === "6–10") return userCount >= 6;
+                        if (tier.range === "11–50") return userCount >= 11;
+                        return false;
+                      })();
+                      const isEnterpriseTier = tier.range === "50+";
+                      return (
+                        <tr key={tier.range} className={isActive ? "bg-amber-50/60" : ""}>
+                          <td className="px-4 py-3 font-medium text-slate-700">{tier.range}</td>
+                          <td className="px-4 py-3 text-slate-600">{tier.label}</td>
+                          <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                            {isEnterpriseTier ? (
+                              <span className="text-slate-400 italic">Sur devis</span>
+                            ) : (
+                              <span className={isActive ? "text-amber-700" : ""}>
+                                {formatFCFA(tier.unitPrice as number)}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Tous les prix sont <strong>hors taxes (HT)</strong>. La TVA de 18 % est appliquée uniquement au moment du paiement.
+                La tarification est dégressive et mensuelle par défaut.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Modules inclus — accès total */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="w-4 h-4 text-emerald-600" /> Tous les modules inclus
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {(current?.plan.includedModules ?? []).map((m) => (
-                  <div key={m} className="flex items-center gap-2 text-sm text-foreground/80">
-                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                    {MODULE_LABELS[m] ?? m}
+                {ALL_MODULES.map(([, label]) => (
+                  <div key={label} className="flex items-center gap-2 text-sm text-foreground/80">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    {label}
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-
-          {/* Comparatif plans */}
-          <section>
-            <div className="mb-3">
-              <h2 className="text-xl font-bold">Évoluer ou changer de formule</h2>
-              <p className="text-sm text-muted-foreground">Tarifs en FCFA — facturé {cycle === "annual" ? "annuellement" : "mensuellement"} par utilisateur.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {(plans ?? []).map((p) => {
-                const price = cycle === "annual" ? p.annualPricePerSeat : p.monthlyPricePerSeat;
-                const isCurrent = p.code === currentPlanCode;
-                return (
-                  <Card key={p.id} className={`relative ${p.isFeatured ? "border-amber-400 shadow-lg" : ""}`}>
-                    {p.isFeatured && (
-                      <span className="absolute -top-2 right-4 text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full px-2.5 py-0.5">
-                        Le plus choisi
-                      </span>
-                    )}
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{p.name}</CardTitle>
-                        <PlanBadge code={p.code} compact />
-                      </div>
-                      <p className="text-xs text-muted-foreground">{p.tagline}</p>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-3xl font-bold">{formatFCFA(price)}</p>
-                        <p className="text-[11px] text-muted-foreground">/ siège / {cycle === "annual" ? "an" : "mois"}</p>
-                        {p.setupFee > 0 && (
-                          <p className="text-[11px] text-amber-700 mt-1">+ Installation : {formatFCFA(p.setupFee)}</p>
-                        )}
-                      </div>
-                      <ul className="space-y-1.5 text-sm">
-                        {(p.features ?? []).map((f) => (
-                          <li key={f.id} className="flex gap-2">
-                            <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                            <span>{f.label}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button
-                        className="w-full"
-                        variant={isCurrent ? "outline" : "default"}
-                        disabled={isCurrent || changePlan.isPending}
-                        onClick={() => changePlan.mutate(p.code, {
-                          onSuccess: () => toast({ title: "Formule mise à jour", description: `Vous êtes sur ${p.name}.` }),
-                          onError: (e) => toast({ variant: "destructive", title: "Échec", description: e.message }),
-                        })}
-                      >
-                        {isCurrent ? "Formule actuelle" : "Choisir cette formule"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
         </TabsContent>
 
         {/* ── Onglet Paiements ── */}
@@ -1423,8 +1511,11 @@ export default function BillingPage() {
         <PaymentModal
           open={showPayModal}
           onClose={() => setShowPayModal(false)}
-          currentPlan={current?.plan}
-          currentSub={current?.subscription}
+          userCount={userCount}
+          amountHT={amountHT}
+          tva={tva}
+          ttc={ttc}
+          isEnterprise={isEnterprise}
           onSuccess={() => {
             qc.invalidateQueries({ queryKey: ["payment-transactions"] });
             qc.invalidateQueries({ queryKey: ["billing-events"] });
