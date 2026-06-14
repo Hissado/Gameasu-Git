@@ -1111,6 +1111,59 @@ router.get("/payroll/runs/:id/pdf-zip", requireManagerOrAbove, async (req, res, 
 });
 
 // ──────────────────────────────────────────────────────────
+// EXPORT CSV — HISTORIQUE COMPLET DES EMAILS DE BULLETINS
+// GET /api/payroll/payslip-email-logs/export.csv
+// Filtres : period, collaboratorId, status
+// ──────────────────────────────────────────────────────────
+router.get("/payroll/payslip-email-logs/export.csv", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { period, collaboratorId, status } = req.query;
+
+    const conditions = [eq(payslipsTable.organizationId, orgId)];
+    if (period && typeof period === "string") conditions.push(eq(payslipsTable.period, period));
+    if (collaboratorId && typeof collaboratorId === "string") conditions.push(eq(payslipsTable.collaboratorId, collaboratorId));
+    if (status && typeof status === "string") conditions.push(eq(payslipEmailLogsTable.status, status));
+
+    const rows = await db
+      .select({
+        collaboratorFirstName: collaboratorsTable.firstName,
+        collaboratorLastName: collaboratorsTable.lastName,
+        period: payslipsTable.period,
+        sentTo: payslipEmailLogsTable.sentTo,
+        status: payslipEmailLogsTable.status,
+        sentAt: payslipEmailLogsTable.sentAt,
+        errorMessage: payslipEmailLogsTable.errorMessage,
+      })
+      .from(payslipEmailLogsTable)
+      .innerJoin(payslipsTable, eq(payslipEmailLogsTable.payslipId, payslipsTable.id))
+      .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(payslipEmailLogsTable.sentAt));
+
+    const STATUS_LABELS: Record<string, string> = { delivered: "Envoyé", failed: "Échec" };
+    const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+
+    const header = ["Collaborateur", "Période", "Email destinataire", "Statut", "Date d'envoi", "Message d'erreur"];
+    const lines = rows.map(r => [
+      `${r.collaboratorFirstName ?? ""} ${r.collaboratorLastName ?? ""}`.trim(),
+      r.period,
+      r.sentTo,
+      STATUS_LABELS[r.status] ?? r.status,
+      new Date(r.sentAt).toLocaleString("fr-FR", { timeZone: "UTC" }),
+      r.errorMessage ?? "",
+    ].map(csvEscape).join(","));
+
+    const csv = [header.map(csvEscape).join(","), ...lines].join("\r\n");
+    const filename = `historique_emails_bulletins${period ? `_${period}` : ""}.csv`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send("\uFEFF" + csv);
+  } catch (e) { next(e); }
+});
+
+// ──────────────────────────────────────────────────────────
 // LIVRE DE PAIE
 // ──────────────────────────────────────────────────────────
 router.get("/payroll/livre", requireManagerOrAbove, async (req, res, next) => {

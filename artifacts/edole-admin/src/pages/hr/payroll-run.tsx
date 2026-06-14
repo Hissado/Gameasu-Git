@@ -225,6 +225,7 @@ export default function PayrollRun() {
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [exportingEmailCsv, setExportingEmailCsv] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   const [emailingId, setEmailingId] = useState<string | null>(null);
   const [emailLogsPopover, setEmailLogsPopover] = useState<string | null>(null);
@@ -705,6 +706,24 @@ export default function PayrollRun() {
                   </Button>
                 </>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={exportingEmailCsv}
+                onClick={async () => {
+                  setExportingEmailCsv(true);
+                  try {
+                    const params = new URLSearchParams();
+                    if (run?.period) params.set("period", run.period);
+                    await downloadFile(`${API}/payroll/payslip-email-logs/export.csv?${params}`, `historique_emails_bulletins_${run?.period ?? runId}.csv`);
+                  } catch (e: any) {
+                    toast({ title: "Erreur export CSV", description: e.message, variant: "destructive" });
+                  } finally { setExportingEmailCsv(false); }
+                }}
+              >
+                {exportingEmailCsv ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
+                Exporter emails CSV
+              </Button>
               <Button
                 size="lg"
                 onClick={() => flushAndProceed(() => validateMut.mutate())}
