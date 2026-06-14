@@ -716,86 +716,424 @@ function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void
 }
 
 // ────────────────────────────────────────────────────────────────
-// Rapports personnalisés tab (scaffold)
+// Rapports personnalisés tab
 // ────────────────────────────────────────────────────────────────
+
+const MODULE_COLS: Record<string, string[]> = {
+  accounting: ["Date", "Référence", "Compte", "Libellé", "Débit", "Crédit", "Solde", "Journal"],
+  finance:    ["Date", "Type", "Tiers", "Montant HT", "Taxes", "Montant TTC", "Solde", "Statut"],
+  sales:      ["Date", "Référence", "Client", "Montant HT", "Taxes", "Montant TTC", "Paiement", "Solde", "Statut"],
+  hr:         ["Collaborateur", "Département", "Poste", "Contrat", "Salaire", "Congés", "Présence", "Statut"],
+  projects:   ["Projet", "Chef de projet", "Département", "Budget", "Réalisé", "Avancement", "Date fin", "Statut"],
+  inventory:  ["Référence", "Désignation", "Catégorie", "Qté", "Valeur unitaire", "Valeur totale", "Emplacement", "Statut"],
+};
+
+const MODULE_STATUTS: Record<string, { value: string; label: string }[]> = {
+  accounting: [{ value: "posted", label: "Comptabilisé" }, { value: "draft", label: "Brouillon" }],
+  finance:    [{ value: "paid", label: "Payé" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }],
+  sales:      [{ value: "paid", label: "Payée" }, { value: "pending", label: "En attente" }, { value: "overdue", label: "En retard" }, { value: "draft", label: "Brouillon" }, { value: "cancelled", label: "Annulé" }],
+  hr:         [{ value: "active", label: "Actif" }, { value: "inactive", label: "Inactif" }, { value: "trial", label: "Période d'essai" }],
+  projects:   [{ value: "in_progress", label: "En cours" }, { value: "completed", label: "Terminé" }, { value: "on_hold", label: "En attente" }, { value: "cancelled", label: "Annulé" }],
+  inventory:  [{ value: "available", label: "Disponible" }, { value: "reserved", label: "Réservé" }, { value: "out_of_stock", label: "Rupture" }],
+};
+
+const PERIOD_OPTIONS = [
+  { value: "this_month",    label: "Ce mois-ci" },
+  { value: "last_month",    label: "Mois dernier" },
+  { value: "this_quarter",  label: "Ce trimestre" },
+  { value: "last_quarter",  label: "Trimestre dernier" },
+  { value: "this_year",     label: "Cette année" },
+  { value: "last_year",     label: "Année dernière" },
+  { value: "last_30",       label: "30 derniers jours" },
+  { value: "last_90",       label: "90 derniers jours" },
+  { value: "custom",        label: "Période personnalisée…" },
+];
+
+const GROUP_OPTIONS = [
+  { value: "", label: "Aucun groupement" },
+  { value: "client",     label: "Par client / tiers" },
+  { value: "month",      label: "Par mois" },
+  { value: "department", label: "Par département" },
+  { value: "project",    label: "Par projet" },
+  { value: "status",     label: "Par statut" },
+  { value: "account",    label: "Par compte" },
+];
+
+const SORT_OPTIONS = [
+  { value: "date_desc",   label: "Date (récent → ancien)" },
+  { value: "date_asc",    label: "Date (ancien → récent)" },
+  { value: "amount_desc", label: "Montant (décroissant)" },
+  { value: "amount_asc",  label: "Montant (croissant)" },
+  { value: "name_asc",    label: "Nom (A → Z)" },
+];
+
+type ReportRow = Record<string, string | number>;
 
 function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => void }) {
   const modules = [
-    { id: "accounting", label: "Comptabilité", icon: BarChart3 },
-    { id: "finance",    label: "Finance",       icon: Banknote },
     { id: "sales",      label: "Ventes",        icon: ShoppingCart },
-    { id: "hr",         label: "RH",            icon: Users },
-    { id: "projects",   label: "Projets",       icon: Briefcase },
-    { id: "inventory",  label: "Inventaire",    icon: Package },
+    { id: "finance",    label: "Finance",        icon: Banknote },
+    { id: "accounting", label: "Comptabilité",   icon: BarChart3 },
+    { id: "projects",   label: "Projets",        icon: Briefcase },
+    { id: "hr",         label: "RH",             icon: Users },
+    { id: "inventory",  label: "Inventaire",     icon: Package },
   ];
-  const [module, setModule] = useState("sales");
-  const [cols, setCols] = useState<string[]>(["Date", "Client", "Montant TTC", "Statut"]);
-  const allCols = ["Date", "Référence", "Client", "Fournisseur", "Compte", "Département", "Projet", "Montant HT", "Taxes", "Montant TTC", "Paiement", "Solde", "Statut", "Responsable", "Notes"];
+
+  const [module, setModule]     = useState("sales");
+  const [period, setPeriod]     = useState("this_month");
+  const [statut, setStatut]     = useState("all");
+  const [groupBy, setGroupBy]   = useState("");
+  const [sortBy, setSortBy]     = useState("date_desc");
+  const [search, setSearch]     = useState("");
+  const [generated, setGenerated] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [reportName, setReportName] = useState("Mon rapport");
+
+  const defaultCols = MODULE_COLS[module] ?? [];
+  const [cols, setCols] = useState<string[]>(defaultCols.slice(0, 5));
+
+  // Reset cols quand module change
+  const [prevModule, setPrevModule] = useState(module);
+  if (module !== prevModule) {
+    setPrevModule(module);
+    setCols((MODULE_COLS[module] ?? []).slice(0, 5));
+    setStatut("all");
+    setGenerated(false);
+  }
+
+  const statuts = MODULE_STATUTS[module] ?? [];
+  const allCols  = MODULE_COLS[module] ?? [];
+
+  // Fausse donnée de prévisualisation cohérente par module
+  const previewRows = useMemo<ReportRow[]>(() => {
+    const base: Record<string, ReportRow[]> = {
+      sales: [
+        { Date: "01/06/2026", Référence: "FAC-2026-0112", Client: "SOGELEC Cameroun",  "Montant TTC": "2 450 000 FCFA", Paiement: "Virement", Statut: "Payée" },
+        { Date: "03/06/2026", Référence: "FAC-2026-0113", Client: "BTP Gabon SARL",    "Montant TTC": "1 180 000 FCFA", Paiement: "Chèque",   Statut: "En attente" },
+        { Date: "07/06/2026", Référence: "FAC-2026-0114", Client: "CONLOG CI",         "Montant TTC": "3 720 000 FCFA", Paiement: "—",         Statut: "En retard" },
+        { Date: "10/06/2026", Référence: "FAC-2026-0115", Client: "MinesCorp RDC",     "Montant TTC": "890 000 FCFA",   Paiement: "Espèces",   Statut: "Payée" },
+        { Date: "12/06/2026", Référence: "FAC-2026-0116", Client: "SOGELEC Cameroun",  "Montant TTC": "560 000 FCFA",   Paiement: "—",         Statut: "Brouillon" },
+      ],
+      finance: [
+        { Date: "01/06/2026", Type: "Facture client",    Tiers: "SOGELEC Cameroun", "Montant TTC": "2 450 000 FCFA", Solde: "0 FCFA",         Statut: "Payé" },
+        { Date: "03/06/2026", Type: "Facture client",    Tiers: "BTP Gabon SARL",   "Montant TTC": "1 180 000 FCFA", Solde: "1 180 000 FCFA", Statut: "En attente" },
+        { Date: "07/06/2026", Type: "Facture fournisseur", Tiers: "Fourni Tech SA", "Montant TTC": "450 000 FCFA",   Solde: "450 000 FCFA",   Statut: "En retard" },
+      ],
+      accounting: [
+        { Date: "01/06/2026", Référence: "JNL-001", Compte: "411100", Libellé: "Fact. SOGELEC",    Débit: "2 450 000", Crédit: "—",           Journal: "VTE" },
+        { Date: "01/06/2026", Référence: "JNL-001", Compte: "707000", Libellé: "Vente services",  Débit: "—",           Crédit: "2 124 000", Journal: "VTE" },
+        { Date: "05/06/2026", Référence: "BNK-012", Compte: "521000", Libellé: "Encaissement",    Débit: "2 450 000", Crédit: "—",           Journal: "BNK" },
+      ],
+      hr: [
+        { Collaborateur: "Jacques Mballa",  Département: "Direction",    Poste: "DG",            Contrat: "CDI",     Salaire: "850 000 FCFA", Statut: "Actif" },
+        { Collaborateur: "Aissatou Bah",    Département: "Finance",      Poste: "DAF",           Contrat: "CDI",     Salaire: "620 000 FCFA", Statut: "Actif" },
+        { Collaborateur: "Kofi Asante",     Département: "Commercial",   Poste: "Dir. Ventes",   Contrat: "CDI",     Salaire: "580 000 FCFA", Statut: "Actif" },
+        { Collaborateur: "Marie Nguema",    Département: "Opérations",   Poste: "Responsable",   Contrat: "CDD",     Salaire: "420 000 FCFA", Statut: "Actif" },
+      ],
+      projects: [
+        { Projet: "Infrastructure SOGELEC", "Chef de projet": "K. Asante", Budget: "12 500 000 FCFA", Réalisé: "8 200 000 FCFA", Avancement: "66 %", Statut: "En cours" },
+        { Projet: "Audit BTP Gabon",        "Chef de projet": "A. Bah",    Budget: "4 800 000 FCFA",  Réalisé: "4 800 000 FCFA", Avancement: "100 %",Statut: "Terminé" },
+        { Projet: "Expansion CONLOG",       "Chef de projet": "M. Nguema", Budget: "7 200 000 FCFA",  Réalisé: "1 100 000 FCFA", Avancement: "15 %", Statut: "En cours" },
+      ],
+      inventory: [
+        { Référence: "EQP-001", Désignation: "Grue mobile 50T",    Catégorie: "Engins",     Qté: "1", "Valeur totale": "45 000 000 FCFA", Statut: "Disponible" },
+        { Référence: "EQP-002", Désignation: "Compresseur 200 bar", Catégorie: "Matériel",   Qté: "3", "Valeur totale": "6 750 000 FCFA",  Statut: "Réservé" },
+        { Référence: "EQP-003", Désignation: "Échafaudage acier",   Catégorie: "Structure",  Qté: "12","Valeur totale": "2 400 000 FCFA",  Statut: "Disponible" },
+      ],
+    };
+    return (base[module] ?? []).filter(row =>
+      !search || Object.values(row).some(v => String(v).toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [module, search]);
+
+  // Colonnes à afficher dans l'aperçu (intersection cols sélectionnées ∩ colonnes du preview)
+  const visibleCols = cols.filter(c => previewRows.length > 0 && c in previewRows[0]);
+
+  function handleGenerate() {
+    setGenerating(true);
+    setTimeout(() => { setGenerating(false); setGenerated(true); }, 800);
+  }
+
+  function handleExportExcel() {
+    onOpen(module, reportName);
+  }
+
+  const periodLabel = PERIOD_OPTIONS.find(p => p.value === period)?.label ?? "Ce mois-ci";
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Settings2 className="w-4 h-4 text-[#C8A24B]" /> Créer un rapport personnalisé</CardTitle>
-          <CardDescription>Choisissez la source de données, les colonnes, les filtres et les regroupements.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Source de données</p>
-            <div className="flex flex-wrap gap-2">
-              {modules.map(m => {
-                const Icon = m.icon;
-                return (
-                  <button key={m.id} onClick={() => setModule(m.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${module === m.id ? "bg-[#C8A24B] text-white border-[#C8A24B]" : "bg-white border-slate-200 text-slate-600 hover:border-[#C8A24B] hover:text-[#C8A24B]"}`}>
-                    <Icon className="w-3.5 h-3.5" /> {m.label}
-                  </button>
-                );
-              })}
-            </div>
+    <div className="space-y-4">
+      {/* ─── En-tête ─── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-slate-800">Rapport personnalisé</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Configurez la source, les colonnes, les filtres et les regroupements.</p>
+        </div>
+        {generated && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setGenerated(false)}>
+              <Settings2 className="w-3.5 h-3.5" /> Modifier
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
+              <Download className="w-3.5 h-3.5" /> Excel
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={async () => {
+              const { saveDivAsPdf } = await import("@/lib/pdf");
+              const el = document.getElementById("custom-report-preview");
+              if (el) saveDivAsPdf(el, `rapport-${module}-${new Date().toISOString().slice(0,10)}.pdf`);
+            }}>
+              <FileText className="w-3.5 h-3.5" /> PDF
+            </Button>
           </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Colonnes affichées</p>
-            <div className="flex flex-wrap gap-1.5">
-              {allCols.map(c => {
-                const active = cols.includes(c);
-                return (
-                  <button key={c} onClick={() => setCols(prev => active ? prev.filter(x => x !== c) : [...prev, c])}
-                    className={`px-2.5 py-1 rounded text-xs border transition-colors ${active ? "bg-slate-800 text-white border-slate-800" : "bg-white border-slate-200 text-slate-600 hover:border-slate-400"}`}>
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
+        )}
+      </div>
+
+      <div className={`grid gap-4 ${generated ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"}`}>
+
+        {/* ─── Panneau de configuration ─── */}
+        {!generated && (
+          <div className="lg:col-span-1 space-y-4">
+
+            {/* Nom du rapport */}
+            <Card className="shadow-none border-slate-200">
+              <CardContent className="pt-4 pb-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom du rapport</p>
+                <Input value={reportName} onChange={e => setReportName(e.target.value)}
+                  placeholder="Ex : Factures juin 2026" className="h-8 text-sm" />
+              </CardContent>
+            </Card>
+
+            {/* Source */}
+            <Card className="shadow-none border-slate-200">
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source de données</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {modules.map(m => {
+                    const Icon = m.icon;
+                    return (
+                      <button key={m.id} onClick={() => setModule(m.id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-all ${module === m.id
+                          ? "bg-[#C8A24B] text-white border-[#C8A24B] shadow-sm"
+                          : "bg-white border-slate-200 text-slate-600 hover:border-[#C8A24B]/50 hover:bg-amber-50/40"}`}>
+                        <Icon className="w-3.5 h-3.5 shrink-0" /> {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Filtres */}
+            <Card className="shadow-none border-slate-200">
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filtres</p>
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500 font-medium">Période</label>
+                    <Select value={period} onValueChange={setPeriod}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PERIOD_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500 font-medium">Statut</label>
+                    <Select value={statut} onValueChange={setStatut}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="text-xs">Tous les statuts</SelectItem>
+                        {statuts.map(s => <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500 font-medium">Grouper par</label>
+                    <Select value={groupBy} onValueChange={setGroupBy}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {GROUP_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-500 font-medium">Trier par</label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "Période",     placeholder: "Ce mois-ci" },
-              { label: "Client",      placeholder: "Tous les clients" },
-              { label: "Département", placeholder: "Tous les dép." },
-              { label: "Statut",      placeholder: "Tous les statuts" },
-            ].map(f => (
-              <div key={f.label} className="space-y-1">
-                <label className="text-xs text-muted-foreground font-medium">{f.label}</label>
-                <select className="w-full text-xs border border-input rounded px-2 py-1.5 bg-background text-slate-600">
-                  <option>{f.placeholder}</option>
-                </select>
+        )}
+
+        {/* ─── Sélection des colonnes + aperçu ─── */}
+        <div className={`space-y-4 ${generated ? "" : "lg:col-span-2"}`}>
+
+          {!generated && (
+            <Card className="shadow-none border-slate-200">
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Colonnes affichées</p>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setCols([...allCols])} className="text-xs text-[#C8A24B] hover:underline">Tout</button>
+                    <span className="text-slate-300">|</span>
+                    <button onClick={() => setCols([])} className="text-xs text-slate-400 hover:underline">Aucune</button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {allCols.map(c => {
+                    const active = cols.includes(c);
+                    return (
+                      <button key={c} onClick={() => setCols(prev => active ? prev.filter(x => x !== c) : [...prev, c])}
+                        className={`px-2.5 py-1 rounded-md text-xs border font-medium transition-all ${active
+                          ? "bg-slate-800 text-white border-slate-800"
+                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                        {active && <span className="mr-1 opacity-60">✓</span>}{c}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Aperçu / résultat */}
+          <Card className="shadow-none border-slate-200">
+            <CardHeader className="pb-2 pt-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-slate-700">
+                  {generated ? reportName : "Aperçu"}
+                </CardTitle>
+                {generated && (
+                  <span className="text-xs text-muted-foreground">{periodLabel} · {previewRows.length} ligne(s)</span>
+                )}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2 pt-2">
-            <Button onClick={() => onOpen(module, "Rapport personnalisé")} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
-              <Zap className="w-4 h-4" /> Générer le rapport
+              {generated && (
+                <div className="pt-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <Input value={search} onChange={e => setSearch(e.target.value)}
+                      placeholder="Rechercher dans le rapport…" className="h-8 pl-8 text-xs" />
+                  </div>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0 pb-4">
+              {!generated ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                    <Table2 className="w-5 h-5 text-[#C8A24B]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Configurez et générez votre rapport</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sélectionnez la source, les filtres et les colonnes, puis cliquez sur Générer.</p>
+                  </div>
+                  <Button onClick={handleGenerate} disabled={generating || cols.length === 0}
+                    className="mt-2 bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+                    {generating
+                      ? <><RefreshCcw className="w-4 h-4 animate-spin" /> Génération…</>
+                      : <><Zap className="w-4 h-4" /> Générer le rapport</>
+                    }
+                  </Button>
+                </div>
+              ) : (
+                <div id="custom-report-preview" className="overflow-x-auto">
+                  {previewRows.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground">Aucun résultat pour ces filtres.</div>
+                  ) : (
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          {(visibleCols.length > 0 ? visibleCols : Object.keys(previewRows[0])).map(c => (
+                            <th key={c} className="text-left py-2 px-3 font-semibold text-slate-500 whitespace-nowrap">{c}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewRows.map((row, i) => {
+                          const displayCols = visibleCols.length > 0 ? visibleCols : Object.keys(row);
+                          return (
+                            <tr key={i} className={`border-b border-slate-50 ${i % 2 === 0 ? "bg-slate-50/40" : "bg-white"}`}>
+                              {displayCols.map(c => {
+                                const val = String(row[c] ?? "—");
+                                const isStatus = c === "Statut";
+                                const statusColors: Record<string, string> = {
+                                  "Payée": "bg-emerald-100 text-emerald-700",
+                                  "Payé": "bg-emerald-100 text-emerald-700",
+                                  "En attente": "bg-amber-100 text-amber-700",
+                                  "En retard": "bg-red-100 text-red-700",
+                                  "Brouillon": "bg-slate-100 text-slate-600",
+                                  "Terminé": "bg-blue-100 text-blue-700",
+                                  "En cours": "bg-indigo-100 text-indigo-700",
+                                  "Actif": "bg-emerald-100 text-emerald-700",
+                                  "Disponible": "bg-emerald-100 text-emerald-700",
+                                  "Réservé": "bg-amber-100 text-amber-700",
+                                };
+                                return (
+                                  <td key={c} className="py-2 px-3 whitespace-nowrap text-slate-700">
+                                    {isStatus
+                                      ? <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColors[val] ?? "bg-slate-100 text-slate-600"}`}>{val}</span>
+                                      : val
+                                    }
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Bouton Générer visible sous le panneau colonnes quand pas encore généré */}
+          {!generated && (
+            <Button onClick={handleGenerate} disabled={generating || cols.length === 0}
+              className="w-full bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+              {generating
+                ? <><RefreshCcw className="w-4 h-4 animate-spin" /> Génération en cours…</>
+                : <><Zap className="w-4 h-4" /> Générer le rapport</>
+              }
             </Button>
-            <Button variant="outline" className="gap-2">
-              <Download className="w-4 h-4" /> Exporter Excel
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <Share2 className="w-4 h-4" /> Sauvegarder le modèle
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Modèles suggérés */}
+      {!generated && (
+        <Card className="shadow-none border-slate-200">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-[#C8A24B]" /> Modèles prêts à l'emploi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {[
+                { label: "Factures du mois",       mod: "sales",    period: "this_month",   desc: "Toutes les factures émises ce mois" },
+                { label: "Impayés > 30 jours",     mod: "sales",    period: "last_90",       desc: "Factures en retard à relancer" },
+                { label: "Charges du trimestre",    mod: "finance",  period: "this_quarter",  desc: "Toutes les dépenses sur la période" },
+                { label: "Écritures comptables",   mod: "accounting",period: "this_month",   desc: "Journal général du mois en cours" },
+                { label: "Salaires et effectif",   mod: "hr",       period: "this_month",    desc: "Masse salariale et liste collaborateurs" },
+                { label: "Avancement projets",     mod: "projects", period: "this_quarter",  desc: "Budget vs réalisé par projet" },
+              ].map(t => (
+                <button key={t.label} onClick={() => { setModule(t.mod); setPeriod(t.period); setReportName(t.label); setCols((MODULE_COLS[t.mod]??[]).slice(0,5)); setGenerated(false); }}
+                  className="text-left border border-slate-200 rounded-lg p-3 hover:border-[#C8A24B]/60 hover:bg-amber-50/20 transition-all group">
+                  <p className="text-xs font-semibold text-slate-700 group-hover:text-[#C8A24B] transition-colors">{t.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</p>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
