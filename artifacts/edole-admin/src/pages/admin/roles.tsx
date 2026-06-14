@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, Plus, Settings2, Trash2, Lock, Users } from "lucide-react";
+import { ShieldCheck, Plus, Settings2, Trash2, Lock, Users, Copy } from "lucide-react";
 
 type Role = { id: string; code: string; name: string; description?: string; isSystem: boolean; level?: number; permissionsCount: number; usersCount: number };
 type Perm = { id: string; code: string; label: string; category: string };
@@ -31,6 +31,7 @@ export default function AdminRolesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editPermsRoleId, setEditPermsRoleId] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState<Role | null>(null);
+  const [dupRole, setDupRole] = useState<Role | null>(null);
 
   const create = useMutation({
     mutationFn: (body: any) => apiFetch("/api/admin/roles", { method: "POST", body }),
@@ -41,6 +42,12 @@ export default function AdminRolesPage() {
     mutationFn: (id: string) => apiFetch(`/api/admin/roles/${id}`, { method: "DELETE" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin/roles"] }); toast({ title: "Rôle supprimé" }); setConfirmDel(null); },
     onError: (e: any) => toast({ title: "Suppression impossible", description: e?.body?.error, variant: "destructive" }),
+  });
+  const duplicate = useMutation({
+    mutationFn: ({ id, newCode, newName }: { id: string; newCode: string; newName: string }) =>
+      apiFetch(`/api/admin/roles/${id}/duplicate`, { method: "POST", body: { newCode, newName } as any }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin/roles"] }); toast({ title: "Rôle dupliqué avec succès" }); setDupRole(null); },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error, variant: "destructive" }),
   });
 
   return (
@@ -82,6 +89,9 @@ export default function AdminRolesPage() {
                 <Button size="sm" variant="outline" onClick={() => setEditPermsRoleId(r.id)}>
                   <Settings2 className="w-3 h-3 mr-1" /> Permissions
                 </Button>
+                <Button size="sm" variant="ghost" title="Dupliquer ce rôle" onClick={() => setDupRole(r)}>
+                  <Copy className="w-3 h-3" />
+                </Button>
                 {!r.isSystem && (
                   <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => setConfirmDel(r)}>
                     <Trash2 className="w-3 h-3" />
@@ -95,6 +105,16 @@ export default function AdminRolesPage() {
 
       {/* Création */}
       <CreateRoleDialog open={createOpen} onOpenChange={setCreateOpen} onSubmit={(b) => create.mutate(b)} pending={create.isPending} />
+
+      {/* Duplication */}
+      {dupRole && (
+        <DuplicateRoleDialog
+          source={dupRole}
+          onClose={() => setDupRole(null)}
+          onSubmit={(newCode, newName) => duplicate.mutate({ id: dupRole.id, newCode, newName })}
+          pending={duplicate.isPending}
+        />
+      )}
 
       {/* Édition matrice */}
       {editPermsRoleId && (
@@ -115,6 +135,29 @@ export default function AdminRolesPage() {
         onConfirm={() => { if (confirmDel) remove.mutate(confirmDel.id); }}
       />
     </div>
+  );
+}
+
+function DuplicateRoleDialog({ source, onClose, onSubmit, pending }: { source: { id: string; code: string; name: string }; onClose: () => void; onSubmit: (newCode: string, newName: string) => void; pending: boolean }) {
+  const [code, setCode] = useState(`${source.code}_copie`);
+  const [name, setName] = useState(`${source.name} (copie)`);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Dupliquer « {source.name} »</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Le nouveau rôle héritera de toutes les permissions du rôle source. Vous pourrez les ajuster ensuite.</p>
+        <div className="space-y-3">
+          <div><Label>Code du nouveau rôle (technique)</Label><Input value={code} onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} placeholder="ex: chef_projet_copie" /></div>
+          <div><Label>Nom du nouveau rôle</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={() => onSubmit(code, name)} disabled={pending || !code || !name}>
+            {pending ? "Duplication…" : "Dupliquer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

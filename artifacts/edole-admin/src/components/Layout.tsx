@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BRANDING } from "@/config/branding";
 import { PlanBadge } from "@/components/PlanBadge";
 import { useCurrentOrganization, useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
+import { usePermissions } from "@/lib/permissions";
 import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 import { AppBreadcrumb } from "@/components/AppBreadcrumb";
@@ -26,6 +27,7 @@ import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   moduleKey?: string;
+  permissionKey?: string;
   secondary?: boolean;
 };
 type NavGroup = {
@@ -41,9 +43,9 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard" },
       { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard" },
-      { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications" },
-      { name: "Appels",           path: "/calls",        icon: PhoneCall,       moduleKey: "communications" },
-      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       secondary: true },
+      { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use" },
+      { name: "Appels",           path: "/calls",        icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use" },
+      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true },
       { name: "Approbations",     path: "/approvals",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
     ],
   },
@@ -51,72 +53,72 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Ventes",
     icon: TrendingUp,
     items: [
-      { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing" },
-      { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm" },
-      { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients" },
-      { name: "Tarification",  path: "/pricing",      icon: Tag,           moduleKey: "sales_crm" },
-      { name: "Devis",         path: "/proformas",    icon: FileSignature, moduleKey: "sales_crm" },
-      { name: "Commandes",     path: "/orders",       icon: ShoppingCart,  moduleKey: "sales_crm" },
-      { name: "Factures",      path: "/invoices",     icon: FileText,      moduleKey: "sales_crm" },
-      { name: "Encaissements", path: "/payments",     icon: CreditCard,    moduleKey: "sales_crm" },
-      { name: "Avoirs",        path: "/credit-notes", icon: MinusCircle,   moduleKey: "sales_crm",  secondary: true },
+      { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read" },
+      { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients",    permissionKey: "clients.read" },
+      { name: "Tarification",  path: "/pricing",      icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Devis",         path: "/proformas",    icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Commandes",     path: "/orders",       icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Factures",      path: "/invoices",     icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Encaissements", path: "/payments",     icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Avoirs",        path: "/credit-notes", icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true },
     ],
   },
   {
     title: "Projets",
     icon: FolderKanban,
     items: [
-      { name: "Projets",       path: "/projects",   icon: FolderKanban,  moduleKey: "projects" },
-      { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks" },
-      { name: "Portefeuille",  path: "/portfolio",  icon: LayoutGrid,    moduleKey: "projects",   secondary: true },
-      { name: "Charge équipe", path: "/workload",   icon: Activity,      moduleKey: "projects",   secondary: true },
-      { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",  secondary: true },
+      { name: "Projets",       path: "/projects",   icon: FolderKanban,  moduleKey: "projects",   permissionKey: "projects.read" },
+      { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks",      permissionKey: "tasks.read" },
+      { name: "Portefeuille",  path: "/portfolio",  icon: LayoutGrid,    moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
+      { name: "Charge équipe", path: "/workload",   icon: Activity,      moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
+      { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",  permissionKey: "documents.read",  secondary: true },
     ],
   },
   {
     title: "Logistique",
     icon: Truck,
     items: [
-      { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services" },
-      { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations" },
-      { name: "Stock",       path: "/inventory",  icon: Package,        moduleKey: "inventory_products" },
-      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets" },
-      { name: "Locations",   path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals" },
+      { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services",            permissionKey: "services.read" },
+      { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations",          permissionKey: "operations.view" },
+      { name: "Stock",       path: "/inventory",  icon: Package,        moduleKey: "inventory_products",  permissionKey: "inventory.read" },
+      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets",    permissionKey: "equipment.read" },
+      { name: "Locations",   path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals",             permissionKey: "equipment.read" },
     ],
   },
   {
     title: "Finance",
     icon: Landmark,
     items: [
-      { name: "Intelligence",          path: "/finance/intelligence",    icon: Brain,      moduleKey: "accounting" },
-      { name: "Comptabilité",         path: "/accounting",              icon: Calculator, moduleKey: "accounting" },
-      { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,   moduleKey: "accounting" },
-      { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,   moduleKey: "accounting" },
-      { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,      moduleKey: "accounting" },
-      { name: "Clôture des périodes", path: "/accounting/period-close",   icon: CalendarCheck, moduleKey: "accounting" },
-      { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp, moduleKey: "financial_planning" },
-      { name: "Rapports",             path: "/reports",                  icon: BarChart3,  moduleKey: "reports" },
+      { name: "Intelligence",          path: "/finance/intelligence",    icon: Brain,         moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Comptabilité",         path: "/accounting",              icon: Calculator,    moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,      moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,      moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,         moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Clôture des périodes", path: "/accounting/period-close", icon: CalendarCheck, moduleKey: "accounting",          permissionKey: "accounting.manage" },
+      { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp,    moduleKey: "financial_planning",  permissionKey: "fpa.read" },
+      { name: "Rapports",             path: "/reports",                 icon: BarChart3,     moduleKey: "reports",             permissionKey: "accounting.read" },
     ],
   },
   {
     title: "Équipe",
     icon: Users2,
     items: [
-      { name: "Ressources humaines",  path: "/hr",               icon: UsersRound,        moduleKey: "team_hr" },
-      { name: "Présences",            path: "/attendance",        icon: Clock,             moduleKey: "team_hr" },
-      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr", secondary: true },
+      { name: "Ressources humaines",  path: "/hr",               icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read" },
+      { name: "Présences",            path: "/attendance",        icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view" },
+      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true },
     ],
   },
   {
     title: "Admin",
     icon: Shield,
     items: [
-      { name: "Migration & Import", path: "/migration", icon: Database, moduleKey: "workspace_settings" },
-      { name: "Paramètres",    path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings" },
-      { name: "Abonnement",    path: "/billing",             icon: CreditCard, moduleKey: "billing_subscription" },
-      { name: "Console admin", path: "/admin",               icon: Shield,     moduleKey: "administration",    secondary: true },
-      { name: "Automatisations", path: "/automations",       icon: Workflow,   moduleKey: "administration",    secondary: true },
-      { name: "Support",       path: "/tickets",             icon: LifeBuoy,                                   secondary: true },
+      { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",    permissionKey: "admin.access" },
+      { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",    permissionKey: "settings.read" },
+      { name: "Abonnement",         path: "/billing",            icon: CreditCard, moduleKey: "billing_subscription",  permissionKey: "admin.access" },
+      { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",        permissionKey: "admin.access",    secondary: true },
+      { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",        permissionKey: "automation.read", secondary: true },
+      { name: "Support",            path: "/tickets",            icon: LifeBuoy,                                                                         secondary: true },
     ],
   },
 ];
@@ -149,6 +151,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     (modules ?? []).forEach((m) => { if (m.enabled) set.add(m.moduleKey); });
     return set;
   }, [modules]);
+
+  const perms = usePermissions();
+
+  const isItemVisible = (item: NavItem) => {
+    if (item.permissionKey && !perms.isAdmin && !perms.has(item.permissionKey)) return false;
+    return true;
+  };
 
   const initials = ((user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")).toUpperCase() || "NX";
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Utilisateur";
@@ -248,6 +257,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             const isOpen = openGroups.has(group.title);
             const hasActive = isGroupActive(group, location);
             const GroupIcon = group.icon;
+            if (!group.items.some((i) => isItemVisible(i))) return null;
 
             return (
               <div key={group.title}>
@@ -295,8 +305,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 >
                   <div className="overflow-hidden">
                     <ul className="pt-0.5 pb-1 pl-2 space-y-0.5">
-                      {/* ── Items primaires — toujours visibles ── */}
-                      {group.items.filter(i => !i.secondary).map((item) => {
+                      {/* ── Items primaires — filtrés par permission ── */}
+                      {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                         const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
                         const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
@@ -317,8 +327,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                         );
                       })}
                       {/* ── Items secondaires + toggle ── */}
-                      {group.items.some(i => i.secondary) && (() => {
-                        const sec = group.items.filter(i => i.secondary);
+                      {group.items.some(i => i.secondary && isItemVisible(i)) && (() => {
+                        const sec = group.items.filter(i => i.secondary && isItemVisible(i));
                         const isExp = expandedGroups.has(group.title);
                         return (
                           <>

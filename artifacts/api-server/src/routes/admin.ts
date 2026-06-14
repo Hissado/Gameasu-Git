@@ -149,6 +149,81 @@ router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), as
 });
 
 // ════════════════════════════════════════════════════════════════════
+// DUPLICATION DE RÔLE
+// ════════════════════════════════════════════════════════════════════
+router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), async (req, res, next) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    const [src] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+    if (!src) return res.status(404).json({ error: "Introuvable" });
+    const rawCode = (req.body?.newCode ?? `${src.code}_copie`).toString().trim();
+    const rawName = (req.body?.newName ?? `${src.name} (copie)`).toString().trim();
+    if (!/^[a-z0-9_]+$/.test(rawCode)) return res.status(400).json({ error: "code invalide (minuscules, chiffres, _)" });
+    const srcPerms = await db
+      .select({ permissionId: rolePermissionsTable.permissionId })
+      .from(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, src.id));
+    const [newRole] = await db.insert(rolesTable).values({
+      code: rawCode, name: rawName,
+      description: src.description ? `Copie de : ${src.description}` : undefined,
+      level: src.level, isSystem: false,
+    }).returning();
+    if (srcPerms.length > 0) {
+      await db.insert(rolePermissionsTable).values(srcPerms.map((p) => ({
+        roleId: newRole.id, permissionId: p.permissionId, grantedById: req.authUser?.id ?? null,
+      })));
+    }
+    invalidatePermissionsCache();
+    await audit(req, "create", { entityType: "role", entityId: newRole.id, payload: { duplicatedFrom: src.id, ...newRole } });
+    return res.status(201).json({ ...newRole, permissionsCount: srcPerms.length, usersCount: 0 });
+  } catch (e: any) {
+    if (e?.code === "23505") return res.status(409).json({ error: "Un rôle avec ce code existe déjà" });
+    return next(e);
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// ACCÈS EFFECTIFS D'UN UTILISATEUR
+// ════════════════════════════════════════════════════════════════════
+router.get("/admin/users/:id/effective-permissions", requirePermission("users.read"), async (req, res, next) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    const [u] = await db.select({
+      id: usersTable.id, email: usersTable.email,
+      firstName: usersTable.firstName, lastName: usersTable.lastName,
+      role: usersTable.role, isActive: usersTable.isActive,
+    }).from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+    if (!u) return res.status(404).json({ error: "Introuvable" });
+    const isFullAccess = u.role === "super_admin" || u.role === "admin";
+    const [roleRow] = await db.select().from(rolesTable).where(eq(rolesTable.code, u.role)).limit(1);
+    let permDetails: { code: string; label: string; category: string }[] = [];
+    if (roleRow) {
+      permDetails = await db
+        .select({ code: permissionsTable.code, label: permissionsTable.label, category: permissionsTable.category })
+        .from(rolePermissionsTable)
+        .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
+        .where(eq(rolePermissionsTable.roleId, roleRow.id))
+        .orderBy(permissionsTable.category, permissionsTable.code);
+    }
+    const projectAccess = await db
+      .select({
+        projectId: userProjectAccessTable.projectId,
+        accessLevel: userProjectAccessTable.accessLevel,
+        projectName: projectsTable.name,
+      })
+      .from(userProjectAccessTable)
+      .leftJoin(projectsTable, eq(projectsTable.id, userProjectAccessTable.projectId))
+      .where(eq(userProjectAccessTable.userId, u.id));
+    return res.json({
+      user: u, role: roleRow ?? null,
+      isFullAccess,
+      permissions: permDetails.map((p) => p.code),
+      permissionDetails: permDetails,
+      projectAccess,
+    });
+  } catch (e) { return next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════════
 // DÉPARTEMENTS — alias propres, déjà servis dans /hr
 // ════════════════════════════════════════════════════════════════════
 // Conserver le CRUD existant dans /hr/departments (ancien) + monter ici un

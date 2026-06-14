@@ -1,0 +1,245 @@
+Pouvez-vous mettre en place une vraie logique de gestion des rôles, permissions et accès utilisateurs dans Gaméasù, afin que l’administrateur puisse définir précisément ce que chaque utilisateur peut voir, utiliser, créer, modifier, approuver ou supprimer ?
+
+Objectif
+
+Je veux que chaque organisation puisse gérer les accès de ses utilisateurs de manière flexible et sécurisée.
+
+Chaque utilisateur ne doit avoir accès qu’aux modules, sections, données et actions qui lui sont autorisés.
+
+Par exemple :
+
+* certains utilisateurs auront uniquement accès au module Ventes
+* certains auront uniquement accès au module Ressources humaines
+* certains auront accès à Finance + Ventes
+* certains auront accès à RH + Présences & Pointage
+* certains auront accès à plusieurs modules combinés
+* certains auront un accès limité en lecture seule
+* certains auront un accès manager
+* certains auront un accès administrateur complet
+
+⸻
+
+1. Gestion des rôles par organisation
+
+Comme Gaméasù est une application SaaS multi-tenant, chaque organisation doit pouvoir gérer ses propres rôles.
+
+L’administrateur d’une organisation doit pouvoir :
+
+* créer un rôle
+* modifier un rôle
+* supprimer un rôle si aucun utilisateur critique n’y est lié
+* assigner un rôle à un utilisateur
+* créer des rôles personnalisés
+* dupliquer un rôle existant
+* définir les accès module par module
+* définir les actions autorisées pour chaque module
+
+Exemples de rôles
+
+Prévoir des rôles par défaut comme :
+
+* Super administrateur
+* Administrateur organisation
+* Manager
+* Responsable commercial
+* Responsable RH
+* Responsable finance
+* Comptable
+* Collaborateur
+* Lecture seule
+* Utilisateur personnalisé
+
+⸻
+
+2. Permissions par module
+
+L’administrateur doit pouvoir activer ou désactiver l’accès à chaque module.
+
+Modules à couvrir :
+
+* Tableau de bord
+* Ventes
+* Marketing
+* Pipeline CRM
+* Clients
+* Tarification
+* Devis
+* Commandes
+* Factures
+* Encaissements
+* Avoirs
+* Ressources humaines
+* Équipe & Communication
+* Présences & Pointage
+* Kiosks de pointage
+* Paie
+* Opérations
+* Services
+* Produits & Stock
+* Équipements
+* Locations
+* Comptabilité
+* Trésorerie
+* Recouvrement
+* Budgets & prévisions
+* Rapports
+* Documents
+* Paramètres
+* Abonnement & Facturation
+* Migration & Implémentation
+
+⸻
+
+3. Permissions par action
+
+Pour chaque module, l’administrateur doit pouvoir définir les actions autorisées :
+
+* Voir
+* Créer
+* Modifier
+* Supprimer
+* Approuver
+* Exporter
+* Importer
+* Partager
+* Envoyer
+* Annuler
+* Clôturer
+* Réouvrir
+* Gérer les paramètres
+* Voir les données sensibles
+
+Exemple
+
+Dans le module Ventes, un utilisateur peut avoir le droit de :
+
+* voir les clients
+* créer un devis
+* modifier un devis
+* mais ne pas supprimer une facture
+* ne pas voir les encaissements
+* ne pas exporter les rapports
+
+Dans le module RH, un utilisateur peut avoir le droit de :
+
+* voir uniquement son propre profil
+* demander un congé
+* pointer
+* mais ne pas voir les salaires
+* ne pas voir les dossiers des autres collaborateurs
+
+⸻
+
+4. Accès aux données
+
+La gestion des accès ne doit pas seulement contrôler les menus.
+
+Elle doit aussi contrôler les données visibles.
+
+Prévoir des niveaux d’accès comme :
+
+* voir uniquement ses propres données
+* voir les données de son équipe
+* voir les données de son département
+* voir les données des projets assignés
+* voir toutes les données de l’organisation
+* voir uniquement les données en lecture seule
+
+Exemple
+
+Un manager RH peut voir les présences de son équipe, mais pas forcément les données de paie de toute l’organisation.
+
+Un commercial peut voir ses propres clients et opportunités, mais pas les clients des autres commerciaux sauf autorisation.
+
+⸻
+
+5. Interface d’administration des accès
+
+Créer une page claire dans :
+
+Paramètres → Utilisateurs & Accès
+
+ou
+
+Administration → Rôles & Permissions
+
+Cette page doit permettre à l’administrateur de :
+
+* voir tous les utilisateurs
+* voir leur rôle actuel
+* changer leur rôle
+* activer ou désactiver un utilisateur
+* inviter un nouvel utilisateur
+* assigner des modules
+* définir des permissions personnalisées
+* voir les accès effectifs d’un utilisateur
+* tester ou prévisualiser ce qu’un utilisateur peut voir
+
+⸻
+
+6. Comportement dans l’application
+
+L’interface doit automatiquement s’adapter au niveau d’accès.
+
+Si un utilisateur n’a pas accès à un module :
+
+* le module ne doit pas apparaître dans la sidebar
+* les routes doivent être protégées
+* l’utilisateur ne doit pas pouvoir accéder à la page via URL directe
+* les boutons non autorisés doivent être masqués ou désactivés
+* les actions non autorisées doivent être bloquées côté backend aussi
+
+Important
+
+La sécurité ne doit pas être uniquement côté frontend.
+Les permissions doivent être vérifiées aussi côté backend / API.
+
+⸻
+
+7. Logique SaaS / multi-tenant
+
+Chaque organisation doit avoir ses propres :
+
+* utilisateurs
+* rôles
+* permissions
+* accès modules
+* paramètres de sécurité
+
+Aucun utilisateur ne doit pouvoir accéder aux données d’une autre organisation.
+
+Les permissions doivent toujours être liées à :
+
+* organization_id
+* user_id
+* role_id
+* module_key
+* action_key
+
+⸻
+
+8. Audit trail
+
+Chaque changement d’accès doit être enregistré.
+
+Tracer :
+
+* qui a modifié un rôle
+* quel rôle a été modifié
+* quel utilisateur a été affecté
+* quelles permissions ont changé
+* date et heure
+* ancienne valeur
+* nouvelle valeur
+
+⸻
+
+9. Résultat attendu
+
+Je veux une gestion complète des accès utilisateurs permettant à l’administrateur de définir précisément les rôles et permissions selon le niveau d’accès de chaque utilisateur.
+
+L’objectif est que chaque utilisateur voie uniquement ce qui lui est autorisé, avec une logique simple, sécurisée, flexible et professionnelle.
+
+Objectif final
+
+Créer un système de rôles et permissions robuste, multi-tenant et personnalisable, permettant à chaque organisation de contrôler précisément l’accès de ses utilisateurs aux modules, sections, données et actions de Gaméasù.

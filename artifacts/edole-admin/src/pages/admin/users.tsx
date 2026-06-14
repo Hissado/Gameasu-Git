@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Copy, Pencil, Power, ShieldCheck, FolderKanban, Search } from "lucide-react";
+import { UserPlus, Mail, Copy, Pencil, Power, ShieldCheck, FolderKanban, Search, Eye, X } from "lucide-react";
 
 type User = { id: string; email: string; firstName: string; lastName: string; role: string; phone?: string; isActive: boolean; departmentId?: string; mustChangePassword?: boolean; lastLoginAt?: string; invitedAt?: string; acceptedAt?: string };
 type Role = { id: string; code: string; name: string };
@@ -39,6 +39,7 @@ export default function AdminUsersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [edit, setEdit] = useState<User | null>(null);
   const [accessUser, setAccessUser] = useState<User | null>(null);
+  const [effectiveUser, setEffectiveUser] = useState<User | null>(null);
   const [confirm, setConfirm] = useState<{ user: User; action: "deactivate" | "activate" } | null>(null);
   const [search, setSearch] = useState("");
 
@@ -104,6 +105,7 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("fr-FR") : "Jamais"}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button size="sm" variant="ghost" title="Accès effectifs" onClick={() => setEffectiveUser(u)}><Eye className="w-3.5 h-3.5 text-primary" /></Button>
                       <Button size="sm" variant="ghost" title="Modifier" onClick={() => setEdit(u)}><Pencil className="w-3.5 h-3.5" /></Button>
                       <Button size="sm" variant="ghost" title="Accès projets" onClick={() => setAccessUser(u)}><FolderKanban className="w-3.5 h-3.5" /></Button>
                       <Button size="sm" variant="ghost" title={u.isActive ? "Désactiver" : "Activer"} onClick={() => setConfirm({ user: u, action: u.isActive ? "deactivate" : "activate" })}>
@@ -140,6 +142,10 @@ export default function AdminUsersPage() {
 
       {accessUser && (
         <ProjectAccessDialog user={accessUser} onClose={() => setAccessUser(null)} />
+      )}
+
+      {effectiveUser && (
+        <EffectivePermissionsDialog user={effectiveUser} onClose={() => setEffectiveUser(null)} />
       )}
 
       <ConfirmDialog
@@ -374,6 +380,110 @@ function ProjectAccessDialog({ user, onClose }: { user: User; onClose: () => voi
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>{save.isPending ? "…" : `Enregistrer (${items.size} projets)`}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type EffectivePermsData = {
+  user: { id: string; email: string; firstName: string; lastName: string; role: string; isActive: boolean };
+  role: { id: string; code: string; name: string } | null;
+  isFullAccess: boolean;
+  permissions: string[];
+  permissionDetails: { code: string; label: string; category: string }[];
+  projectAccess: { projectId: string; accessLevel: string; projectName?: string | null }[];
+};
+
+function EffectivePermissionsDialog({ user, onClose }: { user: User; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin/users/effective-permissions", user.id],
+    queryFn: () => apiFetch<EffectivePermsData>(`/api/admin/users/${user.id}/effective-permissions`),
+  });
+
+  const grouped = React.useMemo(() => {
+    if (!data?.permissionDetails) return {} as Record<string, { code: string; label: string }[]>;
+    return data.permissionDetails.reduce<Record<string, { code: string; label: string }[]>>((acc, p) => {
+      (acc[p.category] ||= []).push(p);
+      return acc;
+    }, {});
+  }, [data]);
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-primary" />
+            Accès effectifs — {user.firstName} {user.lastName}
+          </DialogTitle>
+          <div className="text-sm text-muted-foreground">{user.email} · <span className="font-mono">{user.role}</span></div>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="py-8 text-center text-muted-foreground">Chargement…</div>
+        ) : data ? (
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+            {/* Accès global */}
+            <div className="rounded-lg border p-3 flex items-center gap-3">
+              <ShieldCheck className={`w-5 h-5 ${data.isFullAccess ? "text-emerald-600" : "text-primary"}`} />
+              <div>
+                <div className="font-semibold text-sm">
+                  {data.isFullAccess ? "Accès complet (Super Admin / Admin)" : `${data.permissions.length} permission(s) active(s)`}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Rôle : {data.role?.name ?? "Aucun"}
+                  {data.isFullAccess && " — toutes les permissions sont accordées"}
+                </div>
+              </div>
+              {data.isFullAccess && <Badge className="ml-auto bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Accès total</Badge>}
+            </div>
+
+            {/* Permissions par catégorie */}
+            {!data.isFullAccess && (
+              <div className="space-y-3">
+                <div className="font-semibold text-sm">Permissions par module</div>
+                {Object.keys(grouped).length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic">Aucune permission assignée à ce rôle.</div>
+                ) : Object.entries(grouped).map(([cat, perms]) => (
+                  <div key={cat} className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/40 px-3 py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{cat}</div>
+                    <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                      {perms.map(p => (
+                        <div key={p.code} className="flex items-start gap-1.5 text-xs p-1.5 rounded hover:bg-muted/30">
+                          <span className="text-emerald-500 mt-0.5">✓</span>
+                          <div>
+                            <div className="font-medium">{p.label}</div>
+                            <div className="text-muted-foreground font-mono">{p.code}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Accès projets */}
+            {data.projectAccess.length > 0 && (
+              <div>
+                <div className="font-semibold text-sm mb-2">Accès projets directs ({data.projectAccess.length})</div>
+                <div className="border rounded-lg overflow-hidden">
+                  {data.projectAccess.map(p => (
+                    <div key={p.projectId} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
+                      <span className="text-sm truncate">{p.projectName ?? p.projectId}</span>
+                      <Badge variant="outline" className="text-xs capitalize">{p.accessLevel === "viewer" ? "Lecture" : p.accessLevel === "editor" ? "Édition" : "Responsable"}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!data.isFullAccess && data.projectAccess.length === 0 && (
+              <div className="text-sm text-muted-foreground italic">Aucun accès projet direct — basé sur les assignments RH uniquement.</div>
+            )}
+          </div>
+        ) : null}
+        <DialogFooter>
+          <Button onClick={onClose}>Fermer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
