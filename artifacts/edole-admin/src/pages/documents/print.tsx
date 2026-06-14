@@ -125,31 +125,12 @@ export default function PrintDocumentPage() {
     if (!docRef.current || saving) return;
     setSaving(true);
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        import("html2canvas") as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        import("jspdf") as any,
-      ]);
-      const canvas = await html2canvas(docRef.current, { scale: 2, useCORS: true, logging: false, backgroundColor: "#fff" });
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const totalImgH = (canvas.height / canvas.width) * pageW;
-      let yMm = 0;
-      let pageIdx = 0;
-      while (yMm < totalImgH) {
-        if (pageIdx > 0) pdf.addPage();
-        const srcY = Math.round((yMm / pageW) * canvas.width);
-        const srcH = Math.min(Math.round((pageH / pageW) * canvas.width), canvas.height - srcY);
-        const slice = document.createElement("canvas");
-        slice.width = canvas.width; slice.height = srcH;
-        slice.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-        pdf.addImage(slice.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, pageW, (srcH / canvas.width) * pageW);
-        yMm += pageH; pageIdx++;
-      }
+      const { saveDivAsPdf } = await import("@/lib/pdf");
       const ref = doc?.referenceNumber ?? "document";
-      pdf.save(`${DOCTYPE_API[docType]}-${ref}-${new Date().toISOString().slice(0,10)}.pdf`);
+      await saveDivAsPdf(
+        docRef.current,
+        `${DOCTYPE_API[docType]}-${ref}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      );
     } finally { setSaving(false); }
   }
 

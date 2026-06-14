@@ -323,9 +323,8 @@ export default function ManagementPDFPage() {
     if (!containerRef.current || saving) return;
     setSaving(true);
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        import("html2canvas") as any,
+      const [{ toCanvas }, { default: jsPDF }] = await Promise.all([
+        import("html-to-image"),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         import("jspdf") as any,
       ]);
@@ -335,19 +334,12 @@ export default function ManagementPDFPage() {
       );
 
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();   // 210mm
-      const pageH = pdf.internal.pageSize.getHeight();  // 297mm
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
 
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i], {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-        });
-
+        const canvas = await toCanvas(pages[i], { pixelRatio: 2, backgroundColor: "#ffffff" });
         const imgData = canvas.toDataURL("image/jpeg", 0.97);
-        // Each div.pdf-page fills one full A4 page
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
       }

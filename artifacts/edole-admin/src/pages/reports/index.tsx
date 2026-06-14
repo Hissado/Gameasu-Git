@@ -870,28 +870,8 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
     if (!el || saving) return;
     setSaving(true);
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        import("html2canvas") as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        import("jspdf") as any,
-      ]);
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: "#fff" });
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const totalH = (canvas.height / canvas.width) * pageW;
-      let yMm = 0; let pi = 0;
-      while (yMm < totalH) {
-        if (pi > 0) pdf.addPage();
-        const srcY = Math.round((yMm / pageW) * canvas.width);
-        const srcH = Math.min(Math.round((pageH / pageW) * canvas.width), canvas.height - srcY);
-        const sl = document.createElement("canvas"); sl.width = canvas.width; sl.height = srcH;
-        sl.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-        pdf.addImage(sl.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, pageW, (srcH / canvas.width) * pageW);
-        yMm += pageH; pi++;
-      }
-      pdf.save(`rapport-${slug}-${today}.pdf`);
+      const { saveDivAsPdf } = await import("@/lib/pdf");
+      await saveDivAsPdf(el, `rapport-${slug}-${today}.pdf`);
     } finally { setSaving(false); }
   }
 
