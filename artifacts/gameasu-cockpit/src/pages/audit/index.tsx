@@ -15,16 +15,28 @@ type AuditLog = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  "ticket.update":    "bg-blue-50 text-blue-700 border-blue-200",
-  "ticket.comment":   "bg-indigo-50 text-indigo-700 border-indigo-200",
-  "incident.create":  "bg-red-50 text-red-700 border-red-200",
-  "incident.update":  "bg-orange-50 text-orange-700 border-orange-200",
-  "org.suspend":      "bg-rose-50 text-rose-700 border-rose-200",
-  "org.reactivate":   "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "ticket.update":      "bg-blue-50 text-blue-700 border-blue-200",
+  "ticket.comment":     "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "incident.create":    "bg-red-50 text-red-700 border-red-200",
+  "incident.update":    "bg-orange-50 text-orange-700 border-orange-200",
+  "org.suspend":        "bg-rose-50 text-rose-700 border-rose-200",
+  "org.reactivate":     "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "login":              "bg-slate-50 text-slate-600 border-slate-200",
+  "login_failed":       "bg-amber-50 text-amber-700 border-amber-200",
+  "login_2fa_success":  "bg-emerald-50 text-emerald-600 border-emerald-200",
+  "login_2fa_failed":   "bg-red-50 text-red-600 border-red-200",
+  "invite":             "bg-purple-50 text-purple-700 border-purple-200",
+  "invitation_sent":    "bg-purple-50 text-purple-700 border-purple-200",
+  "invitation_accept":  "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "kiosk_create":       "bg-cyan-50 text-cyan-700 border-cyan-200",
+  "kiosk_delete":       "bg-red-50 text-red-700 border-red-200",
+  "kiosk_token_generate": "bg-cyan-50 text-cyan-800 border-cyan-200",
+  "kiosk_token_revoke": "bg-orange-50 text-orange-700 border-orange-200",
+  "kiosk_token_access": "bg-slate-50 text-slate-500 border-slate-200",
 };
 
 const RESOURCE_ICONS: Record<string, string> = {
-  ticket: "🎫", incident: "🚨", org: "🏢", user: "👤", plan: "💳",
+  ticket: "🎫", incident: "🚨", org: "🏢", user: "👤", plan: "💳", kiosk: "🖥️",
 };
 
 function fmtDate(d: string) {

@@ -5,6 +5,7 @@ import {
 } from "@workspace/api-client-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import {
 import {
   MonitorSmartphone, Plus, Copy, Check, ToggleLeft, ToggleRight,
   Pencil, Users, Key, Loader2, MapPin, RefreshCw, BarChart2, Wifi, Clock,
+  QrCode, RotateCcw, Trash2, Activity,
 } from "lucide-react";
 
 type Kiosk = {
@@ -29,6 +31,8 @@ type Kiosk = {
   description?: string | null;
   isActive: boolean;
   token: string;
+  usageCount?: number;
+  revokedAt?: string | null;
   lastSeenAt?: string | null;
   createdAt: string;
 };
@@ -205,11 +209,65 @@ function KioskCodeCell({ collaborator, onUpdate }: { collaborator: Collaborator;
   );
 }
 
+// ─── QR Code Modal ────────────────────────────────────────────────────────────
+function QrModal({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
+  const kioskUrl = `${window.location.origin}/kiosk/?token=${kiosk.token}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(kioskUrl).then(() => {
+      setCopied(true);
+      toast.success("URL kiosque copiée !");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-primary" />
+            QR Code — {kiosk.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="p-4 bg-white rounded-xl border shadow-sm">
+            <QRCodeSVG value={kioskUrl} size={200} level="M" includeMargin={false} />
+          </div>
+          {kiosk.location && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" /> {kiosk.location}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground text-center break-all px-2 font-mono bg-muted rounded-md p-2 w-full">
+            {kioskUrl}
+          </p>
+          {kiosk.usageCount !== undefined && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Activity className="w-3.5 h-3.5" />
+              {kiosk.usageCount} utilisation{kiosk.usageCount !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+        <DialogFooter className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={copyUrl}>
+            {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+            Copier l'URL
+          </Button>
+          <Button variant="outline" onClick={onClose}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function KioskManagementPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
+  const [qrKiosk, setQrKiosk] = useState<Kiosk | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { data: kiosks = [], isLoading: kiosksLoading } = useQuery<Kiosk[]>({
@@ -244,6 +302,26 @@ export default function KioskManagementPage() {
     onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
+  const regenerateMutation = useMutation({
+    mutationFn: (k: Kiosk) =>
+      apiFetch<Kiosk>(`/api/kiosks/${k.id}/regenerate`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      toast.success("Token régénéré — l'ancien lien est désormais invalide");
+    },
+    onError: () => toast.error("Erreur lors de la régénération du token"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (k: Kiosk) =>
+      apiFetch(`/api/kiosks/${k.id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      toast.success("Kiosque supprimé");
+    },
+    onError: () => toast.error("Erreur lors de la suppression"),
+  });
+
   const copyToken = (token: string, id: string) => {
     navigator.clipboard.writeText(token).then(() => {
       setCopiedId(id);
@@ -268,6 +346,8 @@ export default function KioskManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {qrKiosk && <QrModal kiosk={qrKiosk} onClose={() => setQrKiosk(null)} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -351,32 +431,75 @@ export default function KioskManagementPage() {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <RefreshCw className="w-3 h-3" />
-                        Dernière activité : {fmtDate(k.lastSeenAt)}
+                        Vu le : {fmtDate(k.lastSeenAt)}
                       </span>
+                      {k.usageCount !== undefined && (
+                        <span className="flex items-center gap-1">
+                          <Activity className="w-3 h-3" />
+                          {k.usageCount} accès
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 pt-1 flex-wrap">
                       <Button
-                        variant="outline" size="sm" className="flex-1 h-8"
-                        onClick={() => copyKioskUrl(k.token, k.id)}
+                        variant="outline" size="sm" className="h-8 gap-1.5"
+                        onClick={() => setQrKiosk(k)}
+                        title="Afficher le QR code"
                       >
-                        {copiedId === "url-" + k.id ? <Check className="w-3 h-3 mr-1 text-green-500" /> : <Copy className="w-3 h-3 mr-1" />}
-                        Copier URL
+                        <QrCode className="w-3.5 h-3.5" />
+                        QR
+                      </Button>
+                      <Button
+                        variant="outline" size="sm" className="h-8 gap-1.5"
+                        onClick={() => copyKioskUrl(k.token, k.id)}
+                        title="Copier l'URL"
+                      >
+                        {copiedId === "url-" + k.id ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        URL
                       </Button>
                       <Button
                         variant="outline" size="sm" className="h-8"
                         onClick={() => { setEditingKiosk(k); setDialogOpen(true); }}
+                        title="Modifier"
                       >
                         <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline" size="sm" className="h-8"
+                        title="Régénérer le token (invalide l'ancien lien)"
+                        onClick={() => {
+                          if (confirm(`Régénérer le token de "${k.name}" ? L'ancien QR code sera invalide.`)) {
+                            regenerateMutation.mutate(k);
+                          }
+                        }}
+                        disabled={regenerateMutation.isPending}
+                      >
+                        {regenerateMutation.isPending
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <RotateCcw className="w-3 h-3" />}
                       </Button>
                       <Button
                         variant="ghost" size="sm" className="h-8"
                         onClick={() => toggleMutation.mutate(k)}
                         disabled={toggleMutation.isPending}
+                        title={k.isActive ? "Désactiver" : "Activer"}
                       >
                         {k.isActive
                           ? <ToggleRight className="w-4 h-4 text-emerald-500" />
                           : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                      </Button>
+                      <Button
+                        variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Supprimer le kiosque"
+                        onClick={() => {
+                          if (confirm(`Supprimer définitivement "${k.name}" ? Cette action est irréversible.`)) {
+                            deleteMutation.mutate(k);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </CardContent>

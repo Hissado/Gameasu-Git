@@ -6,16 +6,72 @@ import {
   attendanceRecordsTable,
   attendanceSessionsTable,
 } from "@workspace/db";
-import { and, eq, isNull, desc, gte, lte } from "drizzle-orm";
+import { and, eq, isNull, desc, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { ObjectStorageService } from "../lib/objectStorage";
+import { audit } from "../lib/audit";
 
 // ─────────────────────────────────────────────────────────────────
 // Public router — monté avant requireAuth
 // ─────────────────────────────────────────────────────────────────
 export const kioskPublicRouter: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+// GET /api/kiosk/validate/:token — Valider un token kiosk au démarrage (public)
+kioskPublicRouter.get("/kiosk/validate/:token", async (req: Request, res: Response, next) => {
+  try {
+    const { token } = req.params;
+    if (!token || !/^[0-9a-f-]{36}$/i.test(token)) {
+      res.status(400).json({ error: "Format de token invalide" });
+      return;
+    }
+
+    const [kiosk] = await db
+      .select({
+        id: kiosksTable.id,
+        name: kiosksTable.name,
+        location: kiosksTable.location,
+        organizationId: kiosksTable.organizationId,
+        isActive: kiosksTable.isActive,
+        revokedAt: kiosksTable.revokedAt,
+        settings: kiosksTable.settings,
+      })
+      .from(kiosksTable)
+      .where(and(eq(kiosksTable.token, token), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+      .limit(1);
+
+    if (!kiosk) {
+      res.status(403).json({ error: "Token invalide ou kiosk désactivé" });
+      return;
+    }
+
+    // Incrémenter le compteur d'utilisation et mettre à jour lastSeenAt
+    await db
+      .update(kiosksTable)
+      .set({
+        lastSeenAt: new Date(),
+        usageCount: sql`${kiosksTable.usageCount} + 1`,
+      })
+      .where(eq(kiosksTable.id, kiosk.id));
+
+    // Journal d'audit non bloquant
+    audit(req, "kiosk_token_access", {
+      entityType: "kiosk",
+      entityId: kiosk.id,
+      organizationId: kiosk.organizationId,
+      payload: { kioskName: kiosk.name },
+    }).catch(() => {});
+
+    res.json({
+      id: kiosk.id,
+      name: kiosk.name,
+      location: kiosk.location,
+      organizationId: kiosk.organizationId,
+      settings: kiosk.settings ?? {},
+    });
+  } catch (err) { next(err); }
+});
 
 // POST /api/kiosk/identify — Identifier un collaborateur par code + token kiosk
 kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, next) => {
@@ -255,6 +311,8 @@ kioskAdminRouter.get("/kiosks", async (req: Request, res: Response, next) => {
         description: kiosksTable.description,
         isActive: kiosksTable.isActive,
         token: kiosksTable.token,
+        usageCount: kiosksTable.usageCount,
+        revokedAt: kiosksTable.revokedAt,
         lastSeenAt: kiosksTable.lastSeenAt,
         createdAt: kiosksTable.createdAt,
         updatedAt: kiosksTable.updatedAt,
@@ -280,7 +338,7 @@ kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
     if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }
     const [kiosk] = await db
       .insert(kiosksTable)
-      .values({ organizationId: orgId, ...parsed.data })
+      .values({ organizationId: orgId, generatedByUserId: req.authUser!.id, ...parsed.data })
       .returning({
         id: kiosksTable.id,
         organizationId: kiosksTable.organizationId,
@@ -289,10 +347,17 @@ kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
         description: kiosksTable.description,
         isActive: kiosksTable.isActive,
         token: kiosksTable.token,
+        usageCount: kiosksTable.usageCount,
         lastSeenAt: kiosksTable.lastSeenAt,
         createdAt: kiosksTable.createdAt,
         updatedAt: kiosksTable.updatedAt,
       });
+    audit(req, "kiosk_create", {
+      entityType: "kiosk",
+      entityId: kiosk?.id,
+      organizationId: orgId,
+      payload: { name: parsed.data.name, location: parsed.data.location },
+    }).catch(() => {});
     res.status(201).json(kiosk);
   } catch (err) { next(err); }
 });
@@ -335,10 +400,62 @@ kioskAdminRouter.delete("/kiosks/:id", async (req: Request, res: Response, next)
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
-    await db
+    const [deleted] = await db
       .delete(kiosksTable)
-      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)));
+      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .returning({ id: kiosksTable.id, name: kiosksTable.name });
+    if (deleted) {
+      audit(req, "kiosk_delete", {
+        entityType: "kiosk",
+        entityId: deleted.id,
+        organizationId: orgId,
+        payload: { name: deleted.name },
+      }).catch(() => {});
+    }
     res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+// POST /api/kiosks/:id/regenerate — Régénérer le token d'accès d'un kiosk
+kioskAdminRouter.post("/kiosks/:id/regenerate", async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+
+    const [kiosk] = await db
+      .update(kiosksTable)
+      .set({
+        token: sql`gen_random_uuid()`,
+        usageCount: 0,
+        generatedByUserId: req.authUser!.id,
+        revokedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .returning({
+        id: kiosksTable.id,
+        organizationId: kiosksTable.organizationId,
+        name: kiosksTable.name,
+        location: kiosksTable.location,
+        description: kiosksTable.description,
+        isActive: kiosksTable.isActive,
+        token: kiosksTable.token,
+        usageCount: kiosksTable.usageCount,
+        lastSeenAt: kiosksTable.lastSeenAt,
+        createdAt: kiosksTable.createdAt,
+        updatedAt: kiosksTable.updatedAt,
+      });
+
+    if (!kiosk) { res.status(404).json({ error: "Kiosk non trouvé" }); return; }
+
+    audit(req, "kiosk_token_generate", {
+      entityType: "kiosk",
+      entityId: kiosk.id,
+      organizationId: orgId,
+      payload: { name: kiosk.name, newToken: kiosk.token },
+    }).catch(() => {});
+
+    res.json(kiosk);
   } catch (err) { next(err); }
 });
 

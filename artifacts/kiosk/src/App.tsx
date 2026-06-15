@@ -349,7 +349,7 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
 }
 
 // ─── Token Setup Screen ───────────────────────────────────────────
-function SetupScreen({ onSetup }: { onSetup: (token: string) => void }) {
+function SetupScreen({ onSetup, tokenError }: { onSetup: (token: string) => void; tokenError?: string | null }) {
   const [input, setInput] = useState("");
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
@@ -357,6 +357,11 @@ function SetupScreen({ onSetup }: { onSetup: (token: string) => void }) {
       <div className="text-white/50 text-center max-w-sm">
         Entrez le token du kiosk (visible dans la page d'administration Gaméasù)
       </div>
+      {tokenError && (
+        <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-6 py-3 text-red-300 text-center max-w-sm text-sm">
+          {tokenError}
+        </div>
+      )}
       <input
         type="text"
         value={input}
@@ -391,6 +396,8 @@ function KioskApp() {
   });
 
   const [kiosk, setKiosk] = useState<KioskInfo | null>(null);
+  const [tokenValidating, setTokenValidating] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>("idle");
   const [collaborator, setCollaborator] = useState<CollaboratorInfo | null>(null);
   const [selectedKind, setSelectedKind] = useState<PunchKind | null>(null);
@@ -398,6 +405,36 @@ function KioskApp() {
   const [error, setError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const gpsRef = useRef<{ latitude: number; longitude: number; accuracyMeters: number } | null>(null);
+
+  // Validate the kiosk token at startup and fetch kiosk info
+  useEffect(() => {
+    if (!kioskToken) return;
+    setTokenValidating(true);
+    setTokenError(null);
+    fetch(`/api/kiosk/validate/${encodeURIComponent(kioskToken)}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const msg = data?.error ?? "Token invalide ou kiosk désactivé";
+          setTokenError(msg);
+          localStorage.removeItem("kiosk_token");
+          setKioskToken(null);
+          return;
+        }
+        const data = await res.json();
+        setKiosk({
+          id: data.id,
+          name: data.name,
+          location: data.location ?? null,
+          organizationId: data.organizationId,
+          settings: data.settings ?? {},
+        });
+      })
+      .catch(() => {
+        setTokenError("Erreur de connexion au serveur");
+      })
+      .finally(() => setTokenValidating(false));
+  }, [kioskToken]);
 
   // Pre-warm camera permission as soon as the kiosk token is set,
   // so the browser doesn't show a permission popup during a punch.
@@ -503,7 +540,18 @@ function KioskApp() {
   if (!kioskToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <SetupScreen onSetup={handleSetupToken} />
+        <SetupScreen onSetup={handleSetupToken} tokenError={tokenError} />
+      </div>
+    );
+  }
+
+  if (tokenValidating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-white">
+          <span className="text-3xl animate-spin inline-block">⟳</span>
+          <p className="text-white/50">Vérification du kiosk…</p>
+        </div>
       </div>
     );
   }

@@ -19,12 +19,24 @@ const ACTION_COLORS: Record<string, string> = {
   delete: "bg-red-100 text-red-700",
   login: "bg-slate-100 text-slate-700",
   login_failed: "bg-amber-100 text-amber-700",
+  login_2fa_sent: "bg-slate-100 text-slate-600",
+  login_2fa_success: "bg-emerald-100 text-emerald-700",
+  login_2fa_failed: "bg-red-100 text-red-700",
   invite: "bg-purple-100 text-purple-700",
+  invitation_sent: "bg-purple-100 text-purple-700",
+  invitation_resend: "bg-purple-100 text-purple-600",
+  invitation_accept: "bg-emerald-100 text-emerald-700",
+  invitation_revoke: "bg-red-100 text-red-700",
   role_change: "bg-amber-100 text-amber-800",
   permission_change: "bg-amber-100 text-amber-800",
   password_change: "bg-pink-100 text-pink-700",
   password_reset_request: "bg-pink-100 text-pink-700",
   password_reset_complete: "bg-pink-100 text-pink-700",
+  kiosk_create: "bg-cyan-100 text-cyan-700",
+  kiosk_delete: "bg-red-100 text-red-700",
+  kiosk_token_generate: "bg-cyan-100 text-cyan-800",
+  kiosk_token_revoke: "bg-orange-100 text-orange-700",
+  kiosk_token_access: "bg-slate-100 text-slate-600",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -33,12 +45,24 @@ const ACTION_LABELS: Record<string, string> = {
   delete: "Suppression",
   login: "Connexion",
   login_failed: "Connexion échouée",
+  login_2fa_sent: "2FA envoyé",
+  login_2fa_success: "2FA validé",
+  login_2fa_failed: "2FA échoué",
   invite: "Invitation",
+  invitation_sent: "Invitation envoyée",
+  invitation_resend: "Invitation renvoyée",
+  invitation_accept: "Invitation acceptée",
+  invitation_revoke: "Invitation révoquée",
   role_change: "Changement de rôle",
   permission_change: "Modif. permissions",
   password_change: "Changement MDP",
   password_reset_request: "Réinit. MDP demandée",
   password_reset_complete: "MDP réinitialisé",
+  kiosk_create: "Kiosk créé",
+  kiosk_delete: "Kiosk supprimé",
+  kiosk_token_generate: "Token régénéré",
+  kiosk_token_revoke: "Token révoqué",
+  kiosk_token_access: "Accès kiosk",
 };
 
 export default function AdminAuditPage() {
@@ -69,10 +93,10 @@ export default function AdminAuditPage() {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email utilisateur…" className="pl-9" />
         </div>
         <Select value={action} onValueChange={setAction}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Action" /></SelectTrigger>
+          <SelectTrigger className="w-52"><SelectValue placeholder="Action" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="_all">Toutes les actions</SelectItem>
-            {Object.keys(ACTION_COLORS).map(a => <SelectItem key={a} value={a}>{ACTION_LABELS[a] ?? a}</SelectItem>)}
+            {Object.keys(ACTION_LABELS).map(a => <SelectItem key={a} value={a}>{ACTION_LABELS[a]}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={entityType} onValueChange={setEntityType}>
@@ -83,6 +107,7 @@ export default function AdminAuditPage() {
             <SelectItem value="role">Rôle</SelectItem>
             <SelectItem value="department">Département</SelectItem>
             <SelectItem value="project">Projet</SelectItem>
+            <SelectItem value="kiosk">Kiosque</SelectItem>
           </SelectContent>
         </Select>
       </div>

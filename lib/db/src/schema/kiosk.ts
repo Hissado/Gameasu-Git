@@ -1,7 +1,8 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, jsonb, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
+import { usersTable } from "./users";
 
 // ─────────────────────────────────────────────────────────────────
 // KIOSK — Borne de pointage autonome (Phase 19)
@@ -27,6 +28,11 @@ export const kiosksTable = pgTable("kiosks", {
     welcomeMessage?: string | null;
   }>().default({}),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  // Traçabilité du token
+  usageCount: integer("usage_count").notNull().default(0),
+  generatedByUserId: uuid("generated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedByUserId: uuid("revoked_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({

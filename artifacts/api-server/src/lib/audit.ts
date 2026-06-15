@@ -20,7 +20,8 @@ export type AuditAction =
   | "project_access_grant" | "project_access_revoke"
   | "order_edit" | "order_cancel" | "order_generate_invoice"
   | "proforma_edit" | "proforma_cancel" | "proforma_generate_invoice"
-  | "invoice_edit" | "invoice_cancel" | "payment_record";
+  | "invoice_edit" | "invoice_cancel" | "payment_record"
+  | "kiosk_token_generate" | "kiosk_token_revoke" | "kiosk_token_access" | "kiosk_create" | "kiosk_delete";
 
 export async function audit(
   req: Pick<Request, "ip" | "headers"> & { authUser?: { id: string; email: string; organizationId?: string } },
