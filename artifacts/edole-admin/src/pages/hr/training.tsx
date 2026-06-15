@@ -156,11 +156,12 @@ export default function TrainingPage() {
                           <Plus className="w-3 h-3 mr-1" />Ajouter
                         </Button>
                       </div>
+                      <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Nom</TableHead>
-                            <TableHead>Département</TableHead>
+                            <TableHead className="hidden sm:table-cell">Département</TableHead>
                             <TableHead>Statut</TableHead>
                             <TableHead>Note</TableHead>
                           </TableRow>
@@ -169,7 +170,7 @@ export default function TrainingPage() {
                           {(detail.participants ?? []).map((p: any) => (
                             <TableRow key={p.id}>
                               <TableCell>{p.collaboratorName}</TableCell>
-                              <TableCell className="text-muted-foreground">{p.department ?? "—"}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-muted-foreground">{p.department ?? "—"}</TableCell>
                               <TableCell><Badge variant="secondary">{p.status}</Badge></TableCell>
                               <TableCell>{p.score ?? "—"}</TableCell>
                             </TableRow>
@@ -179,6 +180,7 @@ export default function TrainingPage() {
                           )}
                         </TableBody>
                       </Table>
+                      </div>
                     </div>
                   )}
                 </Card>
@@ -208,7 +210,7 @@ export default function TrainingPage() {
               <div><Label>Date début</Label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
               <div><Label>Date fin</Label><Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><Label>Durée (h)</Label><Input type="number" value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: e.target.value })} /></div>
               <div><Label>Coût (FCFA)</Label><Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} /></div>
               <div><Label>Max participants</Label><Input type="number" value={form.maxParticipants} onChange={(e) => setForm({ ...form, maxParticipants: e.target.value })} /></div>

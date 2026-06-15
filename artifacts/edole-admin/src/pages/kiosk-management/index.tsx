@@ -466,7 +466,7 @@ export default function KioskManagementPage() {
           </div>
 
           {activityData && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: "Pointages total", value: activityData.summary.totalPunches, icon: Clock, color: "bg-blue-50 text-blue-600" },
                 { label: "Employés uniques", value: activityData.summary.uniqueEmployees, icon: Users, color: "bg-emerald-50 text-emerald-600" },

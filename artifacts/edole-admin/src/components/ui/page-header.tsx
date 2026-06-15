@@ -22,7 +22,7 @@ export function PageHeader({ title, subtitle, icon: Icon, actions, className }: 
         )}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           {actions}
         </div>
       )}

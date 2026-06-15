@@ -1060,7 +1060,8 @@ export default function BillingPage() {
       </header>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <div className="overflow-x-auto pb-1">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl min-w-[380px]">
           <TabsTrigger value="overview">Formule</TabsTrigger>
           <TabsTrigger value="payments" className="relative">
             Paiements
@@ -1079,6 +1080,7 @@ export default function BillingPage() {
           <TabsTrigger value="history">Historique</TabsTrigger>
           <TabsTrigger value="gateways">Passerelles</TabsTrigger>
         </TabsList>
+        </div>
 
         {/* ── Onglet Formule ── */}
         <TabsContent value="overview" className="space-y-6">

@@ -514,7 +514,7 @@ export default function MigrationPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* KPIs */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                       { label: "Total lignes", value: validationResult.totalRows, color: "text-slate-700" },
                       { label: "Lignes valides", value: validationResult.validRows, color: "text-emerald-600" },

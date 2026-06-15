@@ -86,7 +86,7 @@ export default function Expenses() {
       subtitle="Soumission, validation et remboursement des frais professionnels"
       actions={<Button size="sm" onClick={() => setNewOpen(true)}><Plus className="w-4 h-4 mr-1" />Nouvelle note</Button>}
     >
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">Total soumis</div><div className="text-xl font-bold">{formatFCFA(totals.total)}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">En attente</div><div className="text-xl font-bold">{totals.submitted}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground uppercase mb-1">Approuvées</div><div className="text-xl font-bold text-emerald-600">{totals.approved}</div></CardContent></Card>

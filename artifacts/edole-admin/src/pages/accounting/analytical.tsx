@@ -867,13 +867,13 @@ function ReportsTab({ from, to }: { from: string; to: string }) {
 
   return (
     <Tabs defaultValue="cc" className="w-full">
-      <TabsList className="grid grid-cols-5 mb-4 h-auto gap-px">
+      <div className="overflow-x-auto pb-1"><TabsList className="grid grid-cols-5 mb-4 h-auto gap-px min-w-[360px]">
         <TabsTrigger value="cc" className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1" />Par centre</TabsTrigger>
         <TabsTrigger value="project" className="text-xs"><FolderKanban className="w-3.5 h-3.5 mr-1" />Par projet</TabsTrigger>
         <TabsTrigger value="client" className="text-xs"><Users className="w-3.5 h-3.5 mr-1" />Par client</TabsTrigger>
         <TabsTrigger value="contribution" className="text-xs"><BarChart3 className="w-3.5 h-3.5 mr-1" />Contribution</TabsTrigger>
         <TabsTrigger value="income" className="text-xs"><Layers className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
-      </TabsList>
+      </TabsList></div>
 
       {/* Par centre de coût */}
       <TabsContent value="cc">
@@ -1020,7 +1020,7 @@ function ReportsTab({ from, to }: { from: string; to: string }) {
       <TabsContent value="income">
         {!is ? <Skeleton className="h-48 w-full" /> : (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <KPI label="Produits" value={fmt(is.totalProduits)} icon={TrendingUp} accent="success" />
               <KPI label="Charges" value={fmt(is.totalCharges)} icon={TrendingDown} accent="danger" />
               <KPI label="Résultat" value={fmt(is.resultat)} icon={is.resultat >= 0 ? ArrowUpRight : ArrowDownRight}

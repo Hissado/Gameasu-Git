@@ -671,7 +671,7 @@ export default function TransferOrders() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground uppercase mb-1">En attente</div>

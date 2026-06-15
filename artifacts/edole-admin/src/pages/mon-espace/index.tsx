@@ -1047,7 +1047,7 @@ export default function MonEspace() {
       </div>
 
       <Tabs defaultValue="travaux">
-        <TabsList className="grid grid-cols-8 h-auto p-1 bg-slate-100 rounded-xl mb-2">
+        <TabsList className="grid grid-cols-4 sm:grid-cols-8 h-auto p-1 bg-slate-100 rounded-xl mb-2">
           <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <ListTodo className="w-4 h-4" /> Mes Travaux
           </TabsTrigger>

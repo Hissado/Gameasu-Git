@@ -38,7 +38,7 @@ export default function UsersList() {
         <CardHeader>
           <CardTitle>Annuaire complet</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground animate-pulse">Chargement des utilisateurs…</div>
           ) : (
@@ -46,10 +46,10 @@ export default function UsersList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Utilisateur</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Profil</TableHead>
+                  <TableHead className="hidden sm:table-cell">Rôle</TableHead>
+                  <TableHead className="hidden md:table-cell">Profil</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead>Inscription</TableHead>
+                  <TableHead className="hidden sm:table-cell">Inscription</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -76,12 +76,12 @@ export default function UsersList() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="font-medium">
                           {ROLE_LABEL[user.role] || user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {user.isClient ? (
                           <Badge className="bg-blue-50 text-blue-700 border border-blue-200">Compte client</Badge>
                         ) : (
@@ -95,7 +95,7 @@ export default function UsersList() {
                           <Badge variant="outline" className="bg-muted text-muted-foreground">Désactivé</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
                     </TableRow>
                   ))
                 )}

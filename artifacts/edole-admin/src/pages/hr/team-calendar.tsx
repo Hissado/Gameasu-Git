@@ -120,7 +120,7 @@ export default function TeamCalendarPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <Card><CardContent className="p-3 flex items-center gap-3">
           <CalendarDays className="w-5 h-5 text-slate-400" />
           <div><p className="text-xs text-muted-foreground">Absences ce mois</p><p className="text-2xl font-bold">{totalAbsenceDays}</p></div>

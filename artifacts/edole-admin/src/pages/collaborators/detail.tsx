@@ -324,7 +324,7 @@ function EditCollaboratorDialog({
         </div>
 
         <Tabs defaultValue="identity">
-          <TabsList className="grid grid-cols-5 w-full mb-4">
+          <div className="overflow-x-auto pb-1"><TabsList className="grid grid-cols-5 w-full mb-4 min-w-[360px]">
             <TabsTrigger value="identity" className="flex items-center gap-1.5 text-xs">
               <User className="w-3.5 h-3.5" />Identité
             </TabsTrigger>
@@ -340,7 +340,7 @@ function EditCollaboratorDialog({
             <TabsTrigger value="emergency" className="flex items-center gap-1.5 text-xs">
               <AlertCircle className="w-3.5 h-3.5" />Urgence
             </TabsTrigger>
-          </TabsList>
+          </TabsList></div>
 
           {/* TAB 1 — Identité */}
           <TabsContent value="identity" className="space-y-4">
@@ -1342,7 +1342,7 @@ export default function CollaboratorDetail() {
                 </div>
 
                 {/* KPIs coût réel */}
-                <div className="grid grid-cols-3 gap-4 bg-purple-50 border border-purple-100 rounded-xl p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-purple-50 border border-purple-100 rounded-xl p-4">
                   <div className="text-center">
                     <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">Coût employeur / mois</div>
                     <div className="text-2xl font-black text-purple-800 mt-1">{formatFCFA(Math.round(employerCost.monthlyCostEmployeur))}</div>

@@ -163,7 +163,7 @@ export default function EntriesPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>Nouvelle écriture comptable</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-semibold mb-1 block">Journal</label>
                 <select className="border rounded-md h-9 px-2 text-sm w-full" value={form.journalCode} onChange={(e) => setForm((f) => ({ ...f, journalCode: e.target.value }))}>
@@ -270,7 +270,7 @@ export default function EntriesPage() {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div><div className="text-xs uppercase text-muted-foreground">Date</div><div className="font-semibold">{detail.entryDate}</div></div>
                   <div><div className="text-xs uppercase text-muted-foreground">Journal</div><div className="font-semibold">{detail.journal?.code} — {detail.journal?.label}</div></div>
                   <div><div className="text-xs uppercase text-muted-foreground">Statut</div><Badge variant={detail.status === "posted" ? "default" : "destructive"}>{detail.status}</Badge></div>

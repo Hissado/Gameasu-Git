@@ -305,7 +305,7 @@ export default function TresoreriePage() {
       </Card>
 
       {/* Entrées par période */}
-      <div className="grid gap-3 grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         {[
           { label: "Entrées J+30", val: entrees30 },
           { label: "Entrées J+60", val: entrees60 },

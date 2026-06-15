@@ -93,7 +93,7 @@ export default function ForecastPage() {
 
         {forecastReport && (
           <div className="mt-4">
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <Mini label="Prévision" value={formatFCFA(forecastReport.totals.budget)} />
               <Mini label="Réalisé" value={formatFCFA(forecastReport.totals.actual)} />
               <Mini label="Écart" value={formatFCFA(forecastReport.totals.variance)}

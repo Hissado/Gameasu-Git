@@ -307,7 +307,7 @@ export default function FixedAssetsPage() {
 
               <Separator />
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Card><CardContent className="p-3">
                   <div className="text-xs text-muted-foreground uppercase">Valeur brute</div>
                   <div className="font-bold mt-0.5">{formatFCFA(detail.acquisitionCost)}</div>

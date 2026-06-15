@@ -351,7 +351,7 @@ export default function ProjectsList() {
       />
 
       {!isLoading && (data?.data || []).length > 0 && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total projets",    value: kpis.total,           cls: "text-foreground" },
             { label: "En cours",         value: kpis.active,          cls: "text-primary" },

@@ -324,7 +324,7 @@ export default function CashflowPage() {
                   {(activeScenario === "all" || activeScenario === "optimiste")  && <Area type="monotone" dataKey="optimiste"  name="Optimiste"  stroke="#10b981" fill="url(#gradOpt)"  strokeWidth={1.5} strokeDasharray="4 3" />}
                 </AreaChart>
               </ResponsiveContainer>
-              <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
                 {[
                   { label: "Scénario base", value: proj[proj.length - 1]?.base ?? 0, color: "text-cyan-600", bg: "bg-cyan-50", border: "border-cyan-200" },
                   { label: "Optimiste (+20 %)", value: proj[proj.length - 1]?.optimiste ?? 0, color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },

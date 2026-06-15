@@ -106,14 +106,15 @@ export default function EvaluationsPage() {
         {isLoading ? (
           <div className="py-10 text-center text-muted-foreground">Chargement…</div>
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Collaborateur</TableHead>
-                <TableHead>Département</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Période</TableHead>
-                <TableHead>Date entretien</TableHead>
+                <TableHead className="hidden sm:table-cell">Département</TableHead>
+                <TableHead className="hidden sm:table-cell">Type</TableHead>
+                <TableHead className="hidden md:table-cell">Période</TableHead>
+                <TableHead className="hidden md:table-cell">Date entretien</TableHead>
                 <TableHead>Note globale</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead></TableHead>
@@ -126,10 +127,10 @@ export default function EvaluationsPage() {
               {evaluations.map((ev: any) => (
                 <TableRow key={ev.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setDetailId(ev.id === detailId ? null : ev.id)}>
                   <TableCell className="font-medium">{ev.collaboratorName}</TableCell>
-                  <TableCell className="text-muted-foreground">{ev.department ?? "—"}</TableCell>
-                  <TableCell>{TYPE_LABELS[ev.type] ?? ev.type}</TableCell>
-                  <TableCell>{ev.period}</TableCell>
-                  <TableCell>{ev.reviewDate ?? "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{ev.department ?? "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{TYPE_LABELS[ev.type] ?? ev.type}</TableCell>
+                  <TableCell className="hidden md:table-cell">{ev.period}</TableCell>
+                  <TableCell className="hidden md:table-cell">{ev.reviewDate ?? "—"}</TableCell>
                   <TableCell><RatingStars rating={ev.overallRating} /></TableCell>
                   <TableCell><Badge variant={STATUS_COLORS[ev.status]}>{STATUS_LABELS[ev.status] ?? ev.status}</Badge></TableCell>
                   <TableCell>
@@ -148,6 +149,7 @@ export default function EvaluationsPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
 
         {/* Détail inline */}
