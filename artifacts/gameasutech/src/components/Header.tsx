@@ -57,6 +57,7 @@ export function Header() {
     { href: "/about", label: t.nav.about },
     { href: "/solutions", label: t.nav.solutions },
     { href: "/industries", label: t.nav.industries },
+    { href: "/tarifs", label: fr ? "Tarifs" : "Pricing" },
     { href: "/case-studies", label: t.nav.caseStudies },
     { href: "/blog", label: t.nav.blog },
   ];

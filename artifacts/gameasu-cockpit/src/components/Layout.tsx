@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, Shield, ChevronRight,
-  BarChart3, Menu, X,
+  BarChart3, Menu, X, Sparkles,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }> };
@@ -16,7 +16,8 @@ const NAV: NavItem[] = [
   { href: "/tickets",    label: "Tickets support", icon: Ticket },
   { href: "/incidents",  label: "Incidents",       icon: AlertTriangle },
   { href: "/audit",      label: "Journal d'audit", icon: ScrollText },
-  { href: "/monitoring", label: "Monitoring",      icon: Activity },
+  { href: "/monitoring",   label: "Monitoring",          icon: Activity },
+  { href: "/custom-apps", label: "Apps personnalisées", icon: Sparkles },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {

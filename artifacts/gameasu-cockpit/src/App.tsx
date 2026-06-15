@@ -15,7 +15,8 @@ const TenantDetail   = lazy(() => import("@/pages/tenants/detail"));
 const TicketsPage    = lazy(() => import("@/pages/tickets"));
 const IncidentsPage  = lazy(() => import("@/pages/incidents"));
 const AuditPage      = lazy(() => import("@/pages/audit"));
-const MonitoringPage = lazy(() => import("@/pages/monitoring"));
+const MonitoringPage  = lazy(() => import("@/pages/monitoring"));
+const CustomAppsPage  = lazy(() => import("@/pages/custom-apps"));
 const ReportsPage    = lazy(() => import("@/pages/reports"));
 
 const queryClient = new QueryClient({
@@ -69,6 +70,9 @@ function AppRouter() {
         </Route>
         <Route path="/monitoring">
           <ProtectedRoute><MonitoringPage /></ProtectedRoute>
+        </Route>
+        <Route path="/custom-apps">
+          <ProtectedRoute><CustomAppsPage /></ProtectedRoute>
         </Route>
         <Route>
           <ProtectedRoute><DashboardPage /></ProtectedRoute>

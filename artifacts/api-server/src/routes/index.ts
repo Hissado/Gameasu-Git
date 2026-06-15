@@ -68,6 +68,7 @@ import pricingRouter, { pricingPublicRouter } from "./pricing";
 import ordersPublicRouter from "./orders-public";
 import migrationRouter from "./migration";
 import periodCloseRouter from "./period-close.js";
+import customAppRouter, { customAppPublicRouter } from "./customAppRequests";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
@@ -88,6 +89,7 @@ router.use(storageRouter);
 router.use(marketingPublicRouter);
 router.use(pricingPublicRouter);
 router.use(ordersPublicRouter);
+router.use(customAppPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -107,6 +109,7 @@ router.use(pipelineIntelligenceRouter);
 router.use(approvalsQueueRouter);
 router.use(anomalyDetectionRouter);
 router.use(superAdminCockpitRouter);
+router.use(customAppRouter);
 router.use(cockpitAdminRouter);
 router.use(superAdminStructuresRouter);
 router.use(orgTunerRouter);

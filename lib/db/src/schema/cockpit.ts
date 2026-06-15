@@ -34,6 +34,26 @@ export const cockpitAuditLogsTable = pgTable("cockpit_audit_logs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const customAppRequestsTable = pgTable("custom_app_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgName: text("org_name").notNull(),
+  contactPerson: text("contact_person").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  country: text("country"),
+  industry: text("industry"),
+  description: text("description"),
+  expectedUsers: text("expected_users"),
+  preferredTimeline: text("preferred_timeline"),
+  budgetRange: text("budget_range"),
+  status: text("status").notNull().default("new"),
+  assignedTo: text("assigned_to"),
+  internalNotes: text("internal_notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
 export type Incident = typeof incidentsTable.$inferSelect;
 export type TicketComment = typeof ticketCommentsTable.$inferSelect;
 export type CockpitAuditLog = typeof cockpitAuditLogsTable.$inferSelect;
+export type CustomAppRequest = typeof customAppRequestsTable.$inferSelect;

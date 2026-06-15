@@ -23,6 +23,7 @@ import Contact from "@/pages/Contact";
 import Support from "@/pages/Support";
 import FAQ from "@/pages/FAQ";
 import Privacy from "@/pages/Privacy";
+import Pricing from "@/pages/Pricing";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ function Router() {
         <Route path="/support" component={Support} />
         <Route path="/faq" component={FAQ} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/tarifs" component={Pricing} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
