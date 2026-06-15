@@ -46,8 +46,8 @@ const DEMO_CLIENT_NAMES = [
   "Banque Régionale de l'Ouest",
 ];
 const DEMO_USER_EMAILS = [
-  "directeur@edole.africa", "commercial@edole.africa", "comptable@edole.africa",
-  "chefchantier@edole.africa", "conducteur@edole.africa", "rh@edole.africa",
+  "directeur@gameasu.tech", "commercial@gameasu.tech", "finance@gameasu.tech",
+  "operations@gameasu.tech", "operations@gameasu.tech", "rh@gameasu.tech",
 ];
 
 /**
@@ -315,18 +315,18 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   }
 
   // ─── Admin existant ───
-  const admin = (await db.select().from(usersTable).where(eq(usersTable.email, "admin@edole.africa")).limit(1))[0];
-  if (!admin) throw new Error("Compte admin@edole.africa introuvable.");
+  const admin = (await db.select().from(usersTable).where(eq(usersTable.email, "admin@gameasu.tech")).limit(1))[0];
+  if (!admin) throw new Error("Compte admin@gameasu.tech introuvable.");
 
   // ─── Utilisateurs supplémentaires ───
   const passwordHash = "demo2026";
   const userSpecs = [
-    { email: "directeur@edole.africa", firstName: "Kouassi", lastName: "Adjoumani", role: "manager" },
-    { email: "commercial@edole.africa", firstName: "Aminata", lastName: "Diallo", role: "manager" },
-    { email: "comptable@edole.africa", firstName: "Salif", lastName: "Traoré", role: "collaborator" },
-    { email: "chefchantier@edole.africa", firstName: "Moussa", lastName: "Konaté", role: "collaborator" },
-    { email: "conducteur@edole.africa", firstName: "Fatou", lastName: "Sangaré", role: "collaborator" },
-    { email: "rh@edole.africa", firstName: "Mariam", lastName: "Ouédraogo", role: "manager" },
+    { email: "directeur@gameasu.tech", firstName: "Kouassi", lastName: "Adjoumani", role: "manager" },
+    { email: "commercial@gameasu.tech", firstName: "Aminata", lastName: "Diallo", role: "manager" },
+    { email: "finance@gameasu.tech", firstName: "Salif", lastName: "Traoré", role: "collaborator" },
+    { email: "operations@gameasu.tech", firstName: "Moussa", lastName: "Konaté", role: "collaborator" },
+    { email: "operations@gameasu.tech", firstName: "Fatou", lastName: "Sangaré", role: "collaborator" },
+    { email: "rh@gameasu.tech", firstName: "Mariam", lastName: "Ouédraogo", role: "manager" },
   ];
   const users: Record<string, string> = { admin: admin.id };
   for (const u of userSpecs) {
@@ -347,12 +347,12 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
 
   // ─── Collaborateurs ───
   const collabSpecs = [
-    { firstName: "Kouassi", lastName: "Adjoumani", email: "directeur@edole.africa", deptCode: "DIR", posCode: "DIR-GEN", baseSalary: "1200000" },
-    { firstName: "Aminata", lastName: "Diallo", email: "commercial@edole.africa", deptCode: "COM", posCode: "COM-DIR", baseSalary: "850000" },
-    { firstName: "Salif", lastName: "Traoré", email: "comptable@edole.africa", deptCode: "FIN", posCode: "FIN-CPT", baseSalary: "650000" },
-    { firstName: "Moussa", lastName: "Konaté", email: "chefchantier@edole.africa", deptCode: "OPS", posCode: "OPS-CHE", baseSalary: "550000" },
-    { firstName: "Fatou", lastName: "Sangaré", email: "conducteur@edole.africa", deptCode: "OPS", posCode: "OPS-CON", baseSalary: "480000" },
-    { firstName: "Mariam", lastName: "Ouédraogo", email: "rh@edole.africa", deptCode: "RH", posCode: "RH-DIR", baseSalary: "780000" },
+    { firstName: "Kouassi", lastName: "Adjoumani", email: "directeur@gameasu.tech", deptCode: "DIR", posCode: "DIR-GEN", baseSalary: "1200000" },
+    { firstName: "Aminata", lastName: "Diallo", email: "commercial@gameasu.tech", deptCode: "COM", posCode: "COM-DIR", baseSalary: "850000" },
+    { firstName: "Salif", lastName: "Traoré", email: "finance@gameasu.tech", deptCode: "FIN", posCode: "FIN-CPT", baseSalary: "650000" },
+    { firstName: "Moussa", lastName: "Konaté", email: "operations@gameasu.tech", deptCode: "OPS", posCode: "OPS-CHE", baseSalary: "550000" },
+    { firstName: "Fatou", lastName: "Sangaré", email: "operations@gameasu.tech", deptCode: "OPS", posCode: "OPS-CON", baseSalary: "480000" },
+    { firstName: "Mariam", lastName: "Ouédraogo", email: "rh@gameasu.tech", deptCode: "RH", posCode: "RH-DIR", baseSalary: "780000" },
     { firstName: "Ibrahim", lastName: "Cissé", email: null, deptCode: "OPS", posCode: "OPS-OUV", baseSalary: "320000" },
     { firstName: "Aïssatou", lastName: "Bamba", email: null, deptCode: "OPS", posCode: "OPS-OUV", baseSalary: "320000" },
   ];
@@ -422,10 +422,10 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
 
   // ─── ACL clients ───
   await db.insert(userClientAccessTable).values(
-    clientIds.map(cid => ({ organizationId, userId: users["commercial@edole.africa"], clientId: cid, accessLevel: "manager", grantedById: admin.id }))
+    clientIds.map(cid => ({ organizationId, userId: users["commercial@gameasu.tech"], clientId: cid, accessLevel: "manager", grantedById: admin.id }))
   );
   await db.insert(userClientAccessTable).values(
-    clientIds.slice(0, 4).map(cid => ({ organizationId, userId: users["chefchantier@edole.africa"], clientId: cid, accessLevel: "viewer", grantedById: admin.id }))
+    clientIds.slice(0, 4).map(cid => ({ organizationId, userId: users["operations@gameasu.tech"], clientId: cid, accessLevel: "viewer", grantedById: admin.id }))
   );
 
   // ─── Catalogue de services ───
@@ -464,7 +464,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       description: "Engagement créé pour la démonstration de la plateforme.",
       status: "active", isRecurring: e.isRecurring,
       recurrencePattern: e.isRecurring ? { frequency: "monthly", interval: 1 } as any : null,
-      ownerId: users["commercial@edole.africa"],
+      ownerId: users["commercial@gameasu.tech"],
       startDate: ymd(addDays(new Date(), -90)), endDate: ymd(addDays(new Date(), 270)),
     } as any).returning();
     engagementIds.push(created.id);
@@ -488,7 +488,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   const projectIds: string[] = [];
   for (const p of projectSpecs) {
     const [created] = await db.insert(projectsTable).values({
-      name: p.name, clientId: clientIds[p.clientIdx], managerId: users["chefchantier@edole.africa"],
+      name: p.name, clientId: clientIds[p.clientIdx], managerId: users["operations@gameasu.tech"],
       status: p.status, progress: p.progress, budget: p.budget,
       startDate: ymd(addDays(new Date(), -120)), endDate: ymd(addDays(new Date(), 150)),
       description: `Projet de référence — ${p.name}`,
@@ -524,7 +524,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
         description: "Tâche de démonstration liée à un engagement client.",
         status: pick(statuses, j), priority: pick(priorities, j),
         serviceId: engagementIds[i], sectionId: pick(sections, j),
-        assigneeId: users["chefchantier@edole.africa"],
+        assigneeId: users["operations@gameasu.tech"],
         dueDate: ymd(addDays(new Date(), 7 * (j + 1))),
       } as any).returning();
       taskCount++;
@@ -534,7 +534,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
         status: "todo", priority: "medium",
         serviceId: engagementIds[i], sectionId: pick(sections, j),
         parentTaskId: parent.id,
-        assigneeId: users["conducteur@edole.africa"],
+        assigneeId: users["operations@gameasu.tech"],
         dueDate: ymd(addDays(new Date(), 7 * (j + 1) + 3)),
       } as any);
       taskCount++;
@@ -546,7 +546,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
         title: `${projectSpecs[i].name} — lot ${j + 1}`,
         status: pick(statuses, i + j), priority: pick(priorities, j),
         projectId: projectIds[i],
-        assigneeId: users["chefchantier@edole.africa"],
+        assigneeId: users["operations@gameasu.tech"],
         dueDate: ymd(addDays(new Date(), 14 * (j + 1))),
       } as any);
       taskCount++;
@@ -597,12 +597,12 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       { rentalId: rental.id, equipmentId: equipIds[i + 4], quantity: 1, dailyRate: equipSpecs[i + 4].dailyRate, subtotal: String(Number(equipSpecs[i + 4].dailyRate) * 30) },
     ] as any);
     await db.insert(inspectionsTable).values({
-      rentalId: rental.id, type: "before", conductedById: users["chefchantier@edole.africa"],
+      rentalId: rental.id, type: "before", conductedById: users["operations@gameasu.tech"],
       notes: "Matériel en bon état au départ.", hasDispute: "false",
     } as any);
     await db.insert(logisticsOperationsTable).values({
       type: pick(["delivery", "pickup"], i), status: "completed", rentalId: rental.id,
-      responsibleId: users["conducteur@edole.africa"],
+      responsibleId: users["operations@gameasu.tech"],
       address: clientSpecs[i + 1].address,
       scheduledAt: addDays(new Date(), -30 + i * 5),
       completedAt: addDays(new Date(), -29 + i * 5),
@@ -610,7 +610,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     await db.insert(equipmentMovementsTable).values({
       equipmentId: equipIds[i], type: "rental_out",
       fromLocation: "Dépôt central", toLocation: clientSpecs[i + 1].address,
-      quantity: 1, performedById: users["conducteur@edole.africa"],
+      quantity: 1, performedById: users["operations@gameasu.tech"],
       notes: `Sortie pour location ${rental.referenceNumber}`,
     } as any);
   }
@@ -765,7 +765,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     const [created] = await db.insert(opportunitiesTable).values({
       title: o.title, clientId: clientIds[o.clientIdx], stage: o.stage,
       value: o.value, currency: "XOF", probability: o.probability,
-      assignedToId: users["commercial@edole.africa"],
+      assignedToId: users["commercial@gameasu.tech"],
       expectedCloseDate: ymd(addDays(new Date(), 60)),
       notes: "Opportunité de démo.",
     } as any).returning();
@@ -776,7 +776,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       type: pick(["call", "email", "meeting", "note"], i),
       subject: `Suivi ${i + 1}`, description: "Activité commerciale de démo.",
       clientId: clientIds[i % clientIds.length], opportunityId: oppIds[i % oppIds.length],
-      userId: users["commercial@edole.africa"],
+      userId: users["commercial@gameasu.tech"],
       scheduledAt: addDays(new Date(), -i * 2),
       completedAt: i < 5 ? addDays(new Date(), -i * 2 + 1) : null,
     } as any);
@@ -801,14 +801,14 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       subject: "Nos projets en cours", body: "Découvrez les réalisations du trimestre.",
       segment: { audiences: ["clients", "prospects"] } as any,
       status: "sent", sentAt: addDays(new Date(), -10),
-      recipientsCount: 142, sentCount: 138, failedCount: 4, createdBy: users["commercial@edole.africa"],
+      recipientsCount: 142, sentCount: 138, failedCount: 4, createdBy: users["commercial@gameasu.tech"],
     },
     {
       name: "[DÉMO] Promotion location matériel", channel: "whatsapp",
       body: "Tarifs préférentiels sur les engins de terrassement ce mois-ci.",
       segment: { audiences: ["clients"] } as any,
       status: "scheduled", scheduledAt: addDays(new Date(), 5),
-      recipientsCount: 65, sentCount: 0, failedCount: 0, createdBy: users["commercial@edole.africa"],
+      recipientsCount: 65, sentCount: 0, failedCount: 0, createdBy: users["commercial@gameasu.tech"],
     },
   ] as any);
   counts.campaigns = 2;
@@ -838,7 +838,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       createdBy: admin.id, source: "internal",
     } as any).returning();
     convIds.push(conv.id);
-    const participants = [admin.id, users["chefchantier@edole.africa"], users["commercial@edole.africa"]];
+    const participants = [admin.id, users["operations@gameasu.tech"], users["commercial@gameasu.tech"]];
     await db.insert(conversationParticipantsTable).values(
       participants.map(uid => ({ organizationId, conversationId: conv.id, userId: uid, isAdmin: uid === admin.id }))
     );
@@ -891,7 +891,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
       category: pick(["support", "billing", "sales", "complaint"], i),
       priority: pick(["low", "medium", "high"], i),
       status: pick(["open", "in_progress", "resolved", "open"], i),
-      createdById: users["commercial@edole.africa"],
+      createdById: users["commercial@gameasu.tech"],
       assigneeId: admin.id,
     } as any);
   }

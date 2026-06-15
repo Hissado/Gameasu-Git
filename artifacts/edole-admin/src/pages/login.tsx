@@ -30,9 +30,10 @@ const FEATURES = [
 ];
 
 const DEMO_ACCOUNTS = [
-  { role: "Super administrateur", email: "admin@edole.africa",      password: "admin123" },
-  { role: "Responsable",          email: "manager@edole.africa",    password: "manager123" },
-  { role: "Commercial",           email: "commercial@edole.africa", password: "commercial123" },
+  { role: "Super administrateur", email: "admin@gameasu.tech",      password: "admin123" },
+  { role: "Directeur",            email: "directeur@gameasu.tech",  password: "admin123" },
+  { role: "Commercial",           email: "commercial@gameasu.tech", password: "commercial123" },
+  { role: "Finance",              email: "finance@gameasu.tech",    password: "finance123" },
 ];
 
 export default function LoginPage() {

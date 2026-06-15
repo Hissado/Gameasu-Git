@@ -14,7 +14,7 @@ async function seed() {
 
   // USERS
   const [admin] = await db.insert(usersTable).values({
-    email: "admin@edole.africa",
+    email: "admin@gameasu.tech",
     password: "admin123",
     firstName: "Jacques",
     lastName: "Mballa",
@@ -25,7 +25,7 @@ async function seed() {
   }).returning().catch(() => db.select().from(usersTable).limit(1));
 
   const [manager] = await db.insert(usersTable).values({
-    email: "manager@edole.africa",
+    email: "directeur@gameasu.tech",
     password: "manager123",
     firstName: "Aissatou",
     lastName: "Bah",
@@ -36,7 +36,7 @@ async function seed() {
   }).returning().catch(() => db.select().from(usersTable).limit(1));
 
   const [commercial] = await db.insert(usersTable).values({
-    email: "commercial@edole.africa",
+    email: "commercial@gameasu.tech",
     password: "commercial123",
     firstName: "Kofi",
     lastName: "Asante",
@@ -47,7 +47,7 @@ async function seed() {
   }).returning().catch(() => db.select().from(usersTable).limit(1));
 
   const [collab1] = await db.insert(usersTable).values({
-    email: "collab@edole.africa",
+    email: "collab@gameasu.tech",
     password: "collab123",
     firstName: "Marie",
     lastName: "Nguema",
@@ -55,7 +55,7 @@ async function seed() {
     phone: "+237 677 000 004",
     isClient: false,
     isActive: true,
-  }).returning().catch(() => db.select().from(usersTable).where(eq(usersTable.email, "collab@edole.africa")));
+  }).returning().catch(() => db.select().from(usersTable).where(eq(usersTable.email, "collab@gameasu.tech")));
 
   // CLIENTS
   const [client1] = await db.insert(clientsTable).values({
@@ -237,13 +237,13 @@ async function seed() {
   }
 
   // COLLABORATORS
-  await db.insert(collaboratorsTable).values({ firstName: "Robert", lastName: "Essomba", email: "r.essomba@edole.africa", phone: "+237 677 200 001", position: "Technicien Électricien Senior", department: "Technique", skills: ["Électrotechnique", "HTA/HTB", "SCADA"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
-  await db.insert(collaboratorsTable).values({ firstName: "Fatima", lastName: "Diallo", email: "f.diallo@edole.africa", phone: "+237 677 200 002", position: "Ingénieure Mécanique", department: "Technique", skills: ["Maintenance industrielle", "Pneumatique", "Hydraulique"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
-  await db.insert(collaboratorsTable).values({ firstName: "Jean-Baptiste", lastName: "Mfoumou", email: "jb.mfoumou@edole.africa", phone: "+237 677 200 003", position: "Chef de Chantier", department: "Opérations", skills: ["Gestion de chantier", "HSE", "Coordination équipes"], isAvailable: false, currentProjectsCount: 2 }).catch(() => {});
-  await db.insert(collaboratorsTable).values({ firstName: "Amina", lastName: "Touré", email: "a.toure@edole.africa", phone: "+237 677 200 004", position: "Logisticienne", department: "Logistique", skills: ["Supply chain", "Douanes CEMAC", "Transport lourd"], isAvailable: true, currentProjectsCount: 0 }).catch(() => {});
-  await db.insert(collaboratorsTable).values({ firstName: "Olivier", lastName: "Bekono", email: "o.bekono@edole.africa", phone: "+237 677 200 005", position: "Soudeur Certifié", department: "Technique", skills: ["Soudage TIG/MIG", "Tuyauterie industrielle", "Contrôle qualité"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Robert", lastName: "Essomba", email: "r.essomba@gameasu.tech", phone: "+237 677 200 001", position: "Technicien Électricien Senior", department: "Technique", skills: ["Électrotechnique", "HTA/HTB", "SCADA"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Fatima", lastName: "Diallo", email: "f.diallo@gameasu.tech", phone: "+237 677 200 002", position: "Ingénieure Mécanique", department: "Technique", skills: ["Maintenance industrielle", "Pneumatique", "Hydraulique"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Jean-Baptiste", lastName: "Mfoumou", email: "jb.mfoumou@gameasu.tech", phone: "+237 677 200 003", position: "Chef de Chantier", department: "Opérations", skills: ["Gestion de chantier", "HSE", "Coordination équipes"], isAvailable: false, currentProjectsCount: 2 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Amina", lastName: "Touré", email: "a.toure@gameasu.tech", phone: "+237 677 200 004", position: "Logisticienne", department: "Logistique", skills: ["Supply chain", "Douanes CEMAC", "Transport lourd"], isAvailable: true, currentProjectsCount: 0 }).catch(() => {});
+  await db.insert(collaboratorsTable).values({ firstName: "Olivier", lastName: "Bekono", email: "o.bekono@gameasu.tech", phone: "+237 677 200 005", position: "Soudeur Certifié", department: "Technique", skills: ["Soudage TIG/MIG", "Tuyauterie industrielle", "Contrôle qualité"], isAvailable: true, currentProjectsCount: 1 }).catch(() => {});
   if (collab1?.id) {
-    await db.insert(collaboratorsTable).values({ firstName: "Marie", lastName: "Nguema", email: "collab@edole.africa", phone: "+237 677 000 004", position: "Assistante Administrative", department: "Administration", skills: ["Gestion administrative", "Comptabilité", "RH"], isAvailable: true, currentProjectsCount: 0, userId: collab1.id }).catch(() => {});
+    await db.insert(collaboratorsTable).values({ firstName: "Marie", lastName: "Nguema", email: "collab@gameasu.tech", phone: "+237 677 000 004", position: "Assistante Administrative", department: "Administration", skills: ["Gestion administrative", "Comptabilité", "RH"], isAvailable: true, currentProjectsCount: 0, userId: collab1.id }).catch(() => {});
   }
 
   // EQUIPMENT CATEGORIES
