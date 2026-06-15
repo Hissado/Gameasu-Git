@@ -414,6 +414,25 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
   });
 });
 
+router.post("/admin/users/:id/revoke-invitation", requirePermission("users.invite"), async (req, res) => {
+  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  const [u] = await db.select().from(usersTable)
+    .where(and(
+      eq(usersTable.id, req.params.id),
+      eq(usersTable.organizationId, req.authUser!.organizationId),
+    )).limit(1);
+  if (!u) return res.status(404).json({ error: "Utilisateur introuvable" });
+  if (u.acceptedAt) return res.status(400).json({ error: "Ce compte est déjà activé" });
+  await db.update(usersTable).set({
+    mustChangePassword: false,
+    passwordResetToken: null,
+    passwordResetTokenExpiresAt: null,
+    isActive: false,
+  }).where(eq(usersTable.id, u.id));
+  await audit(req, "invitation_revoke", { entityType: "user", entityId: u.id, payload: { email: u.email } });
+  return res.json({ success: true });
+});
+
 router.post("/admin/users/:id/resend-invitation", requirePermission("users.invite"), async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);

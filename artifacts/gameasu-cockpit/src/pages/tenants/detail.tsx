@@ -120,6 +120,8 @@ export default function TenantDetail() {
   const [confirming, setConfirming] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [revokingLink, setRevokingLink] = useState<string | null>(null);
 
   const detail = useQuery<OrgDetail>({
     queryKey: ["cockpit-org", id],
@@ -146,10 +148,54 @@ export default function TenantDetail() {
     enabled: tab === "access",
   });
 
+  type StructInvRow = {
+    id: string; contactEmail: string | null; contactName: string | null;
+    status: string; suggestedPlanCode: string | null; expiresAt: string;
+    acceptedAt: string | null; createdAt: string; token: string; notes: string | null;
+  };
+  const structInvs = useQuery<{ invitations: StructInvRow[] }>({
+    queryKey: ["cockpit-org-struct-invs", id],
+    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/structure-invitations`),
+    enabled: tab === "access",
+  });
+
   const d = detail.data;
   const org = d?.org;
   const sub = d?.subscription;
   const m = d?.metrics;
+
+  const handleGenerateLink = async () => {
+    setGeneratingLink(true);
+    try {
+      const r = await apiFetch<{ onboardUrl: string; expiresAt: string }>(
+        `/api/super-admin/organizations/${id}/structure-invitations/generate`,
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      toast.success("Lien d'accès généré — copié dans le presse-papier");
+      navigator.clipboard.writeText(r.onboardUrl).catch(() => {});
+      structInvs.refetch();
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleRevokeLink = async (invId: string) => {
+    setRevokingLink(invId);
+    try {
+      await apiFetch(
+        `/api/super-admin/structure-invitations/${invId}/revoke`,
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      toast.success("Lien révoqué");
+      structInvs.refetch();
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setRevokingLink(null);
+    }
+  };
 
   const handleRegenerate = async (userId: string, sendEmailInvite = true) => {
     setRegenerating(userId);
@@ -542,20 +588,126 @@ export default function TenantDetail() {
       )}
 
       {tab === "access" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Gérez les invitations d'activation des comptes utilisateurs de cette organisation.
-            </p>
-          </div>
-          {adminInvs.isLoading ? (
-            <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-          ) : (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2"><Key className="w-4 h-4" />Comptes &amp; Invitations</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
+        <div className="space-y-6">
+          {/* ── Section 1 : Liens d'onboarding (structureInvitations) ── */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Send className="w-4 h-4 text-primary" />
+                    Liens d'onboarding tenant
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Liens de création/accès envoyés pour cette organisation — cycle de vie complet.
+                  </p>
+                </div>
+                <Button
+                  size="sm" variant="outline"
+                  onClick={handleGenerateLink}
+                  disabled={generatingLink}
+                  className="shrink-0"
+                >
+                  {generatingLink
+                    ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    : <Key className="w-3 h-3 mr-1" />}
+                  Générer un lien
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {structInvs.isLoading ? (
+                <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+              ) : (structInvs.data?.invitations ?? []).length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Aucun lien d'onboarding pour cette organisation.<br />
+                  <span className="text-xs">Cliquez sur « Générer un lien » pour créer un lien d'accès.</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Créé le</TableHead>
+                        <TableHead>Expire le</TableHead>
+                        <TableHead>Activé le</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(structInvs.data?.invitations ?? []).map((inv) => {
+                        const isExpiredDate = inv.status === "pending" && new Date(inv.expiresAt) < new Date();
+                        const displayStatus = isExpiredDate ? "expired" : inv.status;
+                        return (
+                          <TableRow key={inv.id}>
+                            <TableCell>
+                              <div className="text-sm font-medium">{inv.contactName ?? "—"}</div>
+                              <div className="text-xs text-muted-foreground">{inv.contactEmail ?? "—"}</div>
+                            </TableCell>
+                            <TableCell>
+                              {displayStatus === "accepted" && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">Utilisé</Badge>}
+                              {displayStatus === "pending" && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">En attente</Badge>}
+                              {displayStatus === "expired" && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">Expiré</Badge>}
+                              {displayStatus === "revoked" && <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">Révoqué</Badge>}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(inv.createdAt)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(inv.expiresAt)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.acceptedAt ? fmtDate(inv.acceptedAt) : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              {inv.status === "pending" && !isExpiredDate && (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm" variant="ghost"
+                                    className="text-xs h-7 px-2"
+                                    title="Copier le lien"
+                                    onClick={() => {
+                                      const onboardUrl = `${window.location.origin}/accept-invitation?token=${inv.token}`;
+                                      navigator.clipboard.writeText(onboardUrl).catch(() => {});
+                                      toast.success("Lien copié");
+                                    }}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="text-xs h-7 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                                    disabled={revokingLink === inv.id}
+                                    onClick={() => handleRevokeLink(inv.id)}
+                                  >
+                                    {revokingLink === inv.id
+                                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                                      : "Révoquer"}
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Section 2 : Comptes utilisateurs & invitations d'accès ── */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Key className="w-4 h-4" />
+                Comptes utilisateurs &amp; invitations d'accès
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Statut d'activation des comptes — régénérez ou renvoyez les liens d'activation.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              {adminInvs.isLoading ? (
+                <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+              ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -570,7 +722,9 @@ export default function TenantDetail() {
                     </TableHeader>
                     <TableBody>
                       {(adminInvs.data?.users ?? []).length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun utilisateur</TableCell></TableRow>
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun utilisateur</TableCell>
+                        </TableRow>
                       ) : (adminInvs.data?.users ?? []).map((u) => {
                         const isPending = !u.acceptedAt && u.hasToken;
                         const isExpired = !u.acceptedAt && u.expiresAt && new Date(u.expiresAt) < new Date();
@@ -592,14 +746,16 @@ export default function TenantDetail() {
                               <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{u.role}</span>
                             </TableCell>
                             <TableCell>
-                              {isActive ? (
+                              {!u.isActive ? (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">Révoqué</Badge>
+                              ) : isActive ? (
                                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">Activé</Badge>
                               ) : isExpired ? (
                                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">Expiré</Badge>
                               ) : isPending ? (
                                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">En attente</Badge>
                               ) : (
-                                <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">Aucun lien</Badge>
+                                <Badge variant="outline" className="bg-gray-50 text-gray-400 border-gray-200 text-xs">Aucun lien</Badge>
                               )}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
@@ -609,7 +765,7 @@ export default function TenantDetail() {
                               {u.acceptedAt ? fmtDate(u.acceptedAt) : "—"}
                             </TableCell>
                             <TableCell className="text-right">
-                              {!u.acceptedAt && (
+                              {!u.acceptedAt && u.isActive && (
                                 <div className="flex items-center justify-end gap-1.5">
                                   <Button
                                     size="sm" variant="outline"
@@ -619,15 +775,14 @@ export default function TenantDetail() {
                                   >
                                     {regenerating === u.id
                                       ? <Loader2 className="w-3 h-3 animate-spin" />
-                                      : <><RefreshCw className="w-3 h-3 mr-1" />Régénérer &amp; Envoyer</>
-                                    }
+                                      : <><RefreshCw className="w-3 h-3 mr-1" />Régénérer</>}
                                   </Button>
                                   <Button
                                     size="sm" variant="ghost"
                                     disabled={regenerating === u.id}
                                     onClick={() => handleRegenerate(u.id, false)}
                                     className="text-xs h-7 px-2"
-                                    title="Régénérer sans envoyer d'email"
+                                    title="Copier le lien sans envoyer d'email"
                                   >
                                     <Copy className="w-3 h-3" />
                                   </Button>
@@ -640,9 +795,9 @@ export default function TenantDetail() {
                     </TableBody>
                   </Table>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

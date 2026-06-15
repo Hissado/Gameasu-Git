@@ -450,6 +450,70 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
 });
 
 // ─────────────────────────────────────────────────────────────────
+// Structure invitations liées à une organisation (cockpit)
+// ─────────────────────────────────────────────────────────────────
+
+/** GET /api/super-admin/organizations/:id/structure-invitations */
+router.get("/super-admin/organizations/:id/structure-invitations", sa, async (req, res, next) => {
+  try {
+    const rows = await db.select({
+      id: structureInvitationsTable.id,
+      contactEmail: structureInvitationsTable.contactEmail,
+      contactName: structureInvitationsTable.contactName,
+      status: structureInvitationsTable.status,
+      suggestedPlanCode: structureInvitationsTable.suggestedPlanCode,
+      expiresAt: structureInvitationsTable.expiresAt,
+      acceptedAt: structureInvitationsTable.acceptedAt,
+      createdAt: structureInvitationsTable.createdAt,
+      token: structureInvitationsTable.token,
+      notes: structureInvitationsTable.notes,
+    }).from(structureInvitationsTable)
+      .where(eq(structureInvitationsTable.organizationId, req.params.id))
+      .orderBy(desc(structureInvitationsTable.createdAt));
+    res.json({ invitations: rows });
+  } catch (e) { next(e); }
+});
+
+/** POST /api/super-admin/organizations/:id/structure-invitations/generate
+ *  Génère un nouveau lien d'onboarding attaché à cette organisation (pour renvoyer l'accès). */
+router.post("/super-admin/organizations/:id/structure-invitations/generate", sa, async (req, res, next) => {
+  try {
+    const [org] = await db.select({ id: organizationsTable.id, name: organizationsTable.name })
+      .from(organizationsTable).where(eq(organizationsTable.id, req.params.id)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+    const { contactEmail, contactName, notes, sendEmailInvite = false } = req.body || {};
+    const token = genToken();
+    const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 86400000);
+
+    const [inv] = await db.insert(structureInvitationsTable).values({
+      token,
+      contactEmail: contactEmail ? String(contactEmail).toLowerCase() : null,
+      contactName: contactName ? String(contactName) : null,
+      notes: notes ? String(notes) : null,
+      status: "pending",
+      invitedById: req.authUser?.id ?? null,
+      organizationId: req.params.id,
+      expiresAt,
+    }).returning();
+
+    const onboardUrl = `${baseUrl()}/accept-invitation?token=${token}`;
+
+    let delivery: unknown = null;
+    if (sendEmailInvite && contactEmail) {
+      delivery = await sendEmail({
+        to: String(contactEmail),
+        subject: `Lien d'accès Gaméasù — ${org.name}`,
+        text: `Bonjour ${contactName || ""},\n\nVoici votre lien d'accès à la plateforme Gaméasù :\n${onboardUrl}\n\nLien valable ${INVITE_TTL_DAYS} jours.\n\nL'équipe Gaméasù`,
+        html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gaméasù pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
+      }).catch((e: unknown) => ({ error: (e as Error)?.message }));
+    }
+
+    return res.status(201).json({ invitation: inv, onboardUrl, expiresAt, delivery });
+  } catch (e) { next(e); }
+});
+
+// ─────────────────────────────────────────────────────────────────
 // Admin invitations d'une organisation spécifique (cockpit)
 // ─────────────────────────────────────────────────────────────────
 

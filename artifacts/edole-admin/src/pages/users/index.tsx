@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Send, MailCheck, RefreshCw, UserPlus } from "lucide-react";
+import { Send, MailCheck, RefreshCw, UserPlus, Ban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
@@ -27,22 +27,36 @@ const ROLE_LABEL: Record<string, string> = {
   collaborator: "Collaborateur",
 };
 
-type Inv = {
+type InvUser = {
   id: string; email: string; firstName: string; lastName: string;
-  role: string; invitedAt?: string; acceptedAt?: string; expiresAt?: string; isActive: boolean;
+  role: string; invitedAt?: string; acceptedAt?: string;
+  expiresAt?: string; isActive: boolean;
 };
 
-function InvStatus({ i }: { i: Inv }) {
-  if (i.acceptedAt) return <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50">Acceptée</Badge>;
-  if (!i.isActive) return <Badge variant="secondary">Désactivée</Badge>;
-  if (i.expiresAt && new Date(i.expiresAt) < new Date()) return <Badge className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-50">Expirée</Badge>;
-  return <Badge className="bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-50">En attente</Badge>;
+type InvStatus = "accepted" | "revoked" | "expired" | "pending" | "no_link";
+
+function getInvStatus(i: InvUser): InvStatus {
+  if (i.acceptedAt) return "accepted";
+  if (!i.isActive) return "revoked";
+  if (i.expiresAt && new Date(i.expiresAt) < new Date()) return "expired";
+  if (i.invitedAt) return "pending";
+  return "no_link";
+}
+
+function InvStatusBadge({ status }: { status: InvStatus }) {
+  switch (status) {
+    case "accepted": return <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50">Acceptée</Badge>;
+    case "revoked":  return <Badge className="bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-50">Révoquée</Badge>;
+    case "expired":  return <Badge className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-50">Expirée</Badge>;
+    case "pending":  return <Badge className="bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-50">En attente</Badge>;
+    default:         return <Badge variant="outline" className="text-muted-foreground">Sans lien</Badge>;
+  }
 }
 
 export default function UsersList() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data, isLoading } = useListUsers();
+  const { data: usersData, isLoading } = useListUsers();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invEmail, setInvEmail] = useState("");
@@ -53,7 +67,7 @@ export default function UsersList() {
 
   const { data: invData, refetch: refetchInv } = useQuery({
     queryKey: ["admin/invitations"],
-    queryFn: () => apiFetch<{ data: Inv[] }>("/api/admin/invitations"),
+    queryFn: () => apiFetch<{ data: InvUser[] }>("/api/admin/invitations"),
   });
 
   const inviteMut = useMutation({
@@ -81,6 +95,16 @@ export default function UsersList() {
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
   });
 
+  const revokeMut = useMutation({
+    mutationFn: (userId: string) =>
+      apiFetch<{ success: boolean }>(`/api/admin/users/${userId}/revoke-invitation`, { method: "POST" }),
+    onSuccess: () => {
+      void refetchInv();
+      toast({ title: "Invitation révoquée", description: "Le compte a été désactivé." });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
   const handleInviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setInvError(null);
@@ -88,7 +112,7 @@ export default function UsersList() {
     inviteMut.mutate({ email: invEmail.toLowerCase(), firstName: invFirst, lastName: invLast, role: invRole });
   };
 
-  const pendingInv = (invData?.data ?? []).filter((i) => !i.acceptedAt);
+  const pendingInv = (invData?.data ?? []).filter((i) => getInvStatus(i) !== "accepted");
 
   return (
     <div className="space-y-6">
@@ -122,14 +146,14 @@ export default function UsersList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.data?.length === 0 ? (
+                {usersData?.data?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       Aucun utilisateur enregistré.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data?.data?.map((user) => (
+                  usersData?.data?.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -181,9 +205,12 @@ export default function UsersList() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MailCheck className="w-5 h-5 text-primary" />
-              Invitations en cours
+              Invitations — Cycle de vie
               <Badge variant="outline" className="ml-1">{pendingInv.length}</Badge>
             </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Statuts : <span className="text-amber-700">En attente</span> · <span className="text-red-700">Expirée</span> · <span className="text-gray-500">Révoquée</span>
+            </p>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>
@@ -194,37 +221,57 @@ export default function UsersList() {
                   <TableHead className="hidden md:table-cell">Envoyée le</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Expire</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingInv.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell>
-                      <div className="font-medium text-sm">{i.firstName} {i.lastName}</div>
-                      <div className="text-xs text-muted-foreground">{i.email}</div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="outline" className="text-xs">{ROLE_LABEL[i.role] ?? i.role}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                      {i.invitedAt ? new Date(i.invitedAt).toLocaleDateString("fr-FR") : "—"}
-                    </TableCell>
-                    <TableCell><InvStatus i={i} /></TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                      {i.expiresAt ? new Date(i.expiresAt).toLocaleDateString("fr-FR") : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm" variant="outline"
-                        onClick={() => resendMut.mutate(i.id)}
-                        disabled={resendMut.isPending}
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1" />Relancer
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {pendingInv.map((i) => {
+                  const status = getInvStatus(i);
+                  const canResend = status === "pending" || status === "expired" || status === "no_link";
+                  const canRevoke = status === "pending" || status === "expired" || status === "no_link";
+                  return (
+                    <TableRow key={i.id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{i.firstName} {i.lastName}</div>
+                        <div className="text-xs text-muted-foreground">{i.email}</div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant="outline" className="text-xs">{ROLE_LABEL[i.role] ?? i.role}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                        {i.invitedAt ? new Date(i.invitedAt).toLocaleDateString("fr-FR") : "—"}
+                      </TableCell>
+                      <TableCell><InvStatusBadge status={status} /></TableCell>
+                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                        {i.expiresAt ? new Date(i.expiresAt).toLocaleDateString("fr-FR") : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {canResend && (
+                            <Button
+                              size="sm" variant="outline"
+                              onClick={() => resendMut.mutate(i.id)}
+                              disabled={resendMut.isPending}
+                              className="text-xs h-7 px-2"
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />Relancer
+                            </Button>
+                          )}
+                          {canRevoke && (
+                            <Button
+                              size="sm" variant="outline"
+                              onClick={() => revokeMut.mutate(i.id)}
+                              disabled={revokeMut.isPending}
+                              className="text-xs h-7 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                            >
+                              <Ban className="w-3 h-3 mr-1" />Révoquer
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
