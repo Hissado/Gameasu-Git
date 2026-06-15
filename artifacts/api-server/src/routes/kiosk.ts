@@ -87,22 +87,48 @@ kioskPublicRouter.get("/kiosk/validate/:token", async (req: Request, res: Respon
       kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
       kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
     } else {
-      // Ancien format UUID : lookup direct dans kiosks.token
-      const [kiosk] = await db
-        .select({
-          id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
-          organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive, settings: kiosksTable.settings,
-        })
-        .from(kiosksTable)
-        .where(and(eq(kiosksTable.token, token), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+      // UUID : essayer d'abord kiosk_tokens.id (lien par ID), puis kiosks.token (legacy)
+      const [tokenRow] = await db
+        .select({ id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.id, token), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
         .limit(1);
-      if (!kiosk) { res.status(403).json({ error: "Token invalide ou kiosk désactivé" }); return; }
-      db.update(kiosksTable)
-        .set({ lastSeenAt: new Date(), usageCount: sql`${kiosksTable.usageCount} + 1` })
-        .where(eq(kiosksTable.id, kiosk.id))
-        .catch(() => {});
-      kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
-      kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
+
+      if (tokenRow) {
+        // Lien par token ID (format permanent)
+        db.update(kioskTokensTable)
+          .set({ lastUsedAt: new Date(), usageCount: sql`${kioskTokensTable.usageCount} + 1` })
+          .where(eq(kioskTokensTable.id, tokenRow.id))
+          .catch(() => {});
+        const [kiosk] = await db
+          .select({
+            id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
+            organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive, settings: kiosksTable.settings,
+          })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+          .limit(1);
+        if (!kiosk) { res.status(403).json({ error: "Kiosk désactivé" }); return; }
+        kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
+        kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
+      } else {
+        // Ancien format UUID : lookup direct dans kiosks.token
+        const [kiosk] = await db
+          .select({
+            id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
+            organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive, settings: kiosksTable.settings,
+          })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.token, token), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+          .limit(1);
+        if (!kiosk) { res.status(403).json({ error: "Token invalide ou kiosk désactivé" }); return; }
+        db.update(kiosksTable)
+          .set({ lastSeenAt: new Date(), usageCount: sql`${kiosksTable.usageCount} + 1` })
+          .where(eq(kiosksTable.id, kiosk.id))
+          .catch(() => {});
+        kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
+        kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
+      }
     }
 
     audit(req, "kiosk_token_access", {
@@ -145,12 +171,27 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
         kiosk = k;
       }
     } else {
-      const [k] = await db
-        .select({ id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
-        .from(kiosksTable)
-        .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+      // UUID : essayer kiosk_tokens.id d'abord, puis kiosks.token legacy
+      const [tokenRow] = await db
+        .select({ kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.id, kioskToken), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
         .limit(1);
-      kiosk = k;
+      if (tokenRow) {
+        const [k] = await db
+          .select({ id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+          .limit(1);
+        kiosk = k;
+      } else {
+        const [k] = await db
+          .select({ id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+          .limit(1);
+        kiosk = k;
+      }
     }
 
     if (!kiosk) {
@@ -244,12 +285,27 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         kiosk = k;
       }
     } else {
-      const [k] = await db
-        .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
-        .from(kiosksTable)
-        .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+      // UUID : essayer kiosk_tokens.id d'abord, puis kiosks.token legacy
+      const [tokenRow] = await db
+        .select({ kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.id, kioskToken), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
         .limit(1);
-      kiosk = k;
+      if (tokenRow) {
+        const [k] = await db
+          .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+          .limit(1);
+        kiosk = k;
+      } else {
+        const [k] = await db
+          .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+          .limit(1);
+        kiosk = k;
+      }
     }
 
     if (!kiosk) {

@@ -64,6 +64,11 @@ type Collaborator = {
 const KIOSKS_QUERY_KEY = ["kiosks"] as const;
 const KIOSK_TOKENS_QUERY_KEY = ["kiosk-tokens"] as const;
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function kioskUrl(tokenId: string) {
+  return `${window.location.origin}/kiosk/?token=${tokenId}`;
+}
+
 // ─── Kiosk Form Dialog ────────────────────────────────────────────────────────
 function KioskDialog({
   open, onClose, kiosk,
@@ -235,20 +240,134 @@ function AddTokenDialog({
   );
 }
 
-// ─── New Token Modal (shown ONCE after create/regenerate) ─────────────────────
-function NewTokenModal({
-  rawToken, label, kioskName, onClose,
+// ─── Edit Token Dialog ────────────────────────────────────────────────────────
+function EditTokenDialog({
+  token, onSubmit, isPending, onClose,
 }: {
-  rawToken: string;
-  label: string;
-  kioskName: string;
+  token: KioskToken;
+  onSubmit: (data: { label: string; departmentId?: string | null }) => void;
+  isPending: boolean;
   onClose: () => void;
 }) {
-  const kioskUrl = `${window.location.origin}/kiosk/?token=${rawToken}`;
+  const [label, setLabel] = useState(token.label);
+  const [departmentId, setDepartmentId] = useState(token.departmentId ?? "_none");
+
+  const { data: deptsData } = useQuery<{ data: { id: string; name: string }[] }>({
+    queryKey: ["hr-departments"],
+    queryFn: () => apiFetch("/api/hr/departments"),
+  });
+  const departments = deptsData?.data ?? [];
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-primary" />
+            Modifier le lien
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1">
+            <Label>Label *</Label>
+            <Input value={label} onChange={e => setLabel(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Département</Label>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger><SelectValue placeholder="Aucun département" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Aucun département —</SelectItem>
+                {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isPending}>Annuler</Button>
+          <Button onClick={() => {
+            if (!label.trim()) { toast.error("Label requis"); return; }
+            onSubmit({ label: label.trim(), departmentId: departmentId === "_none" ? null : departmentId });
+          }} disabled={isPending}>
+            {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── QR View Dialog (persistent — affichable à tout moment) ───────────────────
+function QrViewDialog({
+  token, onClose,
+}: {
+  token: KioskToken;
+  onClose: () => void;
+}) {
+  const url = kioskUrl(token.id);
   const [copied, setCopied] = useState(false);
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(kioskUrl).then(() => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      toast.success("URL kiosque copiée !");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-primary" />
+            QR Code — {token.label}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 bg-white rounded-xl border shadow-sm">
+              <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
+            </div>
+            <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
+              {url}
+            </p>
+          </div>
+          {!token.isActive || token.revokedAt ? (
+            <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-800 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Ce lien est {token.revokedAt ? "révoqué" : "inactif"} et ne permettra pas l'accès au kiosque.</span>
+            </div>
+          ) : null}
+        </div>
+        <DialogFooter className="flex gap-2">
+          <Button className="flex-1" onClick={copyUrl}>
+            {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+            Copier l'URL
+          </Button>
+          <Button variant="outline" onClick={onClose}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── New Token Modal (shown after create/regenerate — affiche aussi rawToken) ──
+function NewTokenModal({
+  tokenId, label, kioskName, rawToken, onClose,
+}: {
+  tokenId: string;
+  label: string;
+  kioskName: string;
+  rawToken: string;
+  onClose: () => void;
+}) {
+  const url = kioskUrl(tokenId);
+  const [copied, setCopied] = useState(false);
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       toast.success("URL kiosque copiée !");
       setTimeout(() => setCopied(false), 2000);
@@ -265,26 +384,33 @@ function NewTokenModal({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>Sauvegardez ce lien maintenant — il ne sera plus affiché après fermeture.</span>
-          </div>
           <p className="text-sm"><span className="font-medium">Label :</span> {label}</p>
           <div className="flex flex-col items-center gap-3">
             <div className="p-3 bg-white rounded-xl border shadow-sm">
-              <QRCodeSVG value={kioskUrl} size={180} level="M" includeMargin={false} />
+              <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
             </div>
             <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
-              {kioskUrl}
+              {url}
             </p>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Ce lien restera accessible depuis la liste des liens pour générer à nouveau le QR code.
+          </p>
+          {rawToken && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground select-none">
+                Afficher l'empreinte du token (avancé)
+              </summary>
+              <code className="block mt-1 break-all font-mono bg-muted rounded-md p-2 text-[10px]">{rawToken}</code>
+            </details>
+          )}
         </div>
         <DialogFooter className="flex gap-2">
           <Button className="flex-1" onClick={copyUrl}>
             {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
             Copier l'URL
           </Button>
-          <Button variant="outline" onClick={onClose}>J'ai sauvegardé — Fermer</Button>
+          <Button variant="outline" onClick={onClose}>Fermer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -366,7 +492,9 @@ export default function KioskManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
   const [addTokenKiosk, setAddTokenKiosk] = useState<Kiosk | null>(null);
-  const [newTokenInfo, setNewTokenInfo] = useState<{ rawToken: string; label: string; kioskName: string } | null>(null);
+  const [newTokenInfo, setNewTokenInfo] = useState<{ tokenId: string; label: string; kioskName: string; rawToken: string } | null>(null);
+  const [qrToken, setQrToken] = useState<KioskToken | null>(null);
+  const [editToken, setEditToken] = useState<KioskToken | null>(null);
 
   const { data: kiosks = [], isLoading: kiosksLoading } = useQuery<Kiosk[]>({
     queryKey: KIOSKS_QUERY_KEY,
@@ -435,20 +563,35 @@ export default function KioskManagementPage() {
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
       const kiosk = kiosks.find(k => k.id === vars.kioskId);
-      setNewTokenInfo({ rawToken: data.rawToken, label: data.label, kioskName: kiosk?.name ?? "" });
+      setNewTokenInfo({ tokenId: data.id, rawToken: data.rawToken, label: data.label, kioskName: kiosk?.name ?? "" });
       setAddTokenKiosk(null);
     },
     onError: () => toast.error("Erreur lors de la création du lien"),
   });
 
   const regenerateTokenMutation = useMutation({
-    mutationFn: ({ tokenId }: { tokenId: string; kioskName: string }) =>
+    mutationFn: ({ tokenId }: { tokenId: string; kioskName: string; label: string }) =>
       apiFetch<KioskToken & { rawToken: string }>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
-      setNewTokenInfo({ rawToken: data.rawToken, label: data.label, kioskName: vars.kioskName });
+      setNewTokenInfo({ tokenId: data.id, rawToken: data.rawToken, label: vars.label, kioskName: vars.kioskName });
     },
     onError: () => toast.error("Erreur lors de la régénération"),
+  });
+
+  const patchTokenMutation = useMutation({
+    mutationFn: ({ tokenId, data }: { tokenId: string; data: { label?: string; departmentId?: string | null } }) =>
+      apiFetch<KioskToken>(`/api/kiosk/tokens/${tokenId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
+      toast.success("Lien mis à jour");
+      setEditToken(null);
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour du lien"),
   });
 
   const revokeTokenMutation = useMutation({
@@ -476,10 +619,18 @@ export default function KioskManagementPage() {
     return new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
   };
 
+  // Copier URL sans ouvrir le dialogue QR
+  const copyTokenUrl = (tokenId: string) => {
+    navigator.clipboard.writeText(kioskUrl(tokenId)).then(() => {
+      toast.success("URL kiosque copiée !");
+    });
+  };
+
   return (
     <div className="p-6 space-y-6">
       {newTokenInfo && (
         <NewTokenModal
+          tokenId={newTokenInfo.tokenId}
           rawToken={newTokenInfo.rawToken}
           label={newTokenInfo.label}
           kioskName={newTokenInfo.kioskName}
@@ -492,6 +643,20 @@ export default function KioskManagementPage() {
           onSubmit={(data) => createTokenMutation.mutate(data)}
           isPending={createTokenMutation.isPending}
           onClose={() => setAddTokenKiosk(null)}
+        />
+      )}
+      {qrToken && (
+        <QrViewDialog
+          token={qrToken}
+          onClose={() => setQrToken(null)}
+        />
+      )}
+      {editToken && (
+        <EditTokenDialog
+          token={editToken}
+          onSubmit={(data) => patchTokenMutation.mutate({ tokenId: editToken.id, data })}
+          isPending={patchTokenMutation.isPending}
+          onClose={() => setEditToken(null)}
         />
       )}
 
@@ -602,12 +767,37 @@ export default function KioskManagementPage() {
                                     {t.lastUsedAt && <span> · {new Date(t.lastUsedAt).toLocaleDateString("fr-FR")}</span>}
                                   </span>
                                   <div className="flex items-center gap-0.5">
+                                    {/* Copier URL — toujours disponible */}
                                     <Button
                                       variant="ghost" size="sm" className="h-5 w-5 p-0"
-                                      title="Régénérer le lien (l'ancien sera invalide)"
+                                      title="Copier l'URL du kiosque"
+                                      onClick={() => copyTokenUrl(t.id)}
+                                    >
+                                      <Copy className="w-2.5 h-2.5" />
+                                    </Button>
+                                    {/* Afficher QR — toujours disponible */}
+                                    <Button
+                                      variant="ghost" size="sm" className="h-5 w-5 p-0"
+                                      title="Afficher le QR code"
+                                      onClick={() => setQrToken(t)}
+                                    >
+                                      <QrCode className="w-2.5 h-2.5" />
+                                    </Button>
+                                    {/* Éditer label/département */}
+                                    <Button
+                                      variant="ghost" size="sm" className="h-5 w-5 p-0"
+                                      title="Modifier le label ou le département"
+                                      onClick={() => setEditToken(t)}
+                                    >
+                                      <Pencil className="w-2.5 h-2.5" />
+                                    </Button>
+                                    {/* Régénérer le hash (invalide l'ancien QR) */}
+                                    <Button
+                                      variant="ghost" size="sm" className="h-5 w-5 p-0"
+                                      title="Régénérer le lien (l'ancien token sera invalide)"
                                       onClick={() => {
-                                        if (confirm(`Régénérer le lien "${t.label}" ? L'ancien QR code sera invalide.`)) {
-                                          regenerateTokenMutation.mutate({ tokenId: t.id, kioskName: k.name });
+                                        if (confirm(`Régénérer le lien "${t.label}" ? L'ancien token sera invalide.`)) {
+                                          regenerateTokenMutation.mutate({ tokenId: t.id, kioskName: k.name, label: t.label });
                                         }
                                       }}
                                       disabled={regenerateTokenMutation.isPending}
@@ -763,105 +953,112 @@ export default function KioskManagementPage() {
           <div className="flex items-center gap-3">
             <input
               type="date"
+              className="border rounded-md px-3 py-1.5 text-sm"
               value={activityDate}
               onChange={e => setActivityDate(e.target.value)}
-              className="border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <Button size="sm" variant="outline" onClick={() => refetchActivity()} disabled={activityLoading}>
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${activityLoading ? "animate-spin" : ""}`} />
+            <Button variant="outline" size="sm" onClick={() => refetchActivity()} disabled={activityLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${activityLoading ? "animate-spin" : ""}`} />
               Actualiser
             </Button>
-            <span className="text-sm text-muted-foreground ml-auto">Activité du {activityDate}</span>
           </div>
 
-          {activityData && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { label: "Pointages total", value: activityData.summary.totalPunches, icon: Clock, color: "bg-blue-50 text-blue-600" },
-                { label: "Employés uniques", value: activityData.summary.uniqueEmployees, icon: Users, color: "bg-emerald-50 text-emerald-600" },
-                { label: "Kiosques actifs", value: activityData.summary.activeKiosks, icon: Wifi, color: "bg-orange-50 text-orange-600" },
-              ].map(stat => (
-                <Card key={stat.label}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
-                      <stat.icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
-                      <p className="font-bold text-xl">{stat.value}</p>
-                    </div>
+          {activityLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : activityData ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold">{activityData.summary.totalPunches}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3" /> Pointages totaux
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold">{activityData.summary.uniqueEmployees}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Users className="w-3 h-3" /> Collaborateurs uniques
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold">{activityData.summary.activeKiosks}</div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Wifi className="w-3 h-3" /> Kiosques actifs
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BarChart2 className="w-4 h-4" /> Détail par kiosque
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {activityLoading ? (
-                <div className="flex items-center justify-center h-24">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Kiosque</TableHead>
-                      <TableHead>Emplacement</TableHead>
-                      <TableHead className="text-center">Statut</TableHead>
-                      <TableHead className="text-center">Pointages</TableHead>
-                      <TableHead className="text-center">Employés</TableHead>
-                      <TableHead>Dernier pointage</TableHead>
-                      <TableHead>Vu pour la dernière fois</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(activityData?.kiosks ?? []).map(k => (
-                      <TableRow key={k.id}>
-                        <TableCell className="font-medium">{k.name}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {k.location ? <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{k.location}</span> : "—"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={k.isActive ? "default" : "secondary"} className="text-xs">
-                            {k.isActive ? "Actif" : "Inactif"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center font-medium">
-                          {k.punchCount > 0 ? (
-                            <span className="text-primary font-bold">{k.punchCount}</span>
-                          ) : <span className="text-muted-foreground">0</span>}
-                        </TableCell>
-                        <TableCell className="text-center">{k.uniqueEmployees || "—"}</TableCell>
-                        <TableCell className="text-sm">
-                          {k.lastPunchAt ? new Date(k.lastPunchAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {k.lastSeenAt ? new Date(k.lastSeenAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "Jamais"}
-                        </TableCell>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Activité par kiosque</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kiosque</TableHead>
+                        <TableHead>Emplacement</TableHead>
+                        <TableHead className="text-right">Pointages</TableHead>
+                        <TableHead className="text-right">Collaborateurs</TableHead>
+                        <TableHead>Dernier pointage</TableHead>
+                        <TableHead>État</TableHead>
                       </TableRow>
-                    ))}
-                    {!activityData?.kiosks?.length && (
-                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun kiosk configuré</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {activityData.kiosks.map(k => (
+                        <TableRow key={k.id}>
+                          <TableCell className="font-medium">{k.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{k.location ?? "—"}</TableCell>
+                          <TableCell className="text-right">{k.punchCount}</TableCell>
+                          <TableCell className="text-right">{k.uniqueEmployees}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {k.lastPunchAt ? new Date(k.lastPunchAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={k.isActive ? "default" : "secondary"} className="text-xs">
+                              {k.isActive ? "Actif" : "Inactif"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {activityData.kiosks.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            Aucune activité ce jour
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <BarChart2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                <p className="text-muted-foreground">Aucune donnée disponible</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
-      <KioskDialog
-        open={dialogOpen}
-        onClose={() => { setDialogOpen(false); setEditingKiosk(null); }}
-        kiosk={editingKiosk}
-      />
+      {dialogOpen && (
+        <KioskDialog
+          open={dialogOpen}
+          kiosk={editingKiosk}
+          onClose={() => { setDialogOpen(false); setEditingKiosk(null); queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY }); }}
+        />
+      )}
     </div>
   );
 }
