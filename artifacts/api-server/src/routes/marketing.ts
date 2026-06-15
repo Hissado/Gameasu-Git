@@ -545,7 +545,7 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
       if (apiKey) {
         sendMode = "resend";
         const resend = new Resend(apiKey);
-        const fromEmail = (emailConn.config?.fromEmail as string) || "noreply@gameasutech.com";
+        const fromEmail = (emailConn.config?.fromEmail as string) || "noreply@gameasu.com";
         const fromName = (emailConn.config?.fromName as string) || "Gaméasù";
         const baseUrl = getBaseUrl(req);
 

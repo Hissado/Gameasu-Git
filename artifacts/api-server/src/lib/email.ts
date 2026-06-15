@@ -41,7 +41,7 @@ export function getPreviewInbox(limit = 50) {
 export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "Gaméasù <no-reply@gameasu.africa>";
+  const from = process.env.EMAIL_FROM || "Gaméasù <noreply@gameasu.com>";
 
   let result: EmailDeliveryResult;
   try {
@@ -328,7 +328,7 @@ export function buildTwoFactorEmail(opts: {
     </div>
     <p style="margin:0;font-size:12px;color:#aaa">Si vous n'avez pas tenté de vous connecter, ignorez ce message et vérifiez la sécurité de votre compte.</p>
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù Technology — noreply@gameasu.tech</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù Technology — noreply@gameasu.com</div>
 </div></body></html>`,
     category: "security",
   };
