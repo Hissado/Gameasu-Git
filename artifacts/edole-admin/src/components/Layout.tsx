@@ -10,7 +10,7 @@ import {
   Settings, Bell, Search, UserCircle, LogOut, BarChart3,
   Calculator, TrendingUp, Landmark, Building2, Network,
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
-  FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Crown, Package, Tag, MinusCircle,
+  FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
   Banknote, Flame,
 } from "lucide-react";
@@ -372,34 +372,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             );
           })}
 
-          {/* Super admin section */}
-          {user?.role === "super_admin" && (() => {
-            const isActive = location.startsWith("/super-admin");
-            return (
-              <div className="pt-1 mt-1 border-t border-white/[0.06]">
-                <Link
-                  href="/super-admin"
-                  className={`
-                    group/item relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                    text-[11.5px] font-bold uppercase tracking-[0.08em] transition-all duration-150
-                    ${isActive
-                      ? "bg-white/[0.08] text-white"
-                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
-                    }
-                  `}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />
-                  )}
-                  <Crown
-                    className={`w-[15px] h-[15px] shrink-0 ${isActive ? "text-[#C8A24B]" : "text-white/25"}`}
-                    strokeWidth={isActive ? 2 : 1.75}
-                  />
-                  <span className="flex-1">Cockpit plateforme</span>
-                </Link>
-              </div>
-            );
-          })()}
         </nav>
       </div>
 
