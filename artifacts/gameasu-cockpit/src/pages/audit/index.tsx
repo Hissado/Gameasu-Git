@@ -39,6 +39,27 @@ const RESOURCE_ICONS: Record<string, string> = {
   ticket: "🎫", incident: "🚨", org: "🏢", user: "👤", plan: "💳", kiosk: "🖥️",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  "ticket.update":       "Ticket modifié",
+  "ticket.comment":      "Commentaire ticket",
+  "incident.create":     "Incident créé",
+  "incident.update":     "Incident modifié",
+  "org.suspend":         "Org. suspendue",
+  "org.reactivate":      "Org. réactivée",
+  "login":               "Connexion",
+  "login_failed":        "Connexion échouée",
+  "login_2fa_success":   "2FA validé",
+  "login_2fa_failed":    "2FA échoué",
+  "invite":              "Invitation",
+  "invitation_sent":     "Invitation envoyée",
+  "invitation_accept":   "Invitation acceptée",
+  "kiosk_create":        "Kiosk créé",
+  "kiosk_delete":        "Kiosk supprimé",
+  "kiosk_token_generate":"Token régénéré",
+  "kiosk_token_revoke":  "Token révoqué",
+  "kiosk_token_access":  "Accès kiosk",
+};
+
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "2-digit", month: "short", year: "numeric",
@@ -132,7 +153,7 @@ export default function AuditPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] font-mono ${ACTION_COLORS[log.action] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
-                          {log.action}
+                          {ACTION_LABELS[log.action] ?? log.action}
                         </Badge>
                       </TableCell>
                       <TableCell>

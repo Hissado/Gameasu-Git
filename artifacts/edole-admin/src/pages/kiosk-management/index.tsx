@@ -21,7 +21,7 @@ import {
 import {
   MonitorSmartphone, Plus, Copy, Check, ToggleLeft, ToggleRight,
   Pencil, Users, Key, Loader2, MapPin, RefreshCw, BarChart2, Wifi, Clock,
-  QrCode, RotateCcw, Trash2, Activity,
+  QrCode, RotateCcw, Trash2, Activity, ShieldOff,
 } from "lucide-react";
 
 type Kiosk = {
@@ -322,6 +322,16 @@ export default function KioskManagementPage() {
     onError: () => toast.error("Erreur lors de la suppression"),
   });
 
+  const revokeMutation = useMutation({
+    mutationFn: (k: Kiosk) =>
+      apiFetch(`/api/kiosks/${k.id}/revoke`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      toast.success("Token révoqué — le kiosque est désormais désactivé");
+    },
+    onError: () => toast.error("Erreur lors de la révocation"),
+  });
+
   const copyToken = (token: string, id: string) => {
     navigator.clipboard.writeText(token).then(() => {
       setCopiedId(id);
@@ -409,9 +419,16 @@ export default function KioskManagementPage() {
                           </p>
                         )}
                       </div>
-                      <Badge variant={k.isActive ? "default" : "secondary"} className="shrink-0">
-                        {k.isActive ? "Actif" : "Inactif"}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant={k.isActive ? "default" : "secondary"}>
+                          {k.isActive ? "Actif" : "Inactif"}
+                        </Badge>
+                        {k.revokedAt && (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-[10px]">
+                            <ShieldOff className="w-2.5 h-2.5 mr-1" />Révoqué
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -489,6 +506,20 @@ export default function KioskManagementPage() {
                           ? <ToggleRight className="w-4 h-4 text-emerald-500" />
                           : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
                       </Button>
+                      {!k.revokedAt && (
+                        <Button
+                          variant="ghost" size="sm" className="h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          title="Révoquer le token (désactive le kiosque sans le supprimer)"
+                          onClick={() => {
+                            if (confirm(`Révoquer le token de "${k.name}" ? Le kiosque sera désactivé et son lien QR invalide.`)) {
+                              revokeMutation.mutate(k);
+                            }
+                          }}
+                          disabled={revokeMutation.isPending}
+                        >
+                          <ShieldOff className="w-3 h-3" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         title="Supprimer le kiosque"

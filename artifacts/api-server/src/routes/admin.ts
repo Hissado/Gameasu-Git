@@ -6,11 +6,12 @@ import {
   departmentsTable, projectsTable, userClientAccessTable, clientsTable,
   userPermissionOverridesTable,
 } from "@workspace/db";
-import { and, eq, ilike, sql, desc, inArray } from "drizzle-orm";
+import { and, eq, ilike, sql, desc, inArray, gte, lte } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
 import { requirePermission } from "../middlewares/permissions";
 import { invalidatePermissionsCache } from "../lib/rbac/permissions";
 import { audit } from "../lib/audit";
+import { getCurrentOrganizationId } from "../lib/tenant";
 import { sendEmail, buildInvitationEmail, buildPasswordResetEmail, getPreviewInbox } from "../lib/email";
 import { seedDemo } from "../services/demo-seed";
 
@@ -558,12 +559,16 @@ router.put("/admin/users/:id/client-access", requirePermission("users.assign_pro
 // AUDIT LOGS
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => {
-  const { action, entityType, userId, q, limit = "100" } = req.query as Record<string, string>;
+  const { action, entityType, userId, q, limit = "100", from, to } = req.query as Record<string, string>;
   const conds = [] as any[];
+  const orgId = await getCurrentOrganizationId((req as any).authUser?.id);
+  if (orgId) conds.push(eq(auditLogsTable.organizationId, orgId));
   if (action) conds.push(eq(auditLogsTable.action, action));
   if (entityType) conds.push(eq(auditLogsTable.entityType, entityType));
   if (userId && isUuid(userId)) conds.push(eq(auditLogsTable.userId, userId));
   if (q) conds.push(ilike(auditLogsTable.userEmail, `%${q}%`));
+  if (from) { const d = new Date(from); if (!isNaN(d.getTime())) conds.push(gte(auditLogsTable.createdAt, d)); }
+  if (to) { const d = new Date(to + "T23:59:59.999Z"); if (!isNaN(d.getTime())) conds.push(lte(auditLogsTable.createdAt, d)); }
   const lim = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
   const where = conds.length ? and(...conds) : undefined;
   const rows = await db.select().from(auditLogsTable).where(where as any).orderBy(desc(auditLogsTable.createdAt)).limit(lim);

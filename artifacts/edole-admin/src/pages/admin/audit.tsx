@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { ClipboardList, Search } from "lucide-react";
 
 type Log = {
@@ -69,14 +70,18 @@ export default function AdminAuditPage() {
   const [action, setAction] = useState<string>("_all");
   const [entityType, setEntityType] = useState<string>("_all");
   const [q, setQ] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const params = new URLSearchParams();
   if (action !== "_all") params.set("action", action);
   if (entityType !== "_all") params.set("entityType", entityType);
   if (q) params.set("q", q);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin/audit", action, entityType, q],
+    queryKey: ["admin/audit", action, entityType, q, from, to],
     queryFn: () => apiFetch<{ data: Log[] }>(`/api/admin/audit?${params.toString()}`),
   });
 
@@ -110,6 +115,12 @@ export default function AdminAuditPage() {
             <SelectItem value="kiosk">Kiosque</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground shrink-0">Du</Label>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-36 h-9 text-sm" />
+          <Label className="text-xs text-muted-foreground shrink-0">au</Label>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-36 h-9 text-sm" />
+        </div>
       </div>
 
       <Card>

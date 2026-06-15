@@ -97,7 +97,7 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
         isActive: kiosksTable.isActive,
       })
       .from(kiosksTable)
-      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true)))
+      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
       .limit(1);
 
     const kiosk = kiosks[0];
@@ -184,7 +184,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         isActive: kiosksTable.isActive,
       })
       .from(kiosksTable)
-      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true)))
+      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
       .limit(1);
 
     if (!kiosk) {
@@ -452,7 +452,38 @@ kioskAdminRouter.post("/kiosks/:id/regenerate", async (req: Request, res: Respon
       entityType: "kiosk",
       entityId: kiosk.id,
       organizationId: orgId,
-      payload: { name: kiosk.name, newToken: kiosk.token },
+      payload: { name: kiosk.name },
+    }).catch(() => {});
+
+    res.json(kiosk);
+  } catch (err) { next(err); }
+});
+
+// POST /api/kiosks/:id/revoke — Révoquer explicitement le token (conserve la borne, invalide l'accès)
+kioskAdminRouter.post("/kiosks/:id/revoke", async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+
+    const [kiosk] = await db
+      .update(kiosksTable)
+      .set({ isActive: false, revokedAt: new Date(), revokedByUserId: req.authUser!.id })
+      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .returning({
+        id: kiosksTable.id,
+        name: kiosksTable.name,
+        isActive: kiosksTable.isActive,
+        revokedAt: kiosksTable.revokedAt,
+        revokedByUserId: kiosksTable.revokedByUserId,
+      });
+
+    if (!kiosk) { res.status(404).json({ error: "Kiosk non trouvé" }); return; }
+
+    audit(req, "kiosk_token_revoke", {
+      entityType: "kiosk",
+      entityId: kiosk.id,
+      organizationId: orgId,
+      payload: { name: kiosk.name },
     }).catch(() => {});
 
     res.json(kiosk);

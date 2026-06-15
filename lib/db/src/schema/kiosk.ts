@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
 import { usersTable } from "./users";
+import { departmentsTable } from "./hr";
 
 // ─────────────────────────────────────────────────────────────────
 // KIOSK — Borne de pointage autonome (Phase 19)
@@ -28,6 +29,8 @@ export const kiosksTable = pgTable("kiosks", {
     welcomeMessage?: string | null;
   }>().default({}),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  // Département d'affectation (optionnel — pour filtrage par département)
+  departmentId: uuid("department_id").references(() => departmentsTable.id, { onDelete: "set null" }),
   // Traçabilité du token
   usageCount: integer("usage_count").notNull().default(0),
   generatedByUserId: uuid("generated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
