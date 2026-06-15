@@ -399,6 +399,11 @@ router.post("/auth/accept-invitation", async (req, res) => {
     "invitation_accept",
     { entityType: "user", entityId: user.id },
   );
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "user_activated",
+    { entityType: "user", entityId: user.id, payload: { email: user.email, role: user.role } },
+  );
   return res.json({
     token: sessionToken,
     user: {

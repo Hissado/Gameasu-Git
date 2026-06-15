@@ -487,6 +487,13 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
         acceptedAt: now,
       }).where(eq(structureInvitationsTable.id, inv.id));
 
+      // Public route : pas d'authUser, on passe organizationId explicitement
+      await audit(
+        { ip: req.ip, headers: req.headers },
+        "onboarding_link_used",
+        { entityType: "organization", entityId: org.id, organizationId: org.id, payload: { invId: inv.id, mode: "existing_org", adminEmail: email } },
+      );
+
       const acceptUrl = `${baseUrl()}/accept-invitation?token=${acceptToken}`;
       return res.status(201).json({
         organization: { id: org.id, name: org.name, slug: org.slug },
@@ -515,6 +522,12 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
       acceptedAt: new Date(),
       organizationId: created.organization.id,
     }).where(eq(structureInvitationsTable.id, inv.id));
+
+    await audit(
+      { ip: req.ip, headers: req.headers },
+      "onboarding_link_used",
+      { entityType: "organization", entityId: created.organization.id, organizationId: created.organization.id, payload: { invId: inv.id, mode: "new_org", orgName: created.organization.name } },
+    );
 
     return res.status(201).json({
       organization: created.organization,

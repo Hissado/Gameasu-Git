@@ -403,6 +403,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
   void permissionsHint;
 
   await audit(req, "invite", { entityType: "user", entityId: userId, payload: { email, role: roleRow.code, projectIds: cleanProjectIds, delivery } });
+  await audit(req, "invitation_sent", { entityType: "user", entityId: userId, payload: { email, delivery } });
 
   return res.status(201).json({
     userId,
@@ -458,6 +459,7 @@ router.post("/admin/users/:id/resend-invitation", requirePermission("users.invit
   const delivery = await sendEmail({ ...tpl, to: u.email });
   invalidatePermissionsCache(u.id);
   await audit(req, "invitation_resend", { entityType: "user", entityId: u.id, payload: { delivery } });
+  await audit(req, "invitation_sent", { entityType: "user", entityId: u.id, payload: { email: u.email, delivery } });
   return res.json({ acceptUrl, temporaryPassword: tempPassword, expiresAt, delivery });
 });
 
