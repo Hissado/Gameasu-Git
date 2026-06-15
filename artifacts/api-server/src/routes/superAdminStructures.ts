@@ -367,8 +367,10 @@ router.post("/super-admin/structure-invitations/:id/revoke", sa, async (req, res
       ))
       .returning();
     if (!updated) return res.status(404).json({ error: "Invitation introuvable ou déjà traitée" });
+    // Passer organizationId explicitement : org cible, pas l'org du super-admin opérateur
     await audit(req, "onboarding_link_revoked", {
       entityType: "structureInvitation", entityId: req.params.id,
+      organizationId: updated.organizationId ?? undefined,
       payload: { organizationId: updated.organizationId },
     });
     res.json(updated);
@@ -611,8 +613,10 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
       }).catch((e: unknown) => ({ error: (e as Error)?.message }));
     }
 
+    // Passer organizationId explicitement : pour un super-admin l'org du token ≠ org cible
     await audit(req, "onboarding_link_generated", {
       entityType: "organization", entityId: req.params.id,
+      organizationId: req.params.id,
       payload: { invId: inv.id, sendEmailInvite, contactEmail: contactEmail ?? null },
     });
 

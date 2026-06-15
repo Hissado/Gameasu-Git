@@ -404,6 +404,13 @@ router.post("/auth/accept-invitation", async (req, res) => {
     "user_activated",
     { entityType: "user", entityId: user.id, payload: { email: user.email, role: user.role } },
   );
+  // Email de confirmation d'activation (non bloquant)
+  sendEmail({
+    to: user.email,
+    subject: "Votre compte Gaméasù est activé",
+    text: `Bonjour ${user.firstName},\n\nVotre compte Gaméasù a bien été activé. Vous êtes désormais connecté(e) à la plateforme.\n\nL'équipe Gaméasù`,
+    html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Compte activé ✓</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour <strong>${user.firstName} ${user.lastName}</strong>,</p><p>Votre compte Gaméasù a bien été activé. Vous pouvez désormais vous connecter à la plateforme avec vos identifiants.</p><p style="font-size:13px;color:#555">Cet email confirme l'activation de votre accès. Contactez votre administrateur si vous n'êtes pas à l'origine de cette action.</p></div></div></body></html>`,
+  }).catch(() => {});
   return res.json({
     token: sessionToken,
     user: {
