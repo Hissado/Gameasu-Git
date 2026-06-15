@@ -432,8 +432,12 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
       if (!org) return res.status(410).json({ error: "Organisation introuvable" });
 
       const { adminEmail, adminFirstName, adminLastName } = req.body || {};
-      const email = String(adminEmail ?? inv.contactEmail ?? "").toLowerCase().trim();
-      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Email administrateur invalide" });
+      // Contraindre l'email à inv.contactEmail quand défini — empêche de cibler un compte arbitraire
+      const resolvedEmail = inv.contactEmail
+        ? inv.contactEmail.toLowerCase().trim()
+        : String(adminEmail ?? "").toLowerCase().trim();
+      if (!EMAIL_RE.test(resolvedEmail)) return res.status(400).json({ error: "Email administrateur invalide" });
+      const email = resolvedEmail;
 
       const fName = String(adminFirstName ?? inv.contactName?.split(" ")[0] ?? "").trim();
       const lName = String(adminLastName ?? inv.contactName?.split(" ").slice(1).join(" ") ?? "").trim();
@@ -444,13 +448,27 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
       const now = new Date();
 
       // Créer ou réutiliser le compte admin de cette org
-      const [existing] = await db.select({ id: usersTable.id })
+      const [existing] = await db.select({
+        id: usersTable.id,
+        acceptedAt: usersTable.acceptedAt,
+        mustChangePassword: usersTable.mustChangePassword,
+        isActive: usersTable.isActive,
+      })
         .from(usersTable)
         .where(and(eq(usersTable.email, email), eq(usersTable.organizationId, org.id)))
         .limit(1);
 
       let userId: string;
       if (existing) {
+        // Guard : bloquer tout compte déjà établi — qu'il ait été activé via invitation (acceptedAt)
+        // ou créé directement (isActive=true + mustChangePassword=false couvre les comptes seedés).
+        const isEstablished = !!existing.acceptedAt || (existing.isActive && !existing.mustChangePassword);
+        if (isEstablished) {
+          return res.status(400).json({
+            error: "Un compte actif existe déjà avec cette adresse email pour cette organisation. Utilisez la réinitialisation de mot de passe.",
+            code: "ACCOUNT_ALREADY_ACTIVATED",
+          });
+        }
         userId = existing.id;
         await db.update(usersTable).set({
           password: tempPassword,
