@@ -21,49 +21,50 @@ declare global {
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * Résout un token vers un utilisateur.
- * Stratégie :
- * 1) UUID session token → lookup dans auth_sessions (préféré, sécurisé)
- * 2) Base64 legacy (userId:email) → lookup direct user (rétrocompat sessions existantes)
+ * Résout un token UUID vers un utilisateur via un lookup en base de données.
+ * Seuls les tokens UUID v4 stockés dans auth_sessions sont acceptés.
+ * Les anciens tokens Base64 (userId:email) ne sont PLUS acceptés — forgables, non révocables.
  */
 async function resolveToken(rawToken: string): Promise<AuthUser | null> {
-  // Stratégie 1 : session UUID (format UUID v4)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(rawToken)) {
-    const now = new Date();
-    const sessions = await db
-      .select({ userId: authSessionsTable.userId })
-      .from(authSessionsTable)
-      .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now)))
-      .limit(1);
-    if (!sessions[0]) return null;
-    const users = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, sessions[0].userId))
-      .limit(1);
-    const user = users[0];
-    if (!user || !user.isActive || !user.organizationId) return null;
-    return { id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName, organizationId: user.organizationId };
-  }
-
-  // Stratégie 2 : Base64 legacy — rétrocompat pour les sessions déjà en localStorage
-  try {
-    const decoded = Buffer.from(rawToken, "base64").toString();
-    const [userId] = decoded.split(":");
-    if (!userId) return null;
-    const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    const user = users[0];
-    if (!user || !user.isActive || !user.organizationId) return null;
-    return { id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName, organizationId: user.organizationId };
-  } catch {
+  if (!UUID_REGEX.test(rawToken)) {
     return null;
   }
+
+  const now = new Date();
+  const sessions = await db
+    .select({ userId: authSessionsTable.userId })
+    .from(authSessionsTable)
+    .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now)))
+    .limit(1);
+
+  if (!sessions[0]) return null;
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, sessions[0].userId))
+    .limit(1);
+
+  const user = users[0];
+  if (!user || !user.isActive || !user.organizationId) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    organizationId: user.organizationId,
+  };
 }
 
 export const requireAuth: RequestHandler = async (req, res, next) => {
   const auth = req.headers.authorization;
+  // Pour les médias (<img src>), le navigateur n'envoie pas de Bearer header.
+  // Solution pragmatique : accepter aussi un token via query string.
   const queryToken = typeof req.query.token === "string" ? req.query.token : null;
   if (!auth && !queryToken) {
     res.status(401).json({ error: "Authentification requise" });
@@ -90,7 +91,10 @@ export const requireRole = (...roles: string[]): RequestHandler => {
       return;
     }
     if (!roles.includes(req.authUser.role)) {
-      res.status(403).json({ error: "Accès refusé", detail: `Cette action requiert un des rôles : ${roles.join(", ")}` });
+      res.status(403).json({
+        error: "Accès refusé",
+        detail: `Cette action requiert un des rôles : ${roles.join(", ")}`,
+      });
       return;
     }
     next();

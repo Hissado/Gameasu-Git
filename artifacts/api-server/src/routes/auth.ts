@@ -10,12 +10,15 @@ import { userPermissions } from "../lib/rbac/permissions";
 
 const router = Router();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const BCRYPT_ROUNDS = 12;
 const SESSION_TTL_DAYS = 30;
 const TRUSTED_DEVICE_TTL_DAYS = 60;
 const TWO_FA_TTL_MINUTES = 10;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Vérifie le mot de passe : supporte bcrypt et plaintext legacy (migration transparente). */
 async function verifyPassword(plain: string, stored: string): Promise<boolean> {
@@ -44,7 +47,25 @@ async function createSession(userId: string, req: { ip?: string; headers?: Recor
   return token;
 }
 
-/** Purge les sessions expirées (best-effort, non bloquant). */
+/**
+ * Résout un Bearer token UUID vers un userId en DB.
+ * Lève une erreur 401 via callback si le token est invalide/expiré.
+ * Retourne null si auth header absent (laisser l'appelant décider).
+ */
+async function resolveSessionToken(authHeader: string | undefined): Promise<string | null> {
+  if (!authHeader) return null;
+  const raw = authHeader.replace("Bearer ", "");
+  if (!UUID_REGEX.test(raw)) return null;
+  const now = new Date();
+  const [session] = await db
+    .select({ userId: authSessionsTable.userId })
+    .from(authSessionsTable)
+    .where(and(eq(authSessionsTable.token, raw), gt(authSessionsTable.expiresAt, now)))
+    .limit(1);
+  return session?.userId ?? null;
+}
+
+/** Purge les sessions expirées d'un utilisateur (best-effort, non bloquant). */
 function purgeExpiredSessions(userId: string) {
   db.delete(authSessionsTable)
     .where(and(eq(authSessionsTable.userId, userId), lt(authSessionsTable.expiresAt, new Date())))
@@ -78,11 +99,11 @@ router.post("/auth/login", async (req, res) => {
 
   const passwordOk = await verifyPassword(String(password), user.password);
   if (!passwordOk) {
-    await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "login_failed", {
-      entityType: "user",
-      entityId: user.id,
-      payload: { reason: "wrong_password" },
-    });
+    await audit(
+      { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+      "login_failed",
+      { entityType: "user", entityId: user.id, payload: { reason: "wrong_password" } },
+    );
     return res.status(401).json({ error: "Identifiants incorrects" });
   }
 
@@ -98,7 +119,7 @@ router.post("/auth/login", async (req, res) => {
 
   purgeExpiredSessions(user.id);
 
-  // Vérifier appareil de confiance
+  // Vérifier appareil de confiance (bypass 2FA)
   if (deviceToken && typeof deviceToken === "string") {
     const devices = await db
       .select()
@@ -108,12 +129,13 @@ router.post("/auth/login", async (req, res) => {
 
     for (const device of devices) {
       if (!device.revokedAt && await bcrypt.compare(deviceToken, device.deviceTokenHash)) {
-        // Appareil de confiance reconnu → bypass 2FA
         const token = await createSession(user.id, req);
         await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
-        await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "login", {
-          entityType: "user", entityId: user.id, payload: { method: "trusted_device" },
-        });
+        await audit(
+          { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+          "login",
+          { entityType: "user", entityId: user.id, payload: { method: "trusted_device" } },
+        );
         const perms = await userPermissions(user.id);
         return res.json({
           token,
@@ -138,12 +160,7 @@ router.post("/auth/login", async (req, res) => {
     and(eq(twoFactorCodesTable.userId, user.id), eq(twoFactorCodesTable.used, false)),
   );
 
-  await db.insert(twoFactorCodesTable).values({
-    userId: user.id,
-    tempToken,
-    codeHash,
-    expiresAt,
-  });
+  await db.insert(twoFactorCodesTable).values({ userId: user.id, tempToken, codeHash, expiresAt });
 
   // Envoyer email 2FA
   const emailTpl = buildTwoFactorEmail({
@@ -153,9 +170,11 @@ router.post("/auth/login", async (req, res) => {
   });
   await sendEmail({ ...emailTpl, to: user.email });
 
-  await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "login_2fa_sent", {
-    entityType: "user", entityId: user.id,
-  });
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "login_2fa_sent",
+    { entityType: "user", entityId: user.id },
+  );
 
   return res.json({ status: "2fa_required", tempToken });
 });
@@ -188,9 +207,11 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
   if (!codeOk) {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, record.userId)).limit(1);
     if (user) {
-      await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "login_2fa_failed", {
-        entityType: "user", entityId: user.id,
-      });
+      await audit(
+        { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+        "login_2fa_failed",
+        { entityType: "user", entityId: user.id },
+      );
     }
     return res.status(400).json({ error: "Code de vérification incorrect." });
   }
@@ -214,21 +235,22 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
     const ua = req.headers["user-agent"] ?? "";
     const label = ua.length > 0 ? ua.slice(0, 120) : "Appareil inconnu";
     await db.insert(trustedDevicesTable).values({
-      userId: user.id,
-      deviceTokenHash,
-      label,
-      expiresAt: devExpiresAt,
-      ipAddress: (req.ip ?? null) as any,
+      userId: user.id, deviceTokenHash, label,
+      expiresAt: devExpiresAt, ipAddress: (req.ip ?? null) as any,
     });
     newDeviceToken = rawDeviceToken;
-    await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "trusted_device_added", {
-      entityType: "user", entityId: user.id, payload: { label },
-    });
+    await audit(
+      { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+      "trusted_device_added",
+      { entityType: "user", entityId: user.id, payload: { label } },
+    );
   }
 
-  await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "login_2fa_success", {
-    entityType: "user", entityId: user.id,
-  });
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "login_2fa_success",
+    { entityType: "user", entityId: user.id },
+  );
 
   const perms = await userPermissions(user.id);
   return res.json({
@@ -242,14 +264,13 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
   });
 });
 
-// ─── POST /api/auth/logout ─────────────────────────────────────────────────────
+// ─── POST /api/auth/logout ────────────────────────────────────────────────────
 router.post("/auth/logout", async (req, res) => {
   const auth = req.headers.authorization;
   if (auth) {
-    const rawToken = auth.replace("Bearer ", "");
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(rawToken)) {
-      await db.delete(authSessionsTable).where(eq(authSessionsTable.token, rawToken)).catch(() => {});
+    const raw = auth.replace("Bearer ", "");
+    if (UUID_REGEX.test(raw)) {
+      await db.delete(authSessionsTable).where(eq(authSessionsTable.token, raw)).catch(() => {});
     }
   }
   return res.json({ success: true });
@@ -257,32 +278,12 @@ router.post("/auth/logout", async (req, res) => {
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: "Unauthorized" });
-
-  // Résoudre le token (session UUID ou Base64 legacy)
-  const rawToken = auth.replace("Bearer ", "");
-
-  let userId: string | null = null;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(rawToken)) {
-    const now = new Date();
-    const [session] = await db
-      .select({ userId: authSessionsTable.userId })
-      .from(authSessionsTable)
-      .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now)))
-      .limit(1);
-    userId = session?.userId ?? null;
-  } else {
-    try {
-      const decoded = Buffer.from(rawToken, "base64").toString();
-      [userId] = decoded.split(":");
-    } catch { /* ignore */ }
-  }
-
+  const userId = await resolveSessionToken(req.headers.authorization);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
+
   const perms = await userPermissions(user.id);
   return res.json({
     id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
@@ -294,119 +295,84 @@ router.get("/auth/me", async (req, res) => {
 
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
 router.patch("/auth/me", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: "Unauthorized" });
-  try {
-    const rawToken = auth.replace("Bearer ", "");
-    let userId: string | null = null;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(rawToken)) {
-      const now = new Date();
-      const [session] = await db.select({ userId: authSessionsTable.userId }).from(authSessionsTable)
-        .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now))).limit(1);
-      userId = session?.userId ?? null;
-    } else {
-      const decoded = Buffer.from(rawToken, "base64").toString();
-      [userId] = decoded.split(":");
+  const userId = await resolveSessionToken(req.headers.authorization);
+  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+
+  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!u) return res.status(401).json({ error: "Utilisateur introuvable" });
+
+  const { phone, avatarUrl, email } = req.body || {};
+  const patch: Record<string, string | null> = {};
+  if (phone !== undefined) patch.phone = phone || null;
+  if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl || null;
+  if (email !== undefined && email) {
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+    if (existing.length > 0 && existing[0].id !== userId) {
+      return res.status(409).json({ error: "Cette adresse e-mail est déjà utilisée par un autre compte." });
     }
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    if (!u) return res.status(401).json({ error: "Unauthorized" });
-    const { phone, avatarUrl, email } = req.body || {};
-    const patch: Record<string, string | null> = {};
-    if (phone !== undefined) patch.phone = phone || null;
-    if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl || null;
-    if (email !== undefined && email) {
-      const normalizedEmail = String(email).toLowerCase().trim();
-      const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
-      if (existing.length > 0 && existing[0].id !== userId) {
-        return res.status(409).json({ error: "Cette adresse e-mail est déjà utilisée par un autre compte." });
-      }
-      patch.email = normalizedEmail;
-    }
-    if (Object.keys(patch).length > 0) {
-      await db.update(usersTable).set(patch).where(eq(usersTable.id, userId));
-    }
-    const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    return res.json({ id: updated.id, email: updated.email, firstName: updated.firstName, lastName: updated.lastName, role: updated.role, avatarUrl: updated.avatarUrl, phone: updated.phone ?? null });
-  } catch {
-    return res.status(500).json({ error: "Erreur serveur" });
+    patch.email = normalizedEmail;
   }
+  if (Object.keys(patch).length > 0) {
+    await db.update(usersTable).set(patch).where(eq(usersTable.id, userId));
+  }
+  const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  return res.json({
+    id: updated.id, email: updated.email, firstName: updated.firstName, lastName: updated.lastName,
+    role: updated.role, avatarUrl: updated.avatarUrl, phone: updated.phone ?? null,
+  });
 });
 
 // ─── PUT /api/auth/password ───────────────────────────────────────────────────
 router.put("/auth/password", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: "Authentification requise" });
+  const userId = await resolveSessionToken(req.headers.authorization);
+  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "Mot de passe actuel et nouveau requis" });
   if (typeof newPassword !== "string" || newPassword.length < 8) return res.status(400).json({ error: "Le nouveau mot de passe doit comporter au moins 8 caractères" });
-  try {
-    const rawToken = auth.replace("Bearer ", "");
-    let userId: string | null = null;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(rawToken)) {
-      const now = new Date();
-      const [s] = await db.select({ userId: authSessionsTable.userId }).from(authSessionsTable)
-        .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now))).limit(1);
-      userId = s?.userId ?? null;
-    } else {
-      const decoded = Buffer.from(rawToken, "base64").toString();
-      [userId] = decoded.split(":");
-    }
-    if (!userId) return res.status(401).json({ error: "Token invalide" });
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
-    const ok = await verifyPassword(String(currentPassword), user.password);
-    if (!ok) return res.status(403).json({ error: "Mot de passe actuel incorrect" });
-    if (String(currentPassword) === String(newPassword)) return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'actuel" });
-    const hashed = await bcrypt.hash(String(newPassword), BCRYPT_ROUNDS);
-    await db.update(usersTable).set({ password: hashed }).where(eq(usersTable.id, userId));
-    return res.json({ success: true });
-  } catch {
-    return res.status(401).json({ error: "Token invalide" });
-  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
+
+  const ok = await verifyPassword(String(currentPassword), user.password);
+  if (!ok) return res.status(403).json({ error: "Mot de passe actuel incorrect" });
+  if (String(currentPassword) === String(newPassword)) return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'actuel" });
+
+  const hashed = await bcrypt.hash(String(newPassword), BCRYPT_ROUNDS);
+  await db.update(usersTable).set({ password: hashed }).where(eq(usersTable.id, userId));
+  return res.json({ success: true });
 });
 
 // ─── POST /api/auth/change-password ──────────────────────────────────────────
 router.post("/auth/change-password", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: "Authentification requise" });
+  const userId = await resolveSessionToken(req.headers.authorization);
+  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+
   const { currentPassword, newPassword } = req.body || {};
   if (typeof newPassword !== "string" || newPassword.length < 8) return res.status(400).json({ error: "Le nouveau mot de passe doit comporter au moins 8 caractères" });
-  try {
-    const rawToken = auth.replace("Bearer ", "");
-    let userId: string | null = null;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(rawToken)) {
-      const now = new Date();
-      const [s] = await db.select({ userId: authSessionsTable.userId }).from(authSessionsTable)
-        .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now))).limit(1);
-      userId = s?.userId ?? null;
-    } else {
-      const decoded = Buffer.from(rawToken, "base64").toString();
-      [userId] = decoded.split(":");
-    }
-    if (!userId) return res.status(401).json({ error: "Token invalide" });
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
-    if (!currentPassword || !(await verifyPassword(String(currentPassword), user.password))) {
-      return res.status(403).json({ error: "Mot de passe actuel incorrect" });
-    }
-    if (String(currentPassword) === String(newPassword)) return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'actuel" });
-    const hashed = await bcrypt.hash(String(newPassword), BCRYPT_ROUNDS);
-    await db.update(usersTable).set({
-      password: hashed, mustChangePassword: false,
-      passwordResetToken: null, passwordResetTokenExpiresAt: null,
-      acceptedAt: user.acceptedAt ?? new Date(),
-    }).where(eq(usersTable.id, user.id));
-    await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "password_change", {
-      entityType: "user", entityId: user.id,
-    });
-    return res.json({ success: true });
-  } catch {
-    return res.status(401).json({ error: "Token invalide" });
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
+
+  if (!currentPassword || !(await verifyPassword(String(currentPassword), user.password))) {
+    return res.status(403).json({ error: "Mot de passe actuel incorrect" });
   }
+  if (String(currentPassword) === String(newPassword)) return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'actuel" });
+
+  const hashed = await bcrypt.hash(String(newPassword), BCRYPT_ROUNDS);
+  await db.update(usersTable).set({
+    password: hashed, mustChangePassword: false,
+    passwordResetToken: null, passwordResetTokenExpiresAt: null,
+    acceptedAt: user.acceptedAt ?? new Date(),
+  }).where(eq(usersTable.id, user.id));
+
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "password_change",
+    { entityType: "user", entityId: user.id },
+  );
+  return res.json({ success: true });
 });
 
 // ─── POST /api/auth/accept-invitation ─────────────────────────────────────────
@@ -414,20 +380,25 @@ router.post("/auth/accept-invitation", async (req, res) => {
   const { token, newPassword } = req.body || {};
   if (typeof token !== "string" || !token) return res.status(400).json({ error: "Token requis" });
   if (typeof newPassword !== "string" || newPassword.length < 8) return res.status(400).json({ error: "Le mot de passe doit comporter au moins 8 caractères" });
+
   const [user] = await db.select().from(usersTable).where(
     and(eq(usersTable.passwordResetToken, token), gt(usersTable.passwordResetTokenExpiresAt, new Date())),
   ).limit(1);
   if (!user) return res.status(400).json({ error: "Token invalide ou expiré" });
+
   const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await db.update(usersTable).set({
     password: hashed, mustChangePassword: false,
     passwordResetToken: null, passwordResetTokenExpiresAt: null,
     acceptedAt: new Date(), lastLoginAt: new Date(),
   }).where(eq(usersTable.id, user.id));
+
   const sessionToken = await createSession(user.id, req);
-  await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "invitation_accept", {
-    entityType: "user", entityId: user.id,
-  });
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "invitation_accept",
+    { entityType: "user", entityId: user.id },
+  );
   return res.json({
     token: sessionToken,
     user: {
@@ -441,6 +412,7 @@ router.post("/auth/accept-invitation", async (req, res) => {
 router.post("/auth/forgot-password", async (req, res) => {
   const { email } = req.body || {};
   if (typeof email !== "string" || !email) return res.status(400).json({ error: "Email requis" });
+
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
   if (user && user.isActive) {
     const token = randomBytes(32).toString("hex");
@@ -450,9 +422,11 @@ router.post("/auth/forgot-password", async (req, res) => {
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
     const tpl = buildPasswordResetEmail({ recipientName: `${user.firstName} ${user.lastName}`, resetUrl });
     await sendEmail({ ...tpl, to: user.email });
-    await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "password_reset_request", {
-      entityType: "user", entityId: user.id,
-    });
+    await audit(
+      { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+      "password_reset_request",
+      { entityType: "user", entityId: user.id },
+    );
   }
   return res.json({ success: true, message: "Si un compte existe, un email de réinitialisation a été envoyé." });
 });
@@ -462,18 +436,23 @@ router.post("/auth/reset-password", async (req, res) => {
   const { token, newPassword } = req.body || {};
   if (typeof token !== "string" || !token) return res.status(400).json({ error: "Token requis" });
   if (typeof newPassword !== "string" || newPassword.length < 8) return res.status(400).json({ error: "Le mot de passe doit comporter au moins 8 caractères" });
+
   const [user] = await db.select().from(usersTable).where(
     and(eq(usersTable.passwordResetToken, token), gt(usersTable.passwordResetTokenExpiresAt, new Date())),
   ).limit(1);
   if (!user) return res.status(400).json({ error: "Token invalide ou expiré" });
+
   const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await db.update(usersTable).set({
     password: hashed, mustChangePassword: false,
     passwordResetToken: null, passwordResetTokenExpiresAt: null,
   }).where(eq(usersTable.id, user.id));
-  await audit({ ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any, "password_reset_complete", {
-    entityType: "user", entityId: user.id,
-  });
+
+  await audit(
+    { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
+    "password_reset_complete",
+    { entityType: "user", entityId: user.id },
+  );
   return res.json({ success: true });
 });
 
