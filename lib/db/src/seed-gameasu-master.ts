@@ -155,11 +155,17 @@ async function main() {
   `);
   console.log("  ✓ Tables métier nettoyées");
 
-  // ── 1. Organisation Gaméasù Technologies ──────────────────────────────
+  // ── 1. Organisation cible ──────────────────────────────────────────────
+  // Priorité : org existante du client réel → sinon gameasu-technologies
   console.log("→ Organisation...");
-  let [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.slug, "gameasu-technologies")).limit(1);
+  const PREFERRED_SLUGS = ["hissado-consulting", "nexora-demo", "gameasu-technologies"];
+  let org: typeof organizationsTable.$inferSelect | undefined;
+  for (const slug of PREFERRED_SLUGS) {
+    const rows = await db.select().from(organizationsTable).where(eq(organizationsTable.slug, slug)).limit(1);
+    if (rows[0]) { org = rows[0]; break; }
+  }
   if (!org) {
-    [org] = await db.insert(organizationsTable).values({
+    const rows = await db.insert(organizationsTable).values({
       slug: "gameasu-technologies",
       name: "Gaméasù Technologies",
       legalName: "Gaméasù Technologies SARL",
@@ -176,11 +182,23 @@ async function main() {
       target: organizationsTable.slug,
       set: { name: "Gaméasù Technologies", isDefault: true },
     }).returning();
+    org = rows[0]!;
   }
-  // Unset other default orgs
-  await db.execute(sql`UPDATE organizations SET is_default = false WHERE slug != 'gameasu-technologies'`);
+  // Mise à jour des métadonnées premium de l'org cible
+  await db.update(organizationsTable).set({
+    industry: "Services aux entreprises & BTP",
+    country: "TG",
+    currency: "XOF",
+    timezone: "Africa/Lome",
+    locale: "fr-FR",
+    isDefault: true,
+    primaryColor: "#F37021",
+    secondaryColor: "#0F172A",
+  }).where(eq(organizationsTable.id, org.id));
+  // Désactiver le flag default sur les autres orgs
+  await db.execute(sql`UPDATE organizations SET is_default = false WHERE id != ${org.id}`);
   const orgId = org.id;
-  console.log(`  ✓ Org: ${org.name} (${orgId.slice(0, 8)}…)`);
+  console.log(`  ✓ Org cible: ${org.name} (${orgId.slice(0, 8)}…)`);
 
   // ── 2. Plans & modules SaaS ──────────────────────────────────────────
   console.log("→ Catalogue modules & plans...");
@@ -245,8 +263,15 @@ async function main() {
   const support = users["support@gameasu.tech"]!;
   console.log("  ✓ 7 utilisateurs @gameasu.tech");
 
-  // Membership
+  // Membership @gameasu.tech
   for (const u of Object.values(users)) {
+    const role = u.role === "super_admin" ? "owner" : u.role === "manager" ? "manager" : "member";
+    await db.insert(organizationMembersTable).values({ organizationId: orgId, userId: u.id, role, isPrimary: true }).onConflictDoNothing();
+  }
+  // Ensure existing users already in the target org are also registered as members (owner)
+  const existingOrgUsers = await db.select({ id: usersTable.id, role: usersTable.role })
+    .from(usersTable).where(eq(usersTable.organizationId, orgId));
+  for (const u of existingOrgUsers) {
     const role = u.role === "super_admin" ? "owner" : u.role === "manager" ? "manager" : "member";
     await db.insert(organizationMembersTable).values({ organizationId: orgId, userId: u.id, role, isPrimary: true }).onConflictDoNothing();
   }
