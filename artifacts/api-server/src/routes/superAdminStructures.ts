@@ -660,6 +660,8 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
       .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, req.params.id)))
       .limit(1);
     if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+    // Guard : interdire la réinitialisation de comptes déjà activés via ce flux invitation
+    if (user.acceptedAt) return res.status(400).json({ error: "Ce compte est déjà activé — utilisez la réinitialisation de mot de passe." });
 
     const tempPassword = genTempPassword();
     const token = genToken();
@@ -688,6 +690,17 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
       });
       delivery = await sendEmail({ ...tpl, to: user.email }).catch((e) => ({ error: (e as Error)?.message }));
     }
+
+    await audit(req, "invitation_resend", {
+      entityType: "user", entityId: user.id,
+      organizationId: req.params.id,
+      payload: { email: user.email, sendEmailInvite, delivery },
+    });
+    await audit(req, "invitation_sent", {
+      entityType: "user", entityId: user.id,
+      organizationId: req.params.id,
+      payload: { email: user.email, delivery },
+    });
 
     return res.json({ acceptUrl, expiresAt, delivery });
   } catch (e) { next(e); }
