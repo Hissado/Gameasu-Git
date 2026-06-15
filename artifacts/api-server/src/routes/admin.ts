@@ -435,7 +435,9 @@ router.post("/admin/users/:id/revoke-invitation", requirePermission("users.invit
 
 router.post("/admin/users/:id/resend-invitation", requirePermission("users.invite"), async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+  const [u] = await db.select().from(usersTable)
+    .where(and(eq(usersTable.id, req.params.id), eq(usersTable.organizationId, req.authUser!.organizationId)))
+    .limit(1);
   if (!u) return res.status(404).json({ error: "Introuvable" });
   if (u.acceptedAt) return res.status(400).json({ error: "Invitation déjà acceptée" });
   const tempPassword = genTempPassword();
@@ -459,14 +461,17 @@ router.post("/admin/users/:id/resend-invitation", requirePermission("users.invit
   return res.json({ acceptUrl, temporaryPassword: tempPassword, expiresAt, delivery });
 });
 
-router.get("/admin/invitations", requirePermission("users.invite"), async (_req, res) => {
+router.get("/admin/invitations", requirePermission("users.invite"), async (req, res) => {
   const rows = await db.select({
     id: usersTable.id, email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName,
     role: usersTable.role, invitedAt: usersTable.invitedAt, acceptedAt: usersTable.acceptedAt,
     invitedById: usersTable.invitedById, expiresAt: usersTable.passwordResetTokenExpiresAt,
     isActive: usersTable.isActive,
   }).from(usersTable)
-    .where(sql`${usersTable.invitedAt} IS NOT NULL`)
+    .where(and(
+      eq(usersTable.organizationId, req.authUser!.organizationId),
+      sql`${usersTable.invitedAt} IS NOT NULL`,
+    ))
     .orderBy(desc(usersTable.invitedAt));
   return res.json({ data: rows, preview: getPreviewInbox(20) });
 });

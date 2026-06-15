@@ -470,7 +470,13 @@ router.get("/super-admin/organizations/:id/structure-invitations", sa, async (re
     }).from(structureInvitationsTable)
       .where(eq(structureInvitationsTable.organizationId, req.params.id))
       .orderBy(desc(structureInvitationsTable.createdAt));
-    res.json({ invitations: rows });
+    // Compute onboardUrl server-side so cockpit never reconstructs the URL itself
+    const base = baseUrl();
+    const invitations = rows.map((r) => ({
+      ...r,
+      onboardUrl: `${base}/onboard-structure?token=${r.token}`,
+    }));
+    res.json({ invitations });
   } catch (e) { next(e); }
 });
 
@@ -497,7 +503,9 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
       expiresAt,
     }).returning();
 
-    const onboardUrl = `${baseUrl()}/accept-invitation?token=${token}`;
+    // Structure invitation tokens sont validés par /api/structure-onboarding/:token
+    // et destinés à la page /onboard-structure (auto-onboarding).
+    const onboardUrl = `${baseUrl()}/onboard-structure?token=${token}`;
 
     let delivery: unknown = null;
     if (sendEmailInvite && contactEmail) {

@@ -152,6 +152,7 @@ export default function TenantDetail() {
     id: string; contactEmail: string | null; contactName: string | null;
     status: string; suggestedPlanCode: string | null; expiresAt: string;
     acceptedAt: string | null; createdAt: string; token: string; notes: string | null;
+    onboardUrl: string;
   };
   const structInvs = useQuery<{ invitations: StructInvRow[] }>({
     queryKey: ["cockpit-org-struct-invs", id],
@@ -663,8 +664,8 @@ export default function TenantDetail() {
                                     className="text-xs h-7 px-2"
                                     title="Copier le lien"
                                     onClick={() => {
-                                      const onboardUrl = `${window.location.origin}/accept-invitation?token=${inv.token}`;
-                                      navigator.clipboard.writeText(onboardUrl).catch(() => {});
+                                      // onboardUrl est calculé côté serveur (baseUrl()/onboard-structure?token=...)
+                                      navigator.clipboard.writeText(inv.onboardUrl).catch(() => {});
                                       toast.success("Lien copié");
                                     }}
                                   >
