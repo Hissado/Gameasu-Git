@@ -26,6 +26,7 @@ import {
 import { and, eq, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
 import { sendEmail, buildInvitationEmail } from "../lib/email";
+import { audit } from "../lib/audit";
 
 const router: IRouter = Router();
 
@@ -366,6 +367,10 @@ router.post("/super-admin/structure-invitations/:id/revoke", sa, async (req, res
       ))
       .returning();
     if (!updated) return res.status(404).json({ error: "Invitation introuvable ou déjà traitée" });
+    await audit(req, "onboarding_link_revoked", {
+      entityType: "structureInvitation", entityId: req.params.id,
+      payload: { organizationId: updated.organizationId },
+    });
     res.json(updated);
   } catch (e) { next(e); }
 });
@@ -417,6 +422,81 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
       return res.status(410).json({ error: "Lien expiré" });
     }
 
+    // ── Branchement sémantique ────────────────────────────────────────────────
+    // A. org déjà provisionnée (lien d'accès cockpit) → activer un admin sans créer de nouvelle org
+    if (inv.organizationId) {
+      const [org] = await db.select().from(organizationsTable)
+        .where(eq(organizationsTable.id, inv.organizationId)).limit(1);
+      if (!org) return res.status(410).json({ error: "Organisation introuvable" });
+
+      const { adminEmail, adminFirstName, adminLastName } = req.body || {};
+      const email = String(adminEmail ?? inv.contactEmail ?? "").toLowerCase().trim();
+      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Email administrateur invalide" });
+
+      const fName = String(adminFirstName ?? inv.contactName?.split(" ")[0] ?? "").trim();
+      const lName = String(adminLastName ?? inv.contactName?.split(" ").slice(1).join(" ") ?? "").trim();
+
+      const tempPassword = genTempPassword();
+      const acceptToken = genToken();
+      const expiresAt = new Date(Date.now() + 7 * 86400000);
+      const now = new Date();
+
+      // Créer ou réutiliser le compte admin de cette org
+      const [existing] = await db.select({ id: usersTable.id })
+        .from(usersTable)
+        .where(and(eq(usersTable.email, email), eq(usersTable.organizationId, org.id)))
+        .limit(1);
+
+      let userId: string;
+      if (existing) {
+        userId = existing.id;
+        await db.update(usersTable).set({
+          password: tempPassword,
+          mustChangePassword: true,
+          passwordResetToken: acceptToken,
+          passwordResetTokenExpiresAt: expiresAt,
+          invitedAt: now,
+          isActive: true,
+        }).where(eq(usersTable.id, userId));
+      } else {
+        userId = randomUUID();
+        await db.insert(usersTable).values({
+          id: userId,
+          email,
+          firstName: fName || "Admin",
+          lastName: lName || org.name,
+          role: "admin",
+          password: tempPassword,
+          mustChangePassword: true,
+          passwordResetToken: acceptToken,
+          passwordResetTokenExpiresAt: expiresAt,
+          organizationId: org.id,
+          isActive: true,
+          invitedAt: now,
+          acceptedAt: null,
+        });
+        await db.insert(organizationMembersTable).values({
+          organizationId: org.id,
+          userId,
+          role: "admin",
+        }).onConflictDoNothing();
+      }
+
+      await db.update(structureInvitationsTable).set({
+        status: "accepted",
+        acceptedAt: now,
+      }).where(eq(structureInvitationsTable.id, inv.id));
+
+      const acceptUrl = `${baseUrl()}/accept-invitation?token=${acceptToken}`;
+      return res.status(201).json({
+        organization: { id: org.id, name: org.name, slug: org.slug },
+        acceptUrl,
+        temporaryPassword: tempPassword,
+        mode: "existing_org",
+      });
+    }
+
+    // B. Nouvelle organisation → flux createStructure standard
     const { orgName, planCode, adminEmail, adminFirstName, adminLastName, country, industry } = req.body || {};
 
     const created = await createStructure({
@@ -442,6 +522,7 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
       trialEndsAt: created.subscription.trialEndsAt,
       acceptUrl: created.acceptUrl,
       temporaryPassword: created.temporaryPassword,
+      mode: "new_org",
     });
   } catch (e: any) {
     if (e?.status) return res.status(e.status).json({ error: e.message });
@@ -516,6 +597,11 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
         html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gaméasù pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
       }).catch((e: unknown) => ({ error: (e as Error)?.message }));
     }
+
+    await audit(req, "onboarding_link_generated", {
+      entityType: "organization", entityId: req.params.id,
+      payload: { invId: inv.id, sendEmailInvite, contactEmail: contactEmail ?? null },
+    });
 
     return res.status(201).json({ invitation: inv, onboardUrl, expiresAt, delivery });
   } catch (e) { next(e); }

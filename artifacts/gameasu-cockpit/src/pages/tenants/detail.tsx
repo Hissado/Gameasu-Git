@@ -165,14 +165,23 @@ export default function TenantDetail() {
   const sub = d?.subscription;
   const m = d?.metrics;
 
-  const handleGenerateLink = async () => {
+  const handleGenerateLink = async (withEmail = false) => {
     setGeneratingLink(true);
     try {
+      const body: Record<string, unknown> = {};
+      if (withEmail && org?.contactEmail) {
+        body.sendEmailInvite = true;
+        body.contactEmail = org.contactEmail;
+        body.contactName = org.name;
+      }
       const r = await apiFetch<{ onboardUrl: string; expiresAt: string }>(
         `/api/super-admin/organizations/${id}/structure-invitations/generate`,
-        { method: "POST", body: JSON.stringify({}) },
+        { method: "POST", body: JSON.stringify(body) },
       );
-      toast.success("Lien d'accès généré — copié dans le presse-papier");
+      const msg = withEmail && org?.contactEmail
+        ? "Lien d'accès généré et envoyé par email — copié dans le presse-papier"
+        : "Lien d'accès généré — copié dans le presse-papier";
+      toast.success(msg);
       navigator.clipboard.writeText(r.onboardUrl).catch(() => {});
       structInvs.refetch();
     } catch (e: unknown) {
@@ -603,17 +612,31 @@ export default function TenantDetail() {
                     Liens de création/accès envoyés pour cette organisation — cycle de vie complet.
                   </p>
                 </div>
-                <Button
-                  size="sm" variant="outline"
-                  onClick={handleGenerateLink}
-                  disabled={generatingLink}
-                  className="shrink-0"
-                >
-                  {generatingLink
-                    ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    : <Key className="w-3 h-3 mr-1" />}
-                  Générer un lien
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {org?.contactEmail && (
+                    <Button
+                      size="sm" variant="default"
+                      onClick={() => handleGenerateLink(true)}
+                      disabled={generatingLink}
+                      title={`Générer et envoyer par email à ${org.contactEmail}`}
+                    >
+                      {generatingLink
+                        ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                        : <Mail className="w-3 h-3 mr-1" />}
+                      Envoyer par email
+                    </Button>
+                  )}
+                  <Button
+                    size="sm" variant="outline"
+                    onClick={() => handleGenerateLink(false)}
+                    disabled={generatingLink}
+                  >
+                    {generatingLink
+                      ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                      : <Key className="w-3 h-3 mr-1" />}
+                    Générer un lien
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
