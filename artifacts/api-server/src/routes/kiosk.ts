@@ -299,7 +299,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
 // ─────────────────────────────────────────────────────────────────
 const kioskAdminRouter: IRouter = Router();
 
-kioskAdminRouter.get("/kiosks", async (req: Request, res: Response, next) => {
+kioskAdminRouter.get("/kiosks", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -502,7 +502,7 @@ kioskAdminRouter.post("/kiosks/:id/revoke", requirePermission("attendance.manage
 });
 
 // ── T003 : Activité & statistiques kiosks ────────────────────────
-kioskAdminRouter.get("/kiosks/activity", async (req: Request, res: Response, next) => {
+kioskAdminRouter.get("/kiosks/activity", requirePermission("attendance.view"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -556,7 +556,7 @@ kioskAdminRouter.get("/kiosks/activity", async (req: Request, res: Response, nex
 });
 
 // PATCH /api/collaborators/:id/kiosk-code — Assigner un code kiosk
-kioskAdminRouter.patch("/collaborators/:id/kiosk-code", async (req: Request, res: Response, next) => {
+kioskAdminRouter.patch("/collaborators/:id/kiosk-code", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
