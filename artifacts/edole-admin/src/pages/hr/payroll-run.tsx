@@ -961,8 +961,10 @@ export default function PayrollRun() {
           }
         }}
       >
-        <DialogContent className="max-w-sm">
-          {emailBulkDialog.phase === "confirm" && (
+        <DialogContent className={localItems.filter(l => !l.email).length > 0 && emailBulkDialog.phase === "confirm" ? "max-w-md" : "max-w-sm"}>
+          {emailBulkDialog.phase === "confirm" && (() => {
+            const noEmailItems = localItems.filter(l => !l.email);
+            return (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -985,9 +987,30 @@ export default function PayrollRun() {
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-muted-foreground">Sans email (ignorés)</span>
-                    <span className="font-semibold text-amber-600">{localItems.filter(l => !l.email).length}</span>
+                    <span className="font-semibold text-amber-600">{noEmailItems.length}</span>
                   </div>
                 </div>
+                {noEmailItems.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-amber-700 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      {noEmailItems.length} collaborateur{noEmailItems.length > 1 ? "s" : ""} sans email — {noEmailItems.length > 1 ? "leurs bulletins seront ignorés" : "son bulletin sera ignoré"} :
+                    </p>
+                    <div className="max-h-36 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 divide-y divide-amber-100">
+                      {noEmailItems.map(l => (
+                        <div key={l.collaboratorId} className="flex items-center justify-between px-3 py-1.5 gap-2">
+                          <span className="text-xs font-medium text-amber-900">{l.firstName} {l.lastName}</span>
+                          {l.department && (
+                            <span className="text-[10px] text-amber-600 shrink-0">{l.department}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Annulez pour renseigner les emails manquants, ou continuez pour ignorer ces collaborateurs.
+                    </p>
+                  </div>
+                )}
               </div>
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setEmailBulkDialog({ open: false, phase: "confirm", progress: 0 })}>
@@ -1024,7 +1047,8 @@ export default function PayrollRun() {
                 </Button>
               </DialogFooter>
             </>
-          )}
+            );
+          })()}
 
           {emailBulkDialog.phase === "sending" && (
             <>
