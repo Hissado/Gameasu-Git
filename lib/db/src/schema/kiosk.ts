@@ -50,15 +50,18 @@ export type Kiosk = typeof kiosksTable.$inferSelect;
 
 // ─────────────────────────────────────────────────────────────────
 // KIOSK_TOKENS — Tokens d'accès hachés (SHA-256)
-// Séparés de la borne physique : chaque borne peut avoir N tokens,
-// un seul actif à la fois. tokenHash = SHA-256(rawToken) ;
-// le rawToken n'est retourné qu'une seule fois (création/régénération).
+// Séparés de la borne physique : chaque borne peut avoir N tokens.
+// rawToken = token hex 64 chars, stocké en clair (kiosques présence,
+//   risque faible) pour permettre l'affichage persistant du QR/URL.
+// tokenHash = SHA-256(rawToken), utilisé pour la validation côté API.
+// Régénération : nouveau rawToken + nouveau tokenHash → ancien URL invalide.
 // ─────────────────────────────────────────────────────────────────
 export const kioskTokensTable = pgTable("kiosk_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   kioskId: uuid("kiosk_id").notNull().references(() => kiosksTable.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hex (64 chars)
+  rawToken: text("raw_token").notNull(), // hex 64 chars, stocké pour récupération URL persistante
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256(rawToken), utilisé pour validation
   label: text("label").notNull().default(""),
   departmentId: uuid("department_id").references(() => departmentsTable.id, { onDelete: "set null" }),
   isActive: boolean("is_active").notNull().default(true),

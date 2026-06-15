@@ -42,6 +42,7 @@ type Kiosk = {
 type KioskToken = {
   id: string;
   kioskId: string;
+  rawToken: string;
   label: string;
   departmentId?: string | null;
   isActive: boolean;
@@ -65,8 +66,8 @@ const KIOSKS_QUERY_KEY = ["kiosks"] as const;
 const KIOSK_TOKENS_QUERY_KEY = ["kiosk-tokens"] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function kioskUrl(tokenId: string) {
-  return `${window.location.origin}/kiosk/?token=${tokenId}`;
+function kioskUrl(rawToken: string) {
+  return `${window.location.origin}/kiosk/?token=${rawToken}`;
 }
 
 // ─── Kiosk Form Dialog ────────────────────────────────────────────────────────
@@ -305,7 +306,7 @@ function QrViewDialog({
   token: KioskToken;
   onClose: () => void;
 }) {
-  const url = kioskUrl(token.id);
+  const url = kioskUrl(token.rawToken);
   const [copied, setCopied] = useState(false);
 
   const copyUrl = () => {
@@ -353,17 +354,16 @@ function QrViewDialog({
   );
 }
 
-// ─── New Token Modal (shown after create/regenerate — affiche aussi rawToken) ──
+// ─── New Token Modal (shown after create/regenerate) ──────────────────────────
 function NewTokenModal({
-  tokenId, label, kioskName, rawToken, onClose,
+  rawToken, label, kioskName, onClose,
 }: {
-  tokenId: string;
+  rawToken: string;
   label: string;
   kioskName: string;
-  rawToken: string;
   onClose: () => void;
 }) {
-  const url = kioskUrl(tokenId);
+  const url = kioskUrl(rawToken);
   const [copied, setCopied] = useState(false);
 
   const copyUrl = () => {
@@ -492,7 +492,7 @@ export default function KioskManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
   const [addTokenKiosk, setAddTokenKiosk] = useState<Kiosk | null>(null);
-  const [newTokenInfo, setNewTokenInfo] = useState<{ tokenId: string; label: string; kioskName: string; rawToken: string } | null>(null);
+  const [newTokenInfo, setNewTokenInfo] = useState<{ rawToken: string; label: string; kioskName: string } | null>(null);
   const [qrToken, setQrToken] = useState<KioskToken | null>(null);
   const [editToken, setEditToken] = useState<KioskToken | null>(null);
 
@@ -555,7 +555,7 @@ export default function KioskManagementPage() {
   // ── Mutations kiosk_tokens ─────────────────────────────────────────────────
   const createTokenMutation = useMutation({
     mutationFn: (data: { kioskId: string; label: string; departmentId?: string | null }) =>
-      apiFetch<KioskToken & { rawToken: string }>("/api/kiosk/tokens", {
+      apiFetch<KioskToken>("/api/kiosk/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -563,7 +563,7 @@ export default function KioskManagementPage() {
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
       const kiosk = kiosks.find(k => k.id === vars.kioskId);
-      setNewTokenInfo({ tokenId: data.id, rawToken: data.rawToken, label: data.label, kioskName: kiosk?.name ?? "" });
+      setNewTokenInfo({ rawToken: data.rawToken, label: data.label, kioskName: kiosk?.name ?? "" });
       setAddTokenKiosk(null);
     },
     onError: () => toast.error("Erreur lors de la création du lien"),
@@ -571,10 +571,10 @@ export default function KioskManagementPage() {
 
   const regenerateTokenMutation = useMutation({
     mutationFn: ({ tokenId }: { tokenId: string; kioskName: string; label: string }) =>
-      apiFetch<KioskToken & { rawToken: string }>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
+      apiFetch<KioskToken>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
-      setNewTokenInfo({ tokenId: data.id, rawToken: data.rawToken, label: vars.label, kioskName: vars.kioskName });
+      setNewTokenInfo({ rawToken: data.rawToken, label: vars.label, kioskName: vars.kioskName });
     },
     onError: () => toast.error("Erreur lors de la régénération"),
   });
@@ -620,8 +620,8 @@ export default function KioskManagementPage() {
   };
 
   // Copier URL sans ouvrir le dialogue QR
-  const copyTokenUrl = (tokenId: string) => {
-    navigator.clipboard.writeText(kioskUrl(tokenId)).then(() => {
+  const copyTokenUrl = (rawToken: string) => {
+    navigator.clipboard.writeText(kioskUrl(rawToken)).then(() => {
       toast.success("URL kiosque copiée !");
     });
   };
@@ -630,7 +630,6 @@ export default function KioskManagementPage() {
     <div className="p-6 space-y-6">
       {newTokenInfo && (
         <NewTokenModal
-          tokenId={newTokenInfo.tokenId}
           rawToken={newTokenInfo.rawToken}
           label={newTokenInfo.label}
           kioskName={newTokenInfo.kioskName}
@@ -771,7 +770,7 @@ export default function KioskManagementPage() {
                                     <Button
                                       variant="ghost" size="sm" className="h-5 w-5 p-0"
                                       title="Copier l'URL du kiosque"
-                                      onClick={() => copyTokenUrl(t.id)}
+                                      onClick={() => copyTokenUrl(t.rawToken)}
                                     >
                                       <Copy className="w-2.5 h-2.5" />
                                     </Button>
