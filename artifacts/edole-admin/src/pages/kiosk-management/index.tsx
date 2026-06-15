@@ -24,9 +24,10 @@ import {
 import {
   MonitorSmartphone, Plus, Copy, Check, ToggleLeft, ToggleRight,
   Pencil, Users, Key, Loader2, MapPin, RefreshCw, BarChart2, Wifi, Clock,
-  QrCode, RotateCcw, Trash2, Activity, ShieldOff,
+  QrCode, RotateCcw, Trash2, Activity, ShieldOff, Link2, AlertTriangle,
 } from "lucide-react";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Kiosk = {
   id: string;
   name: string;
@@ -34,10 +35,19 @@ type Kiosk = {
   description?: string | null;
   departmentId?: string | null;
   isActive: boolean;
-  token: string;
-  usageCount?: number;
-  revokedAt?: string | null;
   lastSeenAt?: string | null;
+  createdAt: string;
+};
+
+type KioskToken = {
+  id: string;
+  kioskId: string;
+  label: string;
+  departmentId?: string | null;
+  isActive: boolean;
+  usageCount: number;
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
   createdAt: string;
 };
 
@@ -52,6 +62,7 @@ type Collaborator = {
 };
 
 const KIOSKS_QUERY_KEY = ["kiosks"] as const;
+const KIOSK_TOKENS_QUERY_KEY = ["kiosk-tokens"] as const;
 
 // ─── Kiosk Form Dialog ────────────────────────────────────────────────────────
 function KioskDialog({
@@ -166,6 +177,120 @@ function KioskDialog({
   );
 }
 
+// ─── Add Token Dialog ─────────────────────────────────────────────────────────
+function AddTokenDialog({
+  kiosk, onSubmit, isPending, onClose,
+}: {
+  kiosk: Kiosk;
+  onSubmit: (data: { kioskId: string; label: string; departmentId?: string | null }) => void;
+  isPending: boolean;
+  onClose: () => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [departmentId, setDepartmentId] = useState("_none");
+
+  const { data: deptsData } = useQuery<{ data: { id: string; name: string }[] }>({
+    queryKey: ["hr-departments"],
+    queryFn: () => apiFetch("/api/hr/departments"),
+  });
+  const departments = deptsData?.data ?? [];
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-primary" />
+            Ajouter un lien — {kiosk.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1">
+            <Label>Label *</Label>
+            <Input placeholder="Ex: Accès principal, Entrée A…" value={label} onChange={e => setLabel(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Département</Label>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger><SelectValue placeholder="Aucun département" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Aucun département —</SelectItem>
+                {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isPending}>Annuler</Button>
+          <Button onClick={() => {
+            if (!label.trim()) { toast.error("Label requis"); return; }
+            onSubmit({ kioskId: kiosk.id, label: label.trim(), departmentId: departmentId === "_none" ? null : departmentId });
+          }} disabled={isPending}>
+            {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Créer le lien
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── New Token Modal (shown ONCE after create/regenerate) ─────────────────────
+function NewTokenModal({
+  rawToken, label, kioskName, onClose,
+}: {
+  rawToken: string;
+  label: string;
+  kioskName: string;
+  onClose: () => void;
+}) {
+  const kioskUrl = `${window.location.origin}/kiosk/?token=${rawToken}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(kioskUrl).then(() => {
+      setCopied(true);
+      toast.success("URL kiosque copiée !");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-primary" />
+            Lien créé — {kioskName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>Sauvegardez ce lien maintenant — il ne sera plus affiché après fermeture.</span>
+          </div>
+          <p className="text-sm"><span className="font-medium">Label :</span> {label}</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 bg-white rounded-xl border shadow-sm">
+              <QRCodeSVG value={kioskUrl} size={180} level="M" includeMargin={false} />
+            </div>
+            <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
+              {kioskUrl}
+            </p>
+          </div>
+        </div>
+        <DialogFooter className="flex gap-2">
+          <Button className="flex-1" onClick={copyUrl}>
+            {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+            Copier l'URL
+          </Button>
+          <Button variant="outline" onClick={onClose}>J'ai sauvegardé — Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Kiosk Code Cell ─────────────────────────────────────────────────────────
 function KioskCodeCell({ collaborator, onUpdate }: { collaborator: Collaborator; onUpdate: () => void }) {
   const [editing, setEditing] = useState(false);
@@ -235,71 +360,30 @@ function KioskCodeCell({ collaborator, onUpdate }: { collaborator: Collaborator;
   );
 }
 
-// ─── QR Code Modal ────────────────────────────────────────────────────────────
-function QrModal({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
-  const kioskUrl = `${window.location.origin}/kiosk/?token=${kiosk.token}`;
-  const [copied, setCopied] = useState(false);
-
-  const copyUrl = () => {
-    navigator.clipboard.writeText(kioskUrl).then(() => {
-      setCopied(true);
-      toast.success("URL kiosque copiée !");
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-primary" />
-            QR Code — {kiosk.name}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col items-center gap-4 py-2">
-          <div className="p-4 bg-white rounded-xl border shadow-sm">
-            <QRCodeSVG value={kioskUrl} size={200} level="M" includeMargin={false} />
-          </div>
-          {kiosk.location && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5" /> {kiosk.location}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground text-center break-all px-2 font-mono bg-muted rounded-md p-2 w-full">
-            {kioskUrl}
-          </p>
-          {kiosk.usageCount !== undefined && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Activity className="w-3.5 h-3.5" />
-              {kiosk.usageCount} utilisation{kiosk.usageCount !== 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
-        <DialogFooter className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={copyUrl}>
-            {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
-            Copier l'URL
-          </Button>
-          <Button variant="outline" onClick={onClose}>Fermer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function KioskManagementPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
-  const [qrKiosk, setQrKiosk] = useState<Kiosk | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [addTokenKiosk, setAddTokenKiosk] = useState<Kiosk | null>(null);
+  const [newTokenInfo, setNewTokenInfo] = useState<{ rawToken: string; label: string; kioskName: string } | null>(null);
 
   const { data: kiosks = [], isLoading: kiosksLoading } = useQuery<Kiosk[]>({
     queryKey: KIOSKS_QUERY_KEY,
     queryFn: () => apiFetch<Kiosk[]>("/api/kiosks"),
   });
+
+  const { data: allTokens = [] } = useQuery<KioskToken[]>({
+    queryKey: KIOSK_TOKENS_QUERY_KEY,
+    queryFn: () => apiFetch<KioskToken[]>("/api/kiosk/tokens"),
+  });
+
+  // Grouper les tokens par kioskId
+  const tokensByKiosk = allTokens.reduce<Record<string, KioskToken[]>>((acc, t) => {
+    if (!acc[t.kioskId]) acc[t.kioskId] = [];
+    acc[t.kioskId]!.push(t);
+    return acc;
+  }, {});
 
   const [activityDate, setActivityDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const { data: activityData, isLoading: activityLoading, refetch: refetchActivity } = useQuery<{
@@ -317,6 +401,7 @@ export default function KioskManagementPage() {
   );
   const collaborators: Collaborator[] = (collabsData as any)?.data ?? [];
 
+  // ── Mutations kiosk device ─────────────────────────────────────────────────
   const toggleMutation = useMutation({
     mutationFn: (k: Kiosk) =>
       apiFetch(`/api/kiosks/${k.id}`, {
@@ -328,52 +413,63 @@ export default function KioskManagementPage() {
     onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
-  const regenerateMutation = useMutation({
-    mutationFn: (k: Kiosk) =>
-      apiFetch<Kiosk>(`/api/kiosks/${k.id}/regenerate`, { method: "POST" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
-      toast.success("Token régénéré — l'ancien lien est désormais invalide");
-    },
-    onError: () => toast.error("Erreur lors de la régénération du token"),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (k: Kiosk) =>
       apiFetch(`/api/kiosks/${k.id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
       toast.success("Kiosque supprimé");
     },
     onError: () => toast.error("Erreur lors de la suppression"),
   });
 
-  const revokeMutation = useMutation({
-    mutationFn: (k: Kiosk) =>
-      apiFetch(`/api/kiosks/${k.id}/revoke`, { method: "POST" }),
+  // ── Mutations kiosk_tokens ─────────────────────────────────────────────────
+  const createTokenMutation = useMutation({
+    mutationFn: (data: { kioskId: string; label: string; departmentId?: string | null }) =>
+      apiFetch<KioskToken & { rawToken: string }>("/api/kiosk/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
+      const kiosk = kiosks.find(k => k.id === vars.kioskId);
+      setNewTokenInfo({ rawToken: data.rawToken, label: data.label, kioskName: kiosk?.name ?? "" });
+      setAddTokenKiosk(null);
+    },
+    onError: () => toast.error("Erreur lors de la création du lien"),
+  });
+
+  const regenerateTokenMutation = useMutation({
+    mutationFn: ({ tokenId }: { tokenId: string; kioskName: string }) =>
+      apiFetch<KioskToken & { rawToken: string }>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
+      setNewTokenInfo({ rawToken: data.rawToken, label: data.label, kioskName: vars.kioskName });
+    },
+    onError: () => toast.error("Erreur lors de la régénération"),
+  });
+
+  const revokeTokenMutation = useMutation({
+    mutationFn: (tokenId: string) =>
+      apiFetch(`/api/kiosk/tokens/${tokenId}/revoke`, { method: "POST" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KIOSKS_QUERY_KEY });
-      toast.success("Token révoqué — le kiosque est désormais désactivé");
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
+      toast.success("Lien révoqué");
     },
     onError: () => toast.error("Erreur lors de la révocation"),
   });
 
-  const copyToken = (token: string, id: string) => {
-    navigator.clipboard.writeText(token).then(() => {
-      setCopiedId(id);
-      toast.success("Token copié !");
-      setTimeout(() => setCopiedId(null), 2000);
-    });
-  };
-
-  const copyKioskUrl = (token: string, id: string) => {
-    const url = `${window.location.origin}/kiosk/?token=${token}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedId("url-" + id);
-      toast.success("URL kiosque copiée !");
-      setTimeout(() => setCopiedId(null), 2000);
-    });
-  };
+  const deleteTokenMutation = useMutation({
+    mutationFn: (tokenId: string) =>
+      apiFetch(`/api/kiosk/tokens/${tokenId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
+      toast.success("Lien supprimé");
+    },
+    onError: () => toast.error("Erreur lors de la suppression du lien"),
+  });
 
   const fmtDate = (d: string | null | undefined) => {
     if (!d) return "Jamais";
@@ -382,7 +478,22 @@ export default function KioskManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {qrKiosk && <QrModal kiosk={qrKiosk} onClose={() => setQrKiosk(null)} />}
+      {newTokenInfo && (
+        <NewTokenModal
+          rawToken={newTokenInfo.rawToken}
+          label={newTokenInfo.label}
+          kioskName={newTokenInfo.kioskName}
+          onClose={() => setNewTokenInfo(null)}
+        />
+      )}
+      {addTokenKiosk && (
+        <AddTokenDialog
+          kiosk={addTokenKiosk}
+          onSubmit={(data) => createTokenMutation.mutate(data)}
+          isPending={createTokenMutation.isPending}
+          onClose={() => setAddTokenKiosk(null)}
+        />
+      )}
 
       <div className="flex items-center justify-between">
         <div>
@@ -433,135 +544,153 @@ export default function KioskManagementPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {kiosks.map((k) => (
-                <Card key={k.id} className={`relative ${!k.isActive ? "opacity-60" : ""}`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <CardTitle className="text-base">{k.name}</CardTitle>
-                        {k.location && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {k.location}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
+              {kiosks.map((k) => {
+                const tokens = tokensByKiosk[k.id] ?? [];
+                return (
+                  <Card key={k.id} className={`relative ${!k.isActive ? "opacity-60" : ""}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <CardTitle className="text-base">{k.name}</CardTitle>
+                          {k.location && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" /> {k.location}
+                            </p>
+                          )}
+                        </div>
                         <Badge variant={k.isActive ? "default" : "secondary"}>
                           {k.isActive ? "Actif" : "Inactif"}
                         </Badge>
-                        {k.revokedAt && (
-                          <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-[10px]">
-                            <ShieldOff className="w-2.5 h-2.5 mr-1" />Révoqué
-                          </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Liens d'accès (kiosk_tokens) */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <Link2 className="w-3 h-3" /> Liens d'accès
+                          </p>
+                          <Button
+                            variant="ghost" size="sm"
+                            className="h-6 px-2 text-xs gap-1"
+                            onClick={() => setAddTokenKiosk(k)}
+                          >
+                            <Plus className="w-3 h-3" />Ajouter
+                          </Button>
+                        </div>
+                        {tokens.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic bg-muted/40 rounded-md p-2 text-center">
+                            Aucun lien — cliquez sur Ajouter pour créer un lien d'accès
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            {tokens.map(t => (
+                              <div key={t.id} className={`border rounded-md p-2 text-xs ${!t.isActive ? "opacity-60 bg-muted/20" : "bg-background"}`}>
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className="font-medium truncate flex-1">{t.label}</span>
+                                  <Badge
+                                    variant={t.revokedAt ? "outline" : t.isActive ? "default" : "secondary"}
+                                    className={`text-[10px] h-4 shrink-0 ${t.revokedAt ? "text-orange-600 border-orange-300 bg-orange-50" : ""}`}
+                                  >
+                                    {t.revokedAt ? "Révoqué" : t.isActive ? "Actif" : "Inactif"}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center justify-between mt-1.5">
+                                  <span className="text-muted-foreground flex items-center gap-1">
+                                    <Activity className="w-3 h-3" />
+                                    {t.usageCount} accès
+                                    {t.lastUsedAt && <span> · {new Date(t.lastUsedAt).toLocaleDateString("fr-FR")}</span>}
+                                  </span>
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      variant="ghost" size="sm" className="h-5 w-5 p-0"
+                                      title="Régénérer le lien (l'ancien sera invalide)"
+                                      onClick={() => {
+                                        if (confirm(`Régénérer le lien "${t.label}" ? L'ancien QR code sera invalide.`)) {
+                                          regenerateTokenMutation.mutate({ tokenId: t.id, kioskName: k.name });
+                                        }
+                                      }}
+                                      disabled={regenerateTokenMutation.isPending}
+                                    >
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                    </Button>
+                                    {!t.revokedAt && (
+                                      <Button
+                                        variant="ghost" size="sm"
+                                        className="h-5 w-5 p-0 text-orange-500 hover:text-orange-700"
+                                        title="Révoquer le lien"
+                                        onClick={() => {
+                                          if (confirm(`Révoquer le lien "${t.label}" ?`)) {
+                                            revokeTokenMutation.mutate(t.id);
+                                          }
+                                        }}
+                                        disabled={revokeTokenMutation.isPending}
+                                      >
+                                        <ShieldOff className="w-2.5 h-2.5" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost" size="sm"
+                                      className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                      title="Supprimer ce lien"
+                                      onClick={() => {
+                                        if (confirm(`Supprimer le lien "${t.label}" définitivement ?`)) {
+                                          deleteTokenMutation.mutate(t.id);
+                                        }
+                                      }}
+                                      disabled={deleteTokenMutation.isPending}
+                                    >
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="bg-muted rounded-md p-2">
-                      <p className="text-xs text-muted-foreground mb-1">Token d'accès</p>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs font-mono text-foreground truncate flex-1">{k.token}</code>
-                        <Button
-                          variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0"
-                          onClick={() => copyToken(k.token, k.id)}
-                        >
-                          {copiedId === k.id ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        </Button>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <RefreshCw className="w-3 h-3" />
-                        Vu le : {fmtDate(k.lastSeenAt)}
-                      </span>
-                      {k.usageCount !== undefined && (
-                        <span className="flex items-center gap-1">
-                          <Activity className="w-3 h-3" />
-                          {k.usageCount} accès
-                        </span>
-                      )}
-                    </div>
+                        <span>Vu le : {fmtDate(k.lastSeenAt)}</span>
+                      </div>
 
-                    <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-                      <Button
-                        variant="outline" size="sm" className="h-8 gap-1.5"
-                        onClick={() => setQrKiosk(k)}
-                        title="Afficher le QR code"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        QR
-                      </Button>
-                      <Button
-                        variant="outline" size="sm" className="h-8 gap-1.5"
-                        onClick={() => copyKioskUrl(k.token, k.id)}
-                        title="Copier l'URL"
-                      >
-                        {copiedId === "url-" + k.id ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        URL
-                      </Button>
-                      <Button
-                        variant="outline" size="sm" className="h-8"
-                        onClick={() => { setEditingKiosk(k); setDialogOpen(true); }}
-                        title="Modifier"
-                      >
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline" size="sm" className="h-8"
-                        title="Régénérer le token (invalide l'ancien lien)"
-                        onClick={() => {
-                          if (confirm(`Régénérer le token de "${k.name}" ? L'ancien QR code sera invalide.`)) {
-                            regenerateMutation.mutate(k);
-                          }
-                        }}
-                        disabled={regenerateMutation.isPending}
-                      >
-                        {regenerateMutation.isPending
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <RotateCcw className="w-3 h-3" />}
-                      </Button>
-                      <Button
-                        variant="ghost" size="sm" className="h-8"
-                        onClick={() => toggleMutation.mutate(k)}
-                        disabled={toggleMutation.isPending}
-                        title={k.isActive ? "Désactiver" : "Activer"}
-                      >
-                        {k.isActive
-                          ? <ToggleRight className="w-4 h-4 text-emerald-500" />
-                          : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
-                      </Button>
-                      {!k.revokedAt && (
+                      {/* Actions sur la borne */}
+                      <div className="flex items-center gap-1.5 pt-1 flex-wrap border-t">
                         <Button
-                          variant="ghost" size="sm" className="h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                          title="Révoquer le token (désactive le kiosque sans le supprimer)"
+                          variant="outline" size="sm" className="h-8"
+                          onClick={() => { setEditingKiosk(k); setDialogOpen(true); }}
+                          title="Modifier la borne"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm" className="h-8"
+                          onClick={() => toggleMutation.mutate(k)}
+                          disabled={toggleMutation.isPending}
+                          title={k.isActive ? "Désactiver la borne" : "Activer la borne"}
+                        >
+                          {k.isActive
+                            ? <ToggleRight className="w-4 h-4 text-emerald-500" />
+                            : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                          title="Supprimer la borne"
                           onClick={() => {
-                            if (confirm(`Révoquer le token de "${k.name}" ? Le kiosque sera désactivé et son lien QR invalide.`)) {
-                              revokeMutation.mutate(k);
+                            if (confirm(`Supprimer définitivement "${k.name}" et tous ses liens ? Cette action est irréversible.`)) {
+                              deleteMutation.mutate(k);
                             }
                           }}
-                          disabled={revokeMutation.isPending}
+                          disabled={deleteMutation.isPending}
                         >
-                          <ShieldOff className="w-3 h-3" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Supprimer le kiosque"
-                        onClick={() => {
-                          if (confirm(`Supprimer définitivement "${k.name}" ? Cette action est irréversible.`)) {
-                            deleteMutation.mutate(k);
-                          }
-                        }}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>

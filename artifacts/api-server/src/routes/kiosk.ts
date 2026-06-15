@@ -1,8 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { createHash, randomBytes } from "node:crypto";
 import { db } from "@workspace/db";
 import {
   collaboratorsTable,
   kiosksTable,
+  kioskTokensTable,
   attendanceRecordsTable,
   attendanceSessionsTable,
 } from "@workspace/db";
@@ -13,6 +15,20 @@ import { ObjectStorageService } from "../lib/objectStorage";
 import { audit } from "../lib/audit";
 import { requirePermission } from "../middlewares/permissions";
 
+// ── Helpers pour les tokens hachés ───────────────────────────────
+function generateToken(): { raw: string; hash: string } {
+  const raw = randomBytes(32).toString("hex"); // 64 chars hex
+  const hash = createHash("sha256").update(raw).digest("hex");
+  return { raw, hash };
+}
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+const IS_NEW_TOKEN = /^[0-9a-f]{64}$/i;
+const IS_LEGACY_UUID = /^[0-9a-f-]{36}$/i;
+
 // ─────────────────────────────────────────────────────────────────
 // Public router — monté avant requireAuth
 // ─────────────────────────────────────────────────────────────────
@@ -20,57 +36,81 @@ export const kioskPublicRouter: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
 // GET /api/kiosk/validate/:token — Valider un token kiosk au démarrage (public)
+// Accepte : token haché (hex 64 chars, kiosk_tokens) OU UUID legacy (kiosks.token)
 kioskPublicRouter.get("/kiosk/validate/:token", async (req: Request, res: Response, next) => {
   try {
     const { token } = req.params;
-    if (!token || !/^[0-9a-f-]{36}$/i.test(token)) {
+    if (!token) { res.status(400).json({ error: "Token manquant" }); return; }
+
+    const isNew = IS_NEW_TOKEN.test(token);
+    const isLegacy = IS_LEGACY_UUID.test(token);
+    if (!isNew && !isLegacy) {
       res.status(400).json({ error: "Format de token invalide" });
       return;
     }
 
-    const [kiosk] = await db
-      .select({
-        id: kiosksTable.id,
-        name: kiosksTable.name,
-        location: kiosksTable.location,
-        organizationId: kiosksTable.organizationId,
-        isActive: kiosksTable.isActive,
-        revokedAt: kiosksTable.revokedAt,
-        settings: kiosksTable.settings,
-      })
-      .from(kiosksTable)
-      .where(and(eq(kiosksTable.token, token), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
-      .limit(1);
+    let kioskId: string;
+    let kioskName: string;
+    let kioskLocation: string | null;
+    let kioskOrgId: string;
+    let kioskSettings: Record<string, unknown>;
 
-    if (!kiosk) {
-      res.status(403).json({ error: "Token invalide ou kiosk désactivé" });
-      return;
+    if (isNew) {
+      // Nouveau format : lookup par hash dans kiosk_tokens
+      const tokenHash = hashToken(token);
+      const [tokenRow] = await db
+        .select({ id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(
+          eq(kioskTokensTable.tokenHash, tokenHash),
+          eq(kioskTokensTable.isActive, true),
+          isNull(kioskTokensTable.revokedAt),
+        ))
+        .limit(1);
+      if (!tokenRow) { res.status(403).json({ error: "Token invalide ou révoqué" }); return; }
+
+      // Mettre à jour les compteurs d'utilisation (non bloquant)
+      db.update(kioskTokensTable)
+        .set({ lastUsedAt: new Date(), usageCount: sql`${kioskTokensTable.usageCount} + 1` })
+        .where(eq(kioskTokensTable.id, tokenRow.id))
+        .catch(() => {});
+
+      const [kiosk] = await db
+        .select({
+          id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
+          organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive, settings: kiosksTable.settings,
+        })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+        .limit(1);
+      if (!kiosk) { res.status(403).json({ error: "Kiosk désactivé" }); return; }
+      kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
+      kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
+    } else {
+      // Ancien format UUID : lookup direct dans kiosks.token
+      const [kiosk] = await db
+        .select({
+          id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location,
+          organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive, settings: kiosksTable.settings,
+        })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.token, token), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+        .limit(1);
+      if (!kiosk) { res.status(403).json({ error: "Token invalide ou kiosk désactivé" }); return; }
+      db.update(kiosksTable)
+        .set({ lastSeenAt: new Date(), usageCount: sql`${kiosksTable.usageCount} + 1` })
+        .where(eq(kiosksTable.id, kiosk.id))
+        .catch(() => {});
+      kioskId = kiosk.id; kioskName = kiosk.name; kioskLocation = kiosk.location;
+      kioskOrgId = kiosk.organizationId; kioskSettings = (kiosk.settings as Record<string, unknown>) ?? {};
     }
 
-    // Incrémenter le compteur d'utilisation et mettre à jour lastSeenAt
-    await db
-      .update(kiosksTable)
-      .set({
-        lastSeenAt: new Date(),
-        usageCount: sql`${kiosksTable.usageCount} + 1`,
-      })
-      .where(eq(kiosksTable.id, kiosk.id));
-
-    // Journal d'audit non bloquant
     audit(req, "kiosk_token_access", {
-      entityType: "kiosk",
-      entityId: kiosk.id,
-      organizationId: kiosk.organizationId,
-      payload: { kioskName: kiosk.name },
+      entityType: "kiosk", entityId: kioskId, organizationId: kioskOrgId,
+      payload: { kioskName },
     }).catch(() => {});
 
-    res.json({
-      id: kiosk.id,
-      name: kiosk.name,
-      location: kiosk.location,
-      organizationId: kiosk.organizationId,
-      settings: kiosk.settings ?? {},
-    });
+    res.json({ id: kioskId, name: kioskName, location: kioskLocation, organizationId: kioskOrgId, settings: kioskSettings });
   } catch (err) { next(err); }
 });
 
@@ -79,7 +119,7 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
   try {
     const schema = z.object({
       code: z.string().length(4).regex(/^\d{4}$/),
-      kioskToken: z.string().uuid(),
+      kioskToken: z.string().min(36), // UUID legacy ou hex64 new
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
@@ -89,19 +129,29 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
 
     const { code, kioskToken } = parsed.data;
 
-    const kiosks = await db
-      .select({
-        id: kiosksTable.id,
-        name: kiosksTable.name,
-        location: kiosksTable.location,
-        organizationId: kiosksTable.organizationId,
-        isActive: kiosksTable.isActive,
-      })
-      .from(kiosksTable)
-      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
-      .limit(1);
-
-    const kiosk = kiosks[0];
+    let kiosk: { id: string; name: string; location: string | null; organizationId: string; isActive: boolean } | undefined;
+    if (IS_NEW_TOKEN.test(kioskToken)) {
+      const [tokenRow] = await db
+        .select({ kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.tokenHash, hashToken(kioskToken)), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
+        .limit(1);
+      if (tokenRow) {
+        const [k] = await db
+          .select({ id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+          .limit(1);
+        kiosk = k;
+      }
+    } else {
+      const [k] = await db
+        .select({ id: kiosksTable.id, name: kiosksTable.name, location: kiosksTable.location, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+        .limit(1);
+      kiosk = k;
+    }
 
     if (!kiosk) {
       res.status(403).json({ error: "Kiosk non trouvé ou inactif" });
@@ -162,7 +212,7 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
 kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next) => {
   try {
     const schema = z.object({
-      kioskToken: z.string().uuid(),
+      kioskToken: z.string().min(36), // UUID legacy ou hex64 new
       collaboratorId: z.string().uuid(),
       kind: z.enum(["clock_in", "clock_out", "break_start", "break_end"]),
       photoDataUrl: z.string().optional(),
@@ -178,15 +228,29 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
 
     const { kioskToken, collaboratorId, kind, photoDataUrl, latitude, longitude, accuracyMeters } = parsed.data;
 
-    const [kiosk] = await db
-      .select({
-        id: kiosksTable.id,
-        organizationId: kiosksTable.organizationId,
-        isActive: kiosksTable.isActive,
-      })
-      .from(kiosksTable)
-      .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
-      .limit(1);
+    let kiosk: { id: string; organizationId: string; isActive: boolean } | undefined;
+    if (IS_NEW_TOKEN.test(kioskToken)) {
+      const [tokenRow] = await db
+        .select({ kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.tokenHash, hashToken(kioskToken)), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
+        .limit(1);
+      if (tokenRow) {
+        const [k] = await db
+          .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+          .from(kiosksTable)
+          .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+          .limit(1);
+        kiosk = k;
+      }
+    } else {
+      const [k] = await db
+        .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+        .limit(1);
+      kiosk = k;
+    }
 
     if (!kiosk) {
       res.status(403).json({ error: "Kiosk non autorisé" });
@@ -570,6 +634,172 @@ kioskAdminRouter.patch("/collaborators/:id/kiosk-code", requirePermission("atten
       .returning({ id: collaboratorsTable.id, kioskCode: collaboratorsTable.kioskCode });
     if (!updated) { res.status(404).json({ error: "Collaborateur non trouvé" }); return; }
     res.json(updated);
+  } catch (err) { next(err); }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// KIOSK TOKENS — Gestion des liens d'accès hachés (kiosk_tokens)
+// ══════════════════════════════════════════════════════════════════
+
+// POST /api/kiosk/tokens — Créer un token haché pour un kiosk
+kioskAdminRouter.post("/kiosk/tokens", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const schema = z.object({
+      kioskId: z.string().uuid(),
+      label: z.string().min(1).max(100),
+      departmentId: z.string().uuid().nullable().optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }
+    const [kiosk] = await db.select({ id: kiosksTable.id, name: kiosksTable.name })
+      .from(kiosksTable)
+      .where(and(eq(kiosksTable.id, parsed.data.kioskId), eq(kiosksTable.organizationId, orgId)))
+      .limit(1);
+    if (!kiosk) { res.status(404).json({ error: "Kiosk non trouvé" }); return; }
+    const { raw, hash } = generateToken();
+    const [tokenRow] = await db.insert(kioskTokensTable).values({
+      organizationId: orgId,
+      kioskId: kiosk.id,
+      tokenHash: hash,
+      label: parsed.data.label,
+      departmentId: parsed.data.departmentId ?? null,
+      isActive: true,
+      generatedByUserId: req.authUser!.id,
+    }).returning({
+      id: kioskTokensTable.id,
+      kioskId: kioskTokensTable.kioskId,
+      label: kioskTokensTable.label,
+      departmentId: kioskTokensTable.departmentId,
+      isActive: kioskTokensTable.isActive,
+      usageCount: kioskTokensTable.usageCount,
+      lastUsedAt: kioskTokensTable.lastUsedAt,
+      revokedAt: kioskTokensTable.revokedAt,
+      createdAt: kioskTokensTable.createdAt,
+    });
+    audit(req, "kiosk_token_generate", {
+      entityType: "kiosk", entityId: kiosk.id, organizationId: orgId,
+      payload: { kioskName: kiosk.name, tokenLabel: parsed.data.label },
+    }).catch(() => {});
+    // rawToken retourné UNE SEULE FOIS — jamais stocké en clair
+    res.status(201).json({ ...tokenRow, rawToken: raw });
+  } catch (err) { next(err); }
+});
+
+// GET /api/kiosk/tokens — Lister les tokens d'accès de l'organisation
+kioskAdminRouter.get("/kiosk/tokens", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const kioskId = typeof req.query["kioskId"] === "string" ? req.query["kioskId"] : undefined;
+    const conds: ReturnType<typeof eq>[] = [eq(kioskTokensTable.organizationId, orgId)];
+    if (kioskId) conds.push(eq(kioskTokensTable.kioskId, kioskId));
+    const tokens = await db.select({
+      id: kioskTokensTable.id,
+      kioskId: kioskTokensTable.kioskId,
+      label: kioskTokensTable.label,
+      departmentId: kioskTokensTable.departmentId,
+      isActive: kioskTokensTable.isActive,
+      usageCount: kioskTokensTable.usageCount,
+      lastUsedAt: kioskTokensTable.lastUsedAt,
+      revokedAt: kioskTokensTable.revokedAt,
+      createdAt: kioskTokensTable.createdAt,
+    }).from(kioskTokensTable).where(and(...conds)).orderBy(desc(kioskTokensTable.createdAt));
+    res.json(tokens);
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/kiosk/tokens/:id — Modifier label / département / isActive
+kioskAdminRouter.patch("/kiosk/tokens/:id", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const schema = z.object({
+      label: z.string().min(1).max(100).optional(),
+      departmentId: z.string().uuid().nullable().optional(),
+      isActive: z.boolean().optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }
+    const updateData = parsed.data.isActive === true
+      ? { ...parsed.data, revokedAt: null, revokedByUserId: null }
+      : parsed.data;
+    const [tokenRow] = await db.update(kioskTokensTable)
+      .set(updateData)
+      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .returning({
+        id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId,
+        label: kioskTokensTable.label, departmentId: kioskTokensTable.departmentId,
+        isActive: kioskTokensTable.isActive, usageCount: kioskTokensTable.usageCount,
+        revokedAt: kioskTokensTable.revokedAt,
+      });
+    if (!tokenRow) { res.status(404).json({ error: "Token non trouvé" }); return; }
+    res.json(tokenRow);
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/kiosk/tokens/:id — Supprimer un token
+kioskAdminRouter.delete("/kiosk/tokens/:id", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const [deleted] = await db.delete(kioskTokensTable)
+      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .returning({ id: kioskTokensTable.id, label: kioskTokensTable.label });
+    if (!deleted) { res.status(404).json({ error: "Token non trouvé" }); return; }
+    audit(req, "kiosk_token_revoke", {
+      entityType: "kiosk", organizationId: orgId, payload: { tokenLabel: deleted.label },
+    }).catch(() => {});
+    res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+// POST /api/kiosk/tokens/:id/regenerate — Régénérer le hash (invalide l'ancien token)
+kioskAdminRouter.post("/kiosk/tokens/:id/regenerate", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const [existing] = await db.select({ id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId, label: kioskTokensTable.label })
+      .from(kioskTokensTable)
+      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .limit(1);
+    if (!existing) { res.status(404).json({ error: "Token non trouvé" }); return; }
+    const { raw, hash } = generateToken();
+    const [tokenRow] = await db.update(kioskTokensTable)
+      .set({ tokenHash: hash, isActive: true, revokedAt: null, revokedByUserId: null, usageCount: 0, generatedByUserId: req.authUser!.id })
+      .where(eq(kioskTokensTable.id, existing.id))
+      .returning({
+        id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId, label: kioskTokensTable.label,
+        departmentId: kioskTokensTable.departmentId, isActive: kioskTokensTable.isActive,
+        usageCount: kioskTokensTable.usageCount, revokedAt: kioskTokensTable.revokedAt, createdAt: kioskTokensTable.createdAt,
+      });
+    audit(req, "kiosk_token_generate", {
+      entityType: "kiosk", entityId: existing.kioskId, organizationId: orgId,
+      payload: { tokenLabel: existing.label },
+    }).catch(() => {});
+    res.json({ ...tokenRow, rawToken: raw });
+  } catch (err) { next(err); }
+});
+
+// POST /api/kiosk/tokens/:id/revoke — Révoquer explicitement un token
+kioskAdminRouter.post("/kiosk/tokens/:id/revoke", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const [tokenRow] = await db.update(kioskTokensTable)
+      .set({ isActive: false, revokedAt: new Date(), revokedByUserId: req.authUser!.id })
+      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .returning({
+        id: kioskTokensTable.id, label: kioskTokensTable.label, kioskId: kioskTokensTable.kioskId,
+        isActive: kioskTokensTable.isActive, revokedAt: kioskTokensTable.revokedAt,
+      });
+    if (!tokenRow) { res.status(404).json({ error: "Token non trouvé" }); return; }
+    audit(req, "kiosk_token_revoke", {
+      entityType: "kiosk", entityId: tokenRow.kioskId, organizationId: orgId,
+      payload: { tokenLabel: tokenRow.label },
+    }).catch(() => {});
+    res.json(tokenRow);
   } catch (err) { next(err); }
 });
 

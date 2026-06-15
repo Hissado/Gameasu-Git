@@ -559,7 +559,7 @@ router.put("/admin/users/:id/client-access", requirePermission("users.assign_pro
 // AUDIT LOGS
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => {
-  const { action, entityType, userId, q, limit = "100", from, to } = req.query as Record<string, string>;
+  const { action, entityType, userId, q, limit = "25", from, to, page: pageParam = "1" } = req.query as Record<string, string>;
   const conds = [] as any[];
   const orgId = await getCurrentOrganizationId((req as any).authUser?.id);
   if (orgId) conds.push(eq(auditLogsTable.organizationId, orgId));
@@ -569,10 +569,17 @@ router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => 
   if (q) conds.push(ilike(auditLogsTable.userEmail, `%${q}%`));
   if (from) { const d = new Date(from); if (!isNaN(d.getTime())) conds.push(gte(auditLogsTable.createdAt, d)); }
   if (to) { const d = new Date(to + "T23:59:59.999Z"); if (!isNaN(d.getTime())) conds.push(lte(auditLogsTable.createdAt, d)); }
-  const lim = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
+  const lim = Math.min(Math.max(parseInt(limit) || 25, 1), 100);
+  const page = Math.max(1, parseInt(pageParam) || 1);
+  const offset = (page - 1) * lim;
   const where = conds.length ? and(...conds) : undefined;
-  const rows = await db.select().from(auditLogsTable).where(where as any).orderBy(desc(auditLogsTable.createdAt)).limit(lim);
-  return res.json({ data: rows });
+  const [rows, countRows] = await Promise.all([
+    db.select().from(auditLogsTable).where(where as any).orderBy(desc(auditLogsTable.createdAt)).limit(lim).offset(offset),
+    db.select({ count: sql<number>`cast(count(*) as int)` }).from(auditLogsTable).where(where as any),
+  ]);
+  const total = Number(countRows[0]?.count ?? 0);
+  const pages = Math.ceil(total / lim);
+  return res.json({ data: rows, total, page, limit: lim, pages });
 });
 
 // ════════════════════════════════════════════════════════════════════

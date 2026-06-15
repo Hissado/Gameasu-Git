@@ -47,3 +47,32 @@ export const kiosksTable = pgTable("kiosks", {
 export const insertKioskSchema = createInsertSchema(kiosksTable).omit({ id: true, createdAt: true, updatedAt: true, lastSeenAt: true });
 export type InsertKiosk = z.infer<typeof insertKioskSchema>;
 export type Kiosk = typeof kiosksTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
+// KIOSK_TOKENS — Tokens d'accès hachés (SHA-256)
+// Séparés de la borne physique : chaque borne peut avoir N tokens,
+// un seul actif à la fois. tokenHash = SHA-256(rawToken) ;
+// le rawToken n'est retourné qu'une seule fois (création/régénération).
+// ─────────────────────────────────────────────────────────────────
+export const kioskTokensTable = pgTable("kiosk_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  kioskId: uuid("kiosk_id").notNull().references(() => kiosksTable.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hex (64 chars)
+  label: text("label").notNull().default(""),
+  departmentId: uuid("department_id").references(() => departmentsTable.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").notNull().default(true),
+  generatedByUserId: uuid("generated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  usageCount: integer("usage_count").notNull().default(0),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedByUserId: uuid("revoked_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orgIdx: index("kiosk_tokens_org_idx").on(t.organizationId),
+  kioskIdx: index("kiosk_tokens_kiosk_idx").on(t.kioskId),
+  tokenHashIdx: uniqueIndex("kiosk_tokens_hash_uidx").on(t.tokenHash),
+}));
+
+export const insertKioskTokenSchema = createInsertSchema(kioskTokensTable).omit({ id: true, createdAt: true });
+export type KioskToken = typeof kioskTokensTable.$inferSelect;
