@@ -11,6 +11,7 @@ import { z } from "zod/v4";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { audit } from "../lib/audit";
+import { requirePermission } from "../middlewares/permissions";
 
 // ─────────────────────────────────────────────────────────────────
 // Public router — monté avant requireAuth
@@ -309,6 +310,7 @@ kioskAdminRouter.get("/kiosks", async (req: Request, res: Response, next) => {
         name: kiosksTable.name,
         location: kiosksTable.location,
         description: kiosksTable.description,
+        departmentId: kiosksTable.departmentId,
         isActive: kiosksTable.isActive,
         token: kiosksTable.token,
         usageCount: kiosksTable.usageCount,
@@ -324,7 +326,7 @@ kioskAdminRouter.get("/kiosks", async (req: Request, res: Response, next) => {
   } catch (err) { next(err); }
 });
 
-kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
+kioskAdminRouter.post("/kiosks", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -332,6 +334,7 @@ kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
       name: z.string().min(1),
       location: z.string().optional(),
       description: z.string().optional(),
+      departmentId: z.string().uuid().nullable().optional(),
       settings: z.record(z.unknown()).optional(),
     });
     const parsed = schema.safeParse(req.body);
@@ -345,6 +348,7 @@ kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
         name: kiosksTable.name,
         location: kiosksTable.location,
         description: kiosksTable.description,
+        departmentId: kiosksTable.departmentId,
         isActive: kiosksTable.isActive,
         token: kiosksTable.token,
         usageCount: kiosksTable.usageCount,
@@ -362,7 +366,7 @@ kioskAdminRouter.post("/kiosks", async (req: Request, res: Response, next) => {
   } catch (err) { next(err); }
 });
 
-kioskAdminRouter.patch("/kiosks/:id", async (req: Request, res: Response, next) => {
+kioskAdminRouter.patch("/kiosks/:id", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -370,14 +374,19 @@ kioskAdminRouter.patch("/kiosks/:id", async (req: Request, res: Response, next) 
       name: z.string().min(1).optional(),
       location: z.string().optional(),
       description: z.string().optional(),
+      departmentId: z.string().uuid().nullable().optional(),
       isActive: z.boolean().optional(),
       settings: z.record(z.unknown()).optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }
+    // Réactivation : effacer revokedAt et revokedByUserId pour restaurer l'accès complet
+    const updateData = parsed.data.isActive === true
+      ? { ...parsed.data, revokedAt: null, revokedByUserId: null }
+      : parsed.data;
     const [kiosk] = await db
       .update(kiosksTable)
-      .set(parsed.data)
+      .set(updateData)
       .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
       .returning({
         id: kiosksTable.id,
@@ -385,8 +394,10 @@ kioskAdminRouter.patch("/kiosks/:id", async (req: Request, res: Response, next) 
         name: kiosksTable.name,
         location: kiosksTable.location,
         description: kiosksTable.description,
+        departmentId: kiosksTable.departmentId,
         isActive: kiosksTable.isActive,
         token: kiosksTable.token,
+        revokedAt: kiosksTable.revokedAt,
         lastSeenAt: kiosksTable.lastSeenAt,
         createdAt: kiosksTable.createdAt,
         updatedAt: kiosksTable.updatedAt,
@@ -396,7 +407,7 @@ kioskAdminRouter.patch("/kiosks/:id", async (req: Request, res: Response, next) 
   } catch (err) { next(err); }
 });
 
-kioskAdminRouter.delete("/kiosks/:id", async (req: Request, res: Response, next) => {
+kioskAdminRouter.delete("/kiosks/:id", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -417,7 +428,7 @@ kioskAdminRouter.delete("/kiosks/:id", async (req: Request, res: Response, next)
 });
 
 // POST /api/kiosks/:id/regenerate — Régénérer le token d'accès d'un kiosk
-kioskAdminRouter.post("/kiosks/:id/regenerate", async (req: Request, res: Response, next) => {
+kioskAdminRouter.post("/kiosks/:id/regenerate", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
@@ -460,7 +471,7 @@ kioskAdminRouter.post("/kiosks/:id/regenerate", async (req: Request, res: Respon
 });
 
 // POST /api/kiosks/:id/revoke — Révoquer explicitement le token (conserve la borne, invalide l'accès)
-kioskAdminRouter.post("/kiosks/:id/revoke", async (req: Request, res: Response, next) => {
+kioskAdminRouter.post("/kiosks/:id/revoke", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }

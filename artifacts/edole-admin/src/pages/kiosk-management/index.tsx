@@ -19,6 +19,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   MonitorSmartphone, Plus, Copy, Check, ToggleLeft, ToggleRight,
   Pencil, Users, Key, Loader2, MapPin, RefreshCw, BarChart2, Wifi, Clock,
   QrCode, RotateCcw, Trash2, Activity, ShieldOff,
@@ -29,6 +32,7 @@ type Kiosk = {
   name: string;
   location?: string | null;
   description?: string | null;
+  departmentId?: string | null;
   isActive: boolean;
   token: string;
   usageCount?: number;
@@ -61,9 +65,16 @@ function KioskDialog({
   const [name, setName] = useState(kiosk?.name ?? "");
   const [location, setLocation] = useState(kiosk?.location ?? "");
   const [description, setDescription] = useState(kiosk?.description ?? "");
+  const [departmentId, setDepartmentId] = useState<string>(kiosk?.departmentId ?? "_none");
+
+  const { data: deptsData } = useQuery<{ data: { id: string; name: string }[] }>({
+    queryKey: ["hr-departments"],
+    queryFn: () => apiFetch("/api/hr/departments"),
+  });
+  const departments = deptsData?.data ?? [];
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; location?: string; description?: string }) =>
+    mutationFn: (data: { name: string; location?: string; description?: string; departmentId?: string | null }) =>
       apiFetch("/api/kiosks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,7 +89,7 @@ function KioskDialog({
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { name?: string; location?: string; description?: string }) =>
+    mutationFn: (data: { name?: string; location?: string; description?: string; departmentId?: string | null }) =>
       apiFetch(`/api/kiosks/${kiosk!.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +111,7 @@ function KioskDialog({
       name: name.trim(),
       location: location.trim() || undefined,
       description: description.trim() || undefined,
+      departmentId: departmentId === "_none" ? null : departmentId,
     };
     if (kiosk) {
       updateMutation.mutate(data);
@@ -122,6 +134,20 @@ function KioskDialog({
           <div className="space-y-1">
             <Label>Emplacement</Label>
             <Input placeholder="Ex: Bâtiment A, Rez-de-chaussée" value={location} onChange={e => setLocation(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Département</Label>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Aucun département" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Aucun département —</SelectItem>
+                {departments.map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label>Description</Label>
