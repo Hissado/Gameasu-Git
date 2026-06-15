@@ -16,7 +16,7 @@ import {
   TrendingUp, Clock, AlertTriangle, Target, Trophy, ChevronRight, ChevronLeft,
   Calculator,
 } from "lucide-react";
-import { formatFCFA } from "@/lib/format";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -231,7 +231,7 @@ export default function CrmHome() {
     <div className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
       <PageHeader
         title="Pipeline Commercial"
-        subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFA(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}
+        subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFACompact(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}
         icon={Target}
         actions={
           <div className="flex items-center gap-2">
@@ -267,34 +267,38 @@ export default function CrmHome() {
         const overdueOpps = activeOpps.filter(o => o.expectedCloseDate && new Date(o.expectedCloseDate) < new Date());
         return (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-amber-50 rounded-lg shrink-0"><Target className="w-4 h-4 text-[#C8A24B]" /></div>
-              <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Pipeline total</div>
-                <div className="text-lg font-black text-foreground">{formatFCFA(pipeline?.totalValue ?? 0)}</div>
-                <div className="text-[10px] text-muted-foreground">{activeOpps.length} opp. actives</div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Pipeline total</div>
+                <div className="text-sm sm:text-base font-black text-foreground leading-tight break-words">{formatFCFACompact(pipeline?.totalValue ?? 0)}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{activeOpps.length} opp. actives</div>
               </div>
             </div>
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-blue-50 rounded-lg shrink-0"><TrendingUp className="w-4 h-4 text-blue-500" /></div>
-              <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Valeur pondérée</div>
-                <div className="text-lg font-black text-blue-700">{formatFCFA(Math.round(weighted))}</div>
-                <div className="text-[10px] text-muted-foreground">probabilité × valeur</div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Valeur pondérée</div>
+                <div className="text-sm sm:text-base font-black text-blue-700 leading-tight break-words">{formatFCFACompact(Math.round(weighted))}</div>
+                <div className="text-[10px] text-muted-foreground truncate">probabilité × valeur</div>
               </div>
             </div>
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-emerald-50 rounded-lg shrink-0"><Trophy className="w-4 h-4 text-emerald-500" /></div>
-              <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Deals gagnés</div>
-                <div className="text-lg font-black text-emerald-700">{formatFCFA(wonValue)}</div>
-                <div className="text-[10px] text-muted-foreground">{winRate !== null ? `Taux : ${winRate}%` : "Aucun deal fermé"}</div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Deals gagnés</div>
+                <div className="text-sm sm:text-base font-black text-emerald-700 leading-tight break-words">{formatFCFACompact(wonValue)}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{winRate !== null ? `Taux : ${winRate}%` : "Aucun deal fermé"}</div>
               </div>
             </div>
-            <div className={`border rounded-xl p-3 flex items-center gap-3 ${overdueOpps.length > 0 ? "bg-red-50 border-red-200" : "bg-white border-border"}`}>
+            <div className={`border rounded-xl p-3 flex items-center gap-2.5 ${overdueOpps.length > 0 ? "bg-red-50 border-red-200" : "bg-white border-border"}`}>
               <div className={`p-2 rounded-lg shrink-0 ${overdueOpps.length > 0 ? "bg-red-100" : "bg-slate-50"}`}>
                 <Clock className={`w-4 h-4 ${overdueOpps.length > 0 ? "text-red-500" : "text-slate-400"}`} />
               </div>
-              <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Délais dépassés</div>
-                <div className={`text-lg font-black ${overdueOpps.length > 0 ? "text-red-700" : "text-foreground"}`}>{overdueOpps.length}</div>
-                <div className="text-[10px] text-muted-foreground">opp. hors deadline</div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Délais dépassés</div>
+                <div className={`text-sm sm:text-base font-black leading-tight ${overdueOpps.length > 0 ? "text-red-700" : "text-foreground"}`}>{overdueOpps.length}</div>
+                <div className="text-[10px] text-muted-foreground truncate">opp. hors deadline</div>
               </div>
             </div>
           </div>

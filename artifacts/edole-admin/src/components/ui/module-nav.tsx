@@ -249,13 +249,13 @@ export function ModuleShell({
 }: ModuleShellProps) {
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            {TitleIcon && <TitleIcon className="w-7 h-7 text-primary shrink-0" />}
-            <span>{title}</span>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            {TitleIcon && <TitleIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary shrink-0" />}
+            <span className="leading-tight">{title}</span>
           </h1>
-          {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-muted-foreground mt-1 leading-snug">{subtitle}</p>}
         </div>
         {actions && <div className="flex gap-2 shrink-0 flex-wrap">{actions}</div>}
       </div>
