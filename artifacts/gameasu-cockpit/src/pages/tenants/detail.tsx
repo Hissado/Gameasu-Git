@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Loader2, ArrowLeft, Building2, Users, CreditCard, Ticket, Activity,
   Power, PowerOff, CheckCircle2, XCircle, Clock, AlertTriangle, Mail,
-  Calendar, TrendingUp, Shield, Package,
+  Calendar, TrendingUp, Shield, Package, Key, Copy, RefreshCw, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +58,13 @@ type TicketRow = {
   status: string; createdAt: string;
 };
 
+type AdminInvRow = {
+  id: string; email: string; firstName: string; lastName: string;
+  role: string; isActive: boolean; mustChangePassword: boolean;
+  invitedAt: string | null; acceptedAt: string | null;
+  expiresAt: string | null; hasToken: boolean;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const TVA_RATE = 0.18;
@@ -100,7 +107,7 @@ const PLAN_COLOR: Record<string, string> = {
   ENTERPRISE: "bg-pink-50 text-pink-700 border-pink-200",
 };
 
-type Tab = "overview" | "subscription" | "billing" | "users" | "tickets" | "actions";
+type Tab = "overview" | "subscription" | "billing" | "users" | "tickets" | "actions" | "access";
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -112,6 +119,7 @@ export default function TenantDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const detail = useQuery<OrgDetail>({
     queryKey: ["cockpit-org", id],
@@ -132,11 +140,33 @@ export default function TenantDetail() {
     queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/tickets`),
     enabled: tab === "tickets",
   });
+  const adminInvs = useQuery<{ users: AdminInvRow[] }>({
+    queryKey: ["cockpit-org-admin-invs", id],
+    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/admin-invitations`),
+    enabled: tab === "access",
+  });
 
   const d = detail.data;
   const org = d?.org;
   const sub = d?.subscription;
   const m = d?.metrics;
+
+  const handleRegenerate = async (userId: string, sendEmailInvite = true) => {
+    setRegenerating(userId);
+    try {
+      const r = await apiFetch<{ acceptUrl: string; expiresAt: string }>(
+        `/api/super-admin/organizations/${id}/admin-invitations/regenerate`,
+        { method: "POST", body: JSON.stringify({ userId, sendEmailInvite }) },
+      );
+      toast.success("Lien d'invitation régénéré");
+      navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
+      adminInvs.refetch();
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   const handleToggle = async () => {
     if (!org) return;
@@ -164,6 +194,7 @@ export default function TenantDetail() {
     { id: "billing",      label: "Paiements",         icon: TrendingUp },
     { id: "users",        label: "Utilisateurs",      icon: Users },
     { id: "tickets",      label: "Tickets",           icon: Ticket },
+    { id: "access",       label: "Accès & Invitations", icon: Key },
     { id: "actions",      label: "Actions",           icon: Shield },
   ];
 
@@ -508,6 +539,111 @@ export default function TenantDetail() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {tab === "access" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Gérez les invitations d'activation des comptes utilisateurs de cette organisation.
+            </p>
+          </div>
+          {adminInvs.isLoading ? (
+            <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Key className="w-4 h-4" />Comptes &amp; Invitations</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Utilisateur</TableHead>
+                        <TableHead>Rôle</TableHead>
+                        <TableHead>Statut compte</TableHead>
+                        <TableHead>Invité le</TableHead>
+                        <TableHead>Activé le</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(adminInvs.data?.users ?? []).length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun utilisateur</TableCell></TableRow>
+                      ) : (adminInvs.data?.users ?? []).map((u) => {
+                        const isPending = !u.acceptedAt && u.hasToken;
+                        const isExpired = !u.acceptedAt && u.expiresAt && new Date(u.expiresAt) < new Date();
+                        const isActive = !!u.acceptedAt;
+                        return (
+                          <TableRow key={u.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <span className="text-xs font-bold text-primary">{u.firstName[0]?.toUpperCase()}</span>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium">{u.firstName} {u.lastName}</div>
+                                  <div className="text-xs text-muted-foreground">{u.email}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{u.role}</span>
+                            </TableCell>
+                            <TableCell>
+                              {isActive ? (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">Activé</Badge>
+                              ) : isExpired ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">Expiré</Badge>
+                              ) : isPending ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">En attente</Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">Aucun lien</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {u.invitedAt ? fmtDate(u.invitedAt) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {u.acceptedAt ? fmtDate(u.acceptedAt) : "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {!u.acceptedAt && (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm" variant="outline"
+                                    disabled={regenerating === u.id}
+                                    onClick={() => handleRegenerate(u.id, true)}
+                                    className="text-xs h-7 px-2"
+                                  >
+                                    {regenerating === u.id
+                                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                                      : <><RefreshCw className="w-3 h-3 mr-1" />Régénérer &amp; Envoyer</>
+                                    }
+                                  </Button>
+                                  <Button
+                                    size="sm" variant="ghost"
+                                    disabled={regenerating === u.id}
+                                    onClick={() => handleRegenerate(u.id, false)}
+                                    className="text-xs h-7 px-2"
+                                    title="Régénérer sans envoyer d'email"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {tab === "actions" && (

@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useListUsers } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Send, MailCheck, RefreshCw, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDate } from "@/lib/format";
+import { apiFetch } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super administrateur",
@@ -16,10 +24,71 @@ const ROLE_LABEL: Record<string, string> = {
   technicien: "Technicien",
   comptable: "Comptable",
   client: "Client",
+  collaborator: "Collaborateur",
 };
 
+type Inv = {
+  id: string; email: string; firstName: string; lastName: string;
+  role: string; invitedAt?: string; acceptedAt?: string; expiresAt?: string; isActive: boolean;
+};
+
+function InvStatus({ i }: { i: Inv }) {
+  if (i.acceptedAt) return <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50">Acceptée</Badge>;
+  if (!i.isActive) return <Badge variant="secondary">Désactivée</Badge>;
+  if (i.expiresAt && new Date(i.expiresAt) < new Date()) return <Badge className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-50">Expirée</Badge>;
+  return <Badge className="bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-50">En attente</Badge>;
+}
+
 export default function UsersList() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const { data, isLoading } = useListUsers();
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invEmail, setInvEmail] = useState("");
+  const [invFirst, setInvFirst] = useState("");
+  const [invLast, setInvLast] = useState("");
+  const [invRole, setInvRole] = useState("collaborator");
+  const [invError, setInvError] = useState<string | null>(null);
+
+  const { data: invData, refetch: refetchInv } = useQuery({
+    queryKey: ["admin/invitations"],
+    queryFn: () => apiFetch<{ data: Inv[] }>("/api/admin/invitations"),
+  });
+
+  const inviteMut = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch<{ acceptUrl: string }>("/api/admin/users/invite", { method: "POST", body: body as any }),
+    onSuccess: (r) => {
+      setInviteOpen(false);
+      setInvEmail(""); setInvFirst(""); setInvLast(""); setInvRole("collaborator"); setInvError(null);
+      void qc.invalidateQueries({ queryKey: ["admin/invitations"] });
+      void refetchInv();
+      navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
+      toast({ title: "Invitation envoyée", description: "Le lien d'activation a été copié dans le presse-papier." });
+    },
+    onError: (e: any) => setInvError(e?.body?.error ?? e?.message ?? "Erreur lors de l'invitation"),
+  });
+
+  const resendMut = useMutation({
+    mutationFn: (userId: string) =>
+      apiFetch<{ acceptUrl: string }>(`/api/admin/users/${userId}/resend-invitation`, { method: "POST" }),
+    onSuccess: (r) => {
+      void refetchInv();
+      navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
+      toast({ title: "Invitation renvoyée", description: "Nouveau lien copié dans le presse-papier." });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setInvError(null);
+    if (!invEmail || !invFirst || !invLast) { setInvError("Tous les champs marqués * sont requis."); return; }
+    inviteMut.mutate({ email: invEmail.toLowerCase(), firstName: invFirst, lastName: invLast, role: invRole });
+  };
+
+  const pendingInv = (invData?.data ?? []).filter((i) => !i.acceptedAt);
 
   return (
     <div className="space-y-6">
@@ -28,9 +97,9 @@ export default function UsersList() {
           <h1 className="text-3xl font-bold tracking-tight">Utilisateurs de la plateforme</h1>
           <p className="text-muted-foreground mt-1">Accès · Profils · Rôles internes</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="w-4 h-4 mr-2" />
-          Nouvel utilisateur
+        <Button onClick={() => setInviteOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Inviter un utilisateur
         </Button>
       </div>
 
@@ -65,7 +134,7 @@ export default function UsersList() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="w-9 h-9">
-                            <AvatarImage src={user.avatarUrl} />
+                            <AvatarImage src={user.avatarUrl ?? undefined} />
                             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                               {user.firstName?.[0]}{user.lastName?.[0]}
                             </AvatarFallback>
@@ -95,7 +164,9 @@ export default function UsersList() {
                           <Badge variant="outline" className="bg-muted text-muted-foreground">Désactivé</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                        {formatDate(user.createdAt ?? "")}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -104,6 +175,132 @@ export default function UsersList() {
           )}
         </CardContent>
       </Card>
+
+      {pendingInv.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MailCheck className="w-5 h-5 text-primary" />
+              Invitations en cours
+              <Badge variant="outline" className="ml-1">{pendingInv.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Personne</TableHead>
+                  <TableHead className="hidden sm:table-cell">Rôle</TableHead>
+                  <TableHead className="hidden md:table-cell">Envoyée le</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="hidden md:table-cell">Expire</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingInv.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell>
+                      <div className="font-medium text-sm">{i.firstName} {i.lastName}</div>
+                      <div className="text-xs text-muted-foreground">{i.email}</div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="outline" className="text-xs">{ROLE_LABEL[i.role] ?? i.role}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {i.invitedAt ? new Date(i.invitedAt).toLocaleDateString("fr-FR") : "—"}
+                    </TableCell>
+                    <TableCell><InvStatus i={i} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {i.expiresAt ? new Date(i.expiresAt).toLocaleDateString("fr-FR") : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm" variant="outline"
+                        onClick={() => resendMut.mutate(i.id)}
+                        disabled={resendMut.isPending}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" />Relancer
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={inviteOpen} onOpenChange={(o) => { if (!o) { setInviteOpen(false); setInvError(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Inviter un utilisateur
+            </DialogTitle>
+            <DialogDescription>
+              Un email avec un lien d'activation sécurisé sera envoyé à l'adresse indiquée.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleInviteSubmit} className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-first">Prénom *</Label>
+                <Input
+                  id="inv-first" required value={invFirst}
+                  onChange={(e) => setInvFirst(e.target.value)} placeholder="Kofi"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-last">Nom *</Label>
+                <Input
+                  id="inv-last" required value={invLast}
+                  onChange={(e) => setInvLast(e.target.value)} placeholder="Asante"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-email">Adresse email *</Label>
+              <Input
+                id="inv-email" type="email" required value={invEmail}
+                onChange={(e) => setInvEmail(e.target.value)} placeholder="kofi@entreprise.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-role">Rôle</Label>
+              <Select value={invRole} onValueChange={setInvRole}>
+                <SelectTrigger id="inv-role"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrateur</SelectItem>
+                  <SelectItem value="manager">Responsable</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="technicien">Technicien</SelectItem>
+                  <SelectItem value="comptable">Comptable</SelectItem>
+                  <SelectItem value="collaborator">Collaborateur</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {invError && (
+              <Alert variant="destructive">
+                <AlertDescription>{invError}</AlertDescription>
+              </Alert>
+            )}
+            <DialogFooter className="gap-2 mt-2">
+              <Button type="button" variant="outline" onClick={() => { setInviteOpen(false); setInvError(null); }}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={inviteMut.isPending} className="bg-primary hover:bg-primary/90">
+                {inviteMut.isPending ? (
+                  <><span className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />Envoi…</>
+                ) : (
+                  <><Send className="w-4 h-4 mr-2" />Envoyer l'invitation</>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

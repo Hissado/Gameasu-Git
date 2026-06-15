@@ -23,7 +23,7 @@ import {
   usersTable,
   billingEventsTable,
 } from "@workspace/db";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
 import { sendEmail, buildInvitationEmail } from "../lib/email";
 
@@ -447,6 +447,75 @@ publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, nex
     if (e?.status) return res.status(e.status).json({ error: e.message });
     next(e);
   }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Admin invitations d'une organisation spécifique (cockpit)
+// ─────────────────────────────────────────────────────────────────
+
+/** GET /api/super-admin/organizations/:id/admin-invitations */
+router.get("/super-admin/organizations/:id/admin-invitations", sa, async (req, res, next) => {
+  try {
+    const rows = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      role: usersTable.role,
+      isActive: usersTable.isActive,
+      mustChangePassword: usersTable.mustChangePassword,
+      invitedAt: usersTable.invitedAt,
+      acceptedAt: usersTable.acceptedAt,
+      expiresAt: usersTable.passwordResetTokenExpiresAt,
+      hasToken: sql<boolean>`(${usersTable.passwordResetToken} IS NOT NULL)`,
+    }).from(usersTable)
+      .where(eq(usersTable.organizationId, req.params.id))
+      .orderBy(desc(usersTable.createdAt));
+    res.json({ users: rows });
+  } catch (e) { next(e); }
+});
+
+/** POST /api/super-admin/organizations/:id/admin-invitations/regenerate */
+router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, async (req, res, next) => {
+  try {
+    const { userId, sendEmailInvite = true } = req.body || {};
+    if (!userId) return res.status(400).json({ error: "userId requis" });
+
+    const [user] = await db.select().from(usersTable)
+      .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, req.params.id)))
+      .limit(1);
+    if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const tempPassword = genTempPassword();
+    const token = genToken();
+    const expiresAt = new Date(Date.now() + 7 * 86400000);
+
+    await db.update(usersTable).set({
+      password: tempPassword,
+      mustChangePassword: true,
+      passwordResetToken: token,
+      passwordResetTokenExpiresAt: expiresAt,
+      invitedAt: new Date(),
+    }).where(eq(usersTable.id, user.id));
+
+    const acceptUrl = `${baseUrl()}/accept-invitation?token=${token}`;
+
+    let delivery: unknown = null;
+    if (sendEmailInvite) {
+      const [org] = await db.select({ name: organizationsTable.name })
+        .from(organizationsTable).where(eq(organizationsTable.id, req.params.id)).limit(1);
+      const tpl = buildInvitationEmail({
+        recipientName: `${user.firstName} ${user.lastName}`,
+        inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gaméasù",
+        orgName: org?.name,
+        acceptUrl,
+        temporaryPassword: tempPassword,
+      });
+      delivery = await sendEmail({ ...tpl, to: user.email }).catch((e) => ({ error: (e as Error)?.message }));
+    }
+
+    return res.json({ acceptUrl, expiresAt, delivery });
+  } catch (e) { next(e); }
 });
 
 export default router;

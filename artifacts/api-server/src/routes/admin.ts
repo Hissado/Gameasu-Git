@@ -372,6 +372,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
   await db.transaction(async (tx) => {
     await tx.insert(usersTable).values({
       id: userId,
+      organizationId: req.authUser!.organizationId,
       email: email.toLowerCase(),
       password: tempPassword,
       firstName, lastName,
