@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useListCollaborators, getListCollaboratorsQueryKey,
@@ -42,7 +42,6 @@ type Kiosk = {
 type KioskToken = {
   id: string;
   kioskId: string;
-  rawToken: string;
   label: string;
   departmentId?: string | null;
   isActive: boolean;
@@ -51,6 +50,9 @@ type KioskToken = {
   revokedAt?: string | null;
   createdAt: string;
 };
+
+// Étendu uniquement lors de la création/régénération (rawToken éphémère côté API)
+type KioskTokenWithRaw = KioskToken & { rawToken: string };
 
 type Collaborator = {
   id: string;
@@ -306,10 +308,21 @@ function QrViewDialog({
   token: KioskToken;
   onClose: () => void;
 }) {
-  const url = kioskUrl(token.rawToken);
+  const [rawToken, setRawToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    apiFetch<KioskTokenWithRaw>(`/api/kiosk/tokens/${token.id}`)
+      .then(d => setRawToken(d.rawToken))
+      .catch(() => toast.error("Impossible de charger l'URL du kiosque"))
+      .finally(() => setLoading(false));
+  }, [token.id]);
+
+  const url = rawToken ? kioskUrl(rawToken) : "";
+
   const copyUrl = () => {
+    if (!url) return;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       toast.success("URL kiosque copiée !");
@@ -327,14 +340,20 @@ function QrViewDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="flex flex-col items-center gap-3">
-            <div className="p-3 bg-white rounded-xl border shadow-sm">
-              <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
-              {url}
-            </p>
-          </div>
+          ) : url ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-3 bg-white rounded-xl border shadow-sm">
+                <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
+              </div>
+              <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
+                {url}
+              </p>
+            </div>
+          ) : null}
           {!token.isActive || token.revokedAt ? (
             <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-800 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -343,7 +362,7 @@ function QrViewDialog({
           ) : null}
         </div>
         <DialogFooter className="flex gap-2">
-          <Button className="flex-1" onClick={copyUrl}>
+          <Button className="flex-1" onClick={copyUrl} disabled={!url || loading}>
             {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
             Copier l'URL
           </Button>
@@ -555,7 +574,7 @@ export default function KioskManagementPage() {
   // ── Mutations kiosk_tokens ─────────────────────────────────────────────────
   const createTokenMutation = useMutation({
     mutationFn: (data: { kioskId: string; label: string; departmentId?: string | null }) =>
-      apiFetch<KioskToken>("/api/kiosk/tokens", {
+      apiFetch<KioskTokenWithRaw>("/api/kiosk/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -571,7 +590,7 @@ export default function KioskManagementPage() {
 
   const regenerateTokenMutation = useMutation({
     mutationFn: ({ tokenId }: { tokenId: string; kioskName: string; label: string }) =>
-      apiFetch<KioskToken>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
+      apiFetch<KioskTokenWithRaw>(`/api/kiosk/tokens/${tokenId}/regenerate`, { method: "POST" }),
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: KIOSK_TOKENS_QUERY_KEY });
       setNewTokenInfo({ rawToken: data.rawToken, label: vars.label, kioskName: vars.kioskName });
@@ -619,11 +638,15 @@ export default function KioskManagementPage() {
     return new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
   };
 
-  // Copier URL sans ouvrir le dialogue QR
-  const copyTokenUrl = (rawToken: string) => {
-    navigator.clipboard.writeText(kioskUrl(rawToken)).then(() => {
+  // Copier URL sans ouvrir le dialogue QR (fetch rawToken à la demande)
+  const copyTokenUrl = async (tokenId: string) => {
+    try {
+      const data = await apiFetch<KioskTokenWithRaw>(`/api/kiosk/tokens/${tokenId}`);
+      await navigator.clipboard.writeText(kioskUrl(data.rawToken));
       toast.success("URL kiosque copiée !");
-    });
+    } catch {
+      toast.error("Impossible de copier l'URL");
+    }
   };
 
   return (
@@ -770,7 +793,7 @@ export default function KioskManagementPage() {
                                     <Button
                                       variant="ghost" size="sm" className="h-5 w-5 p-0"
                                       title="Copier l'URL du kiosque"
-                                      onClick={() => copyTokenUrl(t.rawToken)}
+                                      onClick={() => copyTokenUrl(t.id)}
                                     >
                                       <Copy className="w-2.5 h-2.5" />
                                     </Button>

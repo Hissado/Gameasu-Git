@@ -701,7 +701,6 @@ kioskAdminRouter.get("/kiosk/tokens", requirePermission("attendance.manage_setti
     const tokens = await db.select({
       id: kioskTokensTable.id,
       kioskId: kioskTokensTable.kioskId,
-      rawToken: kioskTokensTable.rawToken,
       label: kioskTokensTable.label,
       departmentId: kioskTokensTable.departmentId,
       isActive: kioskTokensTable.isActive,
@@ -711,6 +710,30 @@ kioskAdminRouter.get("/kiosk/tokens", requirePermission("attendance.manage_setti
       createdAt: kioskTokensTable.createdAt,
     }).from(kioskTokensTable).where(and(...conds)).orderBy(desc(kioskTokensTable.createdAt));
     res.json(tokens);
+  } catch (err) { next(err); }
+});
+
+// GET /api/kiosk/tokens/:id — Révéler le rawToken d'un token spécifique
+kioskAdminRouter.get("/kiosk/tokens/:id", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const [token] = await db.select({
+      id: kioskTokensTable.id,
+      kioskId: kioskTokensTable.kioskId,
+      rawToken: kioskTokensTable.rawToken,
+      label: kioskTokensTable.label,
+      departmentId: kioskTokensTable.departmentId,
+      isActive: kioskTokensTable.isActive,
+      usageCount: kioskTokensTable.usageCount,
+      lastUsedAt: kioskTokensTable.lastUsedAt,
+      revokedAt: kioskTokensTable.revokedAt,
+      createdAt: kioskTokensTable.createdAt,
+    }).from(kioskTokensTable).where(
+      and(eq(kioskTokensTable.id, req.params.id), eq(kioskTokensTable.organizationId, orgId))
+    );
+    if (!token) { res.status(404).json({ error: "Token introuvable" }); return; }
+    res.json(token);
   } catch (err) { next(err); }
 });
 

@@ -560,9 +560,9 @@ router.put("/admin/users/:id/client-access", requirePermission("users.assign_pro
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => {
   const { action, entityType, userId, q, limit = "25", from, to, page: pageParam = "1" } = req.query as Record<string, string>;
-  const conds = [] as any[];
   const orgId = await getCurrentOrganizationId((req as any).authUser?.id);
-  if (orgId) conds.push(eq(auditLogsTable.organizationId, orgId));
+  if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+  const conds = [eq(auditLogsTable.organizationId, orgId)] as any[];
   if (action) conds.push(eq(auditLogsTable.action, action));
   if (entityType) conds.push(eq(auditLogsTable.entityType, entityType));
   if (userId && isUuid(userId)) conds.push(eq(auditLogsTable.userId, userId));
