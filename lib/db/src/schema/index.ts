@@ -34,3 +34,4 @@ export * from "./pricing";
 export * from "./migration";
 export * from "./closing";
 export * from "./cockpit";
+export * from "./auth";

@@ -4,13 +4,16 @@ export type CockpitUser = {
   id: string;
   email: string;
   name: string | null;
+  firstName?: string;
+  lastName?: string;
   role: string;
 };
 
 type AuthCtx = {
   user: CockpitUser | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** Stocke directement un token + user déjà vérifiés côté login page. */
+  login: (token: string, user: CockpitUser) => void;
   logout: () => void;
   isLoading: boolean;
 };
@@ -24,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [isLoading, setIsLoading] = useState(true);
 
+  // Rehydrate la session au montage (page refresh)
   useEffect(() => {
     if (!token) {
       setIsLoading(false);
@@ -34,9 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!r.ok) throw new Error("unauthorized");
         return r.json();
       })
-      .then((data) => {
+      .then((data: any) => {
         if (data.role !== "super_admin") throw new Error("forbidden");
-        setUser(data);
+        setUser({ id: data.id, email: data.email, name: `${data.firstName ?? ""} ${data.lastName ?? ""}`.trim(), firstName: data.firstName, lastName: data.lastName, role: data.role });
       })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY);
@@ -46,26 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, [token]);
 
-  const login = async (email: string, password: string) => {
-    const r = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      throw new Error((err as any).error ?? "Identifiants incorrects");
-    }
-    const data = await r.json() as { token: string; user: CockpitUser };
-    if (data.user?.role !== "super_admin") {
-      throw new Error("Accès réservé aux super-administrateurs Gaméasù");
-    }
-    localStorage.setItem(TOKEN_KEY, data.token);
-    setToken(data.token);
-    setUser(data.user);
+  const login = (newToken: string, cockpitUser: CockpitUser) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
+    setToken(newToken);
+    setUser(cockpitUser);
   };
 
   const logout = () => {
+    // Invalider la session côté serveur
+    if (token) {
+      fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);

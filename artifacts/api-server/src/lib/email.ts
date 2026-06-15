@@ -306,6 +306,34 @@ export function buildInvitationEmail(opts: {
   };
 }
 
+export function buildTwoFactorEmail(opts: {
+  recipientName: string; code: string; expirationMinutes: number;
+}): EmailMessage {
+  return {
+    to: "",
+    subject: "Votre code de vérification Gaméasù",
+    text: `Bonjour ${opts.recipientName},\n\nVotre code de vérification est :\n\n${opts.code}\n\nCe code expire dans ${opts.expirationMinutes} minutes.\n\nSi vous n'êtes pas à l'origine de cette connexion, ignorez ce message et sécurisez votre compte.`,
+    html: `<!doctype html><html><body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#0C1830 100%);padding:24px 28px">
+    <div style="color:#5BA3F0;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#fff;font-size:18px;font-weight:600">Vérification de connexion</div>
+  </div>
+  <div style="padding:28px">
+    <p style="margin:0 0 16px;font-size:14px;color:#444">Bonjour <strong>${opts.recipientName}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">Voici votre code de vérification à usage unique :</p>
+    <div style="background:#F6F8FB;border:2px solid #1D6CE8;border-radius:12px;padding:24px;text-align:center;margin:0 0 20px">
+      <div style="font-size:38px;font-weight:700;letter-spacing:10px;color:#080E1C;font-family:'JetBrains Mono',monospace">${opts.code}</div>
+      <div style="font-size:12px;color:#999;margin-top:8px">Expire dans ${opts.expirationMinutes} minutes</div>
+    </div>
+    <p style="margin:0;font-size:12px;color:#aaa">Si vous n'avez pas tenté de vous connecter, ignorez ce message et vérifiez la sécurité de votre compte.</p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù Technology — noreply@gameasu.tech</div>
+</div></body></html>`,
+    category: "security",
+  };
+}
+
 export function buildPasswordResetEmail(opts: {
   recipientName: string; resetUrl: string;
 }): EmailMessage {

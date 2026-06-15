@@ -9,12 +9,13 @@ import { auditLogsTable } from "@workspace/db";
 export type AuditAction =
   | "create" | "update" | "delete"
   | "login" | "logout" | "login_failed"
+  | "login_2fa_sent" | "login_2fa_success" | "login_2fa_failed"
+  | "trusted_device_added" | "trusted_device_revoked"
   | "invite" | "invitation_resend" | "invitation_accept"
   | "role_change" | "permission_change" | "department_change"
   | "password_change" | "password_reset_request" | "password_reset_complete"
   | "deactivate" | "activate"
   | "project_access_grant" | "project_access_revoke"
-  // ── Workflow commercial ───────────────────────────────────────────────────
   | "order_edit" | "order_cancel" | "order_generate_invoice"
   | "proforma_edit" | "proforma_cancel" | "proforma_generate_invoice"
   | "invoice_edit" | "invoice_cancel" | "payment_record";

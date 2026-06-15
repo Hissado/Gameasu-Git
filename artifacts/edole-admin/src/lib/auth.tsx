@@ -45,6 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(() => {
+    const t = localStorage.getItem("auth_token");
+    if (t) {
+      fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${t}` } }).catch(() => {});
+    }
     localStorage.removeItem("auth_token");
     setToken(null);
     setLocation("/login");
