@@ -1,0 +1,344 @@
+Please improve the Gaméasù Cockpit Platform by adding a complete organization payment history, advanced reporting, filters, SaaS management intelligence, and mobile responsiveness improvements.
+
+Objective
+
+The Cockpit Platform should become a powerful internal control center where Gaméasù can manage tenants, payments, subscriptions, support, platform health, usage, and SaaS performance in one place.
+
+It should help us manage the SaaS professionally, detect issues early, track revenue, monitor tenants, and make better decisions.
+
+⸻
+
+1. Add organization payment history
+
+Please add a complete payment history section for each organization / tenant.
+
+Each organization profile should show:
+
+* subscription status
+* current billing period
+* number of users billed
+* HT amount
+* TVA amount
+* TTC amount
+* payment method: card, Mixx, Flooz, manual, bank transfer
+* payment status
+* invoice number
+* receipt number
+* transaction reference
+* payment date
+* renewal date
+* failed payment attempts
+* refunded payments if applicable
+* outstanding balance
+* overdue amount
+
+Payment statuses
+
+Use clean French labels:
+
+* En attente
+* Confirmé
+* Échoué
+* Annulé
+* Expiré
+* Remboursé
+* En retard
+
+⸻
+
+2. Add reports and analytics
+
+Please add reporting tools inside the Cockpit Platform.
+
+Reports should include:
+
+* total SaaS revenue
+* monthly recurring revenue
+* annual recurring revenue
+* revenue by organization
+* revenue by payment method
+* unpaid organizations
+* overdue payments
+* failed payments
+* active tenants
+* suspended tenants
+* churned tenants
+* new tenants by month
+* user growth by tenant
+* average revenue per tenant
+* average revenue per user
+* subscription renewal forecast
+* expected revenue for the next 30 / 60 / 90 days
+
+Reports should be exportable in:
+
+* PDF
+* Excel
+* CSV
+
+⸻
+
+3. Add advanced filters
+
+Please add filters throughout the Cockpit Platform.
+
+Filters should include:
+
+* organization name
+* subscription status
+* payment status
+* payment method
+* date range
+* custom date range
+* billing period
+* amount range
+* number of users
+* country
+* city
+* industry
+* plan type
+* active / suspended / expired tenants
+* overdue payments
+* tickets status
+* incident severity
+
+The filters should work properly and update dashboards, tables, reports and exports.
+
+⸻
+
+4. Add revolutionary SaaS management features
+
+Please add smart features that will help Gaméasù manage the SaaS better.
+
+Recommended features:
+
+SaaS health score per tenant
+
+Create a health score for each organization based on:
+
+* payment status
+* login activity
+* module usage
+* number of users
+* support tickets
+* incidents
+* failed payments
+* inactivity
+* subscription risk
+
+Show the tenant as:
+
+* Excellent
+* Stable
+* À surveiller
+* À risque
+* Critique
+
+Churn risk detection
+
+Detect tenants that may leave based on:
+
+* low usage
+* repeated failed payments
+* many support tickets
+* no recent login
+* unresolved incidents
+* subscription close to expiration
+
+Revenue risk alerts
+
+Create alerts for:
+
+* failed payments
+* overdue invoices
+* tenants close to suspension
+* expiring subscriptions
+* tenants with declining usage
+* unusual payment activity
+
+Usage analytics
+
+Track usage by tenant:
+
+* active users
+* logins
+* most used modules
+* least used modules
+* last activity date
+* storage usage
+* number of documents
+* number of transactions
+* number of invoices created
+* number of reports generated
+
+Support intelligence
+
+Add support insights:
+
+* tickets by tenant
+* tickets by priority
+* average resolution time
+* unresolved critical tickets
+* recurring issues
+* tenants with frequent complaints
+
+Platform monitoring
+
+Add platform health metrics:
+
+* uptime
+* API status
+* database status
+* payment gateway status
+* failed webhooks
+* failed emails
+* failed SMS / WhatsApp messages
+* slow endpoints
+* recent errors
+* incidents by severity
+
+⸻
+
+5. Improve organization profile page
+
+Each organization profile should become a full command center with tabs such as:
+
+* Overview
+* Subscription
+* Payment history
+* Users
+* Usage
+* Tickets
+* Incidents
+* Logs
+* Invoices
+* Settings
+
+From this page, Gaméasù admins should be able to:
+
+* view tenant details
+* activate or suspend tenant
+* view payment history
+* view subscription status
+* view users
+* view tickets
+* view incidents
+* view usage data
+* download invoices and receipts
+* update billing information
+* manually confirm a payment if needed
+* add internal notes
+
+⸻
+
+6. Review mobile version of Cockpit and main app
+
+Please review and improve the mobile version of both:
+
+* Cockpit Platform
+* Main Gaméasù tenant app
+
+Fix all mobile UI issues, including:
+
+* cards overflowing
+* tables too wide
+* amounts overflowing outside containers
+* numbers being cut off
+* buttons not aligned
+* filters not easy to use
+* sidebar not mobile-friendly
+* charts not responsive
+* KPI cards too crowded
+* text overlapping
+* poor spacing
+* poor scrolling experience
+
+⸻
+
+7. Fix numbers and amount overflow
+
+Some numbers and amounts are still overflowing.
+
+Please review the whole app and fix this globally.
+
+Amounts should never overflow in:
+
+* dashboards
+* KPI cards
+* reports
+* tables
+* invoices
+* payment history
+* Cockpit Platform
+* mobile screens
+* PDF exports
+* Excel exports
+
+Use clean formatting such as:
+
+* 10 000 FCFA HT
+* 47 200 FCFA TTC
+* 1 250 000 FCFA
+* 5 085 508 000 FCFA
+
+Amounts must be:
+
+* readable
+* aligned
+* wrapped properly if needed
+* responsive
+* never cut off
+* never outside the column or card
+
+⸻
+
+8. UX and design expectations
+
+The Cockpit Platform should feel like a premium SaaS control center.
+
+Please improve:
+
+* dashboard layout
+* KPI cards
+* tables
+* filters
+* charts
+* organization profile
+* payment history
+* reports
+* mobile navigation
+* responsive design
+* loading states
+* empty states
+* error messages
+* French labels
+* status badges
+
+The design must be clean, professional, modern, and easy to use.
+
+⸻
+
+9. Final result expected
+
+I want the Cockpit Platform to become a complete SaaS management command center where Gaméasù can manage:
+
+* organizations
+* subscriptions
+* payments
+* invoices
+* receipts
+* users
+* tickets
+* incidents
+* revenue
+* usage
+* platform health
+* risks
+* reports
+* alerts
+
+Also, the Cockpit and main app must work properly on mobile, with no overflowing numbers, amounts, tables or cards.
+
+Final objective
+
+Make the Gaméasù Cockpit Platform powerful, secure, intelligent, responsive and professional enough to manage the entire SaaS business from one place.

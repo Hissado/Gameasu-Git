@@ -8,13 +8,15 @@ import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Layout from "@/components/Layout";
 
-const LoginPage = lazy(() => import("@/pages/login"));
-const DashboardPage = lazy(() => import("@/pages/dashboard"));
-const TenantsPage = lazy(() => import("@/pages/tenants"));
-const TicketsPage = lazy(() => import("@/pages/tickets"));
-const IncidentsPage = lazy(() => import("@/pages/incidents"));
-const AuditPage = lazy(() => import("@/pages/audit"));
+const LoginPage      = lazy(() => import("@/pages/login"));
+const DashboardPage  = lazy(() => import("@/pages/dashboard"));
+const TenantsPage    = lazy(() => import("@/pages/tenants"));
+const TenantDetail   = lazy(() => import("@/pages/tenants/detail"));
+const TicketsPage    = lazy(() => import("@/pages/tickets"));
+const IncidentsPage  = lazy(() => import("@/pages/incidents"));
+const AuditPage      = lazy(() => import("@/pages/audit"));
 const MonitoringPage = lazy(() => import("@/pages/monitoring"));
+const ReportsPage    = lazy(() => import("@/pages/reports"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -31,13 +33,9 @@ function Spinner() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
-
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/login");
-    }
+    if (!isLoading && !user) navigate("/login");
   }, [isLoading, user, navigate]);
-
   if (isLoading) return <Spinner />;
   if (!user) return null;
   return <Layout>{children}</Layout>;
@@ -51,8 +49,14 @@ function AppRouter() {
         <Route path="/">
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
         </Route>
+        <Route path="/tenants/:id">
+          {(p) => <ProtectedRoute><TenantDetail /></ProtectedRoute>}
+        </Route>
         <Route path="/tenants">
           <ProtectedRoute><TenantsPage /></ProtectedRoute>
+        </Route>
+        <Route path="/reports">
+          <ProtectedRoute><ReportsPage /></ProtectedRoute>
         </Route>
         <Route path="/tickets">
           <ProtectedRoute><TicketsPage /></ProtectedRoute>

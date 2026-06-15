@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Search, Building2, Users, CreditCard, Power, PowerOff, CheckCircle2 } from "lucide-react";
+import {
+  Loader2, Search, Building2, Users, CreditCard, Power, PowerOff,
+  CheckCircle2, ChevronRight, AlertTriangle, TrendingUp, Filter,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Org = {
@@ -16,6 +21,8 @@ type Org = {
   createdAt: string; planCode: string | null; planName: string | null;
   seats: number; mrr: number; billingCycle: string | null;
   status: string | null; memberCount: number; enabledModules: number;
+  currentPeriodEnd: string | null; failedPayments: number; openTickets: number;
+  healthScore: number; healthLabel: string;
 };
 
 type OrgList = { count: number; rows: Org[] };
@@ -27,17 +34,28 @@ const PLAN_COLOR: Record<string, string> = {
   ENTERPRISE: "bg-pink-50 text-pink-700 border-pink-200",
 };
 
+const HEALTH_CFG: Record<string, { cls: string }> = {
+  "Excellent":    { cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  "Stable":       { cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  "À surveiller": { cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  "À risque":     { cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  "Critique":     { cls: "bg-red-50 text-red-700 border-red-200" },
+};
+
 function fmtFCFA(n: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n);
 }
-
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function TenantsPage() {
   const qc = useQueryClient();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const [filterPlan, setFilterPlan] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterHealth, setFilterHealth] = useState("all");
   const [confirming, setConfirming] = useState<Org | null>(null);
   const [toggling, setToggling] = useState(false);
 
@@ -48,12 +66,23 @@ export default function TenantsPage() {
   });
 
   const rows = (data?.rows ?? []).filter((o) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return o.name.toLowerCase().includes(q) || o.slug.toLowerCase().includes(q) || (o.industry ?? "").toLowerCase().includes(q);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      if (!o.name.toLowerCase().includes(q) && !o.slug.toLowerCase().includes(q) && !(o.industry ?? "").toLowerCase().includes(q)) return false;
+    }
+    if (filterPlan !== "all" && o.planCode !== filterPlan) return false;
+    if (filterStatus === "active" && !o.isActive) return false;
+    if (filterStatus === "suspended" && o.isActive) return false;
+    if (filterHealth !== "all" && o.healthLabel !== filterHealth) return false;
+    return true;
   });
 
-  const totalMRR = (data?.rows ?? []).reduce((s, o) => s + o.mrr, 0);
+  const allRows = data?.rows ?? [];
+  const totalMRR = allRows.reduce((s, o) => s + o.mrr, 0);
+  const atRisk = allRows.filter((o) => o.healthLabel === "À risque" || o.healthLabel === "Critique").length;
+  const withFailedPayments = allRows.filter((o) => o.failedPayments > 0).length;
+
+  const plans = [...new Set(allRows.map((o) => o.planCode).filter(Boolean))] as string[];
 
   const handleToggle = async () => {
     if (!confirming) return;
@@ -61,8 +90,7 @@ export default function TenantsPage() {
     try {
       const action = confirming.isActive ? "suspend" : "reactivate";
       await apiFetch(`/api/super-admin/organizations/${confirming.id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ action }),
+        method: "PATCH", body: JSON.stringify({ action }),
       });
       toast.success(action === "suspend" ? "Organisation suspendue" : "Organisation réactivée");
       qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
@@ -85,28 +113,79 @@ export default function TenantsPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 grid-cols-3">
+      {/* KPI row */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <Card><CardContent className="p-4">
           <p className="text-[11px] uppercase font-semibold text-muted-foreground">Actives</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{data?.rows.filter((o) => o.isActive).length ?? 0}</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{allRows.filter((o) => o.isActive).length}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-[11px] uppercase font-semibold text-muted-foreground">Suspendues</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{data?.rows.filter((o) => !o.isActive).length ?? 0}</p>
+          <p className="text-2xl font-bold text-red-600 mt-1">{allRows.filter((o) => !o.isActive).length}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <p className="text-[11px] uppercase font-semibold text-muted-foreground">MRR total</p>
-          <p className="text-2xl font-bold text-primary mt-1">{fmtFCFA(totalMRR)}</p>
+          <p className="text-[11px] uppercase font-semibold text-muted-foreground">À risque / Critiques</p>
+          <p className={`text-2xl font-bold mt-1 ${atRisk > 0 ? "text-orange-600" : "text-muted-foreground"}`}>{atRisk}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-[11px] uppercase font-semibold text-muted-foreground">Paiements échoués</p>
+          <p className={`text-2xl font-bold mt-1 ${withFailedPayments > 0 ? "text-red-600" : "text-muted-foreground"}`}>{withFailedPayments}</p>
         </CardContent></Card>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-        <Input className="pl-8" placeholder="Rechercher une organisation…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={filterPlan} onValueChange={setFilterPlan}>
+          <SelectTrigger className="w-36 h-9">
+            <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+            <SelectValue placeholder="Plan" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les plans</SelectItem>
+            {plans.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-36 h-9">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous statuts</SelectItem>
+            <SelectItem value="active">Actives</SelectItem>
+            <SelectItem value="suspended">Suspendues</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterHealth} onValueChange={setFilterHealth}>
+          <SelectTrigger className="w-40 h-9">
+            <SelectValue placeholder="Santé" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes santés</SelectItem>
+            <SelectItem value="Excellent">Excellent</SelectItem>
+            <SelectItem value="Stable">Stable</SelectItem>
+            <SelectItem value="À surveiller">À surveiller</SelectItem>
+            <SelectItem value="À risque">À risque</SelectItem>
+            <SelectItem value="Critique">Critique</SelectItem>
+          </SelectContent>
+        </Select>
+        {(search || filterPlan !== "all" || filterStatus !== "all" || filterHealth !== "all") && (
+          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setSearch(""); setFilterPlan("all"); setFilterStatus("all"); setFilterHealth("all"); }}>
+            Effacer filtres
+          </Button>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">{rows.length} résultat{rows.length !== 1 ? "s" : ""}</span>
       </div>
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" />Liste des tenants</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Building2 className="w-4 h-4" />Liste des tenants
+          </CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="py-16 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>
@@ -119,29 +198,50 @@ export default function TenantsPage() {
                     <TableHead>Plan</TableHead>
                     <TableHead className="text-right"><Users className="w-3.5 h-3.5 inline mr-1" />Membres</TableHead>
                     <TableHead className="text-right"><CreditCard className="w-3.5 h-3.5 inline mr-1" />MRR</TableHead>
+                    <TableHead>Santé</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead>Créée le</TableHead>
+                    <TableHead>Renouvellement</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((org) => (
-                    <TableRow key={org.id} className={!org.isActive ? "opacity-60" : ""}>
+                  {rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                        Aucune organisation ne correspond aux filtres
+                      </TableCell>
+                    </TableRow>
+                  ) : rows.map((org) => (
+                    <TableRow
+                      key={org.id}
+                      className={`${!org.isActive ? "opacity-60" : ""} cursor-pointer hover:bg-muted/30 transition-colors`}
+                      onClick={() => navigate(`/tenants/${org.id}`)}
+                    >
                       <TableCell>
                         <div>
                           <p className="font-medium text-sm">{org.name}</p>
                           <p className="text-xs text-muted-foreground font-mono">{org.slug}</p>
                           {org.industry && <p className="text-[10px] text-muted-foreground">{org.industry}</p>}
+                          {org.failedPayments > 0 && (
+                            <span className="text-[10px] text-red-600 flex items-center gap-0.5 mt-0.5">
+                              <AlertTriangle className="w-2.5 h-2.5" />{org.failedPayments} paiement{org.failedPayments > 1 ? "s" : ""} échoué{org.failedPayments > 1 ? "s" : ""}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {org.planCode ? (
                           <Badge variant="outline" className={PLAN_COLOR[org.planCode] ?? ""}>{org.planCode}</Badge>
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right text-sm font-medium">{org.memberCount}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">{fmtFCFA(org.mrr)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right text-sm font-medium whitespace-nowrap">{fmtFCFA(org.mrr)}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Badge variant="outline" className={`text-xs ${HEALTH_CFG[org.healthLabel]?.cls ?? ""}`}>
+                          {org.healthLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {org.isDefault ? (
                           <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Défaut</Badge>
                         ) : org.isActive ? (
@@ -152,17 +252,24 @@ export default function TenantsPage() {
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Suspendue</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{fmtDate(org.createdAt)}</TableCell>
-                      <TableCell>
-                        {!org.isDefault && (
-                          <Button
-                            size="sm" variant="outline"
-                            className={`h-7 text-xs gap-1 ${org.isActive ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
-                            onClick={() => setConfirming(org)}
-                          >
-                            {org.isActive ? <><PowerOff className="w-3 h-3" />Suspendre</> : <><Power className="w-3 h-3" />Réactiver</>}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {org.currentPeriodEnd ? fmtDate(org.currentPeriodEnd) : "—"}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                          {!org.isDefault && (
+                            <Button
+                              size="sm" variant="outline"
+                              className={`h-7 text-xs gap-1 ${org.isActive ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
+                              onClick={() => setConfirming(org)}
+                            >
+                              {org.isActive ? <PowerOff className="w-3 h-3" /> : <Power className="w-3 h-3" />}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => navigate(`/tenants/${org.id}`)}>
+                            <ChevronRight className="w-3.5 h-3.5" />
                           </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -180,17 +287,13 @@ export default function TenantsPage() {
               <DialogTitle>{confirming.isActive ? "Suspendre" : "Réactiver"} l'organisation</DialogTitle>
               <DialogDescription>
                 {confirming.isActive
-                  ? `Suspendre "${confirming.name}" bloquera l'accès à tous ses membres et mettra en pause son abonnement.`
+                  ? `Suspendre "${confirming.name}" bloquera l'accès à tous ses membres.`
                   : `Réactiver "${confirming.name}" rétablira l'accès à tous ses membres.`}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setConfirming(null)}>Annuler</Button>
-              <Button
-                variant={confirming.isActive ? "destructive" : "default"}
-                onClick={handleToggle}
-                disabled={toggling}
-              >
+              <Button variant={confirming.isActive ? "destructive" : "default"} onClick={handleToggle} disabled={toggling}>
                 {toggling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {confirming.isActive ? "Suspendre" : "Réactiver"}
               </Button>
