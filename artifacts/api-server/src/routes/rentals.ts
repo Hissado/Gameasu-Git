@@ -65,7 +65,7 @@ router.get("/rentals/:id", async (req, res) => {
     clientName: clientsTable.name,
   }).from(rentalsTable)
     .leftJoin(clientsTable, eq(rentalsTable.clientId, clientsTable.id))
-    .where(and(eq(rentalsTable.organizationId, orgId), eq(rentalsTable.id, req.params.id))).limit(1);
+    .where(and(eq(rentalsTable.organizationId, orgId), eq(rentalsTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
 
   const items = await db.select({
@@ -73,7 +73,7 @@ router.get("/rentals/:id", async (req, res) => {
     equipmentName: equipmentTable.name,
   }).from(rentalItemsTable)
     .leftJoin(equipmentTable, eq(rentalItemsTable.equipmentId, equipmentTable.id))
-    .where(and(eq(rentalItemsTable.organizationId, orgId), eq(rentalItemsTable.rentalId, req.params.id)));
+    .where(and(eq(rentalItemsTable.organizationId, orgId), eq(rentalItemsTable.rentalId, (req.params.id as string))));
 
   return res.json({
     ...rows[0].rental,
@@ -93,7 +93,7 @@ router.put("/rentals/:id", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, startDate, endDate, notes } = req.body;
   const [rental] = await db.update(rentalsTable)
     .set({ clientId, status, startDate, endDate, notes })
-    .where(and(eq(rentalsTable.organizationId, req.authUser!.organizationId), eq(rentalsTable.id, req.params.id))).returning();
+    .where(and(eq(rentalsTable.organizationId, req.authUser!.organizationId), eq(rentalsTable.id, (req.params.id as string)))).returning();
   if (!rental) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rental, totalCost: rental.totalCost ? Number(rental.totalCost) : null });
 });
@@ -140,7 +140,7 @@ router.post("/inspections", requireManagerOrAbove, async (req, res) => {
 });
 
 router.get("/inspections/:id", async (req, res) => {
-  const rows = await db.select().from(inspectionsTable).where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, req.params.id))).limit(1);
+  const rows = await db.select().from(inspectionsTable).where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0], hasDispute: rows[0].hasDispute === "true", retentionAmount: rows[0].retentionAmount ? Number(rows[0].retentionAmount) : null });
 });
@@ -149,7 +149,7 @@ router.put("/inspections/:id", requireManagerOrAbove, async (req, res) => {
   const { type, notes, hasDispute, disputeNotes, retentionAmount, photos } = req.body;
   const [insp] = await db.update(inspectionsTable)
     .set({ type, notes, hasDispute: hasDispute ? "true" : "false", disputeNotes, retentionAmount: retentionAmount?.toString(), photos })
-    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, req.params.id))).returning();
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.id, (req.params.id as string)))).returning();
   if (!insp) return res.status(404).json({ error: "Not found" });
   return res.json({ ...insp, hasDispute: insp.hasDispute === "true", retentionAmount: insp.retentionAmount ? Number(insp.retentionAmount) : null });
 });
@@ -163,7 +163,7 @@ router.get("/rentals/:id/inspections", async (req, res) => {
     })
     .from(inspectionsTable)
     .leftJoin(usersTable, eq(inspectionsTable.conductedById, usersTable.id))
-    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, req.params.id)));
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, (req.params.id as string))));
 
   const data = inspections.map((row) => ({
     ...row.i,
@@ -173,7 +173,7 @@ router.get("/rentals/:id/inspections", async (req, res) => {
   }));
 
   return res.json({
-    rentalId: req.params.id,
+    rentalId: (req.params.id as string),
     departure: data.find((d) => d.type === "departure") || null,
     returnInspection: data.find((d) => d.type === "return") || null,
     all: data,
@@ -185,7 +185,7 @@ router.get("/rentals/:id/inspections/compare", async (req, res) => {
   const inspections = await db
     .select()
     .from(inspectionsTable)
-    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, req.params.id)));
+    .where(and(eq(inspectionsTable.organizationId, req.authUser!.organizationId), eq(inspectionsTable.rentalId, (req.params.id as string))));
   const departure = inspections.find((i) => i.type === "departure") || null;
   const returnInsp = inspections.find((i) => i.type === "return") || null;
 
@@ -195,7 +195,7 @@ router.get("/rentals/:id/inspections/compare", async (req, res) => {
   const retention = returnInsp?.retentionAmount ? Number(returnInsp.retentionAmount) : 0;
 
   return res.json({
-    rentalId: req.params.id,
+    rentalId: (req.params.id as string),
     departure,
     return: returnInsp,
     diff: {
@@ -251,7 +251,7 @@ router.put("/logistics/:id", requireManagerOrAbove, async (req, res) => {
   const { type, status, rentalId, responsibleId, address, scheduledAt, notes } = req.body;
   const [op] = await db.update(logisticsOperationsTable)
     .set({ type, status, rentalId, responsibleId, address, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, notes })
-    .where(and(eq(logisticsOperationsTable.organizationId, req.authUser!.organizationId), eq(logisticsOperationsTable.id, req.params.id))).returning();
+    .where(and(eq(logisticsOperationsTable.organizationId, req.authUser!.organizationId), eq(logisticsOperationsTable.id, (req.params.id as string)))).returning();
   if (!op) return res.status(404).json({ error: "Not found" });
   return res.json(op);
 });

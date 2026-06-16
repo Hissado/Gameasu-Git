@@ -39,7 +39,7 @@ router.get("/organizations", requireAdmin, async (_req, res) => {
 });
 
 router.get("/organizations/:id", requireAdmin, async (req, res) => {
-  const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, req.params.id)).limit(1);
+  const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, (req.params.id as string))).limit(1);
   if (!org) return res.status(404).json({ error: "Introuvable" });
   res.json(org);
 });
@@ -82,7 +82,7 @@ router.patch("/organization-members/:id", requireAdmin, async (req, res) => {
   if (!role) return res.status(400).json({ error: "role requis" });
   const [m] = await db.update(organizationMembersTable)
     .set({ role })
-    .where(and(eq(organizationMembersTable.id, req.params.id), eq(organizationMembersTable.organizationId, orgId!)))
+    .where(and(eq(organizationMembersTable.id, (req.params.id as string)), eq(organizationMembersTable.organizationId, orgId!)))
     .returning();
   if (!m) return res.status(404).json({ error: "Membre introuvable" });
   res.json(m);
@@ -91,7 +91,7 @@ router.patch("/organization-members/:id", requireAdmin, async (req, res) => {
 router.delete("/organization-members/:id", requireAdmin, async (req, res) => {
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   await db.delete(organizationMembersTable)
-    .where(and(eq(organizationMembersTable.id, req.params.id), eq(organizationMembersTable.organizationId, orgId!)));
+    .where(and(eq(organizationMembersTable.id, (req.params.id as string)), eq(organizationMembersTable.organizationId, orgId!)));
   res.status(204).end();
 });
 

@@ -85,7 +85,7 @@ router.get("/collaborators/workload", async (req, res) => {
 });
 
 router.get("/collaborators/:id", async (req, res) => {
-  const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id))).limit(1);
+  const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string)))).limit(1);
   if (!collabs[0]) return res.status(404).json({ error: "Not found" });
   return res.json(collabs[0]);
 });
@@ -115,7 +115,7 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
         ...(otherBenefitsMonthly != null && { otherBenefitsMonthly: otherBenefitsMonthly.toString() }),
         ...(weeklyHours != null && { weeklyHours: weeklyHours.toString() }),
       })
-      .where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id))).returning();
+      .where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string)))).returning();
     if (!collab) return res.status(404).json({ error: "Not found" });
     return res.json(collab);
   } catch (e: any) {
@@ -124,7 +124,7 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, req.params.id)));
+  await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -138,7 +138,7 @@ router.delete("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/collaborators/:id/employer-cost", async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  const collabId = req.params.id;
+  const collabId = (req.params.id as string);
 
   const [collab] = await db.select().from(collaboratorsTable)
     .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, collabId), isNull(collaboratorsTable.deletedAt)))

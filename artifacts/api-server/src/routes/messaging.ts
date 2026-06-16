@@ -87,10 +87,10 @@ function parseMentions(content: string): string[] {
   return Array.from(new Set(matches.map((m) => m.slice(1).toLowerCase())));
 }
 
-async function createNotification(userId: string, title: string, body: string, type: string, entityId?: string) {
+async function createNotification(organizationId: string, userId: string, title: string, body: string, type: string, entityId?: string) {
   try {
     const [notif] = await db.insert(notificationsTable).values({
-      userId, title, body, type, entityType: "message", entityId,
+      organizationId, userId, title, body, type, entityType: "message", entityId,
     }).returning();
     emitToUser(userId, "notification:new", notif);
   } catch {/* ignore */}
@@ -212,11 +212,11 @@ router.post("/conversations", async (req, res) => {
 
 router.get("/conversations/:id", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Vous n'êtes pas membre de cette conversation" });
-  const convos = await db.select().from(conversationsTable).where(eq(conversationsTable.id, req.params.id)).limit(1);
+  const convos = await db.select().from(conversationsTable).where(eq(conversationsTable.id, (req.params.id as string))).limit(1);
   if (!convos[0]) return res.status(404).json({ error: "Conversation introuvable" });
-  const participants = await listParticipantsForConv(req.params.id);
+  const participants = await listParticipantsForConv((req.params.id as string));
   return res.json({
     ...convos[0],
     participants,
@@ -228,7 +228,7 @@ router.get("/conversations/:id", async (req, res) => {
 
 router.patch("/conversations/:id", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
   const { archived, muted, pinned } = req.body || {};
   const updates: any = {};
@@ -239,7 +239,7 @@ router.patch("/conversations/:id", async (req, res) => {
     await db.update(conversationParticipantsTable)
       .set(updates)
       .where(and(
-        eq(conversationParticipantsTable.conversationId, req.params.id),
+        eq(conversationParticipantsTable.conversationId, (req.params.id as string)),
         eq(conversationParticipantsTable.userId, userId),
       ));
   }
@@ -248,13 +248,13 @@ router.patch("/conversations/:id", async (req, res) => {
 
 router.put("/conversations/:id/read", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
   const now = new Date();
   await db.update(conversationParticipantsTable)
     .set({ unreadCount: 0, lastReadAt: now })
     .where(and(
-      eq(conversationParticipantsTable.conversationId, req.params.id),
+      eq(conversationParticipantsTable.conversationId, (req.params.id as string)),
       eq(conversationParticipantsTable.userId, userId),
     ));
 
@@ -266,7 +266,7 @@ router.put("/conversations/:id/read", async (req, res) => {
       eq(messageReadsTable.userId, userId),
     ))
     .where(and(
-      eq(messagesTable.conversationId, req.params.id),
+      eq(messagesTable.conversationId, (req.params.id as string)),
       isNull(messageReadsTable.id),
     ));
   if (unreadMessages.length > 0) {
@@ -274,32 +274,32 @@ router.put("/conversations/:id/read", async (req, res) => {
       await db.insert(messageReadsTable).values({ organizationId: req.authUser!.organizationId, messageId: m.id, userId, readAt: now }).onConflictDoNothing();
     }
   }
-  emitToConversation(req.params.id, "conversation:read", {
-    conversationId: req.params.id, userId, readAt: now.toISOString(),
+  emitToConversation((req.params.id as string), "conversation:read", {
+    conversationId: (req.params.id as string), userId, readAt: now.toISOString(),
   });
   return res.json({ success: true, lastReadAt: now });
 });
 
 router.post("/conversations/:id/participants", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
   const { participantIds = [] } = req.body || {};
   for (const pid of participantIds) {
     await db.insert(conversationParticipantsTable).values({
       organizationId: req.authUser!.organizationId,
-      conversationId: req.params.id, userId: pid,
+      conversationId: (req.params.id as string), userId: pid,
     }).onConflictDoNothing();
-    emitToUser(pid, "conversation:new", { conversationId: req.params.id });
+    emitToUser(pid, "conversation:new", { conversationId: (req.params.id as string) });
   }
-  const participants = await listParticipantsForConv(req.params.id);
+  const participants = await listParticipantsForConv((req.params.id as string));
   return res.json({ participants });
 });
 
 // ─── MESSAGES ───────────────────────────────────────────────────────────────
 router.get("/conversations/:id/messages", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
 
   const { page = "1", limit = "50", search } = req.query as Record<string, string>;
@@ -307,7 +307,7 @@ router.get("/conversations/:id/messages", async (req, res) => {
   const limitNum = Math.min(200, parseInt(limit));
   const offset = (pageNum - 1) * limitNum;
 
-  const filters: any[] = [eq(messagesTable.conversationId, req.params.id)];
+  const filters: any[] = [eq(messagesTable.conversationId, (req.params.id as string))];
   if (search) filters.push(ilike(messagesTable.content, `%${search}%`));
 
   const rows = await db.select({
@@ -338,7 +338,7 @@ router.get("/conversations/:id/messages", async (req, res) => {
 
 router.post("/conversations/:id/messages", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
 
   const {
@@ -356,7 +356,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
   const [msg] = await db.insert(messagesTable).values({
       organizationId: req.authUser!.organizationId,
-    conversationId: req.params.id,
+    conversationId: (req.params.id as string),
     senderId: userId,
     content: content || "",
     attachmentUrl: attachmentUrl || null,
@@ -369,6 +369,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   if (Array.isArray(attachments) && attachments.length > 0) {
     await db.insert(messageAttachmentsTable).values(
       attachments.map((a: any) => ({
+        organizationId: msg.organizationId,
         messageId: msg.id,
         url: a.url, mime: a.mime || "application/octet-stream",
         sizeBytes: a.sizeBytes ?? null, kind: a.kind || "file",
@@ -388,7 +389,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       ...mentionHandles.map((h) => sql`lower(${usersTable.email}) like ${h + "@%"}`),
     ));
     for (const u of mentionedUsers) {
-      await db.insert(messageMentionsTable).values({ messageId: msg.id, mentionedUserId: u.id }).onConflictDoNothing();
+      await db.insert(messageMentionsTable).values({ organizationId: msg.organizationId, messageId: msg.id, mentionedUserId: u.id }).onConflictDoNothing();
     }
   }
 
@@ -396,12 +397,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
   const preview = content?.slice(0, 200) || (kind === "voice" ? "🎙️ Message vocal" : kind === "image" ? "📷 Photo" : kind === "location" ? "📍 Localisation" : "📎 Fichier");
   await db.update(conversationsTable)
     .set({ lastMessage: preview, lastMessageAt: new Date() })
-    .where(eq(conversationsTable.id, req.params.id));
+    .where(eq(conversationsTable.id, (req.params.id as string)));
 
   await db.update(conversationParticipantsTable)
     .set({ unreadCount: sql`${conversationParticipantsTable.unreadCount} + 1` })
     .where(and(
-      eq(conversationParticipantsTable.conversationId, req.params.id),
+      eq(conversationParticipantsTable.conversationId, (req.params.id as string)),
       sql`${conversationParticipantsTable.userId} != ${userId}`,
     ));
 
@@ -410,11 +411,11 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
   // Notifications
   const allParts = await db.select().from(conversationParticipantsTable)
-    .where(eq(conversationParticipantsTable.conversationId, req.params.id));
+    .where(eq(conversationParticipantsTable.conversationId, (req.params.id as string)));
   const sender = req.authUser!;
   for (const p of allParts) {
     if (p.userId === userId || p.muted) continue;
-    await createNotification(p.userId, `${sender.firstName} ${sender.lastName}`, preview, "message", msg.id);
+    await createNotification(sender.organizationId, p.userId, `${sender.firstName} ${sender.lastName}`, preview, "message", msg.id);
   }
 
   // Hydrate response with senderName/avatar/attachments
@@ -429,9 +430,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
     attachments: enriched.attachments.get(msg.id) || [],
   };
 
-  emitToConversation(req.params.id, "message:new", payload);
+  emitToConversation((req.params.id as string), "message:new", payload);
   for (const p of allParts) {
-    if (p.userId !== userId) emitToUser(p.userId, "conversation:bump", { conversationId: req.params.id });
+    if (p.userId !== userId) emitToUser(p.userId, "conversation:bump", { conversationId: (req.params.id as string) });
   }
 
   return res.status(201).json(payload);
@@ -440,24 +441,24 @@ router.post("/conversations/:id/messages", async (req, res) => {
 router.patch("/messages/:id", async (req, res) => {
   const userId = req.authUser!.id;
   const { content } = req.body || {};
-  const existing = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const existing = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!existing) return res.status(404).json({ error: "Introuvable" });
   if (existing.senderId !== userId) return res.status(403).json({ error: "Non autorisé" });
   const [updated] = await db.update(messagesTable)
     .set({ content: content ?? existing.content, editedAt: new Date(), translations: null })
-    .where(eq(messagesTable.id, req.params.id)).returning();
+    .where(eq(messagesTable.id, (req.params.id as string))).returning();
   emitToConversation(updated.conversationId, "message:updated", updated);
   return res.json(updated);
 });
 
 router.delete("/messages/:id", async (req, res) => {
   const userId = req.authUser!.id;
-  const existing = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const existing = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!existing) return res.status(404).json({ error: "Introuvable" });
   if (existing.senderId !== userId) return res.status(403).json({ error: "Non autorisé" });
   const [updated] = await db.update(messagesTable)
     .set({ deletedAt: new Date(), content: "", attachmentUrl: null })
-    .where(eq(messagesTable.id, req.params.id)).returning();
+    .where(eq(messagesTable.id, (req.params.id as string))).returning();
   emitToConversation(updated.conversationId, "message:deleted", { id: updated.id, conversationId: updated.conversationId });
   return res.json({ success: true });
 });
@@ -467,7 +468,7 @@ router.post("/messages/:id/reactions", async (req, res) => {
   const userId = req.authUser!.id;
   const { emoji } = req.body || {};
   if (!emoji) return res.status(400).json({ error: "Emoji requis" });
-  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!msg) return res.status(404).json({ error: "Introuvable" });
   const part = await ensureParticipant(msg.conversationId, userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
@@ -479,15 +480,15 @@ router.post("/messages/:id/reactions", async (req, res) => {
 
 router.delete("/messages/:id/reactions/:emoji", async (req, res) => {
   const userId = req.authUser!.id;
-  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!msg) return res.status(404).json({ error: "Introuvable" });
   await db.delete(messageReactionsTable).where(and(
     eq(messageReactionsTable.messageId, msg.id),
     eq(messageReactionsTable.userId, userId),
-    eq(messageReactionsTable.emoji, req.params.emoji),
+    eq(messageReactionsTable.emoji, (req.params.emoji as string)),
   ));
   emitToConversation(msg.conversationId, "reaction:removed", {
-    messageId: msg.id, userId, emoji: req.params.emoji,
+    messageId: msg.id, userId, emoji: (req.params.emoji as string),
   });
   return res.json({ success: true });
 });
@@ -496,7 +497,7 @@ router.delete("/messages/:id/reactions/:emoji", async (req, res) => {
 router.post("/messages/:id/translate", async (req, res) => {
   const userId = req.authUser!.id;
   const { targetLang = "fr" } = req.body || {};
-  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!msg) return res.status(404).json({ error: "Introuvable" });
   const part = await ensureParticipant(msg.conversationId, userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
@@ -520,7 +521,7 @@ router.post("/messages/:id/translate", async (req, res) => {
 // Résumé exécutif de conversation (Phase 4 — Communications intelligentes)
 router.post("/conversations/:id/summarize", async (req, res) => {
   const userId = req.authUser!.id;
-  const convId = req.params.id;
+  const convId = (req.params.id as string);
   const part = await ensureParticipant(convId, userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
 
@@ -572,10 +573,10 @@ router.post("/conversations/:id/summarize", async (req, res) => {
 
 router.get("/conversations/:id/summaries", async (req, res) => {
   const userId = req.authUser!.id;
-  const part = await ensureParticipant(req.params.id, userId);
+  const part = await ensureParticipant((req.params.id as string), userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
   const rows = await db.select().from(assistantSummariesTable)
-    .where(and(eq(assistantSummariesTable.scope, "conversation"), eq(assistantSummariesTable.scopeId, req.params.id)))
+    .where(and(eq(assistantSummariesTable.scope, "conversation"), eq(assistantSummariesTable.scopeId, (req.params.id as string))))
     .orderBy(desc(assistantSummariesTable.createdAt))
     .limit(20);
   return res.json(rows);
@@ -584,7 +585,7 @@ router.get("/conversations/:id/summaries", async (req, res) => {
 // Voice transcription
 router.post("/messages/:id/transcribe", async (req, res) => {
   const userId = req.authUser!.id;
-  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, req.params.id)).limit(1))[0];
+  const msg = (await db.select().from(messagesTable).where(eq(messagesTable.id, (req.params.id as string))).limit(1))[0];
   if (!msg) return res.status(404).json({ error: "Introuvable" });
   const part = await ensureParticipant(msg.conversationId, userId);
   if (!part) return res.status(403).json({ error: "Non autorisé" });
@@ -691,6 +692,7 @@ router.post("/calls", async (req, res) => {
     if (!part) return res.status(403).json({ error: "Non autorisé" });
   }
   const [call] = await db.insert(callSessionsTable).values({
+    organizationId: req.authUser!.organizationId,
     type: type || "video", status: "ringing", initiatorId: userId,
     conversationId: conversationId || null, projectId: projectId || null,
     roomUrl: `https://meet.gameasu.com/room/${Date.now()}`,
@@ -750,7 +752,7 @@ router.get("/calls/:id", async (req, res) => {
     initiatorName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
   }).from(callSessionsTable)
     .leftJoin(usersTable, eq(callSessionsTable.initiatorId, usersTable.id))
-    .where(eq(callSessionsTable.id, req.params.id)).limit(1);
+    .where(eq(callSessionsTable.id, (req.params.id as string))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Introuvable" });
   if (!(await userCanAccessCall(rows[0].call, userId))) {
     return res.status(403).json({ error: "Non autorisé" });
@@ -763,7 +765,7 @@ router.put("/calls/:id", async (req, res) => {
   const { status, endedAt } = req.body || {};
   const isTerminal = status === "ended" || status === "completed" || status === "missed" || status === "declined";
   const ended = endedAt ? new Date(endedAt) : (isTerminal ? new Date() : undefined);
-  const existing = (await db.select().from(callSessionsTable).where(eq(callSessionsTable.id, req.params.id)).limit(1))[0];
+  const existing = (await db.select().from(callSessionsTable).where(eq(callSessionsTable.id, (req.params.id as string))).limit(1))[0];
   if (!existing) return res.status(404).json({ error: "Introuvable" });
   if (!(await userCanAccessCall(existing, userId))) {
     return res.status(403).json({ error: "Non autorisé" });
@@ -777,7 +779,7 @@ router.put("/calls/:id", async (req, res) => {
   if (becomesActive) updateValues.startedAt = startedAt;
   const [call] = await db.update(callSessionsTable)
     .set(updateValues)
-    .where(eq(callSessionsTable.id, req.params.id)).returning();
+    .where(eq(callSessionsTable.id, (req.params.id as string))).returning();
 
   // Notify all parties (single emission per user to avoid duplicates)
   if (call.conversationId) {
@@ -832,7 +834,7 @@ router.put("/notifications/:id/read", async (req, res) => {
   const userId = req.authUser!.id;
   const [notif] = await db.update(notificationsTable)
     .set({ isRead: "true" })
-    .where(and(eq(notificationsTable.id, req.params.id), eq(notificationsTable.userId, userId))).returning();
+    .where(and(eq(notificationsTable.id, (req.params.id as string)), eq(notificationsTable.userId, userId))).returning();
   if (!notif) return res.status(404).json({ error: "Introuvable" });
   return res.json({ ...notif, isRead: true });
 });

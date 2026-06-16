@@ -266,7 +266,7 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
 router.post("/auth/logout", async (req, res) => {
-  const auth = req.headers.authorization;
+  const auth = (req.headers.authorization as string);
   if (auth) {
     const raw = auth.replace("Bearer ", "");
     if (UUID_REGEX.test(raw)) {
@@ -278,7 +278,7 @@ router.post("/auth/logout", async (req, res) => {
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res) => {
-  const userId = await resolveSessionToken(req.headers.authorization);
+  const userId = await resolveSessionToken((req.headers.authorization as string));
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -295,7 +295,7 @@ router.get("/auth/me", async (req, res) => {
 
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
 router.patch("/auth/me", async (req, res) => {
-  const userId = await resolveSessionToken(req.headers.authorization);
+  const userId = await resolveSessionToken((req.headers.authorization as string));
   if (!userId) return res.status(401).json({ error: "Authentification requise" });
 
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -325,7 +325,7 @@ router.patch("/auth/me", async (req, res) => {
 
 // ─── PUT /api/auth/password ───────────────────────────────────────────────────
 router.put("/auth/password", async (req, res) => {
-  const userId = await resolveSessionToken(req.headers.authorization);
+  const userId = await resolveSessionToken((req.headers.authorization as string));
   if (!userId) return res.status(401).json({ error: "Authentification requise" });
 
   const { currentPassword, newPassword } = req.body || {};
@@ -346,7 +346,7 @@ router.put("/auth/password", async (req, res) => {
 
 // ─── POST /api/auth/change-password ──────────────────────────────────────────
 router.post("/auth/change-password", async (req, res) => {
-  const userId = await resolveSessionToken(req.headers.authorization);
+  const userId = await resolveSessionToken((req.headers.authorization as string));
   if (!userId) return res.status(401).json({ error: "Authentification requise" });
 
   const { currentPassword, newPassword } = req.body || {};

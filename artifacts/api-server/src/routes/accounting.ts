@@ -1785,7 +1785,7 @@ router.post("/accounting/taxes", requireManagerOrAbove, async (req, res, next) =
 router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const [existing] = await db.select().from(taxesTable)
       .where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).limit(1);
     if (!existing) { res.status(404).json({ error: "Taxe introuvable" }); return; }
@@ -1813,7 +1813,7 @@ router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next
 router.delete("/accounting/taxes/:id", requireAdmin, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const [existing] = await db.select().from(taxesTable)
       .where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).limit(1);
     if (!existing) { res.status(404).json({ error: "Taxe introuvable" }); return; }

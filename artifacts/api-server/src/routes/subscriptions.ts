@@ -24,7 +24,7 @@ router.get("/subscription-plans", async (_req, res) => {
 
 router.get("/subscription-plans/:code", async (req, res) => {
   const [plan] = await db.select().from(subscriptionPlansTable)
-    .where(eq(subscriptionPlansTable.code, req.params.code.toUpperCase())).limit(1);
+    .where(eq(subscriptionPlansTable.code, (req.params.code as string).toUpperCase())).limit(1);
   if (!plan) return res.status(404).json({ error: "Plan introuvable" });
   const features = await db.select().from(subscriptionPlanFeaturesTable)
     .where(eq(subscriptionPlanFeaturesTable.planId, plan.id))
@@ -171,7 +171,7 @@ router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const { enabled } = req.body ?? {};
-  const moduleKey = req.params.moduleKey;
+  const moduleKey = (req.params.moduleKey as string);
   // Nouveau modèle : accès total modules — aucune restriction par plan
   const [row] = await db.update(organizationModulesTable)
     .set({ enabled: !!enabled, source: "plan" })

@@ -19,7 +19,7 @@ router.get("/services", async (req, res) => {
 });
 
 router.get("/services/:id", async (req, res) => {
-  const [s] = await db.select().from(servicesTable).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, req.params.id))).limit(1);
+  const [s] = await db.select().from(servicesTable).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, (req.params.id as string)))).limit(1);
   if (!s) return res.status(404).json({ error: "Not found" });
   return res.json(s);
 });
@@ -47,7 +47,7 @@ router.put("/services/:id", requireManagerOrAbove, async (req, res) => {
     const [s] = await db.update(servicesTable).set({
       code, name, category, unit, description, isActive,
       ...(unitPrice != null ? { unitPrice: String(unitPrice) } : {}),
-    }).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, req.params.id))).returning();
+    }).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, (req.params.id as string)))).returning();
     if (!s) return res.status(404).json({ error: "Not found" });
     return res.json(s);
   } catch (e: any) {
@@ -56,7 +56,7 @@ router.put("/services/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/services/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(servicesTable).set({ deletedAt: new Date() }).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, req.params.id)));
+  await db.update(servicesTable).set({ deletedAt: new Date() }).where(and(eq(servicesTable.organizationId, req.authUser!.organizationId), eq(servicesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 

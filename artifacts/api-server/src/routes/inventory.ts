@@ -179,7 +179,7 @@ router.post("/inventory/products", requirePermission("inventory.manage"), async 
 router.get("/inventory/products/:id", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
   const [product] = await db.select().from(productsTable)
-    .where(and(eq(productsTable.id, req.params.id), eq(productsTable.organizationId, orgId), isNull(productsTable.deletedAt)))
+    .where(and(eq(productsTable.id, (req.params.id as string)), eq(productsTable.organizationId, orgId), isNull(productsTable.deletedAt)))
     .limit(1);
   if (!product) return res.status(404).json({ error: "Produit introuvable" });
 
@@ -209,7 +209,7 @@ router.patch("/inventory/products/:id", requirePermission("inventory.manage"), a
   const { organizationId: _orgId, id: _id, createdAt: _ca, deletedAt: _da, ...patch } = parsed as any;
   const [row] = await db.update(productsTable)
     .set({ ...patch, updatedAt: new Date() })
-    .where(and(eq(productsTable.id, req.params.id), eq(productsTable.organizationId, orgId)))
+    .where(and(eq(productsTable.id, (req.params.id as string)), eq(productsTable.organizationId, orgId)))
     .returning();
   if (!row) return res.status(404).json({ error: "Produit introuvable" });
   res.json(row);
@@ -219,7 +219,7 @@ router.delete("/inventory/products/:id", requirePermission("inventory.manage"), 
   const orgId = await getCurrentOrganizationId(req);
   const [row] = await db.update(productsTable)
     .set({ deletedAt: new Date(), isActive: false })
-    .where(and(eq(productsTable.id, req.params.id), eq(productsTable.organizationId, orgId)))
+    .where(and(eq(productsTable.id, (req.params.id as string)), eq(productsTable.organizationId, orgId)))
     .returning();
   if (!row) return res.status(404).json({ error: "Produit introuvable" });
   res.json({ ok: true });
@@ -241,7 +241,7 @@ const createPoSchema = z.object({
 
 router.get("/inventory/purchase-orders", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
-  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const status = typeof (req.query.status as string) === "string" ? (req.query.status as string) : undefined;
   const conditions = [eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)];
   if (status) conditions.push(eq(purchaseOrdersTable.status, status));
   const rows = await db.select({
@@ -301,7 +301,7 @@ router.post("/inventory/purchase-orders", requirePermission("inventory.manage"),
 router.get("/inventory/purchase-orders/:id", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
   const [po] = await db.select().from(purchaseOrdersTable)
-    .where(and(eq(purchaseOrdersTable.id, req.params.id), eq(purchaseOrdersTable.organizationId, orgId)))
+    .where(and(eq(purchaseOrdersTable.id, (req.params.id as string)), eq(purchaseOrdersTable.organizationId, orgId)))
     .limit(1);
   if (!po) return res.status(404).json({ error: "Bon de commande introuvable" });
   const lines = await db.select({
@@ -327,7 +327,7 @@ router.patch("/inventory/purchase-orders/:id", requirePermission("inventory.mana
   if (allowed.expectedDate !== undefined) patch.expectedDate = allowed.expectedDate ? new Date(allowed.expectedDate) : null;
   const [row] = await db.update(purchaseOrdersTable)
     .set({ ...patch, updatedAt: new Date() })
-    .where(and(eq(purchaseOrdersTable.id, req.params.id), eq(purchaseOrdersTable.organizationId, orgId)))
+    .where(and(eq(purchaseOrdersTable.id, (req.params.id as string)), eq(purchaseOrdersTable.organizationId, orgId)))
     .returning();
   if (!row) return res.status(404).json({ error: "Bon de commande introuvable" });
   res.json(row);
@@ -336,7 +336,7 @@ router.patch("/inventory/purchase-orders/:id", requirePermission("inventory.mana
 router.delete("/inventory/purchase-orders/:id", requirePermission("inventory.manage"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
   const [po] = await db.select().from(purchaseOrdersTable)
-    .where(and(eq(purchaseOrdersTable.id, req.params.id), eq(purchaseOrdersTable.organizationId, orgId))).limit(1);
+    .where(and(eq(purchaseOrdersTable.id, (req.params.id as string)), eq(purchaseOrdersTable.organizationId, orgId))).limit(1);
   if (!po) return res.status(404).json({ error: "Bon de commande introuvable" });
   if (po.status !== "draft") return res.status(409).json({ error: "Seuls les brouillons peuvent être supprimés" });
   await db.update(purchaseOrdersTable).set({ deletedAt: new Date() })
@@ -365,7 +365,7 @@ router.post("/inventory/purchase-orders/:id/receive", requirePermission("invento
   }
 
   const [po] = await db.select().from(purchaseOrdersTable)
-    .where(and(eq(purchaseOrdersTable.id, req.params.id), eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)))
+    .where(and(eq(purchaseOrdersTable.id, (req.params.id as string)), eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)))
     .limit(1);
   if (!po) return res.status(404).json({ error: "Bon de commande introuvable" });
   if (po.status === "cancelled" || po.status === "received") {
@@ -482,9 +482,9 @@ router.get("/inventory/stock/alerts", requirePermission("inventory.read"), async
 // ─── Mouvements ────────────────────────────────────────────────────
 router.get("/inventory/movements", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
-  const productId = typeof req.query.productId === "string" ? req.query.productId : undefined;
-  const kind = typeof req.query.kind === "string" ? req.query.kind : undefined;
-  const limit = Math.min(parseInt(String(req.query.limit ?? "200"), 10) || 200, 500);
+  const productId = typeof (req.query.productId as string) === "string" ? (req.query.productId as string) : undefined;
+  const kind = typeof (req.query.kind as string) === "string" ? (req.query.kind as string) : undefined;
+  const limit = Math.min(parseInt(String((req.query.limit as string) ?? "200"), 10) || 200, 500);
   const conditions = [eq(stockMovementsTable.organizationId, orgId)];
   if (productId) conditions.push(eq(stockMovementsTable.productId, productId));
   if (kind) conditions.push(eq(stockMovementsTable.kind, kind));
@@ -544,8 +544,8 @@ const salesLineSchema = z.object({
 
 router.get("/inventory/sales-lines", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
-  const parentType = typeof req.query.parentType === "string" ? req.query.parentType : undefined;
-  const parentId = typeof req.query.parentId === "string" ? req.query.parentId : undefined;
+  const parentType = typeof (req.query.parentType as string) === "string" ? (req.query.parentType as string) : undefined;
+  const parentId = typeof (req.query.parentId as string) === "string" ? (req.query.parentId as string) : undefined;
   if (!parentType || !parentId || !ALLOWED_PARENT.includes(parentType as any)) {
     return res.status(400).json({ error: "parentType (order|proforma|invoice) et parentId requis" });
   }
@@ -597,7 +597,7 @@ router.post("/inventory/sales-lines", requirePermission("inventory.manage"), asy
 router.delete("/inventory/sales-lines/:id", requirePermission("inventory.manage"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
   const result = await db.delete(salesLinesTable)
-    .where(and(eq(salesLinesTable.id, req.params.id), eq(salesLinesTable.organizationId, orgId)))
+    .where(and(eq(salesLinesTable.id, (req.params.id as string)), eq(salesLinesTable.organizationId, orgId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "Ligne introuvable" });
   res.json({ ok: true });
@@ -763,7 +763,7 @@ router.get("/inventory/reports/valuation", requirePermission("inventory.read"), 
 
 router.get("/inventory/reports/top-sellers", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
-  const days = Math.min(parseInt(String(req.query.days ?? "90"), 10) || 90, 365);
+  const days = Math.min(parseInt(String((req.query.days as string) ?? "90"), 10) || 90, 365);
   const since = new Date(Date.now() - days * 24 * 3600 * 1000);
   const rows = await db
     .select({
@@ -794,7 +794,7 @@ router.get("/inventory/reports/top-sellers", requirePermission("inventory.read")
 
 router.get("/inventory/reports/purchases-vs-sales", requirePermission("inventory.read"), async (req, res, next) => {
   const orgId = await getCurrentOrganizationId(req);
-  const months = Math.min(parseInt(String(req.query.months ?? "6"), 10) || 6, 24);
+  const months = Math.min(parseInt(String((req.query.months as string) ?? "6"), 10) || 6, 24);
   const since = new Date();
   since.setMonth(since.getMonth() - months);
   since.setDate(1); since.setHours(0, 0, 0, 0);
@@ -855,7 +855,7 @@ router.get("/inventory/warehouses/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(warehousesTable)
-      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, (req.params.id as string))))
       .limit(1);
     if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
 
@@ -882,7 +882,7 @@ router.patch("/inventory/warehouses/:id", requirePermission("inventory.manage"),
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(warehousesTable)
-      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, (req.params.id as string))))
       .limit(1);
     if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
@@ -902,7 +902,7 @@ router.delete("/inventory/warehouses/:id", requirePermission("inventory.manage")
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(warehousesTable)
-      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, req.params.id)))
+      .where(and(eq(warehousesTable.organizationId, orgId), eq(warehousesTable.id, (req.params.id as string))))
       .limit(1);
     if (!row) { res.status(404).json({ error: "Magasin introuvable" }); return; }
     await db.delete(warehousesTable).where(eq(warehousesTable.id, row.id));
@@ -970,7 +970,7 @@ router.get("/inventory/requests/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [ir] = await db.select().from(internalRequestsTable)
-      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, (req.params.id as string))))
       .limit(1);
     if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
     const lines = await db.select({
@@ -993,7 +993,7 @@ router.patch("/inventory/requests/:id", requirePermission("inventory.manage"), a
   try {
     const orgId = req.authUser!.organizationId;
     const [ir] = await db.select().from(internalRequestsTable)
-      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, (req.params.id as string))))
       .limit(1);
     if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
@@ -1013,7 +1013,7 @@ router.delete("/inventory/requests/:id", requirePermission("inventory.manage"), 
   try {
     const orgId = req.authUser!.organizationId;
     const [ir] = await db.select().from(internalRequestsTable)
-      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, req.params.id)))
+      .where(and(eq(internalRequestsTable.organizationId, orgId), eq(internalRequestsTable.id, (req.params.id as string))))
       .limit(1);
     if (!ir) { res.status(404).json({ error: "Demande introuvable" }); return; }
     await db.delete(internalRequestLinesTable).where(eq(internalRequestLinesTable.requestId, ir.id));

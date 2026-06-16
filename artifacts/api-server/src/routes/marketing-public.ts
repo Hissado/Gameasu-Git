@@ -43,7 +43,7 @@ router.get("/marketing/track/open/:token", async (req, res) => {
       const [recipient] = await db
         .select()
         .from(campaignRecipientsTable)
-        .where(eq(campaignRecipientsTable.openToken, req.params.token))
+        .where(eq(campaignRecipientsTable.openToken, (req.params.token as string)))
         .limit(1);
 
       if (!recipient) return;
@@ -80,7 +80,7 @@ router.get("/marketing/track/click/:token", async (req, res) => {
       const [recipient] = await db
         .select()
         .from(campaignRecipientsTable)
-        .where(eq(campaignRecipientsTable.clickToken, req.params.token))
+        .where(eq(campaignRecipientsTable.clickToken, (req.params.token as string)))
         .limit(1);
 
       if (!recipient) return;
@@ -117,7 +117,7 @@ router.get("/public/forms/:formId", async (req, res) => {
       .from(marketingFormsTable)
       .where(
         and(
-          eq(marketingFormsTable.id, req.params.formId),
+          eq(marketingFormsTable.id, (req.params.formId as string)),
           isNull(marketingFormsTable.deletedAt),
         ),
       )
@@ -140,7 +140,7 @@ router.post("/public/forms/:formId/submit", async (req, res) => {
       .from(marketingFormsTable)
       .where(
         and(
-          eq(marketingFormsTable.id, req.params.formId),
+          eq(marketingFormsTable.id, (req.params.formId as string)),
           eq(marketingFormsTable.isActive, true),
           isNull(marketingFormsTable.deletedAt),
         ),

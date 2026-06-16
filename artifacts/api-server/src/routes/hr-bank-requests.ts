@@ -138,7 +138,7 @@ router.patch("/hr/bank-requests/:id/approve", requireManagerOrAbove, async (req,
     const [request] = await db.select()
       .from(bankInfoRequestsTable)
       .where(and(
-        eq(bankInfoRequestsTable.id, req.params.id),
+        eq(bankInfoRequestsTable.id, (req.params.id as string)),
         eq(bankInfoRequestsTable.organizationId, orgId),
       ))
       .limit(1);
@@ -175,7 +175,7 @@ router.patch("/hr/bank-requests/:id/reject", requireManagerOrAbove, async (req, 
     const [request] = await db.select()
       .from(bankInfoRequestsTable)
       .where(and(
-        eq(bankInfoRequestsTable.id, req.params.id),
+        eq(bankInfoRequestsTable.id, (req.params.id as string)),
         eq(bankInfoRequestsTable.organizationId, orgId),
       ))
       .limit(1);

@@ -116,7 +116,7 @@ router.get("/recruitment/jobs/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [offer] = await db.select().from(jobOffersTable)
-      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, req.params.id)))
+      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, (req.params.id as string))))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
     const candidacies = await db.select({
@@ -141,7 +141,7 @@ router.patch("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, ne
   try {
     const orgId = req.authUser!.organizationId;
     const [offer] = await db.select().from(jobOffersTable)
-      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, req.params.id)))
+      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, (req.params.id as string))))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
     const { title, departmentId, location, type, status, description, requirements,
@@ -173,7 +173,7 @@ router.delete("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, n
   try {
     const orgId = req.authUser!.organizationId;
     const [offer] = await db.select().from(jobOffersTable)
-      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, req.params.id)))
+      .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, (req.params.id as string))))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
     await db.delete(candidaciesTable).where(eq(candidaciesTable.jobOfferId, offer.id));
@@ -276,7 +276,7 @@ router.get("/recruitment/candidacies/:id", async (req, res, next) => {
     }).from(candidaciesTable)
       .leftJoin(jobOffersTable, eq(candidaciesTable.jobOfferId, jobOffersTable.id))
       .leftJoin(departmentsTable, eq(jobOffersTable.departmentId, departmentsTable.id))
-      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, req.params.id)))
+      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, (req.params.id as string))))
       .limit(1);
     if (!c) { res.status(404).json({ error: "Candidature introuvable" }); return; }
     res.json(c);
@@ -287,7 +287,7 @@ router.patch("/recruitment/candidacies/:id", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [c] = await db.select().from(candidaciesTable)
-      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, req.params.id)))
+      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, (req.params.id as string))))
       .limit(1);
     if (!c) { res.status(404).json({ error: "Candidature introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
@@ -309,7 +309,7 @@ router.delete("/recruitment/candidacies/:id", requireManagerOrAbove, async (req,
   try {
     const orgId = req.authUser!.organizationId;
     const [c] = await db.select().from(candidaciesTable)
-      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, req.params.id)))
+      .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, (req.params.id as string))))
       .limit(1);
     if (!c) { res.status(404).json({ error: "Candidature introuvable" }); return; }
     await db.delete(candidaciesTable).where(eq(candidaciesTable.id, c.id));

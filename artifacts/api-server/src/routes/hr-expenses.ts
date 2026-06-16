@@ -96,7 +96,7 @@ router.get("/hr/expenses/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const report = await db.query.expenseReportsTable.findFirst({
-      where: and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId)),
+      where: and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId)),
     });
     if (!report) return res.status(404).json({ error: "Non trouvé" });
     const items = await db.select().from(expenseItemsTable).where(eq(expenseItemsTable.expenseReportId, report.id)).orderBy(desc(expenseItemsTable.expenseDate));
@@ -109,7 +109,7 @@ router.patch("/hr/expenses/:id", async (req, res, next) => {
     const orgId = req.authUser!.organizationId;
     const body = z.object({ title: z.string().optional(), description: z.string().optional(), periodStart: z.string().optional(), periodEnd: z.string().optional(), notes: z.string().optional() }).parse(req.body);
     const [row] = await db.update(expenseReportsTable).set(body)
-      .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")))
+      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non modifiable" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
@@ -119,7 +119,7 @@ router.patch("/hr/expenses/:id", async (req, res, next) => {
 router.delete("/hr/expenses/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    await db.delete(expenseReportsTable).where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")));
+    await db.delete(expenseReportsTable).where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -128,7 +128,7 @@ router.delete("/hr/expenses/:id", async (req, res, next) => {
 router.post("/hr/expenses/:id/items", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const report = await db.query.expenseReportsTable.findFirst({ where: and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId)) });
+    const report = await db.query.expenseReportsTable.findFirst({ where: and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId)) });
     if (!report) return res.status(404).json({ error: "Non trouvé" });
     if (!["draft", "submitted"].includes(report.status)) return res.status(400).json({ error: "Rapport non modifiable" });
 
@@ -157,9 +157,9 @@ router.post("/hr/expenses/:id/items", async (req, res, next) => {
 router.delete("/hr/expenses/:id/items/:itemId", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const report = await db.query.expenseReportsTable.findFirst({ where: and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId)) });
+    const report = await db.query.expenseReportsTable.findFirst({ where: and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId)) });
     if (!report || !["draft"].includes(report.status)) return res.status(400).json({ error: "Non modifiable" });
-    await db.delete(expenseItemsTable).where(and(eq(expenseItemsTable.id, req.params.itemId), eq(expenseItemsTable.expenseReportId, report.id)));
+    await db.delete(expenseItemsTable).where(and(eq(expenseItemsTable.id, (req.params.itemId as string)), eq(expenseItemsTable.expenseReportId, report.id)));
     const items = await db.select({ amount: expenseItemsTable.amount }).from(expenseItemsTable).where(eq(expenseItemsTable.expenseReportId, report.id));
     const total = items.reduce((s, i) => s + toNum(i.amount), 0);
     await db.update(expenseReportsTable).set({ totalAmount: String(total) }).where(eq(expenseReportsTable.id, report.id));
@@ -173,7 +173,7 @@ router.post("/hr/expenses/:id/submit", async (req, res, next) => {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(expenseReportsTable)
       .set({ status: "submitted", submittedAt: new Date() })
-      .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")))
+      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "draft")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou déjà soumis" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
@@ -185,7 +185,7 @@ router.post("/hr/expenses/:id/approve", requireManagerOrAbove, async (req, res, 
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(expenseReportsTable)
       .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
-      .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
+      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non soumis" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
@@ -198,7 +198,7 @@ router.post("/hr/expenses/:id/reject", requireManagerOrAbove, async (req, res, n
     const { reason } = z.object({ reason: z.string() }).parse(req.body);
     const [row] = await db.update(expenseReportsTable)
       .set({ status: "rejected", rejectionReason: reason, approvedById: req.authUser!.id, approvedAt: new Date() })
-      .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
+      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non soumis" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
@@ -210,7 +210,7 @@ router.post("/hr/expenses/:id/pay", requireManagerOrAbove, async (req, res, next
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(expenseReportsTable)
       .set({ status: "paid", paidAt: new Date(), paidById: req.authUser!.id })
-      .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "approved")))
+      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "approved")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non approuvé" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });

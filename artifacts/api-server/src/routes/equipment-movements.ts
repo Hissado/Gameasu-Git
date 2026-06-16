@@ -10,18 +10,24 @@ router.get("/equipment/:id/movements", requireAuth, async (req, res) => {
   const movements = await db
     .select()
     .from(equipmentMovementsTable)
-    .where(eq(equipmentMovementsTable.equipmentId, req.params.id))
+    .where(eq(equipmentMovementsTable.equipmentId, (req.params.id as string)))
     .orderBy(sql`${equipmentMovementsTable.createdAt} DESC`)
     .limit(100);
   res.json(movements);
 });
 
 router.post("/equipment/:id/movements", requireAuth, requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const equipmentId = req.params.id as string;
+  const [equip] = await db.select({ id: equipmentTable.id }).from(equipmentTable)
+    .where(and(eq(equipmentTable.id, equipmentId), eq(equipmentTable.organizationId, orgId))).limit(1);
+  if (!equip) { res.status(404).json({ error: "Équipement introuvable" }); return; }
   const { type, fromLocation, toLocation, quantity, notes } = req.body;
   const [mov] = await db
     .insert(equipmentMovementsTable)
     .values({
-      equipmentId: req.params.id,
+      organizationId: orgId,
+      equipmentId,
       type,
       fromLocation,
       toLocation,
@@ -31,7 +37,7 @@ router.post("/equipment/:id/movements", requireAuth, requireManagerOrAbove, asyn
     })
     .returning();
   if (toLocation) {
-    await db.update(equipmentTable).set({ location: toLocation }).where(eq(equipmentTable.id, req.params.id));
+    await db.update(equipmentTable).set({ location: toLocation }).where(and(eq(equipmentTable.id, equipmentId), eq(equipmentTable.organizationId, orgId)));
   }
   res.status(201).json(mov);
 });
@@ -44,7 +50,7 @@ router.get("/equipment/:id/availability-window", requireAuth, async (req, res) =
     return;
   }
 
-  const equip = await db.select().from(equipmentTable).where(eq(equipmentTable.id, req.params.id)).limit(1);
+  const equip = await db.select().from(equipmentTable).where(eq(equipmentTable.id, (req.params.id as string))).limit(1);
   if (!equip[0]) {
     res.status(404).json({ error: "Équipement introuvable" });
     return;
@@ -62,7 +68,7 @@ router.get("/equipment/:id/availability-window", requireAuth, async (req, res) =
     .innerJoin(rentalsTable, eq(rentalItemsTable.rentalId, rentalsTable.id))
     .where(
       and(
-        eq(rentalItemsTable.equipmentId, req.params.id),
+        eq(rentalItemsTable.equipmentId, (req.params.id as string)),
         sql`${rentalsTable.status} IN ('confirmed', 'active', 'pending')`,
         // Chevauchement: rental.start <= to && rental.end >= from
         lte(rentalsTable.startDate, to),
@@ -74,7 +80,7 @@ router.get("/equipment/:id/availability-window", requireAuth, async (req, res) =
   const available = Math.max(0, totalQuantity - reservedQty);
 
   res.json({
-    equipmentId: req.params.id,
+    equipmentId: (req.params.id as string),
     equipmentName: equip[0].name,
     period: { from, to },
     totalQuantity,

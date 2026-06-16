@@ -175,7 +175,7 @@ router.patch("/hr/signature-requests/:token/sign", async (req, res, next) => {
     const now = new Date();
     const [row] = await db.update(signatureRequestsTable)
       .set({ status: "signed", signedAt: now, signatureData: body.signatureData, ipAddress: body.ipAddress })
-      .where(and(eq(signatureRequestsTable.token, req.params.token), eq(signatureRequestsTable.status, "pending"), sql`${signatureRequestsTable.expiresAt} > ${now.toISOString()}`))
+      .where(and(eq(signatureRequestsTable.token, (req.params.token as string)), eq(signatureRequestsTable.status, "pending"), sql`${signatureRequestsTable.expiresAt} > ${now.toISOString()}`))
       .returning();
     if (!row) return res.status(404).json({ error: "Lien invalide, déjà signé ou expiré" });
     res.json({ ok: true, message: "Document signé avec succès" });
@@ -187,7 +187,7 @@ router.patch("/hr/signature-requests/:id/cancel", requireManagerOrAbove, async (
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(signatureRequestsTable)
       .set({ status: "cancelled" })
-      .where(and(eq(signatureRequestsTable.id, req.params.id), eq(signatureRequestsTable.organizationId, orgId)))
+      .where(and(eq(signatureRequestsTable.id, (req.params.id as string)), eq(signatureRequestsTable.organizationId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
@@ -238,7 +238,7 @@ router.post("/hr/tax-declarations", requireManagerOrAbove, async (req, res, next
 router.post("/hr/tax-declarations/generate/:runId", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const run = await db.query.payrollRunsTable.findFirst({ where: and(eq(payrollRunsTable.id, req.params.runId), eq(payrollRunsTable.organizationId, orgId)) });
+    const run = await db.query.payrollRunsTable.findFirst({ where: and(eq(payrollRunsTable.id, (req.params.runId as string)), eq(payrollRunsTable.organizationId, orgId)) });
     if (!run) return res.status(404).json({ error: "Run non trouvé" });
     const dueDate = computeDueDate(run.period);
     const declarations = [];
@@ -305,7 +305,7 @@ router.patch("/hr/tax-declarations/:id", requireManagerOrAbove, async (req, res,
       updates.validatedAt = new Date(body.validatedAt);
     }
     const [row] = await db.update(taxDeclarationsTable).set(updates)
-      .where(and(eq(taxDeclarationsTable.id, req.params.id), eq(taxDeclarationsTable.organizationId, orgId))).returning();
+      .where(and(eq(taxDeclarationsTable.id, (req.params.id as string)), eq(taxDeclarationsTable.organizationId, orgId))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
   } catch (e) { next(e); }
@@ -362,7 +362,7 @@ router.put("/hr/benefits/plans/:id", requireManagerOrAbove, async (req, res, nex
     const orgId = req.authUser!.organizationId;
     const body = z.object({ name: z.string().optional(), type: z.string().optional(), provider: z.string().optional(), description: z.string().optional(), employeeContribution: z.number().optional(), employerContribution: z.number().optional(), isActive: z.boolean().optional() }).parse(req.body);
     const updates = { ...body, employeeContribution: body.employeeContribution != null ? String(body.employeeContribution) : undefined, employerContribution: body.employerContribution != null ? String(body.employerContribution) : undefined };
-    const [row] = await db.update(benefitPlansTable).set(updates).where(and(eq(benefitPlansTable.id, req.params.id), eq(benefitPlansTable.organizationId, orgId))).returning();
+    const [row] = await db.update(benefitPlansTable).set(updates).where(and(eq(benefitPlansTable.id, (req.params.id as string)), eq(benefitPlansTable.organizationId, orgId))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
   } catch (e) { next(e); }
@@ -371,7 +371,7 @@ router.put("/hr/benefits/plans/:id", requireManagerOrAbove, async (req, res, nex
 router.delete("/hr/benefits/plans/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    await db.delete(benefitPlansTable).where(and(eq(benefitPlansTable.id, req.params.id), eq(benefitPlansTable.organizationId, orgId)));
+    await db.delete(benefitPlansTable).where(and(eq(benefitPlansTable.id, (req.params.id as string)), eq(benefitPlansTable.organizationId, orgId)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -432,7 +432,7 @@ router.put("/hr/benefits/enrollments/:id", requireManagerOrAbove, async (req, re
   try {
     const orgId = req.authUser!.organizationId;
     const body = z.object({ status: z.string().optional(), endDate: z.string().optional(), notes: z.string().optional() }).parse(req.body);
-    const [row] = await db.update(employeeBenefitsTable).set(body).where(and(eq(employeeBenefitsTable.id, req.params.id), eq(employeeBenefitsTable.organizationId, orgId))).returning();
+    const [row] = await db.update(employeeBenefitsTable).set(body).where(and(eq(employeeBenefitsTable.id, (req.params.id as string)), eq(employeeBenefitsTable.organizationId, orgId))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
   } catch (e) { next(e); }

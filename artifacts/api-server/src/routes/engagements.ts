@@ -71,7 +71,7 @@ router.post("/engagements", requirePermission("services.manage"), async (req, re
 });
 
 router.get("/engagements/:id", requirePermission("services.read"), async (req, res) => {
-  const check = await ensureEngagementAccess(req, req.params.id);
+  const check = await ensureEngagementAccess(req, (req.params.id as string));
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   const eng = check.engagement;
   const sections = await db.select().from(serviceSectionsTable)
@@ -86,7 +86,7 @@ router.get("/engagements/:id", requirePermission("services.read"), async (req, r
 });
 
 router.put("/engagements/:id", requirePermission("services.manage"), async (req, res) => {
-  const check = await ensureEngagementAccess(req, req.params.id);
+  const check = await ensureEngagementAccess(req, (req.params.id as string));
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   const { name, description, isRecurring, recurrencePattern, ownerId, startDate, endDate, status } = req.body || {};
   const patch: any = {};
@@ -99,37 +99,37 @@ router.put("/engagements/:id", requirePermission("services.manage"), async (req,
   if (endDate !== undefined) patch.endDate = endDate;
   if (status !== undefined) patch.status = status;
   const [updated] = await db.update(clientServicesTable).set(patch)
-    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, req.params.id))).returning();
-  await audit(req, "update", { entityType: "engagement", entityId: req.params.id, payload: patch });
+    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, (req.params.id as string)))).returning();
+  await audit(req, "update", { entityType: "engagement", entityId: (req.params.id as string), payload: patch });
   return res.json(updated);
 });
 
 router.delete("/engagements/:id", requirePermission("services.manage"), async (req, res) => {
-  const check = await ensureEngagementAccess(req, req.params.id);
+  const check = await ensureEngagementAccess(req, (req.params.id as string));
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   await db.update(clientServicesTable).set({ deletedAt: new Date() })
-    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, req.params.id)));
-  await audit(req, "delete", { entityType: "engagement", entityId: req.params.id });
+    .where(and(eq(clientServicesTable.organizationId, req.authUser!.organizationId), eq(clientServicesTable.id, (req.params.id as string))));
+  await audit(req, "delete", { entityType: "engagement", entityId: (req.params.id as string) });
   return res.status(204).send();
 });
 
 // ─── SECTIONS ──────────────────────────────────────────────────────
 router.post("/engagements/:id/sections", requirePermission("services.manage"), async (req, res) => {
-  const check = await ensureEngagementAccess(req, req.params.id);
+  const check = await ensureEngagementAccess(req, (req.params.id as string));
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   const { name, position } = req.body || {};
   if (!name) return res.status(400).json({ error: "name requis" });
   const [created] = await db.insert(serviceSectionsTable).values({
       organizationId: req.authUser!.organizationId,
-    clientServiceId: req.params.id, name,
+    clientServiceId: (req.params.id as string), name,
     position: typeof position === "number" ? position : 0,
   }).returning();
   return res.status(201).json(created);
 });
 
 router.put("/sections/:id", requirePermission("services.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, req.params.id))).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, (req.params.id as string)))).limit(1);
   if (!section) return res.status(404).json({ error: "Introuvable" });
   const check = await ensureEngagementAccess(req, section.clientServiceId);
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
@@ -137,25 +137,25 @@ router.put("/sections/:id", requirePermission("services.manage"), async (req, re
   if (req.body?.name !== undefined) patch.name = req.body.name;
   if (req.body?.position !== undefined) patch.position = req.body.position;
   const [updated] = await db.update(serviceSectionsTable).set(patch)
-    .where(eq(serviceSectionsTable.id, req.params.id)).returning();
+    .where(eq(serviceSectionsTable.id, (req.params.id as string))).returning();
   return res.json(updated);
 });
 
 router.delete("/sections/:id", requirePermission("services.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, req.params.id))).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [section] = await db.select().from(serviceSectionsTable).where(and(eq(serviceSectionsTable.organizationId, req.authUser!.organizationId), eq(serviceSectionsTable.id, (req.params.id as string)))).limit(1);
   if (!section) return res.status(404).json({ error: "Introuvable" });
   const check = await ensureEngagementAccess(req, section.clientServiceId);
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   // Détacher les tâches puis supprimer.
-  await db.update(tasksTable).set({ sectionId: null }).where(eq(tasksTable.sectionId, req.params.id));
-  await db.delete(serviceSectionsTable).where(eq(serviceSectionsTable.id, req.params.id));
+  await db.update(tasksTable).set({ sectionId: null }).where(eq(tasksTable.sectionId, (req.params.id as string)));
+  await db.delete(serviceSectionsTable).where(eq(serviceSectionsTable.id, (req.params.id as string)));
   return res.status(204).send();
 });
 
 // ─── TÂCHES D'ENGAGEMENT ───────────────────────────────────────────
 router.post("/engagements/:id/tasks", requirePermission("services.manage"), async (req, res) => {
-  const check = await ensureEngagementAccess(req, req.params.id);
+  const check = await ensureEngagementAccess(req, (req.params.id as string));
   if (!check.ok) return res.status(check.status!).json({ error: check.error });
   const { title, description, status, priority, assigneeId, parentTaskId, sectionId, dueDate } = req.body || {};
   if (!title) return res.status(400).json({ error: "title requis" });
@@ -164,7 +164,7 @@ router.post("/engagements/:id/tasks", requirePermission("services.manage"), asyn
   let validSectionId: string | null = null;
   if (isUuid(sectionId)) {
     const [sec] = await db.select().from(serviceSectionsTable).where(eq(serviceSectionsTable.id, sectionId)).limit(1);
-    if (!sec || sec.clientServiceId !== req.params.id) {
+    if (!sec || sec.clientServiceId !== (req.params.id as string)) {
       return res.status(400).json({ error: "Section invalide pour cet engagement" });
     }
     validSectionId = sec.id;
@@ -173,7 +173,7 @@ router.post("/engagements/:id/tasks", requirePermission("services.manage"), asyn
   let validParentId: string | null = null;
   if (isUuid(parentTaskId)) {
     const [pt] = await db.select().from(tasksTable).where(eq(tasksTable.id, parentTaskId)).limit(1);
-    if (!pt || pt.serviceId !== req.params.id) {
+    if (!pt || pt.serviceId !== (req.params.id as string)) {
       return res.status(400).json({ error: "Tâche parente invalide pour cet engagement" });
     }
     validParentId = pt.id;
@@ -184,13 +184,13 @@ router.post("/engagements/:id/tasks", requirePermission("services.manage"), asyn
     title, description: description || null,
     status: status || "todo",
     priority: priority || "medium",
-    serviceId: req.params.id,
+    serviceId: (req.params.id as string),
     sectionId: validSectionId,
     assigneeId: isUuid(assigneeId) ? assigneeId : null,
     parentTaskId: validParentId,
     dueDate: dueDate || null,
   }).returning();
-  await audit(req, "create", { entityType: "task", entityId: created.id, payload: { engagementId: req.params.id, title } });
+  await audit(req, "create", { entityType: "task", entityId: created.id, payload: { engagementId: (req.params.id as string), title } });
   return res.status(201).json(created);
 });
 

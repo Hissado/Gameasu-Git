@@ -130,7 +130,7 @@ router.get("/payroll/runs/:id", requireManagerOrAbove, async (req, res, next) =>
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
 
@@ -188,7 +188,7 @@ router.patch("/payroll/runs/:id", requireManagerOrAbove, async (req, res, next) 
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
     if (run.status !== "draft") { res.status(400).json({ error: "Seul un cycle en brouillon peut être modifié" }); return; }
@@ -205,7 +205,7 @@ router.post("/payroll/runs/:id/generate", requireManagerOrAbove, async (req, res
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
     if (run.status !== "draft") { res.status(400).json({ error: "Le cycle n'est pas en brouillon" }); return; }
@@ -306,7 +306,7 @@ router.post("/payroll/runs/:id/validate", requireManagerOrAbove, async (req, res
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
     if (run.status !== "draft") { res.status(400).json({ error: "Seul un brouillon peut être validé" }); return; }
@@ -328,7 +328,7 @@ router.delete("/payroll/runs/:id", requireManagerOrAbove, async (req, res, next)
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
     if (run.status !== "draft") { res.status(400).json({ error: "Impossible de supprimer un cycle non-brouillon" }); return; }
@@ -428,7 +428,7 @@ router.get("/payroll/payslips/:id", requireManagerOrAbove, async (req, res, next
       .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
       .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
       .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
-      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, (req.params.id as string))))
       .limit(1);
     if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
     res.json({
@@ -451,7 +451,7 @@ router.patch("/payroll/payslips/:id", requireManagerOrAbove, async (req, res, ne
   try {
     const orgId = req.authUser!.organizationId;
     const [p] = await db.select().from(payslipsTable)
-      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, (req.params.id as string))))
       .limit(1);
     if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
     if (p.status !== "draft") { res.status(400).json({ error: "Seul un bulletin brouillon peut être modifié" }); return; }
@@ -520,7 +520,7 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
       .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
       .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
       .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
-      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, (req.params.id as string))))
       .limit(1);
 
     if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
@@ -612,7 +612,7 @@ router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (re
       .leftJoin(collaboratorsTable, eq(payslipsTable.collaboratorId, collaboratorsTable.id))
       .leftJoin(contractsTable, eq(payslipsTable.contractId, contractsTable.id))
       .leftJoin(payrollRunsTable, eq(payslipsTable.payrollRunId, payrollRunsTable.id))
-      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, (req.params.id as string))))
       .limit(1);
 
     if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
@@ -765,7 +765,7 @@ router.get("/payroll/payslips/:id/email-logs", requireManagerOrAbove, async (req
     const [p] = await db
       .select({ id: payslipsTable.id })
       .from(payslipsTable)
-      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, req.params.id)))
+      .where(and(eq(payslipsTable.organizationId, orgId), eq(payslipsTable.id, (req.params.id as string))))
       .limit(1);
 
     if (!p) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
@@ -797,7 +797,7 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
     const orgId = req.authUser!.organizationId;
 
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
 
@@ -1012,7 +1012,7 @@ router.get("/payroll/runs/:id/pdf-zip", requireManagerOrAbove, async (req, res, 
     const orgId = req.authUser!.organizationId;
 
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
 

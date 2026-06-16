@@ -52,7 +52,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
  */
 router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
   try {
-    const raw = req.params.filePath;
+    const raw = (req.params.filePath as string);
     const filePath = Array.isArray(raw) ? raw.join("/") : raw;
     const file = await objectStorageService.searchPublicObject(filePath);
     if (!file) {
@@ -86,7 +86,7 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
-    const raw = req.params.path;
+    const raw = (req.params.path as string);
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);

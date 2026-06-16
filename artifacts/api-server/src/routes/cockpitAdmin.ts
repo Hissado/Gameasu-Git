@@ -93,7 +93,7 @@ router.get("/super-admin/tickets", sa, async (_req, res, next) => {
 
 router.patch("/super-admin/tickets/:id", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { status, priority, assigneeId } = req.body as { status?: string; priority?: string; assigneeId?: string | null };
     const update: Record<string, unknown> = { updatedAt: new Date() };
     if (status) {
@@ -112,7 +112,7 @@ router.patch("/super-admin/tickets/:id", sa, async (req, res, next) => {
 
 router.post("/super-admin/tickets/:id/comments", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { body } = req.body as { body: string };
     if (!body?.trim()) { res.status(400).json({ error: "Le commentaire ne peut pas être vide" }); return; }
     const [comment] = await db.insert(ticketCommentsTable).values({
@@ -127,7 +127,7 @@ router.post("/super-admin/tickets/:id/comments", sa, async (req, res, next) => {
 
 router.get("/super-admin/tickets/:id/comments", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const rows = await db
       .select({
         id: ticketCommentsTable.id,
@@ -188,7 +188,7 @@ router.post("/super-admin/incidents", sa, async (req, res, next) => {
 
 router.patch("/super-admin/incidents/:id", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { status, severity, description, affectedServices } = req.body as {
       status?: string; severity?: string; description?: string; affectedServices?: string;
     };
@@ -211,7 +211,7 @@ router.patch("/super-admin/incidents/:id", sa, async (req, res, next) => {
 
 router.get("/super-admin/audit-logs", sa, async (req, res, next) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const limit = Math.min(Number((req.query.limit as string)) || 50, 200);
     const rows = await db
       .select({
         id: cockpitAuditLogsTable.id,

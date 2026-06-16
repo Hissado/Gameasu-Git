@@ -185,13 +185,13 @@ router.post("/alerts/run", requireManagerOrAbove, async (req, res) => {
 router.post("/alerts/:id/ack", async (req, res) => {
   const [a] = await db.update(alertsTable)
     .set({ acknowledged: true, acknowledgedAt: new Date() })
-    .where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, req.params.id))).returning();
+    .where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, (req.params.id as string)))).returning();
   if (!a) return res.status(404).json({ error: "Not found" });
   return res.json(a);
 });
 
 router.delete("/alerts/:id", async (req, res) => {
-  await db.delete(alertsTable).where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, req.params.id)));
+  await db.delete(alertsTable).where(and(eq(alertsTable.organizationId, req.authUser!.organizationId), eq(alertsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 

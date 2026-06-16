@@ -63,20 +63,20 @@ router.get("/orders/financial-summary", async (req, res) => {
 router.get("/orders/:id", async (req, res) => {
   const rows = await db.select({ order: ordersTable, clientName: clientsTable.name })
     .from(ordersTable).leftJoin(clientsTable, eq(ordersTable.clientId, clientsTable.id))
-    .where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id))).limit(1);
+    .where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].order, clientName: rows[0].clientName, totalAmount: toNum(rows[0].order.totalAmount) });
 });
 
 router.put("/orders/:id", requireManagerOrAbove, async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
-  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id))).returning();
+  const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, (req.params.id as string)))).returning();
   if (!order) return res.status(404).json({ error: "Not found" });
   return res.json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
 
 router.delete("/orders/:id", async (req, res) => {
-  await db.update(ordersTable).set({ deletedAt: new Date() }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, req.params.id)));
+  await db.update(ordersTable).set({ deletedAt: new Date() }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -111,20 +111,20 @@ router.post("/proformas", requireManagerOrAbove, async (req, res) => {
 router.get("/proformas/:id", async (req, res) => {
   const rows = await db.select({ pro: proformasTable, clientName: clientsTable.name })
     .from(proformasTable).leftJoin(clientsTable, eq(proformasTable.clientId, clientsTable.id))
-    .where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).limit(1);
+    .where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].pro, clientName: rows[0].clientName, totalAmount: toNum(rows[0].pro.totalAmount) });
 });
 
 router.put("/proformas/:id", requireManagerOrAbove, async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
-  const before = (await db.select().from(proformasTable).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).limit(1))[0];
+  const before = (await db.select().from(proformasTable).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, (req.params.id as string)))).limit(1))[0];
   if (!before) return res.status(404).json({ error: "Not found" });
 
   const [pro] = await db.update(proformasTable).set({
     orderId, clientId, status, totalAmount: totalAmount?.toString(), currency, validUntil, notes,
     caution: caution?.toString(), paymentTerms, durationDays,
-  }).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, req.params.id))).returning();
+  }).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, (req.params.id as string)))).returning();
 
   // Workflow: validation proforma → génération automatique facture
   let generatedInvoice = null;
@@ -247,15 +247,15 @@ router.post("/invoices", requireManagerOrAbove, async (req, res) => {
 router.get("/invoices/:id", async (req, res) => {
   const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
     .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).limit(1);
+    .where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].inv, clientName: rows[0].clientName, totalAmount: toNum(rows[0].inv.totalAmount), paidAmount: toNum(rows[0].inv.paidAmount) });
 });
 
 router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
-  const before = (await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).limit(1))[0];
-  const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, req.params.id))).returning();
+  const before = (await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).limit(1))[0];
+  const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).returning();
   if (!inv) return res.status(404).json({ error: "Not found" });
 
   // Si la facture sort du statut "draft", on génère l'écriture comptable.
@@ -338,7 +338,7 @@ router.post("/payments", requireManagerOrAbove, async (req, res) => {
 router.get("/clients/:id/commercial", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const clientId = req.params.id;
+    const clientId = (req.params.id as string);
 
     const [client] = await db.select().from(clientsTable)
       .where(and(eq(clientsTable.organizationId, orgId), eq(clientsTable.id, clientId))).limit(1);
@@ -391,14 +391,13 @@ router.post("/proformas/:id/generate-order", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
 
     const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
     const [order] = await db.insert(ordersTable).values({
       organizationId: orgId,
       referenceNumber: refNum,
-      proformaId: pro.id,
       clientId: pro.clientId,
       status: "confirmed",
       totalAmount: pro.totalAmount,
@@ -429,7 +428,7 @@ router.post("/proformas/:id/generate-invoice", requireManagerOrAbove, async (req
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!pro) { res.status(404).json({ error: "Proforma introuvable" }); return; }
 
     const existing = await db.select().from(invoicesTable)
@@ -467,7 +466,7 @@ router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, r
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(ordersTable)
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).limit(1);
     if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
     if (order.status === "cancelled") { res.status(422).json({ error: "Impossible de facturer une commande annulée" }); return; }
 
@@ -514,7 +513,7 @@ router.patch("/orders/:id/edit", requireManagerOrAbove, async (req, res, next) =
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(ordersTable)
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).limit(1);
     if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
 
     // Règles de modification selon statut
@@ -537,7 +536,7 @@ router.patch("/orders/:id/edit", requireManagerOrAbove, async (req, res, next) =
 
     const before = { status: order.status, totalAmount: order.totalAmount, notes: order.notes };
     const [updated] = await db.update(ordersTable).set(patch as any)
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).returning();
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "order_edit", "order", order.id, { before, after: patch, reason: req.body.reason });
 
@@ -551,7 +550,7 @@ router.post("/orders/:id/cancel", requireManagerOrAbove, async (req, res, next) 
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
     const [order] = await db.select().from(ordersTable)
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).limit(1);
     if (!order) { res.status(404).json({ error: "Commande introuvable" }); return; }
 
     if (order.status === "cancelled") { res.status(409).json({ error: "Commande déjà annulée" }); return; }
@@ -566,7 +565,7 @@ router.post("/orders/:id/cancel", requireManagerOrAbove, async (req, res, next) 
 
     const [updated] = await db.update(ordersTable)
       .set({ status: "cancelled" })
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).returning();
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "order_cancel", "order", order.id, { before: { status: order.status }, after: { status: "cancelled" }, reason });
 
@@ -579,7 +578,7 @@ router.patch("/proformas/:id/edit", requireManagerOrAbove, async (req, res, next
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
 
     const EDITABLE: Record<string, string[]> = {
@@ -602,7 +601,7 @@ router.patch("/proformas/:id/edit", requireManagerOrAbove, async (req, res, next
 
     const before = { status: pro.status, totalAmount: pro.totalAmount, notes: pro.notes };
     const [updated] = await db.update(proformasTable).set(patch as any)
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).returning();
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "proforma_edit", "proforma", pro.id, { before, after: patch, reason: req.body.reason });
 
@@ -616,7 +615,7 @@ router.post("/proformas/:id/cancel", requireManagerOrAbove, async (req, res, nex
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
     const [pro] = await db.select().from(proformasTable)
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
     if (pro.status === "cancelled") { res.status(409).json({ error: "Devis déjà annulé" }); return; }
 
@@ -641,7 +640,7 @@ router.post("/proformas/:id/cancel", requireManagerOrAbove, async (req, res, nex
 
     const [updated] = await db.update(proformasTable)
       .set({ status: "cancelled" })
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).returning();
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "proforma_cancel", "proforma", pro.id, { before: { status: pro.status }, after: { status: "cancelled" }, reason });
 
@@ -654,7 +653,7 @@ router.patch("/invoices/:id/edit", requireManagerOrAbove, async (req, res, next)
   try {
     const orgId = req.authUser!.organizationId;
     const [inv] = await db.select().from(invoicesTable)
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
     if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
 
     const EDITABLE: Record<string, string[]> = {
@@ -687,7 +686,7 @@ router.patch("/invoices/:id/edit", requireManagerOrAbove, async (req, res, next)
 
     const before = { status: inv.status, totalAmount: inv.totalAmount, dueDate: inv.dueDate, notes: inv.notes };
     const [updated] = await db.update(invoicesTable).set(patch as any)
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).returning();
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "invoice_edit", "invoice", inv.id, { before, after: patch, reason: req.body.reason });
 
@@ -701,7 +700,7 @@ router.post("/invoices/:id/cancel", requireManagerOrAbove, async (req, res, next
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
     const [inv] = await db.select().from(invoicesTable)
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
     if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
     if (inv.status === "cancelled") { res.status(409).json({ error: "Facture déjà annulée" }); return; }
 
@@ -721,7 +720,7 @@ router.post("/invoices/:id/cancel", requireManagerOrAbove, async (req, res, next
 
     const [updated] = await db.update(invoicesTable)
       .set({ status: "cancelled" })
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).returning();
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).returning();
 
     await writeAudit(req, "invoice_cancel", "invoice", inv.id, { before: { status: inv.status, totalAmount: inv.totalAmount }, after: { status: "cancelled" }, reason });
 
@@ -810,7 +809,7 @@ function lineToFront(l: typeof salesLinesTable.$inferSelect) {
 router.get("/orders/:id/lines", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const lines = await getLines(orgId, "order", req.params.id);
+    const lines = await getLines(orgId, "order", (req.params.id as string));
     res.json({ data: lines.map(lineToFront) });
   } catch (e) { next(e); }
 });
@@ -819,10 +818,10 @@ router.put("/orders/:id/lines", requireManagerOrAbove, async (req, res, next) =>
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
-    const saved = await replaceLines(orgId, "order", req.params.id, lines ?? []);
+    const saved = await replaceLines(orgId, "order", (req.params.id as string), lines ?? []);
     const total = computeTotalFromLines(saved);
     await db.update(ordersTable).set({ totalAmount: total.toString() })
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id)));
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string))));
     res.json({ data: saved.map(lineToFront), totalAmount: total });
   } catch (e) { next(e); }
 });
@@ -830,7 +829,7 @@ router.put("/orders/:id/lines", requireManagerOrAbove, async (req, res, next) =>
 router.get("/proformas/:id/lines", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const lines = await getLines(orgId, "proforma", req.params.id);
+    const lines = await getLines(orgId, "proforma", (req.params.id as string));
     res.json({ data: lines.map(lineToFront) });
   } catch (e) { next(e); }
 });
@@ -839,10 +838,10 @@ router.put("/proformas/:id/lines", requireManagerOrAbove, async (req, res, next)
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
-    const saved = await replaceLines(orgId, "proforma", req.params.id, lines ?? []);
+    const saved = await replaceLines(orgId, "proforma", (req.params.id as string), lines ?? []);
     const total = computeTotalFromLines(saved);
     await db.update(proformasTable).set({ totalAmount: total.toString() })
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id)));
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string))));
     res.json({ data: saved.map(lineToFront), totalAmount: total });
   } catch (e) { next(e); }
 });
@@ -850,7 +849,7 @@ router.put("/proformas/:id/lines", requireManagerOrAbove, async (req, res, next)
 router.get("/invoices/:id/lines", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const lines = await getLines(orgId, "invoice", req.params.id);
+    const lines = await getLines(orgId, "invoice", (req.params.id as string));
     res.json({ data: lines.map(lineToFront) });
   } catch (e) { next(e); }
 });
@@ -859,10 +858,10 @@ router.put("/invoices/:id/lines", requireManagerOrAbove, async (req, res, next) 
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
-    const saved = await replaceLines(orgId, "invoice", req.params.id, lines ?? []);
+    const saved = await replaceLines(orgId, "invoice", (req.params.id as string), lines ?? []);
     const total = computeTotalFromLines(saved);
     await db.update(invoicesTable).set({ totalAmount: total.toString() })
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)));
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string))));
     res.json({ data: saved.map(lineToFront), totalAmount: total });
   } catch (e) { next(e); }
 });
@@ -883,7 +882,7 @@ router.post("/proformas/:id/send-email", requireManagerOrAbove, async (req, res,
 
     const rows = await db.select({ pro: proformasTable, clientName: clientsTable.name })
       .from(proformasTable).leftJoin(clientsTable, eq(proformasTable.clientId, clientsTable.id))
-      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, req.params.id))).limit(1);
+      .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!rows[0]) { res.status(404).json({ error: "Devis introuvable" }); return; }
 
     const { pro, clientName } = rows[0];
@@ -915,7 +914,7 @@ router.post("/orders/:id/send-email", requireManagerOrAbove, async (req, res, ne
 
     const rows = await db.select({ order: ordersTable, clientName: clientsTable.name })
       .from(ordersTable).leftJoin(clientsTable, eq(ordersTable.clientId, clientsTable.id))
-      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, req.params.id))).limit(1);
+      .where(and(eq(ordersTable.organizationId, orgId), eq(ordersTable.id, (req.params.id as string)))).limit(1);
     if (!rows[0]) { res.status(404).json({ error: "Commande introuvable" }); return; }
 
     const { order, clientName } = rows[0];
@@ -944,7 +943,7 @@ router.post("/invoices/:id/send-email", requireManagerOrAbove, async (req, res, 
 
     const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name, clientEmail: clientsTable.email })
       .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
     if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
 
     const { inv, clientName } = rows[0];
@@ -980,7 +979,7 @@ router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next
     })
       .from(invoicesTable)
       .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)))
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string))))
       .limit(1);
 
     if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
@@ -1084,7 +1083,7 @@ router.post("/invoices/:id/relance", requireManagerOrAbove, async (req, res, nex
       .select({ inv: invoicesTable, clientId: clientsTable.id, clientEmail: clientsTable.email, clientName: clientsTable.name })
       .from(invoicesTable)
       .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id)))
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string))))
       .limit(1);
 
     if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
@@ -1141,7 +1140,7 @@ router.post("/invoices/:id/generate-public-link", requireManagerOrAbove, async (
   try {
     const orgId = req.authUser!.organizationId;
     const [inv] = await db.select().from(invoicesTable)
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
     if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
 
     const token = inv.publicToken ?? randomUUID().replace(/-/g, "");
@@ -1159,7 +1158,7 @@ router.get("/invoices/:id/credit-notes", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const rows = await db.select().from(creditNotesTable)
-      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.invoiceId, req.params.id)))
+      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.invoiceId, (req.params.id as string))))
       .orderBy(desc(creditNotesTable.createdAt));
     res.json({ data: rows.map(cn => ({ ...cn, amount: toNum(cn.amount), appliedAmount: toNum(cn.appliedAmount) })) });
   } catch (e) { next(e); }
@@ -1173,7 +1172,7 @@ router.post("/invoices/:id/credit-note", requireManagerOrAbove, async (req, res,
     if (!reason?.trim()) { res.status(400).json({ error: "Motif requis" }); return; }
 
     const [inv] = await db.select().from(invoicesTable)
-      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, req.params.id))).limit(1);
+      .where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, (req.params.id as string)))).limit(1);
     if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
     if (inv.status === "cancelled") { res.status(422).json({ error: "Impossible d'émettre un avoir sur une facture annulée" }); return; }
 
@@ -1207,7 +1206,7 @@ router.post("/credit-notes/:id/apply", requireManagerOrAbove, async (req, res, n
   try {
     const orgId = req.authUser!.organizationId;
     const [cn] = await db.select().from(creditNotesTable)
-      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.id, req.params.id))).limit(1);
+      .where(and(eq(creditNotesTable.organizationId, orgId), eq(creditNotesTable.id, (req.params.id as string)))).limit(1);
     if (!cn) { res.status(404).json({ error: "Note de crédit introuvable" }); return; }
     if (cn.status === "applied" || cn.status === "cancelled") {
       res.status(409).json({ error: "Cette note de crédit a déjà été appliquée ou annulée" }); return;

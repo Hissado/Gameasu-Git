@@ -142,7 +142,7 @@ async function executeAction(
       }
       case "create_insight": {
         const [row] = await db.insert(insightsTable).values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId as string,
           kind: (action.params["kind"] as string) || "reminder",
           scope: (action.params["scope"] as string) || "workspace",
           scopeId: (action.params["scopeId"] as string) || undefined,
@@ -158,7 +158,7 @@ async function executeAction(
       }
       case "generate_recommendation": {
         const [row] = await db.insert(recommendationsTable).values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId as string,
           entityType: (action.params["entityType"] as string) || "workspace",
           entityId: (action.params["entityId"] as string) || (ctx.payload["entityId"] as string) || undefined,
           action: (action.params["action"] as string) || "review",

@@ -351,7 +351,7 @@ router.get("/operations/missions/:id", requirePermission("operations.view"), asy
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!m) return res.status(404).json({ error: "not_found" });
 
     const [responsible] = m.responsibleUserId ? await db.select({
@@ -415,7 +415,7 @@ router.patch("/operations/missions/:id", requirePermission("operations.manage"),
     if (patch.actualStart) patch.actualStart = new Date(patch.actualStart);
     if (patch.actualEnd) patch.actualEnd = new Date(patch.actualEnd);
     const [m] = await db.update(operationsMissionsTable).set(patch)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)))
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)))
       .returning();
     if (!m) return res.status(404).json({ error: "not_found" });
     return res.json(m);
@@ -427,7 +427,7 @@ router.delete("/operations/missions/:id", requirePermission("operations.manage")
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.update(operationsMissionsTable).set({ deletedAt: new Date() })
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)))
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)))
       .returning();
     if (!m) return res.status(404).json({ error: "not_found" });
     return res.json({ ok: true });
@@ -445,11 +445,11 @@ router.post("/operations/missions/:id/assign", requirePermission("operations.ass
     if (vehicleEquipmentId !== undefined) patch.vehicleEquipmentId = vehicleEquipmentId || null;
     // Si la mission était planned et qu'on assigne un responsable → assigned
     const [current] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!current) return res.status(404).json({ error: "not_found" });
     if (current.status === "planned" && patch.responsibleUserId) patch.status = "assigned";
     const [m] = await db.update(operationsMissionsTable).set(patch)
-      .where(eq(operationsMissionsTable.id, req.params.id)).returning();
+      .where(eq(operationsMissionsTable.id, (req.params.id as string))).returning();
     return res.json(m);
   } catch (e) { next(e); }
 });
@@ -464,7 +464,7 @@ router.post("/operations/missions/:id/status", requirePermission("operations.man
     if (status === "en_route" || status === "in_progress") patch.actualStart = new Date();
     if (status === "completed" || status === "cancelled") patch.actualEnd = new Date();
     const [m] = await db.update(operationsMissionsTable).set(patch)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)))
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)))
       .returning();
     if (!m) return res.status(404).json({ error: "not_found" });
     return res.json(m);
@@ -476,7 +476,7 @@ router.post("/operations/missions/:id/check-in", requirePermission("operations.c
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!m) return res.status(404).json({ error: "not_found" });
     const { lat, lng, accuracyMeters, locationLabel, notes } = req.body ?? {};
     const [c] = await db.insert(operationsCheckinsTable).values({
@@ -496,7 +496,7 @@ router.post("/operations/missions/:id/check-out", requirePermission("operations.
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!m) return res.status(404).json({ error: "not_found" });
     const { lat, lng, accuracyMeters, locationLabel, notes } = req.body ?? {};
     const [c] = await db.insert(operationsCheckinsTable).values({
@@ -512,7 +512,7 @@ router.post("/operations/missions/:id/proof", requirePermission("operations.mana
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!m) return res.status(404).json({ error: "not_found" });
     const b = req.body ?? {};
     const [p] = await db.insert(operationsProofsTable).values({
@@ -532,7 +532,7 @@ router.post("/operations/missions/:id/incident", requirePermission("operations.i
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const b = req.body ?? {};
     const [i] = await db.insert(operationsIncidentsTable).values({
-      organizationId: orgId, missionId: req.params.id,
+      organizationId: orgId, missionId: (req.params.id as string),
       kind: b.kind ?? "other", severity: b.severity ?? "medium",
       description: b.description, correctiveAction: b.correctiveAction,
       attachmentsJson: Array.isArray(b.attachmentsJson) ? b.attachmentsJson : [],
@@ -548,7 +548,7 @@ router.post("/operations/missions/:id/cost", requirePermission("operations.manag
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const b = req.body ?? {};
     const [c] = await db.insert(operationsCostsTable).values({
-      organizationId: orgId, missionId: req.params.id,
+      organizationId: orgId, missionId: (req.params.id as string),
       kind: b.kind ?? "other", label: b.label ?? "Coût",
       amountFcfa: String(b.amountFcfa ?? "0"), isEstimate: !!b.isEstimate,
     }).returning();
@@ -561,7 +561,7 @@ router.post("/operations/missions/:id/summary", requirePermission("operations.ma
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.status(404).json({ error: "not_found" });
     const [m] = await db.select().from(operationsMissionsTable)
-      .where(and(eq(operationsMissionsTable.id, req.params.id), eq(operationsMissionsTable.organizationId, orgId)));
+      .where(and(eq(operationsMissionsTable.id, (req.params.id as string)), eq(operationsMissionsTable.organizationId, orgId)));
     if (!m) return res.status(404).json({ error: "not_found" });
     const [incCount] = await db.select({ c: sql<number>`count(*)::int` }).from(operationsIncidentsTable)
       .where(eq(operationsIncidentsTable.missionId, m.id));
@@ -661,7 +661,7 @@ router.patch("/operations/incidents/:id", requirePermission("operations.incident
       patch.resolvedById = req.authUser!.id;
     }
     const [i] = await db.update(operationsIncidentsTable).set(patch)
-      .where(and(eq(operationsIncidentsTable.id, req.params.id), eq(operationsIncidentsTable.organizationId, orgId)))
+      .where(and(eq(operationsIncidentsTable.id, (req.params.id as string)), eq(operationsIncidentsTable.organizationId, orgId)))
       .returning();
     if (!i) return res.status(404).json({ error: "not_found" });
     return res.json(i);
@@ -683,7 +683,7 @@ router.patch("/operations/checklist-items/:id", requirePermission("operations.ch
       .from(operationsChecklistItemsTable)
       .innerJoin(operationsChecklistsTable, eq(operationsChecklistsTable.id, operationsChecklistItemsTable.checklistId))
       .where(and(
-        eq(operationsChecklistItemsTable.id, req.params.id),
+        eq(operationsChecklistItemsTable.id, (req.params.id as string)),
         eq(operationsChecklistsTable.organizationId, orgId),
       ));
     if (!owner) return res.status(404).json({ error: "not_found" });
@@ -691,7 +691,7 @@ router.patch("/operations/checklist-items/:id", requirePermission("operations.ch
     const [item] = await db.update(operationsChecklistItemsTable).set({
       done, doneAt: done ? new Date() : null, doneById: done ? req.authUser!.id : null,
       note: req.body?.note,
-    }).where(eq(operationsChecklistItemsTable.id, req.params.id)).returning();
+    }).where(eq(operationsChecklistItemsTable.id, (req.params.id as string))).returning();
     if (!item) return res.status(404).json({ error: "not_found" });
     // Recalcul progression
     const items = await db.select().from(operationsChecklistItemsTable)
@@ -788,8 +788,8 @@ router.get("/operations/calendar", requirePermission("operations.view"), async (
   try {
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) return res.json({ items: [] });
-    const start = req.query.start ? new Date(String(req.query.start)) : new Date(Date.now() - 7 * 86400000);
-    const end = req.query.end ? new Date(String(req.query.end)) : new Date(Date.now() + 30 * 86400000);
+    const start = (req.query.start as string) ? new Date(String((req.query.start as string))) : new Date(Date.now() - 7 * 86400000);
+    const end = (req.query.end as string) ? new Date(String((req.query.end as string))) : new Date(Date.now() + 30 * 86400000);
     const rows = await db.select({
       id: operationsMissionsTable.id,
       reference: operationsMissionsTable.reference,

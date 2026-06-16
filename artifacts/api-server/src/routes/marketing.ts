@@ -88,20 +88,20 @@ router.put("/prospects/:id", async (req, res) => {
     const [p] = await db.update(prospectsTable).set({
       firstName, lastName, email, phone, company, source, status, notes,
       ...(tags ? { tags } : {}),
-    }).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, req.params.id))).returning();
+    }).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, (req.params.id as string)))).returning();
     if (!p) return res.status(404).json({ error: "Not found" });
     return res.json(p);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
 });
 
 router.delete("/prospects/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(prospectsTable).set({ deletedAt: new Date() }).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, req.params.id)));
+  await db.update(prospectsTable).set({ deletedAt: new Date() }).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
 router.post("/prospects/:id/convert", requireManagerOrAbove, async (req, res) => {
   try {
-    const [p] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, req.params.id))).limit(1);
+    const [p] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.organizationId, req.authUser!.organizationId), eq(prospectsTable.id, (req.params.id as string)))).limit(1);
     if (!p) return res.status(404).json({ error: "Not found" });
     if (p.convertedToClientId) return res.status(409).json({ error: "Déjà converti" });
     const name = p.company || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || "Client sans nom";
@@ -254,7 +254,7 @@ router.get("/marketing/audiences", async (req, res) => {
 });
 
 router.get("/marketing/audiences/:id", async (req, res) => {
-  const [a] = await db.select().from(marketingAudiencesTable).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, req.params.id))).limit(1);
+  const [a] = await db.select().from(marketingAudiencesTable).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, (req.params.id as string)))).limit(1);
   if (!a) return res.status(404).json({ error: "Not found" });
   const contacts = await resolveAudienceContacts(a, req.authUser!.organizationId);
   return res.json({ ...a, sample: contacts.slice(0, 20), count: contacts.length });
@@ -284,7 +284,7 @@ router.put("/marketing/audiences/:id", requireManagerOrAbove, async (req, res) =
     const [a] = await db.update(marketingAudiencesTable).set({
       name, description, type, filters,
       ...(staticContactIds !== undefined ? { staticContactIds } : {}),
-    }).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, (req.params.id as string)))).returning();
     if (!a) return res.status(404).json({ error: "Not found" });
     const contacts = await resolveAudienceContacts(a, req.authUser!.organizationId);
     await db.update(marketingAudiencesTable).set({
@@ -295,12 +295,12 @@ router.put("/marketing/audiences/:id", requireManagerOrAbove, async (req, res) =
 });
 
 router.delete("/marketing/audiences/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(marketingAudiencesTable).set({ deletedAt: new Date() }).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, req.params.id)));
+  await db.update(marketingAudiencesTable).set({ deletedAt: new Date() }).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
 router.post("/marketing/audiences/:id/recompute", requireManagerOrAbove, async (req, res) => {
-  const [a] = await db.select().from(marketingAudiencesTable).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, req.params.id))).limit(1);
+  const [a] = await db.select().from(marketingAudiencesTable).where(and(eq(marketingAudiencesTable.organizationId, req.authUser!.organizationId), eq(marketingAudiencesTable.id, (req.params.id as string)))).limit(1);
   if (!a) return res.status(404).json({ error: "Not found" });
   const contacts = await resolveAudienceContacts(a, req.authUser!.organizationId);
   await db.update(marketingAudiencesTable).set({
@@ -339,14 +339,14 @@ router.put("/marketing/templates/:id", requireManagerOrAbove, async (req, res) =
     const [t] = await db.update(marketingTemplatesTable).set({
       name, channel, category, subject, body, description,
       ...(variables !== undefined ? { variables } : {}),
-    }).where(and(eq(marketingTemplatesTable.organizationId, req.authUser!.organizationId), eq(marketingTemplatesTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingTemplatesTable.organizationId, req.authUser!.organizationId), eq(marketingTemplatesTable.id, (req.params.id as string)))).returning();
     if (!t) return res.status(404).json({ error: "Not found" });
     return res.json(t);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
 });
 
 router.delete("/marketing/templates/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(marketingTemplatesTable).set({ deletedAt: new Date() }).where(and(eq(marketingTemplatesTable.organizationId, req.authUser!.organizationId), eq(marketingTemplatesTable.id, req.params.id)));
+  await db.update(marketingTemplatesTable).set({ deletedAt: new Date() }).where(and(eq(marketingTemplatesTable.organizationId, req.authUser!.organizationId), eq(marketingTemplatesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -395,7 +395,7 @@ router.get("/marketing/campaigns", async (req, res) => {
 });
 
 router.get("/marketing/campaigns/:id", async (req, res) => {
-  const [c] = await db.select().from(marketingCampaignsTable).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id))).limit(1);
+  const [c] = await db.select().from(marketingCampaignsTable).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, (req.params.id as string)))).limit(1);
   if (!c) return res.status(404).json({ error: "Not found" });
   const recipients = await db.select().from(campaignRecipientsTable)
     .where(eq(campaignRecipientsTable.campaignId, c.id))
@@ -453,14 +453,14 @@ router.put("/marketing/campaigns/:id", requireManagerOrAbove, async (req, res) =
       ...(audienceId !== undefined ? { audienceId: audienceId || null } : {}),
       ...(templateId !== undefined ? { templateId: templateId || null } : {}),
       ...(scheduledAt !== undefined ? { scheduledAt: scheduledAt ? new Date(scheduledAt) : null } : {}),
-    }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, (req.params.id as string)))).returning();
     if (!c) return res.status(404).json({ error: "Not found" });
     return res.json(c);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
 });
 
 router.post("/marketing/campaigns/:id/duplicate", requireManagerOrAbove, async (req: any, res) => {
-  const [src] = await db.select().from(marketingCampaignsTable).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id))).limit(1);
+  const [src] = await db.select().from(marketingCampaignsTable).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, (req.params.id as string)))).limit(1);
   if (!src) return res.status(404).json({ error: "Not found" });
   const [c] = await db.insert(marketingCampaignsTable).values({
     organizationId: req.authUser!.organizationId,
@@ -473,7 +473,7 @@ router.post("/marketing/campaigns/:id/duplicate", requireManagerOrAbove, async (
 });
 
 router.delete("/marketing/campaigns/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(marketingCampaignsTable).set({ deletedAt: new Date() }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id)));
+  await db.update(marketingCampaignsTable).set({ deletedAt: new Date() }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -482,7 +482,7 @@ router.post("/marketing/campaigns/:id/schedule", requireManagerOrAbove, async (r
   if (!scheduledAt) return res.status(400).json({ error: "scheduledAt requis" });
   const [c] = await db.update(marketingCampaignsTable).set({
     scheduledAt: new Date(scheduledAt), status: "scheduled",
-  }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, req.params.id))).returning();
+  }).where(and(eq(marketingCampaignsTable.organizationId, req.authUser!.organizationId), eq(marketingCampaignsTable.id, (req.params.id as string)))).returning();
   if (!c) return res.status(404).json({ error: "Not found" });
   return res.json(c);
 });
@@ -493,7 +493,7 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [c] = await db.select().from(marketingCampaignsTable)
-      .where(and(eq(marketingCampaignsTable.organizationId, orgId), eq(marketingCampaignsTable.id, req.params.id))).limit(1);
+      .where(and(eq(marketingCampaignsTable.organizationId, orgId), eq(marketingCampaignsTable.id, (req.params.id as string)))).limit(1);
     if (!c) return res.status(404).json({ error: "Not found" });
     if (c.status === "sent") return res.status(409).json({ error: "Déjà envoyée" });
 
@@ -629,7 +629,7 @@ router.get("/marketing/automations", async (req, res) => {
 });
 
 router.get("/marketing/automations/:id", async (req, res) => {
-  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, req.params.id))).limit(1);
+  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, (req.params.id as string)))).limit(1);
   if (!a) return res.status(404).json({ error: "Not found" });
   const logs = await db.select().from(marketingAutomationLogsTable)
     .where(eq(marketingAutomationLogsTable.automationId, a.id))
@@ -661,27 +661,27 @@ router.put("/marketing/automations/:id", requireManagerOrAbove, async (req, res)
       ...(audienceId !== undefined ? { audienceId: audienceId || null } : {}),
       ...(steps !== undefined ? { steps } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
-    }).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, (req.params.id as string)))).returning();
     if (!a) return res.status(404).json({ error: "Not found" });
     return res.json(a);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
 });
 
 router.post("/marketing/automations/:id/toggle", requireManagerOrAbove, async (req, res) => {
-  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, req.params.id))).limit(1);
+  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, (req.params.id as string)))).limit(1);
   if (!a) return res.status(404).json({ error: "Not found" });
   const [u] = await db.update(marketingAutomationsTable).set({ isActive: !a.isActive }).where(eq(marketingAutomationsTable.id, a.id)).returning();
   return res.json(u);
 });
 
 router.delete("/marketing/automations/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(marketingAutomationsTable).set({ deletedAt: new Date() }).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, req.params.id)));
+  await db.update(marketingAutomationsTable).set({ deletedAt: new Date() }).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
 // Exécution manuelle (test) d'une automatisation : log + incrémente le compteur.
 router.post("/marketing/automations/:id/run", requireManagerOrAbove, async (req, res) => {
-  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, req.params.id))).limit(1);
+  const [a] = await db.select().from(marketingAutomationsTable).where(and(eq(marketingAutomationsTable.organizationId, req.authUser!.organizationId), eq(marketingAutomationsTable.id, (req.params.id as string)))).limit(1);
   if (!a) return res.status(404).json({ error: "Not found" });
   const steps = (a.steps as any[]) || [];
   await db.insert(marketingAutomationLogsTable).values({
@@ -728,14 +728,14 @@ router.put("/marketing/alerts/rules/:id", requireManagerOrAbove, async (req, res
       ...(channels !== undefined ? { channels } : {}),
       ...(templateId !== undefined ? { templateId: templateId || null } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
-    }).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, (req.params.id as string)))).returning();
     if (!r) return res.status(404).json({ error: "Not found" });
     return res.json(r);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
 });
 
 router.delete("/marketing/alerts/rules/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(marketingAlertRulesTable).set({ deletedAt: new Date() }).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, req.params.id)));
+  await db.update(marketingAlertRulesTable).set({ deletedAt: new Date() }).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -757,7 +757,7 @@ router.get("/marketing/alerts/logs", async (req, res) => {
 
 // Exécution manuelle d'une règle d'alerte : balaie les entités cibles et logge.
 router.post("/marketing/alerts/rules/:id/run", requireManagerOrAbove, async (req, res) => {
-  const [rule] = await db.select().from(marketingAlertRulesTable).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, req.params.id))).limit(1);
+  const [rule] = await db.select().from(marketingAlertRulesTable).where(and(eq(marketingAlertRulesTable.organizationId, req.authUser!.organizationId), eq(marketingAlertRulesTable.id, (req.params.id as string)))).limit(1);
   if (!rule) return res.status(404).json({ error: "Not found" });
 
   let sent = 0;
@@ -874,7 +874,7 @@ router.put("/marketing/channels/:id", requireManagerOrAbove, async (req, res) =>
     const [c] = await db.update(marketingChannelConnectionsTable).set({
       displayName, config, isActive, status,
       lastCheckAt: new Date(),
-    }).where(and(eq(marketingChannelConnectionsTable.organizationId, req.authUser!.organizationId), eq(marketingChannelConnectionsTable.id, req.params.id))).returning();
+    }).where(and(eq(marketingChannelConnectionsTable.organizationId, req.authUser!.organizationId), eq(marketingChannelConnectionsTable.id, (req.params.id as string)))).returning();
     if (!c) return res.status(404).json({ error: "Not found" });
     return res.json(c);
   } catch (e: any) { return res.status(400).json({ error: e.message }); }
@@ -1140,7 +1140,7 @@ router.put("/marketing/forms/:id", requireManagerOrAbove, async (req, res) => {
         sourceTag: sourceTag ?? "form", automationId: automationId ?? null,
         isActive: isActive ?? true, updatedAt: new Date(),
       })
-      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, req.params.id), isNull(marketingFormsTable.deletedAt)))
+      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, (req.params.id as string)), isNull(marketingFormsTable.deletedAt)))
       .returning();
     if (!form) return res.status(404).json({ error: "Not found" });
     return res.json(form);
@@ -1152,7 +1152,7 @@ router.delete("/marketing/forms/:id", requireManagerOrAbove, async (req, res) =>
     const orgId = req.authUser!.organizationId;
     await db.update(marketingFormsTable)
       .set({ deletedAt: new Date() })
-      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, req.params.id)));
+      .where(and(eq(marketingFormsTable.organizationId, orgId), eq(marketingFormsTable.id, (req.params.id as string))));
     return res.json({ ok: true });
   } catch (e: any) { return res.status(500).json({ error: e.message }); }
 });

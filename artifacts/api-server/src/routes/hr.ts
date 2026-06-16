@@ -88,13 +88,13 @@ router.put("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
   const { code, name, description, parentId, headCollaboratorId, color } = req.body;
   const [d] = await db.update(departmentsTable)
     .set({ code, name, description, parentId, headCollaboratorId, color })
-    .where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, req.params.id))).returning();
+    .where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, (req.params.id as string)))).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   return res.json(d);
 });
 
 router.delete("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(departmentsTable).where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, req.params.id)));
+  await db.delete(departmentsTable).where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -131,13 +131,13 @@ router.put("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
   const { code, title, departmentId, description, level } = req.body;
   const [p] = await db.update(positionsTable)
     .set({ code, title, departmentId, description, level })
-    .where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, req.params.id))).returning();
+    .where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, (req.params.id as string)))).returning();
   if (!p) return res.status(404).json({ error: "Not found" });
   return res.json(p);
 });
 
 router.delete("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(positionsTable).where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, req.params.id)));
+  await db.delete(positionsTable).where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -183,13 +183,13 @@ router.put("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
     type, status, startDate, endDate, monthlySalary: monthlySalary?.toString(), currency,
     jobTitle, workLocation, weeklyHours: weeklyHours?.toString(),
     terms, signedAt: signedAt ? new Date(signedAt) : null, fileUrl,
-  }).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, req.params.id))).returning();
+  }).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, (req.params.id as string)))).returning();
   if (!c) return res.status(404).json({ error: "Not found" });
   return res.json(c);
 });
 
 router.delete("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(contractsTable).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, req.params.id)));
+  await db.delete(contractsTable).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -213,7 +213,7 @@ router.post("/hr/documents", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/hr/documents/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(hrDocumentsTable).where(and(eq(hrDocumentsTable.organizationId, req.authUser!.organizationId), eq(hrDocumentsTable.id, req.params.id)));
+  await db.delete(hrDocumentsTable).where(and(eq(hrDocumentsTable.organizationId, req.authUser!.organizationId), eq(hrDocumentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -286,7 +286,7 @@ router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
     const a = await db.transaction(async (tx) => {
       const [updated] = await tx.update(collaboratorAssignmentsTable).set({
         role, allocationPct, startDate, endDate, status, notes,
-      }).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, req.params.id))).returning();
+      }).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, (req.params.id as string)))).returning();
       if (!updated) return null;
       if (status) {
         await tx.execute(sql`
@@ -308,7 +308,7 @@ router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
-  await db.delete(collaboratorAssignmentsTable).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, req.params.id)));
+  await db.delete(collaboratorAssignmentsTable).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -363,7 +363,7 @@ router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, r
 // (projets, tâches, équipements responsable, contrats, documents)
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/collaborators/:id/overview", async (req, res) => {
-  const collabId = req.params.id;
+  const collabId = (req.params.id as string);
   const collab = (await db.select().from(collaboratorsTable).where(eq(collaboratorsTable.id, collabId)).limit(1))[0];
   if (!collab) return res.status(404).json({ error: "Not found" });
 
@@ -560,7 +560,7 @@ router.get("/hr/leaves/:id", async (req, res) => {
     collabLast: collaboratorsTable.lastName,
   }).from(leaveRequestsTable)
     .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
-    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)))
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string))))
     .limit(1);
   if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
   res.json({ ...row.l, days: Number(row.l.days), collaboratorName: `${row.collabFirst ?? ""} ${row.collabLast ?? ""}`.trim() });
@@ -593,7 +593,7 @@ router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) =>
     res.status(400).json({ error: "Statut invalide" }); return;
   }
   const [leave] = await db.select().from(leaveRequestsTable)
-    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)))
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string))))
     .limit(1);
   if (!leave) { res.status(404).json({ error: "Demande introuvable" }); return; }
 
@@ -603,7 +603,7 @@ router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) =>
     approvedAt: status === "approved" ? new Date() : null,
     rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
     updatedAt: new Date(),
-  }).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id))).returning();
+  }).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string)))).returning();
 
   if (status === "approved") {
     const leaveYear = new Date(leave.startDate).getFullYear();
@@ -624,9 +624,9 @@ router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) =>
 router.delete("/hr/leaves/:id", requireManagerOrAbove, async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const [row] = await db.select().from(leaveRequestsTable)
-    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id))).limit(1);
+    .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string)))).limit(1);
   if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
-  await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, req.params.id)));
+  await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string))));
   res.status(204).send();
 });
 
@@ -672,7 +672,7 @@ router.get("/hr/leave-balances/:collaboratorId", async (req, res) => {
   const rows = await db.select().from(leaveBalancesTable)
     .where(and(
       eq(leaveBalancesTable.organizationId, orgId),
-      eq(leaveBalancesTable.collaboratorId, req.params.collaboratorId),
+      eq(leaveBalancesTable.collaboratorId, (req.params.collaboratorId as string)),
       sql`${leaveBalancesTable.year} = ${targetYear}`,
     ));
   res.json({ data: rows.map(r => ({
@@ -792,7 +792,7 @@ router.get("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) 
       jobTitle: collaboratorsTable.position,
     }).from(performanceReviewsTable)
       .leftJoin(collaboratorsTable, eq(performanceReviewsTable.collaboratorId, collaboratorsTable.id))
-      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id)))
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, (req.params.id as string))))
       .limit(1);
     if (!row) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
     res.json(row);
@@ -803,7 +803,7 @@ router.patch("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next
   try {
     const orgId = req.authUser!.organizationId;
     const [ev] = await db.select().from(performanceReviewsTable)
-      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id))).limit(1);
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, (req.params.id as string)))).limit(1);
     if (!ev) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
     const [updated] = await db.update(performanceReviewsTable).set({
@@ -825,7 +825,7 @@ router.delete("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, nex
   try {
     const orgId = req.authUser!.organizationId;
     const [ev] = await db.select().from(performanceReviewsTable)
-      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, req.params.id))).limit(1);
+      .where(and(eq(performanceReviewsTable.organizationId, orgId), eq(performanceReviewsTable.id, (req.params.id as string)))).limit(1);
     if (!ev) { res.status(404).json({ error: "Évaluation introuvable" }); return; }
     await db.delete(performanceReviewsTable).where(eq(performanceReviewsTable.id, ev.id));
     res.status(204).send();
@@ -888,7 +888,7 @@ router.get("/hr/training/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [session] = await db.select().from(trainingSessionsTable)
-      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, (req.params.id as string)))).limit(1);
     if (!session) { res.status(404).json({ error: "Formation introuvable" }); return; }
     const participants = await db.select({
       id: trainingParticipantsTable.id,
@@ -911,7 +911,7 @@ router.patch("/hr/training/:id", requireManagerOrAbove, async (req, res, next) =
   try {
     const orgId = req.authUser!.organizationId;
     const [s] = await db.select().from(trainingSessionsTable)
-      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, (req.params.id as string)))).limit(1);
     if (!s) { res.status(404).json({ error: "Formation introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
     const [updated] = await db.update(trainingSessionsTable).set({
@@ -933,7 +933,7 @@ router.post("/hr/training/:id/participants", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [s] = await db.select().from(trainingSessionsTable)
-      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, req.params.id))).limit(1);
+      .where(and(eq(trainingSessionsTable.organizationId, orgId), eq(trainingSessionsTable.id, (req.params.id as string)))).limit(1);
     if (!s) { res.status(404).json({ error: "Formation introuvable" }); return; }
     const { collaboratorId, status } = req.body as { collaboratorId: string; status?: string };
     if (!collaboratorId) { res.status(400).json({ error: "collaboratorId requis" }); return; }
@@ -1014,7 +1014,7 @@ router.get("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) =>
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(personnelMovementsTable)
-      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, req.params.id))).limit(1);
+      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, (req.params.id as string)))).limit(1);
     if (!row) { res.status(404).json({ error: "Mouvement introuvable" }); return; }
     res.json(row);
   } catch (e) { next(e); }
@@ -1024,7 +1024,7 @@ router.delete("/hr/movements/:id", requireManagerOrAbove, async (req, res, next)
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(personnelMovementsTable)
-      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, req.params.id))).limit(1);
+      .where(and(eq(personnelMovementsTable.organizationId, orgId), eq(personnelMovementsTable.id, (req.params.id as string)))).limit(1);
     if (!row) { res.status(404).json({ error: "Mouvement introuvable" }); return; }
     await db.delete(personnelMovementsTable).where(eq(personnelMovementsTable.id, row.id));
     res.status(204).send();
@@ -1119,7 +1119,7 @@ router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, r
 
     const [collab] = await db.update(collaboratorsTable)
       .set(updateData as any)
-      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, req.params.id)))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, (req.params.id as string))))
       .returning();
     if (!collab) { res.status(404).json({ error: "Collaborateur introuvable" }); return; }
     res.json(collab);
@@ -1146,14 +1146,14 @@ router.patch("/hr/collaborators/:id/avatar", async (req, res, next) => {
         .from(collaboratorsTable)
         .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId)))
         .limit(1);
-      if (!own || own.id !== req.params.id) {
+      if (!own || own.id !== (req.params.id as string)) {
         res.status(403).json({ error: "Accès refusé : vous ne pouvez modifier que votre propre avatar" }); return;
       }
     }
 
     const [collab] = await db.update(collaboratorsTable)
       .set({ avatarUrl })
-      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, req.params.id)))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, (req.params.id as string))))
       .returning({ id: collaboratorsTable.id, avatarUrl: collaboratorsTable.avatarUrl });
     if (!collab) { res.status(404).json({ error: "Collaborateur introuvable" }); return; }
     res.json(collab);
@@ -1269,7 +1269,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const [payslip] = await db.select().from(payslipsTable)
-      .where(and(eq(payslipsTable.id, req.params.id), eq(payslipsTable.collaboratorId, collab.id), eq(payslipsTable.organizationId, orgId)))
+      .where(and(eq(payslipsTable.id, (req.params.id as string)), eq(payslipsTable.collaboratorId, collab.id), eq(payslipsTable.organizationId, orgId)))
       .limit(1);
     if (!payslip) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
 
@@ -1380,7 +1380,7 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     const [payslip] = await db.select().from(payslipsTable)
-      .where(and(eq(payslipsTable.id, req.params.id), eq(payslipsTable.organizationId, orgId)))
+      .where(and(eq(payslipsTable.id, (req.params.id as string)), eq(payslipsTable.organizationId, orgId)))
       .limit(1);
     if (!payslip) { res.status(404).json({ error: "Bulletin introuvable" }); return; }
 
@@ -1645,7 +1645,7 @@ router.post("/hr/me/leave-requests", async (req, res, next) => {
       type,
       startDate,
       endDate,
-      days,
+      days: String(days),
       reason: reason ?? null,
       status: "pending",
     }).returning();
@@ -1662,7 +1662,7 @@ router.patch("/hr/me/leave-requests/:id/cancel", async (req, res, next) => {
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const [existing] = await db.select().from(leaveRequestsTable)
-      .where(and(eq(leaveRequestsTable.id, req.params.id), eq(leaveRequestsTable.collaboratorId, collab.id), eq(leaveRequestsTable.organizationId, orgId)))
+      .where(and(eq(leaveRequestsTable.id, (req.params.id as string)), eq(leaveRequestsTable.collaboratorId, collab.id), eq(leaveRequestsTable.organizationId, orgId)))
       .limit(1);
     if (!existing) { res.status(404).json({ error: "Demande introuvable" }); return; }
     if (!["pending"].includes(existing.status)) {
@@ -1670,7 +1670,7 @@ router.patch("/hr/me/leave-requests/:id/cancel", async (req, res, next) => {
     }
     const [updated] = await db.update(leaveRequestsTable)
       .set({ status: "cancelled" })
-      .where(eq(leaveRequestsTable.id, req.params.id))
+      .where(eq(leaveRequestsTable.id, (req.params.id as string)))
       .returning();
     res.json(updated);
   } catch (e) { next(e); }
@@ -1848,7 +1848,7 @@ router.put("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, nex
   try {
     const orgId = req.authUser!.organizationId;
     const [existing] = await db.select().from(leavePoliciesTable)
-      .where(and(eq(leavePoliciesTable.id, req.params.id), eq(leavePoliciesTable.organizationId, orgId))).limit(1);
+      .where(and(eq(leavePoliciesTable.id, (req.params.id as string)), eq(leavePoliciesTable.organizationId, orgId))).limit(1);
     if (!existing) { res.status(404).json({ error: "Politique introuvable" }); return; }
     const body = req.body as Record<string, any>;
     const [updated] = await db.update(leavePoliciesTable).set({
@@ -1862,7 +1862,7 @@ router.put("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, nex
       accrualRate: body.accrualRate != null ? String(body.accrualRate) : null,
       defaultAllocatedDays: body.defaultAllocatedDays != null ? String(body.defaultAllocatedDays) : existing.defaultAllocatedDays,
       description: body.description !== undefined ? body.description : existing.description,
-    }).where(eq(leavePoliciesTable.id, req.params.id)).returning();
+    }).where(eq(leavePoliciesTable.id, (req.params.id as string))).returning();
     res.json(updated);
   } catch (e) { next(e); }
 });
@@ -1871,7 +1871,7 @@ router.delete("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(leavePoliciesTable)
-      .where(and(eq(leavePoliciesTable.id, req.params.id), eq(leavePoliciesTable.organizationId, orgId)));
+      .where(and(eq(leavePoliciesTable.id, (req.params.id as string)), eq(leavePoliciesTable.organizationId, orgId)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -2031,7 +2031,7 @@ router.get("/hr/attestations/:collaboratorId/:type", requireManagerOrAbove, asyn
     const orgId = req.authUser!.organizationId;
     const type = req.params.type as "travail" | "salaire" | "presence";
     if (!["travail", "salaire", "presence"].includes(type)) { res.status(400).json({ error: "Type invalide" }); return; }
-    await buildAttestation(req.params.collaboratorId, orgId, type, res);
+    await buildAttestation((req.params.collaboratorId as string), orgId, type, res);
   } catch (e) { next(e); }
 });
 
@@ -2101,14 +2101,14 @@ router.patch("/hr/timesheets/:id/approve", requireManagerOrAbove, async (req, re
     const { status, note } = req.body as { status: "approved" | "rejected"; note?: string };
     if (!["approved", "rejected"].includes(status)) { res.status(400).json({ error: "status invalide" }); return; }
     const [existing] = await db.select().from(attendanceSessionsTable)
-      .where(and(eq(attendanceSessionsTable.id, req.params.id), eq(attendanceSessionsTable.organizationId, orgId))).limit(1);
+      .where(and(eq(attendanceSessionsTable.id, (req.params.id as string)), eq(attendanceSessionsTable.organizationId, orgId))).limit(1);
     if (!existing) { res.status(404).json({ error: "Session introuvable" }); return; }
     const [updated] = await db.update(attendanceSessionsTable).set({
       approvalStatus: status,
       approvedById: req.authUser!.id,
       approvedAt: new Date(),
       approvalNote: note ?? null,
-    }).where(eq(attendanceSessionsTable.id, req.params.id)).returning();
+    }).where(eq(attendanceSessionsTable.id, (req.params.id as string))).returning();
     res.json(updated);
   } catch (e) { next(e); }
 });

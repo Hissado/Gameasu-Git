@@ -205,7 +205,7 @@ router.get("/super-admin/organizations", sa, async (_req, res, next) => {
 
 router.get("/super-admin/organizations/:id", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
     if (!org) return res.status(404).json({ error: "Organisation introuvable" });
 
@@ -265,7 +265,7 @@ router.get("/super-admin/organizations/:id", sa, async (req, res, next) => {
 
 router.get("/super-admin/organizations/:id/billing", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const events = await db.select().from(billingEventsTable)
       .where(eq(billingEventsTable.organizationId, id))
       .orderBy(desc(billingEventsTable.occurredAt))
@@ -291,7 +291,7 @@ router.get("/super-admin/organizations/:id/billing", sa, async (req, res, next) 
 
 router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const members = await db.select({
       userId: organizationMembersTable.userId,
       role: organizationMembersTable.role,
@@ -315,7 +315,7 @@ router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) =>
 
 router.get("/super-admin/organizations/:id/tickets", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const tickets = await db.select().from(ticketsTable)
       .where(eq(ticketsTable.organizationId, id))
       .orderBy(desc(ticketsTable.createdAt))
@@ -390,7 +390,7 @@ router.get("/super-admin/revenue", sa, async (_req, res, next) => {
 
 router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { action } = req.body as { action: string };
     if (!["suspend", "reactivate"].includes(action)) {
       return res.status(400).json({ error: "action doit être 'suspend' ou 'reactivate'" });

@@ -150,7 +150,7 @@ router.get("/fpa/budgets", async (req, res) => {
 });
 
 router.get("/fpa/budgets/:id", async (req, res) => {
-  const data = await loadBudgetWithLines(req.authUser!.organizationId, req.params.id);
+  const data = await loadBudgetWithLines(req.authUser!.organizationId, (req.params.id as string));
   if (!data) return res.status(404).json({ error: "Budget introuvable" });
   return res.json({
     ...data.budget,
@@ -236,7 +236,7 @@ router.post("/fpa/budgets", async (req, res) => {
       const srcLines = await db.select().from(budgetLinesTable).where(eq(budgetLinesTable.budgetId, basedOnId));
       if (srcLines.length > 0) {
         await db.insert(budgetLinesTable).values(srcLines.map((l) => ({
-          budgetId: budget.id, accountId: l.accountId, period: l.period, amount: l.amount, notes: l.notes,
+          organizationId: budget.organizationId, budgetId: budget.id, accountId: l.accountId, period: l.period, amount: l.amount, notes: l.notes,
         })));
       }
     }
@@ -247,7 +247,7 @@ router.post("/fpa/budgets", async (req, res) => {
 });
 
 router.put("/fpa/budgets/:id", async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const { name, notes, projectIds, status } = req.body || {};
   const upd: any = {};
   if (name !== undefined) {
@@ -263,25 +263,25 @@ router.put("/fpa/budgets/:id", async (req, res) => {
     if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: "status invalide" });
     upd.status = status;
   }
-  const [b] = await db.update(budgetsTable).set(upd).where(and(eq(budgetsTable.organizationId, req.authUser!.organizationId), eq(budgetsTable.id, req.params.id))).returning();
+  const [b] = await db.update(budgetsTable).set(upd).where(and(eq(budgetsTable.organizationId, req.authUser!.organizationId), eq(budgetsTable.id, (req.params.id as string)))).returning();
   if (!b) return res.status(404).json({ error: "Introuvable" });
   return res.json(b);
 });
 
 router.delete("/fpa/budgets/:id", requireAdmin, async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
+  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string)))).limit(1);
   if (!b) return res.status(404).json({ error: "Introuvable" });
   if (b.status === "active") return res.status(400).json({ error: "Archivez d'abord cette version active" });
-  await db.delete(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id)));
+  await db.delete(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
 router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const userId = req.authUser!.id;
   const orgId = req.authUser!.organizationId;
-  const src = await loadBudgetWithLines(orgId, req.params.id);
+  const src = await loadBudgetWithLines(orgId, (req.params.id as string));
   if (!src) return res.status(404).json({ error: "Source introuvable" });
   const { name, kind } = req.body || {};
   const newKind = kind || src.budget.kind;
@@ -298,7 +298,7 @@ router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
     });
     if (src.lines.length > 0) {
       await db.insert(budgetLinesTable).values(src.lines.map((l) => ({
-        budgetId: b.id, accountId: l.accountId, period: l.period, amount: l.amount, notes: l.notes,
+        organizationId: b.organizationId, budgetId: b.id, accountId: l.accountId, period: l.period, amount: l.amount, notes: l.notes,
       })));
     }
     return res.status(201).json(b);
@@ -312,11 +312,11 @@ router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
  * dans une seule transaction. Empêche l'état "deux versions actives" en concurrence.
  */
 router.post("/fpa/budgets/:id/activate", async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const orgId = req.authUser!.organizationId;
   try {
     const updated = await db.transaction(async (tx) => {
-      const [b] = await tx.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
+      const [b] = await tx.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string)))).limit(1);
       if (!b) throw Object.assign(new Error("Introuvable"), { httpStatus: 404 });
       await tx.update(budgetsTable).set({ status: "archived" }).where(and(
         eq(budgetsTable.organizationId, orgId),
@@ -327,7 +327,7 @@ router.post("/fpa/budgets/:id/activate", async (req, res) => {
         b.scopeId ? eq(budgetsTable.scopeId, b.scopeId) : isNull(budgetsTable.scopeId),
       ));
       const [u] = await tx.update(budgetsTable).set({ status: "active" })
-        .where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).returning();
+        .where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string)))).returning();
       return u;
     });
     return res.json(updated);
@@ -339,11 +339,11 @@ router.post("/fpa/budgets/:id/activate", async (req, res) => {
 // ─── BUDGET LINES — bulk upsert ─────────────────────────────────────────────
 
 router.put("/fpa/budgets/:id/lines", async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const orgId = req.authUser!.organizationId;
   const { lines } = req.body || {};
   if (!Array.isArray(lines)) return res.status(400).json({ error: "lines doit être un tableau" });
-  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, req.params.id))).limit(1);
+  const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string)))).limit(1);
   if (!b) return res.status(404).json({ error: "Introuvable" });
   const fp = await loadFiscalPeriod(orgId, b.fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période fiscale introuvable" });
@@ -373,10 +373,11 @@ router.put("/fpa/budgets/:id/lines", async (req, res) => {
 
   // Stratégie : remplacement complet pour ce budget.
   await db.transaction(async (tx) => {
-    await tx.delete(budgetLinesTable).where(eq(budgetLinesTable.budgetId, req.params.id));
+    await tx.delete(budgetLinesTable).where(eq(budgetLinesTable.budgetId, (req.params.id as string)));
     if (lines.length > 0) {
       await tx.insert(budgetLinesTable).values(lines.map((l: any) => ({
-        budgetId: req.params.id,
+        organizationId: orgId,
+        budgetId: (req.params.id as string),
         accountId: l.accountId,
         period: l.period,
         amount: String(l.amount),
@@ -384,7 +385,7 @@ router.put("/fpa/budgets/:id/lines", async (req, res) => {
       })));
     }
   });
-  const fresh = await db.select().from(budgetLinesTable).where(eq(budgetLinesTable.budgetId, req.params.id));
+  const fresh = await db.select().from(budgetLinesTable).where(eq(budgetLinesTable.budgetId, (req.params.id as string)));
   return res.json({ data: fresh.map((l) => ({ ...l, amount: toNum(l.amount) })) });
 });
 
@@ -817,7 +818,7 @@ async function sendWorkbook(res: any, wb: ExcelJS.Workbook, filename: string) {
 // EXPORT — Budget détail (matrice account × mois)
 router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  const data = await loadBudgetWithLines(orgId, req.params.id);
+  const data = await loadBudgetWithLines(orgId, (req.params.id as string));
   if (!data) return res.status(404).json({ error: "Introuvable" });
   const fp = await loadFiscalPeriod(orgId, data.budget.fiscalPeriodId);
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
@@ -872,7 +873,7 @@ router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
 
 // EXPORT — Rapport de variance (actual vs budget)
 router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.authUser!.organizationId, req.params.budgetId);
+  const v = await buildVarianceReport(req.authUser!.organizationId, (req.params.budgetId as string));
   if (!v) return res.status(404).json({ error: "Introuvable" });
 
   const wb = new ExcelJS.Workbook();
@@ -929,7 +930,7 @@ router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
 
 // EXPORT — Forecast vs réalisé
 router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.authUser!.organizationId, req.params.forecastId);
+  const v = await buildVarianceReport(req.authUser!.organizationId, (req.params.forecastId as string));
   if (!v) return res.status(404).json({ error: "Introuvable" });
   const wb = new ExcelJS.Workbook();
   wb.creator = "Gaméasù — FP&A";
@@ -961,9 +962,9 @@ router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
 // EXPORT — Synthèse par projet
 router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
   // On récupère la même donnée que l'endpoint JSON
-  req.query.fiscalPeriodId = req.params.fiscalPeriodId;
+  (req.query.fiscalPeriodId as string) = (req.params.fiscalPeriodId as string);
   const orgId = req.authUser!.organizationId;
-  const fp = await loadFiscalPeriod(orgId, req.params.fiscalPeriodId);
+  const fp = await loadFiscalPeriod(orgId, (req.params.fiscalPeriodId as string));
   if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
   // Réutilise la logique en dupliquant : appel direct à la fonction n'est pas pratique

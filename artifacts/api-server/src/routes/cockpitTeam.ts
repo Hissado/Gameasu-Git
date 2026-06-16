@@ -120,7 +120,7 @@ router.post("/super-admin/cockpit-users/invite", sa, async (req, res, next) => {
       recipientName: `${firstName.trim()} ${lastName.trim()}`,
       inviterName,
       orgName: "Gaméasù Cockpit",
-      acceptUrl: `${req.headers["x-forwarded-proto"] ?? "https"}://${req.headers.host}/cockpit/`,
+      acceptUrl: `${req.headers["x-forwarded-proto"] ?? "https"}://${(req.headers.host as string)}/cockpit/`,
       temporaryPassword: tempPassword,
     });
     await sendEmail({ ...tpl, to: emailLc });
@@ -133,7 +133,7 @@ router.post("/super-admin/cockpit-users/invite", sa, async (req, res, next) => {
 // ── PATCH /super-admin/cockpit-users/:id/status ───────────────────────────────
 router.patch("/super-admin/cockpit-users/:id/status", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { isActive } = req.body as { isActive: boolean };
 
     // Empêcher de se désactiver soi-même
@@ -164,7 +164,7 @@ router.patch("/super-admin/cockpit-users/:id/status", sa, async (req, res, next)
 // ── DELETE /super-admin/cockpit-users/:id ────────────────────────────────────
 router.delete("/super-admin/cockpit-users/:id", sa, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
 
     if (id === req.authUser!.id) {
       return res.status(400).json({ error: "Vous ne pouvez pas révoquer votre propre accès" });
@@ -340,7 +340,7 @@ router.get("/super-admin/me/sessions", sa, async (req, res, next) => {
 // ── DELETE /super-admin/me/sessions ──────────────────────────────────────────
 router.delete("/super-admin/me/sessions", sa, async (req, res, next) => {
   try {
-    const currentToken = req.headers.authorization?.replace("Bearer ", "");
+    const currentToken = (req.headers.authorization as string)?.replace("Bearer ", "");
     if (currentToken) {
       // Supprimer toutes les sessions SAUF la courante
       const all = await db.select({ id: authSessionsTable.id, token: authSessionsTable.token })

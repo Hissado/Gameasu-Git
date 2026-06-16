@@ -85,7 +85,7 @@ router.patch("/super-admin/custom-app-requests/:id", sa, async (req, res, next) 
     const [updated] = await db
       .update(customAppRequestsTable)
       .set(patch as typeof customAppRequestsTable.$inferInsert)
-      .where(eq(customAppRequestsTable.id, String(req.params.id)))
+      .where(eq(customAppRequestsTable.id, String((req.params.id as string))))
       .returning();
     if (!updated) { res.status(404).json({ error: "Demande introuvable" }); return; }
     res.json(updated);

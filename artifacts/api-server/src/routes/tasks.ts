@@ -77,7 +77,7 @@ router.post("/tasks", requireManagerOrAbove, async (req, res, next) => {
 
 router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res, next) => {
   try {
-    const acl = await ensureTaskAccess(req, req.params.id);
+    const acl = await ensureTaskAccess(req, (req.params.id as string));
     if (!acl.allowed) return res.status(acl.status!).json(acl.body);
 
     const [rows, comments, subtasks, history] = await Promise.all([
@@ -89,23 +89,23 @@ router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res, next)
         .from(tasksTable)
         .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
         .leftJoin(usersTable, eq(tasksTable.assigneeId, usersTable.id))
-        .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).limit(1),
+        .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, (req.params.id as string)))).limit(1),
 
       db.select({
         comment: taskCommentsTable,
         userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
       }).from(taskCommentsTable)
         .leftJoin(usersTable, eq(taskCommentsTable.userId, usersTable.id))
-        .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, req.params.id))),
+        .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, (req.params.id as string)))),
 
-      db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.parentTaskId, req.params.id))),
+      db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.parentTaskId, (req.params.id as string)))),
 
       db.select({
         h: taskHistoryTable,
         userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
       }).from(taskHistoryTable)
         .leftJoin(usersTable, eq(taskHistoryTable.userId, usersTable.id))
-        .where(and(eq(taskHistoryTable.organizationId, req.authUser!.organizationId), eq(taskHistoryTable.taskId, req.params.id)))
+        .where(and(eq(taskHistoryTable.organizationId, req.authUser!.organizationId), eq(taskHistoryTable.taskId, (req.params.id as string))))
         .orderBy(sql`${taskHistoryTable.createdAt} DESC`).limit(50),
     ]);
 
@@ -124,7 +124,7 @@ router.get("/tasks/:id", requirePermission("tasks.read"), async (req, res, next)
 router.put("/tasks/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const { title, description, status, priority, projectId, assigneeId, dueDate } = req.body;
-    const before = (await db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).limit(1))[0];
+    const before = (await db.select().from(tasksTable).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, (req.params.id as string)))).limit(1))[0];
     if (!before) return res.status(404).json({ error: "Not found" });
 
     const role = req.authUser?.role || "collaborator";
@@ -137,7 +137,7 @@ router.put("/tasks/:id", requireManagerOrAbove, async (req, res, next) => {
 
     const [task] = await db.update(tasksTable)
       .set({ title, description, status, priority, projectId, assigneeId, dueDate })
-      .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id))).returning();
+      .where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, (req.params.id as string)))).returning();
 
     const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
     if (before.status !== status && status) changes.push({ field: "status", oldValue: before.status, newValue: status });
@@ -156,10 +156,10 @@ router.put("/tasks/:id", requireManagerOrAbove, async (req, res, next) => {
 
 router.delete("/tasks/:id", requireAdmin, async (req, res, next) => {
   try {
-    await db.update(tasksTable).set({ deletedAt: new Date() }).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, req.params.id)));
+    await db.update(tasksTable).set({ deletedAt: new Date() }).where(and(eq(tasksTable.organizationId, req.authUser!.organizationId), eq(tasksTable.id, (req.params.id as string))));
     await db.insert(taskHistoryTable).values({
       organizationId: req.authUser!.organizationId,
-      taskId: req.params.id, userId: req.authUser?.id, action: "deleted",
+      taskId: (req.params.id as string), userId: req.authUser?.id, action: "deleted",
     });
     return res.status(204).send();
   } catch (e) { next(e); }
@@ -167,21 +167,21 @@ router.delete("/tasks/:id", requireAdmin, async (req, res, next) => {
 
 router.get("/tasks/:id/comments", requirePermission("tasks.read"), async (req, res, next) => {
   try {
-    const acl = await ensureTaskAccess(req, req.params.id);
+    const acl = await ensureTaskAccess(req, (req.params.id as string));
     if (!acl.allowed) return res.status(acl.status!).json(acl.body);
     const comments = await db.select({
       comment: taskCommentsTable,
       userName: sql<string>`concat(${usersTable.firstName}, ' ', ${usersTable.lastName})`,
     }).from(taskCommentsTable)
       .leftJoin(usersTable, eq(taskCommentsTable.userId, usersTable.id))
-      .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, req.params.id)));
+      .where(and(eq(taskCommentsTable.organizationId, req.authUser!.organizationId), eq(taskCommentsTable.taskId, (req.params.id as string))));
     return res.json(comments.map(c => ({ ...c.comment, userName: c.userName })));
   } catch (e) { next(e); }
 });
 
 router.post("/tasks/:id/comments", requirePermission("tasks.read"), async (req, res, next) => {
   try {
-    const acl = await ensureTaskAccess(req, req.params.id);
+    const acl = await ensureTaskAccess(req, (req.params.id as string));
     if (!acl.allowed) return res.status(acl.status!).json(acl.body);
     const { content } = req.body;
     if (!content) return res.status(400).json({ error: "Content required" });
@@ -190,11 +190,11 @@ router.post("/tasks/:id/comments", requirePermission("tasks.read"), async (req, 
 
     const [comment] = await db.insert(taskCommentsTable).values({
       organizationId: req.authUser!.organizationId,
-      taskId: req.params.id, userId, content,
+      taskId: (req.params.id as string), userId, content,
     }).returning();
     await db.insert(taskHistoryTable).values({
       organizationId: req.authUser!.organizationId,
-      taskId: req.params.id, userId, action: "commented", newValue: content.slice(0, 100),
+      taskId: (req.params.id as string), userId, action: "commented", newValue: content.slice(0, 100),
     });
     const userName = `${req.authUser?.firstName || ""} ${req.authUser?.lastName || ""}`.trim();
     return res.status(201).json({ ...comment, userName });

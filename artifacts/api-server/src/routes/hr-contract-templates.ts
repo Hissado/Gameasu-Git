@@ -60,7 +60,7 @@ router.get("/hr/contract-templates/:id", requireManagerOrAbove, async (req, res,
   try {
     const orgId = req.authUser!.organizationId;
     const row = await db.query.contractTemplatesTable.findFirst({
-      where: and(eq(contractTemplatesTable.id, req.params.id), eq(contractTemplatesTable.organizationId, orgId)),
+      where: and(eq(contractTemplatesTable.id, (req.params.id as string)), eq(contractTemplatesTable.organizationId, orgId)),
     });
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
@@ -81,7 +81,7 @@ router.put("/hr/contract-templates/:id", requireManagerOrAbove, async (req, res,
     }).parse(req.body);
     const [row] = await db.update(contractTemplatesTable)
       .set({ ...body, version: db.query.contractTemplatesTable ? undefined : undefined })
-      .where(and(eq(contractTemplatesTable.id, req.params.id), eq(contractTemplatesTable.organizationId, orgId)))
+      .where(and(eq(contractTemplatesTable.id, (req.params.id as string)), eq(contractTemplatesTable.organizationId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
@@ -92,7 +92,7 @@ router.delete("/hr/contract-templates/:id", requireManagerOrAbove, async (req, r
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(contractTemplatesTable)
-      .where(and(eq(contractTemplatesTable.id, req.params.id), eq(contractTemplatesTable.organizationId, orgId)));
+      .where(and(eq(contractTemplatesTable.id, (req.params.id as string)), eq(contractTemplatesTable.organizationId, orgId)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -108,7 +108,7 @@ router.post("/hr/contracts/:id/generate-pdf", requireManagerOrAbove, async (req,
     const { templateId } = z.object({ templateId: z.string().uuid().optional() }).parse(req.body);
 
     const contract = await db.query.contractsTable.findFirst({
-      where: and(eq(contractsTable.id, req.params.id), eq(contractsTable.organizationId, orgId)),
+      where: and(eq(contractsTable.id, (req.params.id as string)), eq(contractsTable.organizationId, orgId)),
     });
     if (!contract) return res.status(404).json({ error: "Contrat non trouvé" });
 

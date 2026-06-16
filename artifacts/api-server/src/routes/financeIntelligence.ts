@@ -435,7 +435,7 @@ router.get("/finance/intelligence/collections", requirePermission("accounting.re
 router.get("/finance/intelligence/relance-history", requirePermission("accounting.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const limit = Math.min(parseInt(String(req.query.limit ?? "50")), 100);
+    const limit = Math.min(parseInt(String((req.query.limit as string) ?? "50")), 100);
 
     const rows = await db
       .select({

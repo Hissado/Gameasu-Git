@@ -296,7 +296,7 @@ router.patch("/payroll/schedules/:id", requireManagerOrAbove, async (req, res, n
     }).parse(req.body);
     const [row] = await db.update(payrollSchedulesTable)
       .set(body)
-      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId))!)
+      .where(and(eq(payrollSchedulesTable.id, (req.params.id as string)), eq(payrollSchedulesTable.organizationId, orgId))!)
       .returning();
     if (!row) return res.status(404).json({ error: "Planning introuvable" });
     res.json(row);
@@ -307,7 +307,7 @@ router.delete("/payroll/schedules/:id", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(payrollSchedulesTable)
-      .where(and(eq(payrollSchedulesTable.id, req.params.id), eq(payrollSchedulesTable.organizationId, orgId))!);
+      .where(and(eq(payrollSchedulesTable.id, (req.params.id as string)), eq(payrollSchedulesTable.organizationId, orgId))!);
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -321,7 +321,7 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
 
@@ -449,9 +449,9 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
     // Fetch existing line (org-scoped via run ownership)
     const [existing] = await db.select().from(payrollLineItemsTable)
       .where(and(
-        eq(payrollLineItemsTable.id, req.params.lineId),
+        eq(payrollLineItemsTable.id, (req.params.lineId as string)),
         eq(payrollLineItemsTable.organizationId, orgId),
-        eq(payrollLineItemsTable.payrollRunId, req.params.id),
+        eq(payrollLineItemsTable.payrollRunId, (req.params.id as string)),
       )!)
       .limit(1);
     if (!existing) return res.status(404).json({ error: "Ligne introuvable" });
@@ -509,7 +509,7 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être synchronisé" });
@@ -588,7 +588,7 @@ router.post("/payroll/runs/:id/import-rows", requireManagerOrAbove, async (req, 
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être importé" });
@@ -665,7 +665,7 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être soumis" });
@@ -771,7 +771,7 @@ router.post("/payroll/runs/:id/import-csv", requireManagerOrAbove, async (req, r
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id))!)
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status !== "draft") return res.status(400).json({ error: "Seul un brouillon peut être importé" });
@@ -983,7 +983,7 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
 
     // Fetch the correction first
     const [correction] = await db.select().from(payrollCorrectionsTable)
-      .where(and(eq(payrollCorrectionsTable.id, req.params.id), eq(payrollCorrectionsTable.organizationId, orgId))!)
+      .where(and(eq(payrollCorrectionsTable.id, (req.params.id as string)), eq(payrollCorrectionsTable.organizationId, orgId))!)
       .limit(1);
     if (!correction) return res.status(404).json({ error: "Correction introuvable" });
 
@@ -1074,7 +1074,7 @@ router.patch("/payroll/corrections/:id", requireManagerOrAbove, async (req, res,
     const [row] = await db.update(payrollCorrectionsTable)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .set(updates as any)
-      .where(eq(payrollCorrectionsTable.id, req.params.id))
+      .where(eq(payrollCorrectionsTable.id, (req.params.id as string)))
       .returning();
 
     res.json({ ...row, amount: toNum(row.amount), offCycleCreated, targetRunId: resolvedTargetRunId ?? row.targetRunId });
@@ -1310,7 +1310,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status === "draft") return res.status(400).json({ error: "Le cycle doit être validé pour générer la déclaration CNSS" });
@@ -1349,7 +1349,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
     const totalPat = rows.reduce((s, r) => s + r.partPatronale, 0);
     const totalCnss = rows.reduce((s, r) => s + r.totalCnss, 0);
 
-    if (req.query.format === "excel") {
+    if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
       wb.creator = "Gaméasù";
       wb.created = new Date();
@@ -1457,7 +1457,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
   try {
     const orgId = req.authUser!.organizationId;
     const [run] = await db.select().from(payrollRunsTable)
-      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, req.params.id)))
+      .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
     if (!run) return res.status(404).json({ error: "Cycle introuvable" });
     if (run.status === "draft") return res.status(400).json({ error: "Le cycle doit être validé pour générer la déclaration IRPP" });
@@ -1507,7 +1507,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
     const totalIpts = rows.reduce((s, r) => s + r.ipts, 0);
     const totalNet = rows.reduce((s, r) => s + r.netSalary, 0);
 
-    if (req.query.format === "excel") {
+    if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
       wb.creator = "Gaméasù";
       wb.created = new Date();
@@ -1603,7 +1603,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
 router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const year = String(req.query.year ?? new Date().getFullYear());
+    const year = String((req.query.year as string) ?? new Date().getFullYear());
     if (!/^\d{4}$/.test(year)) {
       return res.status(400).json({ error: "Paramètre year invalide (format YYYY attendu)" });
     }
@@ -1775,7 +1775,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       totalNet: irppRows.reduce((s, r) => s + r.totalNet, 0),
     };
 
-    if (req.query.format === "excel") {
+    if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
       wb.creator = "Gaméasù";
       wb.created = new Date();

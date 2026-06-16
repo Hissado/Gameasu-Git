@@ -87,13 +87,13 @@ router.put("/documents/:id", async (req, res) => {
   const [d] = await db.update(documentsTable).set({
     name, category, entityType, entityId, description,
     ...(tags ? { tags } : {}),
-  }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, req.params.id))).returning();
+  }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, (req.params.id as string)))).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   return res.json(d);
 });
 
 router.delete("/documents/:id", async (req, res) => {
-  await db.update(documentsTable).set({ deletedAt: new Date() }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, req.params.id)));
+  await db.update(documentsTable).set({ deletedAt: new Date() }).where(and(eq(documentsTable.organizationId, req.authUser!.organizationId), eq(documentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 

@@ -57,7 +57,7 @@ router.patch("/analytics/accounts/:id", requireManagerOrAbove, async (req, res, 
     };
     const [row] = await db.update(analyticalAccountsTable)
       .set({ code, name, axis, type, description, isActive })
-      .where(and(eq(analyticalAccountsTable.id, req.params.id), eq(analyticalAccountsTable.organizationId, orgId)))
+      .where(and(eq(analyticalAccountsTable.id, (req.params.id as string)), eq(analyticalAccountsTable.organizationId, orgId)))
       .returning();
     if (!row) { res.status(404).json({ error: "Compte introuvable" }); return; }
     res.json(row);
@@ -68,7 +68,7 @@ router.delete("/analytics/accounts/:id", requireManagerOrAbove, async (req, res,
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(analyticalAccountsTable)
-      .where(and(eq(analyticalAccountsTable.id, req.params.id), eq(analyticalAccountsTable.organizationId, orgId)));
+      .where(and(eq(analyticalAccountsTable.id, (req.params.id as string)), eq(analyticalAccountsTable.organizationId, orgId)));
     res.status(204).send();
   } catch (e) { next(e); }
 });
@@ -160,7 +160,7 @@ router.patch("/analytics/entries/:id", requireManagerOrAbove, async (req, res, n
       reference: reference as string | null | undefined,
       projectId: (projectId as string | null) ?? undefined,
       clientId: (clientId as string | null) ?? undefined,
-    }).where(and(eq(analyticalEntriesTable.id, req.params.id), eq(analyticalEntriesTable.organizationId, orgId))).returning();
+    }).where(and(eq(analyticalEntriesTable.id, (req.params.id as string)), eq(analyticalEntriesTable.organizationId, orgId))).returning();
     if (!row) { res.status(404).json({ error: "Imputation introuvable" }); return; }
     res.json(row);
   } catch (e) { next(e); }
@@ -170,7 +170,7 @@ router.delete("/analytics/entries/:id", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(analyticalEntriesTable)
-      .where(and(eq(analyticalEntriesTable.id, req.params.id), eq(analyticalEntriesTable.organizationId, orgId)));
+      .where(and(eq(analyticalEntriesTable.id, (req.params.id as string)), eq(analyticalEntriesTable.organizationId, orgId)));
     res.status(204).send();
   } catch (e) { next(e); }
 });
@@ -213,7 +213,7 @@ router.patch("/analytics/allocation-rules/:id", requireManagerOrAbove, async (re
       targetCostType: targetCostType as string | null | undefined,
       allocations: allocations as object[] | undefined,
       isActive: isActive as boolean | undefined,
-    }).where(and(eq(allocationRulesTable.id, req.params.id), eq(allocationRulesTable.organizationId, orgId))).returning();
+    }).where(and(eq(allocationRulesTable.id, (req.params.id as string)), eq(allocationRulesTable.organizationId, orgId))).returning();
     if (!row) { res.status(404).json({ error: "Règle introuvable" }); return; }
     res.json(row);
   } catch (e) { next(e); }
@@ -223,7 +223,7 @@ router.delete("/analytics/allocation-rules/:id", requireManagerOrAbove, async (r
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(allocationRulesTable)
-      .where(and(eq(allocationRulesTable.id, req.params.id), eq(allocationRulesTable.organizationId, orgId)));
+      .where(and(eq(allocationRulesTable.id, (req.params.id as string)), eq(allocationRulesTable.organizationId, orgId)));
     res.status(204).send();
   } catch (e) { next(e); }
 });

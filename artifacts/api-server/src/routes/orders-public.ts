@@ -11,7 +11,7 @@ const toNum = (v: string | null | undefined) => (v ? Number(v) : null);
 
 router.get("/public/invoices/:token", async (req, res, next) => {
   try {
-    const token = String(req.params.token);
+    const token = String((req.params.token as string));
     const rows = await db
       .select({ inv: invoicesTable, clientName: clientsTable.name, clientEmail: clientsTable.email })
       .from(invoicesTable)

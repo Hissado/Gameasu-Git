@@ -44,7 +44,7 @@ router.post("/crm/opportunities", async (req, res) => {
 });
 
 router.get("/crm/opportunities/:id", async (req, res) => {
-  const opps = await db.select().from(opportunitiesTable).where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, req.params.id))).limit(1);
+  const opps = await db.select().from(opportunitiesTable).where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, (req.params.id as string)))).limit(1);
   if (!opps[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...opps[0], value: opps[0].value ? Number(opps[0].value) : null });
 });
@@ -52,13 +52,13 @@ router.get("/crm/opportunities/:id", async (req, res) => {
 router.put("/crm/opportunities/:id", async (req, res) => {
   const { title, clientId, stage, value, currency, probability, assignedToId, expectedCloseDate, notes } = req.body;
   const [opp] = await db.update(opportunitiesTable).set({ title, clientId, stage, value: value?.toString(), currency, probability, assignedToId, expectedCloseDate, notes })
-    .where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, req.params.id))).returning();
+    .where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, (req.params.id as string)))).returning();
   if (!opp) return res.status(404).json({ error: "Not found" });
   return res.json({ ...opp, value: opp.value ? Number(opp.value) : null });
 });
 
 router.delete("/crm/opportunities/:id", async (req, res) => {
-  await db.update(opportunitiesTable).set({ deletedAt: new Date() }).where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, req.params.id)));
+  await db.update(opportunitiesTable).set({ deletedAt: new Date() }).where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 
@@ -113,7 +113,7 @@ router.post("/crm/opportunities/:id/convert-to-client", async (req, res, next) =
   try {
     const orgId = req.authUser!.organizationId;
     const [opp] = await db.select().from(opportunitiesTable)
-      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, req.params.id))).limit(1);
+      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, (req.params.id as string)))).limit(1);
     if (!opp) { res.status(404).json({ error: "Opportunité introuvable" }); return; }
 
     let clientId = opp.clientId;
@@ -139,7 +139,7 @@ router.post("/crm/opportunities/:id/convert-to-client", async (req, res, next) =
 
     const [updatedOpp] = await db.update(opportunitiesTable)
       .set({ stage: "won", clientId })
-      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, req.params.id)))
+      .where(and(eq(opportunitiesTable.organizationId, orgId), eq(opportunitiesTable.id, (req.params.id as string))))
       .returning();
 
     res.json({ clientId, created, opportunity: { ...updatedOpp, value: updatedOpp.value ? Number(updatedOpp.value) : null } });

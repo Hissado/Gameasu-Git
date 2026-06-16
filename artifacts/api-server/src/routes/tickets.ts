@@ -45,7 +45,7 @@ router.get("/tickets/stats", async (req, res) => {
 });
 
 router.get("/tickets/:id", async (req, res) => {
-  const [t] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).limit(1);
+  const [t] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, (req.params.id as string)))).limit(1);
   if (!t) return res.status(404).json({ error: "Ticket introuvable" });
   return res.json(t);
 });
@@ -79,7 +79,7 @@ router.post("/tickets", async (req, res) => {
 router.put("/tickets/:id", async (req, res) => {
   try {
     const { subject, description, category, priority, status, assigneeId } = req.body;
-    const [existing] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).limit(1);
+    const [existing] = await db.select().from(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, (req.params.id as string)))).limit(1);
     if (!existing) return res.status(404).json({ error: "Ticket introuvable" });
 
     const role = req.authUser?.role;
@@ -119,7 +119,7 @@ router.put("/tickets/:id", async (req, res) => {
     if (assigneeId !== undefined) patch.assigneeId = assigneeId || null;
     if (Object.keys(patch).length === 0) return res.json(existing);
 
-    const [t] = await db.update(ticketsTable).set(patch).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id))).returning();
+    const [t] = await db.update(ticketsTable).set(patch).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, (req.params.id as string)))).returning();
     return res.json(t);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -127,7 +127,7 @@ router.put("/tickets/:id", async (req, res) => {
 });
 
 router.delete("/tickets/:id", requireAdmin, async (req, res) => {
-  await db.delete(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, req.params.id)));
+  await db.delete(ticketsTable).where(and(eq(ticketsTable.organizationId, req.authUser!.organizationId), eq(ticketsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
 

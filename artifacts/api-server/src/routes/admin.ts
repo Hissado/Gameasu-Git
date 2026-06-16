@@ -62,8 +62,8 @@ router.get("/admin/roles", requirePermission("roles.read"), async (_req, res) =>
 });
 
 router.get("/admin/roles/:id", requirePermission("roles.read"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
   if (!role) return res.status(404).json({ error: "Introuvable" });
   const perms = await db
     .select({ id: permissionsTable.id, code: permissionsTable.code })
@@ -91,8 +91,8 @@ router.post("/admin/roles", requirePermission("roles.manage"), async (req, res) 
 });
 
 router.put("/admin/roles/:id", requirePermission("roles.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [existing] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [existing] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
   if (!existing) return res.status(404).json({ error: "Introuvable" });
   const { name, description, level } = req.body || {};
   const upd: any = {};
@@ -104,15 +104,15 @@ router.put("/admin/roles/:id", requirePermission("roles.manage"), async (req, re
     if (!/^[a-z0-9_]+$/.test(String(req.body.code))) return res.status(400).json({ error: "code invalide" });
     upd.code = req.body.code;
   }
-  const [r] = await db.update(rolesTable).set(upd).where(eq(rolesTable.id, req.params.id)).returning();
+  const [r] = await db.update(rolesTable).set(upd).where(eq(rolesTable.id, (req.params.id as string))).returning();
   invalidatePermissionsCache();
   await audit(req, "update", { entityType: "role", entityId: r.id, payload: { before: existing, after: r } });
   return res.json(r);
 });
 
 router.delete("/admin/roles/:id", requirePermission("roles.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [r] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [r] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
   if (!r) return res.status(404).json({ error: "Introuvable" });
   if (r.isSystem) return res.status(400).json({ error: "Rôle système non supprimable" });
   // Vérifier qu'aucun utilisateur ne porte ce rôle.
@@ -126,8 +126,8 @@ router.delete("/admin/roles/:id", requirePermission("roles.manage"), async (req,
 
 // Mise à jour de la matrice de permissions d'un rôle (remplacement complet).
 router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
   if (!role) return res.status(404).json({ error: "Introuvable" });
   const { permissionIds } = req.body || {};
   if (!Array.isArray(permissionIds)) return res.status(400).json({ error: "permissionIds doit être un tableau" });
@@ -155,8 +155,8 @@ router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), as
 // ════════════════════════════════════════════════════════════════════
 router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), async (req, res, next) => {
   try {
-    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-    const [src] = await db.select().from(rolesTable).where(eq(rolesTable.id, req.params.id)).limit(1);
+    if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+    const [src] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
     if (!src) return res.status(404).json({ error: "Introuvable" });
     const rawCode = (req.body?.newCode ?? `${src.code}_copie`).toString().trim();
     const rawName = (req.body?.newName ?? `${src.name} (copie)`).toString().trim();
@@ -188,12 +188,12 @@ router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), asy
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/users/:id/effective-permissions", requirePermission("users.read"), async (req, res, next) => {
   try {
-    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
     const [u] = await db.select({
       id: usersTable.id, email: usersTable.email,
       firstName: usersTable.firstName, lastName: usersTable.lastName,
       role: usersTable.role, isActive: usersTable.isActive,
-    }).from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+    }).from(usersTable).where(eq(usersTable.id, (req.params.id as string))).limit(1);
     if (!u) return res.status(404).json({ error: "Introuvable" });
     const isFullAccess = u.role === "super_admin" || u.role === "admin";
     const [roleRow] = await db.select().from(rolesTable).where(eq(rolesTable.code, u.role)).limit(1);
@@ -245,11 +245,11 @@ router.get("/admin/users/:id/effective-permissions", requirePermission("users.re
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/users/:id/permission-overrides", requirePermission("users.read"), async (req, res, next) => {
   try {
-    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
     const overrides = await db
       .select()
       .from(userPermissionOverridesTable)
-      .where(eq(userPermissionOverridesTable.userId, req.params.id))
+      .where(eq(userPermissionOverridesTable.userId, (req.params.id as string)))
       .orderBy(desc(userPermissionOverridesTable.createdAt));
     return res.json({ data: overrides });
   } catch (e) { return next(e); }
@@ -257,17 +257,17 @@ router.get("/admin/users/:id/permission-overrides", requirePermission("users.rea
 
 router.post("/admin/users/:id/permission-overrides", requirePermission("users.manage"), async (req, res, next) => {
   try {
-    if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+    if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
     const { permissionCode, type, reason, expiresAt } = req.body || {};
     if (!permissionCode || !type || !["grant", "deny"].includes(type)) {
       return res.status(400).json({ error: "permissionCode et type (grant|deny) requis" });
     }
-    const [u] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+    const [u] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, (req.params.id as string))).limit(1);
     if (!u) return res.status(404).json({ error: "Utilisateur introuvable" });
     const [ov] = await db
       .insert(userPermissionOverridesTable)
       .values({
-        userId: req.params.id, permissionCode, type,
+        userId: (req.params.id as string), permissionCode, type,
         reason: reason || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         grantedBy: req.authUser!.id,
@@ -277,22 +277,22 @@ router.post("/admin/users/:id/permission-overrides", requirePermission("users.ma
         set: { type, reason: reason || null, expiresAt: expiresAt ? new Date(expiresAt) : null, grantedBy: req.authUser!.id },
       })
       .returning();
-    invalidatePermissionsCache(req.params.id);
-    await audit(req, "permission_change", { entityType: "user", entityId: req.params.id, payload: { added: { type, permissionCode, reason, expiresAt } } });
+    invalidatePermissionsCache((req.params.id as string));
+    await audit(req, "permission_change", { entityType: "user", entityId: (req.params.id as string), payload: { added: { type, permissionCode, reason, expiresAt } } });
     return res.status(201).json(ov);
   } catch (e) { return next(e); }
 });
 
 router.delete("/admin/users/:id/permission-overrides/:overrideId", requirePermission("users.manage"), async (req, res, next) => {
   try {
-    if (!isUuid(req.params.id) || !isUuid(req.params.overrideId)) return res.status(400).json({ error: "id invalide" });
+    if (!isUuid((req.params.id as string)) || !isUuid((req.params.overrideId as string))) return res.status(400).json({ error: "id invalide" });
     const [deleted] = await db
       .delete(userPermissionOverridesTable)
-      .where(and(eq(userPermissionOverridesTable.id, req.params.overrideId), eq(userPermissionOverridesTable.userId, req.params.id)))
+      .where(and(eq(userPermissionOverridesTable.id, (req.params.overrideId as string)), eq(userPermissionOverridesTable.userId, (req.params.id as string))))
       .returning();
     if (!deleted) return res.status(404).json({ error: "Surcharge introuvable" });
-    invalidatePermissionsCache(req.params.id);
-    await audit(req, "permission_change", { entityType: "user", entityId: req.params.id, payload: { removed: deleted } });
+    invalidatePermissionsCache((req.params.id as string));
+    await audit(req, "permission_change", { entityType: "user", entityId: (req.params.id as string), payload: { removed: deleted } });
     return res.json({ ok: true });
   } catch (e) { return next(e); }
 });
@@ -327,20 +327,20 @@ router.post("/departments", requirePermission("departments.manage"), async (req,
 });
 
 router.put("/departments/:id", requirePermission("departments.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const { code, name, description, parentId, headCollaboratorId, color } = req.body || {};
-  const [before] = await db.select().from(departmentsTable).where(eq(departmentsTable.id, req.params.id)).limit(1);
+  const [before] = await db.select().from(departmentsTable).where(eq(departmentsTable.id, (req.params.id as string))).limit(1);
   if (!before) return res.status(404).json({ error: "Introuvable" });
   const [d] = await db.update(departmentsTable)
     .set({ code, name, description, parentId, headCollaboratorId, color })
-    .where(eq(departmentsTable.id, req.params.id)).returning();
+    .where(eq(departmentsTable.id, (req.params.id as string))).returning();
   await audit(req, "update", { entityType: "department", entityId: d.id, payload: { before, after: d } });
   return res.json(d);
 });
 
 router.delete("/departments/:id", requirePermission("departments.manage"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
-  const [d] = await db.select().from(departmentsTable).where(eq(departmentsTable.id, req.params.id)).limit(1);
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const [d] = await db.select().from(departmentsTable).where(eq(departmentsTable.id, (req.params.id as string))).limit(1);
   if (!d) return res.status(404).json({ error: "Introuvable" });
   // Détachement : on libère les utilisateurs et collaborateurs rattachés.
   await db.update(usersTable).set({ departmentId: null }).where(eq(usersTable.departmentId, d.id));
@@ -417,10 +417,10 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
 });
 
 router.post("/admin/users/:id/revoke-invitation", requirePermission("users.invite"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const [u] = await db.select().from(usersTable)
     .where(and(
-      eq(usersTable.id, req.params.id),
+      eq(usersTable.id, (req.params.id as string)),
       eq(usersTable.organizationId, req.authUser!.organizationId),
     )).limit(1);
   if (!u) return res.status(404).json({ error: "Utilisateur introuvable" });
@@ -436,9 +436,9 @@ router.post("/admin/users/:id/revoke-invitation", requirePermission("users.invit
 });
 
 router.post("/admin/users/:id/resend-invitation", requirePermission("users.invite"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const [u] = await db.select().from(usersTable)
-    .where(and(eq(usersTable.id, req.params.id), eq(usersTable.organizationId, req.authUser!.organizationId)))
+    .where(and(eq(usersTable.id, (req.params.id as string)), eq(usersTable.organizationId, req.authUser!.organizationId)))
     .limit(1);
   if (!u) return res.status(404).json({ error: "Introuvable" });
   if (u.acceptedAt) return res.status(400).json({ error: "Invitation déjà acceptée" });
@@ -481,7 +481,7 @@ router.get("/admin/invitations", requirePermission("users.invite"), async (req, 
 
 // Gestion accès projet
 router.get("/admin/users/:id/project-access", requirePermission("users.assign_projects"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const rows = await db.select({
     id: userProjectAccessTable.id,
     projectId: userProjectAccessTable.projectId,
@@ -490,12 +490,12 @@ router.get("/admin/users/:id/project-access", requirePermission("users.assign_pr
     projectName: projectsTable.name,
   }).from(userProjectAccessTable)
     .leftJoin(projectsTable, eq(projectsTable.id, userProjectAccessTable.projectId))
-    .where(eq(userProjectAccessTable.userId, req.params.id));
+    .where(eq(userProjectAccessTable.userId, (req.params.id as string)));
   return res.json({ data: rows });
 });
 
 router.put("/admin/users/:id/project-access", requirePermission("users.assign_projects"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const { items } = req.body || {};
   if (!Array.isArray(items)) return res.status(400).json({ error: "items doit être un tableau" });
   for (const it of items) {
@@ -503,16 +503,16 @@ router.put("/admin/users/:id/project-access", requirePermission("users.assign_pr
     if (!["viewer", "editor", "manager"].includes(it.accessLevel)) return res.status(400).json({ error: "accessLevel invalide" });
   }
   await db.transaction(async (tx) => {
-    await tx.delete(userProjectAccessTable).where(eq(userProjectAccessTable.userId, req.params.id));
+    await tx.delete(userProjectAccessTable).where(eq(userProjectAccessTable.userId, (req.params.id as string)));
     if (items.length > 0) {
       await tx.insert(userProjectAccessTable).values(items.map((it: any) => ({
-        userId: req.params.id, projectId: it.projectId, accessLevel: it.accessLevel,
+        userId: (req.params.id as string), projectId: it.projectId, accessLevel: it.accessLevel,
         grantedById: req.authUser?.id ?? null,
       })));
     }
   });
-  invalidatePermissionsCache(req.params.id);
-  await audit(req, "project_access_grant", { entityType: "user", entityId: req.params.id, payload: items });
+  invalidatePermissionsCache((req.params.id as string));
+  await audit(req, "project_access_grant", { entityType: "user", entityId: (req.params.id as string), payload: items });
   return res.json({ success: true, count: items.length });
 });
 
@@ -520,7 +520,7 @@ router.put("/admin/users/:id/project-access", requirePermission("users.assign_pr
 // ACCÈS CLIENT — gestion ACL client-first
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const rows = await db.select({
     id: userClientAccessTable.id,
     clientId: userClientAccessTable.clientId,
@@ -529,12 +529,12 @@ router.get("/admin/users/:id/client-access", requirePermission("users.assign_pro
     clientName: clientsTable.name,
   }).from(userClientAccessTable)
     .leftJoin(clientsTable, eq(clientsTable.id, userClientAccessTable.clientId))
-    .where(eq(userClientAccessTable.userId, req.params.id));
+    .where(eq(userClientAccessTable.userId, (req.params.id as string)));
   return res.json({ data: rows });
 });
 
 router.put("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
-  if (!isUuid(req.params.id)) return res.status(400).json({ error: "id invalide" });
+  if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const { items } = req.body || {};
   if (!Array.isArray(items)) return res.status(400).json({ error: "items doit être un tableau" });
   for (const it of items) {
@@ -542,16 +542,17 @@ router.put("/admin/users/:id/client-access", requirePermission("users.assign_pro
     if (!["viewer", "editor", "manager"].includes(it.accessLevel)) return res.status(400).json({ error: "accessLevel invalide" });
   }
   await db.transaction(async (tx) => {
-    await tx.delete(userClientAccessTable).where(eq(userClientAccessTable.userId, req.params.id));
+    await tx.delete(userClientAccessTable).where(eq(userClientAccessTable.userId, (req.params.id as string)));
     if (items.length > 0) {
       await tx.insert(userClientAccessTable).values(items.map((it: any) => ({
-        userId: req.params.id, clientId: it.clientId, accessLevel: it.accessLevel,
+        organizationId: req.authUser!.organizationId,
+        userId: (req.params.id as string), clientId: it.clientId, accessLevel: it.accessLevel,
         grantedById: req.authUser?.id ?? null,
       })));
     }
   });
-  invalidatePermissionsCache(req.params.id);
-  await audit(req, "client_access_grant", { entityType: "user", entityId: req.params.id, payload: items });
+  invalidatePermissionsCache((req.params.id as string));
+  await audit(req, "client_access_grant", { entityType: "user", entityId: (req.params.id as string), payload: items });
   return res.json({ success: true, count: items.length });
 });
 
@@ -587,7 +588,7 @@ router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => 
 // ════════════════════════════════════════════════════════════════════
 router.post("/admin/seed-demo", requirePermission("users.assign_projects"), async (req, res) => {
   try {
-    const force = req.query.force === "true" || req.body?.force === true;
+    const force = (req.query.force as string) === "true" || req.body?.force === true;
     const result = await seedDemo({ force });
     await audit(req as any, force ? "update" : "create", { entityType: "demo_seed", payload: { force, ...result } });
     return res.json(result);

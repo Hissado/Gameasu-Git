@@ -137,7 +137,7 @@ router.post("/billing/payment-transactions/:id/confirm", requireAdmin, async (re
     .select()
     .from(paymentTransactionsTable)
     .where(and(
-      eq(paymentTransactionsTable.id, req.params.id),
+      eq(paymentTransactionsTable.id, (req.params.id as string)),
       eq(paymentTransactionsTable.organizationId, orgId),
     ))
     .limit(1);
@@ -215,7 +215,7 @@ router.post("/billing/payment-transactions/:id/cancel", requireAdmin, async (req
     .select()
     .from(paymentTransactionsTable)
     .where(and(
-      eq(paymentTransactionsTable.id, req.params.id),
+      eq(paymentTransactionsTable.id, (req.params.id as string)),
       eq(paymentTransactionsTable.organizationId, orgId),
     ))
     .limit(1);
@@ -243,7 +243,7 @@ router.get("/billing/payment-transactions/:id/receipt", requireAdmin, async (req
     .select()
     .from(paymentTransactionsTable)
     .where(and(
-      eq(paymentTransactionsTable.id, req.params.id),
+      eq(paymentTransactionsTable.id, (req.params.id as string)),
       eq(paymentTransactionsTable.organizationId, orgId),
     ))
     .limit(1);
@@ -277,7 +277,7 @@ router.get("/billing/payment-transactions/:id/receipt", requireAdmin, async (req
 // Endpoint webhook prêt pour l'intégration de passerelles réelles.
 // À sécuriser avec vérification de signature selon la passerelle.
 router.post("/webhooks/payment/:gateway", async (req, res) => {
-  const { gateway } = req.params;
+  const { gateway } = req.params as Record<string, string>;
   logger.info({ gateway, headers: req.headers["x-gateway-signature"], body: req.body }, "Webhook payment reçu");
 
   // TODO (intégration réelle) :
@@ -315,7 +315,7 @@ router.get("/admin/payment-gateway", requireAdmin, async (_req, res) => {
 
 // ── PUT /admin/payment-gateway/:gateway ───────────────────────────
 router.put("/admin/payment-gateway/:gateway", requireAdmin, async (req, res) => {
-  const { gateway } = req.params;
+  const { gateway } = req.params as Record<string, string>;
   const { isEnabled, isSandbox, publicKey, webhookUrl, txFeePercent, txFeeFixed, minAmount, maxAmount } = req.body;
 
   const [existing] = await db

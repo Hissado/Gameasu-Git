@@ -78,7 +78,7 @@ router.get("/migration/modules", requireAuth, async (req, res, next) => {
 
 router.get("/migration/templates/:module", requireAuth, async (req, res, next) => {
   try {
-    const mod = getModule(req.params.module);
+    const mod = getModule((req.params.module as string));
     if (!mod) { res.status(404).json({ error: "Module introuvable" }); return; }
     await generateTemplate(mod, res);
   } catch (e) { next(e); }
@@ -288,7 +288,7 @@ router.get("/migration/sessions/:id", requireAuth, requireManagerOrAbove, async 
   try {
     const orgId = req.authUser!.organizationId;
     const [session] = await db.select().from(importSessionsTable)
-      .where(and(eq(importSessionsTable.id, req.params.id), eq(importSessionsTable.organizationId, orgId)));
+      .where(and(eq(importSessionsTable.id, (req.params.id as string)), eq(importSessionsTable.organizationId, orgId)));
     if (!session) { res.status(404).json({ error: "Session introuvable" }); return; }
     res.json(session);
   } catch (e) { next(e); }

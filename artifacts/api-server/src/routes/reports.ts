@@ -63,8 +63,8 @@ function parsePeriod(req: { query: any }): { from: Date; to: Date; fromIso: stri
   const now = new Date();
   const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1);
   const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  const fromStr = typeof req.query.from === "string" ? req.query.from : "";
-  const toStr = typeof req.query.to === "string" ? req.query.to : "";
+  const fromStr = typeof (req.query.from as string) === "string" ? (req.query.from as string) : "";
+  const toStr = typeof (req.query.to as string) === "string" ? (req.query.to as string) : "";
   // Format attendu : YYYY-MM-DD. On force minuit local pour `from`, fin de journée pour `to`,
   // afin d'éviter les décalages dus à l'interprétation UTC de "YYYY-MM-DD" par new Date().
   const ymd = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -270,11 +270,12 @@ router.get("/reports/stock-daily/history", requireAuth, async (_req, res) => {
 
 // Capture (snapshot) le rapport journalier dans dailyStockReportsTable
 router.post("/reports/stock-daily/snapshot", requireAuth, requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const equipment = await db
     .select({ e: equipmentTable, categoryName: equipmentCategoriesTable.name })
     .from(equipmentTable)
     .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
-    .where(isNull(equipmentTable.deletedAt));
+    .where(and(eq(equipmentTable.organizationId, orgId), isNull(equipmentTable.deletedAt)));
 
   const byCategory: Record<string, { total: number; available: number; rented: number; maintenance: number }> = {};
   let totals = { total: 0, available: 0, rented: 0, maintenance: 0 };
@@ -293,11 +294,12 @@ router.post("/reports/stock-daily/snapshot", requireAuth, requireManagerOrAbove,
   const movements = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(equipmentMovementsTable)
-    .where(gte(equipmentMovementsTable.createdAt, yesterday));
+    .where(and(eq(equipmentMovementsTable.organizationId, orgId), gte(equipmentMovementsTable.createdAt, yesterday)));
 
   const [snapshot] = await db
     .insert(dailyStockReportsTable)
     .values({
+      organizationId: orgId,
       reportDate: new Date().toISOString().slice(0, 10),
       totalEquipment: totals.total,
       available: totals.available,
@@ -1898,8 +1900,8 @@ router.get("/reports/finance/balance-sheet", requireAuth, requireManagerOrAbove,
 router.get("/reports/aged-payables", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const supplierSearch = typeof req.query.supplier === "string" ? req.query.supplier.toLowerCase() : "";
-    const statusFilter = typeof req.query.status === "string" ? req.query.status : "";
+    const supplierSearch = typeof (req.query.supplier as string) === "string" ? (req.query.supplier as string).toLowerCase() : "";
+    const statusFilter = typeof (req.query.status as string) === "string" ? (req.query.status as string) : "";
 
     const invoices = await db
       .select({

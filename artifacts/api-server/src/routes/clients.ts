@@ -45,23 +45,23 @@ router.post("/clients", requirePermission("clients.manage"), async (req, res) =>
 });
 
 router.get("/clients/:id", requirePermission("clients.read"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
   const clients = await db.select().from(clientsTable).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
-    eq(clientsTable.id, req.params.id),
+    eq(clientsTable.id, (req.params.id as string)),
   )).limit(1);
   if (!clients[0]) { res.status(404).json({ error: "Not found" }); return; }
   const contacts = await db.select().from(clientContactsTable).where(and(
     eq(clientContactsTable.organizationId, req.authUser!.organizationId),
-    eq(clientContactsTable.clientId, req.params.id),
+    eq(clientContactsTable.clientId, (req.params.id as string)),
   ));
   res.json({ ...clients[0], contacts, projectsCount: 0, ordersCount: 0, totalRevenue: 0 }); return;
 });
 
 router.put("/clients/:id", requirePermission("clients.manage"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
   const { name, email, phone, industry, address, website, status, creditLimit, paymentTermsDays } = req.body;
@@ -70,7 +70,7 @@ router.put("/clients/:id", requirePermission("clients.manage"), async (req, res)
   if (paymentTermsDays !== undefined) update.paymentTermsDays = paymentTermsDays === "" || paymentTermsDays === null ? null : Number(paymentTermsDays);
   const [client] = await db.update(clientsTable).set(update).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
-    eq(clientsTable.id, req.params.id),
+    eq(clientsTable.id, (req.params.id as string)),
   )).returning();
   if (!client) { res.status(404).json({ error: "Not found" }); return; }
   res.json(client); return;
@@ -79,14 +79,14 @@ router.put("/clients/:id", requirePermission("clients.manage"), async (req, res)
 // ── Credit Risk ──────────────────────────────────────────────────────────────
 
 router.get("/clients/:id/credit-risk", requirePermission("clients.read"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé" }); return;
   }
   const [client] = await db.select({
     id: clientsTable.id, creditLimit: clientsTable.creditLimit, paymentTermsDays: clientsTable.paymentTermsDays,
   }).from(clientsTable).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
-    eq(clientsTable.id, req.params.id),
+    eq(clientsTable.id, (req.params.id as string)),
   )).limit(1);
   if (!client) { res.status(404).json({ error: "Not found" }); return; }
 
@@ -96,7 +96,7 @@ router.get("/clients/:id/credit-risk", requirePermission("clients.read"), async 
     dueDate: invoicesTable.dueDate,
   }).from(invoicesTable).where(and(
     eq(invoicesTable.organizationId, req.authUser!.organizationId),
-    eq(invoicesTable.clientId, req.params.id),
+    eq(invoicesTable.clientId, (req.params.id as string)),
   ));
 
   const now = Date.now();
@@ -130,35 +130,35 @@ router.get("/clients/:id/credit-risk", requirePermission("clients.read"), async 
 });
 
 router.delete("/clients/:id", requirePermission("clients.manage"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
   await db.update(clientsTable).set({ deletedAt: new Date() }).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
-    eq(clientsTable.id, req.params.id),
+    eq(clientsTable.id, (req.params.id as string)),
   ));
   res.status(204).send(); return;
 });
 
 router.get("/clients/:id/contacts", requirePermission("clients.read"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
   const contacts = await db.select().from(clientContactsTable).where(and(
     eq(clientContactsTable.organizationId, req.authUser!.organizationId),
-    eq(clientContactsTable.clientId, req.params.id),
+    eq(clientContactsTable.clientId, (req.params.id as string)),
   ));
   res.json(contacts); return;
 });
 
 router.post("/clients/:id/contacts", requirePermission("clients.manage"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
   const { firstName, lastName, email, phone, role, isPrimary } = req.body;
   const [contact] = await db.insert(clientContactsTable).values({
     organizationId: req.authUser!.organizationId,
-    clientId: req.params.id, firstName, lastName, email, phone, role,
+    clientId: (req.params.id as string), firstName, lastName, email, phone, role,
     isPrimary: isPrimary ? "true" : "false",
   }).returning();
   res.status(201).json({ ...contact, isPrimary: contact.isPrimary === "true" }); return;
@@ -167,21 +167,21 @@ router.post("/clients/:id/contacts", requirePermission("clients.manage"), async 
 // ── Emails ──────────────────────────────────────────────────────────────────
 
 router.get("/clients/:id/emails", requirePermission("clients.read"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé" }); return;
   }
   const emails = await db.select().from(clientEmailLogsTable)
-    .where(eq(clientEmailLogsTable.clientId, req.params.id))
+    .where(eq(clientEmailLogsTable.clientId, (req.params.id as string)))
     .orderBy(desc(clientEmailLogsTable.sentAt))
     .limit(100);
   res.json({ data: emails }); return;
 });
 
 router.post("/clients/:id/emails/send", requirePermission("clients.manage"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé" }); return;
   }
-  const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, req.params.id)).limit(1);
+  const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, (req.params.id as string))).limit(1);
   if (!client) { res.status(404).json({ error: "Client introuvable" }); return; }
 
   const { subject, body, toAddress } = req.body || {};
@@ -189,7 +189,7 @@ router.post("/clients/:id/emails/send", requirePermission("clients.manage"), asy
 
   const [log] = await db.insert(clientEmailLogsTable).values({
     organizationId: req.authUser!.organizationId,
-    clientId: req.params.id,
+    clientId: (req.params.id as string),
     direction: "outbound",
     subject,
     fromAddress: "noreply@gameasù.com",
@@ -205,10 +205,10 @@ router.post("/clients/:id/emails/send", requirePermission("clients.manage"), asy
 // ── Activity timeline ────────────────────────────────────────────────────────
 
 router.get("/clients/:id/activity", requirePermission("clients.read"), async (req, res) => {
-  if (req.authUser && !(await userHasClientAccess(req.authUser.id, req.params.id))) {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé" }); return;
   }
-  const clientId = req.params.id;
+  const clientId = (req.params.id as string);
   const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, clientId)).limit(1);
   if (!client) { res.status(404).json({ error: "Client introuvable" }); return; }
 
@@ -261,7 +261,7 @@ router.get("/clients/:id/activity", requirePermission("clients.read"), async (re
 
 // ─── Notes ────────────────────────────────────────────────────────────────────
 router.get("/clients/:id/notes", requirePermission("clients.read"), async (req, res) => {
-  const clientId = req.params.id;
+  const clientId = (req.params.id as string);
   const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, clientId)).limit(1);
   if (!client) { res.status(404).json({ error: "Client introuvable" }); return; }
   const notes = await db.select().from(clientNotesTable)
@@ -271,7 +271,7 @@ router.get("/clients/:id/notes", requirePermission("clients.read"), async (req, 
 });
 
 router.post("/clients/:id/notes", requirePermission("clients.manage"), async (req, res) => {
-  const clientId = req.params.id;
+  const clientId = (req.params.id as string);
   const { content } = req.body || {};
   if (!content?.trim()) { res.status(400).json({ error: "Contenu requis" }); return; }
   const { pinned } = req.body || {};
@@ -292,7 +292,7 @@ router.patch("/clients/:id/notes/:noteId", requirePermission("clients.manage"), 
   if (pinned !== undefined) updates.pinned = pinned;
   const [note] = await db.update(clientNotesTable)
     .set(updates)
-    .where(and(eq(clientNotesTable.id, req.params.noteId), eq(clientNotesTable.clientId, req.params.id)))
+    .where(and(eq(clientNotesTable.id, (req.params.noteId as string)), eq(clientNotesTable.clientId, (req.params.id as string))))
     .returning();
   if (!note) { res.status(404).json({ error: "Note introuvable" }); return; }
   res.json(note); return;
@@ -300,7 +300,7 @@ router.patch("/clients/:id/notes/:noteId", requirePermission("clients.manage"), 
 
 router.delete("/clients/:id/notes/:noteId", requirePermission("clients.manage"), async (req, res) => {
   await db.delete(clientNotesTable)
-    .where(and(eq(clientNotesTable.id, req.params.noteId), eq(clientNotesTable.clientId, req.params.id)));
+    .where(and(eq(clientNotesTable.id, (req.params.noteId as string)), eq(clientNotesTable.clientId, (req.params.id as string))));
   res.json({ success: true }); return;
 });
 

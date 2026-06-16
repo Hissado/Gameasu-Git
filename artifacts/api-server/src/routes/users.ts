@@ -87,8 +87,8 @@ router.post("/users", requirePermission("users.create"), async (req, res) => {
 
 router.get("/users/:id", requirePermission("users.read"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  if (!(await userBelongsToOrg(req.params.id, orgId))) return res.status(404).json({ error: "Not found" });
-  const users = await db.select().from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+  if (!(await userBelongsToOrg((req.params.id as string), orgId))) return res.status(404).json({ error: "Not found" });
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, (req.params.id as string))).limit(1);
   if (!users[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...users[0], password: undefined });
 });
@@ -96,20 +96,20 @@ router.get("/users/:id", requirePermission("users.read"), async (req, res) => {
 router.put("/users/:id", requirePermission("users.update"), async (req, res) => {
   const { firstName, lastName, role, phone, isActive, departmentId } = req.body;
   const orgId = req.authUser!.organizationId;
-  if (!(await userBelongsToOrg(req.params.id, orgId))) return res.status(404).json({ error: "Not found" });
-  const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, req.params.id)).limit(1);
+  if (!(await userBelongsToOrg((req.params.id as string), orgId))) return res.status(404).json({ error: "Not found" });
+  const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, (req.params.id as string))).limit(1);
   if (!previous) return res.status(404).json({ error: "Not found" });
 
   // Garde-fous : empêcher l'auto-désactivation et la perte du dernier admin.
-  if (req.authUser?.id === req.params.id && isActive === false) {
+  if (req.authUser?.id === (req.params.id as string) && isActive === false) {
     return res.status(409).json({ error: "Vous ne pouvez pas désactiver votre propre compte." });
   }
-  if (req.authUser?.id === req.params.id && role && role !== previous.role) {
+  if (req.authUser?.id === (req.params.id as string) && role && role !== previous.role) {
     return res.status(409).json({ error: "Vous ne pouvez pas modifier votre propre rôle." });
   }
   try {
     if (isActive === false || (role && role !== previous.role && previous.role === "admin")) {
-      await ensureNotLastAdmin(req.params.id, orgId);
+      await ensureNotLastAdmin((req.params.id as string), orgId);
     }
   } catch (e: any) {
     return res.status(e.status || 500).json({ error: e.message });
@@ -117,7 +117,7 @@ router.put("/users/:id", requirePermission("users.update"), async (req, res) => 
 
   const [user] = await db.update(usersTable)
     .set({ firstName, lastName, role, phone, isActive, departmentId: departmentId || null })
-    .where(eq(usersTable.id, req.params.id))
+    .where(eq(usersTable.id, (req.params.id as string)))
     .returning();
 
   // Audit ciblé sur les changements sensibles.
@@ -132,14 +132,14 @@ router.put("/users/:id", requirePermission("users.update"), async (req, res) => 
 
 router.delete("/users/:id", requirePermission("users.delete"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  if (req.authUser?.id === req.params.id) {
+  if (req.authUser?.id === (req.params.id as string)) {
     return res.status(409).json({ error: "Vous ne pouvez pas supprimer votre propre compte." });
   }
-  if (!(await userBelongsToOrg(req.params.id, orgId))) return res.status(404).json({ error: "Not found" });
-  try { await ensureNotLastAdmin(req.params.id, orgId); }
+  if (!(await userBelongsToOrg((req.params.id as string), orgId))) return res.status(404).json({ error: "Not found" });
+  try { await ensureNotLastAdmin((req.params.id as string), orgId); }
   catch (e: any) { return res.status(e.status || 500).json({ error: e.message }); }
-  await db.update(usersTable).set({ isActive: false }).where(eq(usersTable.id, req.params.id));
-  await audit(req, "delete", { entityType: "user", entityId: req.params.id });
+  await db.update(usersTable).set({ isActive: false }).where(eq(usersTable.id, (req.params.id as string)));
+  await audit(req, "delete", { entityType: "user", entityId: (req.params.id as string) });
   return res.status(204).send();
 });
 

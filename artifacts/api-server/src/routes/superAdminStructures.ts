@@ -380,14 +380,14 @@ router.post("/super-admin/structure-invitations/:id/revoke", sa, async (req, res
     const [updated] = await db.update(structureInvitationsTable)
       .set({ status: "revoked" })
       .where(and(
-        eq(structureInvitationsTable.id, req.params.id),
+        eq(structureInvitationsTable.id, (req.params.id as string)),
         eq(structureInvitationsTable.status, "pending"),
       ))
       .returning();
     if (!updated) return res.status(404).json({ error: "Invitation introuvable ou déjà traitée" });
     // Passer organizationId explicitement : org cible, pas l'org du super-admin opérateur
     await audit(req, "onboarding_link_revoked", {
-      entityType: "structureInvitation", entityId: req.params.id,
+      entityType: "structureInvitation", entityId: (req.params.id as string),
       organizationId: updated.organizationId ?? undefined,
       payload: { organizationId: updated.organizationId },
     });
@@ -404,7 +404,7 @@ export const publicOnboardingRouter: IRouter = Router();
 publicOnboardingRouter.get("/structure-onboarding/:token", async (req, res, next) => {
   try {
     const [inv] = await db.select().from(structureInvitationsTable)
-      .where(eq(structureInvitationsTable.token, req.params.token)).limit(1);
+      .where(eq(structureInvitationsTable.token, (req.params.token as string))).limit(1);
     if (!inv) return res.status(404).json({ error: "Lien invalide" });
     if (inv.status !== "pending") return res.status(410).json({ error: `Lien ${inv.status}` });
     if (inv.expiresAt < new Date()) {
@@ -433,7 +433,7 @@ publicOnboardingRouter.get("/structure-onboarding/:token", async (req, res, next
 publicOnboardingRouter.post("/structure-onboarding/:token", async (req, res, next) => {
   try {
     const [inv] = await db.select().from(structureInvitationsTable)
-      .where(eq(structureInvitationsTable.token, req.params.token)).limit(1);
+      .where(eq(structureInvitationsTable.token, (req.params.token as string))).limit(1);
     if (!inv) return res.status(404).json({ error: "Lien invalide" });
     if (inv.status !== "pending") return res.status(410).json({ error: `Lien ${inv.status}` });
     if (inv.expiresAt < new Date()) {
@@ -600,7 +600,7 @@ router.get("/super-admin/organizations/:id/structure-invitations", sa, async (re
       token: structureInvitationsTable.token,
       notes: structureInvitationsTable.notes,
     }).from(structureInvitationsTable)
-      .where(eq(structureInvitationsTable.organizationId, req.params.id))
+      .where(eq(structureInvitationsTable.organizationId, (req.params.id as string)))
       .orderBy(desc(structureInvitationsTable.createdAt));
     // Compute onboardUrl server-side so cockpit never reconstructs the URL itself
     const base = baseUrl();
@@ -617,7 +617,7 @@ router.get("/super-admin/organizations/:id/structure-invitations", sa, async (re
 router.post("/super-admin/organizations/:id/structure-invitations/generate", sa, async (req, res, next) => {
   try {
     const [org] = await db.select({ id: organizationsTable.id, name: organizationsTable.name })
-      .from(organizationsTable).where(eq(organizationsTable.id, req.params.id)).limit(1);
+      .from(organizationsTable).where(eq(organizationsTable.id, (req.params.id as string))).limit(1);
     if (!org) return res.status(404).json({ error: "Organisation introuvable" });
 
     const { contactEmail, contactName, notes, sendEmailInvite = false } = req.body || {};
@@ -631,7 +631,7 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
       notes: notes ? String(notes) : null,
       status: "pending",
       invitedById: req.authUser?.id ?? null,
-      organizationId: req.params.id,
+      organizationId: (req.params.id as string),
       expiresAt,
     }).returning();
 
@@ -651,8 +651,8 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
 
     // Passer organizationId explicitement : pour un super-admin l'org du token ≠ org cible
     await audit(req, "onboarding_link_generated", {
-      entityType: "organization", entityId: req.params.id,
-      organizationId: req.params.id,
+      entityType: "organization", entityId: (req.params.id as string),
+      organizationId: (req.params.id as string),
       payload: { invId: inv.id, sendEmailInvite, contactEmail: contactEmail ?? null },
     });
 
@@ -680,7 +680,7 @@ router.get("/super-admin/organizations/:id/admin-invitations", sa, async (req, r
       expiresAt: usersTable.passwordResetTokenExpiresAt,
       hasToken: sql<boolean>`(${usersTable.passwordResetToken} IS NOT NULL)`,
     }).from(usersTable)
-      .where(eq(usersTable.organizationId, req.params.id))
+      .where(eq(usersTable.organizationId, (req.params.id as string)))
       .orderBy(desc(usersTable.createdAt));
     res.json({ users: rows });
   } catch (e) { next(e); }
@@ -693,7 +693,7 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
     if (!userId) return res.status(400).json({ error: "userId requis" });
 
     const [user] = await db.select().from(usersTable)
-      .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, req.params.id)))
+      .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, (req.params.id as string))))
       .limit(1);
     if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
     // Guard : interdire la réinitialisation de comptes déjà activés via ce flux invitation
@@ -716,7 +716,7 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
     let delivery: unknown = null;
     if (sendEmailInvite) {
       const [org] = await db.select({ name: organizationsTable.name })
-        .from(organizationsTable).where(eq(organizationsTable.id, req.params.id)).limit(1);
+        .from(organizationsTable).where(eq(organizationsTable.id, (req.params.id as string))).limit(1);
       const tpl = buildInvitationEmail({
         recipientName: `${user.firstName} ${user.lastName}`,
         inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gaméasù",
@@ -729,12 +729,12 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
 
     await audit(req, "invitation_resend", {
       entityType: "user", entityId: user.id,
-      organizationId: req.params.id,
+      organizationId: (req.params.id as string),
       payload: { email: user.email, sendEmailInvite, delivery },
     });
     await audit(req, "invitation_sent", {
       entityType: "user", entityId: user.id,
-      organizationId: req.params.id,
+      organizationId: (req.params.id as string),
       payload: { email: user.email, delivery },
     });
 

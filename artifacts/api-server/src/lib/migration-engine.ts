@@ -458,9 +458,10 @@ async function importContacts(f: ParsedFile, mapping: Record<string, string>, or
     if (!o.firstName || !o.lastName) { r.errors.push({ row: i + 2, message: "Prénom/Nom manquant" }); r.skipped++; continue; }
     try {
       const clientId = o.clientName ? await getClientId(o.clientName) : null;
+      if (!clientId) { r.errors.push({ row: i + 2, message: "Client introuvable" }); r.skipped++; continue; }
       const [rec] = await db.insert(clientContactsTable).values({
         id: randomUUID(), organizationId: orgId,
-        clientId: clientId ?? null,
+        clientId,
         firstName: o.firstName,
         lastName: o.lastName,
         email: o.email || null,

@@ -151,7 +151,7 @@ router.post("/payroll/tax-exemptions", requireManagerOrAbove, async (req, res, n
 router.put("/payroll/tax-exemptions/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const body = z.object({
       exemptionType: z.enum(["irpp", "cnss", "ipts", "all"]).optional(),
       fixedAmount: z.number().nullable().optional(),
@@ -173,7 +173,7 @@ router.put("/payroll/tax-exemptions/:id", requireManagerOrAbove, async (req, res
 router.delete("/payroll/tax-exemptions/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    await db.delete(taxExemptionsTable).where(and(eq(taxExemptionsTable.id, req.params.id), eq(taxExemptionsTable.organizationId, orgId)));
+    await db.delete(taxExemptionsTable).where(and(eq(taxExemptionsTable.id, (req.params.id as string)), eq(taxExemptionsTable.organizationId, orgId)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -282,7 +282,7 @@ router.patch("/payroll/off-cycle/:id", requireManagerOrAbove, async (req, res, n
     }).parse(req.body);
     const [row] = await db.update(offCyclePaymentsTable)
       .set({ ...body, amount: body.amount != null ? String(body.amount) : undefined })
-      .where(and(eq(offCyclePaymentsTable.id, req.params.id), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")))
+      .where(and(eq(offCyclePaymentsTable.id, (req.params.id as string)), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non modifiable" });
     res.json(row);
@@ -293,7 +293,7 @@ router.delete("/payroll/off-cycle/:id", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(offCyclePaymentsTable)
-      .where(and(eq(offCyclePaymentsTable.id, req.params.id), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")));
+      .where(and(eq(offCyclePaymentsTable.id, (req.params.id as string)), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -303,7 +303,7 @@ router.post("/payroll/off-cycle/:id/approve", requireManagerOrAbove, async (req,
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(offCyclePaymentsTable)
       .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
-      .where(and(eq(offCyclePaymentsTable.id, req.params.id), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")))
+      .where(and(eq(offCyclePaymentsTable.id, (req.params.id as string)), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou déjà approuvé" });
     res.json(row);
@@ -315,7 +315,7 @@ router.post("/payroll/off-cycle/:id/pay", requireManagerOrAbove, async (req, res
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(offCyclePaymentsTable)
       .set({ status: "paid", paidAt: new Date() })
-      .where(and(eq(offCyclePaymentsTable.id, req.params.id), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "approved")))
+      .where(and(eq(offCyclePaymentsTable.id, (req.params.id as string)), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "approved")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non approuvé" });
     res.json(row);
@@ -409,7 +409,7 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
       totalAmount: bankTransferOrdersTable.totalAmount,
     })
       .from(bankTransferOrdersTable)
-      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+      .where(and(eq(bankTransferOrdersTable.id, (req.params.id as string)), eq(bankTransferOrdersTable.organizationId, orgId)));
     if (!current) return res.status(404).json({ error: "Non trouvé" });
 
     const updates: Record<string, unknown> = { ...body, updatedById: userId };
@@ -418,7 +418,7 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
 
     const [row] = await db.update(bankTransferOrdersTable)
       .set(updates)
-      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)))
+      .where(and(eq(bankTransferOrdersTable.id, (req.params.id as string)), eq(bankTransferOrdersTable.organizationId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
 
@@ -677,7 +677,7 @@ router.get("/payroll/transfer-orders/:id/audit-log", requireManagerOrAbove, asyn
       .from(bankTransferAuditLogTable)
       .leftJoin(usersTable, eq(bankTransferAuditLogTable.userId, usersTable.id))
       .where(and(
-        eq(bankTransferAuditLogTable.bankTransferOrderId, req.params.id),
+        eq(bankTransferAuditLogTable.bankTransferOrderId, (req.params.id as string)),
         eq(bankTransferAuditLogTable.organizationId, orgId),
       ))
       .orderBy(desc(bankTransferAuditLogTable.createdAt));
@@ -719,7 +719,7 @@ async function buildTransferLines(runId: string, orgId: string) {
 router.post("/payroll/runs/:id/generate-transfer", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const run = await db.query.payrollRunsTable.findFirst({ where: and(eq(payrollRunsTable.id, req.params.id), eq(payrollRunsTable.organizationId, orgId)) });
+    const run = await db.query.payrollRunsTable.findFirst({ where: and(eq(payrollRunsTable.id, (req.params.id as string)), eq(payrollRunsTable.organizationId, orgId)) });
     if (!run) return res.status(404).json({ error: "Run non trouvé" });
     if (run.status !== "validated" && run.status !== "paid") return res.status(400).json({ error: "Le run doit être validé" });
 
@@ -743,7 +743,7 @@ router.post("/payroll/runs/:id/bank-transfer-order", requireManagerOrAbove, asyn
   try {
     const orgId = req.authUser!.organizationId;
     const run = await db.query.payrollRunsTable.findFirst({
-      where: and(eq(payrollRunsTable.id, req.params.id), eq(payrollRunsTable.organizationId, orgId)),
+      where: and(eq(payrollRunsTable.id, (req.params.id as string)), eq(payrollRunsTable.organizationId, orgId)),
     });
     if (!run) return res.status(404).json({ error: "Cycle de paie introuvable" });
     if (run.status !== "validated" && run.status !== "paid") {
@@ -781,7 +781,7 @@ router.get("/payroll/transfer-orders/:id/export.csv", requireManagerOrAbove, asy
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(bankTransferOrdersTable)
-      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+      .where(and(eq(bankTransferOrdersTable.id, (req.params.id as string)), eq(bankTransferOrdersTable.organizationId, orgId)));
     if (!order) return res.status(404).json({ error: "Ordre de virement introuvable" });
 
     const lines = (order.transferLines as Array<{
@@ -841,7 +841,7 @@ router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, as
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(bankTransferOrdersTable)
-      .where(and(eq(bankTransferOrdersTable.id, req.params.id), eq(bankTransferOrdersTable.organizationId, orgId)));
+      .where(and(eq(bankTransferOrdersTable.id, (req.params.id as string)), eq(bankTransferOrdersTable.organizationId, orgId)));
     if (!order) return res.status(404).json({ error: "Ordre de virement introuvable" });
 
     const lines = (order.transferLines as Array<{

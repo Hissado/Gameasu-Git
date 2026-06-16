@@ -39,7 +39,7 @@ const objectStorageService = new ObjectStorageService();
 // Accepte : token haché (hex 64 chars, kiosk_tokens) OU UUID legacy (kiosks.token)
 kioskPublicRouter.get("/kiosk/validate/:token", async (req: Request, res: Response, next) => {
   try {
-    const { token } = req.params;
+    const { token } = req.params as Record<string, string>;
     if (!token) { res.status(400).json({ error: "Token manquant" }); return; }
 
     const isNew = IS_NEW_TOKEN.test(token);
@@ -453,7 +453,7 @@ kioskAdminRouter.patch("/kiosks/:id", requirePermission("attendance.manage_setti
     const [kiosk] = await db
       .update(kiosksTable)
       .set(updateData)
-      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .where(and(eq(kiosksTable.id, (req.params.id as string)!), eq(kiosksTable.organizationId, orgId)))
       .returning({
         id: kiosksTable.id,
         organizationId: kiosksTable.organizationId,
@@ -479,7 +479,7 @@ kioskAdminRouter.delete("/kiosks/:id", requirePermission("attendance.manage_sett
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [deleted] = await db
       .delete(kiosksTable)
-      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .where(and(eq(kiosksTable.id, (req.params.id as string)!), eq(kiosksTable.organizationId, orgId)))
       .returning({ id: kiosksTable.id, name: kiosksTable.name });
     if (deleted) {
       audit(req, "kiosk_delete", {
@@ -508,7 +508,7 @@ kioskAdminRouter.post("/kiosks/:id/regenerate", requirePermission("attendance.ma
         revokedAt: null,
         updatedAt: new Date(),
       })
-      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .where(and(eq(kiosksTable.id, (req.params.id as string)!), eq(kiosksTable.organizationId, orgId)))
       .returning({
         id: kiosksTable.id,
         organizationId: kiosksTable.organizationId,
@@ -545,7 +545,7 @@ kioskAdminRouter.post("/kiosks/:id/revoke", requirePermission("attendance.manage
     const [kiosk] = await db
       .update(kiosksTable)
       .set({ isActive: false, revokedAt: new Date(), revokedByUserId: req.authUser!.id })
-      .where(and(eq(kiosksTable.id, req.params.id!), eq(kiosksTable.organizationId, orgId)))
+      .where(and(eq(kiosksTable.id, (req.params.id as string)!), eq(kiosksTable.organizationId, orgId)))
       .returning({
         id: kiosksTable.id,
         name: kiosksTable.name,
@@ -632,7 +632,7 @@ kioskAdminRouter.patch("/collaborators/:id/kiosk-code", requirePermission("atten
     const [updated] = await db
       .update(collaboratorsTable)
       .set({ kioskCode: parsed.data.kioskCode })
-      .where(and(eq(collaboratorsTable.id, req.params.id!), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+      .where(and(eq(collaboratorsTable.id, (req.params.id as string)!), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
       .returning({ id: collaboratorsTable.id, kioskCode: collaboratorsTable.kioskCode });
     if (!updated) { res.status(404).json({ error: "Collaborateur non trouvé" }); return; }
     res.json(updated);
@@ -730,7 +730,7 @@ kioskAdminRouter.get("/kiosk/tokens/:id", requirePermission("attendance.manage_s
       revokedAt: kioskTokensTable.revokedAt,
       createdAt: kioskTokensTable.createdAt,
     }).from(kioskTokensTable).where(
-      and(eq(kioskTokensTable.id, req.params.id), eq(kioskTokensTable.organizationId, orgId))
+      and(eq(kioskTokensTable.id, (req.params.id as string)), eq(kioskTokensTable.organizationId, orgId))
     );
     if (!token) { res.status(404).json({ error: "Token introuvable" }); return; }
     res.json(token);
@@ -754,7 +754,7 @@ kioskAdminRouter.patch("/kiosk/tokens/:id", requirePermission("attendance.manage
       : parsed.data;
     const [tokenRow] = await db.update(kioskTokensTable)
       .set(updateData)
-      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .where(and(eq(kioskTokensTable.id, (req.params.id as string)!), eq(kioskTokensTable.organizationId, orgId)))
       .returning({
         id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId,
         label: kioskTokensTable.label, departmentId: kioskTokensTable.departmentId,
@@ -772,7 +772,7 @@ kioskAdminRouter.delete("/kiosk/tokens/:id", requirePermission("attendance.manag
     const orgId = await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [deleted] = await db.delete(kioskTokensTable)
-      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .where(and(eq(kioskTokensTable.id, (req.params.id as string)!), eq(kioskTokensTable.organizationId, orgId)))
       .returning({ id: kioskTokensTable.id, label: kioskTokensTable.label });
     if (!deleted) { res.status(404).json({ error: "Token non trouvé" }); return; }
     audit(req, "kiosk_token_revoke", {
@@ -789,7 +789,7 @@ kioskAdminRouter.post("/kiosk/tokens/:id/regenerate", requirePermission("attenda
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [existing] = await db.select({ id: kioskTokensTable.id, kioskId: kioskTokensTable.kioskId, label: kioskTokensTable.label })
       .from(kioskTokensTable)
-      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .where(and(eq(kioskTokensTable.id, (req.params.id as string)!), eq(kioskTokensTable.organizationId, orgId)))
       .limit(1);
     if (!existing) { res.status(404).json({ error: "Token non trouvé" }); return; }
     const { raw, hash } = generateToken();
@@ -817,7 +817,7 @@ kioskAdminRouter.post("/kiosk/tokens/:id/revoke", requirePermission("attendance.
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [tokenRow] = await db.update(kioskTokensTable)
       .set({ isActive: false, revokedAt: new Date(), revokedByUserId: req.authUser!.id })
-      .where(and(eq(kioskTokensTable.id, req.params.id!), eq(kioskTokensTable.organizationId, orgId)))
+      .where(and(eq(kioskTokensTable.id, (req.params.id as string)!), eq(kioskTokensTable.organizationId, orgId)))
       .returning({
         id: kioskTokensTable.id, label: kioskTokensTable.label, kioskId: kioskTokensTable.kioskId,
         isActive: kioskTokensTable.isActive, revokedAt: kioskTokensTable.revokedAt,

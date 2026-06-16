@@ -58,7 +58,7 @@ router.get("/hr/onboarding/templates/:id", requireManagerOrAbove, async (req, re
   try {
     const orgId = req.authUser!.organizationId;
     const tpl = await db.query.onboardingTemplatesTable.findFirst({
-      where: and(eq(onboardingTemplatesTable.id, req.params.id), eq(onboardingTemplatesTable.organizationId, orgId)),
+      where: and(eq(onboardingTemplatesTable.id, (req.params.id as string)), eq(onboardingTemplatesTable.organizationId, orgId)),
     });
     if (!tpl) return res.status(404).json({ error: "Non trouvé" });
     const items = await db.select().from(onboardingTemplateItemsTable)
@@ -73,7 +73,7 @@ router.put("/hr/onboarding/templates/:id", requireManagerOrAbove, async (req, re
     const orgId = req.authUser!.organizationId;
     const body = z.object({ name: z.string().optional(), description: z.string().optional(), targetRole: z.string().optional(), isDefault: z.boolean().optional(), isActive: z.boolean().optional() }).parse(req.body);
     const [row] = await db.update(onboardingTemplatesTable).set(body)
-      .where(and(eq(onboardingTemplatesTable.id, req.params.id), eq(onboardingTemplatesTable.organizationId, orgId))).returning();
+      .where(and(eq(onboardingTemplatesTable.id, (req.params.id as string)), eq(onboardingTemplatesTable.organizationId, orgId))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
   } catch (e) { next(e); }
@@ -82,7 +82,7 @@ router.put("/hr/onboarding/templates/:id", requireManagerOrAbove, async (req, re
 router.delete("/hr/onboarding/templates/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    await db.delete(onboardingTemplatesTable).where(and(eq(onboardingTemplatesTable.id, req.params.id), eq(onboardingTemplatesTable.organizationId, orgId)));
+    await db.delete(onboardingTemplatesTable).where(and(eq(onboardingTemplatesTable.id, (req.params.id as string)), eq(onboardingTemplatesTable.organizationId, orgId)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -91,7 +91,7 @@ router.delete("/hr/onboarding/templates/:id", requireManagerOrAbove, async (req,
 router.post("/hr/onboarding/templates/:id/items", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const tpl = await db.query.onboardingTemplatesTable.findFirst({ where: and(eq(onboardingTemplatesTable.id, req.params.id), eq(onboardingTemplatesTable.organizationId, orgId)) });
+    const tpl = await db.query.onboardingTemplatesTable.findFirst({ where: and(eq(onboardingTemplatesTable.id, (req.params.id as string)), eq(onboardingTemplatesTable.organizationId, orgId)) });
     if (!tpl) return res.status(404).json({ error: "Template non trouvé" });
     const body = z.object({
       title: z.string(),
@@ -110,7 +110,7 @@ router.post("/hr/onboarding/templates/:id/items", requireManagerOrAbove, async (
 router.put("/hr/onboarding/template-items/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const body = z.object({ title: z.string().optional(), description: z.string().optional(), assignedTo: z.string().optional(), category: z.string().optional(), dueAfterDays: z.number().optional(), isRequired: z.boolean().optional(), sortOrder: z.number().optional() }).parse(req.body);
-    const [row] = await db.update(onboardingTemplateItemsTable).set(body).where(eq(onboardingTemplateItemsTable.id, req.params.id)).returning();
+    const [row] = await db.update(onboardingTemplateItemsTable).set(body).where(eq(onboardingTemplateItemsTable.id, (req.params.id as string))).returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);
   } catch (e) { next(e); }
@@ -118,7 +118,7 @@ router.put("/hr/onboarding/template-items/:id", requireManagerOrAbove, async (re
 
 router.delete("/hr/onboarding/template-items/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
-    await db.delete(onboardingTemplateItemsTable).where(eq(onboardingTemplateItemsTable.id, req.params.id));
+    await db.delete(onboardingTemplateItemsTable).where(eq(onboardingTemplateItemsTable.id, (req.params.id as string)));
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -215,7 +215,7 @@ router.get("/hr/onboarding/processes/:id", requireManagerOrAbove, async (req, re
   try {
     const orgId = req.authUser!.organizationId;
     const process = await db.query.onboardingProcessesTable.findFirst({
-      where: and(eq(onboardingProcessesTable.id, req.params.id), eq(onboardingProcessesTable.organizationId, orgId)),
+      where: and(eq(onboardingProcessesTable.id, (req.params.id as string)), eq(onboardingProcessesTable.organizationId, orgId)),
     });
     if (!process) return res.status(404).json({ error: "Non trouvé" });
     const items = await db.select().from(onboardingProcessItemsTable)
@@ -230,15 +230,15 @@ router.post("/hr/onboarding/processes/:id/items/:itemId/complete", requireAuth, 
     const { notes } = z.object({ notes: z.string().optional() }).parse(req.body);
     const [row] = await db.update(onboardingProcessItemsTable)
       .set({ status: "completed", completedAt: new Date(), completedById: req.authUser!.id, notes: notes ?? null })
-      .where(and(eq(onboardingProcessItemsTable.id, req.params.itemId), eq(onboardingProcessItemsTable.processId, req.params.id)))
+      .where(and(eq(onboardingProcessItemsTable.id, (req.params.itemId as string)), eq(onboardingProcessItemsTable.processId, (req.params.id as string))))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     // Vérifier si tout est complété
     const remaining = await db.select({ id: onboardingProcessItemsTable.id })
       .from(onboardingProcessItemsTable)
-      .where(and(eq(onboardingProcessItemsTable.processId, req.params.id), eq(onboardingProcessItemsTable.status, "pending"), eq(onboardingProcessItemsTable.isRequired, true)));
+      .where(and(eq(onboardingProcessItemsTable.processId, (req.params.id as string)), eq(onboardingProcessItemsTable.status, "pending"), eq(onboardingProcessItemsTable.isRequired, true)));
     if (remaining.length === 0) {
-      await db.update(onboardingProcessesTable).set({ status: "completed", completedAt: new Date() }).where(eq(onboardingProcessesTable.id, req.params.id));
+      await db.update(onboardingProcessesTable).set({ status: "completed", completedAt: new Date() }).where(eq(onboardingProcessesTable.id, (req.params.id as string)));
     }
     res.json(row);
   } catch (e) { next(e); }
@@ -249,7 +249,7 @@ router.post("/hr/onboarding/processes/:id/items/:itemId/skip", requireManagerOrA
     const { notes } = z.object({ notes: z.string().optional() }).parse(req.body);
     const [row] = await db.update(onboardingProcessItemsTable)
       .set({ status: "skipped", notes: notes ?? null })
-      .where(and(eq(onboardingProcessItemsTable.id, req.params.itemId), eq(onboardingProcessItemsTable.processId, req.params.id)))
+      .where(and(eq(onboardingProcessItemsTable.id, (req.params.itemId as string)), eq(onboardingProcessItemsTable.processId, (req.params.id as string))))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });
     res.json(row);

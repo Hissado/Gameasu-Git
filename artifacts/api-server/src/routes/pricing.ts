@@ -91,7 +91,7 @@ router.get("/pricing/scenarios/:id", async (req, res) => {
     .leftJoin(clientsTable, eq(pricingScenariosTable.clientId, clientsTable.id))
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -149,7 +149,7 @@ router.put("/pricing/scenarios/:id", async (req, res) => {
     .from(pricingScenariosTable)
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -180,7 +180,7 @@ router.put("/pricing/scenarios/:id", async (req, res) => {
     })
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
       ),
     )
@@ -197,7 +197,7 @@ router.delete("/pricing/scenarios/:id", async (req, res) => {
     .set({ deletedAt: new Date() })
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
       ),
     );
@@ -214,7 +214,7 @@ router.post("/pricing/scenarios/:id/duplicate", async (req, res) => {
     .from(pricingScenariosTable)
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -256,7 +256,7 @@ router.patch("/pricing/scenarios/:id/share", async (req, res) => {
     .set({ shareEnabled: !!enabled })
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -282,7 +282,7 @@ router.patch("/pricing/scenarios/:id/links", async (req, res) => {
     })
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -306,7 +306,7 @@ router.get("/pricing/scenarios/:id/export.pdf", async (req, res) => {
     .leftJoin(clientsTable, eq(pricingScenariosTable.clientId, clientsTable.id))
     .where(
       and(
-        eq(pricingScenariosTable.id, req.params.id),
+        eq(pricingScenariosTable.id, (req.params.id as string)),
         eq(pricingScenariosTable.organizationId, orgId),
         isNull(pricingScenariosTable.deletedAt),
       ),
@@ -435,7 +435,7 @@ pricingPublicRouter.get("/public/pricing/:token", async (req, res) => {
     .leftJoin(organizationsTable, eq(pricingScenariosTable.organizationId, organizationsTable.id))
     .where(
       and(
-        eq(pricingScenariosTable.shareToken, req.params.token),
+        eq(pricingScenariosTable.shareToken, (req.params.token as string)),
         eq(pricingScenariosTable.shareEnabled, true),
         isNull(pricingScenariosTable.deletedAt),
       ),
