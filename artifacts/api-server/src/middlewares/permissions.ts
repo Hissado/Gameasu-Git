@@ -41,7 +41,7 @@ export const requireAnyPermission = (...codes: string[]): RequestHandler => {
 export const requireProjectAccess = (paramName = "id"): RequestHandler => {
   return async (req, res, next) => {
     if (!req.authUser) { res.status(401).json({ error: "Authentification requise" }); return; }
-    const projectId = req.params[paramName];
+    const projectId = req.params[paramName] as string;
     if (!projectId) { res.status(400).json({ error: "Identifiant projet manquant" }); return; }
     const ok = await userHasProjectAccess(req.authUser.id, projectId);
     if (!ok) {

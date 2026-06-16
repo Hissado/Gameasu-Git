@@ -67,7 +67,7 @@ router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) =
   const { label, isActive, isPostable, normalBalance, type } = req.body;
   const [acc] = await db.update(chartOfAccountsTable)
     .set({ label, isActive, isPostable, normalBalance, type })
-    .where(and(eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.id, req.params.id))).returning();
+    .where(and(eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.id, req.params.id as string))).returning();
   if (!acc) return res.status(404).json({ error: "Compte introuvable" });
   return res.json(acc);
 });
@@ -134,7 +134,7 @@ router.delete("/accounting/fiscal-periods/:id", requireAdmin, async (req, res, n
   try {
     const orgId = req.authUser!.organizationId;
     const [p] = await db.select().from(fiscalPeriodsTable)
-      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id as string))).limit(1);
     if (!p) return res.status(404).json({ error: "Exercice introuvable" });
     // Vérifier qu'il n'a aucune donnée liée
     const [stats] = await db.select({
@@ -148,7 +148,7 @@ router.delete("/accounting/fiscal-periods/:id", requireAdmin, async (req, res, n
     await db.delete(fiscalPeriodsTable)
       .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, p.id)));
     return res.json({ success: true });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // POST /accounting/fiscal-periods/:id/create-next — crée l'exercice suivant après clôture
@@ -156,7 +156,7 @@ router.post("/accounting/fiscal-periods/:id/create-next", requireAdmin, async (r
   try {
     const orgId = req.authUser!.organizationId;
     const [current] = await db.select().from(fiscalPeriodsTable)
-      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id as string))).limit(1);
     if (!current) return res.status(404).json({ error: "Exercice introuvable" });
     // L'exercice courant doit être clôturé pour créer le suivant
     if (current.status !== "closed") {
@@ -181,13 +181,13 @@ router.post("/accounting/fiscal-periods/:id/create-next", requireAdmin, async (r
       status: "open",
     }).returning();
     return res.status(201).json(next);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 router.post("/accounting/fiscal-periods/:id/close", requireAdmin, async (req, res) => {
   const [p] = await db.update(fiscalPeriodsTable)
     .set({ status: "closed", closedAt: new Date(), closedById: req.authUser?.id })
-    .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id))).returning();
+    .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id as string))).returning();
   if (!p) return res.status(404).json({ error: "Exercice introuvable" });
   return res.json(p);
 });
@@ -240,7 +240,7 @@ router.get("/accounting/entries", async (req, res) => {
 });
 
 router.get("/accounting/entries/:id", async (req, res) => {
-  const e = (await db.select().from(journalEntriesTable).where(and(eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.id, req.params.id))).limit(1))[0];
+  const e = (await db.select().from(journalEntriesTable).where(and(eq(journalEntriesTable.organizationId, req.authUser!.organizationId), eq(journalEntriesTable.id, req.params.id as string))).limit(1))[0];
   if (!e) return res.status(404).json({ error: "Écriture introuvable" });
   const lines = await db
     .select({ line: journalEntryLinesTable, accountCode: chartOfAccountsTable.code, accountLabel: chartOfAccountsTable.label })
@@ -285,7 +285,7 @@ router.post("/accounting/entries", requireManagerOrAbove, async (req, res) => {
 
 router.post("/accounting/entries/:id/reverse", requireManagerOrAbove, async (req, res) => {
   try {
-    const reversal = await reverseEntry(req.authUser!.organizationId, req.params.id, req.authUser?.id);
+    const reversal = await reverseEntry(req.authUser!.organizationId, req.params.id as string, req.authUser?.id);
     return res.status(201).json(reversal);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -527,13 +527,13 @@ router.post("/accounting/suppliers", requireManagerOrAbove, async (req, res) => 
 router.put("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
   const { name, email, phone, address, taxId, paymentTerms, isActive } = req.body;
   const [s] = await db.update(suppliersTable).set({ name, email, phone, address, taxId, paymentTerms, isActive })
-    .where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id))).returning();
+    .where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id as string))).returning();
   if (!s) return res.status(404).json({ error: "Fournisseur introuvable" });
   return res.json(s);
 });
 
 router.delete("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(suppliersTable).set({ deletedAt: new Date() }).where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id)));
+  await db.update(suppliersTable).set({ deletedAt: new Date() }).where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id as string)));
   return res.status(204).send();
 });
 
@@ -732,11 +732,11 @@ router.get("/accounting/bank-accounts/:id/transactions", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
     eq(bankAccountsTable.organizationId, orgId),
-    eq(bankAccountsTable.id, req.params.id),
+    eq(bankAccountsTable.id, req.params.id as string),
   )).limit(1))[0];
   if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
   const txs = await db.select().from(bankTransactionsTable)
-    .where(eq(bankTransactionsTable.bankAccountId, req.params.id))
+    .where(eq(bankTransactionsTable.bankAccountId, req.params.id as string))
     .orderBy(desc(bankTransactionsTable.transactionDate));
   return res.json({ data: txs.map((t) => ({ ...t, amount: toNum(t.amount) })) });
 });
@@ -745,13 +745,13 @@ router.post("/accounting/bank-accounts/:id/transactions", requireManagerOrAbove,
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
     eq(bankAccountsTable.organizationId, orgId),
-    eq(bankAccountsTable.id, req.params.id),
+    eq(bankAccountsTable.id, req.params.id as string),
   )).limit(1))[0];
   if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
   const { transactionDate, label, amount, reference } = req.body;
   const [tx] = await db.insert(bankTransactionsTable).values({
     organizationId: orgId,
-    bankAccountId: req.params.id, transactionDate, label,
+    bankAccountId: req.params.id as string, transactionDate, label,
     amount: String(amount), reference,
   }).returning();
   return res.status(201).json({ ...tx, amount: toNum(tx.amount) });
@@ -759,11 +759,11 @@ router.post("/accounting/bank-accounts/:id/transactions", requireManagerOrAbove,
 
 // Rapprochement bancaire : suggestions automatiques
 router.get("/accounting/bank-accounts/:id/reconciliation", async (req, res) => {
-  const bank = (await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, req.authUser!.organizationId), eq(bankAccountsTable.id, req.params.id))).limit(1))[0];
+  const bank = (await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, req.authUser!.organizationId), eq(bankAccountsTable.id, req.params.id as string))).limit(1))[0];
   if (!bank) return res.status(404).json({ error: "Compte bancaire introuvable" });
 
   const txs = await db.select().from(bankTransactionsTable)
-    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id), eq(bankTransactionsTable.isReconciled, false)))
+    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id as string), eq(bankTransactionsTable.isReconciled, false)))
     .orderBy(desc(bankTransactionsTable.transactionDate));
 
   const lines = await db
@@ -853,7 +853,7 @@ router.post("/accounting/fixed-assets", requireManagerOrAbove, async (req, res) 
 
 router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, async (req, res) => {
   try {
-    const asset = (await db.select().from(fixedAssetsTable).where(and(eq(fixedAssetsTable.organizationId, req.authUser!.organizationId), eq(fixedAssetsTable.id, req.params.id))).limit(1))[0];
+    const asset = (await db.select().from(fixedAssetsTable).where(and(eq(fixedAssetsTable.organizationId, req.authUser!.organizationId), eq(fixedAssetsTable.id, req.params.id as string))).limit(1))[0];
     if (!asset) return res.status(404).json({ error: "Immobilisation introuvable" });
     if (!asset.depreciationAccountId || !asset.expenseAccountId) {
       return res.status(400).json({ error: "Comptes d'amortissement et de charge requis sur l'immobilisation" });
@@ -901,7 +901,7 @@ router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, as
 router.get("/accounting/fixed-assets/:id", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const asset = (await db.select().from(fixedAssetsTable)
-    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id)))
+    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id as string)))
     .limit(1))[0];
   if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
 
@@ -947,7 +947,7 @@ router.get("/accounting/fixed-assets/:id", async (req, res) => {
 router.put("/accounting/fixed-assets/:id", requireManagerOrAbove, async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const asset = (await db.select().from(fixedAssetsTable)
-    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).limit(1))[0];
+    .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id as string))).limit(1))[0];
   if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
   const { label, category, notes, status } = req.body;
   const [updated] = await db.update(fixedAssetsTable).set({
@@ -955,7 +955,7 @@ router.put("/accounting/fixed-assets/:id", requireManagerOrAbove, async (req, re
     ...(category != null && { category }),
     ...(notes != null && { notes }),
     ...(status != null && { status }),
-  }).where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).returning();
+  }).where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id as string))).returning();
   res.json(updated);
 });
 
@@ -1142,7 +1142,7 @@ router.get("/accounting/matching", async (req, res, next) => {
         thirdPartyId: r.line.thirdPartyId,
       })),
     });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // POST /accounting/matching/match  { lineIds: string[] }
@@ -1174,7 +1174,7 @@ router.post("/accounting/matching/match", requireManagerOrAbove, async (req, res
       .where(inArray(journalEntryLinesTable.id, lineIds));
 
     res.json({ ok: true, matchRef, count: lineIds.length });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // POST /accounting/matching/unmatch  { lineIds: string[] }
@@ -1194,7 +1194,7 @@ router.post("/accounting/matching/unmatch", requireManagerOrAbove, async (req, r
       .set({ reconciledAt: null })
       .where(inArray(journalEntryLinesTable.id, lineIds));
     res.json({ ok: true });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1206,7 +1206,7 @@ router.get("/accounting/fiscal-periods/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [period] = await db.select().from(fiscalPeriodsTable)
-      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id))).limit(1);
+      .where(and(eq(fiscalPeriodsTable.organizationId, orgId), eq(fiscalPeriodsTable.id, req.params.id as string))).limit(1);
     if (!period) { res.status(404).json({ error: "Exercice introuvable" }); return; }
 
     const stats = await db.select({
@@ -1216,7 +1216,7 @@ router.get("/accounting/fiscal-periods/:id", async (req, res, next) => {
       .where(and(eq(journalEntriesTable.organizationId, orgId), eq(journalEntriesTable.fiscalPeriodId, period.id), eq(journalEntriesTable.status, "posted")));
 
     res.json({ ...period, entryCount: Number(stats[0]?.n ?? 0), totalVolume: toNum(stats[0]?.td) });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // POST /accounting/fiscal-periods/:id/reopen — réouverture (admin seulement)
@@ -1224,10 +1224,10 @@ router.post("/accounting/fiscal-periods/:id/reopen", requireAdmin, async (req, r
   try {
     const [p] = await db.update(fiscalPeriodsTable)
       .set({ status: "open", closedAt: null, closedById: null })
-      .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id))).returning();
+      .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id as string))).returning();
     if (!p) { res.status(404).json({ error: "Exercice introuvable" }); return; }
     res.json(p);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1302,7 +1302,7 @@ router.get("/accounting/fiscal/summary", async (req, res, next) => {
       revenus,
       charges,
     });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 /**
@@ -1336,7 +1336,7 @@ router.get("/accounting/fiscal/tva-detail", async (req, res, next) => {
       .orderBy(asc(journalEntriesTable.entryDate));
 
     res.json({ data: rows.map((r) => ({ ...r, debit: toNum(r.debit), credit: toNum(r.credit) })) });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1349,7 +1349,7 @@ router.get("/accounting/cost-centers", async (req, res, next) => {
       .where(eq(costCentersTable.organizationId, orgId))
       .orderBy(asc(costCentersTable.code));
     res.json(rows.map((r) => ({ ...r, budgetAmount: r.budgetAmount != null ? Number(r.budgetAmount) : null })));
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 router.post("/accounting/cost-centers", requireManagerOrAbove, async (req, res, next) => {
@@ -1366,14 +1366,14 @@ router.post("/accounting/cost-centers", requireManagerOrAbove, async (req, res, 
       color,
     }).returning();
     res.status(201).json(row);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 router.get("/accounting/cost-centers/:id", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cc] = await db.select().from(costCentersTable)
-      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id as string))).limit(1);
     if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
 
     // Charges imputées à ce centre via journalEntryLines
@@ -1391,7 +1391,7 @@ router.get("/accounting/cost-centers/:id", async (req, res, next) => {
       totalDebit: sql<number>`SUM(${journalEntryLinesTable.debit})`,
       totalCredit: sql<number>`SUM(${journalEntryLinesTable.credit})`,
     }).from(journalEntryLinesTable)
-      .leftJoin(journalEntriesTable, eq(journalEntryLinesTable.journalEntryId, journalEntriesTable.id))
+      .leftJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
       .leftJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
       .where(and(...lineConditions))
       .groupBy(chartOfAccountsTable.code, chartOfAccountsTable.label)
@@ -1413,14 +1413,14 @@ router.get("/accounting/cost-centers/:id", async (req, res, next) => {
       totalCredit,
       netConsumption: totalDebit - totalCredit,
     });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 router.patch("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cc] = await db.select().from(costCentersTable)
-      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id as string))).limit(1);
     if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
     const [updated] = await db.update(costCentersTable).set({
@@ -1432,18 +1432,18 @@ router.patch("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, 
       ...(upd.isActive != null && { isActive: Boolean(upd.isActive) }),
     }).where(eq(costCentersTable.id, cc.id)).returning();
     res.json(updated);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 router.delete("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cc] = await db.select().from(costCentersTable)
-      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id))).limit(1);
+      .where(and(eq(costCentersTable.organizationId, orgId), eq(costCentersTable.id, req.params.id as string))).limit(1);
     if (!cc) { res.status(404).json({ error: "Centre introuvable" }); return; }
     await db.delete(costCentersTable).where(eq(costCentersTable.id, cc.id));
     res.status(204).send();
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // État analytique global : charges par centre de coût sur une période
@@ -1487,7 +1487,7 @@ router.get("/accounting/analytical/summary", async (req, res, next) => {
       };
     });
     res.json(result);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1497,21 +1497,20 @@ router.post("/accounting/fixed-assets/:id/dispose", requireManagerOrAbove, async
   try {
     const orgId = req.authUser!.organizationId;
     const [asset] = await db.select().from(fixedAssetsTable)
-      .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id))).limit(1);
+      .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id as string))).limit(1);
     if (!asset) { res.status(404).json({ error: "Immobilisation introuvable" }); return; }
     if (asset.status === "disposed") { res.status(400).json({ error: "Bien déjà sorti" }); return; }
-    const { disposalDate, disposalValue, disposalReason } = req.body as {
-      disposalDate: string; disposalValue?: number; disposalReason?: string;
+    const { disposedAt, disposalValue, disposalReason } = req.body as {
+      disposedAt: string; disposalValue?: number; disposalReason?: string;
     };
-    if (!disposalDate) { res.status(400).json({ error: "disposalDate requis" }); return; }
+    if (!disposedAt) { res.status(400).json({ error: "disposedAt requis" }); return; }
     const [updated] = await db.update(fixedAssetsTable).set({
       status: "disposed",
-      disposalDate,
-      disposalValue: disposalValue != null ? String(disposalValue) : undefined,
-      disposalReason,
+      disposedAt,
+      notes: disposalReason ? `Cession : ${disposalReason}${disposalValue != null ? ` — valeur : ${disposalValue}` : ""}` : undefined,
     }).where(eq(fixedAssetsTable.id, asset.id)).returning();
     res.json(updated);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1523,7 +1522,7 @@ router.post("/accounting/bank-accounts/:id/transactions/bulk", requireManagerOrA
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select({ id: bankAccountsTable.id })
     .from(bankAccountsTable)
-    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id as string)))
     .limit(1))[0];
   if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
 
@@ -1533,7 +1532,7 @@ router.post("/accounting/bank-accounts/:id/transactions/bulk", requireManagerOrA
   const inserted = await db.insert(bankTransactionsTable).values(
     lines.map((l) => ({
       organizationId: orgId,
-      bankAccountId: req.params.id,
+      bankAccountId: req.params.id as string,
       transactionDate: l.date,
       label: l.label ?? "",
       amount: String(l.amount),
@@ -1548,13 +1547,13 @@ router.post("/accounting/bank-accounts/:id/transactions/bulk", requireManagerOrA
 router.get("/accounting/bank-accounts/:id/auto-match", async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select().from(bankAccountsTable)
-    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id as string)))
     .limit(1))[0];
   if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
 
   // Transactions non rapprochées
   const txs = await db.select().from(bankTransactionsTable)
-    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id), eq(bankTransactionsTable.isReconciled, false)))
+    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id as string), eq(bankTransactionsTable.isReconciled, false)))
     .orderBy(asc(bankTransactionsTable.transactionDate));
 
   // Lignes de journal non rapprochées sur le compte bancaire (statut posted)
@@ -1642,13 +1641,13 @@ router.get("/accounting/bank-accounts/:id/auto-match", async (req, res) => {
 router.post("/accounting/bank-accounts/:id/auto-match/apply", requireManagerOrAbove, async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select().from(bankAccountsTable)
-    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id)))
+    .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id as string)))
     .limit(1))[0];
   if (!bank) { res.status(404).json({ error: "Compte bancaire introuvable" }); return; }
 
   // Re-calculer les suggestions à haute confiance
   const txs = await db.select().from(bankTransactionsTable)
-    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id), eq(bankTransactionsTable.isReconciled, false)));
+    .where(and(eq(bankTransactionsTable.bankAccountId, req.params.id as string), eq(bankTransactionsTable.isReconciled, false)));
   const jels = await db
     .select({ line: journalEntryLinesTable, entry: journalEntriesTable })
     .from(journalEntryLinesTable)
@@ -1755,7 +1754,7 @@ router.get("/accounting/taxes", requireAuth, async (req, res, next) => {
         .orderBy(asc(taxesTable.type), asc(taxesTable.code));
     }
     res.json({ data: taxes });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // POST /accounting/taxes
@@ -1779,7 +1778,7 @@ router.post("/accounting/taxes", requireManagerOrAbove, async (req, res, next) =
       notes: body.notes ? String(body.notes) : undefined,
     }).returning();
     res.status(201).json(tax);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // PUT /accounting/taxes/:id
@@ -1807,7 +1806,7 @@ router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next
       notes: body.notes !== undefined ? (body.notes ? String(body.notes) : null) : existing.notes,
     }).where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id))).returning();
     res.json(updated);
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // DELETE /accounting/taxes/:id
@@ -1820,7 +1819,7 @@ router.delete("/accounting/taxes/:id", requireAdmin, async (req, res, next) => {
     if (!existing) { res.status(404).json({ error: "Taxe introuvable" }); return; }
     await db.delete(taxesTable).where(and(eq(taxesTable.organizationId, orgId), eq(taxesTable.id, id)));
     res.json({ ok: true });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -1837,20 +1836,20 @@ router.get("/accounting/cash-flow-statement", requireAuth, requireManagerOrAbove
     // ── 1. Lignes d'écritures comptables sur la période ──────────────────
     const lines = await db
       .select({
-        accountNumber: chartOfAccountsTable.number,
-        accountName: chartOfAccountsTable.name,
+        accountNumber: chartOfAccountsTable.code,
+        accountName: chartOfAccountsTable.label,
         accountType: chartOfAccountsTable.type,
         debit: journalEntryLinesTable.debit,
         credit: journalEntryLinesTable.credit,
       })
       .from(journalEntryLinesTable)
-      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.journalEntryId, journalEntriesTable.id))
+      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
       .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
       .where(and(
         eq(journalEntryLinesTable.organizationId, orgId),
         eq(journalEntriesTable.status, "posted"),
-        gte(journalEntriesTable.date, from),
-        lte(journalEntriesTable.date, to),
+        gte(journalEntriesTable.entryDate, from),
+        lte(journalEntriesTable.entryDate, to),
       ));
 
     // ── 2. Agrégation par préfixe de compte ──────────────────────────────
@@ -1967,7 +1966,7 @@ router.get("/accounting/cash-flow-statement", requireAuth, requireManagerOrAbove
       openingBalance: tresorerieDebut,
       closingBalance: tresorerieFin,
     });
-  } catch (e) { next(e); }
+  } catch (e) { next(e); return; }
 });
 
 // ════════════════════════════════════════════════════════════════

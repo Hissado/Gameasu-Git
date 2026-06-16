@@ -496,14 +496,14 @@ async function main() {
   // ── 9. Projets & phases & tâches ────────────────────────────────────
   console.log("→ Projets (8) + phases + tâches...");
   const projects = await db.insert(projectsTable).values([
-    { organizationId: orgId, name: "Extension réseau HTA — CEET Kpalimé", description: "Pose de 4 postes HTA 20 kV et raccordement BT sur 6 km. Coordination CEET et accès foncier.", status: "active", clientId: C[0]!.id, managerId: directeur.id, leadCollaboratorId: cChefProj!.id, startDate: D(-45), endDate: D(150), progress: 22, budget: "210000000", currency: "XOF" },
-    { organizationId: orgId, name: "Siège Lomé Construction — Extension R+3", description: "Construction d'une extension R+3 sur 1 200 m² au siège social. Béton armé, façade aluminium, climatisation centralisée.", status: "active", clientId: C[3]!.id, managerId: directeur.id, leadCollaboratorId: cConducteur!.id, startDate: D(-20), endDate: D(200), progress: 12, budget: "185000000", currency: "XOF" },
-    { organizationId: orgId, name: "Réhabilitation bloc opératoire CHU SO", description: "Réhabilitation complète bloc opératoire. Normes BAD/OMS. Salles stériles, fluides médicaux, stérilisation centrale.", status: "active", clientId: C[7]!.id, managerId: admin.id, leadCollaboratorId: cArchi!.id, startDate: D(-60), endDate: D(240), progress: 28, budget: "280000000", currency: "XOF" },
-    { organizationId: orgId, name: "Voirie zone industrielle Adakpamé — Ph.1", description: "Réfection 3 km de voirie, pose bordures, signalisation horizontale et verticale, éclairage solaire LED.", status: "active", clientId: C[8]!.id, managerId: directeur.id, leadCollaboratorId: cConducteur!.id, startDate: D(-90), endDate: D(45), progress: 78, budget: "98000000", currency: "XOF" },
-    { organizationId: orgId, name: "Rénovation agences BTCI — Lot Lomé Sud", description: "Rénovation intérieure 6 agences (Bè, Tokoin, Hédzranawoé, Adidogomé, Agoé, Baguida). Mobilier, électricité, clim.", status: "active", clientId: C[4]!.id, managerId: directeur.id, leadCollaboratorId: cArchi!.id, startDate: D(-30), endDate: D(90), progress: 18, budget: "62000000", currency: "XOF" },
-    { organizationId: orgId, name: "Sécurisation périmétrique ECOBANK (8 agences)", description: "Clôtures anti-intrusion, contrôle d'accès biométrique, vidéosurveillance IP sur 8 agences Togo.", status: "planning", clientId: C[10]!.id, managerId: directeur.id, leadCollaboratorId: cHSE!.id, startDate: D(10), endDate: D(100), progress: 0, budget: "42000000", currency: "XOF" },
-    { organizationId: orgId, name: "Audit structure immeuble SGI Bénin", description: "Diagnostic structurel R+6, sondages béton, modélisation SAP2000, rapport de préconisations.", status: "active", clientId: C[14]!.id, managerId: directeur.id, leadCollaboratorId: cGeo!.id, startDate: D(-10), endDate: D(40), progress: 45, budget: "22000000", currency: "XOF" },
-    { organizationId: orgId, name: "Maintenance lourde four cimentier WACEM #2", description: "Arrêt annuel planifié. Réfection garnissage réfractaire, remplacement couronne, graissage central.", status: "planning", clientId: C[2]!.id, managerId: directeur.id, leadCollaboratorId: cChefMac!.id, startDate: D(60), endDate: D(90), progress: 0, budget: "95000000", currency: "XOF" },
+    { organizationId: orgId, name: "Extension réseau HTA — CEET Kpalimé", description: "Pose de 4 postes HTA 20 kV et raccordement BT sur 6 km. Coordination CEET et accès foncier.", status: "active", clientId: C[0]!.id, managerId: directeur.id, leadCollaboratorId: cChefProj!.id, startDate: D(-45), endDate: D(150), progress: 22, budget: "210000000" },
+    { organizationId: orgId, name: "Siège Lomé Construction — Extension R+3", description: "Construction d'une extension R+3 sur 1 200 m² au siège social. Béton armé, façade aluminium, climatisation centralisée.", status: "active", clientId: C[3]!.id, managerId: directeur.id, leadCollaboratorId: cConducteur!.id, startDate: D(-20), endDate: D(200), progress: 12, budget: "185000000" },
+    { organizationId: orgId, name: "Réhabilitation bloc opératoire CHU SO", description: "Réhabilitation complète bloc opératoire. Normes BAD/OMS. Salles stériles, fluides médicaux, stérilisation centrale.", status: "active", clientId: C[7]!.id, managerId: admin.id, leadCollaboratorId: cArchi!.id, startDate: D(-60), endDate: D(240), progress: 28, budget: "280000000" },
+    { organizationId: orgId, name: "Voirie zone industrielle Adakpamé — Ph.1", description: "Réfection 3 km de voirie, pose bordures, signalisation horizontale et verticale, éclairage solaire LED.", status: "active", clientId: C[8]!.id, managerId: directeur.id, leadCollaboratorId: cConducteur!.id, startDate: D(-90), endDate: D(45), progress: 78, budget: "98000000" },
+    { organizationId: orgId, name: "Rénovation agences BTCI — Lot Lomé Sud", description: "Rénovation intérieure 6 agences (Bè, Tokoin, Hédzranawoé, Adidogomé, Agoé, Baguida). Mobilier, électricité, clim.", status: "active", clientId: C[4]!.id, managerId: directeur.id, leadCollaboratorId: cArchi!.id, startDate: D(-30), endDate: D(90), progress: 18, budget: "62000000" },
+    { organizationId: orgId, name: "Sécurisation périmétrique ECOBANK (8 agences)", description: "Clôtures anti-intrusion, contrôle d'accès biométrique, vidéosurveillance IP sur 8 agences Togo.", status: "planning", clientId: C[10]!.id, managerId: directeur.id, leadCollaboratorId: cHSE!.id, startDate: D(10), endDate: D(100), progress: 0, budget: "42000000" },
+    { organizationId: orgId, name: "Audit structure immeuble SGI Bénin", description: "Diagnostic structurel R+6, sondages béton, modélisation SAP2000, rapport de préconisations.", status: "active", clientId: C[14]!.id, managerId: directeur.id, leadCollaboratorId: cGeo!.id, startDate: D(-10), endDate: D(40), progress: 45, budget: "22000000" },
+    { organizationId: orgId, name: "Maintenance lourde four cimentier WACEM #2", description: "Arrêt annuel planifié. Réfection garnissage réfractaire, remplacement couronne, graissage central.", status: "planning", clientId: C[2]!.id, managerId: directeur.id, leadCollaboratorId: cChefMac!.id, startDate: D(60), endDate: D(90), progress: 0, budget: "95000000" },
   ]).returning();
 
   const phaseData: any[] = [];
@@ -613,21 +613,21 @@ async function main() {
   const rental1 = await db.insert(rentalsTable).values({
     organizationId: orgId, referenceNumber: "RNT-2026-0001", clientId: C[7]!.id,
     status: "active", startDate: D(-45), endDate: D(150),
-    totalCost: "38250000", currency: "XOF",
+    totalCost: "38250000",
     notes: "Location grue Grove GMK pour chantier bloc opératoire CHU. Grutier fourni.",
   }).returning();
 
   const rental2 = await db.insert(rentalsTable).values({
     organizationId: orgId, referenceNumber: "RNT-2026-0002", clientId: C[4]!.id,
     status: "active", startDate: D(-25), endDate: D(65),
-    totalCost: "14400000", currency: "XOF",
+    totalCost: "14400000",
     notes: "Location groupe FG Wilson 250 kVA pour agence BTCI Hédzranawoé en travaux.",
   }).returning();
 
   const rental3 = await db.insert(rentalsTable).values({
     organizationId: orgId, referenceNumber: "RNT-2026-0003", clientId: C[3]!.id,
     status: "active", startDate: D(-10), endDate: D(80),
-    totalCost: "10800000", currency: "XOF",
+    totalCost: "10800000",
     notes: "Location 2 mini-pelles pour terrassement fondations extension siège.",
   }).returning();
 
@@ -806,16 +806,16 @@ async function main() {
   // ── 16. Documents ─────────────────────────────────────────────────────
   console.log("→ Documents...");
   await db.insert(documentsTable).values([
-    { organizationId: orgId, name: "Contrat-cadre CEET — Extension HTA 2026", type: "contract", category: "contracts", fileUrl: "https://files.gameasu.tech/contracts/ceet-hta-2026.pdf", projectId: projects[0]?.id, clientId: C[0]!.id, uploadedById: admin.id },
-    { organizationId: orgId, name: "Plan d'exécution fondations — Siège Lomé Construction", type: "plan", category: "technical", fileUrl: "https://files.gameasu.tech/plans/lc-fondations-ex-2026.dwg", projectId: projects[1]?.id, clientId: C[3]!.id, uploadedById: directeur.id },
-    { organizationId: orgId, name: "Rapport d'avancement CHU — Juin 2026", type: "report", category: "reports", fileUrl: "https://files.gameasu.tech/reports/chu-avancement-juin2026.pdf", projectId: projects[2]?.id, clientId: C[7]!.id, uploadedById: directeur.id },
-    { organizationId: orgId, name: "PV réception voirie Adakpamé — km 0 à 2", type: "pv", category: "reception", fileUrl: "https://files.gameasu.tech/pvs/voirie-adakpame-km0-2.pdf", projectId: projects[3]?.id, clientId: C[8]!.id, uploadedById: cChefProj?.id ?? admin.id },
-    { organizationId: orgId, name: "RCCM — Gaméasù Technologies SARL", type: "legal", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/rccm-gameasu-tech.pdf", uploadedById: admin.id },
-    { organizationId: orgId, name: "Agrément technique MIETFP — Génie civil", type: "certification", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/agrement-mietfp-gc.pdf", uploadedById: admin.id },
-    { organizationId: orgId, name: "Assurance décennale — Police 2026", type: "insurance", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/assurance-decennale-2026.pdf", uploadedById: admin.id },
-    { organizationId: orgId, name: "Planning directeur — Projet CHU bloc opératoire", type: "planning", category: "technical", fileUrl: "https://files.gameasu.tech/planning/chu-planning-directeur.xlsx", projectId: projects[2]?.id, uploadedById: cArchi?.id ?? admin.id },
-    { organizationId: orgId, name: "Note de calcul béton armé — Extension siège R+3", type: "study", category: "technical", fileUrl: "https://files.gameasu.tech/studies/lc-calcul-ba-r3.pdf", projectId: projects[1]?.id, uploadedById: cIngGC?.id ?? admin.id },
-    { organizationId: orgId, name: "Plan HSE chantier — CHU bloc opératoire", type: "safety", category: "hse", fileUrl: "https://files.gameasu.tech/hse/chu-plan-hse-2026.pdf", projectId: projects[2]?.id, uploadedById: cHSE?.id ?? admin.id },
+    { organizationId: orgId, name: "Contrat-cadre CEET — Extension HTA 2026", category: "contracts", fileUrl: "https://files.gameasu.tech/contracts/ceet-hta-2026.pdf", entityType: "project", entityId: projects[0]?.id, uploadedBy: admin.id },
+    { organizationId: orgId, name: "Plan d'exécution fondations — Siège Lomé Construction", category: "technical", fileUrl: "https://files.gameasu.tech/plans/lc-fondations-ex-2026.dwg", entityType: "project", entityId: projects[1]?.id, uploadedBy: directeur.id },
+    { organizationId: orgId, name: "Rapport d'avancement CHU — Juin 2026", category: "reports", fileUrl: "https://files.gameasu.tech/reports/chu-avancement-juin2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: directeur.id },
+    { organizationId: orgId, name: "PV réception voirie Adakpamé — km 0 à 2", category: "reception", fileUrl: "https://files.gameasu.tech/pvs/voirie-adakpame-km0-2.pdf", entityType: "project", entityId: projects[3]?.id, uploadedBy: cChefProj?.id ?? admin.id },
+    { organizationId: orgId, name: "RCCM — Gaméasù Technologies SARL", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/rccm-gameasu-tech.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Agrément technique MIETFP — Génie civil", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/agrement-mietfp-gc.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Assurance décennale — Police 2026", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/assurance-decennale-2026.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Planning directeur — Projet CHU bloc opératoire", category: "technical", fileUrl: "https://files.gameasu.tech/planning/chu-planning-directeur.xlsx", entityType: "project", entityId: projects[2]?.id, uploadedBy: cArchi?.id ?? admin.id },
+    { organizationId: orgId, name: "Note de calcul béton armé — Extension siège R+3", category: "technical", fileUrl: "https://files.gameasu.tech/studies/lc-calcul-ba-r3.pdf", entityType: "project", entityId: projects[1]?.id, uploadedBy: cIngGC?.id ?? admin.id },
+    { organizationId: orgId, name: "Plan HSE chantier — CHU bloc opératoire", category: "hse", fileUrl: "https://files.gameasu.tech/hse/chu-plan-hse-2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: cHSE?.id ?? admin.id },
   ]);
   console.log("  ✓ 10 documents");
 

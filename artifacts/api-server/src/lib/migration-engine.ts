@@ -358,7 +358,6 @@ export function validateRows(
     }
 
     if (!rowHasError) validCount++;
-    else errorCount++;
   }
 
   let errorCount = rows.filter((_, i) => !rows[i].every(c => !c.trim())).length - validCount;
@@ -461,7 +460,7 @@ async function importContacts(f: ParsedFile, mapping: Record<string, string>, or
       const clientId = o.clientName ? await getClientId(o.clientName) : null;
       const [rec] = await db.insert(clientContactsTable).values({
         id: randomUUID(), organizationId: orgId,
-        clientId: clientId ?? undefined,
+        clientId: clientId ?? null,
         firstName: o.firstName,
         lastName: o.lastName,
         email: o.email || null,

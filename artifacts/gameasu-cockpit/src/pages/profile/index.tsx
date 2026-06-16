@@ -53,13 +53,15 @@ export default function ProfilePage() {
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwError, setPwError] = useState("");
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ["cockpit-me"],
     queryFn: () => apiFetch<Profile>("/api/super-admin/me"),
-    onSuccess: (d: Profile) => {
-      if (!profileForm) setProfileForm({ firstName: d.firstName, lastName: d.lastName, phone: d.phone ?? "" });
-    },
-  } as any);
+  });
+
+  // Initialise le formulaire dès que le profil est chargé
+  if (profile && !profileForm) {
+    setProfileForm({ firstName: profile.firstName, lastName: profile.lastName, phone: profile.phone ?? "" });
+  }
 
   const { data: sessionData } = useQuery({
     queryKey: ["cockpit-me-sessions"],

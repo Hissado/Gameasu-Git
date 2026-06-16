@@ -145,13 +145,13 @@ async function executeAction(
           organizationId: ctx.organizationId,
           kind: (action.params["kind"] as string) || "reminder",
           scope: (action.params["scope"] as string) || "workspace",
-          scopeId: (action.params["scopeId"] as string) || null,
+          scopeId: (action.params["scopeId"] as string) || undefined,
           title: renderTemplate((action.params["title"] as string) || "Notification", ctx.payload),
-          body: renderTemplate((action.params["body"] as string) || "", ctx.payload),
+          body: renderTemplate((action.params["body"] as string) || "",  ctx.payload),
           severity: (action.params["severity"] as string) || "info",
           actionLabel: action.params["actionLabel"] as string | undefined,
           actionUrl: action.params["actionUrl"] as string | undefined,
-          metadata: { trigger: ctx.triggerType, payload: ctx.payload },
+          metadata: { trigger: ctx.triggerType, payload: ctx.payload } as Record<string, unknown>,
           generatedBy: "automation",
         }).returning();
         return { ok: true, result: { insightId: row?.id } };
@@ -160,7 +160,7 @@ async function executeAction(
         const [row] = await db.insert(recommendationsTable).values({
           organizationId: ctx.organizationId,
           entityType: (action.params["entityType"] as string) || "workspace",
-          entityId: (action.params["entityId"] as string) || (ctx.payload["entityId"] as string) || null,
+          entityId: (action.params["entityId"] as string) || (ctx.payload["entityId"] as string) || undefined,
           action: (action.params["action"] as string) || "review",
           title: renderTemplate((action.params["title"] as string) || "Action recommandée", ctx.payload),
           reason: renderTemplate((action.params["reason"] as string) || "", ctx.payload),

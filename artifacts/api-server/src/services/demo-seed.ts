@@ -309,7 +309,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   let bankAccount = (await db.select().from(bankAccountsTable).limit(1))[0];
   if (!bankAccount) {
     [bankAccount] = await db.insert(bankAccountsTable).values({
-      name: "BICICI compte courant", type: "bank", bankName: "BICICI",
+      organizationId, name: "BICICI compte courant", type: "bank", bankName: "BICICI",
       accountNumber: "CI05-CI-12345-67890", accountId: acc("521"), currency: "XOF", openingBalance: "5000000",
     }).returning();
   }
@@ -333,7 +333,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
     const existing = (await db.select().from(usersTable).where(eq(usersTable.email, u.email)).limit(1))[0];
     if (existing) { users[u.email] = existing.id; continue; }
     const [created] = await db.insert(usersTable).values({
-      ...u, password: passwordHash, isActive: true, mustChangePassword: false,
+      organizationId, ...u, password: passwordHash, isActive: true, mustChangePassword: false,
     }).returning();
     users[u.email] = created.id;
   }

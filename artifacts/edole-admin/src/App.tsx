@@ -172,8 +172,8 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      staleTime: 30 * 1000,        // 30s : données considérées fraîches
-      gcTime: 5 * 60 * 1000,       // 5min : conservation cache mémoire
+      staleTime: 2 * 60 * 1000,    // 2min : données considérées fraîches
+      gcTime: 10 * 60 * 1000,      // 10min : conservation cache mémoire
     },
     mutations: {
       retry: 0,
@@ -337,7 +337,6 @@ function AppRouter() {
                 <Route path="/org-tuner" component={OrgTuner} />
                 <Route path="/quick" component={QuickActions} />
                 <Route path="/operations" component={OperationsCommandCenter} />
-                <Route path="/logistics" component={OperationsCommandCenter} />
                 <Route path="/inventory" component={InventoryHub} />
                 <Route path="/inventory/:tab" component={InventoryHub} />
 

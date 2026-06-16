@@ -39,7 +39,7 @@ export async function seedInventoryDemo(): Promise<void> {
   let supplierId = supplier?.id;
   if (!supplierId) {
     const [created] = await db.insert(suppliersTable).values({
-      code: "F0001", name: "Sahel Matériaux SARL",
+      organizationId: orgId, code: "F0001", name: "Sahel Matériaux SARL",
       email: "contact@sahelmateriaux.tg", phone: "+228 22 22 33 44",
       isActive: true,
     }).returning();

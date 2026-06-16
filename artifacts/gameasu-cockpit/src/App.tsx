@@ -24,7 +24,15 @@ const ProfilePage      = lazy(() => import("@/pages/profile"));
 const EmailsPage       = lazy(() => import("@/pages/emails"));
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 2 * 60_000,
+      gcTime: 10 * 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
 });
 
 function Spinner() {

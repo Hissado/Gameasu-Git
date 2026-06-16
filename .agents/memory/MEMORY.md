@@ -14,3 +14,4 @@
 - [DB push interactive prompt](db-push-workaround.md) — drizzle-kit push blocks on interactive prompts for unique constraints; bypass with a tsx migration script in lib/db/src/ then delete it after running.
 - [Fiscal year auto-seed removed](fiscal-year-autoseed.md) — GET /accounting/fiscal-periods used to auto-create 2015-2030 on every call; removed. Now uses manual creation, DELETE (no FK), and create-next (after closure).
 - [Secure Auth architecture](secure-auth-arch.md) — bcrypt+UUID sessions in auth_sessions; 2FA via two_factor_codes; trusted devices in trusted_devices; middleware accepts both UUID and Base64 legacy tokens.
+- [Express 5 params/query types](express5-params-query-types.md) — @types/express@5.0.6 causes TS2769 cascade on Drizzle eq() when req.params.id is string|string[]; fix with `as string` cast; never add express-serve-static-core augmentation (breaks everything).

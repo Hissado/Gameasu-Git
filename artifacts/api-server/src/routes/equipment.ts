@@ -36,13 +36,23 @@ router.post("/equipment/:id/qrcode", requireManagerOrAbove, async (req, res) => 
 });
 
 
-router.get("/equipment/categories", async (req, res) => {
-  const cats = await db.select().from(equipmentCategoriesTable);
-  const withCount = await Promise.all(cats.map(async c => {
-    const count = await db.select({ count: sql<number>`count(*)` }).from(equipmentTable).where(eq(equipmentTable.categoryId, c.id));
-    return { ...c, equipmentCount: Number(count[0].count) };
-  }));
-  return res.json(withCount);
+router.get("/equipment/categories", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db
+      .select({
+        id: equipmentCategoriesTable.id,
+        name: equipmentCategoriesTable.name,
+        description: equipmentCategoriesTable.description,
+        color: equipmentCategoriesTable.color,
+        createdAt: equipmentCategoriesTable.createdAt,
+        equipmentCount: sql<number>`cast(count(${equipmentTable.id}) filter (where ${equipmentTable.deletedAt} is null) as int)`,
+      })
+      .from(equipmentCategoriesTable)
+      .leftJoin(equipmentTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentTable.organizationId, orgId)))
+      .groupBy(equipmentCategoriesTable.id);
+    return res.json(rows);
+  } catch (e) { next(e); }
 });
 
 router.post("/equipment/categories", requireManagerOrAbove, async (req, res) => {
