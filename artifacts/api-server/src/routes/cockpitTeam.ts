@@ -22,7 +22,7 @@ import {
 import { eq, desc, and, gt, not, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { sendEmail, buildInvitationEmail, getPreviewInbox } from "../lib/email";
+import { sendEmail, getPreviewInbox } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -77,7 +77,29 @@ router.post("/super-admin/cockpit-users/invite", sa, async (req, res, next) => {
     }
     const emailLc = email.toLowerCase().trim();
 
-    // Vérifier si l'email existe déjà
+    // Org plateforme du super-admin appelant (rattachement des membres Cockpit).
+    const [caller] = await db.select({ organizationId: usersTable.organizationId })
+      .from(usersTable).where(eq(usersTable.id, req.authUser!.id)).limit(1);
+
+    // Jeton de définition de mot de passe (lien à usage unique, valable 7 jours).
+    // Aucun mot de passe temporaire n'est exposé par email.
+    const unusablePassword = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
+    const inviteToken = randomBytes(32).toString("hex");
+    const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Lien sécurisé vers le Cockpit (/cockpit/reset-password).
+    const proto = (req.headers["x-forwarded-proto"] as string) ?? "https";
+    const host = req.headers.host as string;
+    const baseOrigin = (process.env.COCKPIT_PUBLIC_BASE_URL || process.env.PUBLIC_BASE_URL || `${proto}://${host}`).replace(/\/$/, "");
+    const setupUrl = `${baseOrigin}/cockpit/reset-password?token=${inviteToken}`;
+    const sendInviteEmail = () => sendEmail({
+      to: emailLc,
+      subject: "Invitation à l'équipe Gaméasù Cockpit",
+      text: `Bonjour ${firstName.trim()},\n\nVous avez été invité(e) par ${req.authUser!.email} à rejoindre l'équipe d'administration Gaméasù Cockpit en tant que super-administrateur.\n\nDéfinissez votre mot de passe (lien valable 7 jours) :\n${setupUrl}\n\nL'équipe Gaméasù`,
+      html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ COCKPIT</div><h1 style="margin:0;font-size:22px">Invitation équipe</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour <strong>${firstName.trim()} ${lastName.trim()}</strong>,</p><p>Vous avez été invité(e) par <strong>${req.authUser!.email}</strong> à rejoindre l'équipe d'administration <strong>Gaméasù Cockpit</strong> en tant que super-administrateur.</p><p style="text-align:center;margin:24px 0"><a href="${setupUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Définir mon mot de passe</a></p><p style="font-size:13px;color:#555">Lien valable 7 jours. Si le bouton ne fonctionne pas, copiez ce lien :<br><span style="word-break:break-all;color:#0066cc">${setupUrl}</span></p></div></div></body></html>`,
+    });
+
+    // Email déjà existant
     const [existing] = await db.select({ id: usersTable.id, role: usersTable.role })
       .from(usersTable).where(eq(usersTable.email, emailLc)).limit(1);
 
@@ -85,45 +107,45 @@ router.post("/super-admin/cockpit-users/invite", sa, async (req, res, next) => {
       if (existing.role === "super_admin") {
         return res.status(409).json({ error: "Cet utilisateur est déjà membre de l'équipe Cockpit" });
       }
-      // Upgrade vers super_admin
-      await db.update(usersTable)
-        .set({ role: "super_admin", isActive: true, invitedAt: new Date(), invitedById: req.authUser!.id })
-        .where(eq(usersTable.id, existing.id));
+      // Élévation sécurisée : rattachement à l'org plateforme, mot de passe rendu
+      // inutilisable et (re)définition forcée via le même lien sécurisé. Les sessions
+      // et appareils de confiance existants (côté tenant) sont invalidés pour éviter
+      // qu'un ancien mot de passe tenant ne donne un accès super-admin.
+      await db.update(usersTable).set({
+        role: "super_admin",
+        isActive: true,
+        organizationId: caller!.organizationId,
+        password: unusablePassword,
+        mustChangePassword: true,
+        passwordResetToken: inviteToken,
+        passwordResetTokenExpiresAt: inviteExpiresAt,
+        invitedAt: new Date(),
+        invitedById: req.authUser!.id,
+      }).where(eq(usersTable.id, existing.id));
+      await db.delete(authSessionsTable).where(eq(authSessionsTable.userId, existing.id));
+      await db.delete(trustedDevicesTable).where(eq(trustedDevicesTable.userId, existing.id));
+      await sendInviteEmail();
       await auditLog(req.authUser!.id, req.authUser!.email, "cockpit_user.upgrade", "user", existing.id, { email: emailLc });
       return res.json({ ok: true, action: "upgraded", userId: existing.id });
     }
 
-    // Récupérer l'organisation du super_admin appelant pour rattacher le nouvel utilisateur
-    const [caller] = await db.select({ organizationId: usersTable.organizationId })
-      .from(usersTable).where(eq(usersTable.id, req.authUser!.id)).limit(1);
-
-    // Créer le compte
-    const tempPassword = randomBytes(6).toString("hex");
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
-
+    // Création d'un nouveau compte
     const [newUser] = await db.insert(usersTable).values({
       email: emailLc,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      password: passwordHash,
+      password: unusablePassword,
       role: "super_admin",
       organizationId: caller!.organizationId,
       isActive: true,
       invitedById: req.authUser!.id,
       invitedAt: new Date(),
       mustChangePassword: true,
+      passwordResetToken: inviteToken,
+      passwordResetTokenExpiresAt: inviteExpiresAt,
     }).returning({ id: usersTable.id });
 
-    // Envoyer l'email d'invitation
-    const inviterName = `${req.authUser!.email}`;
-    const tpl = buildInvitationEmail({
-      recipientName: `${firstName.trim()} ${lastName.trim()}`,
-      inviterName,
-      orgName: "Gaméasù Cockpit",
-      acceptUrl: `${req.headers["x-forwarded-proto"] ?? "https"}://${(req.headers.host as string)}/cockpit/`,
-      temporaryPassword: tempPassword,
-    });
-    await sendEmail({ ...tpl, to: emailLc });
+    await sendInviteEmail();
 
     await auditLog(req.authUser!.id, req.authUser!.email, "cockpit_user.invite", "user", newUser.id, { email: emailLc });
     return res.status(201).json({ ok: true, action: "created", userId: newUser.id });

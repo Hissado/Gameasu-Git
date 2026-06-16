@@ -18,6 +18,7 @@ import {
 } from "@workspace/db";
 import { and, eq, sql, desc, gte, ne, isNotNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
+import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
 
 const router: IRouter = Router();
 
@@ -34,9 +35,12 @@ const sa: RequestHandler = (req, res, next) => {
 
 router.get("/super-admin/overview", sa, async (_req, res, next) => {
   try {
-    const [totalOrgs] = await db.select({ c: sql<number>`count(*)::int` }).from(organizationsTable);
-    const [activeOrgs] = await db.select({ c: sql<number>`count(*)::int` }).from(organizationsTable).where(eq(organizationsTable.isActive, true));
-    const [totalUsers] = await db.select({ c: sql<number>`count(distinct ${organizationMembersTable.userId})::int` }).from(organizationMembersTable);
+    const [totalOrgs] = await db.select({ c: sql<number>`count(*)::int` }).from(organizationsTable).where(ne(organizationsTable.slug, PLATFORM_ORG_SLUG));
+    const [activeOrgs] = await db.select({ c: sql<number>`count(*)::int` }).from(organizationsTable).where(and(eq(organizationsTable.isActive, true), ne(organizationsTable.slug, PLATFORM_ORG_SLUG)));
+    const [totalUsers] = await db.select({ c: sql<number>`count(distinct ${organizationMembersTable.userId})::int` })
+      .from(organizationMembersTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, organizationMembersTable.organizationId))
+      .where(ne(organizationsTable.slug, PLATFORM_ORG_SLUG));
     const [activeSubs] = await db.select({ c: sql<number>`count(*)::int` }).from(organizationSubscriptionsTable)
       .where(and(eq(organizationSubscriptionsTable.isCurrent, true), eq(organizationSubscriptionsTable.status, "active")));
 
@@ -124,7 +128,7 @@ router.get("/super-admin/organizations", sa, async (_req, res, next) => {
       industry: organizationsTable.industry, country: organizationsTable.country,
       isActive: organizationsTable.isActive, isDefault: organizationsTable.isDefault,
       createdAt: organizationsTable.createdAt,
-    }).from(organizationsTable).orderBy(desc(organizationsTable.createdAt));
+    }).from(organizationsTable).where(ne(organizationsTable.slug, PLATFORM_ORG_SLUG)).orderBy(desc(organizationsTable.createdAt));
 
     const subs = await db.select({
       orgId: organizationSubscriptionsTable.organizationId,
@@ -207,7 +211,7 @@ router.get("/super-admin/organizations/:id", sa, async (req, res, next) => {
   try {
     const { id } = req.params as Record<string, string>;
     const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
-    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+    if (!org || org.slug === PLATFORM_ORG_SLUG) return res.status(404).json({ error: "Organisation introuvable" });
 
     const [sub] = await db.select({
       id: organizationSubscriptionsTable.id,
@@ -397,6 +401,7 @@ router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next)
     }
     const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
     if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+    if (org.slug === PLATFORM_ORG_SLUG) return res.status(403).json({ error: "L'organisation interne de la plateforme ne peut pas être modifiée" });
     if (org.isDefault) return res.status(403).json({ error: "L'organisation par défaut ne peut pas être suspendue" });
 
     const isActive = action === "reactivate";

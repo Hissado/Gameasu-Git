@@ -2,6 +2,25 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Sécurisation du Cockpit plateforme — juin 2026
+
+Finalisation et sécurisation du **Cockpit plateforme** (`artifacts/gameasu-cockpit`, servi sous `/cockpit/`) pour permettre au super-administrateur `cockpit@gameasu.com` de se connecter de façon **sécurisée après déploiement**, sans mot de passe en dur.
+
+- **Bootstrap idempotent & sûr** (`api-server/src/services/ensure-admin.ts`) : organisation interne dédiée `gameasu-platform` (« Gaméasù Plateforme ») garantie au démarrage ; `cockpit@gameasu.com` rattaché à cette organisation, jamais à un tenant client. Le mot de passe n'est **jamais** écrasé (mot de passe aléatoire inutilisable à la création — l'admin le définit via lien sécurisé). Aucune élévation de privilège : un compte non-`super_admin` portant cet email n'est jamais promu (erreur loggée). Les adhésions résiduelles à un tenant de démo sont automatiquement purgées (`pruneForeignMemberships`).
+- **Isolation de l'organisation plateforme** (`superAdminCockpit.ts`) : l'org interne est exclue de la liste des tenants et des compteurs de la vue d'ensemble ; son détail renvoie **404** et toute tentative de suspension/réactivation renvoie **403**.
+- **Réinitialisation de mot de passe par rôle** (`auth.ts` `/auth/forgot-password`) : lien dérivé du rôle — `super_admin` → `${COCKPIT_PUBLIC_BASE_URL}/cockpit/reset-password`, utilisateur tenant → `${PUBLIC_BASE_URL}/reset-password`. Limitation anti-abus (5 demandes / 15 min par IP+email) et réponse générique constante (anti-énumération de comptes).
+- **Parcours libre-service** (Cockpit) : page `/cockpit/reset-password` (lecture du `?token`), lien « Mot de passe oublié ? » sur l'écran de connexion, changement de mot de passe depuis le compte.
+- **Invitations d'équipe sans mot de passe exposé** (`cockpitTeam.ts`) : l'invitation envoie un **lien à usage unique** de définition de mot de passe vers `/cockpit/reset-password` (valable 7 jours) ; aucun mot de passe temporaire n'est transmis par email. Compte créé avec mot de passe inutilisable + `mustChangePassword`. **Promotion d'un compte tenant existant sécurisée** : rattachement à l'org plateforme, mot de passe rendu inutilisable, redéfinition forcée via le même lien à usage unique, et invalidation des sessions/appareils de confiance hérités du tenant (impossible de réutiliser un ancien mot de passe tenant pour un accès super-admin).
+- **2FA email + appareil de confiance 60 j** : connexion en deux temps (`/auth/login` → `2fa_required`, puis `/auth/login/verify-2fa`), code à usage unique haché en base, session UUID en table `auth_sessions`. **Anti-bruteforce** : au-delà de 5 codes erronés pour un même jeton temporaire, le code OTP est invalidé (HTTP 429) et l'utilisateur doit recommencer la connexion. Les anciens jetons Base64 sont **rejetés** (401).
+- **Traçabilité** : actions du Cockpit auditées dans `cockpit_audit_logs` ; évènements d'authentification (demande/complétion de réinitialisation, envoi/succès/échec 2FA) dans `audit_logs`.
+
+### Étape de déploiement (production / domaine personnalisé)
+
+1. Définir les secrets `PUBLIC_BASE_URL` (origine de l'ERP) et, si le Cockpit a son propre domaine, `COCKPIT_PUBLIC_BASE_URL` (ex. futur `https://cockpit.gameasu.com`). Voir `.env.example`. Sans ces variables, les liens retombent sur `REPLIT_DEV_DOMAIN`.
+2. Configurer l'envoi d'emails en production (connecteur Resend déjà installé, ou `RESEND_API_KEY`/`SENDGRID_API_KEY`).
+3. Au premier démarrage, le bootstrap garantit le compte `cockpit@gameasu.com` (sans mot de passe utilisable). Utiliser « Mot de passe oublié ? » sur `/cockpit/` pour recevoir le lien de définition du mot de passe, puis activer la 2FA email à la connexion.
+4. Domaine personnalisé `cockpit.gameasu.com` : pointer le domaine vers le déploiement, puis renseigner `COCKPIT_PUBLIC_BASE_URL=https://cockpit.gameasu.com` afin que les liens emails super-admin soient corrects.
+
 ## Recent Changes — mai 2026
 
 ### Inventory & Stock — produits, achats, mouvements — mai 2026

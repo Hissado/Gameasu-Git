@@ -9,7 +9,7 @@ import { auditLogsTable } from "@workspace/db";
 export type AuditAction =
   | "create" | "update" | "delete"
   | "login" | "logout" | "login_failed"
-  | "login_2fa_sent" | "login_2fa_success" | "login_2fa_failed"
+  | "login_2fa_sent" | "login_2fa_success" | "login_2fa_failed" | "login_2fa_locked"
   | "trusted_device_added" | "trusted_device_revoked"
   | "invite" | "invitation_resend" | "invitation_accept" | "invitation_revoke"
   | "invitation_sent" | "user_activated"

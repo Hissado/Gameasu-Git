@@ -5,7 +5,7 @@ import { Shield, Loader2, Eye, EyeOff, Mail, RefreshCw, ArrowRight } from "lucid
 
 const DEVICE_TOKEN_KEY = "cockpit_device_token";
 
-type Step = "credentials" | "2fa";
+type Step = "credentials" | "2fa" | "forgot";
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
 
   const [step, setStep] = useState<Step>("credentials");
   const [tempToken, setTempToken] = useState("");
@@ -91,6 +93,26 @@ export default function LoginPage() {
       navigate("/");
     } catch {
       setError("Erreur de connexion");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Mot de passe oublié ──────────────────────────────────────────────
+  const handleForgot = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      setForgotSent(true);
+    } catch {
+      // Réponse générique : ne révèle jamais l'existence d'un compte.
+      setForgotSent(true);
     } finally {
       setLoading(false);
     }
@@ -175,6 +197,11 @@ export default function LoginPage() {
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
                 Accéder au Cockpit
               </button>
+
+              <button type="button" onClick={() => { setForgotEmail(email); setForgotSent(false); setError(""); setStep("forgot"); }}
+                className="w-full text-center text-xs text-slate-400 hover:text-slate-200 transition-colors mt-1">
+                Mot de passe oublié ?
+              </button>
             </form>
           )}
 
@@ -220,6 +247,47 @@ export default function LoginPage() {
                   <RefreshCw className="w-3 h-3" /> Renvoyer le code
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── Étape mot de passe oublié ── */}
+          {step === "forgot" && (
+            <div className="space-y-4">
+              {forgotSent ? (
+                <>
+                  <div className="text-sm text-emerald-300 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-3 py-3">
+                    Si un compte super-administrateur existe pour cette adresse, un lien sécurisé de définition du mot de passe vient d'être envoyé. Lien valable 1 heure.
+                  </div>
+                  <button type="button" onClick={() => { setStep("credentials"); setError(""); }}
+                    className="w-full py-2.5 rounded-lg bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors">
+                    Retour à la connexion
+                  </button>
+                </>
+              ) : (
+                <form onSubmit={handleForgot} className="space-y-4">
+                  <p className="text-sm text-slate-300">
+                    Saisissez votre adresse email. Vous recevrez un lien sécurisé pour définir un nouveau mot de passe.
+                  </p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-300 uppercase tracking-wide">Adresse email</label>
+                    <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required autoFocus
+                      placeholder="cockpit@gameasu.com"
+                      className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
+                  </div>
+                  {error && (
+                    <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</div>
+                  )}
+                  <button type="submit" disabled={loading}
+                    className="w-full py-2.5 rounded-lg bg-primary text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-60 transition-colors">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    Envoyer le lien sécurisé
+                  </button>
+                  <button type="button" onClick={() => { setStep("credentials"); setError(""); }}
+                    className="w-full text-center text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                    ← Retour à la connexion
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </div>

@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import Layout from "@/components/Layout";
 
 const LoginPage        = lazy(() => import("@/pages/login"));
+const ResetPasswordPage= lazy(() => import("@/pages/reset-password"));
 const DashboardPage    = lazy(() => import("@/pages/dashboard"));
 const TenantsPage      = lazy(() => import("@/pages/tenants"));
 const TenantDetail     = lazy(() => import("@/pages/tenants/detail"));
@@ -59,6 +60,7 @@ function AppRouter() {
     <Suspense fallback={<Spinner />}>
       <Switch>
         <Route path="/login" component={LoginPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/">
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
         </Route>

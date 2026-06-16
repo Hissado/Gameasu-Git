@@ -179,6 +179,12 @@ router.post("/auth/login", async (req, res) => {
   return res.json({ status: "2fa_required", tempToken });
 });
 
+// Anti-bruteforce OTP : nombre d'échecs de vérification par tempToken (en mémoire).
+// Au-delà du seuil, le code 2FA est invalidé → l'utilisateur doit recommencer la
+// connexion. Empêche le bruteforce d'un code à 6 chiffres dans sa fenêtre de validité.
+const twoFaAttempts = new Map<string, number>();
+const MAX_2FA_ATTEMPTS = 5;
+
 // ─── POST /api/auth/login/verify-2fa ─────────────────────────────────────────
 // Étape 2 : valider le code OTP → créer la session définitive
 router.post("/auth/login/verify-2fa", async (req, res) => {
@@ -205,18 +211,29 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
 
   const codeOk = await bcrypt.compare(String(code).trim(), record.codeHash);
   if (!codeOk) {
+    const attemptKey = String(tempToken);
+    const attempts = (twoFaAttempts.get(attemptKey) ?? 0) + 1;
+    twoFaAttempts.set(attemptKey, attempts);
+    const locked = attempts >= MAX_2FA_ATTEMPTS;
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, record.userId)).limit(1);
     if (user) {
       await audit(
         { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
-        "login_2fa_failed",
+        locked ? "login_2fa_locked" : "login_2fa_failed",
         { entityType: "user", entityId: user.id },
       );
+    }
+    if (locked) {
+      // Trop d'échecs : on invalide le code pour forcer une nouvelle connexion.
+      await db.update(twoFactorCodesTable).set({ used: true }).where(eq(twoFactorCodesTable.id, record.id));
+      twoFaAttempts.delete(attemptKey);
+      return res.status(429).json({ error: "Trop de tentatives. Recommencez la connexion." });
     }
     return res.status(400).json({ error: "Code de vérification incorrect." });
   }
 
   // Marquer comme utilisé
+  twoFaAttempts.delete(String(tempToken));
   await db.update(twoFactorCodesTable).set({ used: true }).where(eq(twoFactorCodesTable.id, record.id));
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, record.userId)).limit(1);
@@ -434,18 +451,35 @@ router.post("/auth/accept-invitation", async (req, res) => {
   });
 });
 
+// Anti-abus : limite les demandes de réinitialisation par IP+email (5 / 15 min).
+const forgotPwdAttempts = new Map<string, { count: number; resetAt: number }>();
+function forgotRateLimited(key: string): boolean {
+  const now = Date.now();
+  const e = forgotPwdAttempts.get(key);
+  if (!e || now > e.resetAt) { forgotPwdAttempts.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 }); return false; }
+  e.count += 1;
+  return e.count > 5;
+}
+
 // ─── POST /api/auth/forgot-password ──────────────────────────────────────────
 router.post("/auth/forgot-password", async (req, res) => {
   const { email } = req.body || {};
   if (typeof email !== "string" || !email) return res.status(400).json({ error: "Email requis" });
+
+  const GENERIC_OK = { success: true, message: "Si un compte existe, un email de réinitialisation a été envoyé." };
+  if (forgotRateLimited(`${req.ip}:${email.toLowerCase()}`)) return res.json(GENERIC_OK);
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
   if (user && user.isActive) {
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await db.update(usersTable).set({ passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt }).where(eq(usersTable.id, user.id));
-    const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
-    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+    const origin = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+    // Super-admin → Cockpit (/cockpit/) ; utilisateur tenant → ERP (/).
+    const cockpitOrigin = (process.env.COCKPIT_PUBLIC_BASE_URL || origin).replace(/\/$/, "");
+    const resetUrl = user.role === "super_admin"
+      ? `${cockpitOrigin}/cockpit/reset-password?token=${token}`
+      : `${origin}/reset-password?token=${token}`;
     const tpl = buildPasswordResetEmail({ recipientName: `${user.firstName} ${user.lastName}`, resetUrl });
     await sendEmail({ ...tpl, to: user.email });
     await audit(

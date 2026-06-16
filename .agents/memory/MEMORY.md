@@ -16,4 +16,5 @@
 - [Fiscal year auto-seed removed](fiscal-year-autoseed.md) — GET /accounting/fiscal-periods used to auto-create 2015-2030 on every call; removed. Now uses manual creation, DELETE (no FK), and create-next (after closure).
 - [Secure Auth architecture](secure-auth-arch.md) — bcrypt+UUID sessions; 2FA + trusted devices; middleware accepts ONLY UUID session tokens (Base64 rejected); smoke-test protected routes by minting an auth_sessions row.
 - [Express 5 params/query types](express5-params-query-types.md) — @types/express@5.0.6 causes TS2769 cascade on Drizzle eq() when req.params.id is string|string[]; fix with `as string` cast; never add express-serve-static-core augmentation (breaks everything).
+- [Cockpit super_admin auth model](cockpit-superadmin-auth.md) — never leave a known pw on the cockpit account (even in dev); inviting an existing tenant user must be a secure upgrade, not a silent role flip.
 - [Codemod string-literal corruption](codemod-string-literal-corruption.md) — blanket `req.headers/params/query.X as string` casts also corrupt identical strings inside runtime config (Pino redact); grep `['"\`]\(req\.` after such codemods.
