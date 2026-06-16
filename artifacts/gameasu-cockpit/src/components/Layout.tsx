@@ -33,11 +33,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
+            <Shield className="w-4 h-4 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-bold text-sidebar-foreground leading-tight">Gaméasù</p>
+            <p className="text-sm font-bold text-sidebar-foreground leading-tight tracking-tight">Gaméasù</p>
             <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">Cockpit Admin</p>
           </div>
         </div>
