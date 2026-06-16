@@ -111,7 +111,7 @@ export default function MonitoringPage() {
             <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Infrastructure</h2>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <MetricCard icon={Activity} label="API Server" value="En ligne" sub="Express 5" color="text-emerald-600" ok={true} />
-              <MetricCard icon={Database} label="Base de données" value={h.database.ok ? "Connectée" : "Erreur"} sub="PostgreSQL" color={h.database.ok ? "text-emerald-600" : "text-red-600"} ok={h.database.ok} />
+              <MetricCard icon={Database} label="Base de données" value={h.database?.ok !== false ? "Connectée" : "Erreur"} sub="PostgreSQL" color={h.database?.ok !== false ? "text-emerald-600" : "text-red-600"} ok={h.database?.ok !== false} />
               <MetricCard icon={Clock} label="Uptime" value={fmtUptime(h.uptime)} sub="depuis le démarrage" color="text-indigo-600" />
               <MetricCard icon={Cpu} label="Mémoire" value={`${h.memoryMb} Mo`} sub="Processus Node.js" color={h.memoryMb > 512 ? "text-amber-600" : "text-slate-700"} />
             </div>
@@ -139,7 +139,7 @@ export default function MonitoringPage() {
               <div className="space-y-2">
                 {[
                   { name: "API REST",         path: "/api",                       ok: true },
-                  { name: "Base de données",  path: "PostgreSQL",                 ok: h.database.ok },
+                  { name: "Base de données",  path: "PostgreSQL",                 ok: h.database?.ok !== false },
                   { name: "Authentification", path: "/api/auth",                  ok: true },
                   { name: "Socket.IO",        path: "/api/realtime",              ok: true },
                   { name: "Stockage objet",   path: "/api/storage",               ok: true },

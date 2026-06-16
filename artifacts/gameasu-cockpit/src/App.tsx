@@ -8,16 +8,20 @@ import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Layout from "@/components/Layout";
 
-const LoginPage      = lazy(() => import("@/pages/login"));
-const DashboardPage  = lazy(() => import("@/pages/dashboard"));
-const TenantsPage    = lazy(() => import("@/pages/tenants"));
-const TenantDetail   = lazy(() => import("@/pages/tenants/detail"));
-const TicketsPage    = lazy(() => import("@/pages/tickets"));
-const IncidentsPage  = lazy(() => import("@/pages/incidents"));
-const AuditPage      = lazy(() => import("@/pages/audit"));
-const MonitoringPage  = lazy(() => import("@/pages/monitoring"));
-const CustomAppsPage  = lazy(() => import("@/pages/custom-apps"));
-const ReportsPage    = lazy(() => import("@/pages/reports"));
+const LoginPage        = lazy(() => import("@/pages/login"));
+const DashboardPage    = lazy(() => import("@/pages/dashboard"));
+const TenantsPage      = lazy(() => import("@/pages/tenants"));
+const TenantDetail     = lazy(() => import("@/pages/tenants/detail"));
+const SubscriptionsPage= lazy(() => import("@/pages/subscriptions"));
+const TicketsPage      = lazy(() => import("@/pages/tickets"));
+const IncidentsPage    = lazy(() => import("@/pages/incidents"));
+const AuditPage        = lazy(() => import("@/pages/audit"));
+const MonitoringPage   = lazy(() => import("@/pages/monitoring"));
+const CustomAppsPage   = lazy(() => import("@/pages/custom-apps"));
+const ReportsPage      = lazy(() => import("@/pages/reports"));
+const UsersPage        = lazy(() => import("@/pages/users"));
+const ProfilePage      = lazy(() => import("@/pages/profile"));
+const EmailsPage       = lazy(() => import("@/pages/emails"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -51,10 +55,13 @@ function AppRouter() {
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
         </Route>
         <Route path="/tenants/:id">
-          {(p) => <ProtectedRoute><TenantDetail /></ProtectedRoute>}
+          {() => <ProtectedRoute><TenantDetail /></ProtectedRoute>}
         </Route>
         <Route path="/tenants">
           <ProtectedRoute><TenantsPage /></ProtectedRoute>
+        </Route>
+        <Route path="/subscriptions">
+          <ProtectedRoute><SubscriptionsPage /></ProtectedRoute>
         </Route>
         <Route path="/reports">
           <ProtectedRoute><ReportsPage /></ProtectedRoute>
@@ -65,14 +72,23 @@ function AppRouter() {
         <Route path="/incidents">
           <ProtectedRoute><IncidentsPage /></ProtectedRoute>
         </Route>
-        <Route path="/audit">
-          <ProtectedRoute><AuditPage /></ProtectedRoute>
-        </Route>
         <Route path="/monitoring">
           <ProtectedRoute><MonitoringPage /></ProtectedRoute>
         </Route>
+        <Route path="/emails">
+          <ProtectedRoute><EmailsPage /></ProtectedRoute>
+        </Route>
         <Route path="/custom-apps">
           <ProtectedRoute><CustomAppsPage /></ProtectedRoute>
+        </Route>
+        <Route path="/users">
+          <ProtectedRoute><UsersPage /></ProtectedRoute>
+        </Route>
+        <Route path="/profile">
+          <ProtectedRoute><ProfilePage /></ProtectedRoute>
+        </Route>
+        <Route path="/audit">
+          <ProtectedRoute><AuditPage /></ProtectedRoute>
         </Route>
         <Route>
           <ProtectedRoute><DashboardPage /></ProtectedRoute>

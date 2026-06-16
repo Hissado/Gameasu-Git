@@ -67,7 +67,7 @@ router.get("/super-admin/tickets", sa, async (_req, res, next) => {
         orgId: organizationsTable.id,
         orgName: organizationsTable.name,
         orgSlug: organizationsTable.slug,
-        createdByName: usersTable.name,
+        createdByName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
         createdByEmail: usersTable.email,
       })
       .from(ticketsTable)
@@ -133,7 +133,7 @@ router.get("/super-admin/tickets/:id/comments", sa, async (req, res, next) => {
         id: ticketCommentsTable.id,
         body: ticketCommentsTable.body,
         createdAt: ticketCommentsTable.createdAt,
-        authorName: usersTable.name,
+        authorName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
         authorEmail: usersTable.email,
       })
       .from(ticketCommentsTable)
@@ -159,7 +159,7 @@ router.get("/super-admin/incidents", sa, async (_req, res, next) => {
         resolvedAt: incidentsTable.resolvedAt,
         createdAt: incidentsTable.createdAt,
         updatedAt: incidentsTable.updatedAt,
-        createdByName: usersTable.name,
+        createdByName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
       })
       .from(incidentsTable)
       .leftJoin(usersTable, eq(usersTable.id, incidentsTable.createdById))
@@ -221,7 +221,7 @@ router.get("/super-admin/audit-logs", sa, async (req, res, next) => {
         metadata: cockpitAuditLogsTable.metadata,
         createdAt: cockpitAuditLogsTable.createdAt,
         actorEmail: cockpitAuditLogsTable.actorEmail,
-        actorName: usersTable.name,
+        actorName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
       })
       .from(cockpitAuditLogsTable)
       .leftJoin(usersTable, eq(usersTable.id, cockpitAuditLogsTable.actorId))

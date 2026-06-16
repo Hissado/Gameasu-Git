@@ -4,20 +4,45 @@ import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, Shield, ChevronRight,
-  BarChart3, Menu, X, Sparkles,
+  BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
+  UserCircle, Settings,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }> };
+type NavSection = { label: string; items: NavItem[] };
 
-const NAV: NavItem[] = [
-  { href: "/",           label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/tenants",    label: "Organisations",   icon: Building2 },
-  { href: "/reports",    label: "Rapports",        icon: BarChart3 },
-  { href: "/tickets",    label: "Tickets support", icon: Ticket },
-  { href: "/incidents",  label: "Incidents",       icon: AlertTriangle },
-  { href: "/audit",      label: "Journal d'audit", icon: ScrollText },
-  { href: "/monitoring",   label: "Monitoring",          icon: Activity },
-  { href: "/custom-apps", label: "Apps personnalisées", icon: Sparkles },
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: "Vue d'ensemble",
+    items: [
+      { href: "/",             label: "Tableau de bord",    icon: LayoutDashboard },
+      { href: "/reports",      label: "Rapports",           icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Gestion SaaS",
+    items: [
+      { href: "/tenants",      label: "Organisations",      icon: Building2 },
+      { href: "/subscriptions",label: "Abonnements",        icon: CreditCard },
+      { href: "/tickets",      label: "Tickets support",    icon: Ticket },
+    ],
+  },
+  {
+    label: "Opérations",
+    items: [
+      { href: "/incidents",    label: "Incidents",          icon: AlertTriangle },
+      { href: "/monitoring",   label: "Monitoring",         icon: Activity },
+      { href: "/emails",       label: "Emails envoyés",     icon: Mail },
+      { href: "/custom-apps",  label: "Apps sur mesure",    icon: Sparkles },
+    ],
+  },
+  {
+    label: "Équipe & Sécurité",
+    items: [
+      { href: "/users",        label: "Équipe Cockpit",     icon: Users },
+      { href: "/audit",        label: "Journal d'audit",    icon: ScrollText },
+    ],
+  },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -28,10 +53,17 @@ export default function Layout({ children }: { children: ReactNode }) {
   const isActive = (href: string) =>
     href === "/" ? location === "/" : location.startsWith(href);
 
+  const initials = (() => {
+    if (user?.firstName && user?.lastName) return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    return (user?.name?.[0] ?? user?.email?.[0] ?? "?").toUpperCase();
+  })();
+
+  const displayName = user?.name?.trim() || user?.email || "Super Admin";
+
   const SidebarContent = () => (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-sidebar-border">
+      <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
             <Shield className="w-4 h-4 text-sidebar-primary-foreground" />
@@ -44,54 +76,66 @@ export default function Layout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map((item) => {
-          const active = isActive(item.href);
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
-              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer text-sm font-medium transition-colors ${
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-              }`}>
-                <Icon className={`w-4 h-4 shrink-0 ${active ? "text-sidebar-primary" : "opacity-70"}`} />
-                <span className="flex-1">{item.label}</span>
-                {active && <ChevronRight className="w-3 h-3 text-sidebar-primary opacity-70" />}
-              </div>
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-4">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/35">
+              {section.label}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isActive(item.href);
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                    <div className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                    }`}>
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? "text-sidebar-primary" : "opacity-60"}`} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {active && <ChevronRight className="w-3 h-3 text-sidebar-primary opacity-60 shrink-0" />}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* User section */}
-      <div className="px-3 py-4 border-t border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-md bg-sidebar-accent/40">
-          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-primary">
-              {user?.name?.[0]?.toUpperCase() ?? user?.email[0]?.toUpperCase()}
-            </span>
+      <div className="px-2 py-3 border-t border-sidebar-border shrink-0 space-y-1">
+        <Link href="/profile" onClick={() => setMobileOpen(false)}>
+          <div className={`flex items-center gap-2.5 px-3 py-2 rounded-md cursor-pointer transition-colors ${
+            isActive("/profile") ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/40"
+          }`}>
+            <div className="w-7 h-7 rounded-full bg-sidebar-primary/20 flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold text-sidebar-primary">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
+              <p className="text-[10px] text-sidebar-foreground/40 truncate">Super Admin</p>
+            </div>
+            <UserCircle className={`w-3.5 h-3.5 shrink-0 ${isActive("/profile") ? "text-sidebar-primary" : "text-sidebar-foreground/30"}`} />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.name ?? user?.email}</p>
-            <p className="text-[10px] text-sidebar-foreground/50 truncate">Super Admin</p>
-          </div>
-          <button
-            onClick={logout}
-            className="ml-auto p-1 rounded hover:bg-sidebar-accent transition-colors"
-            title="Déconnexion"
-          >
-            <LogOut className="w-3.5 h-3.5 text-sidebar-foreground/50 hover:text-sidebar-foreground" />
-          </button>
-        </div>
+        </Link>
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-red-500/10 transition-colors group"
+        >
+          <LogOut className="w-3.5 h-3.5 text-sidebar-foreground/40 group-hover:text-red-400" />
+          <span className="text-xs text-sidebar-foreground/50 group-hover:text-red-400">Déconnexion</span>
+        </button>
       </div>
-    </>
+    </div>
   );
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar border-r border-sidebar-border">
+      <aside className="hidden md:flex w-56 shrink-0 flex-col bg-sidebar border-r border-sidebar-border">
         <SidebarContent />
       </aside>
 
@@ -99,7 +143,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-60 h-full flex flex-col bg-sidebar border-r border-sidebar-border">
+          <aside className="relative w-56 h-full flex flex-col bg-sidebar border-r border-sidebar-border">
             <SidebarContent />
           </aside>
         </div>
@@ -116,8 +160,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Shield className="w-3.5 h-3.5 text-white" />
+            <div className="w-6 h-6 rounded bg-sidebar-primary flex items-center justify-center">
+              <Shield className="w-3.5 h-3.5 text-sidebar-primary-foreground" />
             </div>
             <span className="font-bold text-sm">Gaméasù Cockpit</span>
           </div>
