@@ -119,26 +119,6 @@ router.post("/auth/login", async (req, res) => {
 
   purgeExpiredSessions(user.id);
 
-  // Super-admins : connexion directe sans 2FA (interface interne Cockpit)
-  if (user.role === "super_admin") {
-    const token = await createSession(user.id, req);
-    await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
-    await audit(
-      { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
-      "login",
-      { entityType: "user", entityId: user.id, payload: { method: "direct" } },
-    );
-    const perms = await userPermissions(user.id);
-    return res.json({
-      token,
-      user: {
-        id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
-        role: user.role, avatarUrl: user.avatarUrl, isClient: user.isClient,
-        mustChangePassword: user.mustChangePassword, permissions: perms,
-      },
-    });
-  }
-
   // Vérifier appareil de confiance (bypass 2FA)
   if (deviceToken && typeof deviceToken === "string") {
     const devices = await db
