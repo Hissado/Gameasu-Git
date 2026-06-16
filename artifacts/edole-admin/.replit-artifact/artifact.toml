@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "EDOLE AFRICA ADMIN"
+title = "Gameasu ERP"
 version = "1.0.0"
 id = "artifacts/edole-admin"
 router = "path"
