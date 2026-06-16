@@ -44,7 +44,6 @@ router.get("/equipment/categories", async (req, res, next) => {
         id: equipmentCategoriesTable.id,
         name: equipmentCategoriesTable.name,
         description: equipmentCategoriesTable.description,
-        color: equipmentCategoriesTable.color,
         createdAt: equipmentCategoriesTable.createdAt,
         equipmentCount: sql<number>`cast(count(${equipmentTable.id}) filter (where ${equipmentTable.deletedAt} is null) as int)`,
       })

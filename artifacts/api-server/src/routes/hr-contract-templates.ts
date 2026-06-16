@@ -50,7 +50,7 @@ router.post("/hr/contract-templates", requireManagerOrAbove, async (req, res, ne
       variables: body.variables ?? [],
       isDefault: body.isDefault ?? false,
       isActive: body.isActive ?? true,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -132,7 +132,7 @@ router.post("/hr/contracts/:id/generate-pdf", requireManagerOrAbove, async (req,
       nom: collab?.lastName ?? "",
       prenom: collab?.firstName ?? "",
       nom_complet: fullName,
-      poste: collab?.poste ?? "",
+      poste: collab?.position ?? "",
       date_debut: contract.startDate ? new Date(contract.startDate).toLocaleDateString("fr-FR") : "",
       date_fin: contract.endDate ? new Date(contract.endDate).toLocaleDateString("fr-FR") : "Indéterminée",
       salaire_mensuel: contract.monthlySalary ? `${Number(contract.monthlySalary).toLocaleString("fr-FR")} FCFA` : "",

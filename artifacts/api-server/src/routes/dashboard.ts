@@ -55,7 +55,7 @@ router.get("/dashboard/kpis", async (req, res, next) => {
     const totalInvoiced = Number(invoiceStats?.totalInvoiced ?? 0);
 
     return res.json({
-      activeProjects:       kpiRows?.activeProjects ?? 0,
+      activeProjects:       kpiRows[0]?.activeProjects ?? 0,
       totalClients:         clientStats?.total ?? 0,
       tasksTodo:            taskStats?.todo ?? 0,
       tasksInProgress:      taskStats?.inProgress ?? 0,

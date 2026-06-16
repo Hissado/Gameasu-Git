@@ -18,12 +18,31 @@
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { jobOffersTable, candidaciesTable } from "@workspace/db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { jobOffersTable, candidaciesTable, departmentsTable } from "@workspace/db";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
 router.use(requireAuth);
+
+// Nom complet du candidat reconstruit depuis firstName + lastName
+const candidateNameSql = sql<string>`trim(coalesce(${candidaciesTable.firstName}, '') || ' ' || coalesce(${candidaciesTable.lastName}, ''))`;
+
+// Découpe un nom complet en prénom / nom
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/);
+  const firstName = parts.shift() || full.trim();
+  const lastName = parts.join(" ");
+  return { firstName, lastName };
+}
+
+// Vérifie qu'un département appartient bien à l'organisation (cloisonnement multi-tenant)
+async function departmentBelongsToOrg(departmentId: string, orgId: string): Promise<boolean> {
+  const [dept] = await db.select({ id: departmentsTable.id }).from(departmentsTable)
+    .where(and(eq(departmentsTable.organizationId, orgId), eq(departmentsTable.id, departmentId)))
+    .limit(1);
+  return !!dept;
+}
 
 // ──────────────────────────────────────────────────────────
 // OFFRES D'EMPLOI
@@ -36,6 +55,7 @@ router.get("/recruitment/jobs", async (req, res, next) => {
       reference: jobOffersTable.reference,
       title: jobOffersTable.title,
       departmentId: jobOffersTable.departmentId,
+      department: departmentsTable.name,
       location: jobOffersTable.location,
       contractType: jobOffersTable.contractType,
       status: jobOffersTable.status,
@@ -50,6 +70,7 @@ router.get("/recruitment/jobs", async (req, res, next) => {
         SELECT COUNT(*) FROM "candidacies" WHERE "candidacies"."job_offer_id" = "job_offers"."id"
       )`,
     }).from(jobOffersTable)
+      .leftJoin(departmentsTable, eq(jobOffersTable.departmentId, departmentsTable.id))
       .where(eq(jobOffersTable.organizationId, orgId))
       .orderBy(desc(jobOffersTable.openDate));
     res.json(rows);
@@ -60,23 +81,32 @@ router.post("/recruitment/jobs", requireManagerOrAbove, async (req, res, next) =
   try {
     const orgId = req.authUser!.organizationId;
     const {
-      title, department, location, type, status, description, requirements,
-      openDate, closeDate, experienceLevel, salaryCurrency, salaryMin, salaryMax,
+      title, departmentId, location, type, status, description, requirements,
+      openDate, closeDate, salaryCurrency, salaryMin, salaryMax,
       targetCount, notes,
     } = req.body as {
-      title: string; department?: string; location?: string; type?: string; status?: string;
+      title: string; departmentId?: string; location?: string; type?: string; status?: string;
       description?: string; requirements?: string; openDate?: string; closeDate?: string;
-      experienceLevel?: string; salaryCurrency?: string; salaryMin?: string; salaryMax?: string;
+      salaryCurrency?: string; salaryMin?: string; salaryMax?: string;
       targetCount?: number; notes?: string;
     };
     if (!title) { res.status(400).json({ error: "Le titre est requis" }); return; }
+    if (departmentId != null && !(await departmentBelongsToOrg(String(departmentId), orgId))) {
+      res.status(400).json({ error: "Département introuvable" }); return;
+    }
+    const reference = `OFF-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0")}`;
     const [row] = await db.insert(jobOffersTable).values({
       organizationId: orgId,
-      title, department, location, type, status, description, requirements,
-      openDate, closeDate, experienceLevel, salaryCurrency,
+      reference,
+      title, location, status, description, requirements,
+      openDate, closeDate,
+      ...(departmentId != null && { departmentId: String(departmentId) }),
+      ...(type != null && { contractType: String(type) }),
+      ...(salaryCurrency != null && { currency: String(salaryCurrency) }),
       salaryMin: salaryMin ? String(salaryMin) : undefined,
       salaryMax: salaryMax ? String(salaryMax) : undefined,
-      targetCount, notes,
+      ...(targetCount != null && { maxCandidates: Number(targetCount) }),
+      notes,
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -89,7 +119,18 @@ router.get("/recruitment/jobs/:id", async (req, res, next) => {
       .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, req.params.id)))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
-    const candidacies = await db.select().from(candidaciesTable)
+    const candidacies = await db.select({
+      id: candidaciesTable.id,
+      jobOfferId: candidaciesTable.jobOfferId,
+      candidateName: candidateNameSql,
+      candidateEmail: candidaciesTable.email,
+      candidatePhone: candidaciesTable.phone,
+      status: candidaciesTable.stage,
+      source: candidaciesTable.source,
+      rating: candidaciesTable.rating,
+      interviewDate: candidaciesTable.interviewDate,
+      createdAt: candidaciesTable.createdAt,
+    }).from(candidaciesTable)
       .where(eq(candidaciesTable.jobOfferId, offer.id))
       .orderBy(desc(candidaciesTable.createdAt));
     res.json({ ...offer, candidacies });
@@ -103,23 +144,25 @@ router.patch("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, ne
       .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, req.params.id)))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
-    const { title, department, location, type, status, description, requirements,
-      openDate, closeDate, experienceLevel, salaryMin, salaryMax, targetCount, notes } =
+    const { title, departmentId, location, type, status, description, requirements,
+      openDate, closeDate, salaryMin, salaryMax, targetCount, notes } =
       req.body as Record<string, unknown>;
+    if (departmentId != null && !(await departmentBelongsToOrg(String(departmentId), orgId))) {
+      res.status(400).json({ error: "Département introuvable" }); return;
+    }
     const [updated] = await db.update(jobOffersTable).set({
       ...(title != null && { title: String(title) }),
-      ...(department != null && { department: String(department) }),
+      ...(departmentId != null && { departmentId: String(departmentId) }),
       ...(location != null && { location: String(location) }),
-      ...(type != null && { type: String(type) }),
+      ...(type != null && { contractType: String(type) }),
       ...(status != null && { status: String(status) }),
       ...(description != null && { description: String(description) }),
       ...(requirements != null && { requirements: String(requirements) }),
       ...(openDate != null && { openDate: String(openDate) }),
       ...(closeDate != null && { closeDate: String(closeDate) }),
-      ...(experienceLevel != null && { experienceLevel: String(experienceLevel) }),
       ...(salaryMin != null && { salaryMin: String(salaryMin) }),
       ...(salaryMax != null && { salaryMax: String(salaryMax) }),
-      ...(targetCount != null && { targetCount: Number(targetCount) }),
+      ...(targetCount != null && { maxCandidates: Number(targetCount) }),
       ...(notes != null && { notes: String(notes) }),
     }).where(eq(jobOffersTable.id, offer.id)).returning();
     res.json(updated);
@@ -148,23 +191,23 @@ router.get("/recruitment/candidacies", async (req, res, next) => {
     const { jobId, status } = req.query as { jobId?: string; status?: string };
     const conditions = [eq(candidaciesTable.organizationId, orgId)];
     if (jobId) conditions.push(eq(candidaciesTable.jobOfferId, jobId));
-    if (status) conditions.push(eq(candidaciesTable.status, status));
+    if (status) conditions.push(eq(candidaciesTable.stage, status));
     const rows = await db.select({
       id: candidaciesTable.id,
       jobOfferId: candidaciesTable.jobOfferId,
-      candidateName: candidaciesTable.candidateName,
-      candidateEmail: candidaciesTable.candidateEmail,
-      candidatePhone: candidaciesTable.candidatePhone,
-      status: candidaciesTable.status,
+      candidateName: candidateNameSql,
+      candidateEmail: candidaciesTable.email,
+      candidatePhone: candidaciesTable.phone,
+      status: candidaciesTable.stage,
       source: candidaciesTable.source,
-      experienceYears: candidaciesTable.experienceYears,
-      currentCompany: candidaciesTable.currentCompany,
+      rating: candidaciesTable.rating,
       interviewDate: candidaciesTable.interviewDate,
       createdAt: candidaciesTable.createdAt,
       jobTitle: jobOffersTable.title,
-      jobDepartment: jobOffersTable.department,
+      jobDepartment: departmentsTable.name,
     }).from(candidaciesTable)
       .leftJoin(jobOffersTable, eq(candidaciesTable.jobOfferId, jobOffersTable.id))
+      .leftJoin(departmentsTable, eq(jobOffersTable.departmentId, departmentsTable.id))
       .where(and(...conditions))
       .orderBy(desc(candidaciesTable.createdAt));
     res.json(rows);
@@ -176,12 +219,11 @@ router.post("/recruitment/candidacies", async (req, res, next) => {
     const orgId = req.authUser!.organizationId;
     const {
       jobOfferId, candidateName, candidateEmail, candidatePhone,
-      status, source, resumeUrl, coverLetter, experienceYears,
-      currentCompany, expectedSalary, interviewDate, notes,
+      status, source, resumeUrl, coverLetter,
+      interviewDate, notes,
     } = req.body as {
       jobOfferId: string; candidateName: string; candidateEmail?: string; candidatePhone?: string;
       status?: string; source?: string; resumeUrl?: string; coverLetter?: string;
-      experienceYears?: number; currentCompany?: string; expectedSalary?: string;
       interviewDate?: string; notes?: string;
     };
     if (!jobOfferId || !candidateName) {
@@ -191,14 +233,16 @@ router.post("/recruitment/candidacies", async (req, res, next) => {
       .where(and(eq(jobOffersTable.organizationId, orgId), eq(jobOffersTable.id, jobOfferId)))
       .limit(1);
     if (!offer) { res.status(404).json({ error: "Offre introuvable" }); return; }
+    const { firstName, lastName } = splitName(candidateName);
     const [row] = await db.insert(candidaciesTable).values({
       organizationId: orgId,
-      jobOfferId, candidateName, candidateEmail, candidatePhone,
-      status, source, resumeUrl, coverLetter,
-      experienceYears,
-      currentCompany,
-      expectedSalary: expectedSalary ? String(expectedSalary) : undefined,
-      interviewDate, notes,
+      jobOfferId, firstName, lastName,
+      email: candidateEmail, phone: candidatePhone,
+      source, notes,
+      ...(status != null && { stage: String(status) }),
+      ...(resumeUrl != null && { cvUrl: String(resumeUrl) }),
+      ...(coverLetter != null && { coverLetterUrl: String(coverLetter) }),
+      ...(interviewDate != null && { interviewDate: new Date(interviewDate) }),
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -210,27 +254,28 @@ router.get("/recruitment/candidacies/:id", async (req, res, next) => {
     const [c] = await db.select({
       id: candidaciesTable.id,
       jobOfferId: candidaciesTable.jobOfferId,
-      candidateName: candidaciesTable.candidateName,
-      candidateEmail: candidaciesTable.candidateEmail,
-      candidatePhone: candidaciesTable.candidatePhone,
-      status: candidaciesTable.status,
+      candidateName: candidateNameSql,
+      candidateEmail: candidaciesTable.email,
+      candidatePhone: candidaciesTable.phone,
+      status: candidaciesTable.stage,
       source: candidaciesTable.source,
-      resumeUrl: candidaciesTable.resumeUrl,
-      coverLetter: candidaciesTable.coverLetter,
-      experienceYears: candidaciesTable.experienceYears,
-      currentCompany: candidaciesTable.currentCompany,
-      expectedSalary: candidaciesTable.expectedSalary,
+      resumeUrl: candidaciesTable.cvUrl,
+      coverLetter: candidaciesTable.coverLetterUrl,
+      linkedinUrl: candidaciesTable.linkedinUrl,
       interviewDate: candidaciesTable.interviewDate,
+      interviewNotes: candidaciesTable.interviewNotes,
       notes: candidaciesTable.notes,
-      evaluationScore: candidaciesTable.evaluationScore,
-      evaluationNotes: candidaciesTable.evaluationNotes,
+      rating: candidaciesTable.rating,
+      offerDate: candidaciesTable.offerDate,
+      offeredSalary: candidaciesTable.offeredSalary,
       rejectionReason: candidaciesTable.rejectionReason,
       createdAt: candidaciesTable.createdAt,
       updatedAt: candidaciesTable.updatedAt,
       jobTitle: jobOffersTable.title,
-      jobDepartment: jobOffersTable.department,
+      jobDepartment: departmentsTable.name,
     }).from(candidaciesTable)
       .leftJoin(jobOffersTable, eq(candidaciesTable.jobOfferId, jobOffersTable.id))
+      .leftJoin(departmentsTable, eq(jobOffersTable.departmentId, departmentsTable.id))
       .where(and(eq(candidaciesTable.organizationId, orgId), eq(candidaciesTable.id, req.params.id)))
       .limit(1);
     if (!c) { res.status(404).json({ error: "Candidature introuvable" }); return; }
@@ -247,11 +292,12 @@ router.patch("/recruitment/candidacies/:id", requireManagerOrAbove, async (req, 
     if (!c) { res.status(404).json({ error: "Candidature introuvable" }); return; }
     const upd = req.body as Record<string, unknown>;
     const [updated] = await db.update(candidaciesTable).set({
-      ...(upd.status != null && { status: String(upd.status) }),
-      ...(upd.interviewDate != null && { interviewDate: String(upd.interviewDate) }),
+      ...(upd.status != null && { stage: String(upd.status) }),
+      ...(upd.interviewDate != null && { interviewDate: new Date(String(upd.interviewDate)) }),
       ...(upd.notes != null && { notes: String(upd.notes) }),
-      ...(upd.evaluationScore != null && { evaluationScore: Number(upd.evaluationScore) }),
-      ...(upd.evaluationNotes != null && { evaluationNotes: String(upd.evaluationNotes) }),
+      ...(upd.rating != null && { rating: Number(upd.rating) }),
+      ...(upd.interviewNotes != null && { interviewNotes: String(upd.interviewNotes) }),
+      ...(upd.offeredSalary != null && { offeredSalary: String(upd.offeredSalary) }),
       ...(upd.rejectionReason != null && { rejectionReason: String(upd.rejectionReason) }),
       ...(upd.source != null && { source: String(upd.source) }),
     }).where(eq(candidaciesTable.id, c.id)).returning();
@@ -279,17 +325,18 @@ router.get("/recruitment/pipeline", async (req, res, next) => {
     const orgId = req.authUser!.organizationId;
     const rows = await db.select({
       id: candidaciesTable.id,
-      candidateName: candidaciesTable.candidateName,
-      status: candidaciesTable.status,
+      candidateName: candidateNameSql,
+      status: candidaciesTable.stage,
       source: candidaciesTable.source,
       interviewDate: candidaciesTable.interviewDate,
-      evaluationScore: candidaciesTable.evaluationScore,
+      rating: candidaciesTable.rating,
       createdAt: candidaciesTable.createdAt,
       jobOfferId: candidaciesTable.jobOfferId,
       jobTitle: jobOffersTable.title,
-      jobDepartment: jobOffersTable.department,
+      jobDepartment: departmentsTable.name,
     }).from(candidaciesTable)
       .leftJoin(jobOffersTable, eq(candidaciesTable.jobOfferId, jobOffersTable.id))
+      .leftJoin(departmentsTable, eq(jobOffersTable.departmentId, departmentsTable.id))
       .where(eq(candidaciesTable.organizationId, orgId))
       .orderBy(desc(candidaciesTable.createdAt));
 

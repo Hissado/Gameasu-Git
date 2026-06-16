@@ -142,7 +142,7 @@ router.post("/payroll/tax-exemptions", requireManagerOrAbove, async (req, res, n
       reason: body.reason,
       startDate: body.startDate,
       endDate: body.endDate,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -211,7 +211,7 @@ router.get("/payroll/off-cycle", requireManagerOrAbove, async (req, res, next) =
         createdAt: offCyclePaymentsTable.createdAt,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
-        poste: collaboratorsTable.poste,
+        poste: collaboratorsTable.position,
       })
       .from(offCyclePaymentsTable)
       .leftJoin(collaboratorsTable, eq(offCyclePaymentsTable.collaboratorId, collaboratorsTable.id))
@@ -264,7 +264,7 @@ router.post("/payroll/off-cycle", requireManagerOrAbove, async (req, res, next) 
       irpp: String(irppMensuel),
       cnssEmployee: String(cnssEmployee),
       netAmount: String(netAmount),
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json({ ...row, amount: toNum(row.amount), netAmount: toNum(row.netAmount) });
   } catch (e) { next(e); }
@@ -302,7 +302,7 @@ router.post("/payroll/off-cycle/:id/approve", requireManagerOrAbove, async (req,
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(offCyclePaymentsTable)
-      .set({ status: "approved", approvedById: req.authUser!.userId, approvedAt: new Date() })
+      .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
       .where(and(eq(offCyclePaymentsTable.id, req.params.id), eq(offCyclePaymentsTable.organizationId, orgId), eq(offCyclePaymentsTable.status, "draft")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou déjà approuvé" });
@@ -385,7 +385,7 @@ router.post("/payroll/transfer-orders", requireManagerOrAbove, async (req, res, 
       totalAmount: String(body.totalAmount),
       transferLines: body.transferLines ?? [],
       notes: body.notes,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json({ ...row, totalAmount: toNum(row.totalAmount) });
   } catch (e) { next(e); }
@@ -394,7 +394,7 @@ router.post("/payroll/transfer-orders", requireManagerOrAbove, async (req, res, 
 router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const userId = req.authUser!.userId;
+    const userId = req.authUser!.id;
     const body = z.object({
       status: z.enum(["pending", "processing", "submitted", "completed", "failed", "cancelled"]).optional(),
       bankReference: z.string().optional(),
@@ -732,7 +732,7 @@ router.post("/payroll/runs/:id/generate-transfer", requireManagerOrAbove, async 
       reference: ref,
       totalAmount: String(total),
       transferLines: lines,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
   } catch (e) { next(e); }
@@ -769,7 +769,7 @@ router.post("/payroll/runs/:id/bank-transfer-order", requireManagerOrAbove, asyn
       currency: "XOF",
       transferLines: lines,
       notes: body.notes ?? `Salaires ${run.period} — ${lines.length} bénéficiaire(s)`,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
 
     res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });

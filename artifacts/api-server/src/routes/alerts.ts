@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   db, alertsTable, rentalsTable, invoicesTable, contractsTable, equipmentTable,
+  organizationsTable,
 } from "@workspace/db";
 import { and, eq, isNull, sql, desc, lte, gte, ne } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
@@ -39,7 +40,6 @@ export async function runAlertsScan(orgId: string) {
     const rentals = await db.select().from(rentalsTable)
       .where(and(
         eq(rentalsTable.organizationId, orgId),
-        isNull((rentalsTable as any).deletedAt ?? sql`false`),
         eq(rentalsTable.status, "active"),
         lte(rentalsTable.endDate as any, in3days),
         gte(rentalsTable.endDate as any, now),
@@ -122,6 +122,30 @@ export async function runAlertsScan(orgId: string) {
   } catch (e) { console.warn("[alerts] equipment scan failed", e); }
 
   return { created };
+}
+
+/**
+ * Lance le scan d'alertes pour toutes les organisations actives.
+ * Chaque org est scannée de façon isolée (try/catch par tenant) afin qu'une
+ * erreur sur une organisation n'interrompe pas les autres.
+ */
+export async function runAlertsScanForAllOrganizations() {
+  let totalCreated = 0;
+  let orgsScanned = 0;
+  const orgs = await db
+    .select({ id: organizationsTable.id })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.isActive, true));
+  for (const org of orgs) {
+    try {
+      const { created } = await runAlertsScan(org.id);
+      totalCreated += created;
+      orgsScanned++;
+    } catch (e) {
+      console.warn(`[alerts] scan failed for org ${org.id}`, e);
+    }
+  }
+  return { totalCreated, orgsScanned };
 }
 
 router.get("/alerts", async (req, res) => {

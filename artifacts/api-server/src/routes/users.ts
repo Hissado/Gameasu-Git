@@ -71,6 +71,7 @@ router.post("/users", requirePermission("users.create"), async (req, res) => {
   const { email, password, firstName, lastName, role, phone, isClient } = req.body;
   const orgId = req.authUser!.organizationId;
   const [user] = await db.insert(usersTable).values({
+    organizationId: orgId,
     email, password, firstName, lastName,
     role: role || "collaborator",
     phone,

@@ -401,7 +401,7 @@ kioskAdminRouter.post("/kiosks", requirePermission("attendance.manage_settings")
       location: z.string().optional(),
       description: z.string().optional(),
       departmentId: z.string().uuid().nullable().optional(),
-      settings: z.record(z.unknown()).optional(),
+      settings: z.record(z.string(), z.unknown()).optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }
@@ -442,7 +442,7 @@ kioskAdminRouter.patch("/kiosks/:id", requirePermission("attendance.manage_setti
       description: z.string().optional(),
       departmentId: z.string().uuid().nullable().optional(),
       isActive: z.boolean().optional(),
-      settings: z.record(z.unknown()).optional(),
+      settings: z.record(z.string(), z.unknown()).optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Données invalides" }); return; }

@@ -211,7 +211,7 @@ router.post("/migration/execute", requireAuth, requireManagerOrAbove, async (req
     if (!file) { res.status(404).json({ error: "Session expirée. Veuillez re-uploader." }); return; }
 
     const orgId = req.authUser!.organizationId;
-    const userId = req.authUser!.userId;
+    const userId = req.authUser!.id;
 
     // Create session record (status = importing)
     const [session] = await db.insert(importSessionsTable).values({

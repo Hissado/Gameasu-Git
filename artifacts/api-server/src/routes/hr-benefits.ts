@@ -46,16 +46,13 @@ router.get("/hr/legal-register", requireManagerOrAbove, async (req, res, next) =
     const collabs = await db
       .select({
         id: collaboratorsTable.id,
-        matricule: collaboratorsTable.matricule,
+        matricule: collaboratorsTable.employeeNumber,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
-        poste: collaboratorsTable.poste,
-        gender: collaboratorsTable.gender,
-        nationality: collaboratorsTable.nationality,
+        poste: collaboratorsTable.position,
         birthDate: collaboratorsTable.birthDate,
         hireDate: collaboratorsTable.hireDate,
-        endDate: collaboratorsTable.endDate,
-        status: collaboratorsTable.status,
+        status: collaboratorsTable.employmentStatus,
         department: departmentsTable.name,
       })
       .from(collaboratorsTable)
@@ -90,8 +87,8 @@ router.get("/hr/legal-register", requireManagerOrAbove, async (req, res, next) =
       doc.moveDown(0.5);
       doc.fontSize(9).font("Helvetica").text(`Édité le ${new Date().toLocaleDateString("fr-FR")}`, { align: "center" });
       doc.moveDown(1);
-      const headers = ["Matricule", "Nom Prénom", "Poste", "Département", "Type contrat", "Entrée", "Sortie", "Nationalité"];
-      const colWidths = [55, 120, 90, 80, 70, 60, 60, 75];
+      const headers = ["Matricule", "Nom Prénom", "Poste", "Département", "Type contrat", "Entrée", "Sortie"];
+      const colWidths = [55, 120, 90, 80, 70, 60, 60];
       let x = 40;
       doc.fontSize(8).font("Helvetica-Bold");
       headers.forEach((h, i) => { doc.text(h, x, doc.y, { width: colWidths[i], continued: i < headers.length - 1 }); x += colWidths[i]; });
@@ -110,7 +107,6 @@ router.get("/hr/legal-register", requireManagerOrAbove, async (req, res, next) =
           r.contractType,
           r.contractStart ? new Date(r.contractStart).toLocaleDateString("fr-FR") : "—",
           r.contractEnd ? new Date(r.contractEnd).toLocaleDateString("fr-FR") : "—",
-          r.nationality ?? "—",
         ];
         cols.forEach((c, i) => {
           doc.text(String(c), rowX, rowY, { width: colWidths[i], continued: i < cols.length - 1 });
@@ -163,7 +159,7 @@ router.post("/hr/signature-requests", requireManagerOrAbove, async (req, res, ne
       signatoryName: body.signatoryName,
       token,
       expiresAt,
-      requestedById: req.authUser!.userId,
+      requestedById: req.authUser!.id,
     }).returning();
     // En production : envoyer un email avec le lien /sign/:token
     res.status(201).json({ ...row, signLink: `/sign/${token}` });
@@ -232,7 +228,7 @@ router.post("/hr/tax-declarations", requireManagerOrAbove, async (req, res, next
       totalAmount: String(body.totalAmount ?? 0),
       dueDate: body.dueDate,
       notes: body.notes,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json({ ...row, totalAmount: toNum(row.totalAmount) });
   } catch (e) { next(e); }
@@ -259,7 +255,7 @@ router.post("/hr/tax-declarations/generate/:runId", requireManagerOrAbove, async
         totalAmount: String(amount ?? 0),
         status: "generated",
         dueDate,
-        createdById: req.authUser!.userId,
+        createdById: req.authUser!.id,
         details: { payrollRunId: run.id },
       }).returning();
       declarations.push({ ...row, totalAmount: toNum(row.totalAmount) });
@@ -426,7 +422,7 @@ router.post("/hr/benefits/enrollments", requireManagerOrAbove, async (req, res, 
       endDate: body.endDate,
       status: body.status ?? "active",
       notes: body.notes,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }

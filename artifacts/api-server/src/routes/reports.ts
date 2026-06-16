@@ -1409,7 +1409,7 @@ router.get("/reports/hr/turnover", requireAuth, requireManagerOrAbove, async (re
     const toDate = period.to.toISOString().slice(0, 10);
 
     const [collabs, movements] = await Promise.all([
-      db.select({ id: collaboratorsTable.id, status: collaboratorsTable.status, employmentStatus: collaboratorsTable.employmentStatus })
+      db.select({ id: collaboratorsTable.id, status: collaboratorsTable.employmentStatus, employmentStatus: collaboratorsTable.employmentStatus })
         .from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt))),
       db.select().from(personnelMovementsTable)
         .where(and(

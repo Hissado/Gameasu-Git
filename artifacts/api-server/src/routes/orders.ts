@@ -985,6 +985,7 @@ router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next
 
     if (!rows[0]) { res.status(404).json({ error: "Facture introuvable" }); return; }
     const { inv, clientName, clientEmail } = rows[0];
+    if (!inv) { res.status(404).json({ error: "Facture introuvable" }); return; }
 
     const to = (toOverride?.trim() || clientEmail?.trim() || "");
     if (!to) { res.status(400).json({ error: "Adresse email introuvable — renseignez le champ 'to'" }); return; }
@@ -994,7 +995,7 @@ router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next
       return;
     }
 
-    const outstanding = toNum(inv.totalAmount) - toNum(inv.paidAmount);
+    const outstanding = (toNum(inv.totalAmount) ?? 0) - (toNum(inv.paidAmount) ?? 0);
     const org = await getOrgBranding(orgId);
     const orgName = org?.name ?? "Gaméasù";
     const dueDateStr = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("fr-FR") : "—";

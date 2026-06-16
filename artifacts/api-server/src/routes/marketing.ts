@@ -167,7 +167,7 @@ async function loadUnifiedContacts(orgId: string, filters: {
     for (const c of rows) contacts.push({
       type: "collaborator", id: c.id, name: `${c.firstName} ${c.lastName}`,
       company: null, email: c.email, phone: c.phone, source: "interne",
-      status: c.status || "active", tags: [], language: null, createdAt: c.createdAt,
+      status: c.employmentStatus || "active", tags: [], language: null, createdAt: c.createdAt,
     });
   }
   if (sources.includes("users")) {
@@ -771,7 +771,6 @@ router.post("/marketing/alerts/rules/:id/run", requireManagerOrAbove, async (req
     const invs = await db.select().from(invoicesTable)
       .where(and(
         eq(invoicesTable.organizationId, rule.organizationId),
-        isNull(invoicesTable.deletedAt),
         rule.source === "invoice_overdue"
           ? lte(invoicesTable.dueDate, now.toISOString().slice(0, 10) as any)
           : and(gte(invoicesTable.dueDate, now.toISOString().slice(0, 10) as any), lte(invoicesTable.dueDate, target.toISOString().slice(0, 10) as any)),
@@ -793,7 +792,6 @@ router.post("/marketing/alerts/rules/:id/run", requireManagerOrAbove, async (req
     const rentals = await db.select().from(rentalsTable)
       .where(and(
         eq(rentalsTable.organizationId, rule.organizationId),
-        isNull(rentalsTable.deletedAt),
         gte(rentalsTable.endDate, now.toISOString().slice(0, 10) as any),
         lte(rentalsTable.endDate, target.toISOString().slice(0, 10) as any),
       )).limit(200);

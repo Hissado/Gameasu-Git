@@ -25,7 +25,7 @@ router.get("/hr/expenses", async (req, res, next) => {
     // Collaborateur courant
     let myCollabId: string | null = null;
     if (mine === "1") {
-      const c = await db.query.collaboratorsTable.findFirst({ where: and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.userId, req.authUser!.userId)) });
+      const c = await db.query.collaboratorsTable.findFirst({ where: and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.userId, req.authUser!.id)) });
       if (c) { myCollabId = c.id; filters.push(eq(expenseReportsTable.collaboratorId, c.id)); }
     }
 
@@ -48,7 +48,7 @@ router.get("/hr/expenses", async (req, res, next) => {
         createdAt: expenseReportsTable.createdAt,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
-        poste: collaboratorsTable.poste,
+        poste: collaboratorsTable.position,
         avatarUrl: collaboratorsTable.avatarUrl,
       })
       .from(expenseReportsTable)
@@ -74,7 +74,7 @@ router.post("/hr/expenses", async (req, res, next) => {
 
     let collaboratorId = body.collaboratorId;
     if (!collaboratorId) {
-      const c = await db.query.collaboratorsTable.findFirst({ where: and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.userId, req.authUser!.userId)) });
+      const c = await db.query.collaboratorsTable.findFirst({ where: and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.userId, req.authUser!.id)) });
       if (c) collaboratorId = c.id;
     }
     if (!collaboratorId) return res.status(400).json({ error: "Collaborateur non trouvé" });
@@ -184,7 +184,7 @@ router.post("/hr/expenses/:id/approve", requireManagerOrAbove, async (req, res, 
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(expenseReportsTable)
-      .set({ status: "approved", approvedById: req.authUser!.userId, approvedAt: new Date() })
+      .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
       .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non soumis" });
@@ -197,7 +197,7 @@ router.post("/hr/expenses/:id/reject", requireManagerOrAbove, async (req, res, n
     const orgId = req.authUser!.organizationId;
     const { reason } = z.object({ reason: z.string() }).parse(req.body);
     const [row] = await db.update(expenseReportsTable)
-      .set({ status: "rejected", rejectionReason: reason, approvedById: req.authUser!.userId, approvedAt: new Date() })
+      .set({ status: "rejected", rejectionReason: reason, approvedById: req.authUser!.id, approvedAt: new Date() })
       .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non soumis" });
@@ -209,7 +209,7 @@ router.post("/hr/expenses/:id/pay", requireManagerOrAbove, async (req, res, next
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.update(expenseReportsTable)
-      .set({ status: "paid", paidAt: new Date(), paidById: req.authUser!.userId })
+      .set({ status: "paid", paidAt: new Date(), paidById: req.authUser!.id })
       .where(and(eq(expenseReportsTable.id, req.params.id), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "approved")))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé ou non approuvé" });

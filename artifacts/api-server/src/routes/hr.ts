@@ -1291,7 +1291,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
     doc.moveTo(40, 116).lineTo(555, 116).lineWidth(0.5).stroke("#e2e8f0");
     doc.fillColor("#374151").fontSize(9).font("Helvetica");
     doc.text(`Nom complet : ${fullName}`, 40, 124);
-    doc.text(`Poste : ${collab.jobTitle ?? "—"}`, 40, 140);
+    doc.text(`Poste : ${collab.position ?? "—"}`, 40, 140);
     const period = payslip.period;
     const [yr, mo] = period.split("-");
     const moisFr = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -1404,7 +1404,7 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
     const [yr, mo] = period.split("-");
     const moisFr = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
     doc.text(`Collaborateur : ${fullName}`, 40, 104);
-    doc.text(`Poste : ${collab?.jobTitle ?? "—"}`, 40, 120);
+    doc.text(`Poste : ${collab?.position ?? "—"}`, 40, 120);
     doc.text(`Période : ${moisFr[parseInt(mo, 10) - 1] ?? mo} ${yr}`, 300, 104);
     doc.text(`Statut : ${payslip.status === "validated" ? "Validé" : payslip.status === "paid" ? "Payé" : "Brouillon"}`, 300, 120);
 
@@ -1708,8 +1708,8 @@ router.get("/hr/me/leave-balance", async (req, res, next) => {
     for (const r of requests) {
       const t = r.type ?? "autre";
       if (!byType[t]) byType[t] = { taken: 0, pending: 0, right: annualRights[t] ?? 0, remaining: 0 };
-      if (r.status === "approved") byType[t].taken += r.days ?? 0;
-      else if (r.status === "pending") byType[t].pending += r.days ?? 0;
+      if (r.status === "approved") byType[t].taken += Number(r.days ?? 0);
+      else if (r.status === "pending") byType[t].pending += Number(r.days ?? 0);
     }
     if (!byType["congé_payé"]) byType["congé_payé"] = { taken: 0, pending: 0, right: 26, remaining: 26 };
     for (const t of Object.keys(byType)) {
@@ -1728,7 +1728,7 @@ router.get("/hr/me/documents", async (req, res, next) => {
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
     const docs = await db.select().from(hrDocumentsTable)
       .where(and(eq(hrDocumentsTable.collaboratorId, collab.id), eq(hrDocumentsTable.organizationId, orgId)))
-      .orderBy(desc(hrDocumentsTable.createdAt));
+      .orderBy(desc(hrDocumentsTable.uploadedAt));
     res.json(docs);
   } catch (e) { next(e); }
 });
@@ -1791,16 +1791,16 @@ router.get("/hr/orgchart", async (req, res, next) => {
         id: collaboratorsTable.id,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
-        jobTitle: collaboratorsTable.jobTitle,
+        jobTitle: collaboratorsTable.position,
         departmentId: collaboratorsTable.departmentId,
         avatarUrl: collaboratorsTable.avatarUrl,
-        status: collaboratorsTable.status,
+        status: collaboratorsTable.employmentStatus,
         managerCollaboratorId: collaboratorsTable.managerCollaboratorId,
       }).from(collaboratorsTable)
         .where(and(
           eq(collaboratorsTable.organizationId, orgId),
           isNull(collaboratorsTable.deletedAt),
-          eq(collaboratorsTable.status, "active"),
+          eq(collaboratorsTable.employmentStatus, "active"),
         )),
     ]);
     res.json({ departments: depts, collaborators: collabs });
@@ -1934,7 +1934,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   const today = new Date();
   const dateStr = today.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
   const fullName = `${collab.firstName} ${collab.lastName}`.toUpperCase();
-  const poste = collab.position ?? collab.jobTitle ?? "Collaborateur";
+  const poste = collab.position ?? "Collaborateur";
   const anciennete = contract?.startDate
     ? `${Math.floor((today.getTime() - new Date(contract.startDate).getTime()) / (1000 * 60 * 60 * 24 * 365))} an(s)`
     : "Non précisée";
@@ -2017,7 +2017,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
 router.get("/hr/me/attestation/:type", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const userId = req.authUser!.userId;
+    const userId = req.authUser!.id;
     const type = req.params.type as "travail" | "salaire" | "presence";
     if (!["travail", "salaire", "presence"].includes(type)) { res.status(400).json({ error: "Type invalide" }); return; }
     const collab = await getCollaboratorForUser(userId, orgId);
@@ -2105,7 +2105,7 @@ router.patch("/hr/timesheets/:id/approve", requireManagerOrAbove, async (req, re
     if (!existing) { res.status(404).json({ error: "Session introuvable" }); return; }
     const [updated] = await db.update(attendanceSessionsTable).set({
       approvalStatus: status,
-      approvedById: req.authUser!.userId,
+      approvedById: req.authUser!.id,
       approvedAt: new Date(),
       approvalNote: note ?? null,
     }).where(eq(attendanceSessionsTable.id, req.params.id)).returning();
@@ -2120,7 +2120,7 @@ router.post("/hr/timesheets/bulk-approve", requireManagerOrAbove, async (req, re
     if (!Array.isArray(ids) || ids.length === 0) { res.status(400).json({ error: "ids requis" }); return; }
     await db.update(attendanceSessionsTable).set({
       approvalStatus: "approved",
-      approvedById: req.authUser!.userId,
+      approvedById: req.authUser!.id,
       approvedAt: new Date(),
     }).where(and(
       eq(attendanceSessionsTable.organizationId, orgId),
@@ -2235,7 +2235,7 @@ router.get("/hr/indicators", requireManagerOrAbove, async (req, res, next) => {
     const [{ total }] = await db.select({ total: count() }).from(collaboratorsTable)
       .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
     const [{ active }] = await db.select({ active: count() }).from(collaboratorsTable)
-      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.status, "active")));
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.employmentStatus, "active")));
 
     // Recrutements de l'année
     const [{ hired }] = await db.select({ hired: count() }).from(contractsTable)
@@ -2281,7 +2281,7 @@ router.get("/hr/indicators", requireManagerOrAbove, async (req, res, next) => {
       cnt: count(),
     }).from(collaboratorsTable)
       .leftJoin(departmentsTable, eq(collaboratorsTable.departmentId, departmentsTable.id))
-      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.status, "active")))
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), eq(collaboratorsTable.employmentStatus, "active")))
       .groupBy(departmentsTable.name)
       .orderBy(desc(count()));
 

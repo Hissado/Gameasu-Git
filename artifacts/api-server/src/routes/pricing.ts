@@ -105,7 +105,7 @@ router.get("/pricing/scenarios/:id", async (req, res) => {
 // ─── CREATE ───────────────────────────────────────────────────────────────────
 router.post("/pricing/scenarios", async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  const userId = req.authUser!.userId;
+  const userId = req.authUser!.id;
 
   const {
     name, description, productName, clientId,
@@ -207,7 +207,7 @@ router.delete("/pricing/scenarios/:id", async (req, res) => {
 // ─── DUPLICATE ────────────────────────────────────────────────────────────────
 router.post("/pricing/scenarios/:id/duplicate", async (req, res) => {
   const orgId = req.authUser!.organizationId;
-  const userId = req.authUser!.userId;
+  const userId = req.authUser!.id;
 
   const [src] = await db
     .select()

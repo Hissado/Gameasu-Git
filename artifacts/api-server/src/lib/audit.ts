@@ -18,6 +18,7 @@ export type AuditAction =
   | "password_change" | "password_reset_request" | "password_reset_complete"
   | "deactivate" | "activate"
   | "project_access_grant" | "project_access_revoke"
+  | "client_access_grant" | "client_access_revoke"
   | "order_edit" | "order_cancel" | "order_generate_invoice"
   | "proforma_edit" | "proforma_cancel" | "proforma_generate_invoice"
   | "invoice_edit" | "invoice_cancel" | "payment_record"

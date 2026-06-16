@@ -864,17 +864,15 @@ router.get("/inventory/warehouses/:id", async (req, res, next) => {
       .select({
         productId: stockMovementsTable.productId,
         productName: productsTable.name,
-        productCode: productsTable.code,
+        productCode: productsTable.sku,
         unit: productsTable.unit,
         qty: sql<number>`SUM(CASE WHEN ${stockMovementsTable.kind} IN ('in','initial') THEN ${stockMovementsTable.quantity} ELSE -${stockMovementsTable.quantity} END)`,
       })
       .from(stockMovementsTable)
       .leftJoin(productsTable, eq(stockMovementsTable.productId, productsTable.id))
-      .where(and(
-        eq(stockMovementsTable.organizationId, orgId),
-        eq(stockMovementsTable.warehouseId, row.id),
-      ))
-      .groupBy(stockMovementsTable.productId, productsTable.name, productsTable.code, productsTable.unit);
+      // Les mouvements de stock ne sont pas rattachés à un magasin : stock calculé au niveau organisation
+      .where(eq(stockMovementsTable.organizationId, orgId))
+      .groupBy(stockMovementsTable.productId, productsTable.name, productsTable.sku, productsTable.unit);
 
     res.json({ ...row, stock });
   } catch (e) { next(e); }
@@ -983,7 +981,7 @@ router.get("/inventory/requests/:id", async (req, res, next) => {
       unit: internalRequestLinesTable.unit,
       servedQuantity: internalRequestLinesTable.servedQuantity,
       productName: productsTable.name,
-      productCode: productsTable.code,
+      productCode: productsTable.sku,
     }).from(internalRequestLinesTable)
       .leftJoin(productsTable, eq(internalRequestLinesTable.productId, productsTable.id))
       .where(eq(internalRequestLinesTable.requestId, ir.id));

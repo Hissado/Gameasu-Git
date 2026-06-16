@@ -48,7 +48,7 @@ router.post("/hr/onboarding/templates", requireManagerOrAbove, async (req, res, 
       description: body.description,
       targetRole: body.targetRole,
       isDefault: body.isDefault ?? false,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -140,7 +140,7 @@ router.get("/hr/onboarding/processes", requireManagerOrAbove, async (req, res, n
         createdAt: onboardingProcessesTable.createdAt,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
-        poste: collaboratorsTable.poste,
+        poste: collaboratorsTable.position,
         avatarUrl: collaboratorsTable.avatarUrl,
       })
       .from(onboardingProcessesTable)
@@ -183,7 +183,7 @@ router.post("/hr/onboarding/processes", requireManagerOrAbove, async (req, res, 
       startDate: body.startDate,
       targetCompletionDate: body.targetCompletionDate,
       notes: body.notes,
-      createdById: req.authUser!.userId,
+      createdById: req.authUser!.id,
     }).returning();
 
     // Créer les items depuis le template si fourni
@@ -229,7 +229,7 @@ router.post("/hr/onboarding/processes/:id/items/:itemId/complete", requireAuth, 
   try {
     const { notes } = z.object({ notes: z.string().optional() }).parse(req.body);
     const [row] = await db.update(onboardingProcessItemsTable)
-      .set({ status: "completed", completedAt: new Date(), completedById: req.authUser!.userId, notes: notes ?? null })
+      .set({ status: "completed", completedAt: new Date(), completedById: req.authUser!.id, notes: notes ?? null })
       .where(and(eq(onboardingProcessItemsTable.id, req.params.itemId), eq(onboardingProcessItemsTable.processId, req.params.id)))
       .returning();
     if (!row) return res.status(404).json({ error: "Non trouvé" });

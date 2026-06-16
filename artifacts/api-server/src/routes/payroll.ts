@@ -462,7 +462,7 @@ router.patch("/payroll/payslips/:id", requireManagerOrAbove, async (req, res, ne
     const housing = housingAllowance ?? toNum(p.housingAllowance);
     const meal = mealAllowance ?? toNum(p.mealAllowance);
     const base = toNum(p.baseSalary);
-    const addAmt = (additions ?? (p.additions as { amount: number }[]) ?? []).reduce((s: number, a: { amount: number }) => s + toNum(a.amount), 0);
+    const addAmt = ((additions as { amount: number }[] | undefined) ?? (p.additions as { amount: number }[]) ?? []).reduce((s: number, a: { amount: number }) => s + toNum(a.amount), 0);
     const gross = base + transport + housing + meal + addAmt;
     const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross);
 

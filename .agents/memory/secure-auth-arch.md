@@ -31,9 +31,7 @@ Step 2 — POST /api/auth/login/verify-2fa:
 
 ## Middleware strategy
 
-`artifacts/api-server/src/middlewares/auth.ts` — resolveToken():
-1. UUID v4 regex match → lookup auth_sessions (preferred)
-2. Fallback: Base64 decode → userId:email → direct user lookup (legacy backward compat)
+`artifacts/api-server/src/middlewares/auth.ts` — ONLY accepts UUID tokens present in `auth_sessions` and not expired (`expiresAt > now`). Legacy Base64 `userId:email` tokens are **explicitly rejected** (forgeable, non-revocable) — the old fallback was removed. Do not assume Base64 tokens work for anything.
 
 ## Password migration
 
@@ -49,4 +47,4 @@ Step 2 — POST /api/auth/login/verify-2fa:
 
 **Why:** Base64 userId:email was trivially forgeable. UUID sessions require DB lookup, expire after 30 days, and can be explicitly revoked (logout). 2FA prevents credential stuffing.
 
-**How to apply:** Any new auth-related feature should use the session-based approach. To manually create sessions in tests, insert directly into auth_sessions with a UUID token.
+**How to apply:** Any new auth-related feature should use the session-based approach. To smoke-test ANY protected endpoint, mint a throwaway session: `INSERT INTO auth_sessions (token, user_id, expires_at) VALUES ('<randomUUID>', '<real user id>', now() + interval '1 hour')`, then call with `Authorization: Bearer <token>` via the shared proxy `localhost:80/api/...`, and `DELETE` the row after. Base64 tokens will 401. 2FA codes are bcrypt-hashed (unrecoverable), so go straight through the session table — do not try to replay the login/verify-2fa flow.

@@ -21,7 +21,7 @@ import servicesRouter from "./services";
 import engagementsRouter from "./engagements";
 import documentsRouter from "./documents";
 import marketingRouter from "./marketing";
-import alertsRouter, { runAlertsScan } from "./alerts";
+import alertsRouter, { runAlertsScanForAllOrganizations } from "./alerts";
 import ticketsRouter from "./tickets";
 import fpaRouter from "./fpa";
 import adminRouter from "./admin";
@@ -184,7 +184,7 @@ seedSaas()
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h
-runAlertsScan().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));
-setInterval(() => { runAlertsScan().catch(() => {}); }, 6 * 60 * 60 * 1000);
+runAlertsScanForAllOrganizations().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));
+setInterval(() => { runAlertsScanForAllOrganizations().catch(() => {}); }, 6 * 60 * 60 * 1000);
 
 export default router;
