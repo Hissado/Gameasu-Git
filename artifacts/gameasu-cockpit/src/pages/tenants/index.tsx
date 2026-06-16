@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Loader2, Search, Building2, Users, CreditCard, Power, PowerOff,
-  CheckCircle2, ChevronRight, AlertTriangle, TrendingUp, Filter,
+  CheckCircle2, ChevronRight, AlertTriangle, TrendingUp, Filter, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +59,25 @@ export default function TenantsPage() {
   const [filterHealth, setFilterHealth] = useState("all");
   const [confirming, setConfirming] = useState<Org | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    orgName: "", planCode: "STARTER",
+    adminEmail: "", adminFirstName: "", adminLastName: "",
+    country: "TG", industry: "",
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: typeof createForm) =>
+      apiFetch("/api/super-admin/structures", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast.success("Organisation créée — email d'invitation envoyé à l'administrateur");
+      qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
+      setCreateOpen(false);
+      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "" });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
+  });
 
   const { data, isLoading } = useQuery<OrgList>({
     queryKey: ["cockpit-orgs"],
@@ -105,12 +125,18 @@ export default function TenantsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Cockpit</p>
-        <h1 className="text-2xl font-bold tracking-tight">Organisations</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {data?.count ?? 0} tenants · MRR total {fmtFCFA(totalMRR)}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Cockpit</p>
+          <h1 className="text-2xl font-bold tracking-tight">Organisations</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {data?.count ?? 0} tenants · MRR total {fmtFCFA(totalMRR)}
+          </p>
+        </div>
+        <Button className="gap-2 shrink-0" onClick={() => setCreateOpen(true)}>
+          <Plus className="w-4 h-4" />
+          Nouvelle organisation
+        </Button>
       </div>
 
       {/* KPI row */}
@@ -301,6 +327,142 @@ export default function TenantsPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ── Dialog : Nouvelle organisation ── */}
+      <Dialog open={createOpen} onOpenChange={(o) => { if (!o) setCreateOpen(false); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              Nouvelle organisation
+            </DialogTitle>
+            <DialogDescription>
+              Crée l'espace de travail, l'abonnement (essai 14 jours) et envoie une invitation à l'administrateur.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Nom + Secteur */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label>Nom de l'organisation <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="Ex : BTP Gabon SARL"
+                  value={createForm.orgName}
+                  onChange={e => setCreateForm(f => ({ ...f, orgName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Secteur d'activité</Label>
+                <Input
+                  placeholder="BTP, Mines, Commerce…"
+                  value={createForm.industry}
+                  onChange={e => setCreateForm(f => ({ ...f, industry: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Pays</Label>
+                <Select value={createForm.country} onValueChange={v => setCreateForm(f => ({ ...f, country: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[
+                      ["TG", "🇹🇬 Togo"], ["CI", "🇨🇮 Côte d'Ivoire"], ["SN", "🇸🇳 Sénégal"],
+                      ["CM", "🇨🇲 Cameroun"], ["GA", "🇬🇦 Gabon"], ["CD", "🇨🇩 RD Congo"],
+                      ["BJ", "🇧🇯 Bénin"], ["BF", "🇧🇫 Burkina Faso"], ["ML", "🇲🇱 Mali"],
+                      ["GH", "🇬🇭 Ghana"], ["NG", "🇳🇬 Nigeria"], ["FR", "🇫🇷 France"],
+                    ].map(([code, label]) => (
+                      <SelectItem key={code} value={code}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Plan */}
+            <div className="space-y-1.5">
+              <Label>Plan d'abonnement <span className="text-red-500">*</span></Label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { code: "STARTER",      label: "Starter",      price: "Gratuit" },
+                  { code: "GROWTH",       label: "Growth",       price: "25 000 FCFA" },
+                  { code: "PROFESSIONAL", label: "Pro",          price: "75 000 FCFA" },
+                  { code: "ENTERPRISE",   label: "Enterprise",   price: "Sur devis" },
+                ].map(p => (
+                  <button
+                    key={p.code}
+                    onClick={() => setCreateForm(f => ({ ...f, planCode: p.code }))}
+                    className={`p-2.5 rounded-lg border text-left transition-colors ${
+                      createForm.planCode === p.code
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <p className="text-xs font-bold">{p.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{p.price}/siège</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Admin */}
+            <div className="space-y-3 p-3 rounded-lg bg-muted/40 border border-dashed">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Administrateur principal</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Prénom <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="Jean"
+                    value={createForm.adminFirstName}
+                    onChange={e => setCreateForm(f => ({ ...f, adminFirstName: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nom <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="Dupont"
+                    value={createForm.adminLastName}
+                    onChange={e => setCreateForm(f => ({ ...f, adminLastName: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email <span className="text-red-500">*</span></Label>
+                <Input
+                  type="email"
+                  placeholder="admin@entreprise.com"
+                  value={createForm.adminEmail}
+                  onChange={e => setCreateForm(f => ({ ...f, adminEmail: e.target.value }))}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Un email d'invitation avec les identifiants temporaires sera envoyé à cette adresse.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={createMut.isPending}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => createMut.mutate(createForm)}
+              disabled={
+                createMut.isPending ||
+                !createForm.orgName.trim() ||
+                !createForm.adminEmail.trim() ||
+                !createForm.adminFirstName.trim() ||
+                !createForm.adminLastName.trim()
+              }
+              className="gap-2"
+            >
+              {createMut.isPending
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Création…</>
+                : <><Plus className="w-4 h-4" /> Créer l'organisation</>
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
