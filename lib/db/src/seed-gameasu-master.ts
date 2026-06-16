@@ -6,7 +6,7 @@
  *          Commandes, Finance, Comptabilité, Stock, Opérations, Messagerie,
  *          Tickets Support, Cockpit, Présences/Pointage.
  *
- * Emails : tous les comptes internes utilisent @gameasu.tech
+ * Emails : tous les comptes internes utilisent @gameasu.com
  *
  * Lancement :
  *   cd lib/db && pnpm exec tsx src/seed-gameasu-master.ts
@@ -174,7 +174,7 @@ async function main() {
       currency: "XOF",
       timezone: "Africa/Lome",
       locale: "fr-FR",
-      contactEmail: "contact@gameasu.tech",
+      contactEmail: "contact@gameasu.com",
       isDefault: true,
       primaryColor: "#F37021",
       secondaryColor: "#0F172A",
@@ -227,17 +227,17 @@ async function main() {
 
   // ── 3. Users ──────────────────────────────────────────────────────────
   console.log("→ Utilisateurs...");
-  // Upsert the 7 @gameasu.tech demo accounts (old @edole.africa users stay but are
+  // Upsert the 7 @gameasu.com demo accounts (old @edole.africa users stay but are
   // harmless since all business data was already truncated above).
 
   const userRows = [
-    { email: "admin@gameasu.tech",      password: "admin123",      firstName: "Jacques",  lastName: "Koami Mensah",     role: "super_admin",   phone: "+228 90 00 00 01" },
-    { email: "directeur@gameasu.tech",  password: "admin123",      firstName: "Komi",     lastName: "Agbemelo",         role: "manager",       phone: "+228 90 00 00 02" },
-    { email: "commercial@gameasu.tech", password: "commercial123", firstName: "Aminata",  lastName: "Diallo-Touré",     role: "commercial",    phone: "+228 90 00 00 03" },
-    { email: "finance@gameasu.tech",    password: "finance123",    firstName: "Salif",    lastName: "Koné",             role: "collaborator",  phone: "+228 90 00 00 04" },
-    { email: "rh@gameasu.tech",         password: "rh123",         firstName: "Mariam",   lastName: "Ouédraogo-Sawadogo", role: "collaborator", phone: "+228 90 00 00 05" },
-    { email: "operations@gameasu.tech", password: "ops123",        firstName: "Moussa",   lastName: "Konaté",           role: "collaborator",  phone: "+228 90 00 00 06" },
-    { email: "support@gameasu.tech",    password: "support123",    firstName: "Afi",      lastName: "Lawson",           role: "collaborator",  phone: "+228 90 00 00 07" },
+    { email: "admin@gameasu.com",      password: "admin123",      firstName: "Jacques",  lastName: "Koami Mensah",     role: "super_admin",   phone: "+228 90 00 00 01" },
+    { email: "directeur@gameasu.com",  password: "admin123",      firstName: "Komi",     lastName: "Agbemelo",         role: "manager",       phone: "+228 90 00 00 02" },
+    { email: "commercial@gameasu.com", password: "commercial123", firstName: "Aminata",  lastName: "Diallo-Touré",     role: "commercial",    phone: "+228 90 00 00 03" },
+    { email: "finance@gameasu.com",    password: "finance123",    firstName: "Salif",    lastName: "Koné",             role: "collaborator",  phone: "+228 90 00 00 04" },
+    { email: "rh@gameasu.com",         password: "rh123",         firstName: "Mariam",   lastName: "Ouédraogo-Sawadogo", role: "collaborator", phone: "+228 90 00 00 05" },
+    { email: "operations@gameasu.com", password: "ops123",        firstName: "Moussa",   lastName: "Konaté",           role: "collaborator",  phone: "+228 90 00 00 06" },
+    { email: "support@gameasu.com",    password: "support123",    firstName: "Afi",      lastName: "Lawson",           role: "collaborator",  phone: "+228 90 00 00 07" },
   ];
 
   const users: Record<string, typeof usersTable.$inferSelect> = {};
@@ -254,16 +254,16 @@ async function main() {
     users[u.email] = userRecord;
   }
 
-  const admin = users["admin@gameasu.tech"]!;
-  const directeur = users["directeur@gameasu.tech"]!;
-  const commercial = users["commercial@gameasu.tech"]!;
-  const finance = users["finance@gameasu.tech"]!;
-  const rh = users["rh@gameasu.tech"]!;
-  const operations = users["operations@gameasu.tech"]!;
-  const support = users["support@gameasu.tech"]!;
-  console.log("  ✓ 7 utilisateurs @gameasu.tech");
+  const admin = users["admin@gameasu.com"]!;
+  const directeur = users["directeur@gameasu.com"]!;
+  const commercial = users["commercial@gameasu.com"]!;
+  const finance = users["finance@gameasu.com"]!;
+  const rh = users["rh@gameasu.com"]!;
+  const operations = users["operations@gameasu.com"]!;
+  const support = users["support@gameasu.com"]!;
+  console.log("  ✓ 7 utilisateurs @gameasu.com");
 
-  // Membership @gameasu.tech
+  // Membership @gameasu.com
   for (const u of Object.values(users)) {
     const role = u.role === "super_admin" ? "owner" : u.role === "manager" ? "manager" : "member";
     await db.insert(organizationMembersTable).values({ organizationId: orgId, userId: u.id, role, isPrimary: true }).onConflictDoNothing();
@@ -414,21 +414,21 @@ async function main() {
   // ── 7. Collaborateurs ────────────────────────────────────────────────
   console.log("→ Collaborateurs (15)...");
   const collabRows = await db.insert(collaboratorsTable).values([
-    { organizationId: orgId, userId: directeur.id, firstName: "Komi", lastName: "Agbemelo", email: "directeur@gameasu.tech", phone: "+228 90 00 00 02", position: "Directeur des Opérations", department: "Direction", hireDate: "2018-03-01", employmentStatus: "active", baseSalary: "1850000", isAvailable: true },
-    { organizationId: orgId, userId: commercial.id, firstName: "Aminata", lastName: "Diallo-Touré", email: "commercial@gameasu.tech", phone: "+228 90 00 00 03", position: "Directrice Commerciale", department: "Commercial", hireDate: "2019-06-15", employmentStatus: "active", baseSalary: "1250000", isAvailable: true, currentProjectsCount: 2 },
-    { organizationId: orgId, userId: finance.id, firstName: "Salif", lastName: "Koné", email: "finance@gameasu.tech", phone: "+228 90 00 00 04", position: "Responsable Financier", department: "Finance", hireDate: "2019-02-01", employmentStatus: "active", baseSalary: "980000", isAvailable: true },
-    { organizationId: orgId, userId: rh.id, firstName: "Mariam", lastName: "Ouédraogo-Sawadogo", email: "rh@gameasu.tech", phone: "+228 90 00 00 05", position: "DRH", department: "Ressources humaines", hireDate: "2020-04-01", employmentStatus: "active", baseSalary: "890000", isAvailable: true },
-    { organizationId: orgId, userId: operations.id, firstName: "Moussa", lastName: "Konaté", email: "operations@gameasu.tech", phone: "+228 90 00 00 06", position: "Responsable Opérations", department: "Opérations", hireDate: "2017-09-01", employmentStatus: "active", baseSalary: "820000", isAvailable: false, currentProjectsCount: 3 },
-    { organizationId: orgId, firstName: "Akossiwa", lastName: "Adzo", email: "a.adzo@gameasu.tech", phone: "+228 90 11 22 02", position: "Chef de Projet Senior", department: "Projets", hireDate: "2020-06-01", employmentStatus: "active", baseSalary: "1100000", isAvailable: false, currentProjectsCount: 2 },
-    { organizationId: orgId, firstName: "Yawo", lastName: "Klutsè", email: "y.klutse@gameasu.tech", phone: "+228 90 11 22 03", position: "Ingénieur Génie Civil", department: "Projets", hireDate: "2021-02-10", employmentStatus: "active", baseSalary: "850000", isAvailable: true },
-    { organizationId: orgId, firstName: "Edem", lastName: "Tchalla", email: "e.tchalla@gameasu.tech", phone: "+228 90 11 22 04", position: "Conducteur de Travaux", department: "Travaux", hireDate: "2018-09-20", employmentStatus: "active", baseSalary: "720000", isAvailable: false, currentProjectsCount: 3 },
-    { organizationId: orgId, firstName: "Sika", lastName: "Avoulété", email: "s.avoulete@gameasu.tech", phone: "+228 90 11 22 07", position: "Architecte DPLG", department: "Études", hireDate: "2020-01-15", employmentStatus: "active", baseSalary: "1050000", isAvailable: true },
-    { organizationId: orgId, firstName: "Komlan", lastName: "Bokovi", email: "k.bokovi@gameasu.tech", phone: "+228 90 11 22 08", position: "Chef d'Équipe Maçonnerie", department: "Travaux", hireDate: "2016-08-22", employmentStatus: "active", baseSalary: "520000", isAvailable: false, currentProjectsCount: 1 },
-    { organizationId: orgId, firstName: "Eyram", lastName: "Apélété", email: "e.apelete@gameasu.tech", phone: "+228 90 11 22 10", position: "Responsable HSE", department: "Sécurité", hireDate: "2021-07-19", employmentStatus: "active", baseSalary: "780000", isAvailable: true },
-    { organizationId: orgId, firstName: "Akouvi", lastName: "Tévi", email: "a.tevi@gameasu.tech", phone: "+228 90 11 22 14", position: "Géomètre-Topographe", department: "Études", hireDate: "2020-10-08", employmentStatus: "active", baseSalary: "750000", isAvailable: true },
-    { organizationId: orgId, firstName: "Kossi", lastName: "Adjété", email: "kossi.adjete@gameasu.tech", phone: "+228 90 11 22 12", position: "Magasinier-Chef", department: "Logistique", hireDate: "2019-05-30", employmentStatus: "active", baseSalary: "450000", isAvailable: true },
-    { organizationId: orgId, firstName: "Délali", lastName: "Sossou", email: "d.sossou@gameasu.tech", phone: "+228 90 11 22 09", position: "Assistante Administrative", department: "Administration", hireDate: "2022-03-01", employmentStatus: "active", baseSalary: "380000", isAvailable: true },
-    { organizationId: orgId, firstName: "Senyo", lastName: "Doe", email: "s.doe@gameasu.tech", phone: "+228 90 11 22 15", position: "Stagiaire BTS Génie Civil", department: "Études", hireDate: "2026-03-01", employmentStatus: "active", baseSalary: "120000", isAvailable: true },
+    { organizationId: orgId, userId: directeur.id, firstName: "Komi", lastName: "Agbemelo", email: "directeur@gameasu.com", phone: "+228 90 00 00 02", position: "Directeur des Opérations", department: "Direction", hireDate: "2018-03-01", employmentStatus: "active", baseSalary: "1850000", isAvailable: true },
+    { organizationId: orgId, userId: commercial.id, firstName: "Aminata", lastName: "Diallo-Touré", email: "commercial@gameasu.com", phone: "+228 90 00 00 03", position: "Directrice Commerciale", department: "Commercial", hireDate: "2019-06-15", employmentStatus: "active", baseSalary: "1250000", isAvailable: true, currentProjectsCount: 2 },
+    { organizationId: orgId, userId: finance.id, firstName: "Salif", lastName: "Koné", email: "finance@gameasu.com", phone: "+228 90 00 00 04", position: "Responsable Financier", department: "Finance", hireDate: "2019-02-01", employmentStatus: "active", baseSalary: "980000", isAvailable: true },
+    { organizationId: orgId, userId: rh.id, firstName: "Mariam", lastName: "Ouédraogo-Sawadogo", email: "rh@gameasu.com", phone: "+228 90 00 00 05", position: "DRH", department: "Ressources humaines", hireDate: "2020-04-01", employmentStatus: "active", baseSalary: "890000", isAvailable: true },
+    { organizationId: orgId, userId: operations.id, firstName: "Moussa", lastName: "Konaté", email: "operations@gameasu.com", phone: "+228 90 00 00 06", position: "Responsable Opérations", department: "Opérations", hireDate: "2017-09-01", employmentStatus: "active", baseSalary: "820000", isAvailable: false, currentProjectsCount: 3 },
+    { organizationId: orgId, firstName: "Akossiwa", lastName: "Adzo", email: "a.adzo@gameasu.com", phone: "+228 90 11 22 02", position: "Chef de Projet Senior", department: "Projets", hireDate: "2020-06-01", employmentStatus: "active", baseSalary: "1100000", isAvailable: false, currentProjectsCount: 2 },
+    { organizationId: orgId, firstName: "Yawo", lastName: "Klutsè", email: "y.klutse@gameasu.com", phone: "+228 90 11 22 03", position: "Ingénieur Génie Civil", department: "Projets", hireDate: "2021-02-10", employmentStatus: "active", baseSalary: "850000", isAvailable: true },
+    { organizationId: orgId, firstName: "Edem", lastName: "Tchalla", email: "e.tchalla@gameasu.com", phone: "+228 90 11 22 04", position: "Conducteur de Travaux", department: "Travaux", hireDate: "2018-09-20", employmentStatus: "active", baseSalary: "720000", isAvailable: false, currentProjectsCount: 3 },
+    { organizationId: orgId, firstName: "Sika", lastName: "Avoulété", email: "s.avoulete@gameasu.com", phone: "+228 90 11 22 07", position: "Architecte DPLG", department: "Études", hireDate: "2020-01-15", employmentStatus: "active", baseSalary: "1050000", isAvailable: true },
+    { organizationId: orgId, firstName: "Komlan", lastName: "Bokovi", email: "k.bokovi@gameasu.com", phone: "+228 90 11 22 08", position: "Chef d'Équipe Maçonnerie", department: "Travaux", hireDate: "2016-08-22", employmentStatus: "active", baseSalary: "520000", isAvailable: false, currentProjectsCount: 1 },
+    { organizationId: orgId, firstName: "Eyram", lastName: "Apélété", email: "e.apelete@gameasu.com", phone: "+228 90 11 22 10", position: "Responsable HSE", department: "Sécurité", hireDate: "2021-07-19", employmentStatus: "active", baseSalary: "780000", isAvailable: true },
+    { organizationId: orgId, firstName: "Akouvi", lastName: "Tévi", email: "a.tevi@gameasu.com", phone: "+228 90 11 22 14", position: "Géomètre-Topographe", department: "Études", hireDate: "2020-10-08", employmentStatus: "active", baseSalary: "750000", isAvailable: true },
+    { organizationId: orgId, firstName: "Kossi", lastName: "Adjété", email: "kossi.adjete@gameasu.com", phone: "+228 90 11 22 12", position: "Magasinier-Chef", department: "Logistique", hireDate: "2019-05-30", employmentStatus: "active", baseSalary: "450000", isAvailable: true },
+    { organizationId: orgId, firstName: "Délali", lastName: "Sossou", email: "d.sossou@gameasu.com", phone: "+228 90 11 22 09", position: "Assistante Administrative", department: "Administration", hireDate: "2022-03-01", employmentStatus: "active", baseSalary: "380000", isAvailable: true },
+    { organizationId: orgId, firstName: "Senyo", lastName: "Doe", email: "s.doe@gameasu.com", phone: "+228 90 11 22 15", position: "Stagiaire BTS Génie Civil", department: "Études", hireDate: "2026-03-01", employmentStatus: "active", baseSalary: "120000", isAvailable: true },
   ]).returning();
 
   const [cDir, cCom, cFin, cRH, cOps, cChefProj, cIngGC, cConducteur, cArchi, cChefMac, cHSE, cGeo, cMag, cAdmin, cStagiaire] = collabRows;
@@ -806,16 +806,16 @@ async function main() {
   // ── 16. Documents ─────────────────────────────────────────────────────
   console.log("→ Documents...");
   await db.insert(documentsTable).values([
-    { organizationId: orgId, name: "Contrat-cadre CEET — Extension HTA 2026", category: "contracts", fileUrl: "https://files.gameasu.tech/contracts/ceet-hta-2026.pdf", entityType: "project", entityId: projects[0]?.id, uploadedBy: admin.id },
-    { organizationId: orgId, name: "Plan d'exécution fondations — Siège Lomé Construction", category: "technical", fileUrl: "https://files.gameasu.tech/plans/lc-fondations-ex-2026.dwg", entityType: "project", entityId: projects[1]?.id, uploadedBy: directeur.id },
-    { organizationId: orgId, name: "Rapport d'avancement CHU — Juin 2026", category: "reports", fileUrl: "https://files.gameasu.tech/reports/chu-avancement-juin2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: directeur.id },
-    { organizationId: orgId, name: "PV réception voirie Adakpamé — km 0 à 2", category: "reception", fileUrl: "https://files.gameasu.tech/pvs/voirie-adakpame-km0-2.pdf", entityType: "project", entityId: projects[3]?.id, uploadedBy: cChefProj?.id ?? admin.id },
-    { organizationId: orgId, name: "RCCM — Gaméasù Technologies SARL", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/rccm-gameasu-tech.pdf", uploadedBy: admin.id },
-    { organizationId: orgId, name: "Agrément technique MIETFP — Génie civil", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/agrement-mietfp-gc.pdf", uploadedBy: admin.id },
-    { organizationId: orgId, name: "Assurance décennale — Police 2026", category: "administrative", fileUrl: "https://files.gameasu.tech/legal/assurance-decennale-2026.pdf", uploadedBy: admin.id },
-    { organizationId: orgId, name: "Planning directeur — Projet CHU bloc opératoire", category: "technical", fileUrl: "https://files.gameasu.tech/planning/chu-planning-directeur.xlsx", entityType: "project", entityId: projects[2]?.id, uploadedBy: cArchi?.id ?? admin.id },
-    { organizationId: orgId, name: "Note de calcul béton armé — Extension siège R+3", category: "technical", fileUrl: "https://files.gameasu.tech/studies/lc-calcul-ba-r3.pdf", entityType: "project", entityId: projects[1]?.id, uploadedBy: cIngGC?.id ?? admin.id },
-    { organizationId: orgId, name: "Plan HSE chantier — CHU bloc opératoire", category: "hse", fileUrl: "https://files.gameasu.tech/hse/chu-plan-hse-2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: cHSE?.id ?? admin.id },
+    { organizationId: orgId, name: "Contrat-cadre CEET — Extension HTA 2026", category: "contracts", fileUrl: "https://files.gameasu.com/contracts/ceet-hta-2026.pdf", entityType: "project", entityId: projects[0]?.id, uploadedBy: admin.id },
+    { organizationId: orgId, name: "Plan d'exécution fondations — Siège Lomé Construction", category: "technical", fileUrl: "https://files.gameasu.com/plans/lc-fondations-ex-2026.dwg", entityType: "project", entityId: projects[1]?.id, uploadedBy: directeur.id },
+    { organizationId: orgId, name: "Rapport d'avancement CHU — Juin 2026", category: "reports", fileUrl: "https://files.gameasu.com/reports/chu-avancement-juin2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: directeur.id },
+    { organizationId: orgId, name: "PV réception voirie Adakpamé — km 0 à 2", category: "reception", fileUrl: "https://files.gameasu.com/pvs/voirie-adakpame-km0-2.pdf", entityType: "project", entityId: projects[3]?.id, uploadedBy: cChefProj?.id ?? admin.id },
+    { organizationId: orgId, name: "RCCM — Gaméasù Technologies SARL", category: "administrative", fileUrl: "https://files.gameasu.com/legal/rccm-gameasu-tech.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Agrément technique MIETFP — Génie civil", category: "administrative", fileUrl: "https://files.gameasu.com/legal/agrement-mietfp-gc.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Assurance décennale — Police 2026", category: "administrative", fileUrl: "https://files.gameasu.com/legal/assurance-decennale-2026.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "Planning directeur — Projet CHU bloc opératoire", category: "technical", fileUrl: "https://files.gameasu.com/planning/chu-planning-directeur.xlsx", entityType: "project", entityId: projects[2]?.id, uploadedBy: cArchi?.id ?? admin.id },
+    { organizationId: orgId, name: "Note de calcul béton armé — Extension siège R+3", category: "technical", fileUrl: "https://files.gameasu.com/studies/lc-calcul-ba-r3.pdf", entityType: "project", entityId: projects[1]?.id, uploadedBy: cIngGC?.id ?? admin.id },
+    { organizationId: orgId, name: "Plan HSE chantier — CHU bloc opératoire", category: "hse", fileUrl: "https://files.gameasu.com/hse/chu-plan-hse-2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: cHSE?.id ?? admin.id },
   ]);
   console.log("  ✓ 10 documents");
 
@@ -876,7 +876,7 @@ async function main() {
     { organizationId: orgId, subject: "Impossible d'exporter le rapport de variance budget en Excel", description: "Lors du clic sur 'Exporter variance', le téléchargement commence puis s'interrompt. Navigateur : Chrome 125. OS : Windows 11. Aucun message d'erreur visible.", category: "bug", priority: "high", status: "in_progress", createdById: finance.id, assigneeId: support.id },
     { organizationId: orgId, subject: "Ajouter le filtre 'par département' sur la liste des tâches", description: "Nous avons 8 départements et il est difficile de retrouver les tâches d'un département spécifique sans filtre. Ce serait très utile pour la réunion hebdo.", category: "feature", priority: "medium", status: "open", createdById: directeur.id },
     { organizationId: orgId, subject: "Les notifications de paiement ne s'affichent pas en temps réel", description: "On reçoit les notifications avec 5 à 10 minutes de retard. Le suivi de trésorerie s'en trouve impacté.", category: "bug", priority: "medium", status: "resolved", createdById: finance.id, assigneeId: support.id },
-    { organizationId: orgId, subject: "Demande d'accès module Planification Financière pour Salif Koné", description: "Salif Koné (finance@gameasu.tech) a besoin d'accéder au module FP&A pour préparer le budget Q3.", category: "access", priority: "high", status: "open", createdById: admin.id },
+    { organizationId: orgId, subject: "Demande d'accès module Planification Financière pour Salif Koné", description: "Salif Koné (finance@gameasu.com) a besoin d'accéder au module FP&A pour préparer le budget Q3.", category: "access", priority: "high", status: "open", createdById: admin.id },
     { organizationId: orgId, subject: "Question sur la méthode de calcul du DSO", description: "Comment le DSO est-il calculé dans le module Recouvrement ? Quelle est la fenêtre temporelle utilisée ?", category: "question", priority: "low", status: "closed", createdById: finance.id, assigneeId: support.id },
     { organizationId: orgId, subject: "Erreur 500 lors de la création d'une inspection de location", description: "Quand on tente de créer une inspection pré-location pour RNT-2026-0003, l'application renvoie une erreur 500. Besoin urgent.", category: "bug", priority: "urgent", status: "open", createdById: operations.id },
   ]).returning();
@@ -899,12 +899,12 @@ async function main() {
   ]);
 
   await db.insert(cockpitAuditLogsTable).values([
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "org.update", resource: "organization", resourceId: orgId, metadata: { field: "primaryColor", from: "#000000", to: "#F37021" } },
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "user.create", resource: "user", resourceId: directeur.id, metadata: { email: "directeur@gameasu.tech", role: "manager" } },
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "module.enable", resource: "module", resourceId: orgId, metadata: { module: "financial_planning", enabled: true } },
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "ticket.update", resource: "ticket", resourceId: tickets[2]!.id, metadata: { status: { from: "in_progress", to: "resolved" } } },
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "subscription.change", resource: "subscription", resourceId: subId, metadata: { plan: "PROFESSIONAL", seats: 25, amount: "875000 FCFA/mois" } },
-    { actorId: admin.id, actorEmail: "admin@gameasu.tech", action: "incident.create", resource: "incident", resourceId: orgId, metadata: { title: "Tentatives connexion répétées", severity: "high" } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "org.update", resource: "organization", resourceId: orgId, metadata: { field: "primaryColor", from: "#000000", to: "#F37021" } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "user.create", resource: "user", resourceId: directeur.id, metadata: { email: "directeur@gameasu.com", role: "manager" } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "module.enable", resource: "module", resourceId: orgId, metadata: { module: "financial_planning", enabled: true } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "ticket.update", resource: "ticket", resourceId: tickets[2]!.id, metadata: { status: { from: "in_progress", to: "resolved" } } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "subscription.change", resource: "subscription", resourceId: subId, metadata: { plan: "PROFESSIONAL", seats: 25, amount: "875000 FCFA/mois" } },
+    { actorId: admin.id, actorEmail: "admin@gameasu.com", action: "incident.create", resource: "incident", resourceId: orgId, metadata: { title: "Tentatives connexion répétées", severity: "high" } },
   ]);
   console.log("  ✓ 3 incidents + 6 entrées audit");
 
@@ -944,12 +944,12 @@ async function main() {
   console.log("  ✅ Gaméasù Master Demo Seed — Terminé avec succès !");
   console.log("─────────────────────────────────────────────────────────────");
   console.log("  Comptes démo :");
-  console.log("    admin@gameasu.tech       / admin123");
-  console.log("    directeur@gameasu.tech   / admin123");
-  console.log("    commercial@gameasu.tech  / commercial123");
-  console.log("    finance@gameasu.tech     / finance123");
-  console.log("    rh@gameasu.tech          / rh123");
-  console.log("    operations@gameasu.tech  / ops123");
+  console.log("    admin@gameasu.com       / admin123");
+  console.log("    directeur@gameasu.com   / admin123");
+  console.log("    commercial@gameasu.com  / commercial123");
+  console.log("    finance@gameasu.com     / finance123");
+  console.log("    rh@gameasu.com          / rh123");
+  console.log("    operations@gameasu.com  / ops123");
   console.log("═══════════════════════════════════════════════════════════════");
 }
 

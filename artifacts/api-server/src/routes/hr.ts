@@ -2009,7 +2009,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   // Pied de page
   doc.moveTo(60, 760).lineTo(535, 760).strokeColor("#e2e8f0").lineWidth(1).stroke();
   doc.fontSize(8).fillColor("#999999").font("Helvetica")
-    .text("Document généré automatiquement — GAMÉASÙ Africa | www.gameasu.tech", 0, 768, { align: "center" });
+    .text("Document généré automatiquement — GAMÉASÙ Africa | www.gameasu.com", 0, 768, { align: "center" });
 
   doc.end();
 }

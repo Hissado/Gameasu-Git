@@ -3,7 +3,7 @@
  *
  * Objectif : ajouter du volume et du contexte togolais/ouest-africain réaliste
  * sur le seed de base (`seed.ts`), sans casser les credentials de démo
- * (`*@gameasu.tech`). Idempotent via marqueur (client « Lomé Construction SA »).
+ * (`*@gameasu.com`). Idempotent via marqueur (client « Lomé Construction SA »).
  *
  * Lancement :
  *   pnpm exec tsx lib/db/src/seed-rich.ts
@@ -58,13 +58,13 @@ export async function seedRich() {
 
   // Garde défensive : exige les 4 users de démo seedés par seed.ts.
   const users = await db.select().from(usersTable);
-  const admin = users.find(u => u.email === "admin@gameasu.tech");
-  const manager = users.find(u => u.email === "directeur@gameasu.tech");
-  const commercial = users.find(u => u.email === "commercial@gameasu.tech");
-  const collab = users.find(u => u.email === "collab@gameasu.tech");
+  const admin = users.find(u => u.email === "admin@gameasu.com");
+  const manager = users.find(u => u.email === "directeur@gameasu.com");
+  const commercial = users.find(u => u.email === "commercial@gameasu.com");
+  const collab = users.find(u => u.email === "collab@gameasu.com");
   if (!admin || !manager || !commercial || !collab) {
     throw new Error(
-      "Seed enrichi: utilisateurs de démo manquants (admin/manager/commercial/collab @gameasu.tech). " +
+      "Seed enrichi: utilisateurs de démo manquants (admin/manager/commercial/collab @gameasu.com). " +
       "Exécutez d'abord `pnpm exec tsx lib/db/src/seed.ts`."
     );
   }

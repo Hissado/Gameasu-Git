@@ -693,7 +693,7 @@ router.post("/calls", async (req, res) => {
   const [call] = await db.insert(callSessionsTable).values({
     type: type || "video", status: "ringing", initiatorId: userId,
     conversationId: conversationId || null, projectId: projectId || null,
-    roomUrl: `https://meet.gameasu.tech/room/${Date.now()}`,
+    roomUrl: `https://meet.gameasu.com/room/${Date.now()}`,
     startedAt: null,
   }).returning();
 
