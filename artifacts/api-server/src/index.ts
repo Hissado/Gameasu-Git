@@ -5,6 +5,7 @@ import { initRealtime } from "./lib/realtime";
 import { seedSyscohada } from "./services/syscohada-seed";
 import { seedHr } from "./services/hr-seed";
 import { startTaxAlertScheduler } from "./services/tax-alerts";
+import { ensureCockpitAdmin } from "./services/ensure-admin";
 
 const rawPort = process.env["PORT"];
 
@@ -38,6 +39,12 @@ httpServer.listen(port, async () => {
     await seedSyscohada();
   } catch (e) {
     logger.error({ err: e }, "SYSCOHADA seed failed");
+  }
+
+  try {
+    await ensureCockpitAdmin();
+  } catch (e) {
+    logger.error({ err: e }, "ensureCockpitAdmin failed");
   }
 
   startTaxAlertScheduler();
