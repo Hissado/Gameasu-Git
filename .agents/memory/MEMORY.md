@@ -11,6 +11,7 @@
 - [Seed Gaméasù schema pitfalls](seed-gameasu-schema-pitfalls.md) — NOT NULL mismatches, COA-before-bank-accounts order, TRUNCATE table list, and why never DELETE users by email.
 - [Cockpit port range](cockpit-port-range.md) — ports 22xxx assigned by createArtifact() are not reliably detected by Replit workflow supervisor; use 25658+ range instead.
 - [Public API routes before requireAuth](public-routes-pattern.md) — routes that must work without auth must be in a separate router registered BEFORE router.use(requireAuth) in routes/index.ts; see orders-public.ts pattern.
+- [Tenant isolation must cover joins](tenant-isolation-joins.md) — org-scoping the base WHERE isn't enough; joins (category/client names) + overlap subqueries leak foreign values unless they also carry an organizationId filter.
 - [DB push interactive prompt](db-push-workaround.md) — drizzle-kit push blocks on interactive prompts for unique constraints; bypass with a tsx migration script in lib/db/src/ then delete it after running.
 - [Fiscal year auto-seed removed](fiscal-year-autoseed.md) — GET /accounting/fiscal-periods used to auto-create 2015-2030 on every call; removed. Now uses manual creation, DELETE (no FK), and create-next (after closure).
 - [Secure Auth architecture](secure-auth-arch.md) — bcrypt+UUID sessions; 2FA + trusted devices; middleware accepts ONLY UUID session tokens (Base64 rejected); smoke-test protected routes by minting an auth_sessions row.

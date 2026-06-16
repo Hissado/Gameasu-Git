@@ -521,6 +521,11 @@ router.put("/admin/users/:id/project-access", requirePermission("users.assign_pr
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const orgId = req.authUser!.organizationId;
+  const userId = req.params.id as string;
+  const [targetUser] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, orgId))).limit(1);
+  if (!targetUser) return res.status(404).json({ error: "Utilisateur introuvable" });
   const rows = await db.select({
     id: userClientAccessTable.id,
     clientId: userClientAccessTable.clientId,
@@ -528,31 +533,46 @@ router.get("/admin/users/:id/client-access", requirePermission("users.assign_pro
     grantedAt: userClientAccessTable.grantedAt,
     clientName: clientsTable.name,
   }).from(userClientAccessTable)
-    .leftJoin(clientsTable, eq(clientsTable.id, userClientAccessTable.clientId))
-    .where(eq(userClientAccessTable.userId, (req.params.id as string)));
+    .leftJoin(clientsTable, and(eq(clientsTable.id, userClientAccessTable.clientId), eq(clientsTable.organizationId, orgId)))
+    .where(and(eq(userClientAccessTable.userId, userId), eq(userClientAccessTable.organizationId, orgId)));
   return res.json({ data: rows });
 });
 
 router.put("/admin/users/:id/client-access", requirePermission("users.assign_projects"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
+  const orgId = req.authUser!.organizationId;
+  const userId = req.params.id as string;
   const { items } = req.body || {};
   if (!Array.isArray(items)) return res.status(400).json({ error: "items doit être un tableau" });
   for (const it of items) {
     if (!isUuid(it?.clientId)) return res.status(400).json({ error: "clientId UUID requis" });
     if (!["viewer", "editor", "manager"].includes(it.accessLevel)) return res.status(400).json({ error: "accessLevel invalide" });
   }
+  // Isolation multi-tenant : l'utilisateur cible doit appartenir à l'organisation
+  const [targetUser] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(and(eq(usersTable.id, userId), eq(usersTable.organizationId, orgId))).limit(1);
+  if (!targetUser) return res.status(404).json({ error: "Utilisateur introuvable" });
+  // ... et tous les clients référencés aussi
+  const clientIds = [...new Set(items.map((it: any) => it.clientId as string))];
+  if (clientIds.length > 0) {
+    const validClients = await db.select({ id: clientsTable.id }).from(clientsTable)
+      .where(and(eq(clientsTable.organizationId, orgId), inArray(clientsTable.id, clientIds)));
+    if (validClients.length !== clientIds.length) {
+      return res.status(400).json({ error: "Un ou plusieurs clients sont introuvables dans l'organisation" });
+    }
+  }
   await db.transaction(async (tx) => {
-    await tx.delete(userClientAccessTable).where(eq(userClientAccessTable.userId, (req.params.id as string)));
+    await tx.delete(userClientAccessTable).where(and(eq(userClientAccessTable.userId, userId), eq(userClientAccessTable.organizationId, orgId)));
     if (items.length > 0) {
       await tx.insert(userClientAccessTable).values(items.map((it: any) => ({
-        organizationId: req.authUser!.organizationId,
-        userId: (req.params.id as string), clientId: it.clientId, accessLevel: it.accessLevel,
+        organizationId: orgId,
+        userId, clientId: it.clientId, accessLevel: it.accessLevel,
         grantedById: req.authUser?.id ?? null,
       })));
     }
   });
-  invalidatePermissionsCache((req.params.id as string));
-  await audit(req, "client_access_grant", { entityType: "user", entityId: (req.params.id as string), payload: items });
+  invalidatePermissionsCache(userId);
+  await audit(req, "client_access_grant", { entityType: "user", entityId: userId, payload: items });
   return res.json({ success: true, count: items.length });
 });
 

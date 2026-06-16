@@ -154,12 +154,13 @@ async function sendXlsx(res: import("express").Response, wb: ExcelJS.Workbook, f
   res.end();
 }
 
-router.get("/reports/stock-daily", requireAuth, async (_req, res) => {
+router.get("/reports/stock-daily", requireAuth, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const equipment = await db
     .select({ e: equipmentTable, categoryName: equipmentCategoriesTable.name })
     .from(equipmentTable)
-    .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
-    .where(isNull(equipmentTable.deletedAt));
+    .leftJoin(equipmentCategoriesTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentCategoriesTable.organizationId, orgId)))
+    .where(and(eq(equipmentTable.organizationId, orgId), isNull(equipmentTable.deletedAt)));
 
   const byCategory: Record<string, { total: number; available: number; rented: number; maintenance: number; items: any[] }> = {};
   let totals = { total: 0, available: 0, rented: 0, maintenance: 0 };
@@ -188,7 +189,7 @@ router.get("/reports/stock-daily", requireAuth, async (_req, res) => {
   const movements = await db
     .select()
     .from(equipmentMovementsTable)
-    .where(gte(equipmentMovementsTable.createdAt, yesterday));
+    .where(and(eq(equipmentMovementsTable.organizationId, orgId), gte(equipmentMovementsTable.createdAt, yesterday)));
 
   res.json({
     generatedAt: today.toISOString(),
@@ -199,12 +200,13 @@ router.get("/reports/stock-daily", requireAuth, async (_req, res) => {
   });
 });
 
-router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
+router.get("/reports/stock-daily/pdf", requireAuth, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const equipment = await db
     .select({ e: equipmentTable, categoryName: equipmentCategoriesTable.name })
     .from(equipmentTable)
-    .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
-    .where(isNull(equipmentTable.deletedAt));
+    .leftJoin(equipmentCategoriesTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentCategoriesTable.organizationId, orgId)))
+    .where(and(eq(equipmentTable.organizationId, orgId), isNull(equipmentTable.deletedAt)));
 
   const byCategory: Record<string, { total: number; available: number; rented: number; maintenance: number }> = {};
   let totals = { total: 0, available: 0, rented: 0, maintenance: 0 };
@@ -259,10 +261,12 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (_req, res) => {
 });
 
 // Historique des snapshots journaliers du parc
-router.get("/reports/stock-daily/history", requireAuth, async (_req, res) => {
+router.get("/reports/stock-daily/history", requireAuth, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const rows = await db
     .select()
     .from(dailyStockReportsTable)
+    .where(eq(dailyStockReportsTable.organizationId, orgId))
     .orderBy(desc(dailyStockReportsTable.createdAt))
     .limit(30);
   res.json(rows);
@@ -274,7 +278,7 @@ router.post("/reports/stock-daily/snapshot", requireAuth, requireManagerOrAbove,
   const equipment = await db
     .select({ e: equipmentTable, categoryName: equipmentCategoriesTable.name })
     .from(equipmentTable)
-    .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
+    .leftJoin(equipmentCategoriesTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentCategoriesTable.organizationId, orgId)))
     .where(and(eq(equipmentTable.organizationId, orgId), isNull(equipmentTable.deletedAt)));
 
   const byCategory: Record<string, { total: number; available: number; rented: number; maintenance: number }> = {};

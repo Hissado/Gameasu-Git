@@ -49,6 +49,7 @@ router.get("/equipment/categories", async (req, res, next) => {
       })
       .from(equipmentCategoriesTable)
       .leftJoin(equipmentTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentTable.organizationId, orgId)))
+      .where(eq(equipmentCategoriesTable.organizationId, orgId))
       .groupBy(equipmentCategoriesTable.id);
     return res.json(rows);
   } catch (e) { next(e); }
@@ -83,7 +84,7 @@ router.get("/equipment", async (req, res) => {
     categoryName: equipmentCategoriesTable.name,
   })
     .from(equipmentTable)
-    .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
+    .leftJoin(equipmentCategoriesTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentCategoriesTable.organizationId, req.authUser!.organizationId)))
     .where(orgFilter)
     .limit(limitNum).offset(offset);
 
@@ -113,7 +114,7 @@ router.get("/equipment/:id", async (req, res) => {
     equip: equipmentTable,
     categoryName: equipmentCategoriesTable.name,
   }).from(equipmentTable)
-    .leftJoin(equipmentCategoriesTable, eq(equipmentTable.categoryId, equipmentCategoriesTable.id))
+    .leftJoin(equipmentCategoriesTable, and(eq(equipmentTable.categoryId, equipmentCategoriesTable.id), eq(equipmentCategoriesTable.organizationId, req.authUser!.organizationId)))
     .where(and(eq(equipmentTable.organizationId, req.authUser!.organizationId), eq(equipmentTable.id, (req.params.id as string)))).limit(1);
   if (!rows[0]) return res.status(404).json({ error: "Not found" });
   return res.json({ ...rows[0].equip, categoryName: rows[0].categoryName, dailyRate: rows[0].equip.dailyRate ? Number(rows[0].equip.dailyRate) : null });
