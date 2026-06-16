@@ -219,6 +219,24 @@ async function createStructure(opts: {
 // ─────────────────────────────────────────────────────────────────
 // Mode A : super-admin crée tout + envoie email d'invitation
 // ─────────────────────────────────────────────────────────────────
+router.get("/super-admin/plans", sa, async (_req, res, next) => {
+  try {
+    const plans = await db
+      .select({
+        id: subscriptionPlansTable.id,
+        code: subscriptionPlansTable.code,
+        name: subscriptionPlansTable.name,
+        monthlyPricePerSeat: subscriptionPlansTable.monthlyPricePerSeat,
+        currency: subscriptionPlansTable.currency,
+        includedSeats: subscriptionPlansTable.includedSeats,
+        sortOrder: subscriptionPlansTable.sortOrder,
+      })
+      .from(subscriptionPlansTable)
+      .orderBy(subscriptionPlansTable.sortOrder);
+    res.json(plans);
+  } catch (e) { next(e); }
+});
+
 router.post("/super-admin/structures", sa, async (req, res, next) => {
   try {
     const {

@@ -28,6 +28,12 @@ type Org = {
 
 type OrgList = { count: number; rows: Org[] };
 
+type Plan = {
+  id: string; code: string; name: string;
+  monthlyPricePerSeat: number; currency: string;
+  includedSeats: number; sortOrder: number;
+};
+
 const PLAN_COLOR: Record<string, string> = {
   STARTER: "bg-indigo-50 text-indigo-700 border-indigo-200",
   GROWTH: "bg-violet-50 text-violet-700 border-violet-200",
@@ -83,6 +89,12 @@ export default function TenantsPage() {
     queryKey: ["cockpit-orgs"],
     queryFn: () => apiFetch("/api/super-admin/organizations"),
     refetchInterval: 60_000,
+  });
+
+  const { data: availablePlans = [] } = useQuery<Plan[]>({
+    queryKey: ["cockpit-plans"],
+    queryFn: () => apiFetch("/api/super-admin/plans"),
+    staleTime: 5 * 60_000,
   });
 
   const rows = (data?.rows ?? []).filter((o) => {
@@ -381,27 +393,33 @@ export default function TenantsPage() {
             {/* Plan */}
             <div className="space-y-1.5">
               <Label>Plan d'abonnement <span className="text-red-500">*</span></Label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { code: "STARTER",      label: "Starter",      price: "Gratuit" },
-                  { code: "GROWTH",       label: "Growth",       price: "25 000 FCFA" },
-                  { code: "PROFESSIONAL", label: "Pro",          price: "75 000 FCFA" },
-                  { code: "ENTERPRISE",   label: "Enterprise",   price: "Sur devis" },
-                ].map(p => (
-                  <button
-                    key={p.code}
-                    onClick={() => setCreateForm(f => ({ ...f, planCode: p.code }))}
-                    className={`p-2.5 rounded-lg border text-left transition-colors ${
-                      createForm.planCode === p.code
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <p className="text-xs font-bold">{p.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{p.price}/siège</p>
-                  </button>
-                ))}
-              </div>
+              {availablePlans.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Chargement des plans…
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {availablePlans.map(p => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => setCreateForm(f => ({ ...f, planCode: p.code }))}
+                      className={`p-2.5 rounded-lg border text-left transition-colors ${
+                        createForm.planCode === p.code
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <p className="text-xs font-bold">{p.name}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {p.monthlyPricePerSeat === 0
+                          ? "Gratuit"
+                          : `${new Intl.NumberFormat("fr-FR").format(p.monthlyPricePerSeat)} FCFA/siège`}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Admin */}

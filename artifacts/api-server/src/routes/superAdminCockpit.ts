@@ -296,7 +296,7 @@ router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) =>
       userId: organizationMembersTable.userId,
       role: organizationMembersTable.role,
       isPrimary: organizationMembersTable.isPrimary,
-      joinedAt: organizationMembersTable.createdAt,
+      joinedAt: organizationMembersTable.joinedAt,
       firstName: usersTable.firstName,
       lastName: usersTable.lastName,
       email: usersTable.email,
@@ -305,7 +305,7 @@ router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) =>
     }).from(organizationMembersTable)
       .leftJoin(usersTable, eq(usersTable.id, organizationMembersTable.userId))
       .where(eq(organizationMembersTable.organizationId, id))
-      .orderBy(desc(organizationMembersTable.createdAt));
+      .orderBy(desc(organizationMembersTable.joinedAt));
 
     return res.json({ count: members.length, rows: members });
   } catch (e) { next(e); }
