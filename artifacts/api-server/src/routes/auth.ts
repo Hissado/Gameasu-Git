@@ -474,7 +474,7 @@ router.post("/auth/forgot-password", async (req, res) => {
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await db.update(usersTable).set({ passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt }).where(eq(usersTable.id, user.id));
-    const origin = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+    const origin = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
     // Super-admin → Cockpit (/cockpit/) ; utilisateur tenant → ERP (/).
     const cockpitOrigin = (process.env.COCKPIT_PUBLIC_BASE_URL || origin).replace(/\/$/, "");
     const resetUrl = user.role === "super_admin"

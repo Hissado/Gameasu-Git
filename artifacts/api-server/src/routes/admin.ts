@@ -393,7 +393,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
     }
   });
 
-  const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+  const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
   const acceptUrl = `${baseUrl}/accept-invitation?token=${token}`;
   const inviterName = req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "Un administrateur";
   const tpl = buildInvitationEmail({
@@ -450,7 +450,7 @@ router.post("/admin/users/:id/resend-invitation", requirePermission("users.invit
     passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt,
     invitedAt: new Date(),
   }).where(eq(usersTable.id, u.id));
-  const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+  const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
   const acceptUrl = `${baseUrl}/accept-invitation?token=${token}`;
   const inviterName = req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "Un administrateur";
   const tpl = buildInvitationEmail({

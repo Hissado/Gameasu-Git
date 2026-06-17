@@ -68,7 +68,7 @@ async function uniqueSlug(base: string): Promise<string> {
 function genToken(): string { return randomBytes(32).toString("hex"); }
 function genTempPassword(): string { return randomBytes(6).toString("base64").replace(/[+/=]/g, "").slice(0, 10); }
 function baseUrl(): string {
-  return (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+  return (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
 }
 
 /**
