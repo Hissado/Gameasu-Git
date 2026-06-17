@@ -101,32 +101,37 @@ router.get("/accounting/fiscal-periods", async (req, res) => {
   return res.json({ data: enriched });
 });
 
-router.post("/accounting/fiscal-periods", requireAdmin, async (req, res) => {
-  const orgId = req.authUser!.organizationId;
-  const { name, startDate, endDate } = req.body;
-  if (!name?.trim() || !startDate || !endDate) {
-    return res.status(400).json({ error: "Nom, date de début et date de fin sont requis" });
+router.post("/accounting/fiscal-periods", requireAdmin, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { name, startDate, endDate } = req.body;
+    if (!name?.trim() || !startDate || !endDate) {
+      return res.status(400).json({ error: "Nom, date de début et date de fin sont requis" });
+    }
+    if (startDate >= endDate) {
+      return res.status(400).json({ error: "La date de début doit être antérieure à la date de fin" });
+    }
+    // Vérifier qu'aucun exercice ne couvre déjà cette période
+    // Note: colonnes text castées en ::date pour que OVERLAPS accepte les deux côtés
+    const [conflict] = await db.select({ id: fiscalPeriodsTable.id })
+      .from(fiscalPeriodsTable)
+      .where(and(
+        eq(fiscalPeriodsTable.organizationId, orgId),
+        sql`(${fiscalPeriodsTable.startDate}::date, ${fiscalPeriodsTable.endDate}::date) OVERLAPS (${startDate}::date, ${endDate}::date)`,
+      )).limit(1);
+    if (conflict) {
+      return res.status(409).json({ error: "Un exercice couvre déjà cette période. Supprimez-le d'abord ou ajustez les dates." });
+    }
+    const currentYear = new Date().getFullYear();
+    const periodYear = parseInt(startDate.slice(0, 4));
+    const status = periodYear < currentYear ? "closed" : "open";
+    const [p] = await db.insert(fiscalPeriodsTable).values({
+      organizationId: orgId, name: name.trim(), startDate, endDate, status,
+    }).returning();
+    return res.status(201).json(p);
+  } catch (err) {
+    next(err);
   }
-  if (startDate >= endDate) {
-    return res.status(400).json({ error: "La date de début doit être antérieure à la date de fin" });
-  }
-  // Vérifier qu'aucun exercice ne couvre déjà cette période
-  const [conflict] = await db.select({ id: fiscalPeriodsTable.id })
-    .from(fiscalPeriodsTable)
-    .where(and(
-      eq(fiscalPeriodsTable.organizationId, orgId),
-      sql`(${fiscalPeriodsTable.startDate}, ${fiscalPeriodsTable.endDate}) OVERLAPS (${startDate}::date, ${endDate}::date)`,
-    )).limit(1);
-  if (conflict) {
-    return res.status(409).json({ error: "Un exercice couvre déjà cette période. Supprimez-le d'abord ou ajustez les dates." });
-  }
-  const currentYear = new Date().getFullYear();
-  const periodYear = parseInt(startDate.slice(0, 4));
-  const status = periodYear < currentYear ? "closed" : "open";
-  const [p] = await db.insert(fiscalPeriodsTable).values({
-    organizationId: orgId, name: name.trim(), startDate, endDate, status,
-  }).returning();
-  return res.status(201).json(p);
 });
 
 // DELETE /accounting/fiscal-periods/:id — suppression d'un exercice sans données
