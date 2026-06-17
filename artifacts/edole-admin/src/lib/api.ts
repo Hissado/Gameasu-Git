@@ -1,4 +1,4 @@
-// Helper fetch pour appeler l'API EDOLE avec authentification automatique.
+// Helper fetch pour appeler l'API Gaméasù avec authentification automatique.
 // Émet un événement global "auth:unauthorized" sur 401 pour permettre la
 // déconnexion automatique depuis le contexte d'authentification.
 

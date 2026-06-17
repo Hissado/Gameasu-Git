@@ -86,11 +86,11 @@ export async function seedDemoHR() {
 
   // Mapping email → (salaire, département, poste)
   const existingUpdates: Record<string, { salary: string; deptId: string; posId: string | undefined; empNum: string }> = {
-    "r.essomba@edole.africa":  { salary: "450000", deptId: dTech.id, posId: pTechElec?.id, empNum: "EMP-008" },
-    "f.diallo@edole.africa":   { salary: "520000", deptId: dTech.id, posId: pIng?.id,       empNum: "EMP-009" },
-    "jb.mfoumou@edole.africa": { salary: "380000", deptId: dOps.id,  posId: pChef?.id,      empNum: "EMP-010" },
-    "a.toure@edole.africa":    { salary: "320000", deptId: dLog.id,  posId: pLogResp?.id,   empNum: "EMP-011" },
-    "o.bekono@edole.africa":   { salary: "290000", deptId: dOps.id,  posId: pOuvr?.id,      empNum: "EMP-012" },
+    "r.essomba@gameasu.com":  { salary: "450000", deptId: dTech.id, posId: pTechElec?.id, empNum: "EMP-008" },
+    "f.diallo@gameasu.com":   { salary: "520000", deptId: dTech.id, posId: pIng?.id,       empNum: "EMP-009" },
+    "jb.mfoumou@gameasu.com": { salary: "380000", deptId: dOps.id,  posId: pChef?.id,      empNum: "EMP-010" },
+    "a.toure@gameasu.com":    { salary: "320000", deptId: dLog.id,  posId: pLogResp?.id,   empNum: "EMP-011" },
+    "o.bekono@gameasu.com":   { salary: "290000", deptId: dOps.id,  posId: pOuvr?.id,      empNum: "EMP-012" },
   };
 
   for (const c of existingCollabs) {

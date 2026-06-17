@@ -389,7 +389,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   for (let i = 0; i < 4; i++) {
     await db.insert(hrDocumentsTable).values({
       collaboratorId: collabIds[i], type: pick(["CNI", "diplome", "contrat", "fiche_paie"], i),
-      name: `Document RH ${i + 1}`, fileUrl: `https://files.edole.africa/hr/${randomUUID()}.pdf`,
+      name: `Document RH ${i + 1}`, fileUrl: `https://files.gameasu.com/hr/${randomUUID()}.pdf`,
     } as any);
   }
   counts.contracts = collabIds.length;
@@ -818,7 +818,7 @@ export async function seedDemo(opts: { force?: boolean } = {}): Promise<{ skippe
   for (let i = 0; i < 8; i++) {
     await db.insert(documentsTable).values({
       name: `[DÉMO] Document ${i + 1}.pdf`,
-      fileUrl: `https://files.edole.africa/demo/${randomUUID()}.pdf`,
+      fileUrl: `https://files.gameasu.com/demo/${randomUUID()}.pdf`,
       mimeType: "application/pdf", size: 250_000 + i * 50_000,
       category: pick(docCategories, i),
       entityType: i < 4 ? "client" : "project",

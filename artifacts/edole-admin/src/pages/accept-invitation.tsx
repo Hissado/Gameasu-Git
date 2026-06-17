@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { BRANDING } from "@/config/branding";
 
 export default function AcceptInvitationPage() {
   const [, setLocation] = useLocation();
@@ -45,7 +46,7 @@ export default function AcceptInvitationPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle2 className="w-6 h-6 text-primary" />
-            Bienvenue dans EDOLE
+            Bienvenue dans {BRANDING.appName}
           </CardTitle>
           <CardDescription>Définissez le mot de passe qui vous servira à vous connecter.</CardDescription>
         </CardHeader>

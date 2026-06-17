@@ -1,5 +1,5 @@
 /**
- * Catalogue de permissions FP&A / RBAC EDOLE.
+ * Catalogue de permissions FP&A / RBAC Gaméasù.
  * Ce fichier est la source de vérité — chaque code de permission utilisé dans
  * le code (middleware requirePermission, UI, etc.) doit y figurer.
  *

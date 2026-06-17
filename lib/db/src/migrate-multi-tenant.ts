@@ -62,7 +62,7 @@ const TABLES = [
 async function migrate() {
   console.log("→ Migration multi-tenant démarrée…");
 
-  // L'org démo peut être seedée sous différents slugs selon l'historique (`gameasu-demo`, `nexora-demo`, `edole-demo`…).
+  // L'org démo peut être seedée sous différents slugs selon l'historique (`gameasu-demo`, `nexora-demo`).
   // On prend la première organisation existante triée par `createdAt`.
   const result = await db.execute(sql`SELECT id, slug FROM organizations ORDER BY created_at ASC LIMIT 1`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
