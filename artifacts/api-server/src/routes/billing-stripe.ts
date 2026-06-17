@@ -31,6 +31,7 @@ import { requireAdmin } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 import { getStripeClient, requireStripe, STRIPE_CONFIGURED, STRIPE_CURRENCY, verifyStripeWebhook } from "../lib/stripe";
 import { sendEmail } from "../lib/email";
+import { calcPricing } from "../lib/pricing";
 import type Stripe from "stripe";
 
 const router: IRouter = Router();
@@ -77,8 +78,8 @@ async function getOrCreateStripeCustomer(orgId: string): Promise<string> {
   return customer.id;
 }
 
-/** Calcule le montant de l'abonnement courant (en XOF). */
-async function getCurrentAmount(orgId: string): Promise<{ amount: number; sub: typeof organizationSubscriptionsTable.$inferSelect; plan: typeof subscriptionPlansTable.$inferSelect }> {
+/** Calcule le montant de l'abonnement courant (en XOF) selon la grille dégressive par utilisateur. */
+async function getCurrentAmount(orgId: string): Promise<{ amount: number; amountHT: number; tva: number; sub: typeof organizationSubscriptionsTable.$inferSelect; plan: typeof subscriptionPlansTable.$inferSelect }> {
   const [row] = await db
     .select({ sub: organizationSubscriptionsTable, plan: subscriptionPlansTable })
     .from(organizationSubscriptionsTable)
@@ -90,11 +91,9 @@ async function getCurrentAmount(orgId: string): Promise<{ amount: number; sub: t
     .limit(1);
 
   if (!row) throw new Error("Aucun abonnement actif");
-  const pricePerSeat = row.sub.billingCycle === "annual"
-    ? row.plan.annualPricePerSeat
-    : row.plan.monthlyPricePerSeat;
-  const amount = (row.sub.unitPrice > 0 ? row.sub.unitPrice : pricePerSeat) * row.sub.seats;
-  return { amount, sub: row.sub, plan: row.plan };
+  const pricing = calcPricing(row.sub.seats);
+  if (pricing.isEnterprise) throw new Error("Plus de 50 utilisateurs — tarification sur devis uniquement. Contactez sales@gameasutech.africa");
+  return { amount: pricing.ttc, amountHT: pricing.amountHT, tva: pricing.tva, sub: row.sub, plan: row.plan };
 }
 
 /** Renouvelle l'abonnement après paiement confirmé. */
@@ -122,7 +121,7 @@ async function renewSubscription(sub: typeof organizationSubscriptionsTable.$inf
 }
 
 /** Envoie l'email de confirmation de paiement au tenant. */
-async function sendPaymentConfirmationEmail(orgId: string, amount: number, receiptNumber: string, planName: string): Promise<void> {
+async function sendPaymentConfirmationEmail(orgId: string, amount: number, receiptNumber: string, _planName?: string): Promise<void> {
   try {
     const [org] = await db.select({
       name: organizationsTable.name,
@@ -139,7 +138,7 @@ async function sendPaymentConfirmationEmail(orgId: string, amount: number, recei
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
           <h2 style="color:#d97706;">Gaméasù — Paiement confirmé</h2>
           <p>Bonjour,</p>
-          <p>Votre paiement de <strong>${amountFmt}</strong> pour la formule <strong>${planName}</strong> a été confirmé avec succès.</p>
+          <p>Votre paiement de <strong>${amountFmt}</strong> pour votre abonnement <strong>Gaméasù — Accès complet</strong> a été confirmé avec succès.</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0;">
             <tr><td style="padding:8px;border:1px solid #e5e7eb;color:#6b7280;">N° de reçu</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">${receiptNumber}</td></tr>
             <tr><td style="padding:8px;border:1px solid #e5e7eb;color:#6b7280;">Organisation</td><td style="padding:8px;border:1px solid #e5e7eb;">${org.name}</td></tr>

@@ -91,11 +91,6 @@ export default function TenantsPage() {
     refetchInterval: 60_000,
   });
 
-  const { data: availablePlans = [] } = useQuery<Plan[]>({
-    queryKey: ["cockpit-plans"],
-    queryFn: () => apiFetch("/api/super-admin/plans"),
-    staleTime: 5 * 60_000,
-  });
 
   const rows = (data?.rows ?? []).filter((o) => {
     if (search.trim()) {
@@ -390,36 +385,10 @@ export default function TenantsPage() {
               </div>
             </div>
 
-            {/* Plan */}
-            <div className="space-y-1.5">
-              <Label>Plan d'abonnement <span className="text-red-500">*</span></Label>
-              {availablePlans.length === 0 ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Chargement des plans…
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {availablePlans.map(p => (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => setCreateForm(f => ({ ...f, planCode: p.code }))}
-                      className={`p-2.5 rounded-lg border text-left transition-colors ${
-                        createForm.planCode === p.code
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border hover:border-primary/40"
-                      }`}
-                    >
-                      <p className="text-xs font-bold">{p.name}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {p.monthlyPricePerSeat === 0
-                          ? "Gratuit"
-                          : `${new Intl.NumberFormat("fr-FR").format(p.monthlyPricePerSeat)} FCFA/siège`}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Accès */}
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-emerald-200 bg-emerald-50/60 text-sm text-emerald-800">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span><strong>Accès complet</strong> — tous les modules inclus · tarification dégressive par utilisateur</span>
             </div>
 
             {/* Admin */}

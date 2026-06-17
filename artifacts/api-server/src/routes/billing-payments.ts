@@ -6,11 +6,11 @@ import {
   billingEventsTable,
   organizationSubscriptionsTable,
   organizationsTable,
-  subscriptionPlansTable,
 } from "@workspace/db";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { calcPricing } from "../lib/pricing";
 
 const router: IRouter = Router();
 
@@ -64,12 +64,8 @@ router.post("/billing/pay", requireAdmin, async (req, res) => {
   }
 
   const [sub] = await db
-    .select({
-      sub: organizationSubscriptionsTable,
-      plan: subscriptionPlansTable,
-    })
+    .select({ sub: organizationSubscriptionsTable })
     .from(organizationSubscriptionsTable)
-    .innerJoin(subscriptionPlansTable, eq(subscriptionPlansTable.id, organizationSubscriptionsTable.planId))
     .where(and(
       eq(organizationSubscriptionsTable.organizationId, orgId),
       eq(organizationSubscriptionsTable.isCurrent, true),
@@ -78,11 +74,12 @@ router.post("/billing/pay", requireAdmin, async (req, res) => {
 
   if (!sub) { res.status(404).json({ error: "Aucun abonnement actif trouvé" }); return; }
 
-  const pricePerSeat = sub.sub.billingCycle === "annual"
-    ? sub.plan.annualPricePerSeat
-    : sub.plan.monthlyPricePerSeat;
-
-  const amount = (sub.sub.unitPrice > 0 ? sub.sub.unitPrice : pricePerSeat) * sub.sub.seats;
+  const pricing = calcPricing(sub.sub.seats);
+  if (pricing.isEnterprise) {
+    res.status(400).json({ error: "Plus de 50 utilisateurs — contactez-nous pour un devis sur-mesure." });
+    return;
+  }
+  const amount = pricing.ttc;
   if (amount <= 0) { res.status(400).json({ error: "Montant invalide — vérifiez votre abonnement" }); return; }
 
   const year = new Date().getFullYear();
@@ -101,7 +98,7 @@ router.post("/billing/pay", requireAdmin, async (req, res) => {
     organizationId: orgId,
     subscriptionId: sub.sub.id,
     kind: "payment",
-    label: `${PURPOSE_LABELS[purpose] ?? purpose} — ${sub.plan.name} (${METHOD_LABELS[method] ?? method})`,
+    label: `${PURPOSE_LABELS[purpose] ?? purpose} — ${sub.sub.seats} utilisateur${sub.sub.seats > 1 ? "s" : ""} (${METHOD_LABELS[method] ?? method})`,
     amount,
     currency: "XOF",
     status: "pending",

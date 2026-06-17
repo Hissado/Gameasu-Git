@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Loader2, Crown, Building2, Plus, Copy, Mail, Link2, CheckCircle2,
+  Loader2, Crown, Building2, Plus, Copy, Mail, Link2, CheckCircle2, Check,
   Search, Power, AlertTriangle, Users, Layers,
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
@@ -191,15 +191,11 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 <div className="col-span-2"><Label>Nom de la structure *</Label><Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="SOGELEC Cameroun" /></div>
                 <div><Label>Pays</Label><Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="TG" maxLength={2} /></div>
                 <div><Label>Secteur</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="BTP" /></div>
-                <div className="col-span-2"><Label>Plan d'abonnement *</Label>
-                  <Select value={planCode} onValueChange={setPlanCode}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(plans.data ?? []).map((p) => (
-                        <SelectItem key={p.code} value={p.code}>{p.name} — {formatFCFA(p.monthlyPricePerSeat)}/siège/mois</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/60 text-sm text-emerald-800">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>Accès complet</strong> — tous les modules inclus · tarification dégressive par utilisateur</span>
+                  </div>
                 </div>
                 <div className="col-span-2 pt-2 border-t"><Label className="text-xs uppercase tracking-wide text-muted-foreground">Administrateur principal</Label></div>
                 <div><Label>Prénom *</Label><Input value={adminFirstName} onChange={(e) => setAdminFirstName(e.target.value)} /></div>
@@ -208,7 +204,7 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={close}>Annuler</Button>
-                <Button onClick={() => createFull.mutate()} disabled={createFull.isPending || !orgName || !planCode || !adminEmail || !adminFirstName || !adminLastName} className="bg-primary hover:bg-primary/90">
+                <Button onClick={() => createFull.mutate()} disabled={createFull.isPending || !orgName || !adminEmail || !adminFirstName || !adminLastName} className="bg-primary hover:bg-primary/90">
                   {createFull.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Créer + envoyer l'invitation
                 </Button>
@@ -221,16 +217,11 @@ function NewStructureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 <div><Label>Nom du contact</Label><Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Optionnel" /></div>
                 <div><Label>Email du contact</Label><Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optionnel — envoi auto" /></div>
                 <div className="col-span-2"><Label>Suggestion de nom</Label><Input value={linkSuggestedOrg} onChange={(e) => setLinkSuggestedOrg(e.target.value)} placeholder="Optionnel — pré-rempli pour l'invité" /></div>
-                <div className="col-span-2"><Label>Plan suggéré</Label>
-                  <Select value={linkSuggestedPlan || "none"} onValueChange={(v) => setLinkSuggestedPlan(v === "none" ? "" : v)}>
-                    <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Aucun (l'invité choisira)</SelectItem>
-                      {(plans.data ?? []).map((p) => (
-                        <SelectItem key={p.code} value={p.code}>{p.name} — {formatFCFA(p.monthlyPricePerSeat)}/siège/mois</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/60 text-sm text-emerald-800">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>Accès complet</strong> — tous les modules inclus · tarification dégressive par utilisateur</span>
+                  </div>
                 </div>
                 <div className="col-span-2"><Label>Notes internes</Label><Textarea value={linkNotes} onChange={(e) => setLinkNotes(e.target.value)} rows={2} placeholder="Optionnel" /></div>
               </div>

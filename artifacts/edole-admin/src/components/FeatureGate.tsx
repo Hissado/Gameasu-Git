@@ -1,15 +1,11 @@
 import { ReactNode } from "react";
-import { useOrganizationModules, useCurrentSubscription } from "@/lib/saas";
+import { useCurrentSubscription } from "@/lib/saas";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { GaméasùMark } from "@/components/branding/GameasuMark";
 
-export function useModuleEnabled(moduleKey: string | null | undefined) {
-  const { data: modules, isLoading } = useOrganizationModules();
-  if (!moduleKey) return { enabled: true, loading: false };
-  if (isLoading) return { enabled: true, loading: true };
-  const found = modules?.find((m) => m.moduleKey === moduleKey);
-  return { enabled: !!found?.enabled, loading: false };
+export function useModuleEnabled(_moduleKey: string | null | undefined) {
+  return { enabled: true, loading: false };
 }
 
 export function FeatureGate({ moduleKey, children }: { moduleKey: string; children: ReactNode }) {
