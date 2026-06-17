@@ -17,6 +17,17 @@ import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type PricingLine = { label: string; qty: number; unitPrice: number; total: number };
+type PriceResult = {
+  activeUsers: number;
+  ht: number | null;
+  tva: number | null;
+  ttc: number | null;
+  isCustom: boolean;
+  mrr: number;
+  breakdown: PricingLine[];
+};
+
 type OrgDetail = {
   org: {
     id: string; name: string; slug: string; industry: string | null;
@@ -30,8 +41,9 @@ type OrgDetail = {
     setupFee: number | null;
   } | null;
   mrr: number;
+  pricing: PriceResult;
   metrics: {
-    memberCount: number; moduleCount: number; ticketCount: number;
+    memberCount: number; activeUsers: number; moduleCount: number; ticketCount: number;
     openTickets: number; totalRevenue: number; failedPayments: number;
   };
 };
@@ -126,6 +138,8 @@ export default function TenantDetail() {
   const [regenerating, setRegenerating] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [revokingLink, setRevokingLink] = useState<string | null>(null);
+  const [customPriceInput, setCustomPriceInput] = useState("");
+  const [savingCustomPrice, setSavingCustomPrice] = useState(false);
 
   const detail = useQuery<OrgDetail>({
     queryKey: ["cockpit-org", id],
@@ -164,10 +178,31 @@ export default function TenantDetail() {
     enabled: tab === "access",
   });
 
+  const handleSetCustomPrice = async () => {
+    const v = parseFloat(customPriceInput.replace(/\s/g, "").replace(",", "."));
+    if (!v || v <= 0) { toast.error("Entrez un montant positif en FCFA"); return; }
+    setSavingCustomPrice(true);
+    try {
+      await apiFetch(`/api/super-admin/organizations/${id}/custom-price`, {
+        method: "PATCH", body: JSON.stringify({ monthlyHt: v }),
+      });
+      toast.success("Prix négocié enregistré");
+      qc.invalidateQueries({ queryKey: ["cockpit-org", id] });
+      qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
+      setCustomPriceInput("");
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setSavingCustomPrice(false);
+    }
+  };
+
   const d = detail.data;
   const org = d?.org;
   const sub = d?.subscription;
   const m = d?.metrics;
+  const pricing = d?.pricing;
 
   const handleGenerateLink = async (withEmail = false) => {
     setGeneratingLink(true);
@@ -312,21 +347,51 @@ export default function TenantDetail() {
 
       {/* Quick KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          { label: "MRR", value: fmtFCFA(d?.mrr ?? 0), icon: TrendingUp, color: "text-primary" },
-          { label: "Revenus total", value: fmtFCFA(m?.totalRevenue ?? 0), icon: CreditCard, color: "text-emerald-600" },
-          { label: "Membres", value: String(m?.memberCount ?? 0), icon: Users, color: "text-indigo-600" },
-          { label: "Modules actifs", value: String(m?.moduleCount ?? 0), icon: Package, color: "text-violet-600" },
-          { label: "Tickets ouverts", value: String(m?.openTickets ?? 0), icon: Ticket, color: m && m.openTickets > 0 ? "text-amber-600" : "text-muted-foreground" },
-          { label: "Paiements échoués", value: String(m?.failedPayments ?? 0), icon: AlertTriangle, color: m && m.failedPayments > 0 ? "text-red-600" : "text-muted-foreground" },
-        ].map((k) => (
-          <Card key={k.label}>
-            <CardContent className="p-3">
-              <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">{k.label}</p>
-              <p className={`text-lg font-bold mt-0.5 truncate ${k.color}`}>{k.value}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">Util. actifs</p>
+            <p className="text-lg font-bold mt-0.5 text-primary">
+              {pricing?.activeUsers ?? 0}
+              {pricing?.isCustom && <span className="ml-1 text-[10px] text-purple-600 normal-case font-semibold">&gt;50</span>}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">Prix HT/mois</p>
+            <p className="text-lg font-bold mt-0.5 text-indigo-600 truncate">
+              {pricing?.isCustom && pricing.ht == null ? <span className="text-xs font-normal italic text-muted-foreground">À définir</span> : fmtFCFA(pricing?.ht ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">TVA 18%</p>
+            <p className="text-lg font-bold mt-0.5 text-muted-foreground truncate">
+              {pricing?.tva != null ? fmtFCFA(pricing.tva) : "—"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">Prix TTC/mois</p>
+            <p className="text-lg font-bold mt-0.5 text-emerald-600 truncate">
+              {pricing?.isCustom && pricing.ttc == null ? <span className="text-xs font-normal italic text-muted-foreground">À définir</span> : fmtFCFA(pricing?.ttc ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">Tickets ouverts</p>
+            <p className={`text-lg font-bold mt-0.5 truncate ${m && m.openTickets > 0 ? "text-amber-600" : "text-muted-foreground"}`}>{m?.openTickets ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-[10px] uppercase font-semibold text-muted-foreground truncate">Paiements échoués</p>
+            <p className={`text-lg font-bold mt-0.5 truncate ${m && m.failedPayments > 0 ? "text-red-600" : "text-muted-foreground"}`}>{m?.failedPayments ?? 0}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -376,57 +441,162 @@ export default function TenantDetail() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Abonnement actif</CardTitle>
+              <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Tarification active</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {sub ? (
-                <>
-                  {[
-                    { label: "Plan", value: <Badge variant="outline" className={PLAN_COLOR[sub.planCode] ?? ""}>{sub.planName}</Badge> },
-                    { label: "Sièges", value: `${sub.seats} utilisateurs` },
-                    { label: "Prix unitaire", value: fmtFCFA(sub.unitPrice) },
-                    { label: "Facturation", value: sub.cycle === "annual" ? "Annuelle" : "Mensuelle" },
-                    { label: "Statut", value: <Badge variant="outline" className={BILLING_STATUS[sub.status]?.cls ?? ""}>{BILLING_STATUS[sub.status]?.label ?? sub.status}</Badge> },
-                    { label: "Début période", value: fmtDate(sub.currentPeriodStart) },
-                    { label: "Fin période", value: fmtDate(sub.currentPeriodEnd) },
-                    { label: "MRR", value: <span className="font-bold text-primary">{fmtFCFA(d?.mrr ?? 0)}</span> },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between items-center gap-2">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="font-medium text-right">{value}</span>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <p className="text-muted-foreground text-sm py-4 text-center">Aucun abonnement actif</p>
-              )}
+              {[
+                { label: "Utilisateurs actifs", value: <span className="font-bold">{pricing?.activeUsers ?? 0}</span> },
+                { label: "Prix HT/mois", value: pricing?.isCustom && pricing.ht == null ? <span className="italic text-muted-foreground text-xs">À définir (personnalisée)</span> : <span className="font-bold text-indigo-600">{fmtFCFA(pricing?.ht ?? 0)}</span> },
+                { label: "TVA 18%", value: <span className="text-muted-foreground">{pricing?.tva != null ? fmtFCFA(pricing.tva) : "—"}</span> },
+                { label: "Prix TTC/mois", value: pricing?.isCustom && pricing.ttc == null ? <span className="italic text-muted-foreground text-xs">—</span> : <span className="font-bold text-emerald-600">{fmtFCFA(pricing?.ttc ?? 0)}</span> },
+                ...(sub ? [
+                  { label: "Statut abonnement", value: <Badge variant="outline" className={BILLING_STATUS[sub.status]?.cls ?? ""}>{BILLING_STATUS[sub.status]?.label ?? sub.status}</Badge> },
+                  { label: "Fin période", value: fmtDate(sub.currentPeriodEnd) },
+                ] : []),
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center gap-2">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-medium text-right">{value}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       )}
 
       {tab === "subscription" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Détail de l'abonnement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {sub ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: "MRR", value: fmtFCFA(d?.mrr ?? 0), sub: "mensuel" },
-                    { label: "ARR", value: fmtFCFA((d?.mrr ?? 0) * 12), sub: "annuel projeté" },
-                    { label: "Sièges", value: String(sub.seats), sub: "utilisateurs inclus" },
-                    { label: "Frais setup", value: fmtFCFA(sub.setupFee ?? 0), sub: "one-time" },
-                  ].map((k) => (
-                    <div key={k.label} className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground">{k.label}</p>
-                      <p className="text-xl font-bold text-foreground mt-1">{k.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{k.sub}</p>
-                    </div>
-                  ))}
+        <div className="space-y-4">
+          {/* Résumé tarifaire */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4" />Tarification mensuelle</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* KPIs prix */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  {
+                    label: "Prix HT/mois",
+                    value: pricing?.isCustom && pricing.ht == null ? "À définir" : fmtFCFA(pricing?.ht ?? 0),
+                    sub: "hors taxes",
+                    cls: "text-indigo-600",
+                  },
+                  {
+                    label: "TVA 18%",
+                    value: pricing?.tva != null ? fmtFCFA(pricing.tva) : "—",
+                    sub: "taxe sur la valeur ajoutée",
+                    cls: "text-muted-foreground",
+                  },
+                  {
+                    label: "Prix TTC/mois",
+                    value: pricing?.isCustom && pricing.ttc == null ? "À définir" : fmtFCFA(pricing?.ttc ?? 0),
+                    sub: "toutes taxes comprises",
+                    cls: "text-emerald-600",
+                  },
+                  {
+                    label: "ARR (projeté)",
+                    value: pricing?.ht != null ? fmtFCFA(pricing.ht * 12) : "—",
+                    sub: "revenu annuel récurrent",
+                    cls: "text-primary",
+                  },
+                ].map((k) => (
+                  <div key={k.label} className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">{k.label}</p>
+                    <p className={`text-xl font-bold mt-1 ${k.cls}`}>{k.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{k.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Décomposition par palier */}
+              {pricing && !pricing.isCustom && pricing.breakdown.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/40 text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                    Décomposition par palier — {pricing.activeUsers} utilisateur{pricing.activeUsers > 1 ? "s" : ""} actif{pricing.activeUsers > 1 ? "s" : ""}
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Palier</TableHead>
+                        <TableHead className="text-right">Quantité</TableHead>
+                        <TableHead className="text-right">Prix unitaire</TableHead>
+                        <TableHead className="text-right">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pricing.breakdown.map((line) => (
+                        <TableRow key={line.label}>
+                          <TableCell className="text-sm">{line.label}</TableCell>
+                          <TableCell className="text-right text-sm">{line.qty}</TableCell>
+                          <TableCell className="text-right text-sm font-mono">{fmtFCFA(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono font-semibold">{fmtFCFA(line.total)}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/20 font-semibold">
+                        <TableCell colSpan={3} className="text-sm">Total HT / mois</TableCell>
+                        <TableCell className="text-right text-sm font-mono font-bold text-indigo-600">{fmtFCFA(pricing.ht ?? 0)}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-muted/10">
+                        <TableCell colSpan={3} className="text-sm text-muted-foreground">TVA 18%</TableCell>
+                        <TableCell className="text-right text-sm font-mono text-muted-foreground">{fmtFCFA(pricing.tva ?? 0)}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-emerald-50/50 font-bold">
+                        <TableCell colSpan={3} className="text-sm">Total TTC / mois</TableCell>
+                        <TableCell className="text-right text-sm font-mono font-bold text-emerald-600">{fmtFCFA(pricing.ttc ?? 0)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
+              )}
+
+              {/* Tarification personnalisée > 50 utilisateurs */}
+              {pricing?.isCustom && (
+                <div className="border border-purple-200 rounded-lg p-4 bg-purple-50/40 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-purple-800">
+                        Tarification personnalisée — {pricing.activeUsers} utilisateurs actifs
+                      </p>
+                      <p className="text-xs text-purple-600 mt-0.5">
+                        Ce client dépasse 50 utilisateurs. Définissez un prix mensuel HT négocié ci-dessous.
+                      </p>
+                    </div>
+                  </div>
+                  {pricing.ht != null && (
+                    <div className="text-sm space-y-1 border-t border-purple-200 pt-3">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Prix négocié HT</span><span className="font-bold text-indigo-600">{fmtFCFA(pricing.ht)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">TVA 18%</span><span>{pricing.tva != null ? fmtFCFA(pricing.tva) : "—"}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Prix TTC</span><span className="font-bold text-emerald-600">{pricing.ttc != null ? fmtFCFA(pricing.ttc) : "—"}</span></div>
+                    </div>
+                  )}
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        {pricing.ht != null ? "Modifier le prix mensuel HT (FCFA)" : "Définir le prix mensuel HT (FCFA)"}
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="ex : 150000"
+                        value={customPriceInput}
+                        onChange={(e) => setCustomPriceInput(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <Button
+                      className="h-9 shrink-0"
+                      disabled={savingCustomPrice || !customPriceInput}
+                      onClick={handleSetCustomPrice}
+                    >
+                      {savingCustomPrice && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}
+                      Enregistrer
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Infos contrat */}
+              {sub && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm border-t pt-4">
                   <div className="space-y-2">
                     <div className="flex justify-between"><span className="text-muted-foreground">Plan</span><Badge variant="outline" className={PLAN_COLOR[sub.planCode] ?? ""}>{sub.planName}</Badge></div>
@@ -434,17 +604,15 @@ export default function TenantDetail() {
                     <div className="flex justify-between"><span className="text-muted-foreground">Statut</span><Badge variant="outline" className={BILLING_STATUS[sub.status]?.cls ?? ""}>{BILLING_STATUS[sub.status]?.label ?? sub.status}</Badge></div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Période début</span><span>{fmtDate(sub.currentPeriodStart)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Période fin</span><span>{fmtDate(sub.currentPeriodEnd)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Renouvellement</span><span className="text-amber-600 font-medium flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(sub.currentPeriodEnd)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Début période</span><span>{fmtDate(sub.currentPeriodStart)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Fin période</span><span>{fmtDate(sub.currentPeriodEnd)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Frais setup</span><span>{fmtFCFA(sub.setupFee ?? 0)}</span></div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">Aucun abonnement actif</p>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {tab === "billing" && (

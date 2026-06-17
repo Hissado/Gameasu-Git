@@ -20,8 +20,11 @@ type Org = {
   id: string; name: string; slug: string; industry: string | null;
   country: string | null; isActive: boolean; isDefault: boolean;
   createdAt: string; planCode: string | null; planName: string | null;
-  seats: number; mrr: number; billingCycle: string | null;
-  status: string | null; memberCount: number; enabledModules: number;
+  billingCycle: string | null; status: string | null;
+  memberCount: number; activeUsers: number; enabledModules: number;
+  mrr: number;
+  priceHt: number | null; priceTva: number | null; priceTtc: number | null;
+  isCustomPricing: boolean;
   currentPeriodEnd: string | null; failedPayments: number; openTickets: number;
   healthScore: number; healthLabel: string;
 };
@@ -159,7 +162,7 @@ export default function TenantsPage() {
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Cockpit</p>
           <h1 className="text-2xl font-bold tracking-tight">Organisations</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {data?.count ?? 0} tenants · MRR total {fmtFCFA(totalMRR)}
+            {data?.count ?? 0} tenants · Prix HT total {fmtFCFA(totalMRR)} /mois
           </p>
         </div>
         <Button className="gap-2 shrink-0" onClick={() => setCreateOpen(true)}>
@@ -251,8 +254,9 @@ export default function TenantsPage() {
                   <TableRow>
                     <TableHead>Organisation</TableHead>
                     <TableHead>Plan</TableHead>
-                    <TableHead className="text-right"><Users className="w-3.5 h-3.5 inline mr-1" />Membres</TableHead>
-                    <TableHead className="text-right"><CreditCard className="w-3.5 h-3.5 inline mr-1" />MRR</TableHead>
+                    <TableHead className="text-right"><Users className="w-3.5 h-3.5 inline mr-1" />Actifs</TableHead>
+                    <TableHead className="text-right">Prix HT/mois</TableHead>
+                    <TableHead className="text-right">Prix TTC/mois</TableHead>
                     <TableHead>Santé</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Renouvellement</TableHead>
@@ -262,7 +266,7 @@ export default function TenantsPage() {
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                         Aucune organisation ne correspond aux filtres
                       </TableCell>
                     </TableRow>
@@ -289,8 +293,24 @@ export default function TenantsPage() {
                           <Badge variant="outline" className={PLAN_COLOR[org.planCode] ?? ""}>{org.planCode}</Badge>
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-medium">{org.memberCount}</TableCell>
-                      <TableCell className="text-right text-sm font-medium whitespace-nowrap">{fmtFCFA(org.mrr)}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">
+                        <span>{org.activeUsers}</span>
+                        {org.isCustomPricing && (
+                          <span className="ml-1 text-[10px] text-purple-600 font-semibold">NÉGO</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium whitespace-nowrap">
+                        {org.isCustomPricing && org.priceHt == null
+                          ? <span className="text-xs text-muted-foreground italic">Personnalisée</span>
+                          : <span>{fmtFCFA(org.priceHt ?? 0)}</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground">
+                        {org.isCustomPricing && org.priceTtc == null
+                          ? <span className="text-xs italic">—</span>
+                          : <span>{fmtFCFA(org.priceTtc ?? 0)}</span>
+                        }
+                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Badge variant="outline" className={`text-xs ${HEALTH_CFG[org.healthLabel]?.cls ?? ""}`}>
                           {org.healthLabel}

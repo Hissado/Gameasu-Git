@@ -16,7 +16,7 @@ type RevenueData = {
   arrFcfa: number;
   arpu: number;
   activeOrgs: number;
-  byOrg: { orgId: string; orgName: string; planCode: string; seats: number; mrr: number; status: string }[];
+  byOrg: { orgId: string; orgName: string; planCode: string; activeUsers: number; priceHt: number | null; priceTtc: number | null; isCustomPricing: boolean; mrr: number; status: string }[];
   monthlyRevenue: { month: string; revenue: number; paid_count: number; failed_count: number }[];
   forecast: { period: string; amount: number }[];
 };
@@ -249,8 +249,8 @@ export default function ReportsPage() {
                     <TableHead>#</TableHead>
                     <TableHead>Organisation</TableHead>
                     <TableHead>Plan</TableHead>
-                    <TableHead className="text-right">Sièges</TableHead>
-                    <TableHead className="text-right">MRR</TableHead>
+                    <TableHead className="text-right">Util. actifs</TableHead>
+                    <TableHead className="text-right">Prix HT/mois</TableHead>
                     <TableHead className="text-right">Part</TableHead>
                     <TableHead>Statut</TableHead>
                   </TableRow>
@@ -267,8 +267,13 @@ export default function ReportsPage() {
                         <TableCell>
                           <Badge variant="outline" className={PLAN_COLOR[org.planCode] ?? ""}>{org.planCode}</Badge>
                         </TableCell>
-                        <TableCell className="text-right text-sm">{org.seats}</TableCell>
-                        <TableCell className="text-right font-mono font-semibold text-sm whitespace-nowrap">{fmtFCFA(org.mrr)}</TableCell>
+                        <TableCell className="text-right text-sm">{org.activeUsers}</TableCell>
+                        <TableCell className="text-right font-mono font-semibold text-sm whitespace-nowrap">
+                          {org.isCustomPricing && org.priceHt == null
+                            ? <span className="text-xs text-muted-foreground italic">Personnalisée</span>
+                            : fmtFCFA(org.priceHt ?? 0)
+                          }
+                        </TableCell>
                         <TableCell className="text-right text-sm">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-16 bg-muted rounded-full h-1.5 hidden sm:block">
