@@ -308,8 +308,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       {/* ── Items primaires — filtrés par permission ── */}
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                        const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
-                        const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
+                        const locked = false;
+                        const href = item.path;
                         return (
                           <li key={item.path}>
                             <Link
@@ -334,8 +334,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                           <>
                             {isExp && sec.map((item) => {
                               const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                              const locked = item.moduleKey != null && modules != null && !enabledKeys.has(item.moduleKey);
-                              const href = locked ? `/upgrade-required?module=${item.moduleKey}` : item.path;
+                              const locked = false;
+                              const href = item.path;
                               return (
                                 <li key={item.path}>
                                   <Link
