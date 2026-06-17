@@ -6,11 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   UserCircle, Lock, Monitor, Loader2, LogOut, Shield,
-  CheckCircle2, AlertTriangle, Laptop, Smartphone,
+  CheckCircle2, AlertTriangle, Laptop, Smartphone, Trash2,
 } from "lucide-react";
+
+const FACTORY_RESET_PHRASE = "RÉINITIALISER GAMEASU";
+
+type FactoryResetReport = {
+  ok: boolean;
+  truncated: string[];
+  kept: string[];
+  recreated: { platformOrg: boolean; cockpitAdminEmail: string };
+};
 
 type Profile = {
   id: string; email: string; firstName: string; lastName: string;
@@ -52,6 +62,8 @@ export default function ProfilePage() {
   const [profileForm, setProfileForm] = useState<{ firstName: string; lastName: string; phone: string } | null>(null);
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwError, setPwError] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPhrase, setResetPhrase] = useState("");
 
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ["cockpit-me"],
@@ -89,6 +101,27 @@ export default function ProfilePage() {
     mutationFn: () => apiFetch("/api/super-admin/me/sessions", { method: "DELETE" }),
     onSuccess: () => { toast.success("Tous les appareils ont été déconnectés"); qc.invalidateQueries({ queryKey: ["cockpit-me-sessions"] }); },
     onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+  });
+
+  const factoryResetMut = useMutation({
+    mutationFn: () =>
+      apiFetch<FactoryResetReport>("/api/super-admin/factory-reset", {
+        method: "POST",
+        body: JSON.stringify({ confirm: FACTORY_RESET_PHRASE }),
+      }),
+    onSuccess: (report) => {
+      setResetOpen(false);
+      setResetPhrase("");
+      toast.success(
+        `Réinitialisation terminée : ${report.truncated.length} tables purgées. Reconnectez-vous via « Mot de passe oublié ».`,
+      );
+      // La purge a supprimé toutes les sessions (dont la nôtre) : on déconnecte proprement.
+      setTimeout(() => {
+        localStorage.removeItem("cockpit_token");
+        window.location.href = "/login";
+      }, 2500);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Échec de la réinitialisation"),
   });
 
   const handlePwSubmit = () => {
@@ -342,8 +375,97 @@ export default function ProfilePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Zone danger — Réinitialisation usine */}
+          <Card className="border-red-300 bg-red-50/40">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <CardTitle className="text-sm font-semibold text-red-700">Zone danger — Réinitialisation usine</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-red-700/90">
+                Supprime <strong>toutes les données</strong> de la plateforme : comptes, organisations, abonnements,
+                facturation, CRM, RH, paie, comptabilité, stock, locations, kiosk, messagerie et journaux métier.
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1 p-3 rounded-lg bg-white/70 border border-red-200">
+                <p className="font-medium text-foreground">Sont conservés :</p>
+                <p>• La structure (tables, schéma, migrations, routes, branding Gaméasù)</p>
+                <p>• Le catalogue des offres, des modules et le socle des rôles/permissions</p>
+                <p className="pt-1">
+                  Après la purge, seul le super-admin <strong>cockpit@gameasu.com</strong> est recréé (sans mot de passe).
+                  Vous serez déconnecté ; définissez le nouveau mot de passe via le lien sécurisé « Mot de passe oublié ».
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-red-700 font-medium">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                Action irréversible. À n'utiliser qu'avant la mise en production officielle.
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  className="text-red-600 border-red-300 hover:bg-red-100 gap-2"
+                  onClick={() => { setResetPhrase(""); setResetOpen(true); }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Réinitialiser l'application
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Dialogue de confirmation — réinitialisation usine */}
+      <Dialog open={resetOpen} onOpenChange={(o) => { if (!o && !factoryResetMut.isPending) { setResetOpen(false); setResetPhrase(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="w-5 h-5" />
+              Réinitialisation usine
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-1">
+                <p>
+                  Cette opération <strong>supprime définitivement toutes les données</strong> de la plateforme.
+                  Elle est <strong>irréversible</strong>.
+                </p>
+                <p>
+                  Pour confirmer, saisissez exactement la phrase ci-dessous :
+                </p>
+                <p className="font-mono text-sm font-semibold text-foreground bg-muted px-3 py-2 rounded">
+                  {FACTORY_RESET_PHRASE}
+                </p>
+                <Input
+                  autoFocus
+                  value={resetPhrase}
+                  onChange={(e) => setResetPhrase(e.target.value)}
+                  placeholder="Saisissez la phrase de confirmation"
+                  disabled={factoryResetMut.isPending}
+                />
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setResetOpen(false); setResetPhrase(""); }}
+              disabled={factoryResetMut.isPending}
+            >
+              Annuler
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white gap-2"
+              disabled={resetPhrase.trim() !== FACTORY_RESET_PHRASE || factoryResetMut.isPending}
+              onClick={() => factoryResetMut.mutate()}
+            >
+              {factoryResetMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Supprimer définitivement toutes les données
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

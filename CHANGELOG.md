@@ -2,6 +2,22 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Réinitialisation usine & base propre pour la production — juin 2026
+
+Préparation de la **mise en production officielle** : purge complète des données (développement **et** production), tout en conservant la structure (schéma, migrations, routes, frontend, branding) et les données de référence.
+
+- **Service de purge** (`api-server/src/services/factory-reset.ts`) : `TRUNCATE ... RESTART IDENTITY CASCADE` dynamique de **toutes** les tables applicatives (174 tables : comptes, organisations, abonnements, facturation, CRM, RH, paie, comptabilité, stock, locations, kiosk, messagerie, journaux métier…), **sauf** un ensemble de référence conservé : `subscription_plans`, `subscription_plan_features`, `module_catalog`, `permissions`, `roles`, `role_permissions`. Après la purge, ré-exécute `ensureCockpitAdmin` (super-admin plateforme), `seedHr` et `seedSyscohada` (structure par défaut de l'org plateforme). Renvoie un rapport `{ truncated[], kept[], recreated }`.
+- **Endpoint protégé** (`superAdminCockpit.ts`) : `POST /super-admin/factory-reset`, réservé `super_admin` (middleware `sa`), exige la phrase de confirmation exacte **« RÉINITIALISER GAMEASU »** (sinon 400). Action tracée via `req.log.warn`.
+- **UI Zone danger** (`gameasu-cockpit/src/pages/profile/index.tsx`) : carte « Zone danger — Réinitialisation usine » avec dialogue de confirmation (saisie de la phrase exacte). Après succès, déconnexion automatique (la purge supprime toutes les sessions) et redirection vers la connexion — l'accès se re-définit via « Mot de passe oublié » sur `cockpit@gameasu.com`.
+- **Seeds de démo désactivés par défaut** (`routes/index.ts` + `lib/db/src/seed-saas.ts`) : au démarrage, seul le **catalogue** (plans + modules + RBAC) est semé, idempotent. Les données de démonstration (organisation « démo », intelligence, opérations, inventaire, kiosk) ne sont semées **que si `SEED_DEMO_DATA=true`**. Ainsi, en production comme après une réinitialisation usine, **la base vide le reste au redémarrage**. `seedSaas({ includeDemoData })` ne crée l'organisation de démonstration que sur demande explicite.
+- **État final attendu** : 1 organisation interne (`gameasu-platform`, non facturable, `isDefault=false`) + 1 super-admin (`cockpit@gameasu.com`, sans mot de passe utilisable, `mustChangePassword=true`). Toutes les vues affichent des états vides propres (endpoints `/super-admin/{overview,health,organizations,revenue}` renvoient 200 avec compteurs à 0).
+
+### Procédure de purge en production
+
+1. Publier le déploiement (le nouveau code n'active aucun seed de démo : `SEED_DEMO_DATA` non défini).
+2. Se connecter au Cockpit avec le super-admin (via « Mot de passe oublié » si nécessaire), ouvrir **Mon compte → Zone danger**, lancer la réinitialisation et saisir « RÉINITIALISER GAMEASU ».
+3. Se reconnecter via « Mot de passe oublié » sur `cockpit@gameasu.com` pour redéfinir le mot de passe, puis activer la 2FA.
+
 ## Sécurisation du Cockpit plateforme — juin 2026
 
 Finalisation et sécurisation du **Cockpit plateforme** (`artifacts/gameasu-cockpit`, servi sous `/cockpit/`) pour permettre au super-administrateur `cockpit@gameasu.com` de se connecter de façon **sécurisée après déploiement**, sans mot de passe en dur.

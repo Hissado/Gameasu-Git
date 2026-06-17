@@ -329,11 +329,27 @@ async function ensureBillingDemo(orgId: string, subId: string) {
   });
 }
 
-export async function seedSaas() {
+/**
+ * Seed SaaS.
+ *
+ * Par défaut, ne sème QUE les données de référence (catalogue de modules + plans
+ * d'abonnement) — indispensables en production et conservées par la
+ * réinitialisation usine. Les données de démonstration (organisation « démo »,
+ * membres, abonnement, modules activés, historique de facturation) ne sont
+ * créées que lorsque `includeDemoData` est vrai, afin qu'une base vide
+ * (production ou après purge) le reste au redémarrage.
+ */
+export async function seedSaas(opts: { includeDemoData?: boolean } = {}) {
   console.log("• Catalogue modules…");
   await upsertModuleCatalog();
   console.log("• Plans Gaméasù…");
   const planIds = await upsertPlans();
+
+  if (!opts.includeDemoData) {
+    console.log("✓ Seed SaaS terminé (catalogue uniquement)");
+    return;
+  }
+
   console.log("• Organisation par défaut…");
   const orgId = await ensureDefaultOrganization();
   console.log("• Membres workspace…");

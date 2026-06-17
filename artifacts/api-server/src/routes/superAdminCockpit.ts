@@ -19,6 +19,7 @@ import {
 import { and, eq, sql, desc, gte, ne, isNotNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
 import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
+import { factoryReset } from "../services/factory-reset";
 
 const router: IRouter = Router();
 
@@ -433,6 +434,36 @@ router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next)
         ne(organizationSubscriptionsTable.status, "trial"),
       ));
     return res.json({ ok: true, organizationId: id, action, isActive });
+  } catch (e) { next(e); }
+});
+
+// ─── Réinitialisation usine (purge totale des données) ────────────────────────
+//
+// Supprime TOUTES les données applicatives (comptes, organisations, abonnements,
+// facturation, CRM, RH, finance, stock, kiosk, messagerie, logs métier…) tout en
+// conservant le schéma, les migrations et le catalogue de configuration.
+// Reconstruit ensuite une base « première installation » (org plateforme +
+// super-admin sans mot de passe). IRRÉVERSIBLE — double garde : super-admin +
+// phrase de confirmation exacte.
+
+const FACTORY_RESET_CONFIRM = "RÉINITIALISER GAMEASU";
+
+router.post("/super-admin/factory-reset", sa, async (req, res, next) => {
+  try {
+    const confirm = (req.body as { confirm?: unknown } | undefined)?.confirm;
+    if (typeof confirm !== "string" || confirm.trim() !== FACTORY_RESET_CONFIRM) {
+      return res.status(400).json({
+        error: `Confirmation invalide. Saisissez exactement « ${FACTORY_RESET_CONFIRM} » pour confirmer la purge.`,
+      });
+    }
+
+    req.log.warn(
+      { userId: req.authUser?.id, email: req.authUser?.email },
+      "factory-reset: purge totale déclenchée par un super-admin",
+    );
+
+    const report = await factoryReset();
+    return res.json({ ok: true, ...report });
   } catch (e) { next(e); }
 });
 

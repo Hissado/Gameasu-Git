@@ -92,6 +92,8 @@ The frontend proxies `/api` requests to the API server on port 8080.
 
 PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema covering all modules. Soft deletes via `deletedAt` field. Currency default: **XOF / FCFA** (West African Franc) — use `formatFCFA()` from `artifacts/edole-admin/src/lib/format.ts` for all monetary display.
 
+**Base propre / seeds de démo** : au démarrage, seul le catalogue de référence (plans, modules, RBAC) est semé (idempotent). Les données de démonstration ne sont semées que si la variable d'environnement `SEED_DEMO_DATA=true`. Sans elle (cas production et dev par défaut), la base reste vide. **Réinitialisation usine** : `POST /super-admin/factory-reset` (super-admin, phrase « RÉINITIALISER GAMEASU ») purge toutes les données métier en conservant la structure et le catalogue ; UI dans le Cockpit (Mon compte → Zone danger). Détails dans `CHANGELOG.md`.
+
 ## Branding & Localization
 
 - **Identity**: Premium BTP/construction operations platform — orange (#F37021-class) accent on near-black sidebar, derived from the `édolé` logo (`src/assets/edole-logo.png`). Palette defined in `artifacts/edole-admin/src/index.css`.

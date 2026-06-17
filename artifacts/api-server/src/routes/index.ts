@@ -171,16 +171,22 @@ seedRbac()
   .then((s) => console.log(`[rbac] seed OK : ${s.permissions} permissions, ${s.roles} rôles système`))
   .catch((e) => console.warn("[rbac] seed failed:", e?.message));
 
-// Seed Gaméasù SaaS (plans, modules, organisation par défaut). Idempotent.
-seedSaas()
-  .then(() => console.log("[saas] seed OK : organisation, plans, modules, abonnement"))
-  .then(() => seedIntelligenceDemo())
-  .then(() => console.log("[intelligence] seed démo OK"))
-  .then(() => seedOperationsDemo())
-  .then(() => console.log("[operations] seed démo OK"))
-  .then(() => seedInventoryDemo())
-  .then(() => console.log("[inventory] seed démo OK"))
-  .then(() => seedKiosk())
+// Seed Gaméasù SaaS. Le catalogue (plans + modules) est TOUJOURS semé
+// (référence indispensable, idempotent). Les données de démonstration
+// (organisation démo, intelligence, opérations, inventaire, kiosk) ne sont
+// semées que si SEED_DEMO_DATA=true : ainsi, en production comme après une
+// réinitialisation usine, la base reste vide et propre au redémarrage.
+const SEED_DEMO_DATA = process.env.SEED_DEMO_DATA === "true";
+seedSaas({ includeDemoData: SEED_DEMO_DATA })
+  .then(() =>
+    console.log(
+      `[saas] seed OK : plans, modules${SEED_DEMO_DATA ? ", organisation démo, abonnement" : " (catalogue uniquement)"}`,
+    ),
+  )
+  .then(() => (SEED_DEMO_DATA ? seedIntelligenceDemo().then(() => console.log("[intelligence] seed démo OK")) : undefined))
+  .then(() => (SEED_DEMO_DATA ? seedOperationsDemo().then(() => console.log("[operations] seed démo OK")) : undefined))
+  .then(() => (SEED_DEMO_DATA ? seedInventoryDemo().then(() => console.log("[inventory] seed démo OK")) : undefined))
+  .then(() => (SEED_DEMO_DATA ? seedKiosk() : undefined))
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h
