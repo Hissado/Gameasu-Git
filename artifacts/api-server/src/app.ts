@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import path from "node:path";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -8,6 +9,24 @@ import { UPLOAD_DIR } from "./routes/uploads";
 import { requireAuth } from "./middlewares/auth";
 
 const app: Express = express();
+
+// En-têtes de sécurité HTTP (helmet) : protège contre clickjacking, MIME-sniffing,
+// fuite de referrer, etc. C'est une API JSON (+ médias /uploads), donc :
+// - contentSecurityPolicy désactivée (pertinente pour des pages HTML, pas du JSON) ;
+// - crossOriginResourcePolicy "cross-origin" pour que le frontend puisse charger
+//   les médias servis sous /uploads ;
+// - HSTS appliqué uniquement en production (évite de forcer HTTPS en dev local).
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+    hsts:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 15552000, includeSubDomains: true }
+        : false,
+  }),
+);
 
 app.use(
   pinoHttp({

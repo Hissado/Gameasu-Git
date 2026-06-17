@@ -30,12 +30,17 @@ const FEATURES = [
   { icon: Users,       title: "Collaboration en temps réel",  desc: "Équipes, rôles et droits d'accès granulaires" },
 ];
 
-const DEMO_ACCOUNTS = [
-  { role: "Super administrateur", email: "admin@gameasu.tech",      password: "admin123" },
-  { role: "Directeur",            email: "directeur@gameasu.tech",  password: "admin123" },
-  { role: "Commercial",           email: "commercial@gameasu.tech", password: "commercial123" },
-  { role: "Finance",              email: "finance@gameasu.tech",    password: "finance123" },
-];
+// Les identifiants de démo ne sont définis qu'en développement. En production,
+// Vite remplace `import.meta.env.DEV` par `false`, donc ce tableau devient `[]`
+// et les identifiants sont éliminés du bundle (aucune fuite côté client).
+const DEMO_ACCOUNTS = import.meta.env.DEV
+  ? [
+      { role: "Super administrateur", email: "admin@gameasu.tech",      password: "admin123" },
+      { role: "Directeur",            email: "directeur@gameasu.tech",  password: "admin123" },
+      { role: "Commercial",           email: "commercial@gameasu.tech", password: "commercial123" },
+      { role: "Finance",              email: "finance@gameasu.tech",    password: "finance123" },
+    ]
+  : [];
 
 type Step = "credentials" | "2fa";
 
@@ -338,7 +343,9 @@ export default function LoginPage() {
                   </Form>
                 </div>
 
-                {/* Comptes de démonstration */}
+                {/* Comptes de démonstration — masqués en production pour ne pas exposer
+                    d'identifiants valides sur la page de connexion publique. */}
+                {import.meta.env.DEV && (
                 <div className="mt-3">
                   <div className="rounded-xl overflow-hidden"
                     style={{ background: "rgba(255,255,255,0.80)", backdropFilter: "blur(12px)", border: "1px solid rgba(8,14,28,0.07)", boxShadow: "0 1px 4px rgba(8,14,28,0.04)" }}>
@@ -375,6 +382,7 @@ export default function LoginPage() {
                     )}
                   </div>
                 </div>
+                )}
               </>
             )}
 
