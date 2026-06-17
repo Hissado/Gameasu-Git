@@ -20,6 +20,7 @@ import { and, eq, sql, desc, gte, ne, isNotNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
 import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
 import { factoryReset } from "../services/factory-reset";
+import { deleteOrganization } from "../services/delete-organization";
 
 const router: IRouter = Router();
 
@@ -403,9 +404,22 @@ router.delete("/super-admin/organizations/:id", sa, async (req, res, next) => {
     if (org.isDefault)
       return res.status(403).json({ error: "L'organisation par défaut ne peut pas être supprimée" });
 
-    // Hard delete — les FK onDelete:cascade nettoient toutes les tables enfants
-    await db.delete(organizationsTable).where(eq(organizationsTable.id, id));
-    return res.json({ ok: true, deleted: id });
+    // Double garde : il faut saisir le nom exact de l'organisation pour confirmer.
+    const confirm = (req.body as { confirm?: unknown } | undefined)?.confirm;
+    if (typeof confirm !== "string" || confirm.trim() !== org.name) {
+      return res.status(400).json({
+        error: `Confirmation invalide. Saisissez exactement le nom de l'organisation « ${org.name} » pour confirmer la suppression.`,
+      });
+    }
+
+    req.log.warn(
+      { userId: req.authUser?.id, email: req.authUser?.email, organizationId: id, organizationName: org.name },
+      "suppression définitive d'une organisation déclenchée par un super-admin",
+    );
+
+    // Suppression définitive et FK-safe (cascade + neutralisation des FK NO ACTION vers users).
+    const report = await deleteOrganization(id);
+    return res.json({ ok: true, deleted: id, name: org.name, ...report });
   } catch (e) { next(e); }
 });
 

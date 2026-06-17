@@ -252,7 +252,9 @@ export default function TenantDetail() {
     if (!org || deleteInput !== org.name) return;
     setDeleting(true);
     try {
-      await apiFetch(`/api/super-admin/organizations/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/super-admin/organizations/${id}`, {
+        method: "DELETE", body: JSON.stringify({ confirm: deleteInput }),
+      });
       toast.success(`Organisation "${org.name}" supprimée définitivement`);
       qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
       qc.invalidateQueries({ queryKey: ["cockpit-overview"] });

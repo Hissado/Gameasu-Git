@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Loader2, Search, Building2, Users, CreditCard, Power, PowerOff,
-  CheckCircle2, ChevronRight, AlertTriangle, TrendingUp, Filter, Plus,
+  CheckCircle2, ChevronRight, AlertTriangle, TrendingUp, Filter, Plus, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,6 +65,9 @@ export default function TenantsPage() {
   const [filterHealth, setFilterHealth] = useState("all");
   const [confirming, setConfirming] = useState<Org | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [deleting, setDeleting] = useState<Org | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deletingBusy, setDeletingBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
     orgName: "", planCode: "STARTER",
@@ -127,6 +130,25 @@ export default function TenantsPage() {
       toast.error((e as Error).message ?? "Erreur");
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleting || deleteConfirm.trim() !== deleting.name) return;
+    setDeletingBusy(true);
+    try {
+      await apiFetch(`/api/super-admin/organizations/${deleting.id}`, {
+        method: "DELETE", body: JSON.stringify({ confirm: deleteConfirm.trim() }),
+      });
+      toast.success(`Organisation « ${deleting.name} » supprimée définitivement`);
+      qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
+      setDeleting(null);
+      setDeleteConfirm("");
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur lors de la suppression");
+    } finally {
+      setDeletingBusy(false);
     }
   };
 
@@ -295,8 +317,19 @@ export default function TenantsPage() {
                               size="sm" variant="outline"
                               className={`h-7 text-xs gap-1 ${org.isActive ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
                               onClick={() => setConfirming(org)}
+                              title={org.isActive ? "Suspendre" : "Réactiver"}
                             >
                               {org.isActive ? <PowerOff className="w-3 h-3" /> : <Power className="w-3 h-3" />}
+                            </Button>
+                          )}
+                          {!org.isDefault && (
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => { setDeleting(org); setDeleteConfirm(""); }}
+                              title="Supprimer définitivement"
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => navigate(`/tenants/${org.id}`)}>
@@ -329,6 +362,55 @@ export default function TenantsPage() {
               <Button variant={confirming.isActive ? "destructive" : "default"} onClick={handleToggle} disabled={toggling}>
                 {toggling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {confirming.isActive ? "Suspendre" : "Réactiver"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {deleting && (
+        <Dialog open onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteConfirm(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+                Supprimer définitivement l'organisation
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-3 pt-1">
+                  <p>
+                    Cette action est <strong>irréversible</strong>. Toutes les données de
+                    « {deleting.name} » seront supprimées : membres, projets, CRM, finances,
+                    RH, stock, messagerie et historiques. Cette organisation ne pourra pas
+                    être récupérée.
+                  </p>
+                  <p className="text-sm">
+                    Pour confirmer, saisissez le nom exact de l'organisation&nbsp;:
+                    <span className="font-semibold text-foreground"> {deleting.name}</span>
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              autoFocus
+              placeholder={deleting.name}
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && deleteConfirm.trim() === deleting.name && !deletingBusy) handleDelete(); }}
+              className="border-red-200 focus-visible:ring-red-400"
+            />
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => { setDeleting(null); setDeleteConfirm(""); }} disabled={deletingBusy}>
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deletingBusy || deleteConfirm.trim() !== deleting.name}
+                className="gap-2"
+              >
+                {deletingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Supprimer définitivement
               </Button>
             </DialogFooter>
           </DialogContent>
