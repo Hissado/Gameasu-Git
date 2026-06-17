@@ -18,3 +18,4 @@
 - [Express 5 params/query types](express5-params-query-types.md) — @types/express@5.0.6 causes TS2769 cascade on Drizzle eq() when req.params.id is string|string[]; fix with `as string` cast; never add express-serve-static-core augmentation (breaks everything).
 - [Cockpit super_admin auth model](cockpit-superadmin-auth.md) — never leave a known pw on the cockpit account (even in dev); inviting an existing tenant user must be a secure upgrade, not a silent role flip.
 - [Codemod string-literal corruption](codemod-string-literal-corruption.md) — blanket `req.headers/params/query.X as string` casts also corrupt identical strings inside runtime config (Pino redact); grep `['"\`]\(req\.` after such codemods.
+- [Text date columns + OVERLAPS](text-date-columns-overlaps.md) — date columns are text; OVERLAPS/range ops need `::date` on BOTH sides or query throws 500; wrap DB routes in try/catch.
