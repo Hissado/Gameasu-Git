@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Loader2, ArrowLeft, Building2, Users, CreditCard, Ticket, Activity,
   Power, PowerOff, CheckCircle2, XCircle, Clock, AlertTriangle, Mail,
-  Calendar, TrendingUp, Shield, Package, Key, Copy, RefreshCw, Send,
+  Calendar, TrendingUp, Shield, Package, Key, Copy, RefreshCw, Send, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -119,6 +120,9 @@ export default function TenantDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [regenerating, setRegenerating] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [revokingLink, setRevokingLink] = useState<string | null>(null);
@@ -241,6 +245,21 @@ export default function TenantDetail() {
       toast.error((e as Error).message ?? "Erreur");
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!org || deleteInput !== org.name) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/super-admin/organizations/${id}`, { method: "DELETE" });
+      toast.success(`Organisation "${org.name}" supprimée définitivement`);
+      qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
+      navigate("/tenants");
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur lors de la suppression");
+      setDeleting(false);
     }
   };
 
@@ -857,6 +876,35 @@ export default function TenantDetail() {
             </CardContent>
           </Card>
 
+          <Card className="border-red-300 bg-red-50/30">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                <Trash2 className="w-4 h-4" />
+                Supprimer l'organisation
+              </CardTitle>
+              <CardDescription>
+                Suppression définitive et irréversible de l'organisation et de toutes ses données (membres, abonnements, modules, tickets, etc.).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {org.isDefault ? (
+                <p className="text-sm text-amber-600 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4" />
+                  L'organisation par défaut ne peut pas être supprimée.
+                </p>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={() => { setDeleteInput(""); setDeleteConfirming(true); }}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer définitivement
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><Clock className="w-4 h-4" />Informations techniques</CardTitle>
@@ -870,7 +918,7 @@ export default function TenantDetail() {
         </div>
       )}
 
-      {/* Confirm dialog */}
+      {/* Suspend/reactivate dialog */}
       <Dialog open={confirming} onOpenChange={(o) => { if (!o) setConfirming(false); }}>
         <DialogContent>
           <DialogHeader>
@@ -886,6 +934,46 @@ export default function TenantDetail() {
             <Button variant={org.isActive ? "destructive" : "default"} onClick={handleToggle} disabled={toggling}>
               {toggling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {org.isActive ? "Suspendre" : "Réactiver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={deleteConfirming} onOpenChange={(o) => { if (!o) { setDeleteConfirming(false); setDeleteInput(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="w-4 h-4" />
+              Supprimer l'organisation
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est <strong>irréversible</strong>. Toutes les données de <strong>{org.name}</strong> seront supprimées définitivement (membres, abonnement, modules, tickets, historique de facturation…).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-sm text-muted-foreground">
+              Tapez <span className="font-mono font-semibold text-foreground">{org.name}</span> pour confirmer :
+            </p>
+            <Input
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder={org.name}
+              className="border-red-200 focus-visible:ring-red-400"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setDeleteConfirming(false); setDeleteInput(""); }}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting || deleteInput !== org.name}
+              className="gap-1.5"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Supprimer définitivement
             </Button>
           </DialogFooter>
         </DialogContent>

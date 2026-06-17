@@ -390,6 +390,24 @@ router.get("/super-admin/revenue", sa, async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ─── Delete organization ──────────────────────────────────────────────────────
+
+router.delete("/super-admin/organizations/:id", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params as Record<string, string>;
+    const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+    if (org.slug === PLATFORM_ORG_SLUG)
+      return res.status(403).json({ error: "L'organisation interne de la plateforme ne peut pas être supprimée" });
+    if (org.isDefault)
+      return res.status(403).json({ error: "L'organisation par défaut ne peut pas être supprimée" });
+
+    // Hard delete — les FK onDelete:cascade nettoient toutes les tables enfants
+    await db.delete(organizationsTable).where(eq(organizationsTable.id, id));
+    return res.json({ ok: true, deleted: id });
+  } catch (e) { next(e); }
+});
+
 // ─── Status toggle ────────────────────────────────────────────────────────────
 
 router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next) => {
