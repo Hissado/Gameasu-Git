@@ -1,0 +1,301 @@
+Maintenant que l’application Gaméasù est totalement clean, veuillez créer une organisation de démonstration complète appelée :
+
+Hissado Consulting
+
+Objectif
+
+Je veux une organisation demo réaliste, professionnelle et bien structurée, avec des données cohérentes dans tous les modules de l’application, afin de pouvoir faire une démonstration complète de Gaméasù sans aucune section vide.
+
+Cette organisation doit me permettre de montrer, tester et présenter toutes les fonctionnalités de la plateforme, de bout en bout.
+
+⸻
+
+1. Créer l’organisation demo
+
+Créer une organisation / tenant :
+
+Hissado Consulting
+
+Informations suggérées
+
+* Nom : Hissado Consulting
+* Secteur : Conseil, technologie, finance et transformation digitale
+* Pays : Togo
+* Ville : Lomé
+* Devise : FCFA
+* Langue principale : Français
+* Statut : Actif
+* Type : Organisation demo
+* Abonnement : Actif
+* Accès : Tous modules activés
+
+⸻
+
+2. Créer les utilisateurs demo
+
+Créer plusieurs utilisateurs réalistes avec différents rôles et permissions.
+
+Utilisateurs à prévoir
+
+* Super Admin organisation
+* Administrateur
+* Responsable Finance
+* Comptable
+* Responsable Commercial
+* Commercial
+* Responsable RH
+* Responsable Opérations
+* Collaborateur standard
+* Utilisateur lecture seule
+
+Chaque utilisateur doit avoir :
+
+* nom réaliste
+* email professionnel en @gameasu.tech ou domaine demo cohérent
+* rôle
+* permissions
+* département
+* statut actif
+* accès adapté à son poste
+
+⸻
+
+3. Créer des collaborateurs RH
+
+Ajouter des collaborateurs réalistes avec :
+
+* profils employés
+* départements
+* postes
+* salaires
+* dates d’embauche
+* contrats
+* documents RH
+* congés
+* présences
+* pointages
+* rapports RH
+* données de paie
+
+Les données RH doivent permettre de tester :
+
+* gestion des collaborateurs
+* demandes de congé
+* validation des congés
+* présence & pointage
+* rapports RH
+* paie
+* permissions RH
+
+⸻
+
+4. Ajouter des données Ventes & CRM
+
+Créer des données réalistes pour :
+
+* prospects
+* clients
+* contacts
+* opportunités
+* pipeline CRM
+* campagnes marketing
+* devis
+* commandes
+* factures
+* encaissements
+* avoirs
+* relances clients
+
+Scénarios à prévoir
+
+* un prospect converti en client
+* une opportunité gagnée
+* un devis accepté
+* une commande créée
+* une facture générée
+* un paiement partiel
+* un paiement complet
+* une facture en retard envoyée au recouvrement
+
+⸻
+
+5. Ajouter des données Finance
+
+Créer des données réalistes pour :
+
+* plan comptable SYSCOHADA
+* écritures comptables
+* trésorerie
+* comptes bancaires
+* budgets
+* prévisions
+* rapports financiers
+* clôture des périodes
+* immobilisations
+* TVA
+* impôt sur société
+* charges à payer
+* congés non jouis
+* recouvrement
+
+Les données doivent permettre de tester :
+
+* bilan
+* compte de résultat
+* balance générale
+* grand livre
+* trésorerie
+* budget vs réalisé
+* rapports PDF / Excel
+* clôture mensuelle
+* recouvrement client
+
+⸻
+
+6. Ajouter des données Opérations
+
+Créer des données réalistes pour :
+
+* services
+* projets / opérations
+* tâches
+* stock
+* produits
+* équipements
+* locations
+* documents
+* affectations collaborateurs
+* coûts opérationnels
+
+Scénarios à prévoir
+
+* service vendu à un client
+* opération en cours
+* équipement affecté à un projet
+* stock utilisé dans une commande
+* document attaché à une opération
+
+⸻
+
+7. Tester le Kiosk
+
+Créer les données nécessaires pour tester le Kiosk de pointage :
+
+* lien kiosk pour Hissado Consulting
+* QR code kiosk
+* collaborateurs avec codes de pointage
+* pointages entrée / sortie
+* pauses
+* historique de pointage
+* synchronisation avec Présences & Pointage
+* rapports RH liés
+
+Le kiosk doit fonctionner avec cette organisation demo.
+
+⸻
+
+8. Ajouter des données Admin
+
+Dans la console admin de l’organisation, ajouter des données permettant de tester :
+
+* rôles & permissions
+* utilisateurs
+* invitations
+* accès personnalisés
+* fonctionnalités additionnelles par utilisateur
+* paramètres organisation
+* abonnement & facturation
+* historique d’activité
+* audit trail
+
+⸻
+
+9. Ajouter des données Cockpit
+
+Dans le Cockpit Plateforme, Hissado Consulting doit apparaître comme tenant demo actif avec :
+
+* profil organisation complet
+* abonnement actif
+* historique de paiement
+* factures SaaS
+* reçus
+* statut actif
+* nombre d’utilisateurs
+* tickets support
+* incidents
+* logs
+* usage des modules
+* santé du tenant
+
+⸻
+
+10. Ajouter des tickets, incidents et notifications
+
+Créer des données demo pour :
+
+* tickets support ouverts
+* tickets résolus
+* incidents techniques
+* notifications système
+* alertes de paiement
+* alertes de recouvrement
+* alertes RH
+* alertes finance
+* logs d’activité
+
+⸻
+
+11. Qualité des données
+
+Les données doivent être :
+
+* réalistes
+* cohérentes entre modules
+* en français
+* en FCFA
+* adaptées au contexte africain / francophone
+* suffisamment riches pour une démonstration complète
+* non génériques
+* sans “Lorem Ipsum”
+* sans anciennes données EDOLE
+* sans edole.africa
+
+⸻
+
+12. Résultat attendu
+
+Je veux pouvoir me connecter à l’organisation Hissado Consulting et tester toutes les sections de Gaméasù sans exception.
+
+L’organisation demo doit permettre de montrer :
+
+* le dashboard
+* les ventes
+* le CRM
+* les clients
+* les devis
+* les commandes
+* les factures
+* les paiements
+* les finances
+* la comptabilité
+* la trésorerie
+* le recouvrement
+* les RH
+* la paie
+* les présences
+* le kiosk
+* les opérations
+* le stock
+* les équipements
+* les rapports
+* l’admin
+* les rôles & permissions
+* le cockpit
+* les tickets
+* les incidents
+* les notifications
+* les exports PDF / Excel
+
+Objectif final
+
+Créer une organisation demo complète et réaliste appelée Hissado Consulting, avec toutes les données nécessaires pour faire une présentation professionnelle de toute la plateforme Gaméasù, tester chaque module, montrer les workflows complets et démontrer la valeur du SaaS sans aucune section vide.

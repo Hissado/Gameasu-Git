@@ -15,11 +15,13 @@
     "./seed-demo-hr": "./src/seed-demo-hr.ts",
     "./seed-demo-hr-supplement": "./src/seed-demo-hr-supplement.ts",
     "./seed-demo-all": "./src/seed-demo-all.ts",
-    "./seed-kiosk": "./src/seed-kiosk.ts"
+    "./seed-kiosk": "./src/seed-kiosk.ts",
+    "./seed-hissado": "./src/seed-hissado.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "seed:hissado": "tsx src/seed-hissado.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
