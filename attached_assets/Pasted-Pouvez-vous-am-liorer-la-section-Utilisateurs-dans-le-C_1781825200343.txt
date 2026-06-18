@@ -1,0 +1,212 @@
+Pouvez-vous améliorer la section Utilisateurs dans le Cockpit Plateforme, comme visible dans le screenshot, afin que le Super Admin puisse non seulement voir les membres d’une organisation, mais aussi ajouter, modifier, activer, désactiver et gérer les informations des utilisateurs directement depuis le Cockpit ?
+
+Objectif
+
+Actuellement, dans le Cockpit, on voit bien la liste des membres de l’organisation avec :
+
+* utilisateur
+* email
+* rôle
+* statut
+* date d’inscription
+
+Mais je veux que cette section devienne réellement interactive et administrable.
+
+Le Super Admin doit pouvoir gérer les utilisateurs d’un tenant directement depuis cette page.
+
+⸻
+
+1. Ajouter un bouton “Ajouter un utilisateur”
+
+Dans l’onglet Utilisateurs d’une organisation, ajouter un bouton clair :
+
+Ajouter un utilisateur
+
+Ce bouton doit ouvrir un formulaire permettant de créer ou inviter un nouvel utilisateur pour l’organisation sélectionnée.
+
+Informations à saisir
+
+* prénom
+* nom
+* email
+* téléphone
+* poste / fonction
+* département
+* rôle
+* statut
+* accès aux modules
+* permissions additionnelles si nécessaire
+
+⸻
+
+2. Modifier les informations d’un utilisateur existant
+
+Dans le tableau visible dans le screenshot, chaque ligne utilisateur doit avoir un bouton d’action, par exemple :
+
+* Modifier
+* Voir détails
+* Désactiver
+* Réactiver
+* Renvoyer invitation
+* Réinitialiser mot de passe
+* Gérer permissions
+
+Le Super Admin doit pouvoir modifier :
+
+* nom
+* prénom
+* email
+* téléphone
+* rôle
+* statut
+* département
+* permissions
+* accès aux modules
+* informations de sécurité
+
+⸻
+
+3. Gérer les rôles et permissions depuis le Cockpit
+
+Depuis cette section, le Super Admin doit pouvoir :
+
+* changer le rôle d’un utilisateur
+* ajouter des permissions spécifiques
+* retirer certaines permissions
+* voir les permissions héritées du rôle
+* voir les permissions personnalisées
+* définir les accès par module
+* vérifier les accès effectifs de l’utilisateur
+
+Exemple :
+
+Un utilisateur peut avoir le rôle Manager, mais recevoir en plus l’accès à :
+
+* Finance
+* Rapports
+* Encaissements
+* Kiosk
+* Tickets support
+
+⸻
+
+4. Gérer le statut utilisateur
+
+Prévoir les statuts suivants :
+
+* Actif
+* Inactif
+* En attente
+* Invitation envoyée
+* Invitation expirée
+* Suspendu
+
+Le Super Admin doit pouvoir :
+
+* activer un utilisateur
+* désactiver un utilisateur
+* suspendre un accès
+* réactiver un utilisateur
+* renvoyer une invitation
+* vérifier la date de dernière connexion
+
+⸻
+
+5. Améliorer le tableau Utilisateurs
+
+Le tableau doit être plus complet et mieux organisé.
+
+Colonnes recommandées :
+
+* Nom complet
+* Email
+* Téléphone
+* Rôle
+* Département
+* Statut
+* Dernière connexion
+* Rejoint le
+* Actions
+
+Ajouter aussi :
+
+* recherche par nom ou email
+* filtre par rôle
+* filtre par statut
+* filtre par département
+* tri par date d’inscription
+* pagination si la liste est longue
+
+⸻
+
+6. Sécurité et restrictions
+
+Toutes les actions doivent être sécurisées.
+
+Le Super Admin peut gérer tous les utilisateurs de tous les tenants.
+
+Un utilisateur Cockpit avec rôle limité ne doit pouvoir faire que les actions autorisées.
+
+Toutes les routes backend doivent vérifier les permissions avant d’autoriser :
+
+* modification utilisateur
+* changement de rôle
+* activation / désactivation
+* réinitialisation mot de passe
+* modification des permissions
+
+⸻
+
+7. Audit trail
+
+Chaque action effectuée sur un utilisateur doit être enregistrée dans le journal d’audit.
+
+Tracer :
+
+* utilisateur modifié
+* organisation concernée
+* action effectuée
+* ancien rôle
+* nouveau rôle
+* ancien statut
+* nouveau statut
+* administrateur ayant effectué l’action
+* date et heure
+* adresse IP si disponible
+
+⸻
+
+8. Expérience utilisateur
+
+L’interface doit rester propre, moderne et professionnelle.
+
+Merci de prévoir :
+
+* formulaire clair
+* modal ou page détail utilisateur
+* boutons bien visibles
+* messages de confirmation
+* messages d’erreur propres
+* badges de statut en français
+* design responsive mobile / tablette
+* aucun débordement de tableau ou texte
+
+⸻
+
+Résultat attendu
+
+Je veux que l’onglet Utilisateurs dans le Cockpit permette de gérer complètement les utilisateurs d’une organisation :
+
+* voir les utilisateurs
+* ajouter un utilisateur
+* modifier ses informations
+* changer son rôle
+* gérer ses permissions
+* activer ou désactiver son compte
+* renvoyer une invitation
+* réinitialiser son mot de passe
+* suivre l’historique des actions
+
+Objectif final
+
+Transformer l’onglet Utilisateurs du Cockpit en vraie interface d’administration des utilisateurs par organisation, afin que le Super Admin puisse contrôler correctement les membres, rôles, statuts et accès de chaque tenant depuis le Cockpit.

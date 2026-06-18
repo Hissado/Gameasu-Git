@@ -17,15 +17,22 @@ import { Router, type IRouter } from "express";
 import {
   db, organizationsTable, organizationMembersTable, organizationSubscriptionsTable,
   subscriptionPlansTable, billingEventsTable, organizationModulesTable, usersTable,
-  ticketsTable,
+  ticketsTable, cockpitAuditLogsTable, authSessionsTable,
 } from "@workspace/db";
-import { and, eq, sql, desc, gte, ne } from "drizzle-orm";
+import { and, eq, sql, desc, gte, ne, inArray, isNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
 import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
 import { factoryReset } from "../services/factory-reset";
 import { deleteOrganization } from "../services/delete-organization";
+import { randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
+import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
+
+function baseUrl(): string {
+  return (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+}
 
 const sa: RequestHandler = (req, res, next) => {
   if (!req.authUser) { res.status(401).json({ error: "Authentification requise" }); return; }
@@ -412,6 +419,19 @@ router.get("/super-admin/organizations/:id/billing", sa, async (req, res, next) 
   } catch (e) { next(e); }
 });
 
+// ─── Cockpit audit helper ─────────────────────────────────────────────────────
+
+async function cockpitAudit(
+  actorId: string, actorEmail: string,
+  action: string, resource: string, resourceId?: string,
+  meta?: Record<string, unknown>,
+) {
+  await db.insert(cockpitAuditLogsTable).values({
+    actorId, actorEmail, action, resource, resourceId: resourceId ?? null,
+    metadata: meta ?? null,
+  });
+}
+
 // ─── Organization users ───────────────────────────────────────────────────────
 
 router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) => {
@@ -425,14 +445,218 @@ router.get("/super-admin/organizations/:id/users", sa, async (req, res, next) =>
       firstName: usersTable.firstName,
       lastName: usersTable.lastName,
       email: usersTable.email,
+      phone: usersTable.phone,
       userRole: usersTable.role,
       isActive: usersTable.isActive,
+      lastLoginAt: usersTable.lastLoginAt,
+      mustChangePassword: usersTable.mustChangePassword,
+      hasResetToken: sql<boolean>`(${usersTable.passwordResetToken} is not null)`,
+      invitedAt: usersTable.invitedAt,
     }).from(organizationMembersTable)
       .leftJoin(usersTable, eq(usersTable.id, organizationMembersTable.userId))
       .where(eq(organizationMembersTable.organizationId, id))
       .orderBy(desc(organizationMembersTable.joinedAt));
 
     return res.json({ count: members.length, rows: members });
+  } catch (e) { next(e); }
+});
+
+// ─── Create user in org ───────────────────────────────────────────────────────
+
+router.post("/super-admin/organizations/:id/users", sa, async (req, res, next) => {
+  try {
+    const { id: orgId } = req.params as Record<string, string>;
+    const { firstName, lastName, email, phone, role = "member" } = req.body as Record<string, string>;
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: "Prénom, nom et email sont obligatoires" });
+    }
+    const emailLc = email.trim().toLowerCase();
+
+    // Check org exists
+    const [org] = await db.select({ id: organizationsTable.id, name: organizationsTable.name })
+      .from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+    // Check email not already used
+    const [existing] = await db.select({ id: usersTable.id })
+      .from(usersTable).where(eq(usersTable.email, emailLc)).limit(1);
+    if (existing) {
+      // Check if already in this org
+      const [inOrg] = await db.select({ id: organizationMembersTable.userId })
+        .from(organizationMembersTable)
+        .where(and(
+          eq(organizationMembersTable.organizationId, orgId),
+          eq(organizationMembersTable.userId, existing.id),
+        )).limit(1);
+      if (inOrg) return res.status(409).json({ error: "Cet utilisateur est déjà membre de l'organisation" });
+      // Add existing user to org
+      await db.insert(organizationMembersTable).values({ organizationId: orgId, userId: existing.id, role });
+      await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.add_existing", "user", existing.id, {
+        orgId, orgName: org.name, email: emailLc, role,
+      });
+      const [u] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, existing.id)).limit(1);
+      return res.status(201).json(u);
+    }
+
+    // Create new user with invite token
+    const unusablePassword = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
+    const inviteToken = randomBytes(32).toString("hex");
+    const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const [newUser] = await db.insert(usersTable).values({
+      email: emailLc, firstName, lastName,
+      password: unusablePassword,
+      phone: phone ?? null,
+      role: "collaborator",
+      organizationId: orgId,
+      isActive: true,
+      mustChangePassword: true,
+      passwordResetToken: inviteToken,
+      passwordResetTokenExpiresAt: inviteExpiresAt,
+      invitedAt: new Date(),
+      invitedById: req.authUser!.id,
+    }).returning({ id: usersTable.id, email: usersTable.email });
+
+    await db.insert(organizationMembersTable).values({
+      organizationId: orgId, userId: newUser.id, role,
+    });
+
+    const acceptUrl = `${baseUrl()}/accept-invitation?token=${inviteToken}`;
+    await sendEmail({
+      to: emailLc,
+      subject: `Invitation à rejoindre ${org.name} sur Gaméasù`,
+      html: `<p>Bonjour ${firstName},</p><p>Vous avez été invité(e) à rejoindre <strong>${org.name}</strong> sur la plateforme Gaméasù.</p><p>Cliquez sur le lien ci-dessous pour activer votre compte :</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
+      text: `Bonjour ${firstName},\n\nVous avez été invité(e) à rejoindre ${org.name} sur Gaméasù.\n\nActivez votre compte : ${acceptUrl}\n\nCe lien expire dans 7 jours.`,
+    });
+
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.create", "user", newUser.id, {
+      orgId, orgName: org.name, email: emailLc, role,
+    });
+    return res.status(201).json({ id: newUser.id, email: newUser.email, acceptUrl });
+  } catch (e) { next(e); }
+});
+
+// ─── Update user in org ───────────────────────────────────────────────────────
+
+router.patch("/super-admin/organizations/:orgId/users/:userId", sa, async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params as Record<string, string>;
+    const { firstName, lastName, email, phone, role } = req.body as Record<string, string>;
+
+    const [before] = await db.select({
+      firstName: usersTable.firstName, lastName: usersTable.lastName,
+      email: usersTable.email, role: usersTable.role, isActive: usersTable.isActive,
+    }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!before) return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const updates: Partial<typeof usersTable.$inferInsert> = {};
+    if (firstName) updates.firstName = firstName;
+    if (lastName) updates.lastName = lastName;
+    if (email) updates.email = email.trim().toLowerCase();
+    if (phone !== undefined) updates.phone = phone || null;
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+    }
+    if (role) {
+      await db.update(organizationMembersTable)
+        .set({ role })
+        .where(and(eq(organizationMembersTable.organizationId, orgId), eq(organizationMembersTable.userId, userId)));
+    }
+
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.update", "user", userId, {
+      orgId, changes: { ...updates, ...(role ? { role } : {}) },
+    });
+    return res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ─── Activate / deactivate user ───────────────────────────────────────────────
+
+router.post("/super-admin/organizations/:orgId/users/:userId/activate", sa, async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params as Record<string, string>;
+    await db.update(usersTable).set({ isActive: true }).where(eq(usersTable.id, userId));
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.activate", "user", userId, { orgId });
+    return res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+router.post("/super-admin/organizations/:orgId/users/:userId/deactivate", sa, async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params as Record<string, string>;
+    await db.update(usersTable).set({ isActive: false }).where(eq(usersTable.id, userId));
+    await db.delete(authSessionsTable).where(eq(authSessionsTable.userId, userId));
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.deactivate", "user", userId, { orgId });
+    return res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ─── Reset password ───────────────────────────────────────────────────────────
+
+router.post("/super-admin/organizations/:orgId/users/:userId/reset-password", sa, async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params as Record<string, string>;
+    const [user] = await db.select({ email: usersTable.email, firstName: usersTable.firstName })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.update(usersTable).set({
+      passwordResetToken: token,
+      passwordResetTokenExpiresAt: expiresAt,
+      mustChangePassword: true,
+    }).where(eq(usersTable.id, userId));
+
+    const resetUrl = `${baseUrl()}/reset-password?token=${token}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Réinitialisation de votre mot de passe Gaméasù",
+      html: `<p>Bonjour ${user.firstName},</p><p>Un administrateur a demandé la réinitialisation de votre mot de passe sur Gaméasù.</p><p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ce lien expire dans 24 heures.</p>`,
+      text: `Bonjour ${user.firstName},\n\nRéinitialisez votre mot de passe : ${resetUrl}\n\nCe lien expire dans 24 heures.`,
+    });
+
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.reset_password", "user", userId, { orgId, email: user.email });
+    return res.json({ ok: true, resetUrl });
+  } catch (e) { next(e); }
+});
+
+// ─── Resend invitation ────────────────────────────────────────────────────────
+
+router.post("/super-admin/organizations/:orgId/users/:userId/resend-invite", sa, async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params as Record<string, string>;
+    const [user] = await db.select({
+      email: usersTable.email, firstName: usersTable.firstName,
+      organizationId: usersTable.organizationId,
+    }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const [org] = await db.select({ name: organizationsTable.name })
+      .from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await db.update(usersTable).set({
+      passwordResetToken: token,
+      passwordResetTokenExpiresAt: expiresAt,
+      mustChangePassword: true,
+      invitedAt: new Date(),
+      invitedById: req.authUser!.id,
+    }).where(eq(usersTable.id, userId));
+
+    const acceptUrl = `${baseUrl()}/accept-invitation?token=${token}`;
+    await sendEmail({
+      to: user.email,
+      subject: `Invitation à rejoindre ${org?.name ?? "votre organisation"} sur Gaméasù`,
+      html: `<p>Bonjour ${user.firstName},</p><p>Votre invitation à rejoindre <strong>${org?.name ?? "votre organisation"}</strong> sur Gaméasù a été renouvelée.</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
+      text: `Bonjour ${user.firstName},\n\nActivez votre compte : ${acceptUrl}\n\nCe lien expire dans 7 jours.`,
+    });
+
+    await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.resend_invite", "user", userId, { orgId, email: user.email });
+    return res.json({ ok: true, acceptUrl });
   } catch (e) { next(e); }
 });
 

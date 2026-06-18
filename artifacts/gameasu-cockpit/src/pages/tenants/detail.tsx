@@ -13,6 +13,7 @@ import {
   Power, PowerOff, CheckCircle2, XCircle, Clock, AlertTriangle, Mail,
   Calendar, TrendingUp, Shield, Package, Key, Copy, RefreshCw, Send, Trash2,
 } from "lucide-react";
+import OrgUsersTab from "./OrgUsersTab";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -149,11 +150,6 @@ export default function TenantDetail() {
     queryKey: ["cockpit-org-billing", id],
     queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/billing`),
     enabled: tab === "billing",
-  });
-  const users = useQuery<{ rows: UserRow[] }>({
-    queryKey: ["cockpit-org-users", id],
-    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/users`),
-    enabled: tab === "users",
   });
   const tickets = useQuery<{ rows: TicketRow[] }>({
     queryKey: ["cockpit-org-tickets", id],
@@ -685,61 +681,7 @@ export default function TenantDetail() {
       )}
 
       {tab === "users" && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Membres de l'organisation</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {users.isLoading ? (
-              <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Utilisateur</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Rôle</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Rejoint le</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(users.data?.rows ?? []).length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Aucun membre</TableCell></TableRow>
-                    ) : (users.data?.rows ?? []).map((u) => (
-                      <TableRow key={u.userId}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <span className="text-xs font-bold text-primary">
-                                {(u.firstName ?? u.email ?? "?")[0]?.toUpperCase()}
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium">{[u.firstName, u.lastName].filter(Boolean).join(" ") || "—"}</span>
-                            {u.isPrimary && <Badge variant="outline" className="text-[10px] py-0">Principal</Badge>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{u.email ?? "—"}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{u.role}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={u.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}>
-                            {u.isActive ? "Actif" : "Inactif"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{fmtDate(u.joinedAt)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <OrgUsersTab orgId={id} orgName={org.name} />
       )}
 
       {tab === "tickets" && (
