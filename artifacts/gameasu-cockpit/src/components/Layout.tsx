@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
-  ScrollText, Activity, LogOut, Shield, ChevronRight,
+  ScrollText, Activity, LogOut, ChevronRight,
   BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
   UserCircle, Settings,
 } from "lucide-react";
@@ -65,9 +65,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-sidebar-primary-foreground" />
-          </div>
           <div>
             <p className="text-sm font-bold text-sidebar-foreground leading-tight tracking-tight">Gaméasù</p>
             <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">Cockpit Admin</p>
@@ -160,9 +157,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-sidebar-primary flex items-center justify-center">
-              <Shield className="w-3.5 h-3.5 text-sidebar-primary-foreground" />
-            </div>
             <span className="font-bold text-sm">Gaméasù Cockpit</span>
           </div>
         </header>
