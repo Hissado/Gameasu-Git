@@ -21,7 +21,7 @@
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
-    "seed:hissado": "tsx src/seed-hissado.ts"
+    "seed:hissado": "tsx src/seed-hissado-run.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

@@ -700,14 +700,6 @@ export async function seedHissado() {
   console.log("       ops@hissado.tg       / ops123      (Ops — Komlan Tsigbe)");
 }
 
-// ─── Auto-run ─────────────────────────────────────────────────────────────────
-
-async function main() {
-  await seedHissado();
-  process.exit(0);
-}
-
-main().catch((e) => {
-  console.error("✗ Erreur fatale seed-hissado :", e);
-  process.exit(1);
-});
+// Pas d'auto-run : ce module est appelé explicitement par le boot de l'API
+// (artifacts/api-server/src/routes/index.ts) ou via le script `pnpm run seed:hissado`.
+// L'auto-run via `import.meta.url === argv[1]` est ambigu une fois bundlé.
