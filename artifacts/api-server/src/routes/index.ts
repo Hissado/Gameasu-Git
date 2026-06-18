@@ -71,6 +71,7 @@ import migrationRouter from "./migration";
 import periodCloseRouter from "./period-close.js";
 import customAppRouter, { customAppPublicRouter } from "./customAppRequests";
 import { seedSaas } from "@workspace/db/seed-saas";
+import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedIntelligenceDemo } from "@workspace/db/seed-intelligence";
 import { seedOperationsDemo } from "@workspace/db/seed-operations";
 import { seedInventoryDemo } from "@workspace/db/seed-inventory";
@@ -188,6 +189,11 @@ seedSaas({ includeDemoData: SEED_DEMO_DATA })
   .then(() => (SEED_DEMO_DATA ? seedInventoryDemo().then(() => console.log("[inventory] seed démo OK")) : undefined))
   .then(() => (SEED_DEMO_DATA ? seedKiosk() : undefined))
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
+
+// Seed Hissado Consulting — organisation démo permanente (idempotent : skip si déjà présente).
+seedHissado()
+  .then(() => console.log("[hissado] seed OK"))
+  .catch((e) => console.warn("[hissado] seed failed:", e?.message));
 
 // Scan d'alertes au démarrage + toutes les 6h
 runAlertsScanForAllOrganizations().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));
