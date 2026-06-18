@@ -56,7 +56,8 @@ function stddev(arr: number[]): number {
 }
 
 // Récupère toutes les factures émises (hors brouillons/annulées) + nom client + statut calculé.
-async function loadInvoices(): Promise<Inv[]> {
+// orgId est OBLIGATOIRE pour l'isolation multi-tenant.
+async function loadInvoices(orgId: string): Promise<Inv[]> {
   const rows = await db
     .select({
       id: invoicesTable.id,
@@ -72,6 +73,7 @@ async function loadInvoices(): Promise<Inv[]> {
     .from(invoicesTable)
     .leftJoin(clientsTable, eq(clientsTable.id, invoicesTable.clientId))
     .where(and(
+      eq(invoicesTable.organizationId, orgId),
       ne(invoicesTable.status, "cancelled"),
       ne(invoicesTable.status, "draft"),
     ));
@@ -109,7 +111,7 @@ async function loadInvoices(): Promise<Inv[]> {
  * Retourne aussi la date du dernier paiement par facture, réutilisée pour
  * détecter les paiements partiels figés.
  */
-async function loadPaymentHistory(): Promise<{
+async function loadPaymentHistory(orgId: string): Promise<{
   delayByClient: Map<string, { meanDays: number; samples: number }>;
   lastPaymentByInvoice: Map<string, Date>;
 }> {
@@ -123,7 +125,7 @@ async function loadPaymentHistory(): Promise<{
       issuedAt: invoicesTable.issuedAt,
     })
     .from(paymentsTable)
-    .innerJoin(invoicesTable, eq(invoicesTable.id, paymentsTable.invoiceId));
+    .innerJoin(invoicesTable, and(eq(invoicesTable.id, paymentsTable.invoiceId), eq(invoicesTable.organizationId, orgId)));
 
   // 1) Dernier paiement par facture (toutes factures confondues).
   const lastPaymentByInvoice = new Map<string, Date>();
@@ -164,9 +166,10 @@ async function loadPaymentHistory(): Promise<{
 }
 
 // ─── Overview ──────────────────────────────────────────────────────────
-router.get("/finance/intelligence/overview", requirePermission("accounting.read"), async (_req, res, next) => {
+router.get("/finance/intelligence/overview", requirePermission("accounting.read"), async (req, res, next) => {
   try {
-    const invs = await loadInvoices();
+    const orgId = req.authUser!.organizationId;
+    const invs = await loadInvoices(orgId);
     const open = invs.filter((i) => !i.isPaid);
     const overdue = invs.filter((i) => i.isOverdue);
     const totalOutstanding = open.reduce((s, i) => s + i.outstanding, 0);
@@ -222,8 +225,9 @@ router.get("/finance/intelligence/overview", requirePermission("accounting.read"
  */
 router.get("/finance/intelligence/cashflow-forecast", requirePermission("accounting.read"), async (req, res, next) => {
   try {
+    const orgId = req.authUser!.organizationId;
     const days = Math.max(7, Math.min(180, Number(req.query["days"] ?? 30)));
-    const [invs, history] = await Promise.all([loadInvoices(), loadPaymentHistory()]);
+    const [invs, history] = await Promise.all([loadInvoices(orgId), loadPaymentHistory(orgId)]);
     const delays = history.delayByClient;
     const open = invs.filter((i) => !i.isPaid);
 
@@ -289,9 +293,10 @@ router.get("/finance/intelligence/cashflow-forecast", requirePermission("account
 });
 
 // ─── Détection d'anomalies ─────────────────────────────────────────────
-router.get("/finance/intelligence/anomalies", requirePermission("accounting.read"), async (_req, res, next) => {
+router.get("/finance/intelligence/anomalies", requirePermission("accounting.read"), async (req, res, next) => {
   try {
-    const [invs, history] = await Promise.all([loadInvoices(), loadPaymentHistory()]);
+    const orgId = req.authUser!.organizationId;
+    const [invs, history] = await Promise.all([loadInvoices(orgId), loadPaymentHistory(orgId)]);
     const lastPay = history.lastPaymentByInvoice;
     const amounts = invs.map((i) => i.total).filter((v) => v > 0);
     const med = median(amounts);
@@ -373,9 +378,10 @@ router.get("/finance/intelligence/anomalies", requirePermission("accounting.read
  * Score 0-100 = 40 % retard + 35 % montant + 15 % âge client + 10 % historique délai client.
  * Tier : excellent (recouvrement saine) → critical (relance immédiate).
  */
-router.get("/finance/intelligence/collections", requirePermission("accounting.read"), async (_req, res, next) => {
+router.get("/finance/intelligence/collections", requirePermission("accounting.read"), async (req, res, next) => {
   try {
-    const [invs, history] = await Promise.all([loadInvoices(), loadPaymentHistory()]);
+    const orgId = req.authUser!.organizationId;
+    const [invs, history] = await Promise.all([loadInvoices(orgId), loadPaymentHistory(orgId)]);
     const delays = history.delayByClient;
     const open = invs.filter((i) => !i.isPaid && i.outstanding > 0);
     const maxOutstanding = open.reduce((m, i) => Math.max(m, i.outstanding), 1);

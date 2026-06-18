@@ -12,6 +12,7 @@ import { db, opportunitiesTable, clientsTable, activitiesTable, usersTable } fro
 import { and, eq, isNull, sql, desc, inArray, notInArray, lte } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
 import { userAccessibleClientIds } from "../lib/rbac/permissions";
+import { getCurrentOrganizationId } from "../lib/tenant";
 
 const router: IRouter = Router();
 
@@ -23,8 +24,12 @@ const STAGE_PROB: Record<string, number> = {
   contract: 85, closing: 90, won: 100, closed_won: 100, lost: 0, closed_lost: 0,
 };
 
-async function loadOpenOpps(clientIds: string[] | null) {
-  const conds: any[] = [isNull(opportunitiesTable.deletedAt), notInArray(opportunitiesTable.stage, CLOSED_STAGES)];
+async function loadOpenOpps(clientIds: string[] | null, orgId: string) {
+  const conds: any[] = [
+    eq(opportunitiesTable.organizationId, orgId),
+    isNull(opportunitiesTable.deletedAt),
+    notInArray(opportunitiesTable.stage, CLOSED_STAGES),
+  ];
   if (clientIds && clientIds.length) conds.push(inArray(opportunitiesTable.clientId, clientIds));
   if (clientIds && clientIds.length === 0) return [];
   return db.select({
@@ -39,8 +44,9 @@ async function loadOpenOpps(clientIds: string[] | null) {
 router.get("/pipeline/intelligence/overview", requirePermission("commercial.read"), async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const clientIds = await userAccessibleClientIds(userId);
-    const opps = await loadOpenOpps(clientIds);
+    const [clientIds, orgId] = await Promise.all([userAccessibleClientIds(userId), getCurrentOrganizationId(userId)]);
+    if (!orgId) return res.json({ totalOpen: 0, totalValue: 0, weightedValue: 0, hotOpps: 0, closingSoon: 0, byStage: {} });
+    const opps = await loadOpenOpps(clientIds, orgId);
     const totalValue = opps.reduce((s, o) => s + Number(o.value ?? 0), 0);
     const weighted = opps.reduce((s, o) => {
       const p = (o.probability ?? STAGE_PROB[o.stage] ?? 10) / 100;
@@ -70,8 +76,9 @@ router.get("/pipeline/intelligence/overview", requirePermission("commercial.read
 router.get("/pipeline/intelligence/forecast", requirePermission("commercial.read"), async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const clientIds = await userAccessibleClientIds(userId);
-    const opps = await loadOpenOpps(clientIds);
+    const [clientIds, orgId] = await Promise.all([userAccessibleClientIds(userId), getCurrentOrganizationId(userId)]);
+    if (!orgId) return res.json({ months: [] });
+    const opps = await loadOpenOpps(clientIds, orgId);
     const now = new Date();
     const months: Array<{ month: string; expected: number; weighted: number; count: number }> = [];
     for (let i = 0; i < 6; i++) {
@@ -94,8 +101,9 @@ router.get("/pipeline/intelligence/forecast", requirePermission("commercial.read
 router.get("/pipeline/intelligence/at-risk", requirePermission("commercial.read"), async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const clientIds = await userAccessibleClientIds(userId);
-    const opps = await loadOpenOpps(clientIds);
+    const [clientIds, orgId] = await Promise.all([userAccessibleClientIds(userId), getCurrentOrganizationId(userId)]);
+    if (!orgId) return res.json({ count: 0, rows: [] });
+    const opps = await loadOpenOpps(clientIds, orgId);
     const now = Date.now();
     const rows = opps.map((o) => {
       const staleDays = Math.floor((now - new Date(o.updatedAt).getTime()) / 86400000);
@@ -115,8 +123,9 @@ router.get("/pipeline/intelligence/at-risk", requirePermission("commercial.read"
 router.get("/pipeline/intelligence/next-actions", requirePermission("commercial.read"), async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const clientIds = await userAccessibleClientIds(userId);
-    const opps = await loadOpenOpps(clientIds);
+    const [clientIds, orgId] = await Promise.all([userAccessibleClientIds(userId), getCurrentOrganizationId(userId)]);
+    if (!orgId) return res.json({ count: 0, actions: [] });
+    const opps = await loadOpenOpps(clientIds, orgId);
     const ids = opps.map((o) => o.id);
     const lastActMap = new Map<string, Date>();
     if (ids.length) {

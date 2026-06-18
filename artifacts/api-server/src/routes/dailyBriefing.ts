@@ -73,16 +73,19 @@ router.get("/briefing/today", async (req, res, next) => {
 
     // ── Activité globale ────────────────────────────────────
     const clientConds = [isNull(clientsTable.deletedAt)];
+    if (orgId) clientConds.push(eq(clientsTable.organizationId, orgId));
     if (clientIds && clientIds.length) clientConds.push(inArray(clientsTable.id, clientIds));
     const totalClients = denyClient ? 0 : (await db.select({ c: sql<number>`count(*)::int` }).from(clientsTable).where(and(...clientConds)))[0]?.c ?? 0;
 
     const projConds = [isNull(projectsTable.deletedAt)];
+    if (orgId) projConds.push(eq(projectsTable.organizationId, orgId));
     if (projectIds && projectIds.length) projConds.push(inArray(projectsTable.id, projectIds));
     const activeProjects = denyProj ? 0 : (await db.select({ c: sql<number>`count(*)::int` })
       .from(projectsTable).where(and(...projConds, sql`${projectsTable.status} in ('active','planning','in_progress')`)))[0]?.c ?? 0;
 
     // ── Tâches du jour & retard ─────────────────────────────
     const taskBase = [isNull(tasksTable.deletedAt), sql`${tasksTable.status} not in ('done','completed','cancelled')`];
+    if (orgId) taskBase.push(eq(tasksTable.organizationId, orgId));
     if (projectIds && projectIds.length) taskBase.push(inArray(tasksTable.projectId, projectIds));
     const tasksToday = denyProj ? [] : await db.select({ id: tasksTable.id, title: tasksTable.title, priority: tasksTable.priority, dueDate: tasksTable.dueDate })
       .from(tasksTable).where(and(...taskBase, eq(tasksTable.dueDate, today))).limit(10);
@@ -98,6 +101,7 @@ router.get("/briefing/today", async (req, res, next) => {
         sql`${invoicesTable.dueDate} is not null`,
         sql`${invoicesTable.dueDate}::date < now()::date`,
       ];
+      if (orgId) invConds.push(eq(invoicesTable.organizationId, orgId));
       if (clientIds && clientIds.length) invConds.push(inArray(invoicesTable.clientId, clientIds));
       const rows = await db.select({
         id: invoicesTable.id, ref: invoicesTable.referenceNumber,
