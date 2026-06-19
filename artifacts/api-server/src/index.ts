@@ -27,17 +27,13 @@ initRealtime(httpServer);
 httpServer.listen(port, async () => {
   logger.info({ port }, "Server listening");
 
-  // En production, les liens des emails (réinitialisation MDP, invitations Cockpit)
-  // doivent pointer vers les domaines publics. Sans PUBLIC_BASE_URL /
-  // COCKPIT_PUBLIC_BASE_URL, ils retombent sur l'en-tête Host (potentiellement faux
-  // derrière un proxy) → on alerte pour éviter des liens cassés en production.
-  if (process.env.NODE_ENV === "production") {
-    if (!process.env.PUBLIC_BASE_URL) {
-      logger.warn("PUBLIC_BASE_URL non défini : les liens des emails tenant risquent d'être incorrects en production.");
-    }
-    if (!process.env.COCKPIT_PUBLIC_BASE_URL && !process.env.PUBLIC_BASE_URL) {
-      logger.warn("COCKPIT_PUBLIC_BASE_URL/PUBLIC_BASE_URL non définis : les liens des emails Cockpit (réinit/invitation) risquent d'être incorrects en production.");
-    }
+  // Les liens des emails (réinitialisation MDP, invitations) sont construits via
+  // getPublicBaseUrl() : PUBLIC_BASE_URL explicite → domaine public Replit
+  // (REPLIT_DOMAINS, fixé automatiquement en production) → dev → localhost.
+  // On n'alerte que si AUCUNE source fiable n'est disponible (cas où il faudrait
+  // définir PUBLIC_BASE_URL manuellement, ex. domaine personnalisé).
+  if (process.env.NODE_ENV === "production" && !process.env.PUBLIC_BASE_URL && !process.env.REPLIT_DOMAINS) {
+    logger.warn("Ni PUBLIC_BASE_URL ni REPLIT_DOMAINS ne sont définis : les liens des emails risquent d'être incorrects. Définissez PUBLIC_BASE_URL sur l'URL publique de l'application.");
   }
 
   // L'ordre importe : seedSaas (créé ailleurs) crée les organisations, puis

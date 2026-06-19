@@ -6,6 +6,7 @@ import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { audit } from "../lib/audit";
 import { sendEmail, buildPasswordResetEmail, buildTwoFactorEmail } from "../lib/email";
+import { getPublicBaseUrl, getCockpitBaseUrl } from "../lib/url";
 import { userPermissions } from "../lib/rbac/permissions";
 
 const router = Router();
@@ -474,9 +475,9 @@ router.post("/auth/forgot-password", async (req, res) => {
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await db.update(usersTable).set({ passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt }).where(eq(usersTable.id, user.id));
-    const origin = (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+    const origin = getPublicBaseUrl();
     // Super-admin → Cockpit (/cockpit/) ; utilisateur tenant → ERP (/).
-    const cockpitOrigin = (process.env.COCKPIT_PUBLIC_BASE_URL || origin).replace(/\/$/, "");
+    const cockpitOrigin = getCockpitBaseUrl();
     const resetUrl = user.role === "super_admin"
       ? `${cockpitOrigin}/cockpit/reset-password?token=${token}`
       : `${origin}/reset-password?token=${token}`;

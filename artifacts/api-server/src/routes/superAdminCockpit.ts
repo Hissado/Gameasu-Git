@@ -27,11 +27,12 @@ import { deleteOrganization } from "../services/delete-organization";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../lib/email";
+import { getPublicBaseUrl } from "../lib/url";
 
 const router: IRouter = Router();
 
 function baseUrl(): string {
-  return (process.env.PUBLIC_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.REPLIT_DEV_DOMAIN || "localhost"}`).replace(/\/$/, "");
+  return getPublicBaseUrl();
 }
 
 const sa: RequestHandler = (req, res, next) => {

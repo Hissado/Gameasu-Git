@@ -23,6 +23,7 @@ import { eq, desc, and, gt, not, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { sendEmail, getPreviewInbox } from "../lib/email";
+import { getCockpitBaseUrl } from "../lib/url";
 
 const router: IRouter = Router();
 
@@ -87,10 +88,9 @@ router.post("/super-admin/cockpit-users/invite", sa, async (req, res, next) => {
     const inviteToken = randomBytes(32).toString("hex");
     const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Lien sécurisé vers le Cockpit (/cockpit/reset-password).
-    const proto = (req.headers["x-forwarded-proto"] as string) ?? "https";
-    const host = req.headers.host as string;
-    const baseOrigin = (process.env.COCKPIT_PUBLIC_BASE_URL || process.env.PUBLIC_BASE_URL || `${proto}://${host}`).replace(/\/$/, "");
+    // Lien sécurisé vers le Cockpit (/cockpit/reset-password). On résout l'URL
+    // publique de façon centralisée (jamais l'en-tête Host, faux derrière le proxy).
+    const baseOrigin = getCockpitBaseUrl();
     const setupUrl = `${baseOrigin}/cockpit/reset-password?token=${inviteToken}`;
     const sendInviteEmail = () => sendEmail({
       to: emailLc,
