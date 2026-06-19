@@ -93,4 +93,3 @@ channel = "stable-25_05"
 EMAIL_FROM = "Gaméasù <noreply@gameasu.com>"
 
 [userenv.production]
-PUBLIC_BASE_URL = "https://erp.gameasu.com"
