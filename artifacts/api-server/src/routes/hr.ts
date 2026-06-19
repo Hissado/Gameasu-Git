@@ -317,7 +317,8 @@ router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => 
 // seedés en se basant sur l'ancien champ texte `department` ou
 // `position`. Idempotent — n'écrase pas une affectation déjà posée.
 // ════════════════════════════════════════════════════════════════
-router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, res) => {
+router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   try {
     // Mapping mots-clés → code département seedé
     const KEYWORD_MAP: Array<{ kw: RegExp; code: string }> = [
@@ -330,10 +331,11 @@ router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, r
       { kw: /(communication|marketing|marcom)/i, code: "MKT" },
     ];
 
-    const depts = await db.select().from(departmentsTable);
+    const depts = await db.select().from(departmentsTable).where(eq(departmentsTable.organizationId, orgId));
     const byCode = new Map(depts.map((d) => [d.code, d.id]));
 
-    const allCollabs = await db.select().from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+    const allCollabs = await db.select().from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
     let updated = 0; const summary: Array<{ id: string; name: string; assigned: string }> = [];
 
     for (const c of allCollabs) {
@@ -363,8 +365,10 @@ router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (_req, r
 // (projets, tâches, équipements responsable, contrats, documents)
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/collaborators/:id/overview", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const collabId = (req.params.id as string);
-  const collab = (await db.select().from(collaboratorsTable).where(eq(collaboratorsTable.id, collabId)).limit(1))[0];
+  const collab = (await db.select().from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.id, collabId), eq(collaboratorsTable.organizationId, orgId))).limit(1))[0];
   if (!collab) return res.status(404).json({ error: "Not found" });
 
   const [dept, position, manager] = await Promise.all([
@@ -430,20 +434,24 @@ router.get("/hr/collaborators/:id/overview", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 // DASHBOARD RH
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/dashboard", async (_req, res) => {
+router.get("/hr/dashboard", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+
   const [totalCollabs] = await db.select({ n: sql<number>`COUNT(*)` })
-    .from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+    .from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
 
   const [activeContracts] = await db.select({ n: sql<number>`COUNT(*)` })
-    .from(contractsTable).where(eq(contractsTable.status, "active"));
+    .from(contractsTable)
+    .where(and(eq(contractsTable.organizationId, orgId), eq(contractsTable.status, "active")));
 
   const byDept = await db.select({
     departmentId: collaboratorsTable.departmentId,
     departmentName: departmentsTable.name,
     n: sql<number>`COUNT(*)`,
   }).from(collaboratorsTable)
-    .leftJoin(departmentsTable, eq(collaboratorsTable.departmentId, departmentsTable.id))
-    .where(isNull(collaboratorsTable.deletedAt))
+    .leftJoin(departmentsTable, and(eq(collaboratorsTable.departmentId, departmentsTable.id), eq(departmentsTable.organizationId, orgId)))
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
     .groupBy(collaboratorsTable.departmentId, departmentsTable.name);
 
   const recentHires = await db.select({
@@ -453,7 +461,7 @@ router.get("/hr/dashboard", async (_req, res) => {
     hireDate: collaboratorsTable.hireDate,
     avatarUrl: collaboratorsTable.avatarUrl,
   }).from(collaboratorsTable)
-    .where(and(isNull(collaboratorsTable.deletedAt), sql`${collaboratorsTable.hireDate} IS NOT NULL`))
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt), sql`${collaboratorsTable.hireDate} IS NOT NULL`))
     .orderBy(desc(collaboratorsTable.hireDate)).limit(5);
 
   // Contrats arrivant à échéance dans 30 jours
@@ -462,8 +470,8 @@ router.get("/hr/dashboard", async (_req, res) => {
     collabFirst: collaboratorsTable.firstName,
     collabLast: collaboratorsTable.lastName,
   }).from(contractsTable)
-    .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
-    .where(sql`${contractsTable.status} = 'active' AND ${contractsTable.endDate} IS NOT NULL AND ${contractsTable.endDate} <= CURRENT_DATE + INTERVAL '30 days'`);
+    .leftJoin(collaboratorsTable, and(eq(contractsTable.collaboratorId, collaboratorsTable.id), eq(collaboratorsTable.organizationId, orgId)))
+    .where(and(eq(contractsTable.organizationId, orgId), sql`${contractsTable.status} = 'active' AND ${contractsTable.endDate} IS NOT NULL AND ${contractsTable.endDate} <= CURRENT_DATE + INTERVAL '30 days'`));
 
   return res.json({
     kpis: {
