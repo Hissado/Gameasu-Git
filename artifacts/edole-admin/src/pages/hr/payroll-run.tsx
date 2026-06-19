@@ -68,13 +68,14 @@ type LineItem = {
   lineItemId: string | null;
   regularHours: number; overtimeHours: number; leaveHours: number; absenceHours: number;
   bonus: number; commission: number; tip: number; reimbursement: number; deduction: number; payrollCorrection: number;
+  overtimePay: number; absenceDeduction: number;
   notes: string; paymentMethod: string; totalGross: number; attendanceSynced: boolean;
 };
 
 function computeGross(l: LineItem) {
   const base = l.baseSalary + l.transportAllowance + l.housingAllowance;
-  const variable = l.bonus + l.commission + l.tip + l.reimbursement + l.payrollCorrection;
-  const totalGross = base + variable - l.deduction;
+  const variable = l.bonus + l.commission + l.tip + l.reimbursement + l.payrollCorrection + l.overtimePay;
+  const totalGross = Math.max(0, base + variable - l.deduction - l.absenceDeduction);
   // CNSS + IRPP + IPTS approx for display
   const cnss = Math.round(totalGross * 0.04);
   const ipts = Math.round(totalGross * 0.02);
@@ -366,8 +367,10 @@ export default function PayrollRun() {
       commission: acc.commission + l.commission,
       deduction: acc.deduction + l.deduction,
       reimbursement: acc.reimbursement + l.reimbursement,
+      overtimePay: acc.overtimePay + l.overtimePay,
+      absenceDeduction: acc.absenceDeduction + l.absenceDeduction,
     };
-  }, { gross: 0, net: 0, bonus: 0, commission: 0, deduction: 0, reimbursement: 0 });
+  }, { gross: 0, net: 0, bonus: 0, commission: 0, deduction: 0, reimbursement: 0, overtimePay: 0, absenceDeduction: 0 });
 
   const cnssTotal = Math.round(totals.gross * 0.04);
   const iptsTotal = Math.round(totals.gross * 0.02);
@@ -562,6 +565,8 @@ export default function PayrollRun() {
                     <th className="px-3 py-2.5 text-right min-w-[90px]">H. sup.</th>
                     <th className="px-3 py-2.5 text-right min-w-[90px]">Congés (h)</th>
                     <th className="px-3 py-2.5 text-right min-w-[90px]">Absences (h)</th>
+                    <th className="px-3 py-2.5 text-right min-w-[110px] text-emerald-700">Paie h. sup.</th>
+                    <th className="px-3 py-2.5 text-right min-w-[110px] text-red-600">Retenue absence</th>
                     <th className="px-3 py-2.5 text-right min-w-[110px]">Bonus</th>
                     <th className="px-3 py-2.5 text-right min-w-[110px]">Commission</th>
                     <th className="px-3 py-2.5 text-right min-w-[110px]">Remboursement</th>
@@ -608,6 +613,8 @@ export default function PayrollRun() {
                         <td className="px-3 py-2"><NumCell unit="hours" value={l.overtimeHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "overtimeHours", v)} /></td>
                         <td className="px-3 py-2"><NumCell unit="hours" value={l.leaveHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "leaveHours", v)} /></td>
                         <td className="px-3 py-2"><NumCell unit="hours" value={l.absenceHours} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "absenceHours", v)} /></td>
+                        <td className="px-3 py-2 text-emerald-700"><NumCell value={l.overtimePay} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "overtimePay", v)} /></td>
+                        <td className="px-3 py-2 text-red-600"><NumCell value={l.absenceDeduction} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "absenceDeduction", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.bonus} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "bonus", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.commission} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "commission", v)} /></td>
                         <td className="px-3 py-2"><NumCell value={l.reimbursement} disabled={!isDraft} onChange={v => updateLine(l.collaboratorId, "reimbursement", v)} /></td>
@@ -652,6 +659,8 @@ export default function PayrollRun() {
                     <td className="px-3 py-2.5 sticky left-10 bg-muted/40 text-sm">TOTAUX ({filtered.length})</td>
                     <td className="px-3 py-2.5" />
                     <td colSpan={4} />
+                    <td className="px-3 py-2.5 text-right text-emerald-700 text-sm">{formatFCFA(totals.overtimePay)}</td>
+                    <td className="px-3 py-2.5 text-right text-red-600 text-sm">{formatFCFA(totals.absenceDeduction)}</td>
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.bonus)}</td>
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.commission)}</td>
                     <td className="px-3 py-2.5 text-right text-sm">{formatFCFA(totals.reimbursement)}</td>

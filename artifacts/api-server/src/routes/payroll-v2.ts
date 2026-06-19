@@ -43,6 +43,15 @@ router.use(requireAuth);
 
 const toNum = (v: unknown) => (v == null ? 0 : Number(v));
 
+// ─── Paramètres heures supplémentaires / absences (Togo, Code du travail) ───
+// Base mensuelle légale = 40 h/semaine × 52 / 12 ≈ 173,33 h.
+const STANDARD_MONTHLY_HOURS = 173.33;
+// Majoration des heures supplémentaires (+20 % par défaut — paramètre métier).
+const OVERTIME_MULTIPLIER = 1.20;
+// Taux horaire calculé sur le salaire de base (hors primes/indemnités).
+const hourlyRate = (baseSalary: number) =>
+  baseSalary > 0 ? baseSalary / STANDARD_MONTHLY_HOURS : 0;
+
 // ─── Calculs SYSCOHADA Togo (identiques à payroll.ts) ─────────────────────
 function computeIrppAnnuel(revenuImposableAnnuel: number): number {
   const tranches = [
@@ -411,6 +420,8 @@ router.get("/payroll/runs/:id/line-items", requireManagerOrAbove, async (req, re
           overtimeHours: toNum(line?.overtimeHours),
           leaveHours: toNum(line?.leaveHours),
           absenceHours: toNum(line?.absenceHours),
+          overtimePay: toNum(line?.overtimePay),
+          absenceDeduction: toNum(line?.absenceDeduction),
           bonus: toNum(line?.bonus),
           commission: toNum(line?.commission),
           tip: toNum(line?.tip),
@@ -442,6 +453,8 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
       reimbursement: z.number().min(0).optional(),
       deduction: z.number().min(0).optional(),
       payrollCorrection: z.number().optional(),
+      overtimePay: z.number().min(0).optional(),
+      absenceDeduction: z.number().min(0).optional(),
       notes: z.string().optional(),
       paymentMethod: z.enum(["cash", "bank_transfer", "mobile_money", "check", "other"]).optional(),
     }).parse(req.body);
@@ -464,6 +477,8 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
       reimbursement: body.reimbursement ?? toNum(existing.reimbursement),
       deduction: body.deduction ?? toNum(existing.deduction),
       payrollCorrection: body.payrollCorrection ?? toNum(existing.payrollCorrection),
+      overtimePay: body.overtimePay ?? toNum(existing.overtimePay),
+      absenceDeduction: body.absenceDeduction ?? toNum(existing.absenceDeduction),
     };
 
     // Get collaborator salary for authoritative totalGross
@@ -488,7 +503,8 @@ router.patch("/payroll/runs/:id/line-items/:lineId", requireManagerOrAbove, asyn
       base + transport + housing
       + merged.bonus + merged.commission + merged.tip
       + merged.reimbursement + merged.payrollCorrection
-      - merged.deduction,
+      + merged.overtimePay
+      - merged.deduction - merged.absenceDeduction,
     );
 
     const updates: Record<string, unknown> = { totalGross: String(computedGross) };
@@ -523,6 +539,7 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
     const sessions = await db.select({
       collaboratorId: attendanceSessionsTable.collaboratorId,
       totalMinutes: sql<number>`SUM(${attendanceSessionsTable.effectiveMinutes})`,
+      expectedMinutes: sql<number>`SUM(${attendanceSessionsTable.expectedMinutes})`,
       daysWorked: sql<number>`COUNT(*)`,
     })
       .from(attendanceSessionsTable)
@@ -556,22 +573,58 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
     const lines = await db.select().from(payrollLineItemsTable)
       .where(eq(payrollLineItemsTable.payrollRunId, run.id));
 
+    // Salaires de base des collaborateurs concernés (pour valoriser h. sup. / absences)
+    const syncCollabIds = [...new Set(lines.map(l => l.collaboratorId))];
+    const salaryMap = new Map<string, number>();
+    if (syncCollabIds.length > 0) {
+      const salaries = await db.select({
+        id: collaboratorsTable.id,
+        baseSalary: collaboratorsTable.baseSalary,
+        monthlySalary: contractsTable.monthlySalary,
+      })
+        .from(collaboratorsTable)
+        .leftJoin(contractsTable, and(
+          eq(contractsTable.collaboratorId, collaboratorsTable.id),
+          eq(contractsTable.status, "active"),
+        ))
+        .where(and(
+          eq(collaboratorsTable.organizationId, orgId),
+          inArray(collaboratorsTable.id, syncCollabIds),
+        ))
+        // Si plusieurs contrats actifs, retenir le salaire mensuel le plus élevé de façon déterministe
+        .orderBy(sql`${contractsTable.monthlySalary} DESC NULLS LAST`);
+      for (const s of salaries) {
+        if (!salaryMap.has(s.id)) salaryMap.set(s.id, toNum(s.monthlySalary) || toNum(s.baseSalary));
+      }
+    }
+
     for (const line of lines) {
       const session = sessionMap.get(line.collaboratorId);
       const leave = leaveMap.get(line.collaboratorId);
       if (!session && !leave) continue;
 
       const totalH = session ? Math.round(toNum(session.totalMinutes) / 60 * 10) / 10 : 0;
-      const standardH = 8 * (toNum(session?.daysWorked) || 0); // 8h/jour théorique
+      const expectedH = session ? Math.round(toNum(session.expectedMinutes) / 60 * 10) / 10 : 0;
+      // Heures attendues : planning de présence si disponible, sinon 8 h/jour travaillé
+      const standardH = expectedH > 0 ? expectedH : 8 * (toNum(session?.daysWorked) || 0);
       const regularH = Math.min(totalH, standardH);
       const overtimeH = Math.max(0, totalH - standardH);
+      const absenceH = Math.max(0, standardH - totalH); // heures dues non effectuées
       const leaveH = leave ? toNum(leave.days) * 8 : 0;
+
+      // Valorisation : h. sup. majorées, absences retenues au taux horaire de base
+      const rate = hourlyRate(salaryMap.get(line.collaboratorId) ?? 0);
+      const overtimePay = Math.round(overtimeH * rate * OVERTIME_MULTIPLIER);
+      const absenceDeduction = Math.round(absenceH * rate);
 
       await db.update(payrollLineItemsTable)
         .set({
           regularHours: String(regularH),
           overtimeHours: String(overtimeH),
           leaveHours: String(leaveH),
+          absenceHours: String(absenceH),
+          overtimePay: String(overtimePay),
+          absenceDeduction: String(absenceDeduction),
           attendanceSynced: true,
           attendanceSyncedAt: new Date(),
         })
@@ -708,8 +761,8 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
       const transport = c ? toNum(c.transportAllowance) : 0;
       const housing = c ? toNum(c.housingAllowance) : 0;
       const variable = toNum(line.bonus) + toNum(line.commission) + toNum(line.tip)
-        + toNum(line.reimbursement) + toNum(line.payrollCorrection);
-      const deduction = toNum(line.deduction);
+        + toNum(line.reimbursement) + toNum(line.payrollCorrection) + toNum(line.overtimePay);
+      const deduction = toNum(line.deduction) + toNum(line.absenceDeduction);
       const gross = Math.max(0, base + transport + housing + variable - deduction);
       const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross);
 

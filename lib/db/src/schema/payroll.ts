@@ -282,6 +282,9 @@ export const payrollLineItemsTable = pgTable("payroll_line_items", {
   reimbursement: numeric("reimbursement", { precision: 14, scale: 2 }).default("0"),
   deduction: numeric("deduction", { precision: 14, scale: 2 }).default("0"),
   payrollCorrection: numeric("payroll_correction", { precision: 14, scale: 2 }).default("0"),
+  // Montants dérivés de la présence (pointage) — calculés au sync présence
+  overtimePay: numeric("overtime_pay", { precision: 14, scale: 2 }).default("0"),
+  absenceDeduction: numeric("absence_deduction", { precision: 14, scale: 2 }).default("0"),
   notes: text("notes"),
   // cash | bank_transfer | mobile_money | check | other
   paymentMethod: text("payment_method").default("bank_transfer"),

@@ -1290,9 +1290,17 @@ export default function BillingPage() {
                   : "Carte bancaire, Mixx, Flooz — confirmez manuellement après réception."}
               </p>
             </div>
-            <Button onClick={() => setShowPayModal(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
-              <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
-            </Button>
+            {isEnterprise ? (
+              <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+                <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B${userCount}%20utilisateurs`}>
+                  <Mail className="w-4 h-4 mr-2" /> Demander un devis
+                </a>
+              </Button>
+            ) : (
+              <Button onClick={() => setShowPayModal(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
+              </Button>
+            )}
           </div>
 
           {/* Statut Stripe */}
@@ -1318,7 +1326,15 @@ export default function BillingPage() {
               <CardContent className="py-16 text-center">
                 <Wallet className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
                 <p className="text-muted-foreground">Aucune transaction de paiement pour le moment.</p>
-                <Button className="mt-4" onClick={() => setShowPayModal(true)}>Initier un paiement</Button>
+                {isEnterprise ? (
+                  <Button asChild className="mt-4">
+                    <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B${userCount}%20utilisateurs`}>
+                      <Mail className="w-4 h-4 mr-2" /> Demander un devis
+                    </a>
+                  </Button>
+                ) : (
+                  <Button className="mt-4" onClick={() => setShowPayModal(true)}>Initier un paiement</Button>
+                )}
               </CardContent>
             </Card>
           ) : (
