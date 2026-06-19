@@ -368,7 +368,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
 
   const tempPassword = genTempPassword();
   const token = genToken();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const userId = randomUUID();
 
   await db.transaction(async (tx) => {
@@ -445,7 +445,7 @@ router.post("/admin/users/:id/resend-invitation", requirePermission("users.invit
   if (u.acceptedAt) return res.status(400).json({ error: "Invitation déjà acceptée" });
   const tempPassword = genTempPassword();
   const token = genToken();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await db.update(usersTable).set({
     password: tempPassword, mustChangePassword: true,
     passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt,
