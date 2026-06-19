@@ -21,6 +21,7 @@
 - [Codemod string-literal corruption](codemod-string-literal-corruption.md) — blanket `req.headers/params/query.X as string` casts also corrupt identical strings inside runtime config (Pino redact); grep `['"\`]\(req\.` after such codemods.
 - [Clean base / seed gating](clean-base-seed-gating.md) — a DB wipe isn't durable; startup seeds in routes/index.ts repopulate it unless gated behind SEED_DEMO_DATA. seedSaas is catalog-only by default.
 - [Text date columns + OVERLAPS](text-date-columns-overlaps.md) — date columns are text; OVERLAPS/range ops need `::date` on BOTH sides or query throws 500; wrap DB routes in try/catch.
+- [Custom domain routing](custom-domain-routing.md) — deployment is path-routed not host-routed; subdomains all hit one app; set PUBLIC_BASE_URL prod-only for custom-domain email links, never suffix COCKPIT_PUBLIC_BASE_URL with /cockpit.
 - [tsc OOM under running workflows](tsc-oom-under-workflows.md) — full tsc is SIGKILLed (137) by the cgroup OOM killer while all dev-server workflows run; verify via esbuild build + grep instead.
 - [Payment/accounting atomicity](payment-atomicity.md) — payment row + invoice balance + ledger posting must share ONE tx; use postEntryTx(tx,...) and pass tx through postCustomerPayment; re-assert validations inside the tx (TOCTOU).
 - [Public base URL for email links](public-base-url.md) — build email/links via lib/url.ts getPublicBaseUrl()/getCockpitBaseUrl(), never req.headers.host (wrong behind Replit proxy); REPLIT_DOMAINS is the prod fallback.
