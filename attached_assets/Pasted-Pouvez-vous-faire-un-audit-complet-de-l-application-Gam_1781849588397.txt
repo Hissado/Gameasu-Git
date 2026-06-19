@@ -1,0 +1,199 @@
+Pouvez-vous faire un audit complet de l’application Gaméasù en production, avec une attention particulière aux bugs, problèmes de synchronisation, logiques métier, performances et affichage mobile ?
+
+Objectif
+
+Je veux que l’application en production soit revue de bout en bout afin d’identifier et corriger tous les problèmes visibles ou cachés avant une utilisation réelle par les tenants.
+
+L’application doit être :
+
+* stable
+* rapide
+* fluide
+* bien synchronisée
+* sans bug critique
+* sans erreur visible
+* parfaitement responsive sur mobile
+* prête pour une vraie utilisation en production
+
+⸻
+
+1. Revoir tous les bugs en production
+
+Merci de tester toute l’application en production et de corriger :
+
+* erreurs frontend
+* erreurs backend
+* erreurs API
+* erreurs console
+* erreurs 404
+* erreurs 500
+* boutons non fonctionnels
+* formulaires qui ne sauvegardent pas
+* pages qui ne chargent pas
+* routes cassées
+* redirections incorrectes
+* filtres qui ne fonctionnent pas
+* recherches qui ne retournent pas les bons résultats
+* exports PDF / Excel défectueux
+* données qui disparaissent ou ne s’actualisent pas
+* messages d’erreur mal affichés
+
+⸻
+
+2. Vérifier les problèmes de synchronisation
+
+Merci de vérifier que les données sont bien synchronisées entre les modules.
+
+Tester notamment :
+
+* paiement tenant → abonnement → accès organisation
+* création tenant → onboarding → accès admin organisation
+* invitation utilisateur → activation → rôle / permissions
+* factures → encaissements → trésorerie → comptabilité
+* devis → commande → facture → paiement
+* facture en retard → recouvrement
+* pointage kiosk → présences → RH → paie
+* stock → ventes / opérations
+* budgets → réalisés → rapports
+* cockpit → tenant app → logs / monitoring
+
+Aucune donnée ne doit être incohérente entre les sections.
+
+⸻
+
+3. Vérifier les logiques métier
+
+Merci de revoir les logiques importantes :
+
+* calcul des abonnements
+* calcul HT / TVA / TTC
+* tarification par nombre d’utilisateurs
+* activation / suspension des tenants
+* rôles et permissions
+* accès personnalisés
+* clôture des périodes
+* calculs financiers
+* recouvrement
+* paie
+* congés
+* pointage
+* kiosk
+* rapports
+* notifications
+* tickets support
+* monitoring cockpit
+
+Chaque scénario doit fonctionner correctement en conditions réelles.
+
+⸻
+
+4. Revoir les débordements et problèmes mobile
+
+Merci de revoir toute l’application sur mobile et tablette.
+
+Corriger notamment :
+
+* montants qui débordent
+* chiffres trop longs qui sortent des cartes
+* tableaux trop larges
+* colonnes mal alignées
+* textes qui se chevauchent
+* boutons coupés
+* filtres difficiles à utiliser
+* formulaires mal adaptés
+* sidebar ou menu mobile difficile à naviguer
+* cartes KPI trop serrées
+* graphiques non responsives
+* pages qui nécessitent trop de scroll horizontal
+* contenu qui dépasse de l’écran
+
+Les montants doivent toujours rester lisibles, par exemple :
+
+* 40 000 FCFA HT
+* 47 200 FCFA TTC
+* 1 250 000 FCFA
+* 5 085 508 000 FCFA
+
+Aucun montant ne doit sortir d’une colonne, carte, tableau ou rapport.
+
+⸻
+
+5. Revoir la performance en production
+
+Merci de vérifier que l’application est rapide et fluide :
+
+* navigation entre sections
+* chargement des dashboards
+* chargement des tableaux
+* changement d’onglet
+* recherche
+* filtres
+* génération de rapports
+* ouverture des modals
+* chargement mobile
+* appels API
+* temps de réponse backend
+
+L’application ne doit pas donner une impression de lenteur ou de latence.
+
+⸻
+
+6. Sections à tester
+
+Merci de tester toutes les parties de l’application :
+
+* Cockpit Plateforme
+* Organisations / tenants
+* Abonnements
+* Paiements
+* Utilisateurs
+* Rôles & permissions
+* Tickets support
+* Incidents
+* Monitoring
+* Journal d’audit
+* Application tenant
+* Dashboard
+* Ventes
+* CRM
+* Clients
+* Devis
+* Commandes
+* Factures
+* Encaissements
+* Finance
+* Comptabilité
+* Trésorerie
+* Recouvrement
+* Budgets & prévisions
+* Rapports
+* RH
+* Présences & Pointage
+* Kiosk
+* Paie
+* Opérations
+* Stock
+* Équipements
+* Documents
+* Paramètres
+
+⸻
+
+7. Résultat attendu
+
+À la fin, merci de fournir un rapport clair avec :
+
+1. les bugs identifiés
+2. les bugs corrigés
+3. les problèmes de synchronisation corrigés
+4. les logiques métier vérifiées
+5. les problèmes mobile corrigés
+6. les débordements corrigés
+7. les améliorations de performance réalisées
+8. les fichiers modifiés
+9. les scénarios testés
+10. les points restants à surveiller
+
+Objectif final
+
+Je veux que la version production de Gaméasù soit propre, stable, rapide, responsive, sans bugs visibles, sans problèmes de synchronisation, sans débordements mobile, et prête pour une vraie utilisation client.

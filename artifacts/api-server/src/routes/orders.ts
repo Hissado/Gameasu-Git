@@ -301,37 +301,66 @@ router.get("/payments", async (req, res) => {
 });
 
 router.post("/payments", requireManagerOrAbove, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId, payerPhone, transactionStatus } = req.body;
-  const [payment] = await db.insert(paymentsTable).values({
-    organizationId: req.authUser!.organizationId,
-    invoiceId, amount: amount.toString(), currency, method, reference,
-    paidAt: paidAt ? new Date(paidAt) : new Date(), notes,
-    payerPhone: payerPhone || null,
-    transactionStatus: transactionStatus || "confirmed",
-  }).returning();
 
-  // Cumul atomique du paid_amount via SQL : empêche les écrasements concurrents
-  // (lost update) si plusieurs règlements arrivent simultanément.
-  const updated = await db.execute(sql`
-    UPDATE ${invoicesTable}
-       SET paid_amount = COALESCE(paid_amount, 0) + ${Number(amount)},
-           status = CASE
-             WHEN COALESCE(paid_amount, 0) + ${Number(amount)} >= COALESCE(total_amount, 0) THEN 'paid'
-             ELSE 'partially_paid'
-           END
-     WHERE id = ${invoiceId}
-       AND organization_id = ${req.authUser!.organizationId}
-  `);
-
-  // Comptabilisation automatique du règlement.
-  try {
-    await postCustomerPayment(req.authUser!.organizationId, payment.id, { bankAccountId, userId: req.authUser?.id });
-  } catch (e: any) {
-    logger.error({ err: e, paymentId: payment.id }, "Échec comptabilisation règlement");
-    return res.status(500).json({ error: "Comptabilisation impossible", detail: e.message, paymentId: payment.id });
+  const amt = Number(amount);
+  if (!invoiceId || !Number.isFinite(amt) || amt <= 0) {
+    return res.status(400).json({ error: "Montant de règlement invalide" });
   }
 
-  return res.status(201).json({ ...payment, amount: toNum(payment.amount) });
+  // Contrôles préalables : la facture doit exister, appartenir à l'organisation
+  // et ne pas être annulée.
+  const inv = (await db.select().from(invoicesTable).where(and(
+    eq(invoicesTable.organizationId, orgId),
+    eq(invoicesTable.id, invoiceId),
+  )).limit(1))[0];
+  if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+  if (inv.status === "cancelled") return res.status(400).json({ error: "Facture annulée : règlement impossible" });
+
+  try {
+    // Tout le règlement (insertion paiement + mise à jour du solde de la facture
+    // + écriture comptable) est encapsulé dans UNE seule transaction : si la
+    // comptabilisation échoue, rien n'est écrit → plus de divergence entre
+    // l'opérationnel (solde facture) et le grand livre.
+    const payment = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(paymentsTable).values({
+        organizationId: orgId,
+        invoiceId, amount: amt.toString(), currency, method, reference,
+        paidAt: paidAt ? new Date(paidAt) : new Date(), notes,
+        payerPhone: payerPhone || null,
+        transactionStatus: transactionStatus || "confirmed",
+      }).returning();
+
+      // Cumul atomique du paid_amount : empêche les écrasements concurrents
+      // (lost update) si plusieurs règlements arrivent simultanément. Le
+      // garde-fou `status <> 'cancelled'` + le contrôle du nombre de lignes
+      // touchées ferment la fenêtre TOCTOU : si la facture est annulée (ou
+      // supprimée) entre la vérification préalable et la transaction, on
+      // annule tout le règlement.
+      const touched = await tx.update(invoicesTable)
+        .set({
+          paidAmount: sql`COALESCE(${invoicesTable.paidAmount}, 0) + ${amt}`,
+          status: sql`CASE WHEN COALESCE(${invoicesTable.paidAmount}, 0) + ${amt} >= COALESCE(${invoicesTable.totalAmount}, 0) THEN 'paid' ELSE 'partially_paid' END`,
+        })
+        .where(and(
+          eq(invoicesTable.organizationId, orgId),
+          eq(invoicesTable.id, invoiceId),
+          sql`${invoicesTable.status} <> 'cancelled'`,
+        ))
+        .returning({ id: invoicesTable.id });
+      if (touched.length === 0) throw new Error("Facture introuvable ou annulée pendant le règlement");
+
+      // Comptabilisation dans la même transaction (tx partagé).
+      await postCustomerPayment(orgId, created.id, { bankAccountId, userId: req.authUser?.id, tx });
+      return created;
+    });
+
+    return res.status(201).json({ ...payment, amount: toNum(payment.amount) });
+  } catch (e: any) {
+    logger.error({ err: e, invoiceId }, "Échec enregistrement règlement");
+    return res.status(500).json({ error: "Enregistrement du règlement impossible", detail: e.message });
+  }
 });
 
 // ─── GET /clients/:id/commercial ─────────────────────────────────────────────

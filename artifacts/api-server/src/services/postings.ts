@@ -56,7 +56,7 @@ function lockKey(s: string): bigint {
   return h >= max ? h - (1n << 64n) : h;
 }
 
-export async function postEntry(opts: {
+type PostEntryOpts = {
   organizationId: string;
   journalCode: string;
   entryDate: string;
@@ -66,7 +66,17 @@ export async function postEntry(opts: {
   sourceId?: string;
   createdById?: string;
   lines: LineSpec[];
-}) {
+};
+
+/** Comptabilise une écriture en ouvrant sa propre transaction. */
+export async function postEntry(opts: PostEntryOpts) {
+  return db.transaction((tx) => postEntryTx(tx, opts));
+}
+
+/** Variante transaction-aware : à utiliser quand l'appelant fournit déjà un `tx`
+ *  pour garantir l'atomicité avec d'autres écritures (ex : encaissement d'un
+ *  règlement qui doit rester cohérent avec la mise à jour du solde de la facture). */
+export async function postEntryTx(tx: any, opts: PostEntryOpts) {
   let totalDebit = 0;
   let totalCredit = 0;
   for (const l of opts.lines) {
@@ -81,7 +91,6 @@ export async function postEntry(opts: {
     throw new Error(`Écriture déséquilibrée : Débit ${totalDebit} ≠ Crédit ${totalCredit}`);
   }
 
-  return db.transaction(async (tx) => {
     if (opts.sourceType && opts.sourceId) {
       const existing = await tx
         .select()
@@ -163,7 +172,6 @@ export async function postEntry(opts: {
     );
 
     return entry;
-  });
 }
 
 export async function reverseEntry(organizationId: string, entryId: string, userId?: string) {
@@ -285,14 +293,15 @@ export async function postCustomerInvoice(organizationId: string, invoiceId: str
   });
 }
 
-export async function postCustomerPayment(organizationId: string, paymentId: string, opts: { bankAccountId?: string; userId?: string } = {}) {
-  const pay = (await db.select().from(paymentsTable).where(and(
+export async function postCustomerPayment(organizationId: string, paymentId: string, opts: { bankAccountId?: string; userId?: string; tx?: any } = {}) {
+  const exec = opts.tx ?? db;
+  const pay = (await exec.select().from(paymentsTable).where(and(
     eq(paymentsTable.organizationId, organizationId),
     eq(paymentsTable.id, paymentId),
   )).limit(1))[0];
   if (!pay) throw new Error("Paiement introuvable");
   const amount = Number(pay.amount);
-  const inv = (await db.select().from(invoicesTable).where(and(
+  const inv = (await exec.select().from(invoicesTable).where(and(
     eq(invoicesTable.organizationId, organizationId),
     eq(invoicesTable.id, pay.invoiceId),
   )).limit(1))[0];
@@ -300,12 +309,12 @@ export async function postCustomerPayment(organizationId: string, paymentId: str
   let treasuryCode = pay.method === "cash" ? "571" : "521";
   let journalCode = pay.method === "cash" ? "CAI" : "BNQ";
   if (opts.bankAccountId) {
-    const bank = (await db.select().from(bankAccountsTable).where(and(
+    const bank = (await exec.select().from(bankAccountsTable).where(and(
       eq(bankAccountsTable.organizationId, organizationId),
       eq(bankAccountsTable.id, opts.bankAccountId),
     )).limit(1))[0];
     if (bank) {
-      const acc = (await db.select().from(chartOfAccountsTable).where(and(
+      const acc = (await exec.select().from(chartOfAccountsTable).where(and(
         eq(chartOfAccountsTable.organizationId, organizationId),
         eq(chartOfAccountsTable.id, bank.accountId),
       )).limit(1))[0];
@@ -318,7 +327,7 @@ export async function postCustomerPayment(organizationId: string, paymentId: str
 
   const dateStr = (pay.paidAt ?? pay.createdAt ?? new Date()).toISOString().slice(0, 10);
 
-  return postEntry({
+  const entryOpts: PostEntryOpts = {
     organizationId: pay.organizationId,
     journalCode,
     entryDate: dateStr,
@@ -331,7 +340,8 @@ export async function postCustomerPayment(organizationId: string, paymentId: str
       { accountCode: treasuryCode, debit: amount, description: "Encaissement" },
       { accountCode: "411", credit: amount, thirdPartyType: "client", thirdPartyId: inv?.clientId ?? undefined, description: "Client" },
     ],
-  });
+  };
+  return opts.tx ? postEntryTx(opts.tx, entryOpts) : postEntry(entryOpts);
 }
 
 export async function postSupplierInvoice(organizationId: string, supplierInvoiceId: string, userId?: string) {

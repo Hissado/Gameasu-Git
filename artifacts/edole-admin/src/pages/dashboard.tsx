@@ -368,21 +368,21 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Encaissements"
-            value={<MoneyAmount amount={monthlyRevenue} size="xl" color="default" />}
+            value={<MoneyAmount amount={monthlyRevenue} size="xl" color="default" compactMobile />}
             sub="Paiements reçus à date"
             icon={Banknote} accent="dark" loading={loadingKpis}
             href="/payments"
           />
           <MetricCard
             label="Créances ouvertes"
-            value={<MoneyAmount amount={outstanding} size="xl" color={outstanding > 0 ? "warning" : "default"} />}
+            value={<MoneyAmount amount={outstanding} size="xl" color={outstanding > 0 ? "warning" : "default"} compactMobile />}
             sub="Factures non encaissées"
             icon={Receipt} accent={outstanding > 0 ? "warning" : "neutral"} loading={loadingKpis}
             href="/invoices"
           />
           <MetricCard
             label="Pipeline commercial"
-            value={<MoneyAmount amount={pipeline} size="xl" color="default" />}
+            value={<MoneyAmount amount={pipeline} size="xl" color="default" compactMobile />}
             sub={`${kpis?.openOpportunities || 0} opportunités qualifiées`}
             icon={Target} accent="primary" loading={loadingKpis}
             href="/crm"

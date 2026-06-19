@@ -21,4 +21,5 @@
 - [Codemod string-literal corruption](codemod-string-literal-corruption.md) — blanket `req.headers/params/query.X as string` casts also corrupt identical strings inside runtime config (Pino redact); grep `['"\`]\(req\.` after such codemods.
 - [Clean base / seed gating](clean-base-seed-gating.md) — a DB wipe isn't durable; startup seeds in routes/index.ts repopulate it unless gated behind SEED_DEMO_DATA. seedSaas is catalog-only by default.
 - [Text date columns + OVERLAPS](text-date-columns-overlaps.md) — date columns are text; OVERLAPS/range ops need `::date` on BOTH sides or query throws 500; wrap DB routes in try/catch.
+- [Payment/accounting atomicity](payment-atomicity.md) — payment row + invoice balance + ledger posting must share ONE tx; use postEntryTx(tx,...) and pass tx through postCustomerPayment; re-assert validations inside the tx (TOCTOU).
 - [Seed schema field pitfalls](seed-schema-field-pitfalls.md) — critical field constraints for multi-tenant seed scripts: orgs no city/website/bankName; users require organizationId; equipmentCategories no color; tasks no phaseId; bankAccountsTable requires COA accountId FK (seed separately).

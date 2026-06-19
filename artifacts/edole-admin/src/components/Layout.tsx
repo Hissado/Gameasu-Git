@@ -442,10 +442,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-2.5 text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg px-3.5 py-2 w-full max-w-[520px] transition-all group"
+              aria-label="Rechercher"
+              className="flex items-center gap-2.5 text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg px-2.5 md:px-3.5 py-2 w-auto md:w-full max-w-[520px] transition-all group"
             >
               <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-              <span className="text-sm text-muted-foreground/60 flex-1 text-left truncate">
+              <span className="hidden md:inline text-sm text-muted-foreground/60 flex-1 text-left truncate">
                 Rechercher clients, collaborateurs, factures, projets…
               </span>
               <kbd className="hidden lg:inline-flex text-[10px] text-muted-foreground/50 font-mono bg-background border border-border rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>

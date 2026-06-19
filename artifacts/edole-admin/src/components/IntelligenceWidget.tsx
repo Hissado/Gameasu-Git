@@ -30,7 +30,7 @@ export function IntelligenceWidget() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-3 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs">
           <div className="flex items-center gap-2"><Lightbulb className="w-4 h-4 text-sky-500" /> <span className="font-semibold text-base">{data.counts.insightsOpen}</span> insights</div>
           <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-500" /> <span className="font-semibold text-base">{data.counts.recommendationsOpen}</span> recommandations</div>
           <div className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /> <span className="font-semibold text-base">{data.counts.risksOpen}</span> risques</div>
