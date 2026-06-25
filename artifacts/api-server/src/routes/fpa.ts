@@ -10,7 +10,8 @@ import {
 import { clientsTable } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, inArray, isNull } from "drizzle-orm";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
-import ExcelJS from "exceljs";
+import { ExcelReportBuilder } from "../lib/excel-engine";
+import { organizationsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -780,278 +781,337 @@ router.get("/fpa/summary", async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXPORTS EXCEL
+// EXPORTS EXCEL — template unifié via ExcelReportBuilder
 // ════════════════════════════════════════════════════════════════════════════
 
-const HEADER_FILL = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFEA580C" } };
-const HEADER_FONT = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-const SUBHEADER_FILL = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF1F2937" } };
-const TOTAL_FILL = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFFEF3C7" } };
-const FCFA_FORMAT = '#,##0 "FCFA"';
-const PCT_FORMAT = '0.0"%"';
-
-function applyMoneyFormat(cell: ExcelJS.Cell) { cell.numFmt = FCFA_FORMAT; }
-function styleHeaderRow(row: ExcelJS.Row) {
-  row.eachCell((c) => {
-    c.fill = HEADER_FILL;
-    c.font = HEADER_FONT;
-    c.alignment = { vertical: "middle", horizontal: "center" };
-    c.border = { top: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" } };
-  });
-  row.height = 22;
-}
-function styleTotalRow(row: ExcelJS.Row) {
-  row.eachCell((c) => {
-    c.fill = TOTAL_FILL;
-    c.font = { bold: true };
-    c.border = { top: { style: "double" }, bottom: { style: "double" } };
-  });
+async function getOrgName(orgId: string): Promise<string> {
+  const rows = await db.select({ name: organizationsTable.name })
+    .from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+  return rows[0]?.name ?? "Mon Organisation";
 }
 
-async function sendWorkbook(res: any, wb: ExcelJS.Workbook, filename: string) {
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  await wb.xlsx.write(res);
-  res.end();
+function fpPeriod(fp: { startDate: string; endDate: string }) {
+  return {
+    from: new Date(fp.startDate + "T00:00:00Z"),
+    to:   new Date(fp.endDate   + "T00:00:00Z"),
+  };
+}
+
+function accountCategory(code: string): string {
+  if (code.startsWith("7")) return "Produits (classe 7)";
+  if (code.startsWith("6")) return "Charges (classe 6)";
+  if (code.startsWith("5")) return "Trésorerie (classe 5)";
+  if (code.startsWith("4")) return "Tiers (classe 4)";
+  if (code.startsWith("2")) return "Immobilisations (classe 2)";
+  return "Autres";
 }
 
 // EXPORT — Budget détail (matrice account × mois)
-router.get("/fpa/export/budget/:id.xlsx", async (req, res) => {
-  const orgId = req.authUser!.organizationId;
-  const data = await loadBudgetWithLines(orgId, (req.params.id as string));
-  if (!data) return res.status(404).json({ error: "Introuvable" });
-  const fp = await loadFiscalPeriod(orgId, data.budget.fiscalPeriodId);
-  if (!fp) return res.status(404).json({ error: "Période introuvable" });
-  const months = listMonths(fp.startDate, fp.endDate);
-  const accountIds = Array.from(new Set(data.lines.map((l) => l.accountId)));
-  const accounts = accountIds.length > 0
-    ? await db.select().from(chartOfAccountsTable).where(and(eq(chartOfAccountsTable.organizationId, orgId), inArray(chartOfAccountsTable.id, accountIds)))
-    : [];
-  const accById = new Map(accounts.map((a) => [a.id, a]));
-  const cellMap = new Map<string, number>();
-  for (const l of data.lines) cellMap.set(`${l.accountId}::${l.period}`, toNum(l.amount));
+router.get("/fpa/export/budget/:id.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const data = await loadBudgetWithLines(orgId, (req.params.id as string));
+    if (!data) return res.status(404).json({ error: "Introuvable" });
+    const fp = await loadFiscalPeriod(orgId, data.budget.fiscalPeriodId);
+    if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "Gaméasù — FP&A";
-  wb.created = new Date();
-  const ws = wb.addWorksheet(`Budget ${data.budget.versionNumber}`);
-  ws.mergeCells(1, 1, 1, months.length + 4);
-  const titleCell = ws.getCell(1, 1);
-  titleCell.value = `${data.budget.name} — ${fp.name} (v${data.budget.versionNumber})`;
-  titleCell.font = { bold: true, size: 14, color: { argb: "FFEA580C" } };
-  titleCell.alignment = { horizontal: "center" };
-  ws.addRow([]);
+    const [orgName, months] = [await getOrgName(orgId), listMonths(fp.startDate, fp.endDate)];
+    const accountIds = Array.from(new Set(data.lines.map((l) => l.accountId)));
+    const accounts = accountIds.length > 0
+      ? await db.select().from(chartOfAccountsTable)
+          .where(and(eq(chartOfAccountsTable.organizationId, orgId), inArray(chartOfAccountsTable.id, accountIds)))
+      : [];
+    const accById = new Map(accounts.map((a) => [a.id, a]));
+    const cellMap = new Map<string, number>();
+    for (const l of data.lines) cellMap.set(`${l.accountId}::${l.period}`, toNum(l.amount));
 
-  const header = ["Code", "Compte", "Classe", ...months, "Total annuel"];
-  const headerRow = ws.addRow(header);
-  styleHeaderRow(headerRow);
+    const grandTotal = accountIds.reduce((s, aid) =>
+      s + months.reduce((ms, m) => ms + (cellMap.get(`${aid}::${m}`) || 0), 0), 0);
 
-  for (const aid of accountIds.sort((a, b) => (accById.get(a)?.code || "").localeCompare(accById.get(b)?.code || ""))) {
-    const acc = accById.get(aid);
-    const cells = months.map((m) => cellMap.get(`${aid}::${m}`) || 0);
-    const total = cells.reduce((s, v) => s + v, 0);
-    const row = ws.addRow([acc?.code || "", acc?.label || "", acc?.classNum || "", ...cells, total]);
-    for (let i = 4; i <= header.length; i++) applyMoneyFormat(row.getCell(i));
-  }
+    const xls = new ExcelReportBuilder({
+      orgName,
+      period: fpPeriod(fp),
+      reportTitle: `${data.budget.name} (v${data.budget.versionNumber})`,
+    });
 
-  // Totaux par mois
-  const totalsByMonth = months.map((m) => {
-    let t = 0;
-    for (const aid of accountIds) t += cellMap.get(`${aid}::${m}`) || 0;
-    return t;
-  });
-  const totalRow = ws.addRow(["", "TOTAL", "", ...totalsByMonth, totalsByMonth.reduce((s, v) => s + v, 0)]);
-  styleTotalRow(totalRow);
-  for (let i = 4; i <= header.length; i++) applyMoneyFormat(totalRow.getCell(i));
+    xls.addCoverSheet("Pilotage Financier — FP&A");
 
-  ws.columns.forEach((col, i) => {
-    col.width = i === 1 ? 36 : i === 0 ? 12 : 16;
-  });
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Total budgété (exercice)", grandTotal, null, "neutral", "Vue d'ensemble"),
+      ExcelReportBuilder.num("Nombre de comptes", accountIds.length, null, "neutral", "Vue d'ensemble"),
+      ExcelReportBuilder.num("Nombre de périodes", months.length, null, "neutral", "Vue d'ensemble"),
+    ]);
 
-  await sendWorkbook(res, wb, `budget-${data.budget.name.replace(/[^a-z0-9]/gi, "_")}-v${data.budget.versionNumber}.xlsx`);
+    const monthLabels = months.map((m) => {
+      const [y, mo] = m.split("-");
+      return new Date(parseInt(y), parseInt(mo) - 1).toLocaleString("fr-FR", { month: "short", year: "2-digit" });
+    });
+    const cols = [
+      { header: "Code",  key: "code",  width: 10, format: "text" as const },
+      { header: "Compte", key: "label", width: 38, format: "text" as const },
+      { header: "Classe", key: "cls",   width: 10, format: "text" as const },
+      ...months.map((m, i) => ({ header: monthLabels[i]!, key: m, width: 14, format: "money" as const })),
+      { header: "Total annuel", key: "total", width: 18, format: "money" as const },
+    ];
+    const rows = accountIds
+      .sort((a, b) => (accById.get(a)?.code || "").localeCompare(accById.get(b)?.code || ""))
+      .map((aid) => {
+        const acc = accById.get(aid);
+        const cells = months.map((m) => cellMap.get(`${aid}::${m}`) || 0);
+        return [acc?.code || "", acc?.label || "", acc?.classNum?.toString() || "",
+          ...cells, cells.reduce((s, v) => s + v, 0)] as (string | number | null)[];
+      });
+
+    xls.addDataSheet({
+      name: "📊 Matrice Budget",
+      title: `${data.budget.name} — Matrice Budget × Mois`,
+      cols,
+      rows,
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Nature du document", body: `Budget prévisionnel ${fp.name}.\nVersion ${data.budget.versionNumber} — Statut : ${data.budget.status}.\nPérimètre : ${data.budget.scope} / Type : ${data.budget.kind}.` },
+      { title: "Plan comptable", body: "Les codes de comptes suivent le plan SYSCOHADA révisé.\nClasse 6 = Charges d'exploitation. Classe 7 = Produits d'exploitation." },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (Franc CFA de l'Afrique de l'Ouest — XOF).\nTaux de change : 1 EUR ≈ 655,957 FCFA (fixe)." },
+    ]);
+
+    await xls.send(res, `budget-${data.budget.name.replace(/[^a-z0-9]/gi, "_")}-v${data.budget.versionNumber}.xlsx`);
+  } catch (e) { next(e); }
 });
 
 // EXPORT — Rapport de variance (actual vs budget)
-router.get("/fpa/export/variance/:budgetId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.authUser!.organizationId, (req.params.budgetId as string));
-  if (!v) return res.status(404).json({ error: "Introuvable" });
+router.get("/fpa/export/variance/:budgetId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const v = await buildVarianceReport(orgId, (req.params.budgetId as string));
+    if (!v) return res.status(404).json({ error: "Introuvable" });
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "Gaméasù — FP&A";
-  wb.created = new Date();
+    const orgName = await getOrgName(orgId);
+    const executionPct = v.totals.budget !== 0 ? (v.totals.actual / v.totals.budget) * 100 : 0;
 
-  // Onglet 1 : synthèse globale
-  const wsSummary = wb.addWorksheet("Synthèse");
-  wsSummary.mergeCells(1, 1, 1, 5);
-  const t = wsSummary.getCell(1, 1);
-  t.value = `Analyse de variance — ${v.budget.name} (${v.fiscalPeriod.name})`;
-  t.font = { bold: true, size: 14, color: { argb: "FFEA580C" } };
-  t.alignment = { horizontal: "center" };
-  wsSummary.addRow([]);
-  const summaryHeader = wsSummary.addRow(["Mois", "Budget", "Réalisé", "Écart (FCFA)", "Écart (%)"]);
-  styleHeaderRow(summaryHeader);
-  for (const m of v.monthlyTotals) {
-    const pct = m.budget !== 0 ? (m.variance / Math.abs(m.budget)) * 100 : 0;
-    const r = wsSummary.addRow([m.period, m.budget, m.actual, m.variance, pct]);
-    applyMoneyFormat(r.getCell(2));
-    applyMoneyFormat(r.getCell(3));
-    applyMoneyFormat(r.getCell(4));
-    r.getCell(5).numFmt = PCT_FORMAT;
-  }
-  const totalsRow = wsSummary.addRow([
-    "TOTAL", v.totals.budget, v.totals.actual, v.totals.variance,
-    v.totals.budget !== 0 ? (v.totals.variance / Math.abs(v.totals.budget)) * 100 : 0,
-  ]);
-  styleTotalRow(totalsRow);
-  applyMoneyFormat(totalsRow.getCell(2));
-  applyMoneyFormat(totalsRow.getCell(3));
-  applyMoneyFormat(totalsRow.getCell(4));
-  totalsRow.getCell(5).numFmt = PCT_FORMAT;
-  wsSummary.columns.forEach((c, i) => { c.width = i === 0 ? 14 : 18; });
+    const xls = new ExcelReportBuilder({
+      orgName,
+      period: fpPeriod(v.fiscalPeriod),
+      reportTitle: `Analyse de Variance — ${v.budget.name}`,
+    });
 
-  // Onglet 2 : détail par compte × mois
-  const wsDetail = wb.addWorksheet("Détail par compte");
-  const detailHeader = ["Code", "Compte", ...v.months.flatMap((m) => [`${m} Budget`, `${m} Réalisé`, `${m} Écart`]), "Total Budget", "Total Réalisé", "Total Écart", "Écart %"];
-  const dHeader = wsDetail.addRow(detailHeader);
-  styleHeaderRow(dHeader);
-  for (const r of v.rows) {
-    const cells: any[] = [r.accountCode, r.accountLabel];
-    for (const c of r.cells) cells.push(c.budget, c.actual, c.variance);
-    cells.push(r.totalBudget, r.totalActual, r.totalVariance, r.totalVariancePct);
-    const row = wsDetail.addRow(cells);
-    for (let i = 3; i <= cells.length - 1; i++) applyMoneyFormat(row.getCell(i));
-    row.getCell(cells.length).numFmt = PCT_FORMAT;
-  }
-  wsDetail.columns.forEach((c, i) => { c.width = i === 1 ? 32 : 14; });
-  wsDetail.views = [{ state: "frozen", xSplit: 2, ySplit: 1 }];
+    xls.addCoverSheet("FP&A — Budget vs Réalisé");
 
-  await sendWorkbook(res, wb, `variance-${v.budget.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Budget total (exercice)", v.totals.budget, null, "neutral", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Réalisé total (exercice)", v.totals.actual, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Écart absolu (Réalisé − Budget)", v.totals.variance, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.pct("Taux d'exécution budgétaire", executionPct, null, "up-good", "Vue d'ensemble"),
+    ]);
+
+    xls.addDataSheet({
+      name: "📅 Évolution mensuelle",
+      title: "Budget vs Réalisé — Évolution mensuelle",
+      cols: [
+        { header: "Période",         key: "period",   width: 14, format: "text"    as const },
+        { header: "Budget (FCFA)",   key: "budget",   width: 22, format: "money"   as const },
+        { header: "Réalisé (FCFA)",  key: "actual",   width: 22, format: "money"   as const },
+        { header: "Écart (FCFA)",    key: "variance", width: 22, format: "money"   as const },
+        { header: "Écart %",         key: "pct",      width: 14, format: "percent" as const },
+      ],
+      rows: v.monthlyTotals.map((m) => {
+        const pct = m.budget !== 0 ? (m.variance / Math.abs(m.budget)) * 100 : 0;
+        return [m.period, m.budget, m.actual, m.variance, pct];
+      }),
+      totalsRow: false,
+    });
+
+    xls.addVarianceSheet({
+      name: "📊 Variance par compte",
+      title: "Analyse de variance par compte SYSCOHADA",
+      items: v.rows.map((r) => ({
+        label:    `${r.accountCode} — ${r.accountLabel}`,
+        budget:   r.totalBudget,
+        actual:   r.totalActual,
+        category: accountCategory(r.accountCode),
+      })),
+    });
+
+    xls.addNotesSheet([
+      { title: "Définition de la variance", body: "Écart = Réalisé − Budget.\nUn écart positif sur les produits est favorable (plus de recettes que prévu).\nUn écart négatif sur les charges est favorable (moins de dépenses que prévu).\nL'interprétation dépend toujours de la nature du compte (classe 6 ou 7)." },
+      { title: "Périmètre", body: `Budget : ${v.budget.name} — ${v.fiscalPeriod.name}.\nDonnées réalisées issues des écritures comptables au statut « Validé » (posted).` },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (Franc CFA de l'Afrique de l'Ouest — XOF)." },
+    ]);
+
+    await xls.send(res, `variance-${v.budget.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+  } catch (e) { next(e); }
 });
 
 // EXPORT — Forecast vs réalisé
-router.get("/fpa/export/forecast/:forecastId.xlsx", async (req, res) => {
-  const v = await buildVarianceReport(req.authUser!.organizationId, (req.params.forecastId as string));
-  if (!v) return res.status(404).json({ error: "Introuvable" });
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "Gaméasù — FP&A";
-  const ws = wb.addWorksheet("Forecast vs réalisé");
-  ws.mergeCells(1, 1, 1, 6);
-  const t = ws.getCell(1, 1);
-  t.value = `Prévisionnel vs réalisé — ${v.budget.name} (${v.fiscalPeriod.name})`;
-  t.font = { bold: true, size: 14, color: { argb: "FFEA580C" } };
-  t.alignment = { horizontal: "center" };
-  ws.addRow([]);
-  const h = ws.addRow(["Code", "Compte", "Forecast", "Réalisé", "Écart", "Écart %"]);
-  styleHeaderRow(h);
-  for (const r of v.rows) {
-    const row = ws.addRow([r.accountCode, r.accountLabel, r.totalBudget, r.totalActual, r.totalVariance, r.totalVariancePct]);
-    applyMoneyFormat(row.getCell(3));
-    applyMoneyFormat(row.getCell(4));
-    applyMoneyFormat(row.getCell(5));
-    row.getCell(6).numFmt = PCT_FORMAT;
-  }
-  const tr = ws.addRow(["", "TOTAL", v.totals.budget, v.totals.actual, v.totals.variance,
-    v.totals.budget !== 0 ? (v.totals.variance / Math.abs(v.totals.budget)) * 100 : 0]);
-  styleTotalRow(tr);
-  for (let i = 3; i <= 5; i++) applyMoneyFormat(tr.getCell(i));
-  tr.getCell(6).numFmt = PCT_FORMAT;
-  ws.columns.forEach((c, i) => { c.width = i === 1 ? 32 : 16; });
-  await sendWorkbook(res, wb, `forecast-${v.budget.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+router.get("/fpa/export/forecast/:forecastId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const v = await buildVarianceReport(orgId, (req.params.forecastId as string));
+    if (!v) return res.status(404).json({ error: "Introuvable" });
+
+    const orgName = await getOrgName(orgId);
+    const realisationPct = v.totals.budget !== 0 ? (v.totals.actual / v.totals.budget) * 100 : 0;
+
+    const xls = new ExcelReportBuilder({
+      orgName,
+      period: fpPeriod(v.fiscalPeriod),
+      reportTitle: `Prévisionnel vs Réalisé — ${v.budget.name}`,
+    });
+
+    xls.addCoverSheet("FP&A — Forecast vs Réalisé");
+
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Forecast total", v.totals.budget, null, "neutral", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Réalisé total", v.totals.actual, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Écart Forecast vs Réalisé", v.totals.variance, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.pct("Taux de réalisation du forecast", realisationPct, null, "up-good", "Vue d'ensemble"),
+    ]);
+
+    xls.addVarianceSheet({
+      name: "📈 Forecast vs Réalisé",
+      title: "Forecast vs Réalisé par compte SYSCOHADA",
+      items: v.rows.map((r) => ({
+        label:    `${r.accountCode} — ${r.accountLabel}`,
+        budget:   r.totalBudget,
+        actual:   r.totalActual,
+        category: accountCategory(r.accountCode),
+      })),
+    });
+
+    xls.addNotesSheet([
+      { title: "Lecture du document", body: "Colonne « Budget » = valeur forecast révisée approuvée.\nColonne « Réalisé » = données comptables postées au moment de l'export.\nÉcart = Réalisé − Forecast." },
+      { title: "Périmètre", body: `Forecast : ${v.budget.name} — ${v.fiscalPeriod.name}.\nDonnées réalisées issues des écritures comptables au statut « Validé » (posted).` },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (Franc CFA de l'Afrique de l'Ouest — XOF)." },
+    ]);
+
+    await xls.send(res, `forecast-${v.budget.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+  } catch (e) { next(e); }
 });
 
 // EXPORT — Synthèse par projet
-router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", async (req, res) => {
-  // On récupère la même donnée que l'endpoint JSON
-  (req.query.fiscalPeriodId as string) = (req.params.fiscalPeriodId as string);
-  const orgId = req.authUser!.organizationId;
-  const fp = await loadFiscalPeriod(orgId, (req.params.fiscalPeriodId as string));
-  if (!fp) return res.status(404).json({ error: "Période introuvable" });
+router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const fp = await loadFiscalPeriod(orgId, (req.params.fiscalPeriodId as string));
+    if (!fp) return res.status(404).json({ error: "Période introuvable" });
 
-  // Réutilise la logique en dupliquant : appel direct à la fonction n'est pas pratique
-  // → on reproduit ici la requête synthèse simplifiée.
-  const projectsAll = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, orgId));
-  const exp = await db.select({
-    projectId: journalEntryLinesTable.projectId,
-    debit: sql<string>`sum(${journalEntryLinesTable.debit})`,
-    credit: sql<string>`sum(${journalEntryLinesTable.credit})`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(
-      eq(journalEntriesTable.organizationId, orgId),
-      eq(journalEntriesTable.status, "posted"),
-      gte(journalEntriesTable.entryDate, fp.startDate),
-      lte(journalEntriesTable.entryDate, fp.endDate),
-      sql`${journalEntryLinesTable.projectId} IS NOT NULL`,
-      eq(chartOfAccountsTable.classNum, 6),
-    )).groupBy(journalEntryLinesTable.projectId);
-  const rev = await db.select({
-    projectId: journalEntryLinesTable.projectId,
-    debit: sql<string>`sum(${journalEntryLinesTable.debit})`,
-    credit: sql<string>`sum(${journalEntryLinesTable.credit})`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(
-      eq(journalEntriesTable.organizationId, orgId),
-      eq(journalEntriesTable.status, "posted"),
-      gte(journalEntriesTable.entryDate, fp.startDate),
-      lte(journalEntriesTable.entryDate, fp.endDate),
-      sql`${journalEntryLinesTable.projectId} IS NOT NULL`,
-      eq(chartOfAccountsTable.classNum, 7),
-    )).groupBy(journalEntryLinesTable.projectId);
+    const orgName = await getOrgName(orgId);
 
-  const expMap = new Map(exp.map((r) => [r.projectId!, toNum(r.debit) - toNum(r.credit)]));
-  const revMap = new Map(rev.map((r) => [r.projectId!, toNum(r.credit) - toNum(r.debit)]));
+    const projectsAll = await db.select().from(projectsTable).where(eq(projectsTable.organizationId, orgId));
+    const [expRows, revRows] = await Promise.all([
+      db.select({
+        projectId: journalEntryLinesTable.projectId,
+        debit:  sql<string>`sum(${journalEntryLinesTable.debit})`,
+        credit: sql<string>`sum(${journalEntryLinesTable.credit})`,
+      }).from(journalEntryLinesTable)
+        .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+        .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+        .where(and(
+          eq(journalEntriesTable.organizationId, orgId),
+          eq(journalEntriesTable.status, "posted"),
+          gte(journalEntriesTable.entryDate, fp.startDate),
+          lte(journalEntriesTable.entryDate, fp.endDate),
+          sql`${journalEntryLinesTable.projectId} IS NOT NULL`,
+          eq(chartOfAccountsTable.classNum, 6),
+        )).groupBy(journalEntryLinesTable.projectId),
+      db.select({
+        projectId: journalEntryLinesTable.projectId,
+        debit:  sql<string>`sum(${journalEntryLinesTable.debit})`,
+        credit: sql<string>`sum(${journalEntryLinesTable.credit})`,
+      }).from(journalEntryLinesTable)
+        .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
+        .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
+        .where(and(
+          eq(journalEntriesTable.organizationId, orgId),
+          eq(journalEntriesTable.status, "posted"),
+          gte(journalEntriesTable.entryDate, fp.startDate),
+          lte(journalEntriesTable.entryDate, fp.endDate),
+          sql`${journalEntryLinesTable.projectId} IS NOT NULL`,
+          eq(chartOfAccountsTable.classNum, 7),
+        )).groupBy(journalEntryLinesTable.projectId),
+    ]);
 
-  const budgets = await db.select().from(budgetsTable).where(and(
-    eq(budgetsTable.organizationId, orgId),
-    eq(budgetsTable.fiscalPeriodId, fp.id),
-    eq(budgetsTable.scope, "project"),
-    eq(budgetsTable.status, "active"),
-    eq(budgetsTable.kind, "budget"),
-  ));
-  const budgetTotalsMap = new Map<string, number>();
-  if (budgets.length) {
-    const sums = await db.select({
-      budgetId: budgetLinesTable.budgetId,
-      total: sql<string>`sum(${budgetLinesTable.amount})`,
-    }).from(budgetLinesTable).where(inArray(budgetLinesTable.budgetId, budgets.map((b) => b.id)))
-      .groupBy(budgetLinesTable.budgetId);
-    for (const s of sums) {
-      const b = budgets.find((bb) => bb.id === s.budgetId);
-      if (b?.scopeId) budgetTotalsMap.set(b.scopeId, toNum(s.total));
+    const expMap = new Map(expRows.map((r) => [r.projectId!, toNum(r.debit) - toNum(r.credit)]));
+    const revMap = new Map(revRows.map((r) => [r.projectId!, toNum(r.credit) - toNum(r.debit)]));
+
+    const budgets = await db.select().from(budgetsTable).where(and(
+      eq(budgetsTable.organizationId, orgId),
+      eq(budgetsTable.fiscalPeriodId, fp.id),
+      eq(budgetsTable.scope, "project"),
+      eq(budgetsTable.status, "active"),
+      eq(budgetsTable.kind, "budget"),
+    ));
+    const budgetTotalsMap = new Map<string, number>();
+    if (budgets.length) {
+      const sums = await db.select({
+        budgetId: budgetLinesTable.budgetId,
+        total: sql<string>`sum(${budgetLinesTable.amount})`,
+      }).from(budgetLinesTable)
+        .where(inArray(budgetLinesTable.budgetId, budgets.map((b) => b.id)))
+        .groupBy(budgetLinesTable.budgetId);
+      for (const s of sums) {
+        const b = budgets.find((bb) => bb.id === s.budgetId);
+        if (b?.scopeId) budgetTotalsMap.set(b.scopeId, toNum(s.total));
+      }
     }
-  }
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "Gaméasù — FP&A";
-  const ws = wb.addWorksheet("Synthèse par projet");
-  ws.mergeCells(1, 1, 1, 7);
-  const t = ws.getCell(1, 1);
-  t.value = `Synthèse projet — ${fp.name}`;
-  t.font = { bold: true, size: 14, color: { argb: "FFEA580C" } };
-  t.alignment = { horizontal: "center" };
-  ws.addRow([]);
-  const h = ws.addRow(["Projet", "Statut", "Budget annuel", "Produits", "Charges", "Marge", "Conso. budget %"]);
-  styleHeaderRow(h);
-  let tBudget = 0, tRev = 0, tExp = 0;
-  for (const p of projectsAll) {
-    const b = budgetTotalsMap.get(p.id) || 0;
-    const r = revMap.get(p.id) || 0;
-    const e = expMap.get(p.id) || 0;
-    if (b === 0 && r === 0 && e === 0) continue;
-    tBudget += b; tRev += r; tExp += e;
-    const row = ws.addRow([p.name, p.status, b, r, e, r - e, b !== 0 ? (e / b) * 100 : 0]);
-    for (let i = 3; i <= 6; i++) applyMoneyFormat(row.getCell(i));
-    row.getCell(7).numFmt = PCT_FORMAT;
-  }
-  const tr = ws.addRow(["TOTAL", "", tBudget, tRev, tExp, tRev - tExp, tBudget !== 0 ? (tExp / tBudget) * 100 : 0]);
-  styleTotalRow(tr);
-  for (let i = 3; i <= 6; i++) applyMoneyFormat(tr.getCell(i));
-  tr.getCell(7).numFmt = PCT_FORMAT;
-  ws.columns.forEach((c, i) => { c.width = i === 0 ? 32 : 16; });
-  await sendWorkbook(res, wb, `synthese-projets-${fp.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+    const STATUS_FR: Record<string, string> = {
+      active: "En cours", completed: "Terminé", on_hold: "En pause",
+      cancelled: "Annulé", planning: "Planification",
+    };
+
+    let tBudget = 0, tRev = 0, tExp = 0;
+    const dataRows: (string | number | null)[][] = [];
+    for (const p of projectsAll) {
+      const b = budgetTotalsMap.get(p.id) || 0;
+      const r = revMap.get(p.id) || 0;
+      const e = expMap.get(p.id) || 0;
+      if (b === 0 && r === 0 && e === 0) continue;
+      tBudget += b; tRev += r; tExp += e;
+      dataRows.push([p.name, STATUS_FR[p.status] || p.status, b, r, e, r - e, b !== 0 ? (e / b) * 100 : 0]);
+    }
+
+    const xls = new ExcelReportBuilder({
+      orgName,
+      period: fpPeriod(fp),
+      reportTitle: `Synthèse par Projet — ${fp.name}`,
+    });
+
+    xls.addCoverSheet("FP&A — Synthèse Projets");
+
+    xls.addSummarySheet([
+      ExcelReportBuilder.money("Budget total (projets)", tBudget, null, "neutral", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Produits réalisés", tRev, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Charges réalisées", tExp, null, "down-good", "Vue d'ensemble"),
+      ExcelReportBuilder.money("Marge brute", tRev - tExp, null, "up-good", "Vue d'ensemble"),
+      ExcelReportBuilder.num("Nombre de projets actifs", dataRows.length, null, "neutral", "Vue d'ensemble"),
+    ]);
+
+    xls.addDataSheet({
+      name: "📁 Synthèse par projet",
+      title: `Synthèse financière par projet — ${fp.name}`,
+      cols: [
+        { header: "Projet",           key: "name",   width: 34, format: "text"    as const },
+        { header: "Statut",           key: "status", width: 16, format: "text"    as const },
+        { header: "Budget annuel",    key: "budget", width: 22, format: "money"   as const },
+        { header: "Produits",         key: "rev",    width: 22, format: "money"   as const },
+        { header: "Charges",          key: "exp",    width: 22, format: "money"   as const },
+        { header: "Marge",            key: "margin", width: 22, format: "money"   as const },
+        { header: "Conso. budget %",  key: "conso",  width: 16, format: "percent" as const },
+      ],
+      rows: dataRows,
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Définitions", body: "Produits = somme des écritures créditant les comptes classe 7 (produits d'exploitation).\nCharges = somme des écritures débitant les comptes classe 6 (charges d'exploitation).\nMarge = Produits − Charges.\nConso. budget = Charges / Budget × 100." },
+      { title: "Périmètre", body: `Période fiscale : ${fp.name} (${fp.startDate} → ${fp.endDate}).\nSeuls les projets ayant au moins un mouvement ou un budget sont inclus.\nDonnées comptables issues des écritures au statut « Validé » (posted).` },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (Franc CFA de l'Afrique de l'Ouest — XOF)." },
+    ]);
+
+    await xls.send(res, `synthese-projets-${fp.name.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+  } catch (e) { next(e); }
 });
 
 // ════════════════════════════════════════════════════════════════════════════
