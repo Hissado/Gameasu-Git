@@ -14,12 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Activity,
   AlertTriangle,
-  ArrowDownRight,
   ArrowRight,
-  ArrowUpRight,
-  Banknote,
   Briefcase,
   Building2,
   CalendarClock,
@@ -31,11 +27,9 @@ import {
   LineChart as LineChartIcon,
   Plus,
   Receipt,
-  Shield,
   Target,
   TrendingUp,
   Users,
-  Wallet,
 } from "lucide-react";
 import {
   Area,
@@ -115,7 +109,148 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────
-// Sub-components
+// Executive KPI Strip — Bloomberg-style horizontal financial bar
+// ───────────────────────────────────────────────────────────────────────────
+
+type KpiCell = {
+  label: string;
+  value: React.ReactNode;
+  rawValue?: number;
+  direction: "up" | "down" | "flat" | "none";
+  pct?: number;
+  vs: string;
+  isMoney?: boolean;
+  isPercent?: boolean;
+  highlight?: boolean;
+};
+
+function TrendChip({ direction, pct }: { direction: KpiCell["direction"]; pct?: number }) {
+  if (direction === "none") return null;
+  const up = direction === "up";
+  const down = direction === "down";
+  const flat = direction === "flat";
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-0.5 text-[11px] font-bold",
+      up && "text-emerald-600",
+      down && "text-rose-600",
+      flat && "text-slate-400",
+    )}>
+      {up && <span style={{ fontSize: 9 }}>▲</span>}
+      {down && <span style={{ fontSize: 9 }}>▼</span>}
+      {flat && <span style={{ fontSize: 9 }}>●</span>}
+      {pct !== undefined && (
+        <span>{pct > 0 ? "+" : ""}{pct}%</span>
+      )}
+    </span>
+  );
+}
+
+function ExecutiveKpiStrip({ kpis, loading }: { kpis: any; loading: boolean }) {
+  const collected = Number(kpis?.monthlyRevenue || 0);
+  const outstanding = Number(kpis?.outstandingInvoices || 0);
+  const totalInvoiced = collected + outstanding;
+  const pipeline = Number(kpis?.pipelineValue || 0);
+  const activeProjects = Number(kpis?.activeProjects || 0);
+  const collectionRate = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0;
+
+  const outstandingRatio = totalInvoiced > 0 ? Math.round((outstanding / totalInvoiced) * 100) : 0;
+  const pipelineRatio = collected > 0 ? Math.round((pipeline / collected) * 100) : 0;
+
+  const cells: KpiCell[] = [
+    {
+      label: "Encaissements (cumul)",
+      value: formatFCFACompact(collected),
+      rawValue: collected,
+      direction: collected > 0 ? "up" : "flat",
+      pct: undefined,
+      vs: "paiements reçus",
+      isMoney: true,
+    },
+    {
+      label: "Créances ouvertes",
+      value: formatFCFACompact(outstanding),
+      rawValue: outstanding,
+      direction: outstanding > totalInvoiced * 0.4 ? "down" : outstanding > 0 ? "flat" : "up",
+      pct: outstandingRatio > 0 ? outstandingRatio : undefined,
+      vs: "du CA facturé",
+    },
+    {
+      label: "CA Total facturé",
+      value: formatFCFACompact(totalInvoiced),
+      rawValue: totalInvoiced,
+      direction: totalInvoiced > 0 ? "up" : "flat",
+      pct: undefined,
+      vs: "vs budget",
+      isMoney: true,
+    },
+    {
+      label: "Pipeline CRM",
+      value: formatFCFACompact(pipeline),
+      rawValue: pipeline,
+      direction: pipeline > 0 ? "up" : "flat",
+      pct: pipelineRatio > 0 ? pipelineRatio : undefined,
+      vs: "vs encaissements",
+      highlight: true,
+    },
+    {
+      label: "Projets actifs",
+      value: activeProjects,
+      rawValue: activeProjects,
+      direction: activeProjects > 0 ? "up" : "flat",
+      pct: undefined,
+      vs: `sur ${(kpis?.totalClients || 0)} clients`,
+    },
+    {
+      label: "Taux de recouvrement",
+      value: `${collectionRate}%`,
+      rawValue: collectionRate,
+      direction: collectionRate >= 75 ? "up" : collectionRate >= 40 ? "flat" : "down",
+      pct: collectionRate || undefined,
+      vs: "encaissé / facturé",
+      isPercent: true,
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="flex divide-x divide-slate-100">
+        {cells.map((cell, i) => (
+          <div
+            key={i}
+            className={cn(
+              "flex-1 min-w-0 px-5 py-5 flex flex-col",
+              cell.highlight && "bg-primary/[0.03]",
+            )}
+          >
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 truncate leading-none">
+              {cell.label}
+            </div>
+            {loading ? (
+              <Skeleton className="h-7 w-24 mt-3" />
+            ) : (
+              <div className={cn(
+                "font-black tracking-tight mt-2 leading-none",
+                "text-[1.45rem] sm:text-[1.65rem]",
+                cell.highlight ? "text-primary" : "text-slate-900",
+              )}>
+                {cell.value}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 mt-2">
+              {!loading && <TrendChip direction={cell.direction} pct={cell.pct} />}
+              {loading && <Skeleton className="h-3 w-12" />}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 leading-none">{cell.vs}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Section header
 // ───────────────────────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -140,75 +275,6 @@ function SectionHeader({
       {action}
     </div>
   );
-}
-
-type Trend = { value: number; label?: string; direction?: "up" | "down" | "flat" } | null;
-
-function MetricCard({
-  label, value, sub, trend, icon: Icon, accent, loading, href,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-  trend?: Trend;
-  icon: React.ComponentType<{ className?: string }>;
-  accent?: "primary" | "dark" | "neutral" | "success" | "warning" | "danger";
-  loading?: boolean;
-  href?: string;
-}) {
-  const accentClasses: Record<string, string> = {
-    primary: "border-l-primary",
-    dark: "border-l-slate-900",
-    success: "border-l-emerald-500",
-    warning: "border-l-amber-500",
-    danger: "border-l-rose-500",
-    neutral: "border-l-slate-300",
-  };
-  const iconBg: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    dark: "bg-slate-900 text-white",
-    success: "bg-emerald-500/10 text-emerald-600",
-    warning: "bg-amber-500/10 text-amber-700",
-    danger: "bg-rose-500/10 text-rose-600",
-    neutral: "bg-slate-100 text-slate-600",
-  };
-  const a = accent || "neutral";
-  const trendColor = trend?.direction === "down" ? "text-rose-600" : trend?.direction === "up" ? "text-emerald-600" : "text-slate-500";
-  const TrendIcon = trend?.direction === "down" ? ArrowDownRight : trend?.direction === "up" ? ArrowUpRight : ArrowRight;
-
-  const inner = (
-    <Card className={cn("border-l-4 shadow-sm hover:shadow-md transition-all group", accentClasses[a])}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 truncate">{label}</div>
-          <div className={cn("p-2 rounded-lg shrink-0", iconBg[a])}>
-            <Icon className="w-4 h-4" />
-          </div>
-        </div>
-        {loading ? (
-          <Skeleton className="h-8 w-28 mt-3" />
-        ) : (
-          <div className="font-display text-base sm:text-[clamp(1.1rem,2.1vw,1.55rem)] font-extrabold text-slate-900 tracking-tight mt-2 leading-tight min-w-0 overflow-hidden">
-            {value}
-          </div>
-        )}
-        {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
-        {trend && (
-          <div className={cn("inline-flex items-center gap-1 text-[11px] font-semibold mt-2", trendColor)}>
-            <TrendIcon className="w-3 h-3" />
-            <span>{trend.value > 0 ? `+${trend.value}` : trend.value}{trend.label ? ` ${trend.label}` : "%"}</span>
-          </div>
-        )}
-        {href && (
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-primary transition-colors">
-            <span>Consulter</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-  return href ? <Link href={href} className="block">{inner}</Link> : inner;
 }
 
 function chartTooltipStyle() {
@@ -243,7 +309,6 @@ export default function Dashboard() {
   const taskList = (tasks as any)?.data || (tasks as any) || [];
   const invoiceList = (invoices as any)?.data || (invoices as any) || [];
 
-  // Encaissements consolidés
   const monthlyRevenue = Number(kpis?.monthlyRevenue || 0);
   const outstanding = Number(kpis?.outstandingInvoices || 0);
   const pipeline = Number(kpis?.pipelineValue || 0);
@@ -254,7 +319,6 @@ export default function Dashboard() {
     return Math.round((monthlyRevenue / total) * 100);
   })();
 
-  // Échéances tâches (7 prochains jours)
   const upcomingTasks = React.useMemo(() => {
     const now = new Date();
     return [...taskList]
@@ -264,7 +328,6 @@ export default function Dashboard() {
       .slice(0, 6);
   }, [taskList]);
 
-  // Factures en retard
   const overdueInvoices = React.useMemo(() => {
     const now = new Date();
     return [...invoiceList]
@@ -273,7 +336,6 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [invoiceList]);
 
-  // Top projets actifs
   const activeProjects = React.useMemo(() => {
     return [...projectList]
       .filter((p: any) => p.status === "active")
@@ -281,7 +343,6 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [projectList]);
 
-  // Données graphiques
   const revenueData = (charts as any)?.revenueByMonth || [];
   const projectsByStatus = ((charts as any)?.projectsByStatus || []).map((s: any) => ({
     ...s,
@@ -294,41 +355,79 @@ export default function Dashboard() {
     color: PRIORITY_COLORS[p.priority] || "#94a3b8",
   }));
 
-  const totalProjects = projectList.length;
-  const totalTasks = (kpis?.tasksTodo || 0) + (kpis?.tasksInProgress || 0) + (kpis?.tasksCompleted || 0);
   const tt = chartTooltipStyle();
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+
       {/* ─── Bandeau exécutif ─── */}
-      <header className="rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white border border-slate-800 shadow-lg overflow-hidden">
-        <div className="px-6 py-7 md:px-8 md:py-8 relative">
-          <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <header className="rounded-2xl overflow-hidden border border-slate-800 shadow-xl"
+        style={{ background: "linear-gradient(135deg, #0d1424 0%, #111827 50%, #0f172a 100%)" }}
+      >
+        <div className="px-7 py-8 md:px-10 md:py-9 relative">
+          {/* Accent glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 right-0 w-2/3 h-full"
+              style={{ background: "radial-gradient(ellipse at 80% 30%, rgba(243,112,33,0.07) 0%, transparent 60%)" }} />
+            <div className="absolute bottom-0 left-0 w-1/2 h-1/2"
+              style={{ background: "radial-gradient(ellipse at 20% 100%, rgba(99,102,241,0.05) 0%, transparent 60%)" }} />
+          </div>
+
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            {/* Left — greeting */}
             <div>
-              <div className="text-[10px] uppercase tracking-[0.32em] text-primary/90 font-bold">
+              <div className="text-[10px] uppercase tracking-[0.35em] font-bold"
+                style={{ color: "rgba(243,112,33,0.85)" }}>
                 Tableau de bord exécutif · {fullDateFr()}
               </div>
-              <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-white">
+              <h1 className="mt-3 text-[2rem] md:text-[2.5rem] font-black tracking-tight text-white leading-none">
                 {getGreeting()}{firstName ? `, ${firstName}` : ""}
               </h1>
             </div>
-            <div className="flex items-center gap-6 text-right">
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Encaissements (cumul)</div>
-                <MoneyAmount amount={monthlyRevenue} size="2xl" color="white" className="mt-1" compactMobile />
+
+            {/* Right — headline KPIs */}
+            <div className="flex items-center gap-8 md:gap-12 shrink-0">
+              <div className="text-right">
+                <div className="text-[9px] uppercase tracking-[0.25em] text-slate-400 font-semibold">
+                  Encaissements (cumul)
+                </div>
+                {loadingKpis ? (
+                  <Skeleton className="h-9 w-40 mt-2 bg-white/10" />
+                ) : (
+                  <div className="mt-1.5 text-[1.9rem] md:text-[2.2rem] font-black tracking-tight text-white leading-none">
+                    {monthlyRevenue > 0
+                      ? monthlyRevenue.toLocaleString("fr-FR") + " FCFA"
+                      : "—"}
+                  </div>
+                )}
               </div>
-              <div className="hidden md:block w-px h-12 bg-slate-700" />
-              <div className="hidden md:block">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Pipeline</div>
-                <MoneyAmount amount={pipeline} size="2xl" color="white" className="mt-1 !text-primary [&>span:last-child]:!text-primary/60" compactMobile />
+
+              <div className="hidden md:block w-px h-14 bg-white/10" />
+
+              <div className="hidden md:block text-right">
+                <div className="text-[9px] uppercase tracking-[0.25em] text-slate-400 font-semibold">
+                  Pipeline
+                </div>
+                {loadingKpis ? (
+                  <Skeleton className="h-9 w-40 mt-2 bg-white/10" />
+                ) : (
+                  <div className="mt-1.5 text-[1.9rem] md:text-[2.2rem] font-black tracking-tight leading-none"
+                    style={{ color: "rgb(243,112,33)" }}>
+                    {pipeline > 0
+                      ? pipeline.toLocaleString("fr-FR") + " FCFA"
+                      : "—"}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* ─── Actions rapides Xero-style ─── */}
+      {/* ─── Barre KPI financière (Bloomberg style) ─── */}
+      <ExecutiveKpiStrip kpis={kpis} loading={loadingKpis} />
+
+      {/* ─── Actions rapides ─── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider shrink-0">Créer :</span>
         {([
@@ -338,7 +437,9 @@ export default function Dashboard() {
           { label: "Devis",    href: "/proformas", icon: FileSignature },
           { label: "Tâche",    href: "/tasks",     icon: ClipboardList },
         ] as { label: string; href: string; icon: React.ComponentType<{ className?: string }> }[]).map((a) => (
-          <Button key={a.label} variant="outline" size="sm" className="gap-1.5 h-8 text-[12.5px] border-slate-200 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors" asChild>
+          <Button key={a.label} variant="outline" size="sm"
+            className="gap-1.5 h-8 text-[12.5px] border-slate-200 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
+            asChild>
             <Link href={a.href}>
               <Plus className="w-3 h-3" />
               {a.label}
@@ -350,100 +451,28 @@ export default function Dashboard() {
       {/* ─── Pointage rapide ─── */}
       <QuickClockWidget />
 
-      {/* ─── Copilote exécutif Gaméasù ─── */}
+      {/* ─── Copilote exécutif ─── */}
       <IntelligenceWidget />
 
-      {/* ─── Bloc 1 : Performance financière ─── */}
-      <section>
-        <SectionHeader
-          eyebrow="Indicateurs stratégiques"
-          title="Performance financière"
-          icon={Wallet}
-          action={
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/accounting">Comptabilité <ChevronRight className="w-4 h-4 ml-1" /></Link>
-            </Button>
-          }
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            label="Encaissements"
-            value={<MoneyAmount amount={monthlyRevenue} size="xl" color="default" compactMobile />}
-            sub="Paiements reçus à date"
-            icon={Banknote} accent="dark" loading={loadingKpis}
-            href="/payments"
-          />
-          <MetricCard
-            label="Créances ouvertes"
-            value={<MoneyAmount amount={outstanding} size="xl" color={outstanding > 0 ? "warning" : "default"} compactMobile />}
-            sub="Factures non encaissées"
-            icon={Receipt} accent={outstanding > 0 ? "warning" : "neutral"} loading={loadingKpis}
-            href="/invoices"
-          />
-          <MetricCard
-            label="Pipeline commercial"
-            value={<MoneyAmount amount={pipeline} size="xl" color="default" compactMobile />}
-            sub={`${kpis?.openOpportunities || 0} opportunités qualifiées`}
-            icon={Target} accent="primary" loading={loadingKpis}
-            href="/crm"
-          />
-          <MetricCard
-            label="Taux de recouvrement"
-            value={`${collectionRate}%`}
-            sub="Encaissé vs facturé"
-            icon={TrendingUp}
-            accent={collectionRate >= 75 ? "success" : collectionRate >= 50 ? "warning" : "danger"}
-            loading={loadingKpis}
-          />
-        </div>
-      </section>
-
-      {/* ─── Bloc 2 : Activité opérationnelle ─── */}
-      <section>
-        <SectionHeader
-          eyebrow="Pilotage"
-          title="Activité opérationnelle"
-          icon={Activity}
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            label="Projets actifs"
-            value={kpis?.activeProjects || 0}
-            sub={`sur ${totalProjects} projets`}
-            icon={FolderKanban} accent="primary" loading={loadingKpis} href="/projects"
-          />
-          <MetricCard
-            label="Clients"
-            value={kpis?.totalClients || 0}
-            sub="Comptes B2B suivis"
-            icon={Building2} accent="neutral" loading={loadingKpis} href="/clients"
-          />
-          <MetricCard
-            label="Engagements"
-            value={kpis?.tasksInProgress || 0}
-            sub={`${kpis?.tasksTodo || 0} en attente · ${kpis?.tasksCompleted || 0} clôturés`}
-            icon={Briefcase} accent="neutral" loading={loadingKpis} href="/services"
-          />
-          <MetricCard
-            label="Locations actives"
-            value={kpis?.activeRentals || 0}
-            sub={`${kpis?.equipmentAvailable || 0} équipements disponibles`}
-            icon={Shield} accent="neutral" loading={loadingKpis} href="/rentals"
-          />
-        </div>
-      </section>
-
-      {/* ─── Bloc 3 : Graphiques ─── */}
+      {/* ─── Graphiques ─── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 shadow-sm border-slate-200">
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
-              <CardTitle className="font-display text-lg font-bold tracking-tight">Évolution du chiffre d'affaires</CardTitle>
-              <p className="text-xs text-slate-500 mt-1">Facturation vs encaissements consolidés (12 derniers mois)</p>
+              <CardTitle className="font-display text-lg font-bold tracking-tight">
+                Évolution du chiffre d'affaires
+              </CardTitle>
+              <p className="text-xs text-slate-500 mt-1">
+                Facturation vs encaissements consolidés (12 derniers mois)
+              </p>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-semibold">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary" />Encaissé</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-400" />Facturé</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary" />Encaissé
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />Facturé
+              </span>
             </div>
           </CardHeader>
           <CardContent className="h-[300px] pt-2">
@@ -474,7 +503,9 @@ export default function Dashboard() {
 
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg font-bold tracking-tight">Répartition des projets</CardTitle>
+            <CardTitle className="font-display text-lg font-bold tracking-tight">
+              Répartition des projets
+            </CardTitle>
             <p className="text-xs text-slate-500 mt-1">Statut du portefeuille</p>
           </CardHeader>
           <CardContent className="h-[300px] pt-2">
@@ -500,7 +531,7 @@ export default function Dashboard() {
         </Card>
       </section>
 
-      {/* ─── Bloc 4 : Charge de travail + Pipeline ─── */}
+      {/* ─── Charge + Synthèse commerciale ─── */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="pb-3">
@@ -526,24 +557,34 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-slate-200 bg-gradient-to-br from-slate-900 to-slate-950 text-white border-slate-800">
+        {/* Synthèse commerciale */}
+        <Card className="shadow-sm border-slate-200"
+          style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" }}>
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
-              <CardTitle className="font-display text-lg font-bold tracking-tight text-white">Synthèse commerciale</CardTitle>
+              <CardTitle className="font-display text-lg font-bold tracking-tight text-white">
+                Synthèse commerciale
+              </CardTitle>
               <p className="text-xs text-slate-400 mt-1">Pipeline et conversion</p>
             </div>
-            <Button variant="secondary" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-0" asChild>
+            <Button variant="secondary" size="sm"
+              className="bg-white/10 hover:bg-white/20 text-white border-0" asChild>
               <Link href="/crm">Ouvrir le CRM</Link>
             </Button>
           </CardHeader>
-          <CardContent className="space-y-5 pt-2">
+          <CardContent className="text-white space-y-5">
             <div>
               <div className="flex items-baseline justify-between">
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Pipeline qualifié</span>
-                <span className="font-display text-base sm:text-2xl font-extrabold text-primary">{formatFCFACompact(pipeline)}</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                  Pipeline qualifié
+                </span>
+                <span className="font-display text-base sm:text-2xl font-extrabold text-primary">
+                  {formatFCFACompact(pipeline)}
+                </span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
-                <div className="h-full bg-primary" style={{ width: `${Math.min(100, (pipeline / Math.max(monthlyRevenue || 1, pipeline)) * 100)}%` }} />
+                <div className="h-full bg-primary"
+                  style={{ width: `${Math.min(100, (pipeline / Math.max(monthlyRevenue || 1, pipeline)) * 100)}%` }} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4 pt-2 border-t border-white/10">
@@ -556,7 +597,7 @@ export default function Dashboard() {
                 <div className="font-display text-xl font-extrabold mt-1">{kpis?.totalClients || 0}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Taux conversion</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Taux recouvrement</div>
                 <div className="font-display text-xl font-extrabold mt-1">{collectionRate}%</div>
               </div>
             </div>
@@ -564,9 +605,8 @@ export default function Dashboard() {
         </Card>
       </section>
 
-      {/* ─── Bloc 5 : Échéances + Alertes ─── */}
+      {/* ─── Échéances + Alertes ─── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Échéances */}
         <Card className="lg:col-span-2 shadow-sm border-slate-200">
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
@@ -626,7 +666,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Alertes */}
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
             <div>
@@ -677,7 +716,7 @@ export default function Dashboard() {
         </Card>
       </section>
 
-      {/* ─── Bloc 6 : Top projets actifs + Activité ─── */}
+      {/* ─── Projets stratégiques + Activité ─── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 shadow-sm border-slate-200">
           <CardHeader className="pb-3 flex flex-row items-start justify-between">
