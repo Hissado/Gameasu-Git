@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable } from "@workspace/db";
+import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable, organizationsTable } from "@workspace/db";
 import { eq, and, gt, lt } from "drizzle-orm";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -303,11 +303,29 @@ router.get("/auth/me", async (req, res) => {
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const perms = await userPermissions(user.id);
+
+  // Fetch org details for branding (name, logo)
+  let orgName: string | null = null;
+  let orgLegalName: string | null = null;
+  let orgLogoUrl: string | null = null;
+  if (user.organizationId) {
+    const [org] = await db
+      .select({ name: organizationsTable.name, legalName: organizationsTable.legalName, logoUrl: organizationsTable.logoUrl })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, user.organizationId))
+      .limit(1);
+    if (org) { orgName = org.name; orgLegalName = org.legalName; orgLogoUrl = org.logoUrl; }
+  }
+
   return res.json({
     id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
     role: user.role, avatarUrl: user.avatarUrl, phone: user.phone ?? null,
     isClient: user.isClient, mustChangePassword: user.mustChangePassword,
     departmentId: user.departmentId, permissions: perms,
+    organizationId: user.organizationId,
+    organizationName: orgName,
+    organizationLegalName: orgLegalName,
+    organizationLogoUrl: orgLogoUrl,
   });
 });
 
