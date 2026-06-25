@@ -42,7 +42,7 @@ const DEMO_ACCOUNTS = import.meta.env.DEV
     ]
   : [];
 
-type Step = "credentials" | "2fa";
+type Step = "credentials" | "2fa" | "forgot";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -56,6 +56,10 @@ export default function LoginPage() {
   const [showDemo, setShowDemo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   // OTP input — 6 chiffres individuels
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -166,6 +170,24 @@ export default function LoginPage() {
     const focusIdx = Math.min(digits.length, 5);
     otpRefs.current[focusIdx]?.focus();
     if (digits.length === 6) setTimeout(() => onVerify2FA(), 80);
+  };
+
+  const onForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      });
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true);
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   const fillDemo = (email: string, password: string) => {
@@ -319,6 +341,18 @@ export default function LoginPage() {
                         </FormItem>
                       )} />
 
+                      {/* Mot de passe oublié */}
+                      <div className="flex justify-end -mt-1">
+                        <button
+                          type="button"
+                          onClick={() => { setStep("forgot"); setForgotEmail(form.getValues("email")); }}
+                          className="text-[12px] transition-colors"
+                          style={{ color: "#1D6CE8", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                        >
+                          Mot de passe oublié ?
+                        </button>
+                      </div>
+
                       {/* Mémoriser cet appareil */}
                       <label className="flex items-center gap-2.5 cursor-pointer group">
                         <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
@@ -461,6 +495,100 @@ export default function LoginPage() {
                     onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(8,14,28,0.40)")}>
                     <RefreshCw className="w-3 h-3" /> Renvoyer le code
                   </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Étape 3 : Mot de passe oublié ───────────────────────── */}
+            {step === "forgot" && (
+              <>
+                <div className="mb-9">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                      style={{ background: "rgba(29,108,232,0.10)", border: "1px solid rgba(29,108,232,0.20)" }}>
+                      <Mail className="w-4 h-4" style={{ color: "#1D6CE8" }} />
+                    </div>
+                    <span className="text-[11px] font-bold tracking-[0.16em] uppercase" style={{ color: "#1D6CE8" }}>
+                      Réinitialisation
+                    </span>
+                  </div>
+                  <h1 className="text-[28px] font-bold leading-tight text-[#080E1C]" style={{ letterSpacing: "-0.032em" }}>
+                    Mot de passe oublié
+                  </h1>
+                  <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "rgba(8,14,28,0.42)" }}>
+                    Saisissez votre adresse e-mail. Si un compte existe, vous recevrez un lien de réinitialisation.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl p-7"
+                  style={{ background: "#FFFFFF", boxShadow: "0 1px 3px rgba(8,14,28,0.06), 0 8px 32px rgba(8,14,28,0.07), 0 0 0 1px rgba(8,14,28,0.055)" }}>
+
+                  {forgotSent ? (
+                    <div className="text-center py-4">
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                        style={{ background: "rgba(16,185,129,0.10)", border: "1.5px solid rgba(16,185,129,0.25)" }}>
+                        <CheckCircle2 className="w-7 h-7" style={{ color: "#10b981" }} />
+                      </div>
+                      <p className="font-semibold text-[15px] text-[#080E1C] mb-1">E-mail envoyé !</p>
+                      <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(8,14,28,0.45)" }}>
+                        Vérifiez votre boîte de réception et cliquez sur le lien reçu.<br />
+                        Le lien est valable <strong>1 heure</strong>.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => { setStep("credentials"); setForgotSent(false); setForgotEmail(""); }}
+                        className="mt-6 text-[12.5px] font-medium transition-colors"
+                        style={{ color: "#1D6CE8" }}
+                      >
+                        ← Retour à la connexion
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={onForgotSubmit} className="space-y-5">
+                      <div className="space-y-1.5">
+                        <label className="text-[11.5px] font-bold tracking-wide uppercase"
+                          style={{ color: "rgba(8,14,28,0.50)", letterSpacing: "0.08em" }}>
+                          Adresse e-mail
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="prenom.nom@entreprise.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="w-full h-[46px] px-3.5 rounded-xl text-[13.5px] outline-none transition-all"
+                          style={{ background: "#F6F8FB", border: "1.5px solid rgba(8,14,28,0.10)", color: "#080E1C" }}
+                          onFocus={(e) => (e.currentTarget.style.borderColor = "#1D6CE8")}
+                          onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(8,14,28,0.10)")}
+                        />
+                      </div>
+
+                      <div className="pt-1">
+                        <button
+                          type="submit"
+                          disabled={forgotLoading}
+                          className="w-full h-[46px] rounded-xl text-[13.5px] font-semibold text-white flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.985] disabled:opacity-60"
+                          style={{
+                            background: "linear-gradient(135deg, #1D6CE8 0%, #1558C8 100%)",
+                            boxShadow: "0 4px 20px rgba(29,108,232,0.32), 0 1px 3px rgba(29,108,232,0.2)",
+                          }}>
+                          {forgotLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Envoi…</> : <><span>Envoyer le lien</span><ArrowRight className="w-4 h-4" /></>}
+                        </button>
+                      </div>
+
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setStep("credentials")}
+                          className="text-[12px] transition-colors"
+                          style={{ color: "rgba(8,14,28,0.40)" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#1D6CE8")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(8,14,28,0.40)")}>
+                          ← Retour à la connexion
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               </>
             )}

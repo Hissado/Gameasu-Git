@@ -151,6 +151,7 @@ const AdminInvitations = lazy(() => import("@/pages/admin/invitations"));
 const AdminAudit = lazy(() => import("@/pages/admin/audit"));
 const ChangePassword = lazy(() => import("@/pages/change-password"));
 const AcceptInvitation = lazy(() => import("@/pages/accept-invitation"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
 const OnboardStructure = lazy(() => import("@/pages/onboard-structure"));
 const BillingPage = lazy(() => import("@/pages/billing"));
 const WorkspaceSettingsPage = lazy(() => import("@/pages/workspace-settings"));
@@ -198,6 +199,9 @@ function AppRouter() {
       </Route>
       <Route path="/accept-invitation">
         <Suspense fallback={<PageFallback />}><AcceptInvitation /></Suspense>
+      </Route>
+      <Route path="/reset-password">
+        <Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>
       </Route>
       <Route path="/onboard-structure">
         <Suspense fallback={<PageFallback />}><OnboardStructure /></Suspense>
