@@ -1,0 +1,688 @@
+Pouvez-vous ajouter et compléter des **mock data réalistes en production** sous le tenant / organisation **Hissado Consulting** ?
+
+### Objectif
+
+Actuellement, certaines sections de l’application contiennent déjà des données, mais plusieurs modules restent encore vides ou incomplets.
+
+Je veux que le tenant **Hissado Consulting** dispose de données réalistes dans **toutes les sections et sous-sections** de Gaméasù, afin de pouvoir :
+
+* faire une démonstration complète de la plateforme
+* tester toutes les fonctionnalités
+* montrer tous les workflows métier
+* naviguer dans tous les modules sans page vide
+* présenter une expérience réaliste à des prospects ou partenaires
+* démontrer la valeur complète de Gaméasù comme plateforme SaaS / ERP
+
+---
+
+## 1. Important : ne pas casser les données existantes
+
+Veuillez ajouter ou compléter les données existantes sans créer de doublons inutiles.
+
+Avant d’ajouter les nouvelles données :
+
+* vérifier les données déjà présentes sous **Hissado Consulting**
+* compléter uniquement les sections vides ou insuffisantes
+* éviter les doublons de clients, utilisateurs, factures, collaborateurs, écritures, tickets, etc.
+* garder les données cohérentes entre les modules
+* s’assurer que toutes les données appartiennent bien au tenant **Hissado Consulting**
+* ne pas modifier ou polluer les données d’autres tenants
+* respecter strictement l’isolation multi-tenant avec `organization_id`
+
+---
+
+## 2. Informations du tenant Hissado Consulting
+
+Créer ou compléter le tenant :
+
+**Hissado Consulting**
+
+### Informations recommandées
+
+* Nom : Hissado Consulting
+* Domaine : `hissadoconsulting.com`
+* Secteur : Conseil, technologie, finance, transformation digitale et services aux entreprises
+* Pays : Togo
+* Ville : Lomé
+* Devise : FCFA
+* Langue principale : Français
+* Statut : Actif
+* Type : Organisation demo
+* Abonnement : Actif
+* Accès : Tous modules activés
+* Nombre d’utilisateurs : suffisamment pour tester la vraie tarification Gaméasù
+* Données : réalistes, cohérentes et connectées entre tous les modules
+
+---
+
+## 3. Remplacer tous les emails Hissado
+
+Tous les emails du tenant doivent utiliser le domaine :
+
+`hissadoconsulting.com`
+
+### Exemples d’emails attendus
+
+* `admin@hissadoconsulting.com`
+* `direction@hissadoconsulting.com`
+* `finance@hissadoconsulting.com`
+* `compta@hissadoconsulting.com`
+* `rh@hissadoconsulting.com`
+* `commercial@hissadoconsulting.com`
+* `operations@hissadoconsulting.com`
+* `support@hissadoconsulting.com`
+* `projets@hissadoconsulting.com`
+* `audit@hissadoconsulting.com`
+
+### Important
+
+Aucun email en `hissado.tg` ne doit rester.
+
+Veuillez remplacer partout :
+
+* utilisateurs
+* collaborateurs
+* invitations
+* tickets support
+* documents
+* factures
+* reçus
+* exports
+* seed files
+* mock data
+* base de données
+* templates email
+* logs visibles
+* données cockpit
+
+Aucun email `edole.africa` ne doit rester non plus.
+
+---
+
+## 4. Modules à couvrir sans exception
+
+Merci d’ajouter des données réalistes dans tous les modules suivants.
+
+---
+
+# A. Cockpit / Console Admin
+
+Dans le Cockpit Plateforme, Hissado Consulting doit apparaître comme tenant demo actif avec :
+
+* fiche tenant complète
+* abonnement actif
+* vraie tarification calculée selon le nombre d’utilisateurs
+* nombre d’utilisateurs actifs facturables
+* montant HT
+* TVA 18 %
+* montant TTC
+* historique de paiement
+* factures SaaS
+* reçus
+* utilisateurs
+* invitations
+* tickets support
+* incidents
+* logs
+* monitoring
+* journal d’audit
+* usage des modules
+* santé du tenant
+* statut de paiement
+* statut d’abonnement
+* notes internes
+
+### Scénarios Cockpit à couvrir
+
+* tenant actif
+* paiement confirmé
+* facture SaaS payée
+* historique de paiement visible
+* ticket support ouvert
+* ticket résolu
+* incident clôturé
+* logs d’activité
+* utilisateurs actifs
+* invitation utilisateur acceptée
+* invitation expirée
+* onboarding complété
+
+---
+
+# B. Tableau de bord
+
+Ajouter des KPI réalistes pour :
+
+* chiffre d’affaires
+* factures émises
+* factures payées
+* factures en retard
+* trésorerie disponible
+* ventes du mois
+* marge brute
+* collaborateurs actifs
+* projets en cours
+* tickets ouverts
+* tâches en retard
+* alertes importantes
+* activité récente
+* graphiques avec données cohérentes
+
+Le tableau de bord doit être vivant et utile pour une démonstration.
+
+---
+
+# C. Ventes & CRM
+
+Ajouter des données réalistes pour :
+
+* prospects
+* clients
+* contacts
+* opportunités
+* pipeline CRM
+* campagnes marketing
+* devis
+* commandes
+* factures
+* encaissements
+* avoirs
+* relances clients
+
+### Scénarios à créer
+
+* prospect converti en client
+* opportunité gagnée
+* opportunité en négociation
+* devis envoyé
+* devis accepté
+* devis refusé
+* commande créée
+* facture générée
+* facture partiellement payée
+* facture totalement payée
+* facture en retard
+* relance client
+* avoir émis
+
+### Exemples de clients
+
+Créer des clients réalistes comme :
+
+* Cabinet Koffi & Associés
+* Lomé Distribution SARL
+* NovaTech Afrique
+* Groupe BTP Horizon
+* Clinique Santé Plus
+* Transit Express Togo
+* AgroPlus Services
+* École Excellence Lomé
+
+---
+
+# D. Finance
+
+Créer des données réalistes pour :
+
+* plan comptable SYSCOHADA
+* écritures comptables
+* bilan
+* compte de résultat
+* balance générale
+* grand livre
+* trésorerie
+* comptes bancaires
+* recouvrement
+* budgets & prévisions
+* clôture des périodes
+* immobilisations
+* TVA
+* impôt sur société
+* charges à payer
+* congés non jouis
+* rapports financiers
+* exports PDF / Excel
+
+### Scénarios finance à couvrir
+
+* paiement client qui alimente la trésorerie
+* facture client qui génère une écriture comptable
+* encaissement lié à une facture
+* TVA collectée à payer
+* charges à payer au passif
+* congés non jouis au passif
+* budget comparé au réalisé
+* rapport financier généré
+* clôture mensuelle testée
+* balance générale cohérente
+* bilan cohérent
+* compte de résultat cohérent
+
+---
+
+# E. Comptabilité analytique
+
+Merci d’ajouter des données complètes pour la **comptabilité analytique**, afin de pouvoir démontrer et tester cette fonctionnalité également.
+
+### Données à créer
+
+Ajouter des données réalistes pour :
+
+* centres de coûts
+* centres de profit
+* départements analytiques
+* projets analytiques
+* services analytiques
+* axes analytiques
+* catégories de charges
+* répartition des charges
+* affectation des revenus
+* affectation des dépenses
+* budgets analytiques
+* réalisé analytique
+* écarts budget vs réalisé
+* marges par projet
+* marges par service
+* marges par département
+* rentabilité par client
+* rapports analytiques
+* exports PDF / Excel
+
+### Exemples de centres analytiques
+
+Créer des centres analytiques comme :
+
+* Direction générale
+* Finance & Administration
+* Conseil & Transformation Digitale
+* Développement logiciel
+* Support client
+* Commercial & Marketing
+* Ressources humaines
+* Opérations
+* Formation & Accompagnement
+* Projets clients
+
+### Exemples d’axes analytiques
+
+Créer des axes analytiques comme :
+
+* Département
+* Projet
+* Client
+* Service
+* Région
+* Type de prestation
+* Centre de coût
+* Centre de profit
+
+### Scénarios analytiques à couvrir
+
+Créer des scénarios permettant de tester :
+
+* affectation d’une dépense à un centre de coût
+* affectation d’un revenu à un projet client
+* ventilation d’une charge commune entre plusieurs départements
+* suivi de rentabilité par projet
+* suivi de rentabilité par client
+* suivi de marge par service
+* comparaison budget vs réalisé par centre analytique
+* génération d’un rapport analytique
+* export PDF / Excel d’un rapport analytique
+* analyse des marges par département
+* analyse des charges par centre de coût
+* analyse des revenus par centre de profit
+
+### Connexions nécessaires
+
+La comptabilité analytique doit être liée à :
+
+* comptabilité générale
+* finance
+* budget
+* projets / opérations
+* ventes
+* factures
+* achats
+* paie
+* rapports
+* tableau de bord
+* exports
+
+Les écritures comptables, factures, charges, salaires, achats et revenus doivent pouvoir être rattachés à un axe analytique.
+
+---
+
+# F. RH & Équipe
+
+Ajouter des données réalistes pour :
+
+* collaborateurs
+* départements
+* postes
+* contrats
+* salaires
+* congés
+* demandes de congé
+* présences
+* pointages
+* paie
+* rapports RH
+* documents RH
+
+### Départements suggérés
+
+* Direction générale
+* Finance & Administration
+* Commercial & Marketing
+* Ressources humaines
+* Opérations
+* Conseil & Transformation Digitale
+* Développement logiciel
+* Support client
+
+### Utilisateurs et collaborateurs
+
+Créer plusieurs utilisateurs avec différents rôles :
+
+* Admin organisation
+* Responsable Finance
+* Comptable
+* Responsable Commercial
+* Commercial
+* Responsable RH
+* Responsable Opérations
+* Chef de projet
+* Collaborateur standard
+* Lecture seule
+
+Chaque utilisateur doit avoir :
+
+* nom réaliste
+* email en `@hissadoconsulting.com`
+* rôle
+* permissions
+* département
+* statut actif
+* données associées
+
+---
+
+# G. Présences & Pointage
+
+Créer des données pour :
+
+* pointages entrée
+* pointages sortie
+* pauses
+* retards
+* absences
+* heures travaillées
+* heures supplémentaires
+* rapports de présence
+* feuilles de temps
+* validation manager
+
+### Scénarios à couvrir
+
+* collaborateur qui pointe à l’heure
+* collaborateur en retard
+* collaborateur absent
+* pause commencée et terminée
+* pointage corrigé par un manager
+* validation des présences
+* synchronisation avec la paie
+
+---
+
+# H. Kiosk
+
+Créer les données nécessaires pour tester le **Kiosk de pointage**.
+
+### À créer
+
+* lien kiosk actif pour Hissado Consulting
+* QR code kiosk
+* codes collaborateurs
+* pointages entrée / sortie
+* pauses
+* historique de pointage
+* synchronisation avec Présences & Pointage
+* rapports RH liés
+
+### Scénarios à tester
+
+* ouverture du lien kiosk
+* saisie d’un code collaborateur
+* affichage du nom du collaborateur
+* pointage entrée
+* pointage sortie
+* début de pause
+* fin de pause
+* capture photo si prévue
+* mise à jour des présences
+* mise à jour des rapports RH
+
+---
+
+# I. Paie
+
+Ajouter des données réalistes pour :
+
+* période de paie
+* salaires
+* primes
+* retenues
+* charges sociales
+* avances
+* bulletins de paie
+* congés payés
+* heures supplémentaires
+* rapports de paie
+
+### Scénarios à couvrir
+
+* paie mensuelle
+* collaborateur avec prime
+* collaborateur avec retenue
+* collaborateur avec heures supplémentaires
+* intégration des présences dans la paie
+* génération du rapport de paie
+
+---
+
+# J. Opérations
+
+Créer des données réalistes pour :
+
+* services
+* projets / opérations
+* tâches
+* affectations collaborateurs
+* documents opérationnels
+* coûts opérationnels
+* statuts d’avancement
+* budgets de projet
+* marges par projet
+
+### Scénarios à couvrir
+
+* service vendu à un client
+* projet en cours
+* projet terminé
+* tâche assignée
+* équipement affecté à un projet
+* document attaché à une opération
+* coûts opérationnels affectés à un projet
+* rentabilité calculée
+
+---
+
+# K. Stock, équipements & locations
+
+Ajouter des données réalistes pour :
+
+* produits
+* stock disponible
+* mouvements de stock
+* entrées stock
+* sorties stock
+* seuils d’alerte
+* équipements
+* affectations équipements
+* locations
+* maintenance
+* historique d’utilisation
+
+### Scénarios à couvrir
+
+* produit vendu
+* stock diminué après vente
+* stock utilisé dans une opération
+* équipement affecté à un projet
+* équipement en maintenance
+* équipement loué
+* retour d’un équipement loué
+* alerte stock faible
+
+---
+
+# L. Documents & Rapports
+
+Ajouter des documents et rapports demo pour :
+
+* documents clients
+* documents RH
+* documents financiers
+* documents opérationnels
+* contrats
+* factures PDF
+* reçus PDF
+* rapports financiers
+* rapports RH
+* rapports commerciaux
+* rapports analytiques
+* exports Excel
+
+### Important
+
+Les documents doivent avoir des noms réalistes et être liés aux bons modules.
+
+---
+
+# M. Tickets support, incidents et notifications
+
+Créer des données demo pour :
+
+* tickets support ouverts
+* tickets en cours
+* tickets résolus
+* incidents techniques
+* incidents clôturés
+* notifications système
+* alertes paiement
+* alertes recouvrement
+* alertes RH
+* alertes finance
+* alertes stock
+* logs d’activité
+
+### Scénarios à couvrir
+
+* ticket créé par un utilisateur
+* ticket assigné à un membre support
+* ticket résolu
+* incident détecté
+* incident impactant un tenant
+* notification envoyée
+* log enregistré dans le journal d’audit
+
+---
+
+## 5. Qualité des données
+
+Les données doivent être :
+
+* réalistes
+* professionnelles
+* cohérentes entre modules
+* en français
+* en FCFA
+* adaptées au contexte africain / francophone
+* suffisamment riches pour une démonstration complète
+* faciles à comprendre pendant une présentation
+* sans Lorem Ipsum
+* sans anciennes références EDOLE
+* sans `edole.africa`
+* sans `hissado.tg`
+* uniquement avec des emails `@hissadoconsulting.com` pour Hissado Consulting
+
+---
+
+## 6. Cohérence entre modules
+
+Les données ne doivent pas être isolées.
+
+Merci de créer de vrais scénarios connectés :
+
+* prospect → opportunité → client
+* devis → commande → facture → paiement
+* facture partiellement payée → solde restant
+* facture en retard → recouvrement
+* paiement → trésorerie → comptabilité
+* facture → écriture comptable → rapport financier
+* revenu → centre de profit analytique
+* charge → centre de coût analytique
+* projet → budget analytique → réalisé → marge
+* collaborateur → pointage kiosk → présence → paie
+* demande de congé → validation → impact RH
+* stock → vente / opération
+* équipement → affectation / location
+* ticket support → traitement → résolution
+* incident → suivi → clôture
+* abonnement tenant → paiement → activation
+
+---
+
+## 7. Vérification après ajout
+
+Après l’ajout des données, veuillez tester :
+
+* toutes les sections du tenant Hissado Consulting
+* tous les tableaux
+* tous les filtres
+* toutes les recherches
+* tous les boutons principaux
+* les exports PDF / Excel
+* les rapports
+* les rapports analytiques
+* le kiosk
+* la synchronisation entre modules
+* les permissions utilisateurs
+* l’affichage mobile
+* la cohérence des montants
+* l’absence de doublons inutiles
+
+Aucune section ne doit rester vide ou inutilisable.
+
+---
+
+## 8. Résultat attendu
+
+Je veux pouvoir me connecter à **Hissado Consulting** et faire une démonstration complète de Gaméasù, sans interruption, sans section vide et sans données incohérentes.
+
+À la fin, merci de fournir :
+
+1. les modules alimentés
+2. les données ajoutées
+3. les scénarios créés
+4. les utilisateurs demo disponibles
+5. les sections testées
+6. les rapports disponibles
+7. les rapports analytiques disponibles
+8. les éventuelles limites restantes
+9. les fichiers / scripts de seed modifiés
+
+### Objectif final
+
+Faire de **Hissado Consulting** un tenant de démonstration complet, réaliste et professionnel, avec des données dans toutes les sections, y compris la **comptabilité analytique**, afin de présenter, tester et démontrer toute la plateforme Gaméasù en production.

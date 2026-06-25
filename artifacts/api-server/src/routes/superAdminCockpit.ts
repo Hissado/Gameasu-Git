@@ -23,6 +23,7 @@ import { and, eq, sql, desc, gte, ne, inArray, isNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
 import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
 import { factoryReset } from "../services/factory-reset";
+import { seedHissado } from "../services/seed-hissado";
 import { deleteOrganization } from "../services/delete-organization";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -822,6 +823,18 @@ router.patch("/super-admin/organizations/:id/status", sa, async (req, res, next)
         ne(organizationSubscriptionsTable.status, "trial"),
       ));
     return res.json({ ok: true, organizationId: id, action, isActive });
+  } catch (e) { next(e); }
+});
+
+// ─── Seed données Hissado Consulting ──────────────────────────────────────────
+
+router.post("/super-admin/seed-hissado", sa, async (req, res, next) => {
+  try {
+    req.log.info({ userId: req.authUser?.id }, "seed-hissado: démarrage seed démo Hissado");
+    const orgId = (req.body as any)?.orgId as string | undefined;
+    const result = await seedHissado(orgId);
+    req.log.info({ counts: (result as any).counts }, "seed-hissado: terminé");
+    return res.json(result);
   } catch (e) { next(e); }
 });
 
