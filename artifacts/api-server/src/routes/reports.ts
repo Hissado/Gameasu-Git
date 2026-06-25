@@ -1671,6 +1671,138 @@ router.get("/reports/purchases", requireAuth, requireManagerOrAbove, async (req,
   } catch (e) { next(e); }
 });
 
+router.get("/reports/purchases/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const orgId = req.authUser!.organizationId;
+    const [r, orgName] = await Promise.all([
+      (async () => {
+        const { from, to, fromIso, toIso } = period;
+        const invoices = await db
+          .select({
+            id: supplierInvoicesTable.id,
+            supplierName: suppliersTable.name,
+            totalAmount: supplierInvoicesTable.totalAmount,
+            paidAmount: supplierInvoicesTable.paidAmount,
+            status: supplierInvoicesTable.status,
+            invoiceDate: supplierInvoicesTable.invoiceDate,
+            dueDate: supplierInvoicesTable.dueDate,
+            taxAmount: supplierInvoicesTable.taxAmount,
+            referenceNumber: supplierInvoicesTable.referenceNumber,
+          })
+          .from(supplierInvoicesTable)
+          .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+          .where(and(
+            eq(supplierInvoicesTable.organizationId, orgId),
+            ne(supplierInvoicesTable.status, "cancelled"),
+            ne(supplierInvoicesTable.status, "draft"),
+            gte(supplierInvoicesTable.invoiceDate, fromIso),
+            lte(supplierInvoicesTable.invoiceDate, toIso),
+          ));
+        let totalAmount = 0, paidAmount = 0, overdueAmount = 0, overdueCount = 0;
+        const today = new Date().toISOString().slice(0, 10);
+        for (const inv of invoices) {
+          totalAmount += num(inv.totalAmount);
+          paidAmount += num(inv.paidAmount);
+          const outstanding = num(inv.totalAmount) - num(inv.paidAmount);
+          if (outstanding > 0 && inv.dueDate && inv.dueDate < today) { overdueAmount += outstanding; overdueCount++; }
+        }
+        return { invoices, kpi: { totalAmount, paidAmount, outstanding: totalAmount - paidAmount, overdueAmount, overdueCount, invoiceCount: invoices.length, paymentRate: totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0 } };
+      })(),
+      getOrgName(orgId),
+    ]);
+
+    const xls = new ExcelReportBuilder({ orgName, period, reportTitle: "Rapport Achats & Fournisseurs" });
+    xls.addCoverSheet("Achats & Fournisseurs");
+    xls.addSummarySheet([
+      ExcelReportBuilder.num("Factures fournisseurs",    r.kpi.invoiceCount,     null, "up-good",   "Achats"),
+      ExcelReportBuilder.money("Montant total (FCFA)",   r.kpi.totalAmount,      null, "up-good",   "Achats"),
+      ExcelReportBuilder.money("Réglé (FCFA)",           r.kpi.paidAmount,       null, "up-good",   "Achats"),
+      ExcelReportBuilder.money("Solde dû (FCFA)",        r.kpi.outstanding,      null, "down-good", "Achats"),
+      ExcelReportBuilder.money("En retard (FCFA)",       r.kpi.overdueAmount,    null, "down-good", "Risques"),
+      ExcelReportBuilder.num("Factures en retard",       r.kpi.overdueCount,     null, "down-good", "Risques"),
+      ExcelReportBuilder.pct("Taux de règlement (%)",    r.kpi.paymentRate,      null, "up-good",   "Performance"),
+    ]);
+    xls.addDataSheet({
+      name: "📋 Factures fournisseurs",
+      title: "Détail des factures fournisseurs",
+      cols: [
+        { header: "Référence",         key: "ref",      width: 22, format: "text"   },
+        { header: "Fournisseur",       key: "supplier", width: 34, format: "text"   },
+        { header: "Date facture",      key: "date",     width: 16, format: "text"   },
+        { header: "Échéance",          key: "due",      width: 14, format: "text"   },
+        { header: "Montant TTC (FCFA)",key: "total",    width: 22, format: "money"  },
+        { header: "Réglé (FCFA)",      key: "paid",     width: 20, format: "money"  },
+        { header: "Solde (FCFA)",      key: "balance",  width: 20, format: "money"  },
+        { header: "Statut",            key: "status",   width: 16, format: "text"   },
+      ],
+      rows: r.invoices.map(inv => [
+        inv.referenceNumber || "—",
+        inv.supplierName || "—",
+        inv.invoiceDate || "—",
+        inv.dueDate || "—",
+        Math.round(num(inv.totalAmount)),
+        Math.round(num(inv.paidAmount)),
+        Math.round(num(inv.totalAmount) - num(inv.paidAmount)),
+        inv.status,
+      ]),
+      totalsRow: true,
+    });
+
+    xls.addNotesSheet([
+      { title: "Périmètre achats", body: `Factures fournisseurs créées du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nBrouillons et annulées exclus.` },
+      { title: "Devise", body: "Tous les montants sont exprimés en FCFA (XOF)." },
+    ]);
+    await xls.send(res, `rapport-achats-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  } catch (e) { next(e); }
+});
+
+router.get("/reports/purchases/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const period = parsePeriod(req);
+    const orgId = req.authUser!.organizationId;
+    const { fromIso, toIso } = period;
+    const invoices = await db
+      .select({
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        supplierName: suppliersTable.name,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        taxAmount: supplierInvoicesTable.taxAmount,
+        status: supplierInvoicesTable.status,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        dueDate: supplierInvoicesTable.dueDate,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, eq(supplierInvoicesTable.supplierId, suppliersTable.id))
+      .where(and(
+        eq(supplierInvoicesTable.organizationId, orgId),
+        ne(supplierInvoicesTable.status, "cancelled"),
+        ne(supplierInvoicesTable.status, "draft"),
+        gte(supplierInvoicesTable.invoiceDate, fromIso),
+        lte(supplierInvoicesTable.invoiceDate, toIso),
+      ));
+    const rows: (string | number)[][] = [
+      ["GAMÉASÙ — Rapport Achats & Fournisseurs"],
+      [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
+      [],
+      ["Référence", "Fournisseur", "Date facture", "Échéance", "Montant TTC (FCFA)", "Taxes (FCFA)", "Réglé (FCFA)", "Solde (FCFA)", "Statut"],
+      ...invoices.map(inv => [
+        inv.referenceNumber || "—",
+        inv.supplierName || "—",
+        inv.invoiceDate || "—",
+        inv.dueDate || "—",
+        Math.round(num(inv.totalAmount)),
+        Math.round(num(inv.taxAmount)),
+        Math.round(num(inv.paidAmount)),
+        Math.round(num(inv.totalAmount) - num(inv.paidAmount)),
+        inv.status,
+      ]),
+    ];
+    sendCsv(res, rows, `rapport-achats-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (e) { next(e); }
+});
+
 // ────────────────────────────────────────────────────────────────
 // Décaissements (paiements fournisseurs + sorties de tréso)
 // ────────────────────────────────────────────────────────────────

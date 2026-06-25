@@ -1,0 +1,163 @@
+Pouvez-vous faire un **audit complet de toute l’application Gaméasù**, section par section et sous-section par sous-section, afin de vérifier que tout fonctionne correctement, sans erreur, sans bug visible et sans problème de performance ?
+
+### Objectif
+
+Je veux que vous parcouriez toute l’application comme un vrai utilisateur, afin de confirmer que chaque section est stable, rapide, fluide et prête à être utilisée en production.
+
+L’application doit être :
+
+* rapide
+* fluide
+* stable
+* sans erreurs 404
+* sans erreurs 500
+* sans bugs visibles
+* sans pages cassées
+* sans lenteur entre les sections
+* sans problème de synchronisation
+* sans boutons ou formulaires non fonctionnels
+
+---
+
+## 1. Tester l’application section par section
+
+Merci de tester toutes les sections principales et toutes les sous-sections :
+
+* Tableau de bord
+* Ventes
+* CRM
+* Clients
+* Devis
+* Commandes
+* Factures
+* Encaissements
+* Finance
+* Comptabilité
+* Comptabilité analytique
+* Trésorerie
+* Recouvrement
+* Budgets & prévisions
+* Rapports
+* RH
+* Collaborateurs
+* Présences & Pointage
+* Kiosk
+* Paie
+* Opérations
+* Stock
+* Équipements
+* Locations
+* Documents
+* Admin
+* Utilisateurs & Accès
+* Rôles & Permissions
+* Abonnement & Facturation
+* Notifications
+* Paramètres
+* Cockpit Plateforme
+
+---
+
+## 2. Vérifier les erreurs techniques
+
+Merci de vérifier et corriger :
+
+* erreurs 404
+* erreurs 500
+* erreurs API
+* erreurs console
+* erreurs backend
+* routes cassées
+* pages qui ne chargent pas
+* boutons qui ne répondent pas
+* formulaires qui ne sauvegardent pas
+* filtres qui ne fonctionnent pas
+* recherches incorrectes
+* tableaux vides alors qu’il existe des données
+* données qui ne se mettent pas à jour
+* problèmes de permissions
+* problèmes d’authentification
+* problèmes de redirection
+
+---
+
+## 3. Vérifier la rapidité et la fluidité
+
+Merci d’optimiser l’expérience utilisateur afin que l’application soit très rapide et agréable à utiliser.
+
+Vérifier particulièrement :
+
+* rapidité de connexion
+* rapidité de navigation entre sections
+* rapidité de changement d’onglets
+* rapidité d’ouverture des pages
+* rapidité des tableaux
+* rapidité des filtres
+* rapidité des recherches
+* rapidité des modals
+* rapidité des rapports
+* rapidité des exports PDF / Excel
+* fluidité de la sidebar
+* absence de latence entre les sections
+* absence de chargements trop longs
+
+L’application ne doit pas donner une impression de lenteur ou de lourdeur.
+
+---
+
+## 4. Vérifier la synchronisation entre modules
+
+Merci de vérifier que les données se synchronisent correctement entre les modules.
+
+Tester notamment :
+
+* devis → commande → facture → paiement
+* paiement → encaissement → trésorerie → comptabilité
+* facture en retard → recouvrement
+* pointage kiosk → présence → paie
+* budget → réalisé → rapport
+* stock → vente / opération
+* utilisateur → rôle → permissions
+* abonnement tenant → paiement → accès organisation
+* cockpit → tenant → logs / monitoring
+
+Aucune donnée ne doit être incohérente, dupliquée ou désynchronisée.
+
+---
+
+## 5. Vérifier la version mobile et responsive
+
+Merci de tester aussi l’application sur mobile et tablette.
+
+Corriger :
+
+* montants qui débordent
+* tableaux trop larges
+* boutons mal alignés
+* textes coupés
+* cartes KPI trop serrées
+* filtres difficiles à utiliser
+* graphiques non responsives
+* menus difficiles à naviguer
+* scroll horizontal inutile
+* formulaires mal adaptés
+
+---
+
+## 6. Résultat attendu
+
+À la fin, merci de fournir un rapport clair avec :
+
+1. les sections testées
+2. les bugs trouvés
+3. les bugs corrigés
+4. les erreurs 404 / 500 corrigées
+5. les problèmes de synchronisation corrigés
+6. les améliorations de performance réalisées
+7. les problèmes mobile corrigés
+8. les fichiers modifiés
+9. les recommandations restantes
+
+### Objectif final
+
+Je veux que Gaméasù soit entièrement testée, rapide, fluide, stable, sans erreur visible, sans latence entre les sections et prête pour une vraie utilisation en production.
