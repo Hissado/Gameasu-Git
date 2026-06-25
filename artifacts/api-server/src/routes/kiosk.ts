@@ -285,15 +285,23 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         if (base64Data) {
           const buffer = Buffer.from(base64Data, "base64");
           const uploadUrlStr = await objectStorageService.getObjectEntityUploadURL();
-          photoUrl = objectStorageService.normalizeObjectEntityPath(uploadUrlStr);
+          const objectPath = objectStorageService.normalizeObjectEntityPath(uploadUrlStr);
           await fetch(uploadUrlStr, {
             method: "PUT",
             headers: { "Content-Type": contentType, "Content-Length": String(buffer.length) },
             body: buffer,
           });
+          photoUrl = objectPath;
+          req.log.info({ objectPath }, "Photo de pointage uploadée vers object storage");
         }
       } catch (e) {
-        req.log.warn({ err: e }, "Photo upload failed, pointage sans photo");
+        req.log.warn({ err: e }, "Photo upload vers object storage échoué — stockage inline base64");
+        // Fallback : stocker le dataUrl directement (JPEG kiosk ≈ 30–150 Ko en base64 → acceptable)
+        if (photoDataUrl.length <= 600_000) {
+          photoUrl = photoDataUrl;
+        } else {
+          req.log.warn({ size: photoDataUrl.length }, "Photo trop volumineuse pour le fallback inline, pointage sans photo");
+        }
       }
     }
 
