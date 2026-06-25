@@ -93,3 +93,4 @@ channel = "stable-25_05"
 EMAIL_FROM = "Gaméasù <noreply@gameasu.com>"
 
 [userenv.production]
+SEED_HISSADO_DEMO = "true"
