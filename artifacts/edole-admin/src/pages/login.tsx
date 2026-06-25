@@ -1,8 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuth } from "@/lib/auth";
+import { useAuth, consumeInactivityFlag } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,16 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Afficher un message si la déconnexion était due à l'inactivité
+  useEffect(() => {
+    if (consumeInactivityFlag()) {
+      toast({
+        title: "Session expirée",
+        description: "Vous avez été déconnecté après 60 minutes d'inactivité.",
+      });
+    }
+  }, []);
 
   // OTP input — 6 chiffres individuels
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);

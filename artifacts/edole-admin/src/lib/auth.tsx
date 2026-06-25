@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
+
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
+const INACTIVITY_FLAG_KEY = "gameasu_session_expired";
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "click"] as const;
 
 interface AuthUser {
   id?: string;
@@ -25,8 +29,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
   const [_, setLocation] = useLocation();
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Garde la session "vivante" 5 minutes — évite un refetch /auth/me à chaque navigation.
   const { data: user } = useGetMe({
     query: {
       enabled: !!token,
@@ -40,14 +44,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const login = useCallback((newToken: string) => {
+    localStorage.removeItem(INACTIVITY_FLAG_KEY);
     localStorage.setItem("auth_token", newToken);
     setToken(newToken);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback((reason?: "inactivity") => {
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = null;
+    }
     const t = localStorage.getItem("auth_token");
     if (t) {
       fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${t}` } }).catch(() => {});
+    }
+    if (reason === "inactivity") {
+      localStorage.setItem(INACTIVITY_FLAG_KEY, "1");
     }
     localStorage.removeItem("auth_token");
     setToken(null);
@@ -63,6 +75,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("auth:unauthorized", handler);
   }, [logout]);
 
+  // ── Timer d'inactivité ────────────────────────────────────────────────────
+  // Actif uniquement quand l'utilisateur est connecté.
+  useEffect(() => {
+    if (!token) return;
+
+    const resetTimer = () => {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = setTimeout(() => {
+        logout("inactivity");
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // Démarrer le timer immédiatement
+    resetTimer();
+
+    // Réinitialiser à chaque événement d'activité (options passive pour perf)
+    const opts: AddEventListenerOptions = { passive: true };
+    ACTIVITY_EVENTS.forEach((ev) => window.addEventListener(ev, resetTimer, opts));
+
+    return () => {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+      ACTIVITY_EVENTS.forEach((ev) => window.removeEventListener(ev, resetTimer, opts));
+    };
+  }, [token, logout]);
+
   return (
     <AuthContext.Provider value={{ token, user: user as AuthUser | undefined, login, logout, isAuthenticated: !!token }}>
       {children}
@@ -77,3 +114,10 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/** Retourne et efface le flag de déconnexion par inactivité (à lire sur la page de login). */
+export function consumeInactivityFlag(): boolean {
+  const val = localStorage.getItem(INACTIVITY_FLAG_KEY);
+  if (val) { localStorage.removeItem(INACTIVITY_FLAG_KEY); return true; }
+  return false;
+}
