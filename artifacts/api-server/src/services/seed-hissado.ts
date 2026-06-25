@@ -294,18 +294,17 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
       { code: "641", label: "Impôts & taxes",              type: "expense", months: [1_200_000, 1_200_000, 1_200_000, 1_350_000, 1_350_000, 1_350_000, 1_400_000, 1_400_000, 1_400_000, 1_400_000, 1_400_000, 1_500_000] },
     ];
 
-    // Budget prévisionnel 2026
+    // Budget prévisionnel 2026 — utilise la période fiscale déjà chargée
     const [budget] = await db.insert(budgetsTable).values({
       organizationId: ORG_ID,
-      name: "[HISSADO] Budget prévisionnel 2026",
-      description: "Budget annuel Hissado Consulting — exercice 2026",
-      fiscalYear: 2026,
+      name: "Budget prévisionnel 2026",
+      fiscalPeriodId: period.id,
       kind: "budget",
       scope: "company",
       status: "active",
       versionNumber: 1,
-      currency: "XOF",
-    } as any).returning().catch(() => [null]);
+      notes: "Budget annuel Hissado Consulting — exercice 2026",
+    }).returning().catch(() => [null]);
     if (budget) {
       const lines: Array<Record<string, unknown>> = [];
       for (const ba of budgetAccounts) {
@@ -313,6 +312,7 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
         if (!accountId) continue;
         for (let m = 1; m <= 12; m++) {
           lines.push({
+            organizationId: ORG_ID,
             budgetId: budget.id,
             accountId,
             period: `2026-${String(m).padStart(2, "0")}`,
@@ -328,18 +328,17 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
       log.push(`✓ Budget 2026 créé (${lines.length} lignes)`);
     }
 
-    // Forecast révisé Q2 2026
+    // Forecast révisé S1 2026
     const [forecast] = await db.insert(budgetsTable).values({
       organizationId: ORG_ID,
-      name: "[HISSADO] Forecast révisé S1 2026",
-      description: "Révision semestrielle avec actualisation des projections",
-      fiscalYear: 2026,
+      name: "Forecast révisé S1 2026",
+      fiscalPeriodId: period.id,
       kind: "forecast",
       scope: "company",
       status: "active",
       versionNumber: 1,
-      currency: "XOF",
-    } as any).returning().catch(() => [null]);
+      notes: "Révision semestrielle avec actualisation des projections +8%",
+    }).returning().catch(() => [null]);
     if (forecast) {
       const fcstLines: Array<Record<string, unknown>> = [];
       for (const ba of budgetAccounts.slice(0, 6)) {
@@ -348,6 +347,7 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
         for (let m = 1; m <= 6; m++) {
           const adjusted = Math.round(ba.months[m - 1] * 1.08);
           fcstLines.push({
+            organizationId: ORG_ID,
             budgetId: forecast.id,
             accountId,
             period: `2026-${String(m).padStart(2, "0")}`,
