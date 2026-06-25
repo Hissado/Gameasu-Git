@@ -22,6 +22,12 @@ import { severityLabel } from "@/lib/intelligence";
 function resolveStorageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("/objects/")) return `/api/storage${url}`;
+  // /uploads/… doit passer par /api/uploads/… (seul /api est routé par le proxy)
+  if (url.startsWith("/uploads/")) {
+    const token = localStorage.getItem("auth_token");
+    const base = `/api${url}`;
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  }
   return url;
 }
 

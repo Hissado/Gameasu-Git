@@ -15,7 +15,7 @@ import {
   CheckCheck, Check, MoreVertical, Reply, Pencil, Trash2, Languages, Pin, BellOff, Bell, Archive, MessageCircle,
   Plus, X, Loader2, Image as ImageIcon, FileText, Filter, Sparkles, UserPlus, Users,
 } from "lucide-react";
-import { apiFetch, uploadFile } from "@/lib/api";
+import { apiFetch, uploadFile, mediaUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { getSocket, useRealtime, useConversationRoom, emitTyping } from "@/lib/realtime";
 import { useCallCenter } from "@/components/CallCenter";
@@ -256,8 +256,7 @@ function LocationCard({ metadata }: { metadata: any }) {
 }
 
 function AttachmentPreview({ a }: { a: Attachment }) {
-  const token = localStorage.getItem("auth_token");
-  const src = `${a.url}${a.url.includes("?") ? "&" : "?"}token=${token}`;
+  const src = mediaUrl(a.url);
   if (a.mime.startsWith("image/")) {
     return (
       <a href={src} target="_blank" rel="noreferrer" className="block">

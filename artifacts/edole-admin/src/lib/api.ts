@@ -87,13 +87,18 @@ export async function uploadFiles(files: File[]): Promise<{ urls: string[] }> {
   return apiFetch("/api/upload/multi", { method: "POST", body: fd });
 }
 
-// Ajoute le token d'authentification en query string pour permettre au navigateur
-// d'afficher des images servies depuis /uploads (auth-protégé).
+// Convertit une URL de média en chemin accessible par le navigateur.
+// - /uploads/…  → /api/uploads/… (seul /api est routé par le proxy Replit)
+// - Ajoute ?token= pour les <img> qui ne peuvent pas envoyer d'en-tête Authorization
 export function mediaUrl(url?: string | null): string {
   if (!url) return "";
-  if (!url.startsWith("/uploads/")) return url;
+  // Réécriture du chemin pour passer par le proxy
+  const normalized = url.startsWith("/uploads/")
+    ? `/api${url}`
+    : url;
+  if (!normalized.startsWith("/api/uploads/")) return normalized;
   const token = getToken();
-  if (!token) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
+  if (!token) return normalized;
+  const sep = normalized.includes("?") ? "&" : "?";
+  return `${normalized}${sep}token=${encodeURIComponent(token)}`;
 }

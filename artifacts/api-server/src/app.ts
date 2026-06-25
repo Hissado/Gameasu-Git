@@ -59,7 +59,11 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 // Fichiers téléversés : accès uniquement pour utilisateurs authentifiés.
 // Aucun contrôle d'autorisation par ressource n'est encore implémenté ;
 // seul un Bearer token valide donne accès aux médias.
+// Servis sous DEUX chemins :
+//   /uploads/…     — chemin historique (compat données existantes)
+//   /api/uploads/… — chemin routé par le proxy Replit (seul /api est proxifié vers ce serveur)
 app.use("/uploads", requireAuth, express.static(UPLOAD_DIR));
+app.use("/api/uploads", requireAuth, express.static(UPLOAD_DIR));
 app.use("/api", router);
 
 export default app;
