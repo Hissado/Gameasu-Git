@@ -10,6 +10,9 @@ import { requireAuth } from "./middlewares/auth";
 
 const app: Express = express();
 
+// Derrière le proxy Replit — lit X-Forwarded-For pour obtenir l'IP réelle du client.
+app.set("trust proxy", 1);
+
 // En-têtes de sécurité HTTP (helmet) : protège contre clickjacking, MIME-sniffing,
 // fuite de referrer, etc. C'est une API JSON (+ médias /uploads), donc :
 // - contentSecurityPolicy désactivée (pertinente pour des pages HTML, pas du JSON) ;
