@@ -313,16 +313,17 @@ export const addonCatalogTable = pgTable("addon_catalog", {
 }));
 
 export const orgAddonsTable = pgTable("org_addons", {
-  id:             uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
-  addonId:        uuid("addon_id").notNull().references(() => addonCatalogTable.id, { onDelete: "cascade" }),
-  status:         text("status").notNull().default("inactive"), // active | inactive
-  activatedAt:    timestamp("activated_at", { withTimezone: true }),
-  nextRenewalAt:  timestamp("next_renewal_at", { withTimezone: true }),
-  usageUsed:      integer("usage_used").notNull().default(0),
-  notes:          text("notes"),
-  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  id:               uuid("id").primaryKey().defaultRandom(),
+  organizationId:   uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  addonId:          uuid("addon_id").notNull().references(() => addonCatalogTable.id, { onDelete: "cascade" }),
+  status:           text("status").notNull().default("inactive"), // active | inactive | pending_quote
+  activatedAt:      timestamp("activated_at", { withTimezone: true }),
+  nextRenewalAt:    timestamp("next_renewal_at", { withTimezone: true }),
+  usageUsed:        integer("usage_used").notNull().default(0),
+  creditsPurchased: integer("credits_purchased").notNull().default(0),
+  notes:            text("notes"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
   orgAddonUidx: uniqueIndex("org_addons_org_addon_uidx").on(t.organizationId, t.addonId),
 }));

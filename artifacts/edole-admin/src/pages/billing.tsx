@@ -1575,10 +1575,9 @@ type AddonItem = {
   name: string;
   description: string | null;
   category: string;
-  billingType: string;
-  priceHT: number;
+  billingType: string; // "credits" | "quote" | "monthly" | "annual" | "onetime"
+  priceHT: number;     // pour "credits" : prix par unité ; sinon prix fixe
   tva: number;
-  priceTTC: number;
   unit: string | null;
   includedUnits: number | null;
   isActive: boolean;
@@ -1588,38 +1587,45 @@ type AddonItem = {
     activatedAt: string | null;
     nextRenewalAt: string | null;
     usageUsed: number;
+    creditsPurchased: number;
+    creditsBalance: number;
   } | null;
 };
 
 const ADDON_CATEGORY_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
-  sms:     { label: "SMS",     icon: MessageSquare,   color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
-  email:   { label: "Email",   icon: MailOpen,         color: "text-blue-600",   bg: "bg-blue-50 border-blue-200"   },
-  support: { label: "Support", icon: HeadphonesIcon,   color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
-  storage: { label: "Stockage",icon: HardDrive,        color: "text-emerald-600",bg: "bg-emerald-50 border-emerald-200" },
-  general: { label: "Général", icon: Sparkles,         color: "text-slate-600",  bg: "bg-slate-50 border-slate-200" },
+  sms:     { label: "SMS",     icon: MessageSquare,  color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
+  email:   { label: "Email",   icon: MailOpen,        color: "text-blue-600",   bg: "bg-blue-50 border-blue-200"   },
+  support: { label: "Support", icon: HeadphonesIcon,  color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
+  general: { label: "Général", icon: Sparkles,        color: "text-slate-600",  bg: "bg-slate-50 border-slate-200" },
 };
 
-const BILLING_TYPE_LABELS: Record<string, string> = {
-  monthly: "/ mois",
-  annual:  "/ an",
-  usage:   "à l'usage",
-  onetime: "unique",
-};
+// ── Carte : achat de crédits (SMS / email) ───────────────────────
 
-function AddonCard({ addon, onToggle, loading }: { addon: AddonItem; onToggle: (id: string, active: boolean) => void; loading: boolean }) {
+function CreditsCard({
+  addon,
+  onBuy,
+  loading,
+}: {
+  addon: AddonItem;
+  onBuy: (id: string, qty: number) => void;
+  loading: boolean;
+}) {
   const meta = ADDON_CATEGORY_META[addon.category] ?? ADDON_CATEGORY_META.general;
   const Icon = meta.icon;
-  const usageUsed = addon.subscription?.usageUsed ?? 0;
-  const usagePct  = addon.includedUnits && addon.includedUnits > 0
-    ? Math.min(100, Math.round((usageUsed / addon.includedUnits) * 100))
-    : null;
+  const [qty, setQty] = useState(500);
+
+  const priceHTTotal  = addon.priceHT * qty;
+  const tvaTotal      = Math.round(priceHTTotal * 0.18);
+  const priceTTCTotal = priceHTTotal + tvaTotal;
+  const balance       = addon.subscription?.creditsBalance ?? 0;
 
   return (
     <Card className={cn(
-      "transition-all duration-150",
+      "transition-all duration-150 flex flex-col",
       addon.isActive ? "border-primary/30 shadow-sm" : "border-slate-200",
     )}>
-      <CardContent className="p-5 space-y-4">
+      <CardContent className="p-5 space-y-4 flex-1">
+        {/* En-tête */}
         <div className="flex items-start gap-3">
           <div className={cn("p-2 rounded-lg border shrink-0", meta.bg)}>
             <Icon className={cn("w-4 h-4", meta.color)} />
@@ -1627,87 +1633,179 @@ function AddonCard({ addon, onToggle, loading }: { addon: AddonItem; onToggle: (
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
-              {addon.isActive && (
-                <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] px-1.5 py-0 h-4">
-                  Actif
+              <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-1.5 py-0 h-4">
+                À l'unité
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{addon.description}</p>
+          </div>
+        </div>
+
+        {/* Solde de crédits */}
+        {addon.isActive && (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5 flex items-center justify-between">
+            <span className="text-xs text-emerald-700 font-medium flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Solde disponible
+            </span>
+            <span className="text-sm font-bold text-emerald-800">
+              {balance.toLocaleString("fr-FR")} {addon.unit}
+            </span>
+          </div>
+        )}
+
+        {/* Prix unitaire */}
+        <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Prix unitaire HT</span>
+          <span className="text-sm font-semibold text-slate-900">
+            {formatFCFA(addon.priceHT)} <span className="font-normal text-muted-foreground text-xs">/ {addon.unit}</span>
+          </span>
+        </div>
+
+        {/* Sélecteur de quantité */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-slate-700">
+            Quantité à acheter ({addon.unit})
+          </label>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setQty(Math.max(100, qty - 500))}
+              disabled={loading}
+            >−</Button>
+            <Input
+              type="number"
+              min={100}
+              step={100}
+              value={qty}
+              onChange={(e) => setQty(Math.max(100, parseInt(e.target.value) || 100))}
+              className="h-8 text-center text-sm font-semibold"
+              disabled={loading}
+            />
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setQty(qty + 500)}
+              disabled={loading}
+            >+</Button>
+          </div>
+        </div>
+
+        {/* Récapitulatif */}
+        <div className="rounded-lg border border-slate-100 bg-slate-50/60 divide-y divide-slate-100 text-sm">
+          <div className="flex justify-between px-3 py-2 text-muted-foreground">
+            <span>{qty.toLocaleString("fr-FR")} × {formatFCFA(addon.priceHT)} HT</span>
+            <span className="font-medium">{formatFCFA(priceHTTotal)}</span>
+          </div>
+          <div className="flex justify-between px-3 py-2 text-muted-foreground">
+            <span>TVA 18 %</span>
+            <span>{formatFCFA(tvaTotal)}</span>
+          </div>
+          <div className="flex justify-between px-3 py-2 font-semibold text-slate-900 bg-white rounded-b-lg">
+            <span>Total TTC</span>
+            <span className="text-primary">{formatFCFA(priceTTCTotal)}</span>
+          </div>
+        </div>
+      </CardContent>
+
+      <div className="px-5 pb-5">
+        <Button
+          size="sm"
+          className="w-full text-xs font-semibold bg-primary hover:bg-primary/90 text-white"
+          disabled={loading}
+          onClick={() => onBuy(addon.id, qty)}
+        >
+          {loading ? "En cours…" : `Acheter ${qty.toLocaleString("fr-FR")} ${addon.unit}`}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ── Carte : prix sur devis ───────────────────────────────────────
+
+function QuoteCard({
+  addon,
+  onRequestQuote,
+  loading,
+}: {
+  addon: AddonItem;
+  onRequestQuote: (id: string) => void;
+  loading: boolean;
+}) {
+  const meta = ADDON_CATEGORY_META[addon.category] ?? ADDON_CATEGORY_META.general;
+  const Icon = meta.icon;
+  const isPending = addon.subscription?.status === "pending_quote";
+
+  return (
+    <Card className={cn(
+      "transition-all duration-150 flex flex-col",
+      isPending ? "border-amber-300 shadow-sm" : "border-slate-200",
+    )}>
+      <CardContent className="p-5 space-y-4 flex-1">
+        <div className="flex items-start gap-3">
+          <div className={cn("p-2 rounded-lg border shrink-0", meta.bg)}>
+            <Icon className={cn("w-4 h-4", meta.color)} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
+              {isPending ? (
+                <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-[10px] px-1.5 py-0 h-4">
+                  Devis en attente
+                </Badge>
+              ) : (
+                <Badge className="bg-slate-100 text-slate-500 border border-slate-200 text-[10px] px-1.5 py-0 h-4">
+                  Sur devis
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{addon.description}</p>
-            {addon.includedUnits && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {addon.includedUnits.toLocaleString("fr-FR")} {addon.unit} inclus
-              </p>
-            )}
           </div>
         </div>
 
-        {/* Usage bar */}
-        {addon.isActive && addon.includedUnits && usagePct !== null && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <BarChart3 className="w-3 h-3" />
-                {usageUsed.toLocaleString("fr-FR")} / {addon.includedUnits.toLocaleString("fr-FR")} {addon.unit}
-              </span>
-              <span className={usagePct >= 80 ? "text-amber-600 font-semibold" : ""}>{usagePct}%</span>
-            </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={cn("h-full rounded-full transition-all", usagePct >= 80 ? "bg-amber-500" : "bg-primary")}
-                style={{ width: `${usagePct}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Prix HT / TVA / TTC */}
-        <div className="rounded-lg border border-slate-100 bg-slate-50/60 divide-y divide-slate-100 text-sm">
-          <div className="flex justify-between px-3 py-2 text-muted-foreground">
-            <span>Prix HT</span>
-            <span className="font-medium">{formatFCFA(addon.priceHT)} {BILLING_TYPE_LABELS[addon.billingType] ?? ""}</span>
-          </div>
-          <div className="flex justify-between px-3 py-2 text-muted-foreground">
-            <span>TVA 18 %</span>
-            <span>{formatFCFA(addon.tva)}</span>
-          </div>
-          <div className="flex justify-between px-3 py-2 font-semibold text-slate-900 bg-white rounded-b-lg">
-            <span>Total TTC</span>
-            <span>{formatFCFA(addon.priceTTC)} {BILLING_TYPE_LABELS[addon.billingType] ?? ""}</span>
-          </div>
+        {/* Indicateur sur devis */}
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-slate-700">Prix sur devis</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Adapté à la taille de votre organisation et à la complexité du projet
+          </p>
         </div>
 
-        {/* Renouvellement */}
-        {addon.isActive && addon.subscription?.nextRenewalAt && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5" />
-            Prochain renouvellement : <strong>{new Date(addon.subscription.nextRenewalAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</strong>
+        {isPending && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
+            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              Votre demande de devis a bien été reçue. Notre équipe vous contactera dans les 24 h ouvrées.
+            </p>
           </div>
         )}
+      </CardContent>
 
-        {/* Action */}
+      <div className="px-5 pb-5">
         <Button
           size="sm"
-          variant={addon.isActive ? "outline" : "default"}
+          variant={isPending ? "outline" : "default"}
           className={cn(
             "w-full text-xs font-semibold",
-            addon.isActive
-              ? "border-rose-200 text-rose-600 hover:bg-rose-50"
+            isPending
+              ? "border-amber-300 text-amber-700 hover:bg-amber-50"
               : "bg-primary hover:bg-primary/90 text-white",
           )}
-          disabled={loading}
-          onClick={() => onToggle(addon.id, !addon.isActive)}
+          disabled={loading || isPending}
+          onClick={() => onRequestQuote(addon.id)}
         >
-          {loading
-            ? "En cours…"
-            : addon.isActive
-            ? "Désactiver"
-            : "Activer"}
+          {isPending ? "Devis demandé ✓" : loading ? "En cours…" : "Demander un devis"}
         </Button>
-      </CardContent>
+      </div>
     </Card>
   );
 }
+
+// ── Panneau principal ────────────────────────────────────────────
 
 function AddonsPanel() {
   const qc = useQueryClient();
@@ -1716,66 +1814,80 @@ function AddonsPanel() {
     queryFn: () => apiFetch("/api/billing/addons"),
   });
 
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   const addons = data?.data ?? [];
-  const activeAddons = addons.filter((a) => a.isActive);
+  const creditsAddons = addons.filter((a) => a.billingType === "credits");
+  const quoteAddons   = addons.filter((a) => a.billingType === "quote");
+  const hasCredits    = creditsAddons.some((a) => a.isActive);
 
-  const handleToggle = async (id: string, activate: boolean) => {
-    setTogglingId(id);
+  const handleBuyCredits = async (id: string, qty: number) => {
+    setActionId(id);
     try {
-      await apiFetch(`/api/billing/addons/${id}/${activate ? "activate" : "deactivate"}`, {
+      const res = await apiFetch<{ quantity: number; unit: string; priceTTCTotal: number }>(
+        `/api/billing/addons/${id}/buy-credits`,
+        { method: "POST", body: JSON.stringify({ quantity: qty }) },
+      );
+      await qc.invalidateQueries({ queryKey: ["billing-addons"] });
+      sonnerToast.success(
+        `${res.quantity.toLocaleString("fr-FR")} ${res.unit} ajoutés — ${formatFCFA(res.priceTTCTotal)} TTC`,
+      );
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Erreur lors de l'achat");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleRequestQuote = async (id: string) => {
+    setActionId(id);
+    try {
+      await apiFetch(`/api/billing/addons/${id}/request-quote`, {
         method: "POST",
         body: JSON.stringify({}),
       });
       await qc.invalidateQueries({ queryKey: ["billing-addons"] });
-      sonnerToast.success(activate ? "Add-on activé" : "Add-on désactivé");
+      sonnerToast.success("Demande de devis envoyée — nous vous répondrons sous 24 h ouvrées.");
     } catch (e: any) {
-      sonnerToast.error(e?.message ?? "Erreur lors de la mise à jour");
+      sonnerToast.error(e?.message ?? "Erreur lors de la demande");
     } finally {
-      setTogglingId(null);
+      setActionId(null);
     }
   };
-
-  const categories = ["sms", "email", "support", "storage"];
-  const grouped = categories.reduce((acc, cat) => {
-    acc[cat] = addons.filter((a) => a.category === cat);
-    return acc;
-  }, {} as Record<string, AddonItem[]>);
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}><CardContent className="p-5"><Skeleton className="h-32 w-full" /></CardContent></Card>
+          <Card key={i}><CardContent className="p-5"><Skeleton className="h-36 w-full" /></CardContent></Card>
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Active summary */}
-      {activeAddons.length > 0 && (
+    <div className="space-y-10">
+      {/* Résumé crédits actifs */}
+      {hasCredits && (
         <Card className="border-primary/20 bg-primary/[0.02]">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              {activeAddons.length} add-on{activeAddons.length > 1 ? "s" : ""} actif{activeAddons.length > 1 ? "s" : ""}
-              <span className="ml-auto font-normal text-muted-foreground">
-                Total mensuel : <strong className="text-foreground">{formatFCFA(activeAddons.filter(a => a.billingType === "monthly").reduce((s, a) => s + a.priceTTC, 0))} TTC</strong>
-              </span>
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Solde de crédits
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
-            <div className="flex flex-wrap gap-2">
-              {activeAddons.map((a) => {
+            <div className="flex flex-wrap gap-3">
+              {creditsAddons.filter((a) => a.isActive).map((a) => {
                 const meta = ADDON_CATEGORY_META[a.category] ?? ADDON_CATEGORY_META.general;
                 const Icon = meta.icon;
                 return (
-                  <div key={a.id} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium", meta.bg, meta.color)}>
-                    <Icon className="w-3 h-3" />
-                    {a.name}
+                  <div key={a.id} className={cn("inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium", meta.bg, meta.color)}>
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{a.name}</span>
+                    <span className="font-bold">
+                      {(a.subscription?.creditsBalance ?? 0).toLocaleString("fr-FR")} {a.unit}
+                    </span>
                   </div>
                 );
               })}
@@ -1784,33 +1896,51 @@ function AddonsPanel() {
         </Card>
       )}
 
-      {/* Catalog by category */}
-      {categories.map((cat) => {
-        const items = grouped[cat];
-        if (!items || items.length === 0) return null;
-        const meta = ADDON_CATEGORY_META[cat];
-        const Icon = meta.icon;
-        return (
-          <div key={cat} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className={cn("p-1.5 rounded-md border", meta.bg)}>
-                <Icon className={cn("w-3.5 h-3.5", meta.color)} />
-              </div>
-              <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">{meta.label}</h3>
+      {/* Crédits SMS & Email */}
+      {creditsAddons.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md border bg-violet-50 border-violet-200">
+              <MessageSquare className="w-3.5 h-3.5 text-violet-600" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {items.map((addon) => (
-                <AddonCard
-                  key={addon.id}
-                  addon={addon}
-                  onToggle={handleToggle}
-                  loading={togglingId === addon.id}
-                />
-              ))}
-            </div>
+            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Crédits de communication</h3>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">À l'unité · sans expiration</Badge>
           </div>
-        );
-      })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {creditsAddons.map((addon) => (
+              <CreditsCard
+                key={addon.id}
+                addon={addon}
+                onBuy={handleBuyCredits}
+                loading={actionId === addon.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Services sur devis */}
+      {quoteAddons.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md border bg-amber-50 border-amber-200">
+              <HeadphonesIcon className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Services & accompagnement</h3>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Sur devis · selon votre organisation</Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {quoteAddons.map((addon) => (
+              <QuoteCard
+                key={addon.id}
+                addon={addon}
+                onRequestQuote={handleRequestQuote}
+                loading={actionId === addon.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {addons.length === 0 && (
         <Card>
@@ -1822,8 +1952,8 @@ function AddonsPanel() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Tous les prix sont affichés <strong>hors taxes (HT)</strong>. La TVA de 18 % est appliquée au moment du paiement.
-        Les add-ons mensuels sont renouvelés automatiquement avec votre abonnement principal.
+        Tous les prix sont affichés <strong>hors taxes (HT)</strong>. La TVA de 18 % s'applique au moment du paiement.
+        Les crédits de communication n'ont <strong>pas de date d'expiration</strong> tant que votre abonnement est actif.
       </p>
     </div>
   );

@@ -1,120 +1,154 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { addonCatalogTable, orgAddonsTable } from "@workspace/db";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 
 const router = Router();
 
 const TVA_RATE = 0.18;
 
+/**
+ * Catalogue Gaméasù Add-ons — modèle tarifaire :
+ *
+ * credits  → achat ponctuel d'unités (SMS / emails), priceHT = prix par unité en FCFA HT,
+ *             pas d'échéance, solde = creditsPurchased - usageUsed
+ *
+ * quote    → prix sur devis (support, formation, intégration) selon taille / complexité,
+ *             aucun prix affiché, CTA "Demander un devis"
+ *
+ * monthly  → (non utilisé actuellement, conservé pour extension future)
+ */
 const ADDON_CATALOG_SEED = [
+  // ── Crédits SMS ──────────────────────────────────────────────────────────────
   {
     slug: "sms_custom",
     name: "SMS personnalisés",
-    description: "Envoyez des SMS depuis Gaméasù avec un nom d'expéditeur personnalisé. 1 000 SMS inclus/mois.",
+    description: "Envoyez des SMS depuis Gaméasù avec un expéditeur personnalisé. Prix à l'unité, sans expiration.",
     category: "sms",
-    billingType: "monthly",
-    priceHT: 15_000,
+    billingType: "credits",
+    priceHT: 25,           // 25 FCFA HT / SMS
     unit: "SMS",
-    includedUnits: 1_000,
+    includedUnits: null,
+    isActive: true,
     sortOrder: 10,
   },
   {
     slug: "sms_campaigns",
-    name: "Campagnes SMS",
-    description: "Créez et envoyez des campagnes SMS marketing à vos contacts. 5 000 SMS inclus/mois.",
+    name: "SMS de masse",
+    description: "Campagnes marketing à grande échelle. Tarif dégressif à partir de 5 000 SMS.",
     category: "sms",
-    billingType: "monthly",
-    priceHT: 35_000,
+    billingType: "credits",
+    priceHT: 18,           // 18 FCFA HT / SMS (tarif volume)
     unit: "SMS",
-    includedUnits: 5_000,
+    includedUnits: null,
+    isActive: true,
     sortOrder: 20,
   },
+  // ── Crédits Email ─────────────────────────────────────────────────────────────
   {
     slug: "email_custom",
     name: "Emails personnalisés",
-    description: "Envoyez des emails depuis votre propre domaine avec vos templates. 5 000 emails/mois inclus.",
+    description: "Envoyez des emails depuis votre domaine avec vos templates. Prix à l'unité, sans expiration.",
     category: "email",
-    billingType: "monthly",
-    priceHT: 7_500,
+    billingType: "credits",
+    priceHT: 5,            // 5 FCFA HT / email
     unit: "email",
-    includedUnits: 5_000,
+    includedUnits: null,
+    isActive: true,
     sortOrder: 30,
   },
   {
     slug: "email_campaigns",
     name: "Campagnes email avancées",
-    description: "Automatisations, séquences et analytics avancés. 20 000 emails/mois inclus.",
+    description: "Automatisations, séquences et analytics avancés. Tarif dégressif à partir de 10 000 emails.",
     category: "email",
-    billingType: "monthly",
-    priceHT: 20_000,
+    billingType: "credits",
+    priceHT: 3,            // 3 FCFA HT / email (tarif volume)
     unit: "email",
-    includedUnits: 20_000,
+    includedUnits: null,
+    isActive: true,
     sortOrder: 40,
   },
+  // ── Sur devis ─────────────────────────────────────────────────────────────────
   {
     slug: "support_priority",
     name: "Support prioritaire",
-    description: "Accès prioritaire à l'équipe support avec SLA garanti sous 4 h ouvrées.",
+    description: "Accès prioritaire au support Gaméasù avec SLA dédié. Tarif selon la taille de votre organisation et le niveau de service souhaité.",
     category: "support",
-    billingType: "monthly",
-    priceHT: 25_000,
+    billingType: "quote",
+    priceHT: 0,
     unit: null,
     includedUnits: null,
+    isActive: true,
     sortOrder: 50,
   },
   {
     slug: "onboarding",
     name: "Assistance à l'intégration",
-    description: "Accompagnement personnalisé pour la mise en place initiale de votre espace Gaméasù.",
+    description: "Accompagnement personnalisé pour la mise en place de votre espace Gaméasù. Tarif selon la complexité du projet et le périmètre fonctionnel.",
     category: "support",
-    billingType: "onetime",
-    priceHT: 50_000,
+    billingType: "quote",
+    priceHT: 0,
     unit: null,
     includedUnits: null,
+    isActive: true,
     sortOrder: 60,
   },
   {
     slug: "training",
     name: "Formation personnalisée",
-    description: "Session de formation dédiée à votre équipe (demi-journée, en ligne ou présentiel).",
+    description: "Session de formation dédiée à votre équipe, en ligne ou en présentiel. Tarif selon le nombre de participants et le contenu souhaité.",
     category: "support",
-    billingType: "onetime",
-    priceHT: 75_000,
+    billingType: "quote",
+    priceHT: 0,
     unit: null,
     includedUnits: null,
+    isActive: true,
     sortOrder: 70,
   },
+  // Stockage désactivé
   {
     slug: "storage_10gb",
     name: "Stockage supplémentaire (10 Go)",
-    description: "Ajoutez 10 Go de stockage pour vos pièces jointes, documents et fichiers.",
+    description: "",
     category: "storage",
     billingType: "monthly",
-    priceHT: 10_000,
-    unit: "Go",
-    includedUnits: 10,
-    sortOrder: 80,
+    priceHT: 0,
+    unit: null,
+    includedUnits: null,
+    isActive: false,       // retiré du catalogue
+    sortOrder: 999,
   },
 ] as const;
 
 export async function seedAddonCatalog() {
   for (const addon of ADDON_CATALOG_SEED) {
-    const existing = await db
-      .select({ id: addonCatalogTable.id })
-      .from(addonCatalogTable)
-      .where(eq(addonCatalogTable.slug, addon.slug))
-      .limit(1);
-    if (existing.length === 0) {
-      await db.insert(addonCatalogTable).values({
+    await db
+      .insert(addonCatalogTable)
+      .values({
         ...addon,
         unit: addon.unit ?? null,
         includedUnits: addon.includedUnits ?? null,
-        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: addonCatalogTable.slug,
+        set: {
+          name:          addon.name,
+          description:   addon.description,
+          category:      addon.category,
+          billingType:   addon.billingType,
+          priceHT:       addon.priceHT,
+          unit:          addon.unit ?? null,
+          includedUnits: addon.includedUnits ?? null,
+          isActive:      addon.isActive,
+          sortOrder:     addon.sortOrder,
+          updatedAt:     new Date(),
+        },
       });
-    }
   }
 }
+
+// ─── GET catalogue + état org ─────────────────────────────────────────────────
 
 router.get("/billing/addons", async (req, res, next) => {
   try {
@@ -136,26 +170,146 @@ router.get("/billing/addons", async (req, res, next) => {
     const result = catalog.map((addon) => {
       const sub = orgAddonMap.get(addon.id) ?? null;
       const tva = Math.round(addon.priceHT * TVA_RATE);
+      const balance = sub ? Math.max(0, sub.creditsPurchased - sub.usageUsed) : 0;
       return {
         ...addon,
         tva,
-        priceTTC: addon.priceHT + tva,
+        priceHT: addon.priceHT,
         subscription: sub
           ? {
-              id: sub.id,
-              status: sub.status,
-              activatedAt: sub.activatedAt,
-              nextRenewalAt: sub.nextRenewalAt,
-              usageUsed: sub.usageUsed,
+              id:               sub.id,
+              status:           sub.status,
+              activatedAt:      sub.activatedAt,
+              nextRenewalAt:    sub.nextRenewalAt,
+              usageUsed:        sub.usageUsed,
+              creditsPurchased: sub.creditsPurchased,
+              creditsBalance:   balance,
             }
           : null,
-        isActive: sub?.status === "active",
+        isActive: sub ? ["active", "pending_quote"].includes(sub.status) : false,
       };
     });
 
     return res.json({ data: result });
   } catch (e) { next(e); }
 });
+
+// ─── POST acheter des crédits (SMS / email) ───────────────────────────────────
+
+router.post("/billing/addons/:addonId/buy-credits", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { addonId } = req.params as { addonId: string };
+    const { quantity } = req.body as { quantity: number };
+
+    if (!quantity || !Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ error: "Quantité invalide" });
+    }
+
+    const [addon] = await db
+      .select()
+      .from(addonCatalogTable)
+      .where(and(eq(addonCatalogTable.id, addonId), eq(addonCatalogTable.isActive, true)))
+      .limit(1);
+
+    if (!addon) return res.status(404).json({ error: "Add-on introuvable" });
+    if (addon.billingType !== "credits") {
+      return res.status(400).json({ error: "Cet add-on ne supporte pas l'achat de crédits" });
+    }
+
+    const priceHTTotal  = addon.priceHT * quantity;
+    const tvaTotal      = Math.round(priceHTTotal * TVA_RATE);
+    const priceTTCTotal = priceHTTotal + tvaTotal;
+
+    const existing = await db
+      .select()
+      .from(orgAddonsTable)
+      .where(and(eq(orgAddonsTable.organizationId, orgId), eq(orgAddonsTable.addonId, addonId)))
+      .limit(1);
+
+    const now = new Date();
+    if (existing.length > 0) {
+      await db
+        .update(orgAddonsTable)
+        .set({
+          status:           "active",
+          activatedAt:      existing[0].activatedAt ?? now,
+          creditsPurchased: sql`${orgAddonsTable.creditsPurchased} + ${quantity}`,
+          updatedAt:        now,
+        })
+        .where(eq(orgAddonsTable.id, existing[0].id));
+    } else {
+      await db.insert(orgAddonsTable).values({
+        organizationId:   orgId,
+        addonId,
+        status:           "active",
+        activatedAt:      now,
+        nextRenewalAt:    null,
+        usageUsed:        0,
+        creditsPurchased: quantity,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      quantity,
+      unit:         addon.unit,
+      priceHTTotal,
+      tvaTotal,
+      priceTTCTotal,
+    });
+  } catch (e) { next(e); }
+});
+
+// ─── POST demander un devis (support / formation / intégration) ───────────────
+
+router.post("/billing/addons/:addonId/request-quote", async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { addonId } = req.params as { addonId: string };
+    const { notes } = req.body as { notes?: string };
+
+    const [addon] = await db
+      .select()
+      .from(addonCatalogTable)
+      .where(and(eq(addonCatalogTable.id, addonId), eq(addonCatalogTable.isActive, true)))
+      .limit(1);
+
+    if (!addon) return res.status(404).json({ error: "Add-on introuvable" });
+    if (addon.billingType !== "quote") {
+      return res.status(400).json({ error: "Cet add-on n'est pas sur devis" });
+    }
+
+    const existing = await db
+      .select()
+      .from(orgAddonsTable)
+      .where(and(eq(orgAddonsTable.organizationId, orgId), eq(orgAddonsTable.addonId, addonId)))
+      .limit(1);
+
+    const now = new Date();
+    if (existing.length > 0) {
+      await db
+        .update(orgAddonsTable)
+        .set({ status: "pending_quote", notes: notes ?? existing[0].notes, updatedAt: now })
+        .where(eq(orgAddonsTable.id, existing[0].id));
+    } else {
+      await db.insert(orgAddonsTable).values({
+        organizationId: orgId,
+        addonId,
+        status:         "pending_quote",
+        activatedAt:    null,
+        nextRenewalAt:  null,
+        usageUsed:      0,
+        creditsPurchased: 0,
+        notes:          notes ?? null,
+      });
+    }
+
+    return res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ─── POST activer / désactiver (mensuel — pour extension future) ──────────────
 
 router.post("/billing/addons/:addonId/activate", async (req, res, next) => {
   try {
@@ -192,10 +346,11 @@ router.post("/billing/addons/:addonId/activate", async (req, res, next) => {
       await db.insert(orgAddonsTable).values({
         organizationId: orgId,
         addonId,
-        status: "active",
-        activatedAt: now,
-        nextRenewalAt: nextRenewal,
-        usageUsed: 0,
+        status:         "active",
+        activatedAt:    now,
+        nextRenewalAt:  nextRenewal,
+        usageUsed:      0,
+        creditsPurchased: 0,
       });
     }
 
