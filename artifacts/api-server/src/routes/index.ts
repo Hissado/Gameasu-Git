@@ -29,6 +29,7 @@ import organizationsRouter from "./organizations";
 import subscriptionsRouter from "./subscriptions";
 import billingPaymentsRouter from "./billing-payments";
 import billingStripeRouter from "./billing-stripe";
+import billingAddonsRouter, { seedAddonCatalog } from "./billing-addons";
 import intelligenceRouter from "./intelligence";
 import automationRouter from "./automation";
 import attendanceRouter from "./attendance";
@@ -158,6 +159,7 @@ router.use(organizationsRouter);
 router.use(subscriptionsRouter);
 router.use(billingPaymentsRouter);
 router.use(billingStripeRouter);
+router.use(billingAddonsRouter);
 router.use(intelligenceRouter);
 router.use(automationRouter);
 router.use(attendanceRouter);
@@ -189,6 +191,7 @@ seedSaas({ includeDemoData: SEED_DEMO_DATA })
   .then(() => (SEED_DEMO_DATA ? seedOperationsDemo().then(() => console.log("[operations] seed démo OK")) : undefined))
   .then(() => (SEED_DEMO_DATA ? seedInventoryDemo().then(() => console.log("[inventory] seed démo OK")) : undefined))
   .then(() => (SEED_DEMO_DATA ? seedKiosk() : undefined))
+  .then(() => seedAddonCatalog().then(() => console.log("[addons] catalogue add-ons semé")))
   .catch((e) => console.warn("[saas/intelligence] seed failed:", e?.message));
 
 // Seed Hissado Consulting — organisation démo permanente (idempotent : skip si déjà présente).

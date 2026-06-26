@@ -291,6 +291,43 @@ export const paymentGatewayConfigsTable = pgTable("payment_gateway_configs", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
+// Add-on catalog & tenant subscriptions
+// ─────────────────────────────────────────────────────────────────
+
+export const addonCatalogTable = pgTable("addon_catalog", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  slug:         text("slug").notNull(),
+  name:         text("name").notNull(),
+  description:  text("description"),
+  category:     text("category").notNull().default("general"), // sms | email | support | storage | general
+  billingType:  text("billing_type").notNull().default("monthly"), // monthly | annual | usage | onetime
+  priceHT:      integer("price_ht").notNull().default(0),     // FCFA HT
+  unit:         text("unit"),                                 // "SMS" | "email" | "Go" — for usage billing
+  includedUnits:integer("included_units"),                    // units bundled in the price
+  isActive:     boolean("is_active").notNull().default(true),
+  sortOrder:    integer("sort_order").notNull().default(0),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  slugUidx: uniqueIndex("addon_catalog_slug_uidx").on(t.slug),
+}));
+
+export const orgAddonsTable = pgTable("org_addons", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  addonId:        uuid("addon_id").notNull().references(() => addonCatalogTable.id, { onDelete: "cascade" }),
+  status:         text("status").notNull().default("inactive"), // active | inactive
+  activatedAt:    timestamp("activated_at", { withTimezone: true }),
+  nextRenewalAt:  timestamp("next_renewal_at", { withTimezone: true }),
+  usageUsed:      integer("usage_used").notNull().default(0),
+  notes:          text("notes"),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgAddonUidx: uniqueIndex("org_addons_org_addon_uidx").on(t.organizationId, t.addonId),
+}));
+
+// ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
 // ─────────────────────────────────────────────────────────────────
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
@@ -324,4 +361,7 @@ export const insertPaymentGatewayConfigSchema = createInsertSchema(paymentGatewa
 export type PaymentTransaction = typeof paymentTransactionsTable.$inferSelect;
 export type PaymentGatewayConfig = typeof paymentGatewayConfigsTable.$inferSelect;
 export type InsertPaymentTransaction = z.infer<typeof insertPaymentTransactionSchema>;
+
+export type AddonCatalog = typeof addonCatalogTable.$inferSelect;
+export type OrgAddon    = typeof orgAddonsTable.$inferSelect;
 export type InsertPaymentGatewayConfig = z.infer<typeof insertPaymentGatewayConfigSchema>;

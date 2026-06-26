@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +20,10 @@ import {
   CreditCard, Smartphone, Wallet, AlertCircle, Clock, XCircle, Download,
   Settings, Shield, Zap, Phone, FileText, ToggleLeft, ToggleRight, ExternalLink,
   Repeat, Trash2, PenLine, Star, Bell, Info, Mail, Package,
+  MessageSquare, MailOpen, HeadphonesIcon, HardDrive, ChevronRight, BarChart3,
+  Sparkles,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { BRANDING } from "@/config/branding";
 import { toast as sonnerToast } from "sonner";
@@ -1061,8 +1065,12 @@ export default function BillingPage() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <div className="overflow-x-auto pb-1">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl min-w-[380px]">
+        <TabsList className="grid w-full grid-cols-6 max-w-2xl min-w-[420px]">
           <TabsTrigger value="overview">Formule</TabsTrigger>
+          <TabsTrigger value="addons" className="flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            Add-ons
+          </TabsTrigger>
           <TabsTrigger value="payments" className="relative">
             Paiements
             {pendingCount > 0 && (
@@ -1277,6 +1285,17 @@ export default function BillingPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Onglet Add-ons ── */}
+        <TabsContent value="addons" className="space-y-6">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Add-ons & services complémentaires</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Étendez les capacités de votre espace Gaméasù avec des modules optionnels activables à la demande.
+            </p>
+          </div>
+          <AddonsPanel />
         </TabsContent>
 
         {/* ── Onglet Paiements ── */}
@@ -1544,6 +1563,268 @@ export default function BillingPage() {
       {receiptTxId && (
         <ReceiptModal txId={receiptTxId} onClose={() => setReceiptTxId(null)} />
       )}
+    </div>
+  );
+}
+
+// ─── Add-ons Panel ───────────────────────────────────────────────
+
+type AddonItem = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string;
+  billingType: string;
+  priceHT: number;
+  tva: number;
+  priceTTC: number;
+  unit: string | null;
+  includedUnits: number | null;
+  isActive: boolean;
+  subscription: {
+    id: string;
+    status: string;
+    activatedAt: string | null;
+    nextRenewalAt: string | null;
+    usageUsed: number;
+  } | null;
+};
+
+const ADDON_CATEGORY_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
+  sms:     { label: "SMS",     icon: MessageSquare,   color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
+  email:   { label: "Email",   icon: MailOpen,         color: "text-blue-600",   bg: "bg-blue-50 border-blue-200"   },
+  support: { label: "Support", icon: HeadphonesIcon,   color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
+  storage: { label: "Stockage",icon: HardDrive,        color: "text-emerald-600",bg: "bg-emerald-50 border-emerald-200" },
+  general: { label: "Général", icon: Sparkles,         color: "text-slate-600",  bg: "bg-slate-50 border-slate-200" },
+};
+
+const BILLING_TYPE_LABELS: Record<string, string> = {
+  monthly: "/ mois",
+  annual:  "/ an",
+  usage:   "à l'usage",
+  onetime: "unique",
+};
+
+function AddonCard({ addon, onToggle, loading }: { addon: AddonItem; onToggle: (id: string, active: boolean) => void; loading: boolean }) {
+  const meta = ADDON_CATEGORY_META[addon.category] ?? ADDON_CATEGORY_META.general;
+  const Icon = meta.icon;
+  const usageUsed = addon.subscription?.usageUsed ?? 0;
+  const usagePct  = addon.includedUnits && addon.includedUnits > 0
+    ? Math.min(100, Math.round((usageUsed / addon.includedUnits) * 100))
+    : null;
+
+  return (
+    <Card className={cn(
+      "transition-all duration-150",
+      addon.isActive ? "border-primary/30 shadow-sm" : "border-slate-200",
+    )}>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className={cn("p-2 rounded-lg border shrink-0", meta.bg)}>
+            <Icon className={cn("w-4 h-4", meta.color)} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
+              {addon.isActive && (
+                <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] px-1.5 py-0 h-4">
+                  Actif
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{addon.description}</p>
+            {addon.includedUnits && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {addon.includedUnits.toLocaleString("fr-FR")} {addon.unit} inclus
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Usage bar */}
+        {addon.isActive && addon.includedUnits && usagePct !== null && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <BarChart3 className="w-3 h-3" />
+                {usageUsed.toLocaleString("fr-FR")} / {addon.includedUnits.toLocaleString("fr-FR")} {addon.unit}
+              </span>
+              <span className={usagePct >= 80 ? "text-amber-600 font-semibold" : ""}>{usagePct}%</span>
+            </div>
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all", usagePct >= 80 ? "bg-amber-500" : "bg-primary")}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Prix HT / TVA / TTC */}
+        <div className="rounded-lg border border-slate-100 bg-slate-50/60 divide-y divide-slate-100 text-sm">
+          <div className="flex justify-between px-3 py-2 text-muted-foreground">
+            <span>Prix HT</span>
+            <span className="font-medium">{formatFCFA(addon.priceHT)} {BILLING_TYPE_LABELS[addon.billingType] ?? ""}</span>
+          </div>
+          <div className="flex justify-between px-3 py-2 text-muted-foreground">
+            <span>TVA 18 %</span>
+            <span>{formatFCFA(addon.tva)}</span>
+          </div>
+          <div className="flex justify-between px-3 py-2 font-semibold text-slate-900 bg-white rounded-b-lg">
+            <span>Total TTC</span>
+            <span>{formatFCFA(addon.priceTTC)} {BILLING_TYPE_LABELS[addon.billingType] ?? ""}</span>
+          </div>
+        </div>
+
+        {/* Renouvellement */}
+        {addon.isActive && addon.subscription?.nextRenewalAt && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            Prochain renouvellement : <strong>{new Date(addon.subscription.nextRenewalAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</strong>
+          </div>
+        )}
+
+        {/* Action */}
+        <Button
+          size="sm"
+          variant={addon.isActive ? "outline" : "default"}
+          className={cn(
+            "w-full text-xs font-semibold",
+            addon.isActive
+              ? "border-rose-200 text-rose-600 hover:bg-rose-50"
+              : "bg-primary hover:bg-primary/90 text-white",
+          )}
+          disabled={loading}
+          onClick={() => onToggle(addon.id, !addon.isActive)}
+        >
+          {loading
+            ? "En cours…"
+            : addon.isActive
+            ? "Désactiver"
+            : "Activer"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AddonsPanel() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery<{ data: AddonItem[] }>({
+    queryKey: ["billing-addons"],
+    queryFn: () => apiFetch("/api/billing/addons"),
+  });
+
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const addons = data?.data ?? [];
+  const activeAddons = addons.filter((a) => a.isActive);
+
+  const handleToggle = async (id: string, activate: boolean) => {
+    setTogglingId(id);
+    try {
+      await apiFetch(`/api/billing/addons/${id}/${activate ? "activate" : "deactivate"}`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      await qc.invalidateQueries({ queryKey: ["billing-addons"] });
+      sonnerToast.success(activate ? "Add-on activé" : "Add-on désactivé");
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Erreur lors de la mise à jour");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const categories = ["sms", "email", "support", "storage"];
+  const grouped = categories.reduce((acc, cat) => {
+    acc[cat] = addons.filter((a) => a.category === cat);
+    return acc;
+  }, {} as Record<string, AddonItem[]>);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i}><CardContent className="p-5"><Skeleton className="h-32 w-full" /></CardContent></Card>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Active summary */}
+      {activeAddons.length > 0 && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              {activeAddons.length} add-on{activeAddons.length > 1 ? "s" : ""} actif{activeAddons.length > 1 ? "s" : ""}
+              <span className="ml-auto font-normal text-muted-foreground">
+                Total mensuel : <strong className="text-foreground">{formatFCFA(activeAddons.filter(a => a.billingType === "monthly").reduce((s, a) => s + a.priceTTC, 0))} TTC</strong>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="flex flex-wrap gap-2">
+              {activeAddons.map((a) => {
+                const meta = ADDON_CATEGORY_META[a.category] ?? ADDON_CATEGORY_META.general;
+                const Icon = meta.icon;
+                return (
+                  <div key={a.id} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium", meta.bg, meta.color)}>
+                    <Icon className="w-3 h-3" />
+                    {a.name}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Catalog by category */}
+      {categories.map((cat) => {
+        const items = grouped[cat];
+        if (!items || items.length === 0) return null;
+        const meta = ADDON_CATEGORY_META[cat];
+        const Icon = meta.icon;
+        return (
+          <div key={cat} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className={cn("p-1.5 rounded-md border", meta.bg)}>
+                <Icon className={cn("w-3.5 h-3.5", meta.color)} />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">{meta.label}</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {items.map((addon) => (
+                <AddonCard
+                  key={addon.id}
+                  addon={addon}
+                  onToggle={handleToggle}
+                  loading={togglingId === addon.id}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {addons.length === 0 && (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Sparkles className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-muted-foreground">Aucun add-on disponible pour le moment.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Tous les prix sont affichés <strong>hors taxes (HT)</strong>. La TVA de 18 % est appliquée au moment du paiement.
+        Les add-ons mensuels sont renouvelés automatiquement avec votre abonnement principal.
+      </p>
     </div>
   );
 }
