@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, tasksTable, clientsTable, opportunitiesTable, rentalsTable, equipmentTable, invoicesTable, paymentsTable } from "@workspace/db";
-import { isNull, sql, and, eq } from "drizzle-orm";
+import { projectsTable, tasksTable, clientsTable, opportunitiesTable, rentalsTable, equipmentTable, invoicesTable, paymentsTable, collaboratorsTable, leaveRequestsTable } from "@workspace/db";
+import { isNull, sql, and, eq, lt } from "drizzle-orm";
 
 const router = Router();
 
@@ -49,24 +49,60 @@ router.get("/dashboard/kpis", async (req, res, next) => {
       available: sql<number>`cast(count(*) filter (where ${equipmentTable.status} = 'available') as int)`,
     }).from(equipmentTable).where(and(eq(equipmentTable.organizationId, orgId), isNull(equipmentTable.deletedAt)));
 
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [collabStats] = await db.select({
+      total: sql<number>`cast(count(*) filter (where ${collaboratorsTable.employmentStatus} = 'active' and ${collaboratorsTable.deletedAt} is null) as int)`,
+    }).from(collaboratorsTable).where(eq(collaboratorsTable.organizationId, orgId));
+
+    const [leaveStats] = await db.select({
+      pending: sql<number>`cast(count(*) filter (where ${leaveRequestsTable.status} = 'pending') as int)`,
+    }).from(leaveRequestsTable).where(eq(leaveRequestsTable.organizationId, orgId));
+
+    const [lateProjectsStats] = await db.select({
+      count: sql<number>`cast(count(*) as int)`,
+    }).from(projectsTable).where(and(
+      eq(projectsTable.organizationId, orgId),
+      eq(projectsTable.status, "active"),
+      isNull(projectsTable.deletedAt),
+      lt(projectsTable.endDate, today),
+    ));
+
+    const [overdueStats] = await db.select({
+      count: sql<number>`cast(count(*) as int)`,
+    }).from(invoicesTable).where(and(
+      eq(invoicesTable.organizationId, orgId),
+      sql`${invoicesTable.status} not in ('paid', 'cancelled')`,
+      sql`${invoicesTable.dueDate} is not null`,
+      sql`${invoicesTable.dueDate} < ${today}`,
+    ));
+
     const openOpps = oppRows.filter(o => !["won", "lost"].includes(o.stage));
+    const wonOpps  = oppRows.filter(o => o.stage === "won");
     const pipelineValue = openOpps.reduce((s, o) => s + (o.value ? Number(o.value) : 0), 0);
     const totalPaid = Number(paymentStats?.totalPaid ?? 0);
     const totalInvoiced = Number(invoiceStats?.totalInvoiced ?? 0);
 
     return res.json({
       activeProjects:       kpiRows[0]?.activeProjects ?? 0,
+      totalProjects:        kpiRows[0]?.totalProjects ?? 0,
+      lateProjects:         lateProjectsStats?.count ?? 0,
       totalClients:         clientStats?.total ?? 0,
       tasksTodo:            taskStats?.todo ?? 0,
       tasksInProgress:      taskStats?.inProgress ?? 0,
       tasksCompleted:       taskStats?.done ?? 0,
       openOpportunities:    openOpps.length,
+      totalOpportunities:   oppRows.length,
+      wonOpportunities:     wonOpps.length,
       pipelineValue,
       monthlyRevenue:       totalPaid,
       outstandingInvoices:  totalInvoiced - totalPaid,
+      overdueInvoicesCount: overdueStats?.count ?? 0,
       activeRentals:        rentalStats?.active ?? 0,
       equipmentAvailable:   equipStats?.available ?? 0,
       unreadMessages:       0,
+      totalCollaborators:   collabStats?.total ?? 0,
+      pendingLeaves:        leaveStats?.pending ?? 0,
       currency:             "XOF",
     });
   } catch (e) { next(e); }

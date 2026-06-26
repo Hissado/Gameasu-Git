@@ -1,0 +1,172 @@
+Pouvez-vous rendre la barre de KPI / indicateurs visible dans le screenshot entièrement **paramétrable** ?
+
+### Contexte
+
+Actuellement, cette section affiche des indicateurs comme :
+
+* Encaissements cumulés
+* Créances ouvertes
+* CA total facturé
+* Pipeline CRM
+* Projets actifs
+* Taux de recouvrement
+
+Je veux que cette zone ne soit pas figée. Chaque organisation ou utilisateur autorisé doit pouvoir configurer les indicateurs qu’il souhaite voir selon ses besoins, son rôle et son niveau d’accès.
+
+---
+
+## Objectif
+
+Créer une section KPI dynamique et personnalisable permettant de choisir :
+
+* quels indicateurs afficher
+* dans quel ordre les afficher
+* qui peut les voir
+* quels modules alimentent ces indicateurs
+* quelle période utiliser
+* quel format afficher
+* si l’indicateur doit être visible ou masqué
+
+---
+
+## 1. Ajouter un bouton de configuration
+
+Ajouter un bouton clair, par exemple :
+
+**Personnaliser les indicateurs**
+
+ou
+
+**Configurer les KPI**
+
+Ce bouton doit permettre à l’utilisateur autorisé de modifier les cartes affichées dans cette section.
+
+---
+
+## 2. Choix des indicateurs
+
+L’utilisateur doit pouvoir sélectionner les KPI à afficher parmi plusieurs catégories.
+
+### Exemples d’indicateurs disponibles
+
+#### Finance
+
+* Encaissements cumulés
+* Créances ouvertes
+* Trésorerie disponible
+* Factures en retard
+* Charges du mois
+* Résultat net
+* Budget vs réalisé
+* Taux de recouvrement
+
+#### Ventes / CRM
+
+* CA total facturé
+* Pipeline CRM
+* Opportunités ouvertes
+* Devis envoyés
+* Devis acceptés
+* Nouveaux clients
+* Taux de conversion
+
+#### Opérations
+
+* Projets actifs
+* Projets en retard
+* Tâches ouvertes
+* Taux d’avancement moyen
+* Équipements utilisés
+* Stock faible
+
+#### RH
+
+* Collaborateurs actifs
+* Absences du jour
+* Congés en attente
+* Heures travaillées
+* Retards
+* Pointages manquants
+
+---
+
+## 3. Paramètres par utilisateur ou par organisation
+
+Prévoir deux niveaux de configuration :
+
+### Configuration organisation
+
+L’admin de l’organisation peut définir les KPI par défaut visibles pour toute l’organisation.
+
+### Configuration utilisateur
+
+Chaque utilisateur peut personnaliser son propre affichage si son rôle l’autorise.
+
+Par exemple :
+
+* le responsable Finance voit les indicateurs financiers
+* le responsable Commercial voit les indicateurs CRM et ventes
+* le responsable RH voit les indicateurs RH
+* le dirigeant voit tous les indicateurs principaux
+* un utilisateur lecture seule voit uniquement les indicateurs autorisés
+
+---
+
+## 4. Gestion des accès
+
+Les KPI doivent respecter les rôles et permissions.
+
+Un utilisateur ne doit jamais voir un indicateur provenant d’un module auquel il n’a pas accès.
+
+Exemples :
+
+* un utilisateur sans accès Finance ne doit pas voir les encaissements, créances ou trésorerie
+* un utilisateur sans accès RH ne doit pas voir les absences, paie ou pointages
+* un utilisateur sans accès CRM ne doit pas voir le pipeline commercial
+
+La configuration doit être sécurisée côté frontend et backend.
+
+---
+
+## 5. Personnalisation de l’affichage
+
+L’utilisateur autorisé doit pouvoir :
+
+* afficher ou masquer un KPI
+* réorganiser les KPI par glisser-déposer
+* choisir la période : aujourd’hui, semaine, mois, trimestre, année, personnalisé
+* choisir le format : montant, pourcentage, nombre, évolution
+* choisir le nombre de KPI visibles par ligne
+* restaurer les paramètres par défaut
+* sauvegarder la configuration
+
+---
+
+## 6. Responsive et design
+
+La section doit rester propre sur desktop, tablette et mobile.
+
+Corriger aussi les problèmes éventuels de débordement :
+
+* montants trop longs
+* cartes trop serrées
+* textes coupés
+* KPI qui dépassent
+* mauvais alignement sur mobile
+
+Les montants doivent rester lisibles, par exemple :
+
+* 227,3 M FCFA
+* 91,3 M FCFA
+* 1,4 Md FCFA
+* 47 200 FCFA TTC
+
+---
+
+## 7. Résultat attendu
+
+Je veux que cette section devienne une vraie zone d’indicateurs personnalisables, permettant à chaque organisation et chaque utilisateur autorisé de voir les données les plus utiles pour son rôle.
+
+### Objectif final
+
+Transformer la barre KPI en un tableau de bord paramétrable, intelligent et sécurisé, où les indicateurs affichés s’adaptent aux besoins, aux permissions et aux priorités de chaque utilisateur.

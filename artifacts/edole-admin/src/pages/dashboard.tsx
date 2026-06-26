@@ -19,7 +19,9 @@ import {
   Briefcase,
   Building2,
   CalendarClock,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   ClipboardList,
   FileText,
   FileSignature,
@@ -27,10 +29,18 @@ import {
   LineChart as LineChartIcon,
   Plus,
   Receipt,
+  Settings2,
   Target,
   TrendingUp,
   Users,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import {
   Area,
   AreaChart,
@@ -109,141 +119,600 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 // ───────────────────────────────────────────────────────────────────────────
-// Executive KPI Strip — Bloomberg-style horizontal financial bar
+// KPI Strip — Configurable Bloomberg-style horizontal bar
 // ───────────────────────────────────────────────────────────────────────────
 
-type KpiCell = {
-  label: string;
+type KpiDirection = "up" | "down" | "flat" | "none";
+
+type KpiData = {
   value: React.ReactNode;
   rawValue?: number;
-  direction: "up" | "down" | "flat" | "none";
+  direction: KpiDirection;
   pct?: number;
   vs: string;
-  isMoney?: boolean;
-  isPercent?: boolean;
   highlight?: boolean;
 };
 
-function TrendChip({ direction, pct }: { direction: KpiCell["direction"]; pct?: number }) {
+type DashboardKpisShape = {
+  activeProjects: number;
+  totalProjects: number;
+  lateProjects: number;
+  totalClients: number;
+  tasksTodo: number;
+  tasksInProgress: number;
+  tasksCompleted: number;
+  openOpportunities: number;
+  totalOpportunities: number;
+  wonOpportunities: number;
+  pipelineValue: number;
+  monthlyRevenue: number;
+  outstandingInvoices: number;
+  overdueInvoicesCount: number;
+  activeRentals: number;
+  equipmentAvailable: number;
+  unreadMessages: number;
+  totalCollaborators: number;
+  pendingLeaves: number;
+  currency: string;
+};
+
+type KpiDef = {
+  id: string;
+  label: string;
+  category: "finance" | "crm" | "operations" | "rh";
+  categoryLabel: string;
+  compute: (k: DashboardKpisShape) => KpiData;
+  defaultVisible: boolean;
+};
+
+const KPI_CATALOG: KpiDef[] = [
+  // Finance
+  {
+    id: "encaissements",
+    label: "Encaissements (cumul)",
+    category: "finance",
+    categoryLabel: "Finance",
+    defaultVisible: true,
+    compute: (k) => ({
+      value: formatFCFACompact(k.monthlyRevenue),
+      rawValue: k.monthlyRevenue,
+      direction: k.monthlyRevenue > 0 ? "up" : "flat",
+      vs: "paiements reçus",
+    }),
+  },
+  {
+    id: "creances",
+    label: "Créances ouvertes",
+    category: "finance",
+    categoryLabel: "Finance",
+    defaultVisible: true,
+    compute: (k) => {
+      const total = k.monthlyRevenue + k.outstandingInvoices;
+      const ratio = total > 0 ? Math.round((k.outstandingInvoices / total) * 100) : 0;
+      return {
+        value: formatFCFACompact(k.outstandingInvoices),
+        rawValue: k.outstandingInvoices,
+        direction: k.outstandingInvoices > total * 0.4 ? "down" : k.outstandingInvoices > 0 ? "flat" : "up",
+        pct: ratio > 0 ? ratio : undefined,
+        vs: "du CA facturé",
+      };
+    },
+  },
+  {
+    id: "ca_facture",
+    label: "CA Total facturé",
+    category: "finance",
+    categoryLabel: "Finance",
+    defaultVisible: true,
+    compute: (k) => {
+      const total = k.monthlyRevenue + k.outstandingInvoices;
+      return {
+        value: formatFCFACompact(total),
+        rawValue: total,
+        direction: total > 0 ? "up" : "flat",
+        vs: "CA total facturé",
+      };
+    },
+  },
+  {
+    id: "taux_recouvrement",
+    label: "Taux de recouvrement",
+    category: "finance",
+    categoryLabel: "Finance",
+    defaultVisible: true,
+    compute: (k) => {
+      const total = k.monthlyRevenue + k.outstandingInvoices;
+      const rate = total > 0 ? Math.round((k.monthlyRevenue / total) * 100) : 0;
+      return {
+        value: `${rate}%`,
+        rawValue: rate,
+        direction: rate >= 75 ? "up" : rate >= 40 ? "flat" : "down",
+        pct: rate > 0 ? rate : undefined,
+        vs: "encaissé / facturé",
+      };
+    },
+  },
+  {
+    id: "factures_retard",
+    label: "Factures en retard",
+    category: "finance",
+    categoryLabel: "Finance",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.overdueInvoicesCount,
+      rawValue: k.overdueInvoicesCount,
+      direction: k.overdueInvoicesCount > 0 ? "down" : "up",
+      vs: "factures échues impayées",
+    }),
+  },
+  // CRM / Ventes
+  {
+    id: "pipeline_crm",
+    label: "Pipeline CRM",
+    category: "crm",
+    categoryLabel: "CRM & Ventes",
+    defaultVisible: true,
+    compute: (k) => {
+      const ratio = k.monthlyRevenue > 0 ? Math.round((k.pipelineValue / k.monthlyRevenue) * 100) : 0;
+      return {
+        value: formatFCFACompact(k.pipelineValue),
+        rawValue: k.pipelineValue,
+        direction: k.pipelineValue > 0 ? "up" : "flat",
+        pct: ratio > 0 ? ratio : undefined,
+        vs: "vs encaissements",
+        highlight: true,
+      };
+    },
+  },
+  {
+    id: "opportunites",
+    label: "Opportunités ouvertes",
+    category: "crm",
+    categoryLabel: "CRM & Ventes",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.openOpportunities,
+      rawValue: k.openOpportunities,
+      direction: k.openOpportunities > 0 ? "up" : "flat",
+      vs: `sur ${k.totalClients} clients`,
+    }),
+  },
+  {
+    id: "clients",
+    label: "Clients totaux",
+    category: "crm",
+    categoryLabel: "CRM & Ventes",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.totalClients,
+      rawValue: k.totalClients,
+      direction: k.totalClients > 0 ? "up" : "flat",
+      vs: "dans le CRM",
+    }),
+  },
+  {
+    id: "taux_conversion",
+    label: "Taux de conversion",
+    category: "crm",
+    categoryLabel: "CRM & Ventes",
+    defaultVisible: false,
+    compute: (k) => {
+      const rate = k.totalOpportunities > 0
+        ? Math.round((k.wonOpportunities / k.totalOpportunities) * 100)
+        : 0;
+      return {
+        value: `${rate}%`,
+        rawValue: rate,
+        direction: rate >= 30 ? "up" : rate >= 15 ? "flat" : "down",
+        pct: rate > 0 ? rate : undefined,
+        vs: `${k.wonOpportunities} opp. gagnées`,
+      };
+    },
+  },
+  // Opérations
+  {
+    id: "projets_actifs",
+    label: "Projets actifs",
+    category: "operations",
+    categoryLabel: "Opérations",
+    defaultVisible: true,
+    compute: (k) => ({
+      value: k.activeProjects,
+      rawValue: k.activeProjects,
+      direction: k.activeProjects > 0 ? "up" : "flat",
+      vs: `sur ${k.totalClients} clients`,
+    }),
+  },
+  {
+    id: "projets_retard",
+    label: "Projets en retard",
+    category: "operations",
+    categoryLabel: "Opérations",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.lateProjects,
+      rawValue: k.lateProjects,
+      direction: k.lateProjects > 0 ? "down" : "up",
+      vs: "dépassement d'échéance",
+    }),
+  },
+  {
+    id: "taches_en_cours",
+    label: "Tâches en cours",
+    category: "operations",
+    categoryLabel: "Opérations",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.tasksInProgress,
+      rawValue: k.tasksInProgress,
+      direction: k.tasksInProgress > 0 ? "up" : "flat",
+      vs: `${k.tasksTodo} à faire`,
+    }),
+  },
+  {
+    id: "locations_actives",
+    label: "Locations actives",
+    category: "operations",
+    categoryLabel: "Opérations",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.activeRentals,
+      rawValue: k.activeRentals,
+      direction: k.activeRentals > 0 ? "up" : "flat",
+      vs: "contrats en cours",
+    }),
+  },
+  {
+    id: "equipements_dispo",
+    label: "Équipements disponibles",
+    category: "operations",
+    categoryLabel: "Opérations",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.equipmentAvailable,
+      rawValue: k.equipmentAvailable,
+      direction: k.equipmentAvailable > 0 ? "up" : "flat",
+      vs: "prêts à l'emploi",
+    }),
+  },
+  // RH
+  {
+    id: "collaborateurs",
+    label: "Collaborateurs actifs",
+    category: "rh",
+    categoryLabel: "Ressources Humaines",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.totalCollaborators,
+      rawValue: k.totalCollaborators,
+      direction: k.totalCollaborators > 0 ? "up" : "flat",
+      vs: "dans l'effectif",
+    }),
+  },
+  {
+    id: "conges_attente",
+    label: "Congés en attente",
+    category: "rh",
+    categoryLabel: "Ressources Humaines",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.pendingLeaves,
+      rawValue: k.pendingLeaves,
+      direction: k.pendingLeaves > 0 ? "flat" : "up",
+      vs: "demandes à traiter",
+    }),
+  },
+  {
+    id: "messages",
+    label: "Messages non lus",
+    category: "rh",
+    categoryLabel: "Messagerie",
+    defaultVisible: false,
+    compute: (k) => ({
+      value: k.unreadMessages,
+      rawValue: k.unreadMessages,
+      direction: k.unreadMessages > 0 ? "flat" : "up",
+      vs: "conversations actives",
+    }),
+  },
+];
+
+const DEFAULT_KPI_IDS = KPI_CATALOG.filter((k) => k.defaultVisible).map((k) => k.id);
+
+// ─── Config hook (localStorage-backed) ────────────────────────────────────
+
+function useKpiConfig(userId?: string) {
+  const key = `gameasu_kpi_config_${userId ?? "default"}`;
+  const [orderedIds, setOrderedIds] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed: string[] = JSON.parse(saved);
+        const valid = parsed.filter((id) => KPI_CATALOG.some((k) => k.id === id));
+        if (valid.length > 0) return valid;
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_KPI_IDS;
+  });
+
+  const persist = React.useCallback((ids: string[]) => {
+    setOrderedIds(ids);
+    try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* ignore */ }
+  }, [key]);
+
+  const toggle = (id: string) => {
+    if (orderedIds.includes(id)) {
+      if (orderedIds.length <= 1) return;
+      persist(orderedIds.filter((x) => x !== id));
+    } else {
+      persist([...orderedIds, id]);
+    }
+  };
+
+  const moveUp = (id: string) => {
+    const i = orderedIds.indexOf(id);
+    if (i <= 0) return;
+    const next = [...orderedIds];
+    [next[i - 1], next[i]] = [next[i], next[i - 1]];
+    persist(next);
+  };
+
+  const moveDown = (id: string) => {
+    const i = orderedIds.indexOf(id);
+    if (i < 0 || i >= orderedIds.length - 1) return;
+    const next = [...orderedIds];
+    [next[i], next[i + 1]] = [next[i + 1], next[i]];
+    persist(next);
+  };
+
+  const reset = () => persist(DEFAULT_KPI_IDS);
+
+  return { orderedIds, toggle, moveUp, moveDown, reset };
+}
+
+// ─── Config sheet ─────────────────────────────────────────────────────────
+
+const CAT_TABS = [
+  { id: "all",        label: "Tous" },
+  { id: "finance",    label: "Finance" },
+  { id: "crm",        label: "CRM & Ventes" },
+  { id: "operations", label: "Opérations" },
+  { id: "rh",         label: "RH" },
+] as const;
+
+function KpiConfigSheet({
+  open, onClose, orderedIds, toggle, moveUp, moveDown, reset,
+}: {
+  open: boolean;
+  onClose: () => void;
+  orderedIds: string[];
+  toggle: (id: string) => void;
+  moveUp: (id: string) => void;
+  moveDown: (id: string) => void;
+  reset: () => void;
+}) {
+  const [catFilter, setCatFilter] = React.useState<string>("all");
+
+  const visibleInFilter = orderedIds.filter((id) => {
+    const def = KPI_CATALOG.find((k) => k.id === id);
+    return def && (catFilter === "all" || def.category === catFilter);
+  });
+
+  const hiddenInFilter = KPI_CATALOG.filter(
+    (k) => !orderedIds.includes(k.id) && (catFilter === "all" || k.category === catFilter)
+  );
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0 gap-0">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <SheetTitle className="flex items-center gap-2 text-base">
+            <Settings2 className="w-4 h-4 text-primary shrink-0" />
+            Personnaliser les indicateurs
+          </SheetTitle>
+          <p className="text-sm text-slate-500 font-normal leading-snug mt-1">
+            Activez ou masquez les KPI et réordonnez-les selon vos priorités.
+          </p>
+        </SheetHeader>
+
+        {/* Category filter */}
+        <div className="flex gap-1.5 px-4 py-3 border-b overflow-x-auto shrink-0 bg-slate-50/70">
+          {CAT_TABS.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setCatFilter(cat.id)}
+              className={cn(
+                "text-[11px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap transition-colors",
+                catFilter === cat.id
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100",
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable list */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Visible section */}
+          {visibleInFilter.length > 0 && (
+            <div className="px-4 pt-4 pb-3">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-1">
+                Affichés ({orderedIds.length})
+              </div>
+              <div className="space-y-1.5">
+                {visibleInFilter.map((id) => {
+                  const def = KPI_CATALOG.find((k) => k.id === id)!;
+                  const globalIdx = orderedIds.indexOf(id);
+                  return (
+                    <div key={id} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-slate-800 truncate">{def.label}</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">{def.categoryLabel}</div>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          onClick={() => moveUp(id)}
+                          disabled={globalIdx === 0}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-25 transition-colors"
+                          title="Remonter"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                        <button
+                          onClick={() => moveDown(id)}
+                          disabled={globalIdx === orderedIds.length - 1}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-25 transition-colors"
+                          title="Descendre"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                        <Switch
+                          checked={true}
+                          onCheckedChange={() => toggle(id)}
+                          className="scale-90 ml-1"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Hidden section */}
+          {hiddenInFilter.length > 0 && (
+            <div className="px-4 pt-1 pb-6">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-1">
+                Masqués
+              </div>
+              <div className="space-y-1.5">
+                {hiddenInFilter.map((def) => (
+                  <div key={def.id} className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-500 truncate">{def.label}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">{def.categoryLabel}</div>
+                    </div>
+                    <Switch
+                      checked={false}
+                      onCheckedChange={() => toggle(def.id)}
+                      className="scale-90 shrink-0"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-4 flex items-center justify-between bg-slate-50/70 shrink-0">
+          <button
+            onClick={reset}
+            className="text-sm text-slate-500 hover:text-primary transition-colors hover:underline underline-offset-2"
+          >
+            Restaurer par défaut
+          </button>
+          <button
+            onClick={onClose}
+            className="bg-primary text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            Terminé
+          </button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── Trend chip ────────────────────────────────────────────────────────────
+
+function TrendChip({ direction, pct }: { direction: KpiDirection; pct?: number }) {
   if (direction === "none") return null;
-  const up = direction === "up";
+  const up   = direction === "up";
   const down = direction === "down";
-  const flat = direction === "flat";
   return (
     <span className={cn(
       "inline-flex items-center gap-0.5 text-[11px] font-bold",
-      up && "text-emerald-600",
+      up   && "text-emerald-600",
       down && "text-rose-600",
-      flat && "text-slate-400",
+      !up && !down && "text-slate-400",
     )}>
-      {up && <span style={{ fontSize: 9 }}>▲</span>}
+      {up   && <span style={{ fontSize: 9 }}>▲</span>}
       {down && <span style={{ fontSize: 9 }}>▼</span>}
-      {flat && <span style={{ fontSize: 9 }}>●</span>}
-      {pct !== undefined && (
-        <span>{pct > 0 ? "+" : ""}{pct}%</span>
-      )}
+      {!up && !down && <span style={{ fontSize: 9 }}>●</span>}
+      {pct !== undefined && <span>{pct > 0 ? "+" : ""}{pct}%</span>}
     </span>
   );
 }
 
-function ExecutiveKpiStrip({ kpis, loading }: { kpis: any; loading: boolean }) {
-  const collected = Number(kpis?.monthlyRevenue || 0);
-  const outstanding = Number(kpis?.outstandingInvoices || 0);
-  const totalInvoiced = collected + outstanding;
-  const pipeline = Number(kpis?.pipelineValue || 0);
-  const activeProjects = Number(kpis?.activeProjects || 0);
-  const collectionRate = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0;
+// ─── The strip itself ──────────────────────────────────────────────────────
 
-  const outstandingRatio = totalInvoiced > 0 ? Math.round((outstanding / totalInvoiced) * 100) : 0;
-  const pipelineRatio = collected > 0 ? Math.round((pipeline / collected) * 100) : 0;
-
-  const cells: KpiCell[] = [
-    {
-      label: "Encaissements (cumul)",
-      value: formatFCFACompact(collected),
-      rawValue: collected,
-      direction: collected > 0 ? "up" : "flat",
-      pct: undefined,
-      vs: "paiements reçus",
-      isMoney: true,
-    },
-    {
-      label: "Créances ouvertes",
-      value: formatFCFACompact(outstanding),
-      rawValue: outstanding,
-      direction: outstanding > totalInvoiced * 0.4 ? "down" : outstanding > 0 ? "flat" : "up",
-      pct: outstandingRatio > 0 ? outstandingRatio : undefined,
-      vs: "du CA facturé",
-    },
-    {
-      label: "CA Total facturé",
-      value: formatFCFACompact(totalInvoiced),
-      rawValue: totalInvoiced,
-      direction: totalInvoiced > 0 ? "up" : "flat",
-      pct: undefined,
-      vs: "vs budget",
-      isMoney: true,
-    },
-    {
-      label: "Pipeline CRM",
-      value: formatFCFACompact(pipeline),
-      rawValue: pipeline,
-      direction: pipeline > 0 ? "up" : "flat",
-      pct: pipelineRatio > 0 ? pipelineRatio : undefined,
-      vs: "vs encaissements",
-      highlight: true,
-    },
-    {
-      label: "Projets actifs",
-      value: activeProjects,
-      rawValue: activeProjects,
-      direction: activeProjects > 0 ? "up" : "flat",
-      pct: undefined,
-      vs: `sur ${(kpis?.totalClients || 0)} clients`,
-    },
-    {
-      label: "Taux de recouvrement",
-      value: `${collectionRate}%`,
-      rawValue: collectionRate,
-      direction: collectionRate >= 75 ? "up" : collectionRate >= 40 ? "flat" : "down",
-      pct: collectionRate || undefined,
-      vs: "encaissé / facturé",
-      isPercent: true,
-    },
-  ];
+function ExecutiveKpiStrip({
+  kpis,
+  loading,
+  orderedIds,
+  onConfigure,
+}: {
+  kpis: DashboardKpisShape | undefined;
+  loading: boolean;
+  orderedIds: string[];
+  onConfigure: () => void;
+}) {
+  const visibleDefs = orderedIds
+    .map((id) => KPI_CATALOG.find((k) => k.id === id))
+    .filter((d): d is KpiDef => !!d);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex divide-x divide-slate-100">
-        {cells.map((cell, i) => (
-          <div
-            key={i}
-            className={cn(
-              "flex-1 min-w-0 px-5 py-5 flex flex-col",
-              cell.highlight && "bg-primary/[0.03]",
-            )}
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 truncate leading-none">
-              {cell.label}
-            </div>
-            {loading ? (
-              <Skeleton className="h-7 w-24 mt-3" />
-            ) : (
-              <div className={cn(
-                "font-black tracking-tight mt-2 leading-none",
-                "text-[1.45rem] sm:text-[1.65rem]",
-                cell.highlight ? "text-primary" : "text-slate-900",
-              )}>
-                {cell.value}
+      <div className="overflow-x-auto">
+        <div className="flex divide-x divide-slate-100" style={{ minWidth: `${visibleDefs.length * 148 + 52}px` }}>
+          {visibleDefs.map((def) => {
+            const cell = kpis ? def.compute(kpis) : null;
+            return (
+              <div
+                key={def.id}
+                className={cn(
+                  "flex-1 min-w-[148px] px-4 py-4 flex flex-col",
+                  cell?.highlight && "bg-primary/[0.03]",
+                )}
+              >
+                <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 truncate leading-none">
+                  {def.label}
+                </div>
+                {loading ? (
+                  <Skeleton className="h-7 w-24 mt-3" />
+                ) : (
+                  <div className={cn(
+                    "font-black tracking-tight mt-2 leading-none text-[1.4rem] xl:text-[1.55rem]",
+                    cell?.highlight ? "text-primary" : "text-slate-900",
+                  )}>
+                    {cell?.value ?? "—"}
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 mt-2">
+                  {!loading && cell && <TrendChip direction={cell.direction} pct={cell.pct} />}
+                  {loading && <Skeleton className="h-3 w-14" />}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5 leading-none truncate">
+                  {cell?.vs ?? ""}
+                </div>
               </div>
-            )}
-            <div className="flex items-center gap-1.5 mt-2">
-              {!loading && <TrendChip direction={cell.direction} pct={cell.pct} />}
-              {loading && <Skeleton className="h-3 w-12" />}
-            </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 leading-none">{cell.vs}</div>
+            );
+          })}
+
+          {/* Config button */}
+          <div className="w-12 shrink-0 flex items-center justify-center border-l border-slate-100">
+            <button
+              onClick={onConfigure}
+              title="Personnaliser les indicateurs"
+              className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
@@ -297,6 +766,8 @@ function chartTooltipStyle() {
 export default function Dashboard() {
   const { user } = useAuth();
   const firstName = user?.firstName || "";
+  const [kpiConfigOpen, setKpiConfigOpen] = React.useState(false);
+  const { orderedIds, toggle, moveUp, moveDown, reset } = useKpiConfig(user?.id);
 
   const { data: kpis, isLoading: loadingKpis } = useGetDashboardKpis();
   const { data: charts, isLoading: loadingCharts } = useGetDashboardCharts();
@@ -389,8 +860,22 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ─── Barre KPI financière (Bloomberg style) ─── */}
-      <ExecutiveKpiStrip kpis={kpis} loading={loadingKpis} />
+      {/* ─── Barre KPI configurable ─── */}
+      <ExecutiveKpiStrip
+        kpis={kpis as DashboardKpisShape | undefined}
+        loading={loadingKpis}
+        orderedIds={orderedIds}
+        onConfigure={() => setKpiConfigOpen(true)}
+      />
+      <KpiConfigSheet
+        open={kpiConfigOpen}
+        onClose={() => setKpiConfigOpen(false)}
+        orderedIds={orderedIds}
+        toggle={toggle}
+        moveUp={moveUp}
+        moveDown={moveDown}
+        reset={reset}
+      />
 
       {/* ─── Actions rapides ─── */}
       <div className="flex flex-wrap items-center gap-2">
