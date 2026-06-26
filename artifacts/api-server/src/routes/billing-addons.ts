@@ -169,12 +169,16 @@ router.get("/billing/addons", async (req, res, next) => {
 
     const result = catalog.map((addon) => {
       const sub = orgAddonMap.get(addon.id) ?? null;
-      const tva = Math.round(addon.priceHT * TVA_RATE);
+      // Prix effectif : custom (négocié) > catalogue
+      const effectivePriceHT = (sub?.customPriceHT != null) ? sub.customPriceHT : addon.priceHT;
+      const tva = Math.round(effectivePriceHT * TVA_RATE);
       const balance = sub ? Math.max(0, sub.creditsPurchased - sub.usageUsed) : 0;
       return {
         ...addon,
         tva,
-        priceHT: addon.priceHT,
+        priceHT: effectivePriceHT,
+        catalogPriceHT: addon.priceHT,
+        hasCustomPrice: sub?.customPriceHT != null,
         subscription: sub
           ? {
               id:               sub.id,

@@ -18,6 +18,7 @@ import {
   db, organizationsTable, organizationMembersTable, organizationSubscriptionsTable,
   subscriptionPlansTable, billingEventsTable, organizationModulesTable, usersTable,
   ticketsTable, cockpitAuditLogsTable, authSessionsTable,
+  addonCatalogTable, orgAddonsTable,
 } from "@workspace/db";
 import { and, eq, sql, desc, gte, ne, inArray, isNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
@@ -766,6 +767,95 @@ router.patch("/super-admin/organizations/:id/custom-price", sa, async (req, res,
       "custom-price: prix négocié défini par le super-admin",
     );
     return res.json({ ok: true, organizationId: id, monthlyHt });
+  } catch (e) { next(e); }
+});
+
+// ─── Add-on pricing per tenant ───────────────────────────────────────────────
+
+/**
+ * GET /super-admin/organizations/:id/addon-pricing
+ * Retourne le catalogue des add-ons avec le prix custom de l'org (null = prix catalogue)
+ */
+router.get("/super-admin/organizations/:id/addon-pricing", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params as Record<string, string>;
+    const [org] = await db.select({ id: organizationsTable.id })
+      .from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+    const catalog = await db.select().from(addonCatalogTable)
+      .where(eq(addonCatalogTable.isActive, true))
+      .orderBy(addonCatalogTable.sortOrder);
+
+    const orgAddons = await db.select().from(orgAddonsTable)
+      .where(eq(orgAddonsTable.organizationId, id));
+
+    const overrideMap = new Map(orgAddons.map((a) => [a.addonId, a.customPriceHT]));
+
+    const result = catalog.map((addon) => ({
+      id:             addon.id,
+      slug:           addon.slug,
+      name:           addon.name,
+      category:       addon.category,
+      billingType:    addon.billingType,
+      unit:           addon.unit,
+      catalogPriceHT: addon.priceHT,
+      customPriceHT:  overrideMap.has(addon.id) ? overrideMap.get(addon.id) ?? null : null,
+      effectivePriceHT: overrideMap.has(addon.id) && overrideMap.get(addon.id) != null
+        ? overrideMap.get(addon.id)!
+        : addon.priceHT,
+    }));
+
+    return res.json({ data: result });
+  } catch (e) { next(e); }
+});
+
+/**
+ * PUT /super-admin/organizations/:id/addon-pricing
+ * Body: { prices: [{ addonId, customPriceHT: number | null }] }
+ * customPriceHT = null → réinitialise au prix catalogue
+ */
+router.put("/super-admin/organizations/:id/addon-pricing", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params as Record<string, string>;
+    const { prices } = req.body as { prices: Array<{ addonId: string; customPriceHT: number | null }> };
+
+    if (!Array.isArray(prices)) {
+      return res.status(400).json({ error: "prices doit être un tableau" });
+    }
+
+    const [org] = await db.select({ id: organizationsTable.id, name: organizationsTable.name })
+      .from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+    for (const item of prices) {
+      if (typeof item.addonId !== "string") continue;
+      if (item.customPriceHT !== null && (typeof item.customPriceHT !== "number" || item.customPriceHT < 0)) continue;
+
+      // Upsert: create orgAddon row if missing (status=inactive, just to store custom price)
+      const existing = await db.select({ id: orgAddonsTable.id })
+        .from(orgAddonsTable)
+        .where(and(eq(orgAddonsTable.organizationId, id), eq(orgAddonsTable.addonId, item.addonId)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db.update(orgAddonsTable)
+          .set({ customPriceHT: item.customPriceHT, updatedAt: new Date() })
+          .where(eq(orgAddonsTable.id, existing[0].id));
+      } else {
+        await db.insert(orgAddonsTable).values({
+          organizationId:  id,
+          addonId:         item.addonId,
+          status:          "inactive",
+          customPriceHT:   item.customPriceHT,
+          usageUsed:       0,
+          creditsPurchased: 0,
+        });
+      }
+    }
+
+    req.log.info({ userId: req.authUser?.id, orgId: id, count: prices.length }, "addon-pricing: prix personnalisés mis à jour");
+    return res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

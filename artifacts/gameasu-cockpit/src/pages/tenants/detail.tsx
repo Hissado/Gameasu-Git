@@ -12,6 +12,7 @@ import {
   Loader2, ArrowLeft, Building2, Users, CreditCard, Ticket, Activity,
   Power, PowerOff, CheckCircle2, XCircle, Clock, AlertTriangle, Mail,
   Calendar, TrendingUp, Shield, Package, Key, Copy, RefreshCw, Send, Trash2,
+  Sparkles, RotateCcw,
 } from "lucide-react";
 import OrgUsersTab from "./OrgUsersTab";
 import { toast } from "sonner";
@@ -121,7 +122,7 @@ const PLAN_COLOR: Record<string, string> = {
   ENTERPRISE: "bg-pink-50 text-pink-700 border-pink-200",
 };
 
-type Tab = "overview" | "subscription" | "billing" | "users" | "tickets" | "actions" | "access";
+type Tab = "overview" | "subscription" | "billing" | "addons" | "users" | "tickets" | "actions" | "access";
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,21 @@ export default function TenantDetail() {
     queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/admin-invitations`),
     enabled: tab === "access",
   });
+
+  type AddonPricingRow = {
+    id: string; slug: string; name: string; category: string;
+    billingType: string; unit: string | null;
+    catalogPriceHT: number; customPriceHT: number | null; effectivePriceHT: number;
+  };
+  const addonPricing = useQuery<{ data: AddonPricingRow[] }>({
+    queryKey: ["cockpit-org-addon-pricing", id],
+    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/addon-pricing`),
+    enabled: tab === "addons",
+  });
+
+  // Local draft prices while editing
+  const [draftPrices, setDraftPrices] = useState<Record<string, string>>({});
+  const [savingPrices, setSavingPrices] = useState(false);
 
   type StructInvRow = {
     id: string; contactEmail: string | null; contactName: string | null;
@@ -279,6 +295,32 @@ export default function TenantDetail() {
     }
   };
 
+  const handleSaveAddonPrices = async () => {
+    setSavingPrices(true);
+    try {
+      const rows = addonPricing.data?.data ?? [];
+      const prices = rows.map((r) => {
+        const raw = draftPrices[r.id];
+        const parsed = raw !== undefined ? (raw === "" ? null : parseInt(raw, 10)) : undefined;
+        return {
+          addonId:      r.id,
+          customPriceHT: parsed !== undefined ? (isNaN(parsed as number) ? null : parsed) : r.customPriceHT,
+        };
+      });
+      await apiFetch(`/api/super-admin/organizations/${id}/addon-pricing`, {
+        method: "PUT",
+        body: JSON.stringify({ prices }),
+      });
+      toast.success("Tarification add-ons enregistrée");
+      setDraftPrices({});
+      qc.invalidateQueries({ queryKey: ["cockpit-org-addon-pricing", id] });
+    } catch (e: unknown) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setSavingPrices(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!org || deleteInput !== org.name) return;
     setDeleting(true);
@@ -300,6 +342,7 @@ export default function TenantDetail() {
     { id: "overview",     label: "Vue d'ensemble",    icon: Activity },
     { id: "subscription", label: "Abonnement",        icon: CreditCard },
     { id: "billing",      label: "Paiements",         icon: TrendingUp },
+    { id: "addons",       label: "Add-ons",           icon: Sparkles },
     { id: "users",        label: "Utilisateurs",      icon: Users },
     { id: "tickets",      label: "Tickets",           icon: Ticket },
     { id: "access",       label: "Accès & Invitations", icon: Key },
@@ -676,6 +719,120 @@ export default function TenantDetail() {
                 </CardContent>
               </Card>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ── Onglet Add-ons ── */}
+      {tab === "addons" && (
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold">Tarification add-ons négociée</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Laissez un champ vide pour utiliser le prix catalogue. Le changement est immédiatement actif pour cette organisation.
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              {Object.keys(draftPrices).length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setDraftPrices({})}>
+                  Annuler
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={handleSaveAddonPrices}
+                disabled={savingPrices || Object.keys(draftPrices).length === 0}
+              >
+                {savingPrices ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />Enregistrement…</> : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
+
+          {addonPricing.isLoading ? (
+            <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Add-on</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Unité</TableHead>
+                    <TableHead className="text-right">Prix catalogue HT</TableHead>
+                    <TableHead className="text-right w-44">Prix négocié HT</TableHead>
+                    <TableHead className="text-right">Prix effectif</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(addonPricing.data?.data ?? []).filter((r) => r.billingType === "credits").map((row) => {
+                    const draft    = draftPrices[row.id];
+                    const isDirty  = draft !== undefined;
+                    const draftVal = isDirty ? (draft === "" ? null : parseInt(draft, 10)) : undefined;
+                    const effective = isDirty
+                      ? (draftVal != null && !isNaN(draftVal) ? draftVal : row.catalogPriceHT)
+                      : row.effectivePriceHT;
+                    const hasCustom = isDirty ? (draft !== "") : (row.customPriceHT != null);
+
+                    return (
+                      <TableRow key={row.id} className={isDirty ? "bg-amber-50/40" : undefined}>
+                        <TableCell className="font-medium text-sm">{row.name}</TableCell>
+                        <TableCell>
+                          <span className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{row.category}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{row.unit ?? "—"}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {row.catalogPriceHT.toLocaleString("fr-FR")} FCFA
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder={String(row.catalogPriceHT)}
+                            value={isDirty ? draft : (row.customPriceHT != null ? String(row.customPriceHT) : "")}
+                            onChange={(e) => setDraftPrices((p) => ({ ...p, [row.id]: e.target.value }))}
+                            className="h-7 text-right text-sm w-36 ml-auto font-mono"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">
+                          <span className={hasCustom ? "text-primary" : "text-muted-foreground"}>
+                            {effective.toLocaleString("fr-FR")} FCFA
+                          </span>
+                          {hasCustom && (
+                            <span className="ml-1 text-[10px] text-primary font-normal">(négocié)</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(isDirty ? draft !== "" : row.customPriceHT != null) && (
+                            <button
+                              title="Réinitialiser au prix catalogue"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={() => setDraftPrices((p) => ({ ...p, [row.id]: "" }))}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {(addonPricing.data?.data ?? []).filter((r) => r.billingType === "credits").length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                        Aucun add-on à tarification variable disponible
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              <div className="px-4 py-3 border-t bg-muted/20 rounded-b-lg">
+                <p className="text-[11px] text-muted-foreground">
+                  La TVA de 18 % est calculée automatiquement sur le prix effectif. Laisser vide = prix catalogue.
+                  Les add-ons <strong>Sur devis</strong> (Support, Formation, Intégration) ne sont pas configurables ici — le devis est géré manuellement.
+                </p>
+              </div>
+            </Card>
           )}
         </div>
       )}

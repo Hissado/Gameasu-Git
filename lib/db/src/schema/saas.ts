@@ -321,6 +321,7 @@ export const orgAddonsTable = pgTable("org_addons", {
   nextRenewalAt:    timestamp("next_renewal_at", { withTimezone: true }),
   usageUsed:        integer("usage_used").notNull().default(0),
   creditsPurchased: integer("credits_purchased").notNull().default(0),
+  customPriceHT:    integer("custom_price_ht"),                         // surcharge super-admin (null = prix catalogue)
   notes:            text("notes"),
   createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
