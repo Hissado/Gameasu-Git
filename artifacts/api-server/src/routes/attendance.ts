@@ -17,8 +17,12 @@ const router: IRouter = Router();
 // ────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────
-async function resolveCollaborator(userId: string): Promise<{ id: string; departmentId: string | null } | null> {
-  const [c] = await db.select({ id: collaboratorsTable.id, departmentId: collaboratorsTable.departmentId })
+async function resolveCollaborator(userId: string): Promise<{ id: string; departmentId: string | null; weeklyHours: string | null } | null> {
+  const [c] = await db.select({
+    id: collaboratorsTable.id,
+    departmentId: collaboratorsTable.departmentId,
+    weeklyHours: collaboratorsTable.weeklyHours,
+  })
     .from(collaboratorsTable)
     .where(and(eq(collaboratorsTable.userId, userId), isNull(collaboratorsTable.deletedAt)))
     .limit(1);
@@ -481,6 +485,7 @@ router.get("/attendance/payroll-summary", requirePermission("attendance.view"), 
     const sessions = await db.select({
       collaboratorId: attendanceSessionsTable.collaboratorId,
       effectiveMinutes: attendanceSessionsTable.effectiveMinutes,
+      overtimeMinutes: attendanceSessionsTable.overtimeMinutes,
       status: attendanceSessionsTable.status,
       isLate: attendanceSessionsTable.isLate,
     })
@@ -491,10 +496,11 @@ router.get("/attendance/payroll-summary", requirePermission("attendance.view"), 
         lte(attendanceSessionsTable.workDate, endDate),
       ));
 
-    const map = new Map<string, { effectiveMinutes: number; workDays: number; lateDays: number }>();
+    const map = new Map<string, { effectiveMinutes: number; overtimeMinutes: number; workDays: number; lateDays: number }>();
     for (const s of sessions) {
-      const e = map.get(s.collaboratorId) ?? { effectiveMinutes: 0, workDays: 0, lateDays: 0 };
+      const e = map.get(s.collaboratorId) ?? { effectiveMinutes: 0, overtimeMinutes: 0, workDays: 0, lateDays: 0 };
       e.effectiveMinutes += s.effectiveMinutes ?? 0;
+      e.overtimeMinutes += s.overtimeMinutes ?? 0;
       if (s.status === "closed") e.workDays++;
       if (s.isLate) e.lateDays++;
       map.set(s.collaboratorId, e);
@@ -513,6 +519,8 @@ router.get("/attendance/payroll-summary", requirePermission("attendance.view"), 
       baseSalary: nameMap.get(collaboratorId)?.baseSalary ?? 0,
       effectiveMinutes: stats.effectiveMinutes,
       effectiveHours: Math.round(stats.effectiveMinutes / 6) / 10,
+      overtimeMinutes: stats.overtimeMinutes,
+      overtimeHours: Math.round(stats.overtimeMinutes / 6) / 10,
       workDays: stats.workDays,
       lateDays: stats.lateDays,
     }));

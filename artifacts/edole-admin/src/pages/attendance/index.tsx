@@ -411,7 +411,104 @@ function HRDashboard() {
           onClose={() => setSelected(null)}
         />
       )}
+
+      <MonthlySummaryCard />
     </>
+  );
+}
+
+function MonthlySummaryCard() {
+  const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
+  const { data, isLoading } = useQuery<{
+    period: string;
+    data: Array<{
+      collaboratorId: string; collaboratorName: string;
+      effectiveMinutes: number; overtimeMinutes: number;
+      workDays: number; lateDays: number;
+    }>;
+  }>({
+    queryKey: ["attendance", "payroll-summary", period],
+    queryFn: () => apiFetch(`/api/attendance/payroll-summary?period=${period}`),
+  });
+
+  const periodLabel = period
+    ? new Date(`${period}-15`).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+    : "";
+
+  const totals = useMemo(() => {
+    const rows = data?.data ?? [];
+    return {
+      effMin: rows.reduce((a, r) => a + r.effectiveMinutes, 0),
+      otMin: rows.reduce((a, r) => a + r.overtimeMinutes, 0),
+      workDays: rows.reduce((a, r) => a + r.workDays, 0),
+    };
+  }, [data]);
+
+  return (
+    <Card className="p-6 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary" />
+          Récapitulatif mensuel par collaborateur
+        </h2>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-slate-400" />
+          <input
+            type="month"
+            value={period}
+            onChange={e => setPeriod(e.target.value)}
+            className="border border-slate-200 rounded-md px-2 py-1 text-sm"
+          />
+        </div>
+      </div>
+      {data && (
+        <div className="flex gap-4 text-xs text-slate-500">
+          <span>Période : <strong className="text-slate-700">{periodLabel}</strong></span>
+          <span>Total présence : <strong className="text-slate-700">{formatMinutes(totals.effMin)}</strong></span>
+          {totals.otMin > 0 && <span className="text-emerald-600">H. sup. totales : <strong>+{formatMinutes(totals.otMin)}</strong></span>}
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="text-left px-3 py-2">Collaborateur</th>
+              <th className="text-right px-3 py-2">Jours travaillés</th>
+              <th className="text-right px-3 py-2">Retards</th>
+              <th className="text-right px-3 py-2">Heures présence</th>
+              <th className="text-right px-3 py-2">H. sup.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">
+                <Loader2 className="w-4 h-4 inline animate-spin" />
+              </td></tr>
+            ) : !data?.data.length ? (
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">Aucune présence pour cette période.</td></tr>
+            ) : (
+              [...data.data].sort((a, b) => b.effectiveMinutes - a.effectiveMinutes).map(row => (
+                <tr key={row.collaboratorId} className="border-t border-slate-100 hover:bg-slate-50">
+                  <td className="px-3 py-2 font-medium text-slate-700">{row.collaboratorName}</td>
+                  <td className="px-3 py-2 text-right text-slate-600">{row.workDays}j</td>
+                  <td className="px-3 py-2 text-right">
+                    {row.lateDays > 0
+                      ? <span className="text-amber-600 font-medium">{row.lateDays}</span>
+                      : <span className="text-slate-400">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right font-semibold">{formatMinutes(row.effectiveMinutes)}</td>
+                  <td className="px-3 py-2 text-right">
+                    {row.overtimeMinutes > 0
+                      ? <span className="text-emerald-600 font-medium">+{formatMinutes(row.overtimeMinutes)}</span>
+                      : <span className="text-slate-400">—</span>}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
@@ -639,11 +736,18 @@ function MyHistoryPanel() {
   });
   const corrBySessId = new Map((corrData?.data ?? []).map(c => [c.sessionId, c]));
 
+  const currentMonthISO = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentMonthStart = `${currentMonthISO}-01`;
+  const currentMonthLabel = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
   const totals = useMemo(() => {
-    const total = sessions.reduce((acc, s) => acc + (s.effectiveMinutes ?? 0), 0);
-    const overtimeTotal = sessions.reduce((acc, s) => acc + ((s as any).overtimeMinutes ?? 0), 0);
-    const lateDays = sessions.filter((s) => s.isLate).length;
+    // Cumulatif limité au mois en cours
+    const monthSessions = sessions.filter(s => s.workDate && s.workDate >= currentMonthStart);
+    const total = monthSessions.reduce((acc, s) => acc + (s.effectiveMinutes ?? 0), 0);
+    const overtimeTotal = monthSessions.reduce((acc, s) => acc + ((s as any).overtimeMinutes ?? 0), 0);
+    const lateDays = monthSessions.filter((s) => s.isLate).length;
     return { total, lateDays, overtimeTotal };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions]);
 
   return (
@@ -651,9 +755,9 @@ function MyHistoryPanel() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900">Mon historique</h2>
         <p className="text-xs text-slate-500">
-          {formatMinutes(totals.total)} cumulées · {totals.lateDays} retards
+          Cumul {currentMonthLabel} : {formatMinutes(totals.total)}
+          {totals.lateDays > 0 && <> · {totals.lateDays} retard{totals.lateDays > 1 ? "s" : ""}</>}
           {totals.overtimeTotal > 0 && <> · <span className="text-emerald-600 font-medium">+{formatMinutes(totals.overtimeTotal)} h.sup.</span></>}
-          {" "}sur 30 jours
         </p>
       </div>
       <div className="overflow-x-auto">
