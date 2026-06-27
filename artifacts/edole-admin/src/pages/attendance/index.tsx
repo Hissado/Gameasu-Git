@@ -1,13 +1,20 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Clock, MapPin, Coffee, LogIn, LogOut, AlertTriangle, CheckCircle2,
   Users, Loader2, Calendar, Camera, MonitorSmartphone, ChevronRight, MessageSquare,
+  Plus, ChevronLeft, FileSpreadsheet, Send, ThumbsUp, ThumbsDown, Trash2, Pencil,
+  Download, FilePlus2,
 } from "lucide-react";
 import {
   useMyAttendanceToday, useAttendanceDashboard, useAttendanceAnomalies,
@@ -18,6 +25,8 @@ import {
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { severityLabel } from "@/lib/intelligence";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 
 function resolveStorageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -474,6 +483,549 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "em
   );
 }
 
+// ─── Feuilles de temps ────────────────────────────────────────────────────────
+
+type TSWeek = {
+  id: string; collaboratorId: string; weekStart: string;
+  status: string; totalMinutes: number; billableMinutes: number;
+  submittedAt?: string | null; reviewedAt?: string | null;
+  reviewComment?: string | null; reviewerName?: string | null; collaboratorName?: string;
+};
+
+type TSEntry = {
+  id: string; weekId: string; entryDate: string; projectId?: string | null; clientId?: string | null;
+  durationMinutes: number; description?: string | null; billable: boolean;
+  projectName?: string | null; clientName?: string | null;
+};
+
+type ProjectOption = { id: string; name: string };
+type ClientOption = { id: string; name: string };
+
+function fmtDur(m: number) {
+  if (!m) return "0h";
+  const h = Math.floor(m / 60), mn = m % 60;
+  return `${h}h${mn > 0 ? String(mn).padStart(2, "0") : ""}`;
+}
+
+function toWeekStart(dateStr: string): string {
+  const d = new Date(dateStr);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
+
+function addDaysStr(s: string, n: number): string {
+  const d = new Date(s);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function WeekLabel({ weekStart }: { weekStart: string }) {
+  const end = addDaysStr(weekStart, 6);
+  const fmt = (s: string) => new Date(s).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  return <span>{fmt(weekStart)} — {fmt(end)}</span>;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  draft:     "bg-slate-100 text-slate-600",
+  submitted: "bg-amber-100 text-amber-700",
+  approved:  "bg-emerald-100 text-emerald-700",
+  rejected:  "bg-red-100 text-red-700",
+};
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon", submitted: "Soumise", approved: "Approuvée", rejected: "Rejetée",
+};
+
+function EntryRow({
+  entry, editable, onEdit, onDelete,
+  projects, clients,
+}: {
+  entry: TSEntry; editable: boolean;
+  onEdit: (e: TSEntry) => void; onDelete: (id: string) => void;
+  projects: ProjectOption[]; clients: ClientOption[];
+}) {
+  return (
+    <tr className="border-t hover:bg-muted/20 text-sm">
+      <td className="px-3 py-2">{new Date(entry.entryDate).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</td>
+      <td className="px-3 py-2">{entry.clientName ?? <span className="text-muted-foreground text-xs">—</span>}</td>
+      <td className="px-3 py-2">{entry.projectName ?? <span className="text-muted-foreground text-xs">—</span>}</td>
+      <td className="px-3 py-2 font-semibold text-center">{fmtDur(entry.durationMinutes)}</td>
+      <td className="px-3 py-2 text-center">
+        {entry.billable
+          ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">Fact.</span>
+          : <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Non fact.</span>}
+      </td>
+      <td className="px-3 py-2 text-xs text-muted-foreground max-w-[160px] truncate">{entry.description ?? ""}</td>
+      {editable && (
+        <td className="px-3 py-2 text-right">
+          <div className="flex gap-1 justify-end">
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => onEdit(entry)}>
+              <Pencil className="w-3 h-3" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => onDelete(entry.id)}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        </td>
+      )}
+    </tr>
+  );
+}
+
+function EntryForm({
+  weekStart, weekId, entry, projects, clients, orgId,
+  onSaved, onCancel,
+}: {
+  weekStart: string; weekId?: string; entry?: TSEntry | null;
+  projects: ProjectOption[]; clients: ClientOption[]; orgId?: string;
+  onSaved: () => void; onCancel: () => void;
+}) {
+  const qc = useQueryClient();
+  // Default date = today clamped to the week
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const weekEnd = addDaysStr(weekStart, 6);
+  const defaultDate = todayStr >= weekStart && todayStr <= weekEnd ? todayStr : weekStart;
+
+  const [date, setDate] = useState(entry?.entryDate ?? defaultDate);
+  const [projectId, setProjectId] = useState(entry?.projectId ?? "none");
+  const [clientId, setClientId] = useState(entry?.clientId ?? "none");
+  const [hours, setHours] = useState(String(Math.floor((entry?.durationMinutes ?? 60) / 60)));
+  const [minutes, setMinutes] = useState(String((entry?.durationMinutes ?? 60) % 60));
+  const [description, setDescription] = useState(entry?.description ?? "");
+  const [billable, setBillable] = useState(entry?.billable ?? true);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    const dur = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
+    if (dur <= 0) { toast.error("Durée requise"); return; }
+    setSaving(true);
+    try {
+      const body = {
+        entryDate: date,
+        projectId: projectId !== "none" ? projectId : null,
+        clientId: clientId !== "none" ? clientId : null,
+        durationMinutes: dur,
+        description: description || null,
+        billable,
+      };
+      if (entry) {
+        await apiFetch(`/api/timesheets/entries/${entry.id}`, { method: "PATCH", body: JSON.stringify(body) });
+      } else {
+        await apiFetch("/api/timesheets/entries", { method: "POST", body: JSON.stringify(body) });
+      }
+      qc.invalidateQueries({ queryKey: ["ts-weeks"] });
+      if (weekId) qc.invalidateQueries({ queryKey: ["ts-entries", weekId] });
+      toast.success(entry ? "Entrée mise à jour" : "Entrée ajoutée");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 py-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Date</Label>
+          <Input type="date" value={date} min={weekStart} max={weekEnd} onChange={e => setDate(e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs">Durée</Label>
+          <div className="flex gap-1">
+            <Input type="number" min={0} max={23} value={hours} onChange={e => setHours(e.target.value)} placeholder="h" className="w-16 text-center" />
+            <span className="self-center text-muted-foreground">h</span>
+            <Input type="number" min={0} max={59} step={15} value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="min" className="w-16 text-center" />
+            <span className="self-center text-muted-foreground">min</span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Client</Label>
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Aucun" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Aucun</SelectItem>
+              {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Projet</Label>
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Aucun" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Aucun</SelectItem>
+              {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs">Description</Label>
+        <Textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder="Décrivez le travail effectué…" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch id="billable" checked={billable} onCheckedChange={setBillable} />
+        <Label htmlFor="billable" className="text-sm cursor-pointer">Facturable</Label>
+      </div>
+      <div className="flex gap-2 justify-end pt-2">
+        <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+          {entry ? "Enregistrer" : "Ajouter"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function WeekDetail({
+  weekId, weekStart, status, reviewComment, reviewerName, isManager,
+  projects, clients,
+  onBack, onRefresh,
+}: {
+  weekId: string; weekStart: string; status: string;
+  reviewComment?: string | null; reviewerName?: string | null;
+  isManager: boolean; projects: ProjectOption[]; clients: ClientOption[];
+  onBack: () => void; onRefresh: () => void;
+}) {
+  const [, navigate] = useLocation();
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editEntry, setEditEntry] = useState<TSEntry | null>(null);
+  const [reviewDialog, setReviewDialog] = useState<"approve" | "reject" | null>(null);
+  const [reviewComment2, setReviewComment2] = useState("");
+
+  const { data, isLoading } = useQuery<{ week: TSWeek; entries: TSEntry[] }>({
+    queryKey: ["ts-entries", weekId],
+    queryFn: () => apiFetch(`/api/timesheets/weeks/${weekId}/entries`),
+  });
+
+  const entries = data?.entries ?? [];
+  const week = data?.week;
+  const editable = status === "draft" || status === "rejected";
+
+  const submitMut = useMutation({
+    mutationFn: () => apiFetch(`/api/timesheets/weeks/${weekId}/submit`, { method: "POST" }),
+    onSuccess: () => { toast.success("Feuille soumise pour approbation"); qc.invalidateQueries({ queryKey: ["ts-weeks"] }); onRefresh(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const reviewMut = useMutation({
+    mutationFn: ({ action, comment }: { action: string; comment: string }) =>
+      apiFetch(`/api/timesheets/weeks/${weekId}/review`, { method: "PATCH", body: JSON.stringify({ action, comment }) }),
+    onSuccess: () => { toast.success("Décision enregistrée"); setReviewDialog(null); qc.invalidateQueries({ queryKey: ["ts-weeks"] }); onRefresh(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/timesheets/entries/${id}`, { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ts-entries", weekId] }); qc.invalidateQueries({ queryKey: ["ts-weeks"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const totalH = fmtDur(entries.reduce((s, e) => s + e.durationMinutes, 0));
+  const billH = fmtDur(entries.filter(e => e.billable).reduce((s, e) => s + e.durationMinutes, 0));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="w-4 h-4 mr-1" />Retour</Button>
+        <h3 className="font-bold text-lg">Semaine du <WeekLabel weekStart={weekStart} /></h3>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[status]}`}>{STATUS_LABELS[status]}</span>
+      </div>
+
+      {status === "rejected" && reviewComment && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+          <p className="font-semibold mb-0.5">Motif du rejet {reviewerName ? `(${reviewerName})` : ""}</p>
+          <p>{reviewComment}</p>
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Entrées</p><p className="text-xl font-bold">{entries.length}</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total heures</p><p className="text-xl font-bold">{totalH}</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Heures facturables</p><p className="text-xl font-bold text-emerald-600">{billH}</p></CardContent></Card>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 flex-wrap">
+        {editable && (
+          <Button size="sm" onClick={() => { setEditEntry(null); setShowForm(true); }}>
+            <Plus className="w-3.5 h-3.5 mr-1" />Ajouter une entrée
+          </Button>
+        )}
+        {status === "draft" && entries.length > 0 && !isManager && (
+          <Button size="sm" variant="outline" className="text-amber-700 border-amber-300" onClick={() => submitMut.mutate()} disabled={submitMut.isPending}>
+            {submitMut.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+            Soumettre pour approbation
+          </Button>
+        )}
+        {status === "submitted" && isManager && (
+          <>
+            <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setReviewDialog("approve")}>
+              <ThumbsUp className="w-3 h-3 mr-1" />Approuver
+            </Button>
+            <Button size="sm" variant="outline" className="text-red-700 border-red-300" onClick={() => setReviewDialog("reject")}>
+              <ThumbsDown className="w-3 h-3 mr-1" />Rejeter
+            </Button>
+          </>
+        )}
+        {status === "approved" && isManager && entries.filter(e => e.billable).length > 0 && (
+          <Button size="sm" variant="outline" className="text-primary border-primary/40"
+            onClick={() => {
+              const billable = entries.filter(e => e.billable);
+              const params = new URLSearchParams({
+                source: "timesheet",
+                weekId,
+                clientId: billable[0]?.clientId ?? "",
+                description: `Feuilles de temps — semaine du ${weekStart} — ${fmtDur(entries.filter(e=>e.billable).reduce((s,e)=>s+e.durationMinutes,0))} facturables`,
+              });
+              navigate(`/proformas/new?${params}`);
+            }}>
+            <FilePlus2 className="w-3 h-3 mr-1" />Créer une proforma
+          </Button>
+        )}
+      </div>
+
+      {/* Form */}
+      {(showForm || editEntry) && (
+        <Card><CardContent className="p-4">
+          <h4 className="font-semibold text-sm mb-3">{editEntry ? "Modifier l'entrée" : "Nouvelle entrée"}</h4>
+          <EntryForm
+            weekStart={weekStart} weekId={weekId}
+            entry={editEntry}
+            projects={projects} clients={clients}
+            onSaved={() => { setShowForm(false); setEditEntry(null); }}
+            onCancel={() => { setShowForm(false); setEditEntry(null); }}
+          />
+        </CardContent></Card>
+      )}
+
+      {/* Entries table */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="py-8 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></div>
+          ) : entries.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              Aucune entrée pour cette semaine
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground border-b">
+                <tr>
+                  <th className="text-left px-3 py-2">Date</th>
+                  <th className="text-left px-3 py-2">Client</th>
+                  <th className="text-left px-3 py-2">Projet</th>
+                  <th className="text-center px-3 py-2">Durée</th>
+                  <th className="text-center px-3 py-2">Type</th>
+                  <th className="text-left px-3 py-2">Description</th>
+                  {editable && <th className="px-3 py-2" />}
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map(e => (
+                  <EntryRow
+                    key={e.id} entry={e} editable={editable}
+                    onEdit={entry => { setEditEntry(entry); setShowForm(false); }}
+                    onDelete={id => deleteMut.mutate(id)}
+                    projects={projects} clients={clients}
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Review dialog */}
+      <Dialog open={!!reviewDialog} onOpenChange={o => { if (!o) setReviewDialog(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{reviewDialog === "approve" ? "Approuver la feuille" : "Rejeter la feuille"}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label className="text-xs">Commentaire {reviewDialog === "reject" ? "(requis)" : "(optionnel)"}</Label>
+            <Textarea rows={2} value={reviewComment2} onChange={e => setReviewComment2(e.target.value)} placeholder="Explication…" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewDialog(null)}>Annuler</Button>
+            <Button
+              className={reviewDialog === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}
+              disabled={reviewMut.isPending || (reviewDialog === "reject" && !reviewComment2.trim())}
+              onClick={() => reviewMut.mutate({ action: reviewDialog === "approve" ? "approved" : "rejected", comment: reviewComment2 })}>
+              {reviewMut.isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+              {reviewDialog === "approve" ? "Approuver" : "Rejeter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function TimesheetsPanel() {
+  const { user } = useAuth();
+  const isManager = user?.role === "manager" || user?.role === "super_admin" || user?.role === "admin";
+
+  const [mine, setMine] = useState(!isManager);
+  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
+  const [newWeekStart, setNewWeekStart] = useState(() => toWeekStart(new Date().toISOString().slice(0, 10)));
+
+  const { data: pcData } = useQuery<{ projects: ProjectOption[]; clients: ClientOption[] }>({
+    queryKey: ["ts-pc"],
+    queryFn: () => apiFetch("/api/timesheets/projects-clients"),
+  });
+  const projects = pcData?.projects ?? [];
+  const clients = pcData?.clients ?? [];
+
+  const params = new URLSearchParams();
+  if (mine) params.set("mine", "true");
+
+  const { data, isLoading, refetch } = useQuery<{ data: TSWeek[] }>({
+    queryKey: ["ts-weeks", mine ? "mine" : "all"],
+    queryFn: () => apiFetch(`/api/timesheets/weeks?${params}`),
+  });
+
+  const weeks = data?.data ?? [];
+  const selected = weeks.find(w => w.id === selectedWeekId);
+
+  // Export
+  async function doExport() {
+    const url = `/api/timesheets/export?from=${addDaysStr(newWeekStart, -84)}&to=${addDaysStr(newWeekStart, 6)}`;
+    const token = localStorage.getItem("auth_token");
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) { toast.error("Erreur export"); return; }
+    const blob = await resp.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "feuilles-de-temps.xlsx";
+    a.click();
+  }
+
+  // Create new week
+  const qc = useQueryClient();
+  async function createEntry() {
+    try {
+      const result = await apiFetch("/api/timesheets/entries", {
+        method: "POST",
+        body: JSON.stringify({ entryDate: newWeekStart, durationMinutes: 0, billable: true }),
+      }) as { weekId?: string };
+      qc.invalidateQueries({ queryKey: ["ts-weeks"] });
+      if (result.weekId) setSelectedWeekId(result.weekId);
+    } catch (e: any) { toast.error(e.message); }
+  }
+
+  if (selectedWeekId && selected) {
+    return (
+      <WeekDetail
+        weekId={selectedWeekId} weekStart={selected.weekStart} status={selected.status}
+        reviewComment={selected.reviewComment} reviewerName={selected.reviewerName}
+        isManager={isManager} projects={projects} clients={clients}
+        onBack={() => setSelectedWeekId(null)} onRefresh={() => refetch()}
+      />
+    );
+  }
+
+  const pendingReview = weeks.filter(w => w.status === "submitted").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Feuilles de temps</h2>
+          <p className="text-xs text-muted-foreground">Suivi des heures par projet et client</p>
+        </div>
+        <div className="flex gap-2">
+          {isManager && (
+            <Button variant="outline" size="sm" onClick={() => setMine(!mine)}>
+              <Users className="w-3.5 h-3.5 mr-1" />
+              {mine ? "Voir toutes" : "Voir les miennes"}
+            </Button>
+          )}
+          {isManager && (
+            <Button variant="outline" size="sm" onClick={doExport}>
+              <Download className="w-3.5 h-3.5 mr-1" />Export Excel
+            </Button>
+          )}
+          {!isManager && (
+            <Button size="sm" onClick={createEntry}>
+              <Plus className="w-3.5 h-3.5 mr-1" />Nouvelle semaine
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {isManager && pendingReview > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2 text-sm text-amber-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span><strong>{pendingReview}</strong> feuille{pendingReview > 1 ? "s" : ""} en attente d'approbation</span>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
+      ) : weeks.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm font-medium mb-1">Aucune feuille de temps</p>
+            {!isManager && (
+              <Button size="sm" className="mt-2" onClick={createEntry}>
+                <Plus className="w-3.5 h-3.5 mr-1" />Créer ma première feuille
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground border-b">
+                <tr>
+                  {isManager && <th className="text-left px-4 py-2.5">Collaborateur</th>}
+                  <th className="text-left px-4 py-2.5">Semaine</th>
+                  <th className="text-center px-4 py-2.5">Total</th>
+                  <th className="text-center px-4 py-2.5">Facturable</th>
+                  <th className="text-center px-4 py-2.5">Statut</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {weeks.map(w => (
+                  <tr key={w.id} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => setSelectedWeekId(w.id)}>
+                    {isManager && <td className="px-4 py-2.5 font-medium">{w.collaboratorName}</td>}
+                    <td className="px-4 py-2.5"><WeekLabel weekStart={w.weekStart} /></td>
+                    <td className="px-4 py-2.5 text-center font-semibold">{fmtDur(w.totalMinutes)}</td>
+                    <td className="px-4 py-2.5 text-center text-emerald-700">{fmtDur(w.billableMinutes)}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[w.status]}`}>
+                        {STATUS_LABELS[w.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ChevronRight className="w-4 h-4 text-muted-foreground inline" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function AttendancePage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -484,11 +1036,13 @@ export default function AttendancePage() {
       <Tabs defaultValue="me">
         <TabsList>
           <TabsTrigger value="me">Mon pointage</TabsTrigger>
+          <TabsTrigger value="timesheets">Feuilles de temps</TabsTrigger>
           <TabsTrigger value="dashboard">Tableau RH</TabsTrigger>
           <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
           <TabsTrigger value="history">Mon historique</TabsTrigger>
         </TabsList>
         <TabsContent value="me" className="mt-4 space-y-4"><MyClockPanel /></TabsContent>
+        <TabsContent value="timesheets" className="mt-4"><TimesheetsPanel /></TabsContent>
         <TabsContent value="dashboard" className="mt-4 space-y-4"><HRDashboard /></TabsContent>
         <TabsContent value="anomalies" className="mt-4 space-y-4"><AnomaliesPanel /></TabsContent>
         <TabsContent value="history" className="mt-4 space-y-4"><MyHistoryPanel /></TabsContent>

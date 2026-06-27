@@ -6,6 +6,7 @@ import { usersTable } from "./users";
 import { collaboratorsTable } from "./collaborators";
 import { projectsTable } from "./projects";
 import { departmentsTable } from "./hr";
+import { clientsTable } from "./clients";
 
 // ─────────────────────────────────────────────────────────────────
 // NEXORA — Système de pointage géolocalisé (Phase 18)
@@ -113,3 +114,54 @@ export const clockEventSchema = z.object({
   projectId: z.string().uuid().optional(),
 });
 export type ClockEventInput = z.infer<typeof clockEventSchema>;
+
+// ─────────────────────────────────────────────────────────────────
+// FEUILLES DE TEMPS — time tracking par projet/client
+// timesheet_weeks    : semaine de travail agrégée (soumission/approbation)
+// timesheet_entries  : entrée individuelle (projet, client, durée, facturable)
+// ─────────────────────────────────────────────────────────────────
+
+export const timesheetWeeksTable = pgTable("timesheet_weeks", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  userId:         uuid("user_id").references(() => usersTable.id),
+  weekStart:      date("week_start").notNull(), // YYYY-MM-DD (lundi)
+  status:         text("status").notNull().default("draft"), // draft | submitted | approved | rejected
+  submittedAt:    timestamp("submitted_at", { withTimezone: true }),
+  reviewedAt:     timestamp("reviewed_at", { withTimezone: true }),
+  reviewedById:   uuid("reviewed_by_id").references(() => usersTable.id),
+  reviewComment:  text("review_comment"),
+  totalMinutes:   integer("total_minutes").notNull().default(0),
+  billableMinutes:integer("billable_minutes").notNull().default(0),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx:    index("ts_weeks_org_idx").on(t.organizationId),
+  collabIdx: index("ts_weeks_collab_idx").on(t.collaboratorId),
+  weekIdx:   index("ts_weeks_week_idx").on(t.weekStart),
+  uniqWeek:  uniqueIndex("ts_weeks_collab_week_uidx").on(t.collaboratorId, t.weekStart),
+}));
+
+export const timesheetEntriesTable = pgTable("timesheet_entries", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  organizationId:  uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  weekId:          uuid("week_id").notNull().references(() => timesheetWeeksTable.id, { onDelete: "cascade" }),
+  collaboratorId:  uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  entryDate:       date("entry_date").notNull(), // YYYY-MM-DD
+  projectId:       uuid("project_id").references(() => projectsTable.id, { onDelete: "set null" }),
+  clientId:        uuid("client_id").references(() => clientsTable.id, { onDelete: "set null" }),
+  durationMinutes: integer("duration_minutes").notNull().default(0),
+  description:     text("description"),
+  billable:        boolean("billable").notNull().default(true),
+  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:       timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  weekIdx:   index("ts_entries_week_idx").on(t.weekId),
+  collabIdx: index("ts_entries_collab_idx").on(t.collaboratorId),
+  dateIdx:   index("ts_entries_date_idx").on(t.entryDate),
+  projIdx:   index("ts_entries_proj_idx").on(t.projectId),
+}));
+
+export type TimesheetWeek  = typeof timesheetWeeksTable.$inferSelect;
+export type TimesheetEntry = typeof timesheetEntriesTable.$inferSelect;
