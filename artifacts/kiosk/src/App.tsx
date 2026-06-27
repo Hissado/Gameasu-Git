@@ -290,22 +290,33 @@ function ActionScreen({
 function PhotoScreen({
   onCapture,
   onSkip,
+  requirePhoto = false,
 }: {
   onCapture: (dataUrl: string) => void;
   onSkip: () => void;
+  requirePhoto?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const capturedRef = useRef(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   useEffect(() => {
+    const handleSkipOrError = (reason: string) => {
+      if (requirePhoto) {
+        setCameraError(reason);
+      } else {
+        onSkip();
+      }
+    };
+
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } })
       .then((stream) => {
         streamRef.current = stream;
         const video = videoRef.current;
-        if (!video) { stream.getTracks().forEach((t) => t.stop()); onSkip(); return; }
+        if (!video) { stream.getTracks().forEach((t) => t.stop()); handleSkipOrError("Erreur d'accès à la caméra."); return; }
         video.srcObject = stream;
         video.oncanplay = () => {
           if (capturedRef.current) return;
@@ -314,9 +325,9 @@ function PhotoScreen({
           // Brief pause so the first frame is actually rendered
           setTimeout(() => {
             const canvas = canvasRef.current;
-            if (!canvas) { onSkip(); return; }
+            if (!canvas) { handleSkipOrError("Erreur de canvas."); return; }
             const ctx = canvas.getContext("2d");
-            if (!ctx) { onSkip(); return; }
+            if (!ctx) { handleSkipOrError("Erreur de contexte."); return; }
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
             ctx.drawImage(video, 0, 0);
@@ -326,12 +337,23 @@ function PhotoScreen({
           }, 1500);
         };
       })
-      .catch(() => onSkip());
+      .catch(() => handleSkipOrError("Accès à la caméra refusé. Veuillez autoriser l'accès à la caméra pour pointer."));
 
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [onCapture, onSkip]);
+  }, [onCapture, onSkip, requirePhoto]);
+
+  if (cameraError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center">
+        <div className="text-5xl">📷</div>
+        <div className="text-lg font-semibold text-red-400">Caméra requise</div>
+        <div className="text-sm text-white/60 max-w-sm">{cameraError}</div>
+        <div className="text-xs text-white/30">La photo est obligatoire pour ce site. Contactez votre administrateur si le problème persiste.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 px-8">
@@ -680,6 +702,7 @@ function KioskApp() {
           <PhotoScreen
             onCapture={(url) => doPunch(selectedKind, url, selectedSite ?? undefined)}
             onSkip={() => doPunch(selectedKind, undefined, selectedSite ?? undefined)}
+            requirePhoto={kiosk?.attendanceSettings?.requirePhoto ?? false}
           />
         )}
         {screen === "confirm" && collaborator && selectedKind && (

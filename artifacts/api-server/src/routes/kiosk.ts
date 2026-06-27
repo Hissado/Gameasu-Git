@@ -296,6 +296,17 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       return;
     }
 
+    // Validation des règles de pointage de l'org (requirePhoto)
+    const [orgAttSettings] = await db.select({
+      requirePhoto: orgAttendanceSettingsTable.requirePhoto,
+    }).from(orgAttendanceSettingsTable)
+      .where(eq(orgAttendanceSettingsTable.organizationId, kiosk.organizationId))
+      .limit(1);
+    if (orgAttSettings?.requirePhoto && !photoDataUrl) {
+      res.status(400).json({ error: "La photo de présence est obligatoire pour cet espace de travail." });
+      return;
+    }
+
     // Upload photo si fournie
     let photoUrl: string | null = null;
     if (photoDataUrl && photoDataUrl.startsWith("data:image/")) {

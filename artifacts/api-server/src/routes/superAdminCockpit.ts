@@ -953,7 +953,23 @@ router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req,
     if (raw.sector && !VALID_SECTORS.includes(raw.sector as typeof VALID_SECTORS[number])) {
       return res.status(400).json({ error: `Secteur invalide. Valeurs acceptées: ${VALID_SECTORS.join(", ")}` });
     }
-    const body = raw;
+    // Appliquer les valeurs du template de secteur comme defaults (les champs fournis dans raw écrasent)
+    let templateDefaults: Partial<typeof raw> = {};
+    if (raw.sector) {
+      const tpl = SECTOR_TEMPLATES.find(t => t.sector === raw.sector);
+      if (tpl) {
+        templateDefaults = {
+          expectedDailyMinutes: tpl.expectedDailyMinutes,
+          lateThresholdMinutes: tpl.lateThresholdMinutes,
+          requireGps: tpl.requireGps,
+          requirePhoto: tpl.requirePhoto,
+          trackByProject: tpl.trackByProject,
+          trackBySite: tpl.trackBySite,
+          allowOvertime: tpl.allowOvertime,
+        };
+      }
+    }
+    const body = { ...templateDefaults, ...raw };
     const [result] = await db.insert(orgAttendanceSettingsTable)
       .values({ organizationId: orgId, ...body })
       .onConflictDoUpdate({
