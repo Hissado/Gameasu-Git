@@ -190,6 +190,12 @@ export default function TenantDetail() {
     enabled: tab === "access",
   });
 
+  const attSettings = useQuery<{ sector: string; sectorLabel: string; sectorIcon: string; settings: Record<string, unknown> | null }>({
+    queryKey: ["cockpit-org-att-settings", id],
+    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/attendance-settings`),
+    enabled: tab === "overview",
+  });
+
   const handleSetCustomPrice = async () => {
     const v = parseFloat(customPriceInput.replace(/\s/g, "").replace(",", "."));
     if (!v || v <= 0) { toast.error("Entrez un montant positif en FCFA"); return; }
@@ -465,7 +471,13 @@ export default function TenantDetail() {
               {[
                 { label: "Nom", value: org.name },
                 { label: "Slug", value: <span className="font-mono text-xs">{org.slug}</span> },
-                { label: "Secteur", value: org.industry ?? "—" },
+                { label: "Secteur activité", value: org.industry ?? "—" },
+                {
+                  label: "Secteur pointage",
+                  value: attSettings.data
+                    ? <Badge variant="outline" className="font-mono text-xs gap-1">{attSettings.data.sectorIcon} {attSettings.data.sectorLabel}</Badge>
+                    : <span className="text-muted-foreground">—</span>,
+                },
                 { label: "Pays", value: org.country ?? "—" },
                 { label: "Email contact", value: org.contactEmail ?? "—" },
                 { label: "Devise", value: org.currency },

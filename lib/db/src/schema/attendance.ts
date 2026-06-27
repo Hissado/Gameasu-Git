@@ -192,3 +192,22 @@ export const timesheetEntriesTable = pgTable("timesheet_entries", {
 
 export type TimesheetWeek  = typeof timesheetWeeksTable.$inferSelect;
 export type TimesheetEntry = typeof timesheetEntriesTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
+// PARAMÈTRES DE POINTAGE PAR ORGANISATION (template sectoriel)
+// ─────────────────────────────────────────────────────────────────
+
+export const orgAttendanceSettingsTable = pgTable("org_attendance_settings", {
+  organizationId: uuid("organization_id").primaryKey().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  sector: text("sector").notNull().default("consulting"),
+  expectedDailyMinutes: integer("expected_daily_minutes").notNull().default(480),
+  lateThresholdMinutes: integer("late_threshold_minutes").notNull().default(15),
+  requireGps: boolean("require_gps").notNull().default(false),
+  requirePhoto: boolean("require_photo").notNull().default(false),
+  trackByProject: boolean("track_by_project").notNull().default(true),
+  trackBySite: boolean("track_by_site").notNull().default(false),
+  allowOvertime: boolean("allow_overtime").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export type OrgAttendanceSettings = typeof orgAttendanceSettingsTable.$inferSelect;

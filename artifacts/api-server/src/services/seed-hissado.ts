@@ -44,6 +44,7 @@ import {
   notificationsTable,
   ticketsTable,
   opportunitiesTable,
+  orgAttendanceSettingsTable,
 } from "@workspace/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -922,6 +923,28 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
     }
   } else {
     log.push(`✓ Opportunités CRM existantes (${oppCountRow?.c})`);
+  }
+
+  // ── 17. Template de pointage secteur Consulting ──────────────────────────
+  const [attRow] = await db.select({ organizationId: orgAttendanceSettingsTable.organizationId })
+    .from(orgAttendanceSettingsTable)
+    .where(eq(orgAttendanceSettingsTable.organizationId, ORG_ID))
+    .limit(1);
+  if (!attRow) {
+    await db.insert(orgAttendanceSettingsTable).values({
+      organizationId: ORG_ID,
+      sector: "consulting",
+      expectedDailyMinutes: 480,
+      lateThresholdMinutes: 15,
+      requireGps: true,
+      requirePhoto: false,
+      trackByProject: true,
+      trackBySite: false,
+      allowOvertime: true,
+    });
+    log.push("✓ Template pointage secteur Consulting créé");
+  } else {
+    log.push("✓ Template pointage déjà existant");
   }
 
   return {

@@ -1,14 +1,201 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Lock, ShieldCheck } from "lucide-react";
+import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// ─── Types pour les settings de pointage ──────────────────────────────────────
+type SectorTemplate = {
+  sector: string; label: string; icon: string; description: string;
+  expectedDailyMinutes: number; lateThresholdMinutes: number;
+  requireGps: boolean; requirePhoto: boolean;
+  trackByProject: boolean; trackBySite: boolean; allowOvertime: boolean;
+};
+type AttendanceSettings = {
+  sector: string; expectedDailyMinutes: number; lateThresholdMinutes: number;
+  requireGps: boolean; requirePhoto: boolean;
+  trackByProject: boolean; trackBySite: boolean; allowOvertime: boolean;
+};
+
+function AttendanceSettingsTab() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: settingsData, isLoading } = useQuery<{ settings: AttendanceSettings; template: SectorTemplate | null }>({
+    queryKey: ["attendance-settings"],
+    queryFn: () => apiFetch("/api/attendance/settings"),
+  });
+  const { data: templatesData } = useQuery<{ templates: SectorTemplate[] }>({
+    queryKey: ["attendance-sector-templates"],
+    queryFn: () => apiFetch("/api/attendance/sector-templates"),
+  });
+
+  const [draft, setDraft] = useState<AttendanceSettings | null>(null);
+  useEffect(() => {
+    if (settingsData?.settings && !draft) {
+      setDraft(settingsData.settings);
+    }
+  }, [settingsData]);
+
+  const mutation = useMutation({
+    mutationFn: (body: Partial<AttendanceSettings>) =>
+      apiFetch("/api/attendance/settings", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast({ title: "Paramètres de pointage enregistrés" });
+      qc.invalidateQueries({ queryKey: ["attendance-settings"] });
+      setDraft(null);
+    },
+    onError: () => toast({ title: "Erreur lors de l'enregistrement", variant: "destructive" }),
+  });
+
+  const templates = templatesData?.templates ?? [];
+
+  function applyTemplate(tpl: SectorTemplate) {
+    setDraft({
+      sector: tpl.sector,
+      expectedDailyMinutes: tpl.expectedDailyMinutes,
+      lateThresholdMinutes: tpl.lateThresholdMinutes,
+      requireGps: tpl.requireGps,
+      requirePhoto: tpl.requirePhoto,
+      trackByProject: tpl.trackByProject,
+      trackBySite: tpl.trackBySite,
+      allowOvertime: tpl.allowOvertime,
+    });
+  }
+
+  const currentSettings = draft ?? settingsData?.settings;
+
+  if (isLoading || !currentSettings) {
+    return <div className="flex items-center gap-2 text-slate-400 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
+  }
+
+  const isDirty = draft && JSON.stringify(draft) !== JSON.stringify(settingsData?.settings);
+
+  return (
+    <div className="space-y-5">
+      {/* Sélecteur de secteur */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
+            Secteur d'activité
+          </CardTitle>
+          <CardDescription>
+            Sélectionnez le modèle de règles adapté à votre secteur. Vous pouvez ensuite affiner chaque paramètre individuellement.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {templates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Chargement des modèles…</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {templates.map(tpl => {
+                const isActive = currentSettings.sector === tpl.sector;
+                return (
+                  <button
+                    key={tpl.sector}
+                    onClick={() => applyTemplate(tpl)}
+                    className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition-all ${
+                      isActive
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40 hover:bg-muted/30"
+                    }`}
+                  >
+                    <span className="text-2xl">{tpl.icon}</span>
+                    <span className={`text-sm font-semibold ${isActive ? "text-primary" : ""}`}>{tpl.label}</span>
+                    <span className="text-xs text-muted-foreground leading-tight">{tpl.description}</span>
+                    {isActive && <Badge className="mt-1 text-[10px]">Actif</Badge>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Règles individuelles */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Règles de pointage
+          </CardTitle>
+          <CardDescription>Ces paramètres s'appliquent aux kiosques et à la détection des anomalies.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Durée journalière & seuil retard */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Durée journalière attendue (minutes)</Label>
+              <Input
+                type="number" min={60} max={720} step={30}
+                value={currentSettings.expectedDailyMinutes}
+                onChange={e => setDraft(d => d ? { ...d, expectedDailyMinutes: +e.target.value } : d)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Soit {Math.round((currentSettings.expectedDailyMinutes / 60) * 10) / 10}h/jour
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> Tolérance retard (minutes après 09h00)</Label>
+              <Input
+                type="number" min={0} max={120} step={5}
+                value={currentSettings.lateThresholdMinutes}
+                onChange={e => setDraft(d => d ? { ...d, lateThresholdMinutes: +e.target.value } : d)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Retard signalé après 09h{currentSettings.lateThresholdMinutes > 0 ? `${String(currentSettings.lateThresholdMinutes).padStart(2, "0")}` : "00"}
+              </p>
+            </div>
+          </div>
+
+          {/* Toggles */}
+          {[
+            { key: "requireGps" as const, icon: <MapPin className="w-4 h-4 text-blue-500" />, label: "Géolocalisation obligatoire", desc: "Le kiosque bloque le pointage si le GPS est refusé." },
+            { key: "requirePhoto" as const, icon: <Camera className="w-4 h-4 text-violet-500" />, label: "Photo de présence obligatoire", desc: "Capture la photo à chaque pointage." },
+            { key: "trackByProject" as const, icon: <FolderKanban className="w-4 h-4 text-emerald-500" />, label: "Suivi de présence par projet", desc: "Associe chaque session à un projet actif." },
+            { key: "trackBySite" as const, icon: <Building2 className="w-4 h-4 text-amber-500" />, label: "Suivi par site", desc: "Affiche un écran de sélection de site au kiosque." },
+            { key: "allowOvertime" as const, icon: <TrendingUp className="w-4 h-4 text-orange-500" />, label: "Heures supplémentaires autorisées", desc: "Calcule et comptabilise les heures sup. au-delà de la durée attendue." },
+          ].map(({ key, icon, label, desc }) => (
+            <div key={key} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div className="flex items-start gap-2">
+                {icon}
+                <div>
+                  <Label className="text-sm font-medium">{label}</Label>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+              </div>
+              <Switch
+                checked={!!currentSettings[key]}
+                onCheckedChange={v => setDraft(d => d ? { ...d, [key]: v } : d)}
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Bouton Enregistrer */}
+      <div className="flex justify-end">
+        <Button
+          disabled={!isDirty || mutation.isPending}
+          onClick={() => mutation.mutate(currentSettings)}
+          className="gap-2"
+        >
+          {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Enregistrer les paramètres
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const PERMISSIONS = [
   { module: "Tableau de bord", actions: ["Consulter"] },
@@ -146,6 +333,7 @@ export default function Settings() {
           <TabsTrigger value="security">Sécurité</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="regional">Régionales</TabsTrigger>
+          <TabsTrigger value="attendance">Pointage</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
           <TabsTrigger value="danger">Zone sensible</TabsTrigger>
         </TabsList>
@@ -259,6 +447,10 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="attendance" className="mt-6">
+          <AttendanceSettingsTab />
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-6">

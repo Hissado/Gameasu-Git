@@ -18,8 +18,9 @@ import {
   db, organizationsTable, organizationMembersTable, organizationSubscriptionsTable,
   subscriptionPlansTable, billingEventsTable, organizationModulesTable, usersTable,
   ticketsTable, cockpitAuditLogsTable, authSessionsTable,
-  addonCatalogTable, orgAddonsTable,
+  addonCatalogTable, orgAddonsTable, orgAttendanceSettingsTable,
 } from "@workspace/db";
+import { SECTOR_TEMPLATES } from "./attendance";
 import { and, eq, sql, desc, gte, ne, inArray, isNull } from "drizzle-orm";
 import type { RequestHandler } from "express";
 import { PLATFORM_ORG_SLUG } from "../services/ensure-admin";
@@ -925,6 +926,18 @@ router.post("/super-admin/seed-hissado", sa, async (req, res, next) => {
     const result = await seedHissado(orgId);
     req.log.info({ counts: (result as any).counts }, "seed-hissado: terminé");
     return res.json(result);
+  } catch (e) { next(e); }
+});
+
+// ── Settings de pointage par organisation ────────────────────────────────────
+router.get("/super-admin/organizations/:id/attendance-settings", sa, async (req, res, next) => {
+  try {
+    const orgId = req.params.id as string;
+    const [s] = await db.select().from(orgAttendanceSettingsTable)
+      .where(eq(orgAttendanceSettingsTable.organizationId, orgId)).limit(1);
+    const sector = s?.sector ?? "consulting";
+    const template = SECTOR_TEMPLATES.find(t => t.sector === sector) ?? SECTOR_TEMPLATES[4]!;
+    res.json({ settings: s ?? null, sector, sectorLabel: template.label, sectorIcon: template.icon });
   } catch (e) { next(e); }
 });
 

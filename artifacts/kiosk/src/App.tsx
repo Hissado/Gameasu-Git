@@ -12,6 +12,16 @@ interface CollaboratorInfo {
   avatarUrl: string | null;
 }
 
+interface AttendanceSettings {
+  requireGps: boolean;
+  requirePhoto: boolean;
+  trackByProject: boolean;
+  trackBySite: boolean;
+  lateThresholdMinutes: number;
+  expectedDailyMinutes: number;
+  sector: string;
+}
+
 interface KioskInfo {
   id: string;
   name: string;
@@ -24,6 +34,7 @@ interface KioskInfo {
     orgLogoUrl?: string | null;
     welcomeMessage?: string | null;
   };
+  attendanceSettings?: AttendanceSettings;
 }
 
 type Screen = "idle" | "keypad" | "identified" | "photo" | "confirm" | "error";
@@ -480,7 +491,11 @@ function KioskApp() {
   const handleAction = (kind: PunchKind) => {
     setSelectedKind(kind);
     gpsRef.current = null;
-    // Capture GPS en arrière-plan pendant la prise de photo
+
+    const attSettings = kiosk?.attendanceSettings;
+    const requireGps = attSettings?.requireGps ?? false;
+    const requirePhoto = attSettings?.requirePhoto ?? false;
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -489,12 +504,30 @@ function KioskApp() {
             longitude: pos.coords.longitude,
             accuracyMeters: Math.round(pos.coords.accuracy),
           };
+          // GPS ok — continuer normalement
+          setScreen(requirePhoto ? "photo" : "confirm");
         },
-        () => { gpsRef.current = null; },
+        () => {
+          // GPS refusé
+          if (requireGps) {
+            // Bloquer le pointage si GPS obligatoire
+            setError("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS.");
+            setScreen("error");
+            return;
+          }
+          gpsRef.current = null;
+          setScreen(requirePhoto ? "photo" : "confirm");
+        },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
       );
+    } else {
+      if (requireGps) {
+        setError("La géolocalisation est requise pour pointer mais n'est pas disponible sur cet appareil.");
+        setScreen("error");
+        return;
+      }
+      setScreen(requirePhoto ? "photo" : "confirm");
     }
-    setScreen("photo");
   };
 
   const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string) => {

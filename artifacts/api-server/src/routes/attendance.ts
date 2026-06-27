@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
   attendanceSessionsTable, attendanceRecordsTable, attendanceFlagsTable,
-  attendanceCorrectionsTable,
+  attendanceCorrectionsTable, orgAttendanceSettingsTable,
   collaboratorsTable, departmentsTable, usersTable, notificationsTable,
   clockEventSchema,
 } from "@workspace/db";
@@ -14,6 +14,149 @@ import { emitToUser } from "../lib/realtime";
 import { z } from "zod/v4";
 
 const router: IRouter = Router();
+
+// ────────────────────────────────────────────────────────────────
+// Catalogue des templates sectoriels
+// ────────────────────────────────────────────────────────────────
+
+export type SectorTemplate = {
+  sector: string;
+  label: string;
+  icon: string;
+  description: string;
+  expectedDailyMinutes: number;
+  lateThresholdMinutes: number;
+  requireGps: boolean;
+  requirePhoto: boolean;
+  trackByProject: boolean;
+  trackBySite: boolean;
+  allowOvertime: boolean;
+};
+
+export const SECTOR_TEMPLATES: SectorTemplate[] = [
+  {
+    sector: "btp",
+    label: "BTP / Construction",
+    icon: "🏗️",
+    description: "Chantiers, gros œuvre, génie civil. Horaires flexibles, suivi par site, GPS obligatoire.",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 30,
+    requireGps: true,
+    requirePhoto: true,
+    trackByProject: true,
+    trackBySite: true,
+    allowOvertime: true,
+  },
+  {
+    sector: "logistique",
+    label: "Logistique",
+    icon: "🚛",
+    description: "Transport, entrepôts, supply chain. Pointage par site, GPS recommandé.",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 20,
+    requireGps: true,
+    requirePhoto: false,
+    trackByProject: false,
+    trackBySite: true,
+    allowOvertime: true,
+  },
+  {
+    sector: "commerce",
+    label: "Commerce / Retail",
+    icon: "🛒",
+    description: "Boutiques, grande distribution. Horaires fixes, photos de présence.",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 10,
+    requireGps: false,
+    requirePhoto: true,
+    trackByProject: false,
+    trackBySite: true,
+    allowOvertime: false,
+  },
+  {
+    sector: "sante",
+    label: "Santé",
+    icon: "🏥",
+    description: "Hôpitaux, cliniques, pharmacies. Présence stricte, photo obligatoire.",
+    expectedDailyMinutes: 450,
+    lateThresholdMinutes: 5,
+    requireGps: false,
+    requirePhoto: true,
+    trackByProject: false,
+    trackBySite: true,
+    allowOvertime: true,
+  },
+  {
+    sector: "consulting",
+    label: "Consulting",
+    icon: "💼",
+    description: "Conseil, audit, services professionnels. Suivi par projet, pas de GPS requis.",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 15,
+    requireGps: false,
+    requirePhoto: false,
+    trackByProject: true,
+    trackBySite: false,
+    allowOvertime: true,
+  },
+  {
+    sector: "industrie",
+    label: "Industrie",
+    icon: "🏭",
+    description: "Usines, production, maintenance industrielle. Pointage précis, photo de présence.",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 15,
+    requireGps: false,
+    requirePhoto: true,
+    trackByProject: true,
+    trackBySite: true,
+    allowOvertime: true,
+  },
+  {
+    sector: "ong",
+    label: "ONG / Secteur social",
+    icon: "🤝",
+    description: "Organisations humanitaires, associations. Flexibilité horaire, suivi par projet.",
+    expectedDailyMinutes: 420,
+    lateThresholdMinutes: 30,
+    requireGps: false,
+    requirePhoto: false,
+    trackByProject: true,
+    trackBySite: false,
+    allowOvertime: false,
+  },
+  {
+    sector: "education",
+    label: "Éducation",
+    icon: "📚",
+    description: "Écoles, universités, centres de formation. Horaires fixes, suivi par site.",
+    expectedDailyMinutes: 420,
+    lateThresholdMinutes: 10,
+    requireGps: false,
+    requirePhoto: false,
+    trackByProject: false,
+    trackBySite: true,
+    allowOvertime: false,
+  },
+];
+
+// Helper: récupère les settings d'une org (avec fallback consulting par défaut)
+async function getOrgAttendanceSettings(orgId: string) {
+  const [s] = await db.select().from(orgAttendanceSettingsTable)
+    .where(eq(orgAttendanceSettingsTable.organizationId, orgId)).limit(1);
+  return s ?? {
+    organizationId: orgId,
+    sector: "consulting",
+    expectedDailyMinutes: 480,
+    lateThresholdMinutes: 15,
+    requireGps: false,
+    requirePhoto: false,
+    trackByProject: true,
+    trackBySite: false,
+    allowOvertime: true,
+    updatedAt: new Date(),
+  };
+}
 
 // ────────────────────────────────────────────────────────────────
 // Helpers
@@ -92,13 +235,17 @@ async function recomputeSession(sessionId: string): Promise<void> {
   }
   const totalMinutes = clockIn ? diffMinutes(clockIn, clockOut ?? new Date()) : 0;
   const effectiveMinutes = Math.max(0, totalMinutes - breakMinutes);
-  // Détection retard (après 09h00) et early leave (avant 17h00)
+  // Récupère les settings org pour lateThresholdMinutes
+  const orgSettings = await getOrgAttendanceSettings(s.organizationId);
+  const lateThresholdMins = orgSettings.lateThresholdMinutes ?? 15;
+  // Détection retard : clockIn > 09:00 + lateThresholdMinutes
   let isLate = false;
   let isEarlyLeave = false;
   if (clockIn) {
-    const lateThreshold = new Date(clockIn);
-    lateThreshold.setHours(9, 0, 0, 0);
-    isLate = clockIn.getTime() > lateThreshold.getTime();
+    const workdayStart = new Date(clockIn);
+    workdayStart.setHours(9, 0, 0, 0);
+    const toleranceMs = lateThresholdMins * 60 * 1000;
+    isLate = clockIn.getTime() > workdayStart.getTime() + toleranceMs;
   }
   if (clockOut) {
     const earlyThreshold = new Date(clockOut);
@@ -692,6 +839,75 @@ router.patch("/attendance/corrections/:id", requirePermission("attendance.manage
     }
 
     res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// ── Catalogue des templates sectoriels ───────────────────────────
+router.get("/attendance/sector-templates", requirePermission("attendance.manage"), async (_req, res, next) => {
+  try {
+    res.json({ templates: SECTOR_TEMPLATES });
+  } catch (e) { next(e); }
+});
+
+// ── Settings de pointage de l'organisation ────────────────────────
+router.get("/attendance/settings", requirePermission("attendance.view"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const settings = await getOrgAttendanceSettings(orgId);
+    const template = SECTOR_TEMPLATES.find(t => t.sector === settings.sector) ?? null;
+    res.json({ settings, template });
+  } catch (e) { next(e); }
+});
+
+router.put("/attendance/settings", requirePermission("attendance.manage"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    // Support impersonation : X-Organization-Id pour le cockpit super-admin
+    const orgIdHeader = req.headers["x-organization-id"] as string | undefined;
+    const orgId = orgIdHeader ?? await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+
+    const schema = z.object({
+      sector: z.enum(["btp", "logistique", "commerce", "sante", "consulting", "industrie", "ong", "education"]).optional(),
+      expectedDailyMinutes: z.number().int().min(60).max(720).optional(),
+      lateThresholdMinutes: z.number().int().min(0).max(120).optional(),
+      requireGps: z.boolean().optional(),
+      requirePhoto: z.boolean().optional(),
+      trackByProject: z.boolean().optional(),
+      trackBySite: z.boolean().optional(),
+      allowOvertime: z.boolean().optional(),
+    });
+    const body = schema.parse(req.body);
+
+    // Si un secteur est fourni, pré-remplir avec le template (les autres champs du body peuvent écraser)
+    let templateDefaults: Partial<typeof body> = {};
+    if (body.sector) {
+      const tpl = SECTOR_TEMPLATES.find(t => t.sector === body.sector);
+      if (tpl) {
+        templateDefaults = {
+          expectedDailyMinutes: tpl.expectedDailyMinutes,
+          lateThresholdMinutes: tpl.lateThresholdMinutes,
+          requireGps: tpl.requireGps,
+          requirePhoto: tpl.requirePhoto,
+          trackByProject: tpl.trackByProject,
+          trackBySite: tpl.trackBySite,
+          allowOvertime: tpl.allowOvertime,
+        };
+      }
+    }
+    const merged = { ...templateDefaults, ...body };
+
+    const [result] = await db.insert(orgAttendanceSettingsTable)
+      .values({ organizationId: orgId, ...merged })
+      .onConflictDoUpdate({
+        target: orgAttendanceSettingsTable.organizationId,
+        set: { ...merged, updatedAt: new Date() },
+      })
+      .returning();
+    const template = SECTOR_TEMPLATES.find(t => t.sector === result?.sector) ?? null;
+    res.json({ settings: result, template });
   } catch (e) { next(e); }
 });
 

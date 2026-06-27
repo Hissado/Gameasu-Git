@@ -7,6 +7,7 @@ import {
   kioskTokensTable,
   attendanceRecordsTable,
   attendanceSessionsTable,
+  orgAttendanceSettingsTable,
 } from "@workspace/db";
 import { and, eq, isNull, desc, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -110,7 +111,26 @@ kioskPublicRouter.get("/kiosk/validate/:token", async (req: Request, res: Respon
       payload: { kioskName },
     }).catch(() => {});
 
-    res.json({ id: kioskId, name: kioskName, location: kioskLocation, organizationId: kioskOrgId, settings: kioskSettings });
+    // Inclure les settings de pointage de l'org dans la réponse validate
+    const [attSettings] = await db.select({
+      requireGps: orgAttendanceSettingsTable.requireGps,
+      requirePhoto: orgAttendanceSettingsTable.requirePhoto,
+      trackByProject: orgAttendanceSettingsTable.trackByProject,
+      trackBySite: orgAttendanceSettingsTable.trackBySite,
+      lateThresholdMinutes: orgAttendanceSettingsTable.lateThresholdMinutes,
+      expectedDailyMinutes: orgAttendanceSettingsTable.expectedDailyMinutes,
+      sector: orgAttendanceSettingsTable.sector,
+    }).from(orgAttendanceSettingsTable)
+      .where(eq(orgAttendanceSettingsTable.organizationId, kioskOrgId))
+      .limit(1);
+
+    res.json({
+      id: kioskId, name: kioskName, location: kioskLocation, organizationId: kioskOrgId, settings: kioskSettings,
+      attendanceSettings: attSettings ?? {
+        requireGps: false, requirePhoto: false, trackByProject: true, trackBySite: false,
+        lateThresholdMinutes: 15, expectedDailyMinutes: 480, sector: "consulting",
+      },
+    });
   } catch (err) { next(err); }
 });
 
