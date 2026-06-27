@@ -1,0 +1,225 @@
+Pouvez-vous améliorer le module Présences & Pointage / Kiosk de Gaméasù en vous inspirant de la logique de Jibble, afin de rendre le suivi du temps adapté à plusieurs secteurs d’activité ?
+
+Objectif
+
+Je veux que Gaméasù propose une gestion du temps, des présences et du pointage beaucoup plus professionnelle, flexible et adaptée aux réalités de chaque secteur.
+
+Le module doit pouvoir fonctionner pour différents types d’organisations :
+
+* BTP / Construction
+* Industrie
+* Logistique
+* Commerce
+* Hôtellerie / Restaurants
+* Santé
+* Éducation
+* Sécurité
+* ONG
+* Cabinets de conseil
+* Services sur le terrain
+* Équipes à distance
+* Équipes hybrides
+
+⸻
+
+1. Créer des modèles de pointage par secteur
+
+Ajouter des modèles prédéfinis par secteur d’activité.
+
+Chaque tenant doit pouvoir choisir son secteur au moment de la configuration, et Gaméasù doit proposer automatiquement les règles de pointage adaptées.
+
+Exemples
+
+Construction / BTP
+
+* pointage sur chantier
+* géolocalisation obligatoire
+* affectation par site
+* pointage entrée / sortie
+* heures supplémentaires
+* rapports par chantier
+* temps par projet
+
+Logistique
+
+* pointage par tournée
+* suivi des chauffeurs
+* localisation
+* horaires par équipe
+* rapports par trajet ou mission
+
+Commerce / Retail
+
+* planning par magasin
+* présence par shift
+* retards
+* absences
+* rapports par boutique
+
+Santé
+
+* planning par service
+* équipes jour / nuit
+* remplacement
+* conformité présence
+* heures supplémentaires
+
+Consulting / Services professionnels
+
+* temps facturable par client
+* temps par projet
+* feuilles de temps
+* validation manager
+* lien avec facturation client
+
+⸻
+
+2. Fonctionnalités à renforcer
+
+Merci d’ajouter ou améliorer les fonctionnalités suivantes :
+
+* pointage entrée / sortie
+* pause début / fin
+* feuilles de temps
+* validation des heures par manager
+* suivi des heures supplémentaires
+* suivi des retards
+* suivi des absences
+* pointage par projet
+* pointage par client
+* pointage par site
+* pointage par département
+* suivi GPS
+* géorepérage
+* kiosk de pointage
+* QR code kiosk
+* code collaborateur
+* mode hors ligne si possible
+* historique des pointages
+* corrections de pointage avec validation
+* rapports de présence
+* exports PDF / Excel
+
+⸻
+
+3. Kiosk adapté à chaque tenant
+
+Le kiosk doit être configurable par organisation.
+
+L’admin organisation doit pouvoir :
+
+* générer un lien kiosk unique
+* générer un QR code kiosk
+* affecter le kiosk à un site, bureau, chantier ou département
+* définir les collaborateurs autorisés
+* exiger ou non une photo
+* exiger ou non la géolocalisation
+* autoriser ou bloquer le pointage hors zone
+* révoquer ou régénérer le lien kiosk
+* voir l’historique d’utilisation
+
+⸻
+
+4. Connexion avec les autres modules
+
+Le module Présences & Pointage doit être connecté à :
+
+* RH
+* Paie
+* Projets
+* Opérations
+* Facturation
+* Comptabilité analytique
+* Rapports
+* Tableau de bord
+* Admin
+* Kiosk
+
+Exemples de synchronisation
+
+* pointage validé → heures travaillées
+* heures travaillées → paie
+* temps par projet → comptabilité analytique
+* temps facturable → facture client
+* absence → rapport RH
+* retard → alerte manager
+* heures supplémentaires → paie
+* temps par chantier → coût projet
+
+⸻
+
+5. Ajouter des rapports puissants
+
+Créer des rapports adaptés au suivi du temps :
+
+* heures travaillées par collaborateur
+* heures par département
+* heures par projet
+* heures par client
+* heures par site
+* retards
+* absences
+* heures supplémentaires
+* temps facturable
+* temps non facturable
+* productivité par équipe
+* comparaison planning vs réel
+* rapport de présence mensuel
+* rapport paie
+
+Tous les rapports doivent être exportables en PDF et Excel.
+
+⸻
+
+6. Interface utilisateur
+
+L’interface doit être simple, rapide et professionnelle.
+
+Prévoir des vues comme :
+
+* Vue du jour
+* Vue hebdomadaire
+* Vue mensuelle
+* Par collaborateur
+* Par département
+* Par projet
+* Par site
+* Par secteur
+* Kiosk
+* Rapports
+
+Ajouter des filtres :
+
+* période
+* collaborateur
+* département
+* site
+* projet
+* client
+* statut
+* retard / absence / heures supplémentaires
+
+⸻
+
+7. Données demo
+
+Ajouter des mock data réalistes pour Hissado Consulting afin de démontrer :
+
+* pointage bureau
+* pointage projet client
+* pointage par site
+* collaborateurs en retard
+* absences
+* heures supplémentaires
+* validation manager
+* feuille de temps
+* kiosk actif
+* rapport RH
+* intégration paie
+* intégration comptabilité analytique
+
+⸻
+
+8. Objectif final
+
+Transformer le module Présences & Pointage / Kiosk en un vrai système de gestion du temps multi-secteur, capable de gérer les présences, feuilles de temps, projets, paie, rapports, géolocalisation et kiosk selon les besoins de chaque organisation.
