@@ -419,6 +419,7 @@ function AnomaliesPanel() {
   const { data, isLoading } = useAttendanceAnomalies(false);
   const resolve = useResolveAttendanceFlag();
   const qc = useQueryClient();
+  const [rejectDialog, setRejectDialog] = useState<{ id: string; comment: string } | null>(null);
 
   const { data: corrData, isLoading: corrLoading } = useQuery<{ data: CorrectionItem[] }>({
     queryKey: ["attendance-corrections"],
@@ -494,7 +495,7 @@ function AnomaliesPanel() {
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-red-600 border-red-200 hover:bg-red-50 text-xs gap-1"
                         disabled={reviewCorr.isPending}
-                        onClick={() => reviewCorr.mutate({ id: c.id, status: "rejected" })}>
+                        onClick={() => setRejectDialog({ id: c.id, comment: "" })}>
                         <ThumbsDown className="w-3 h-3" /> Rejeter
                       </Button>
                     </div>
@@ -503,6 +504,38 @@ function AnomaliesPanel() {
               ))}
             </div>}
       </Card>
+
+      {/* Dialog de rejet avec commentaire obligatoire */}
+      <Dialog open={!!rejectDialog} onOpenChange={(v) => !v && setRejectDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <ThumbsDown className="w-4 h-4" /> Motif de rejet
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label className="text-xs">Commentaire pour le collaborateur</Label>
+            <Textarea
+              rows={3}
+              placeholder="Expliquez pourquoi la demande de correction est rejetée…"
+              value={rejectDialog?.comment ?? ""}
+              onChange={e => setRejectDialog(prev => prev ? { ...prev, comment: e.target.value } : null)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setRejectDialog(null)}>Annuler</Button>
+            <Button variant="destructive" size="sm" disabled={reviewCorr.isPending}
+              onClick={() => {
+                if (rejectDialog) {
+                  reviewCorr.mutate({ id: rejectDialog.id, status: "rejected", reviewComment: rejectDialog.comment || undefined });
+                  setRejectDialog(null);
+                }
+              }}>
+              Confirmer le rejet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

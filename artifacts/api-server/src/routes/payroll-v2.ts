@@ -536,10 +536,13 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
     const lastDay = `${run.period}-${new Date(year, month, 0).getDate().toString().padStart(2, "0")}`;
 
     // Agréger les heures depuis attendance_sessions
+    // storedOvertimeMinutes : somme des h.sup. calculées à la clôture de chaque session
+    // (plus précis que totalMinutes - expectedMinutes car tient compte des corrections approuvées)
     const sessions = await db.select({
       collaboratorId: attendanceSessionsTable.collaboratorId,
       totalMinutes: sql<number>`SUM(${attendanceSessionsTable.effectiveMinutes})`,
       expectedMinutes: sql<number>`SUM(${attendanceSessionsTable.expectedMinutes})`,
+      storedOvertimeMinutes: sql<number>`SUM(${attendanceSessionsTable.overtimeMinutes})`,
       daysWorked: sql<number>`COUNT(*)`,
     })
       .from(attendanceSessionsTable)
@@ -608,7 +611,12 @@ router.post("/payroll/runs/:id/sync-attendance", requireManagerOrAbove, async (r
       // Heures attendues : planning de présence si disponible, sinon 8 h/jour travaillé
       const standardH = expectedH > 0 ? expectedH : 8 * (toNum(session?.daysWorked) || 0);
       const regularH = Math.min(totalH, standardH);
-      const overtimeH = Math.max(0, totalH - standardH);
+      // Utiliser les h.sup. stockées par session (inclut les corrections approuvées)
+      // Fallback sur totalH - standardH si storedOvertimeMinutes absent (anciens enregistrements)
+      const storedOtMin = session ? toNum(session.storedOvertimeMinutes) : 0;
+      const overtimeH = storedOtMin > 0
+        ? Math.round(storedOtMin / 60 * 10) / 10
+        : Math.max(0, totalH - standardH);
       const absenceH = Math.max(0, standardH - totalH); // heures dues non effectuées
       const leaveH = leave ? toNum(leave.days) * 8 : 0;
 

@@ -161,6 +161,10 @@ async function postClockEvent(req: Request, res: Response, kind: "clock_in" | "c
     ))
     .limit(1);
   if (!session) {
+    // expectedMinutes : 480 min (8h) par défaut.
+    // Lorsqu'un planning collaborateur / contrat avec workHoursPerDay sera disponible,
+    // remplacer par : collab.workHoursPerDay * 60 ?? org.defaultWorkHours * 60 ?? 480
+    const expectedMinutes = 480;
     const [created] = await db.insert(attendanceSessionsTable).values({
       organizationId: orgId,
       collaboratorId: collab.id,
@@ -169,6 +173,7 @@ async function postClockEvent(req: Request, res: Response, kind: "clock_in" | "c
       projectId: body.projectId ?? null,
       workDate,
       status: "open",
+      expectedMinutes,
     }).returning();
     session = created;
   }
@@ -573,6 +578,44 @@ router.patch("/attendance/corrections/:id", requirePermission("attendance.manage
       .where(and(eq(attendanceCorrectionsTable.id, id), eq(attendanceCorrectionsTable.organizationId, orgId)))
       .returning();
     if (!updated) return res.status(404).json({ error: "not_found" });
+
+    // ── Application de la correction approuvée ────────────────────────────
+    // Pour clock_in / clock_out : mettre à jour le record de pointage correspondant
+    // puis recalculer les totaux de la session (effectiveMinutes, overtimeMinutes…)
+    if (body.status === "approved" && updated.proposedAt) {
+      const recordKind = updated.kind === "clock_in" ? "clock_in"
+        : updated.kind === "clock_out" ? "clock_out"
+        : null; // break / duration / other → pas de record unique à réécrire
+      if (recordKind) {
+        const [existing] = await db.select().from(attendanceRecordsTable)
+          .where(and(
+            eq(attendanceRecordsTable.sessionId, updated.sessionId),
+            eq(attendanceRecordsTable.kind, recordKind),
+          ))
+          .orderBy(desc(attendanceRecordsTable.occurredAt))
+          .limit(1);
+        const note = `Correction approuvée le ${new Date().toLocaleDateString("fr-FR")} — ${updated.reason.slice(0, 200)}`;
+        if (existing) {
+          await db.update(attendanceRecordsTable)
+            .set({ occurredAt: updated.proposedAt, comment: note, status: "corrected" })
+            .where(eq(attendanceRecordsTable.id, existing.id));
+        } else {
+          await db.insert(attendanceRecordsTable).values({
+            organizationId: orgId,
+            sessionId: updated.sessionId,
+            collaboratorId: updated.collaboratorId,
+            kind: recordKind,
+            occurredAt: updated.proposedAt,
+            comment: note,
+            status: "corrected",
+            source: "manual",
+          });
+        }
+        // Recalculer effectiveMinutes / overtimeMinutes / flags de la session
+        await recomputeSession(updated.sessionId);
+      }
+    }
+
     res.json(updated);
   } catch (e) { next(e); }
 });
