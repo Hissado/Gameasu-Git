@@ -37,7 +37,7 @@ interface KioskInfo {
   attendanceSettings?: AttendanceSettings;
 }
 
-type Screen = "idle" | "keypad" | "identified" | "photo" | "confirm" | "error";
+type Screen = "idle" | "keypad" | "identified" | "site" | "photo" | "confirm" | "error";
 type PunchKind = "clock_in" | "clock_out" | "break_start" | "break_end";
 
 const PUNCH_LABELS: Record<PunchKind, { label: string; sub: string; color: string; bg: string; icon: string }> = {
@@ -60,6 +60,51 @@ function Clock() {
     <div className="text-center">
       <div className="text-7xl font-thin tracking-widest text-white tabular-nums">{time}</div>
       <div className="text-base text-white/50 mt-2 capitalize">{date}</div>
+    </div>
+  );
+}
+
+// ─── Site Selection Screen (trackBySite) ─────────────────────────
+function SiteScreen({ onSelect, onCancel }: { onSelect: (site: string) => void; onCancel: () => void }) {
+  const [site, setSite] = useState("");
+  const SITES = ["Siège / Bureau", "Chantier Nord", "Chantier Sud", "Entrepôt", "Site client", "Autre"];
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
+      <div className="text-center">
+        <div className="text-2xl font-semibold text-white mb-1">Sélection du site</div>
+        <div className="text-sm text-white/50">Sur quel site travaillez-vous aujourd'hui ?</div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+        {SITES.map(s => (
+          <button key={s}
+            onClick={() => onSelect(s)}
+            className="py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-amber-500/20 hover:border-amber-400/40 transition-all text-left"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <div className="w-full max-w-sm">
+        <input
+          value={site}
+          onChange={e => setSite(e.target.value)}
+          placeholder="Ou saisissez le nom du site…"
+          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-amber-400/60"
+          onKeyDown={e => e.key === "Enter" && site.trim() && onSelect(site.trim())}
+        />
+        <div className="flex gap-2 mt-3">
+          {site.trim() && (
+            <button onClick={() => onSelect(site.trim())}
+              className="flex-1 py-3 bg-amber-400 text-slate-900 font-semibold rounded-xl hover:bg-amber-300 transition-all text-sm">
+              Confirmer
+            </button>
+          )}
+          <button onClick={onCancel}
+            className="flex-1 py-3 bg-white/10 border border-white/20 text-white/60 font-medium rounded-xl hover:bg-white/20 transition-all text-sm">
+            Annuler
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -412,6 +457,7 @@ function KioskApp() {
   const [screen, setScreen] = useState<Screen>("idle");
   const [collaborator, setCollaborator] = useState<CollaboratorInfo | null>(null);
   const [selectedKind, setSelectedKind] = useState<PunchKind | null>(null);
+  const [selectedSite, setSelectedSite] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -439,6 +485,7 @@ function KioskApp() {
           location: data.location ?? null,
           organizationId: data.organizationId,
           settings: data.settings ?? {},
+          attendanceSettings: data.attendanceSettings ?? undefined,
         });
       })
       .catch(() => {
@@ -490,11 +537,24 @@ function KioskApp() {
 
   const handleAction = (kind: PunchKind) => {
     setSelectedKind(kind);
+    setSelectedSite(null);
     gpsRef.current = null;
 
     const attSettings = kiosk?.attendanceSettings;
     const requireGps = attSettings?.requireGps ?? false;
     const requirePhoto = attSettings?.requirePhoto ?? false;
+    const trackBySite = attSettings?.trackBySite ?? false;
+
+    // Determine the next screen after GPS resolution
+    const nextScreen = (gpsOk: boolean) => {
+      if (!gpsOk && requireGps) {
+        setError("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS.");
+        setScreen("error");
+        return;
+      }
+      if (trackBySite) { setScreen("site"); return; }
+      setScreen(requirePhoto ? "photo" : "confirm");
+    };
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -504,30 +564,20 @@ function KioskApp() {
             longitude: pos.coords.longitude,
             accuracyMeters: Math.round(pos.coords.accuracy),
           };
-          // GPS ok — continuer normalement
-          setScreen(requirePhoto ? "photo" : "confirm");
+          nextScreen(true);
         },
-        () => {
-          // GPS refusé
-          if (requireGps) {
-            // Bloquer le pointage si GPS obligatoire
-            setError("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS.");
-            setScreen("error");
-            return;
-          }
-          gpsRef.current = null;
-          setScreen(requirePhoto ? "photo" : "confirm");
-        },
+        () => { gpsRef.current = null; nextScreen(false); },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
       );
     } else {
-      if (requireGps) {
-        setError("La géolocalisation est requise pour pointer mais n'est pas disponible sur cet appareil.");
-        setScreen("error");
-        return;
-      }
-      setScreen(requirePhoto ? "photo" : "confirm");
+      nextScreen(false);
     }
+  };
+
+  const handleSiteSelected = (site: string) => {
+    setSelectedSite(site);
+    const requirePhoto = kiosk?.attendanceSettings?.requirePhoto ?? false;
+    setScreen(requirePhoto ? "photo" : "confirm");
   };
 
   const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string) => {
@@ -544,6 +594,7 @@ function KioskApp() {
           kind,
           ...(photoDataUrl ? { photoDataUrl } : {}),
           ...(gps ? { latitude: gps.latitude, longitude: gps.longitude, accuracyMeters: gps.accuracyMeters } : {}),
+          ...(selectedSite ? { siteName: selectedSite } : {}),
         }),
       });
       const data = await res.json();
@@ -565,6 +616,7 @@ function KioskApp() {
     setScreen("idle");
     setCollaborator(null);
     setSelectedKind(null);
+    setSelectedSite(null);
     setError(null);
     setErrorMsg("");
     setLoading(false);
@@ -607,6 +659,12 @@ function KioskApp() {
           <ActionScreen
             collaborator={collaborator}
             onAction={handleAction}
+            onCancel={reset}
+          />
+        )}
+        {screen === "site" && selectedKind && (
+          <SiteScreen
+            onSelect={handleSiteSelected}
             onCancel={reset}
           />
         )}

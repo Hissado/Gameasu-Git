@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -194,6 +194,20 @@ export default function TenantDetail() {
     queryKey: ["cockpit-org-att-settings", id],
     queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/attendance-settings`),
     enabled: tab === "overview",
+  });
+  const [editingSector, setEditingSector] = useState(false);
+  const [draftSector, setDraftSector] = useState("");
+  const sectorMutation = useMutation({
+    mutationFn: (sector: string) =>
+      apiFetch(`/api/super-admin/organizations/${id}/attendance-settings`, {
+        method: "PUT", body: JSON.stringify({ sector }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cockpit-org-att-settings", id] });
+      setEditingSector(false);
+      toast.success("Secteur de pointage mis à jour");
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
   const handleSetCustomPrice = async () => {
@@ -490,6 +504,59 @@ export default function TenantDetail() {
               ))}
             </CardContent>
           </Card>
+          {/* ── Secteur de pointage ──────────────────────────── */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">🏢 Secteur de pointage</CardTitle>
+              <CardDescription className="text-xs">Modèle de règles appliqué aux kiosques de cet espace.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!editingSector ? (
+                <div className="flex items-center justify-between gap-2">
+                  {attSettings.data ? (
+                    <Badge variant="outline" className="font-mono text-sm gap-1 py-1">
+                      {attSettings.data.sectorIcon} {attSettings.data.sectorLabel}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Non configuré</span>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setDraftSector(attSettings.data?.sector ?? "consulting");
+                    setEditingSector(true);
+                  }}>Modifier</Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <select
+                    value={draftSector}
+                    onChange={e => setDraftSector(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  >
+                    {[
+                      { sector: "btp",        label: "🏗️ BTP / Construction" },
+                      { sector: "logistique", label: "🚛 Logistique / Transport" },
+                      { sector: "commerce",   label: "🛒 Commerce / Retail" },
+                      { sector: "sante",      label: "🏥 Santé / Médical" },
+                      { sector: "consulting", label: "💼 Consulting / Services" },
+                      { sector: "industrie",  label: "🏭 Industrie / Manufacturing" },
+                      { sector: "ong",        label: "🤝 ONG / Associatif" },
+                      { sector: "education",  label: "🎓 Éducation / Formation" },
+                    ].map(o => (
+                      <option key={o.sector} value={o.sector}>{o.label}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={sectorMutation.isPending}
+                      onClick={() => sectorMutation.mutate(draftSector)}>
+                      {sectorMutation.isPending ? "…" : "Enregistrer"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingSector(false)}>Annuler</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4" />Tarification active</CardTitle>

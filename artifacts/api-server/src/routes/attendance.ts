@@ -252,7 +252,8 @@ async function recomputeSession(sessionId: string): Promise<void> {
     earlyThreshold.setHours(17, 0, 0, 0);
     isEarlyLeave = clockOut.getTime() < earlyThreshold.getTime();
   }
-  const overtimeMinutes = Math.max(0, effectiveMinutes - (s.expectedMinutes ?? 480));
+  const expectedMinutes = s.expectedMinutes ?? orgSettings.expectedDailyMinutes ?? 480;
+  const overtimeMinutes = Math.max(0, effectiveMinutes - expectedMinutes);
   await db.update(attendanceSessionsTable).set({
     clockInAt: clockIn,
     clockOutAt: clockOut,
@@ -864,9 +865,7 @@ router.get("/attendance/settings", requirePermission("attendance.view"), async (
 router.put("/attendance/settings", requirePermission("attendance.manage"), async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    // Support impersonation : X-Organization-Id pour le cockpit super-admin
-    const orgIdHeader = req.headers["x-organization-id"] as string | undefined;
-    const orgId = orgIdHeader ?? await getCurrentOrganizationId(userId);
+    const orgId = await getCurrentOrganizationId(userId);
     if (!orgId) return res.status(403).json({ error: "no_organization" });
 
     const schema = z.object({

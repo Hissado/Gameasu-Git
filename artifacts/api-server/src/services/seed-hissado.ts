@@ -936,7 +936,7 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
       sector: "consulting",
       expectedDailyMinutes: 480,
       lateThresholdMinutes: 15,
-      requireGps: true,
+      requireGps: false,
       requirePhoto: false,
       trackByProject: true,
       trackBySite: false,

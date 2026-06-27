@@ -941,6 +941,27 @@ router.get("/super-admin/organizations/:id/attendance-settings", sa, async (req,
   } catch (e) { next(e); }
 });
 
+router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req, res, next) => {
+  try {
+    const orgId = req.params.id as string;
+    const body = req.body as {
+      sector?: string; expectedDailyMinutes?: number; lateThresholdMinutes?: number;
+      requireGps?: boolean; requirePhoto?: boolean;
+      trackByProject?: boolean; trackBySite?: boolean; allowOvertime?: boolean;
+    };
+    const [result] = await db.insert(orgAttendanceSettingsTable)
+      .values({ organizationId: orgId, ...body })
+      .onConflictDoUpdate({
+        target: orgAttendanceSettingsTable.organizationId,
+        set: { ...body, updatedAt: new Date() },
+      })
+      .returning();
+    const sector = result?.sector ?? "consulting";
+    const template = SECTOR_TEMPLATES.find(t => t.sector === sector) ?? SECTOR_TEMPLATES[4]!;
+    res.json({ settings: result, sector, sectorLabel: template.label, sectorIcon: template.icon });
+  } catch (e) { next(e); }
+});
+
 // ─── Réinitialisation usine ────────────────────────────────────────────────────
 
 const FACTORY_RESET_CONFIRM = "RÉINITIALISER GAMEASU";
