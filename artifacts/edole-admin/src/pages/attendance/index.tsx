@@ -1188,7 +1188,7 @@ function ReportsPanel() {
               </div>
             </>
           )}
-          {reportType !== "by-department" && reportType !== "by-project" && (
+          {reportType !== "by-department" && (
             <div>
               <Label className="text-xs mb-1 block">Collaborateur</Label>
               <Select value={filterCollab} onValueChange={setFilterCollab}>

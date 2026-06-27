@@ -114,11 +114,11 @@ router.get("/attendance/reports/by-collaborator", requirePermission("attendance.
       status: req.query["status"] as string | undefined,
     });
 
-    const map = new Map<string, { name: string; dept: string; workDays: number; totalMinutes: number; lateDays: number; earlyLeaveDays: number; overtimeDays: number }>();
+    const map = new Map<string, { collaboratorId: string; name: string; department: string; workDays: number; totalMinutes: number; lateDays: number; earlyLeaveDays: number; overtimeDays: number }>();
     for (const r of rows) {
       const eff = r.effectiveMinutes ?? 0;
       const exp = r.expectedMinutes ?? 480;
-      const e = map.get(r.collaboratorId) ?? { name: collabName(r), dept: r.deptName ?? "—", workDays: 0, totalMinutes: 0, lateDays: 0, earlyLeaveDays: 0, overtimeDays: 0 };
+      const e = map.get(r.collaboratorId) ?? { collaboratorId: r.collaboratorId, name: collabName(r), department: r.deptName ?? "—", workDays: 0, totalMinutes: 0, lateDays: 0, earlyLeaveDays: 0, overtimeDays: 0 };
       e.workDays++; e.totalMinutes += eff;
       if (r.isLate) e.lateDays++;
       if (r.isEarlyLeave) e.earlyLeaveDays++;
@@ -285,13 +285,13 @@ router.get("/attendance/reports/overtime", requirePermission("attendance.view"),
       status: req.query["status"] as string | undefined,
     });
 
-    const map = new Map<string, { name: string; dept: string; workDays: number; totalEffMinutes: number; totalOvertimeMinutes: number; overtimeDays: number }>();
+    const map = new Map<string, { collaboratorId: string; name: string; department: string; workDays: number; totalEffMinutes: number; totalOvertimeMinutes: number; overtimeDays: number }>();
     for (const r of rows) {
       const eff = r.effectiveMinutes ?? 0;
       const exp = r.expectedMinutes ?? 480;
       const ot = Math.max(0, eff - exp);
       const key = r.collaboratorId;
-      const e = map.get(key) ?? { name: collabName(r), dept: r.deptName ?? "—", workDays: 0, totalEffMinutes: 0, totalOvertimeMinutes: 0, overtimeDays: 0 };
+      const e = map.get(key) ?? { collaboratorId: key, name: collabName(r), department: r.deptName ?? "—", workDays: 0, totalEffMinutes: 0, totalOvertimeMinutes: 0, overtimeDays: 0 };
       e.workDays++; e.totalEffMinutes += eff; e.totalOvertimeMinutes += ot;
       if (ot > 0) e.overtimeDays++;
       map.set(key, e);
@@ -327,12 +327,12 @@ router.get("/attendance/reports/monthly", requirePermission("attendance.view"), 
       status: req.query["status"] as string | undefined,
     });
 
-    const collabMap = new Map<string, { name: string; dept: string; presentDays: number; lateDays: number; earlyLeaveDays: number; totalEffMinutes: number; overtimeMinutes: number }>();
+    const collabMap = new Map<string, { collaboratorId: string; name: string; department: string; presentDays: number; lateDays: number; earlyLeaveDays: number; totalEffMinutes: number; overtimeMinutes: number }>();
     for (const r of rows) {
       const eff = r.effectiveMinutes ?? 0;
       const exp = r.expectedMinutes ?? 480;
       const key = r.collaboratorId;
-      const e = collabMap.get(key) ?? { name: collabName(r), dept: r.deptName ?? "—", presentDays: 0, lateDays: 0, earlyLeaveDays: 0, totalEffMinutes: 0, overtimeMinutes: 0 };
+      const e = collabMap.get(key) ?? { collaboratorId: key, name: collabName(r), department: r.deptName ?? "—", presentDays: 0, lateDays: 0, earlyLeaveDays: 0, totalEffMinutes: 0, overtimeMinutes: 0 };
       if (r.status === "closed") e.presentDays++;
       e.totalEffMinutes += eff;
       if (r.isLate) e.lateDays++;
