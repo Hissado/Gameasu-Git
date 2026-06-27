@@ -68,7 +68,7 @@ const CORR_KIND_LABEL: Record<string, string> = {
 
 type CorrectionItem = {
   id: string; sessionId: string; collaboratorId: string;
-  kind: string; proposedAt: string | null; reason: string;
+  kind: string; currentAt: string | null; proposedAt: string | null; reason: string;
   status: string; reviewComment: string | null;
   collaboratorName?: string; workDate?: string | null;
 };
@@ -483,7 +483,8 @@ function AnomaliesPanel() {
                       </p>
                       <p className="text-xs text-slate-600">
                         Type : <span className="font-medium">{CORR_KIND_LABEL[c.kind] ?? c.kind}</span>
-                        {c.proposedAt && <> · Heure proposée : <span className="font-medium">{fmtTime(c.proposedAt)}</span></>}
+                        {c.currentAt && <> · Système : <span className="font-medium text-slate-700">{fmtTime(c.currentAt)}</span></>}
+                        {c.proposedAt && <> → Proposé : <span className="font-medium text-blue-700">{fmtTime(c.proposedAt)}</span></>}
                       </p>
                       <p className="text-xs text-slate-500 italic">"{c.reason}"</p>
                     </div>
@@ -547,7 +548,8 @@ function CorrectionModal({ session, onClose, onSuccess }: {
 }) {
   const qc = useQueryClient();
   const [kind, setKind] = useState<string>("other");
-  const [proposedAt, setProposedAt] = useState("");
+  const [currentAt, setCurrentAt] = useState("");   // heure actuellement enregistrée
+  const [proposedAt, setProposedAt] = useState(""); // heure correcte proposée
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -558,11 +560,16 @@ function CorrectionModal({ session, onClose, onSuccess }: {
       await apiFetch("/api/attendance/corrections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: session.id, kind, proposedAt: proposedAt || undefined, reason: reason.trim() }),
+        body: JSON.stringify({
+          sessionId: session.id, kind,
+          currentAt: currentAt || undefined,
+          proposedAt: proposedAt || undefined,
+          reason: reason.trim(),
+        }),
       });
       qc.invalidateQueries({ queryKey: ["attendance-corrections"] });
       toast.success("Demande de correction envoyée");
-      setReason(""); setProposedAt(""); setKind("other");
+      setReason(""); setCurrentAt(""); setProposedAt(""); setKind("other");
       onSuccess();
     } catch (e: any) {
       toast.error(e?.message ?? "Erreur");
@@ -592,9 +599,15 @@ function CorrectionModal({ session, onClose, onSuccess }: {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-xs">Heure proposée (optionnel)</Label>
-            <Input type="datetime-local" value={proposedAt} onChange={e => setProposedAt(e.target.value)} className="h-8 text-sm mt-1" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Heure enregistrée système</Label>
+              <Input type="datetime-local" value={currentAt} onChange={e => setCurrentAt(e.target.value)} className="h-8 text-sm mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Heure correcte proposée</Label>
+              <Input type="datetime-local" value={proposedAt} onChange={e => setProposedAt(e.target.value)} className="h-8 text-sm mt-1" />
+            </div>
           </div>
           <div>
             <Label className="text-xs">Motif <span className="text-red-500">*</span></Label>

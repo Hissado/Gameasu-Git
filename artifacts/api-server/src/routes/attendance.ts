@@ -161,10 +161,10 @@ async function postClockEvent(req: Request, res: Response, kind: "clock_in" | "c
     ))
     .limit(1);
   if (!session) {
-    // expectedMinutes : 480 min (8h) par défaut.
-    // Lorsqu'un planning collaborateur / contrat avec workHoursPerDay sera disponible,
-    // remplacer par : collab.workHoursPerDay * 60 ?? org.defaultWorkHours * 60 ?? 480
-    const expectedMinutes = 480;
+    // expectedMinutes : dérivé de weeklyHours du collaborateur (supposé 5j/semaine)
+    // → weeklyHours / 5 × 60. Défaut 40h/semaine = 480 min/jour.
+    const weeklyH = parseFloat(String(collab.weeklyHours ?? "40"));
+    const expectedMinutes = Math.round((weeklyH / 5) * 60);
     const [created] = await db.insert(attendanceSessionsTable).values({
       organizationId: orgId,
       collaboratorId: collab.id,
@@ -407,21 +407,60 @@ router.post("/attendance/scan-anomalies", requirePermission("attendance.manage")
         eq(attendanceSessionsTable.workDate, yISO),
         eq(attendanceSessionsTable.status, "open"),
       ));
-    let created = 0;
+    let flagged = 0;
+    let closed = 0;
     for (const s of stale) {
-      const exists = await db.select().from(attendanceFlagsTable)
+      // Créer le flag missing_clock_out si inexistant
+      const [existingFlag] = await db.select().from(attendanceFlagsTable)
         .where(and(eq(attendanceFlagsTable.sessionId, s.id), eq(attendanceFlagsTable.kind, "missing_clock_out")))
         .limit(1);
-      if (!exists[0]) {
+      if (!existingFlag) {
         await db.insert(attendanceFlagsTable).values({
           organizationId: orgId, collaboratorId: s.collaboratorId, sessionId: s.id,
           kind: "missing_clock_out", severity: "high", workDate: s.workDate,
           description: "Aucun pointage de départ enregistré pour la journée.",
         });
-        created++;
+        flagged++;
+      }
+
+      // Clôturer la session périmée si elle a un clock_in
+      // → insère un clock_out synthétique en fin de journée standard (17h UTC)
+      // → recompute overtime pour que les totaux soient persistés en DB
+      const [clockInRecord] = await db.select({ id: attendanceRecordsTable.id })
+        .from(attendanceRecordsTable)
+        .where(and(
+          eq(attendanceRecordsTable.sessionId, s.id),
+          eq(attendanceRecordsTable.kind, "clock_in"),
+        ))
+        .limit(1);
+      if (clockInRecord) {
+        const [alreadyClockOut] = await db.select({ id: attendanceRecordsTable.id })
+          .from(attendanceRecordsTable)
+          .where(and(eq(attendanceRecordsTable.sessionId, s.id), eq(attendanceRecordsTable.kind, "clock_out")))
+          .limit(1);
+        if (!alreadyClockOut) {
+          // Fin de journée standard : workDate à 17:00 UTC
+          const syntheticClockOut = new Date(`${s.workDate}T17:00:00.000Z`);
+          await db.insert(attendanceRecordsTable).values({
+            organizationId: orgId,
+            sessionId: s.id,
+            collaboratorId: s.collaboratorId,
+            kind: "clock_out",
+            occurredAt: syntheticClockOut,
+            comment: "Pointage de départ automatique — session oubliée (scan anomalies)",
+            status: "synthetic",
+            source: "system",
+          });
+        }
+        await db.update(attendanceSessionsTable)
+          .set({ status: "closed" })
+          .where(eq(attendanceSessionsTable.id, s.id));
+        // Recompute overtimeMinutes et effectiveMinutes avec le clock_out synthétique
+        await recomputeSession(s.id);
+        closed++;
       }
     }
-    res.json({ scanned: stale.length, flagged: created });
+    res.json({ scanned: stale.length, flagged, closed, message: `${flagged} signalement(s) créé(s), ${closed} session(s) clôturée(s)` });
   } catch (e) { next(e); }
 });
 
@@ -538,7 +577,8 @@ router.post("/attendance/corrections", requirePermission("attendance.clock"), as
     const body = z.object({
       sessionId: z.string().uuid(),
       kind: z.enum(["clock_in", "clock_out", "break", "duration", "other"]),
-      proposedAt: z.string().optional(),
+      currentAt: z.string().optional(), // heure actuellement enregistrée (pour comparaison manager)
+      proposedAt: z.string().optional(), // heure que le collaborateur juge correcte
       reason: z.string().min(5).max(1000),
     }).parse(req.body);
     const [session] = await db.select().from(attendanceSessionsTable)
@@ -554,6 +594,7 @@ router.post("/attendance/corrections", requirePermission("attendance.clock"), as
       collaboratorId: collab.id,
       sessionId: body.sessionId,
       kind: body.kind,
+      currentAt: body.currentAt ? new Date(body.currentAt) : null,
       proposedAt: body.proposedAt ? new Date(body.proposedAt) : null,
       reason: body.reason,
       status: "pending",
@@ -580,13 +621,14 @@ router.patch("/attendance/corrections/:id", requirePermission("attendance.manage
     if (!updated) return res.status(404).json({ error: "not_found" });
 
     // ── Application de la correction approuvée ────────────────────────────
-    // Pour clock_in / clock_out : mettre à jour le record de pointage correspondant
-    // puis recalculer les totaux de la session (effectiveMinutes, overtimeMinutes…)
     if (body.status === "approved" && updated.proposedAt) {
+      const note = `Correction approuvée le ${new Date().toLocaleDateString("fr-FR")} — ${updated.reason.slice(0, 200)}`;
       const recordKind = updated.kind === "clock_in" ? "clock_in"
         : updated.kind === "clock_out" ? "clock_out"
-        : null; // break / duration / other → pas de record unique à réécrire
+        : null;
+
       if (recordKind) {
+        // clock_in / clock_out : mise à jour ou création du record de pointage
         const [existing] = await db.select().from(attendanceRecordsTable)
           .where(and(
             eq(attendanceRecordsTable.sessionId, updated.sessionId),
@@ -594,7 +636,6 @@ router.patch("/attendance/corrections/:id", requirePermission("attendance.manage
           ))
           .orderBy(desc(attendanceRecordsTable.occurredAt))
           .limit(1);
-        const note = `Correction approuvée le ${new Date().toLocaleDateString("fr-FR")} — ${updated.reason.slice(0, 200)}`;
         if (existing) {
           await db.update(attendanceRecordsTable)
             .set({ occurredAt: updated.proposedAt, comment: note, status: "corrected" })
@@ -611,9 +652,30 @@ router.patch("/attendance/corrections/:id", requirePermission("attendance.manage
             source: "manual",
           });
         }
-        // Recalculer effectiveMinutes / overtimeMinutes / flags de la session
+        await recomputeSession(updated.sessionId);
+      } else if (updated.kind === "break") {
+        // Pause : mettre à jour le dernier break_end (fin de pause corrigée)
+        const [lastBreakEnd] = await db.select().from(attendanceRecordsTable)
+          .where(and(
+            eq(attendanceRecordsTable.sessionId, updated.sessionId),
+            eq(attendanceRecordsTable.kind, "break_end"),
+          ))
+          .orderBy(desc(attendanceRecordsTable.occurredAt))
+          .limit(1);
+        if (lastBreakEnd) {
+          await db.update(attendanceRecordsTable)
+            .set({ occurredAt: updated.proposedAt, comment: note, status: "corrected" })
+            .where(eq(attendanceRecordsTable.id, lastBreakEnd.id));
+        }
+        await recomputeSession(updated.sessionId);
+      } else {
+        // duration / other : recompute pour cohérence
         await recomputeSession(updated.sessionId);
       }
+    } else if (body.status === "rejected") {
+      // Rejet : pas de modification des records, mais on recompute pour s'assurer
+      // que les totaux sont à jour (cas où d'autres corrections auraient été appliquées)
+      await recomputeSession(updated.sessionId);
     }
 
     res.json(updated);

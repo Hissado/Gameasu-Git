@@ -110,7 +110,8 @@ export const attendanceCorrectionsTable = pgTable("attendance_corrections", {
   collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   sessionId: uuid("session_id").notNull().references(() => attendanceSessionsTable.id, { onDelete: "cascade" }),
   kind: text("kind").notNull(), // clock_in | clock_out | break | duration | other
-  proposedAt: timestamp("proposed_at", { withTimezone: true }), // nouvelle heure proposée
+  currentAt: timestamp("current_at", { withTimezone: true }), // heure actuellement enregistrée (système)
+  proposedAt: timestamp("proposed_at", { withTimezone: true }), // nouvelle heure proposée par le collaborateur
   reason: text("reason").notNull(),
   status: text("status").notNull().default("pending"), // pending | approved | rejected
   reviewerId: uuid("reviewer_id").references(() => usersTable.id),
