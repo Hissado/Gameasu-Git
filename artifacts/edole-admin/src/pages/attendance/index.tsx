@@ -1026,6 +1026,425 @@ function TimesheetsPanel() {
   );
 }
 
+// ─── Rapports de présence ─────────────────────────────────────────────────────
+
+const REPORT_TYPES = [
+  { value: "by-collaborator",  label: "Heures par collaborateur" },
+  { value: "by-department",    label: "Heures par département" },
+  { value: "delays-absences",  label: "Retards et absences" },
+  { value: "overtime",         label: "Heures supplémentaires" },
+  { value: "monthly",          label: "Rapport mensuel de présence" },
+] as const;
+
+type ReportType = typeof REPORT_TYPES[number]["value"];
+
+type ByCollabRow = { collaboratorId: string; name: string; department: string; workDays: number; totalMinutes: number; lateDays: number; earlyLeaveDays: number; overtimeDays: number };
+type ByDeptRow   = { deptId: string; deptName: string; workDays: number; totalHours: number; lateDays: number };
+type FlagRow     = { id: string; kind: string; severity: string; workDate: string | null; description: string | null; isResolved: boolean; collaboratorName: string; department: string };
+type FlagSummary = { name: string; dept: string; late: number; earlyLeave: number; missing: number; other: number };
+type OtRow       = { collaboratorId: string; name: string; department: string; workDays: number; totalEffMinutes: number; totalOvertimeMinutes: number; overtimeDays: number };
+type MonthlyRow  = { collaboratorId: string; name: string; department: string; presentDays: number; lateDays: number; earlyLeaveDays: number; totalEffMinutes: number; overtimeMinutes: number; expectedDays: number; absentDays: number; attendanceRate: number; totalHours: number; overtimeHours: number };
+
+type CollabOption = { id: string; firstName: string; lastName: string };
+type DeptOption   = { id: string; name: string };
+
+function fmtMins(m: number): string {
+  if (!m) return "0h";
+  const h = Math.floor(m / 60), mn = m % 60;
+  return `${h}h${mn > 0 ? String(mn).padStart(2, "0") : ""}`;
+}
+
+const FLAG_KIND_MAP: Record<string, string> = {
+  late: "Retard", early_leave: "Départ anticipé",
+  missing_clock_out: "Oubli départ", missing_clock_in: "Oubli arrivée",
+  long_break: "Pause prolongée",
+};
+
+function ReportsPanel() {
+  const [reportType, setReportType] = useState<ReportType>("by-collaborator");
+  const [from, setFrom] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [to, setTo] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [filterCollab, setFilterCollab] = useState<string>("all");
+  const [filterDept, setFilterDept] = useState<string>("all");
+  const [reportYear, setReportYear] = useState<number>(new Date().getFullYear());
+  const [reportMonth, setReportMonth] = useState<number>(new Date().getMonth() + 1);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const isMonthly = reportType === "monthly";
+
+  // Load filter options
+  const { data: collabOpts } = useQuery<CollabOption[]>({
+    queryKey: ["report-collabs"],
+    queryFn: () => apiFetch("/api/collaborators").then((r: any) => r.data ?? r),
+    staleTime: 60_000,
+  });
+  const { data: deptOpts } = useQuery<DeptOption[]>({
+    queryKey: ["report-depts"],
+    queryFn: () => apiFetch("/api/hr/departments").then((r: any) => r.data ?? r),
+    staleTime: 60_000,
+  });
+
+  // Build query params
+  const params = new URLSearchParams();
+  if (!isMonthly) { params.set("from", from); params.set("to", to); }
+  if (isMonthly) { params.set("year", String(reportYear)); params.set("month", String(reportMonth)); }
+  if (filterCollab !== "all") params.set("collaboratorId", filterCollab);
+  if (filterDept !== "all") params.set("departmentId", filterDept);
+
+  const { data: reportData, isLoading, refetch } = useQuery({
+    queryKey: ["attendance-report", reportType, from, to, filterCollab, filterDept, reportYear, reportMonth],
+    queryFn: () => apiFetch(`/api/attendance/reports/${reportType}?${params.toString()}`),
+    staleTime: 30_000,
+  });
+
+  async function handleExportExcel() {
+    setIsExporting(true);
+    try {
+      const exportParams = new URLSearchParams(params);
+      const resp = await fetch(`/api/attendance/reports/${reportType}/export.xlsx?${exportParams.toString()}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!resp.ok) throw new Error("Échec export");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gameasu-presences-${reportType}-${from}-${to}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Erreur lors de l'export Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function handlePrint() {
+    window.print();
+  }
+
+  const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+          <div className="lg:col-span-2">
+            <Label className="text-xs mb-1 block">Type de rapport</Label>
+            <Select value={reportType} onValueChange={v => setReportType(v as ReportType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REPORT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {!isMonthly ? (
+            <>
+              <div>
+                <Label className="text-xs mb-1 block">Date début</Label>
+                <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Date fin</Label>
+                <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="h-9 text-sm" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <Label className="text-xs mb-1 block">Mois</Label>
+                <Select value={String(reportMonth)} onValueChange={v => setReportMonth(Number(v))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {months.map((m, i) => <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Année</Label>
+                <Select value={String(reportYear)} onValueChange={v => setReportYear(Number(v))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2024, 2025, 2026].map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+          {reportType !== "by-department" && (
+            <div>
+              <Label className="text-xs mb-1 block">Collaborateur</Label>
+              <Select value={filterCollab} onValueChange={setFilterCollab}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  {(collabOpts ?? []).map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            <Label className="text-xs mb-1 block">Département</Label>
+            <Select value={filterDept} onValueChange={setFilterDept}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {(deptOpts ?? []).map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Results */}
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-primary" />
+            {REPORT_TYPES.find(t => t.value === reportType)?.label}
+            {isMonthly ? ` — ${months[reportMonth - 1]} ${reportYear}` : ` — ${from} → ${to}`}
+          </h3>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handlePrint} className="h-7 text-xs gap-1">
+              <Download className="w-3 h-3" /> Imprimer / PDF
+            </Button>
+            <Button size="sm" onClick={handleExportExcel} disabled={isExporting} className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700">
+              {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
+              Export Excel
+            </Button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        ) : (
+          <div className="overflow-x-auto print:overflow-visible">
+            {reportType === "by-collaborator" && <ByCollabTable data={(reportData as any)?.data ?? []} />}
+            {reportType === "by-department" && <ByDeptTable data={(reportData as any)?.data ?? []} />}
+            {reportType === "delays-absences" && <DelaysTable detail={(reportData as any)?.detail ?? []} summary={(reportData as any)?.summary ?? []} />}
+            {reportType === "overtime" && <OvertimeTable data={(reportData as any)?.data ?? []} />}
+            {reportType === "monthly" && <MonthlyTable data={(reportData as any)?.summary ?? []} expectedDays={(reportData as any)?.expectedDays ?? 0} />}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ByCollabTable({ data }: { data: ByCollabRow[] }) {
+  if (!data.length) return <EmptyReport />;
+  return (
+    <table className="w-full text-sm print:text-xs">
+      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+        <tr>
+          <th className="text-left px-4 py-2.5">Collaborateur</th>
+          <th className="text-left px-4 py-2.5">Département</th>
+          <th className="text-center px-4 py-2.5">Jours travaillés</th>
+          <th className="text-center px-4 py-2.5">Heures effectives</th>
+          <th className="text-center px-4 py-2.5">Retards</th>
+          <th className="text-center px-4 py-2.5">Départs anticipés</th>
+          <th className="text-center px-4 py-2.5">Jours h. sup.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map(r => (
+          <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
+            <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
+            <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+            <td className="px-4 py-2.5 text-center">{r.workDays}</td>
+            <td className="px-4 py-2.5 text-center font-semibold">{fmtMins(r.totalMinutes)}</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.earlyLeaveDays > 0 ? <span className="text-orange-600 font-medium">{r.earlyLeaveDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.overtimeDays > 0 ? <span className="text-emerald-600 font-medium">{r.overtimeDays}</span> : <span className="text-slate-400">0</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ByDeptTable({ data }: { data: ByDeptRow[] }) {
+  if (!data.length) return <EmptyReport />;
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+        <tr>
+          <th className="text-left px-4 py-2.5">Département</th>
+          <th className="text-center px-4 py-2.5">Jours travaillés</th>
+          <th className="text-center px-4 py-2.5">Heures effectives</th>
+          <th className="text-center px-4 py-2.5">Retards</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map(r => (
+          <tr key={r.deptId} className="border-t hover:bg-slate-50">
+            <td className="px-4 py-2.5 font-medium text-slate-800">{r.deptName}</td>
+            <td className="px-4 py-2.5 text-center">{r.workDays}</td>
+            <td className="px-4 py-2.5 text-center font-semibold">{r.totalHours}h</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function DelaysTable({ detail, summary }: { detail: FlagRow[]; summary: FlagSummary[] }) {
+  const [view, setView] = useState<"summary" | "detail">("summary");
+  if (!detail.length && !summary.length) return <EmptyReport />;
+  return (
+    <div>
+      <div className="flex gap-2 p-3 border-b bg-slate-50">
+        <Button size="sm" variant={view === "summary" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setView("summary")}>Synthèse</Button>
+        <Button size="sm" variant={view === "detail" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setView("detail")}>Détail ({detail.length})</Button>
+      </div>
+      {view === "summary" ? (
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+            <tr>
+              <th className="text-left px-4 py-2.5">Collaborateur</th>
+              <th className="text-left px-4 py-2.5">Département</th>
+              <th className="text-center px-4 py-2.5">Retards</th>
+              <th className="text-center px-4 py-2.5">Départs anticipés</th>
+              <th className="text-center px-4 py-2.5">Oublis pointage</th>
+              <th className="text-center px-4 py-2.5">Autres</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary.map((r, i) => (
+              <tr key={i} className="border-t hover:bg-slate-50">
+                <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
+                <td className="px-4 py-2.5 text-slate-500">{r.dept}</td>
+                <td className="px-4 py-2.5 text-center">{r.late > 0 ? <span className="text-amber-600 font-medium">{r.late}</span> : <span className="text-slate-400">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.earlyLeave > 0 ? <span className="text-orange-500 font-medium">{r.earlyLeave}</span> : <span className="text-slate-400">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.missing > 0 ? <span className="text-red-600 font-medium">{r.missing}</span> : <span className="text-slate-400">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.other || <span className="text-slate-400">0</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+            <tr>
+              <th className="text-left px-4 py-2.5">Date</th>
+              <th className="text-left px-4 py-2.5">Collaborateur</th>
+              <th className="text-left px-4 py-2.5">Département</th>
+              <th className="text-left px-4 py-2.5">Type</th>
+              <th className="text-left px-4 py-2.5">Sévérité</th>
+              <th className="text-left px-4 py-2.5">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detail.map(r => (
+              <tr key={r.id} className="border-t hover:bg-slate-50">
+                <td className="px-4 py-2.5 text-slate-600">{r.workDate ?? "—"}</td>
+                <td className="px-4 py-2.5 font-medium text-slate-800">{r.collaboratorName}</td>
+                <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+                <td className="px-4 py-2.5">{FLAG_KIND_MAP[r.kind] ?? r.kind}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${r.severity === "high" ? "bg-red-100 text-red-700" : r.severity === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                    {r.severity === "high" ? "Élevée" : r.severity === "medium" ? "Moyenne" : "Faible"}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-xs text-slate-500 max-w-[200px] truncate">{r.description ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function OvertimeTable({ data }: { data: OtRow[] }) {
+  if (!data.length) return <EmptyReport />;
+  const totalOt = data.reduce((s, r) => s + r.totalOvertimeMinutes, 0);
+  return (
+    <div>
+      <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center gap-3 text-sm">
+        <span className="font-semibold text-emerald-800">Total heures sup. :</span>
+        <span className="text-emerald-700 font-bold">{fmtMins(totalOt)}</span>
+        <span className="text-emerald-600 text-xs">({data.length} collaborateurs concernés)</span>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+          <tr>
+            <th className="text-left px-4 py-2.5">Collaborateur</th>
+            <th className="text-left px-4 py-2.5">Département</th>
+            <th className="text-center px-4 py-2.5">Jours travaillés</th>
+            <th className="text-center px-4 py-2.5">Heures effectives</th>
+            <th className="text-center px-4 py-2.5">H. sup. totales</th>
+            <th className="text-center px-4 py-2.5">Jours en h. sup.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map(r => (
+            <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
+              <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
+              <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+              <td className="px-4 py-2.5 text-center">{r.workDays}</td>
+              <td className="px-4 py-2.5 text-center">{fmtMins(r.totalEffMinutes)}</td>
+              <td className="px-4 py-2.5 text-center font-bold text-emerald-700">{fmtMins(r.totalOvertimeMinutes)}</td>
+              <td className="px-4 py-2.5 text-center">{r.overtimeDays}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MonthlyTable({ data, expectedDays }: { data: MonthlyRow[]; expectedDays: number }) {
+  if (!data.length) return <EmptyReport />;
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+        <tr>
+          <th className="text-left px-4 py-2.5">Collaborateur</th>
+          <th className="text-left px-4 py-2.5">Département</th>
+          <th className="text-center px-4 py-2.5">J. ouvrés</th>
+          <th className="text-center px-4 py-2.5">Présents</th>
+          <th className="text-center px-4 py-2.5">Absents</th>
+          <th className="text-center px-4 py-2.5">Taux</th>
+          <th className="text-center px-4 py-2.5">Heures eff.</th>
+          <th className="text-center px-4 py-2.5">H. sup.</th>
+          <th className="text-center px-4 py-2.5">Retards</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map(r => (
+          <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
+            <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
+            <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+            <td className="px-4 py-2.5 text-center text-slate-500">{expectedDays}</td>
+            <td className="px-4 py-2.5 text-center text-emerald-700 font-semibold">{r.presentDays}</td>
+            <td className="px-4 py-2.5 text-center">{r.absentDays > 0 ? <span className="text-red-600 font-medium">{r.absentDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">
+              <span className={`text-xs font-bold ${r.attendanceRate >= 90 ? "text-emerald-700" : r.attendanceRate >= 75 ? "text-amber-600" : "text-red-600"}`}>{r.attendanceRate}%</span>
+            </td>
+            <td className="px-4 py-2.5 text-center font-semibold">{r.totalHours}h</td>
+            <td className="px-4 py-2.5 text-center text-emerald-600">{r.overtimeHours > 0 ? `+${r.overtimeHours}h` : "—"}</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function EmptyReport() {
+  return <p className="text-sm text-slate-400 text-center py-12">Aucune donnée pour les critères sélectionnés.</p>;
+}
+
 export default function AttendancePage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -1040,12 +1459,14 @@ export default function AttendancePage() {
           <TabsTrigger value="dashboard">Tableau RH</TabsTrigger>
           <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
           <TabsTrigger value="history">Mon historique</TabsTrigger>
+          <TabsTrigger value="reports">Rapports</TabsTrigger>
         </TabsList>
         <TabsContent value="me" className="mt-4 space-y-4"><MyClockPanel /></TabsContent>
         <TabsContent value="timesheets" className="mt-4"><TimesheetsPanel /></TabsContent>
         <TabsContent value="dashboard" className="mt-4 space-y-4"><HRDashboard /></TabsContent>
         <TabsContent value="anomalies" className="mt-4 space-y-4"><AnomaliesPanel /></TabsContent>
         <TabsContent value="history" className="mt-4 space-y-4"><MyHistoryPanel /></TabsContent>
+        <TabsContent value="reports" className="mt-4"><ReportsPanel /></TabsContent>
       </Tabs>
     </div>
   );
