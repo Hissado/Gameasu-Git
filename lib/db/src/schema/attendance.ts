@@ -30,6 +30,7 @@ export const attendanceSessionsTable = pgTable("attendance_sessions", {
   totalMinutes: integer("total_minutes").default(0),
   breakMinutes: integer("break_minutes").default(0),
   effectiveMinutes: integer("effective_minutes").default(0),
+  overtimeMinutes: integer("overtime_minutes").default(0),
   expectedMinutes: integer("expected_minutes").default(480), // 8h par défaut
   isLate: boolean("is_late").default(false),
   isEarlyLeave: boolean("is_early_leave").default(false),
@@ -99,9 +100,34 @@ export const attendanceFlagsTable = pgTable("attendance_flags", {
   unresolvedIdx: index("att_flags_unresolved_idx").on(t.isResolved),
 }));
 
+// ─────────────────────────────────────────────────────────────────
+// CORRECTIONS DE POINTAGE — demandes de modification soumises par les collaborateurs
+// ─────────────────────────────────────────────────────────────────
+
+export const attendanceCorrectionsTable = pgTable("attendance_corrections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id").notNull().references(() => attendanceSessionsTable.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // clock_in | clock_out | break | duration | other
+  proposedAt: timestamp("proposed_at", { withTimezone: true }), // nouvelle heure proposée
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("pending"), // pending | approved | rejected
+  reviewerId: uuid("reviewer_id").references(() => usersTable.id),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewComment: text("review_comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("att_corrections_org_idx").on(t.organizationId),
+  sessionIdx: index("att_corrections_session_idx").on(t.sessionId),
+  statusIdx: index("att_corrections_status_idx").on(t.status),
+}));
+
 export const insertAttendanceSessionSchema = createInsertSchema(attendanceSessionsTable);
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecordsTable);
 export const insertAttendanceFlagSchema = createInsertSchema(attendanceFlagsTable);
+export const insertAttendanceCorrectionSchema = createInsertSchema(attendanceCorrectionsTable);
 
 export const clockEventSchema = z.object({
   kind: z.enum(["clock_in", "clock_out", "break_start", "break_end"]),

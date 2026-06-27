@@ -16,7 +16,8 @@
  */
 
 import { db } from "./index";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+void inArray;
 import {
   organizationsTable, organizationMembersTable,
   organizationSubscriptionsTable, organizationModulesTable,
@@ -33,6 +34,7 @@ import {
   servicesTable,
   kiosksTable,
   attendanceSessionsTable, attendanceRecordsTable, attendanceFlagsTable,
+  attendanceCorrectionsTable,
   ticketsTable,
   notificationsTable,
   suppliersTable,
@@ -622,12 +624,13 @@ export async function seedHissado() {
       const breakMin = 60;
       const totalMin = Math.round((clockOut.getTime() - clockIn.getTime()) / 60_000);
       const effectMin = totalMin - breakMin;
+      const overtimeMin = Math.max(0, effectMin - 480);
       const [sess] = await db.insert(attendanceSessionsTable).values({
         organizationId: orgId, collaboratorId: cId,
         workDate, status: "closed",
         clockInAt: clockIn, clockOutAt: clockOut,
         totalMinutes: totalMin, breakMinutes: breakMin,
-        effectiveMinutes: effectMin, expectedMinutes: 480,
+        effectiveMinutes: effectMin, overtimeMinutes: overtimeMin, expectedMinutes: 480,
         isLate, isEarlyLeave, approvalStatus: "approved",
       }).onConflictDoNothing().returning();
       if (!sess) continue;
@@ -646,6 +649,28 @@ export async function seedHissado() {
         }).onConflictDoNothing().catch(() => {});
       }
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 10b. CORRECTIONS DE POINTAGE (3 démos)
+  // ══════════════════════════════════════════════════════════════════════════
+  console.log("  • Corrections de pointage (3 démos)…");
+  const corrDefs = [
+    { cId: demoCollabs[1]!, workDate: "2026-06-03", kind: "clock_in",  proposedAt: DT(2026,6,3,8,0),    reason: "Mon arrivée kiosk n'a pas été enregistrée à 08h00 car j'avais une réunion externe. La pointeuse était hors service.", status: "approved", reviewComment: "Confirmé avec le registre visiteurs du client. Correction appliquée." },
+    { cId: demoCollabs[3]!, workDate: "2026-06-10", kind: "clock_out", proposedAt: DT(2026,6,10,17,30), reason: "Mon départ réel était 17h30 et non 16h00. La panne kiosk en fin de journée a empêché le pointage.", status: "rejected",  reviewComment: "Log kiosk ne confirme pas ce départ. Demande rejetée faute de preuve." },
+    { cId: demoCollabs[0]!, workDate: "2026-06-17", kind: "break",     proposedAt: null as Date | null,  reason: "Ma pause affichée (90 min) est incorrecte — j'ai reçu un appel client urgent et suis revenu au bureau après seulement 45 min.", status: "pending",  reviewComment: null as string | null },
+  ];
+  for (const def of corrDefs) {
+    const [csess] = await db.select({ id: attendanceSessionsTable.id })
+      .from(attendanceSessionsTable)
+      .where(and(eq(attendanceSessionsTable.organizationId, orgId), eq(attendanceSessionsTable.collaboratorId, def.cId), eq(attendanceSessionsTable.workDate, def.workDate)))
+      .limit(1);
+    if (!csess) { console.warn(`    ⚠ Session introuvable: ${def.workDate}`); continue; }
+    await db.insert(attendanceCorrectionsTable).values({
+      organizationId: orgId, collaboratorId: def.cId, sessionId: csess.id,
+      kind: def.kind, proposedAt: def.proposedAt, reason: def.reason,
+      status: def.status, reviewComment: def.reviewComment,
+    }).catch(() => {});
   }
 
   // ══════════════════════════════════════════════════════════════════════════

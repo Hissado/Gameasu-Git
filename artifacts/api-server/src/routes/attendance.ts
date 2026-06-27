@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
   attendanceSessionsTable, attendanceRecordsTable, attendanceFlagsTable,
+  attendanceCorrectionsTable,
   collaboratorsTable, departmentsTable, usersTable, notificationsTable,
   clockEventSchema,
 } from "@workspace/db";
@@ -9,6 +10,7 @@ import { and, desc, eq, gte, lte, sql, isNull, inArray } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
 import { emitToUser } from "../lib/realtime";
+import { z } from "zod/v4";
 
 const router: IRouter = Router();
 
@@ -98,12 +100,14 @@ async function recomputeSession(sessionId: string): Promise<void> {
     earlyThreshold.setHours(17, 0, 0, 0);
     isEarlyLeave = clockOut.getTime() < earlyThreshold.getTime();
   }
+  const overtimeMinutes = Math.max(0, effectiveMinutes - (s.expectedMinutes ?? 480));
   await db.update(attendanceSessionsTable).set({
     clockInAt: clockIn,
     clockOutAt: clockOut,
     totalMinutes,
     breakMinutes,
     effectiveMinutes,
+    overtimeMinutes,
     isLate,
     isEarlyLeave,
     status: clockOut ? "closed" : "open",
@@ -473,12 +477,108 @@ router.get("/attendance/payroll-summary", requirePermission("attendance.view"), 
   } catch (e) { next(e); }
 });
 
-// Users users
-const _u = usersTable;
-void _u;
-const _sql = sql;
-void _sql;
-const _lte = lte;
-void _lte;
+// ── Corrections de pointage ──────────────────────────────────────────────────
+
+// GET corrections (manager: toutes; collab: les siennes)
+router.get("/attendance/corrections", requirePermission("attendance.clock"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const isManager = req.authUser!.role !== "collaborator";
+    if (isManager) {
+      const rows = await db.select({
+        correction: attendanceCorrectionsTable,
+        collaborator: { firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName },
+        workDate: attendanceSessionsTable.workDate,
+      })
+        .from(attendanceCorrectionsTable)
+        .leftJoin(collaboratorsTable, eq(collaboratorsTable.id, attendanceCorrectionsTable.collaboratorId))
+        .leftJoin(attendanceSessionsTable, eq(attendanceSessionsTable.id, attendanceCorrectionsTable.sessionId))
+        .where(eq(attendanceCorrectionsTable.organizationId, orgId))
+        .orderBy(desc(attendanceCorrectionsTable.createdAt))
+        .limit(200);
+      return res.json({
+        data: rows.map(r => ({
+          ...r.correction,
+          collaboratorName: r.collaborator ? `${r.collaborator.firstName} ${r.collaborator.lastName}` : "—",
+          workDate: r.workDate ?? null,
+        })),
+      });
+    } else {
+      const collab = await resolveCollaborator(userId);
+      if (!collab) return res.json({ data: [] });
+      const rows = await db.select({
+        correction: attendanceCorrectionsTable,
+        workDate: attendanceSessionsTable.workDate,
+      })
+        .from(attendanceCorrectionsTable)
+        .leftJoin(attendanceSessionsTable, eq(attendanceSessionsTable.id, attendanceCorrectionsTable.sessionId))
+        .where(and(eq(attendanceCorrectionsTable.organizationId, orgId), eq(attendanceCorrectionsTable.collaboratorId, collab.id)))
+        .orderBy(desc(attendanceCorrectionsTable.createdAt))
+        .limit(100);
+      return res.json({ data: rows.map(r => ({ ...r.correction, workDate: r.workDate ?? null })) });
+    }
+  } catch (e) { next(e); }
+});
+
+// POST correction (collab soumet une demande)
+router.post("/attendance/corrections", requirePermission("attendance.clock"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const collab = await resolveCollaborator(userId);
+    if (!collab) return res.status(404).json({ error: "no_collaborator_linked" });
+    const body = z.object({
+      sessionId: z.string().uuid(),
+      kind: z.enum(["clock_in", "clock_out", "break", "duration", "other"]),
+      proposedAt: z.string().optional(),
+      reason: z.string().min(5).max(1000),
+    }).parse(req.body);
+    const [session] = await db.select().from(attendanceSessionsTable)
+      .where(and(
+        eq(attendanceSessionsTable.id, body.sessionId),
+        eq(attendanceSessionsTable.collaboratorId, collab.id),
+        eq(attendanceSessionsTable.organizationId, orgId),
+      ))
+      .limit(1);
+    if (!session) return res.status(404).json({ error: "session_not_found" });
+    const [corr] = await db.insert(attendanceCorrectionsTable).values({
+      organizationId: orgId,
+      collaboratorId: collab.id,
+      sessionId: body.sessionId,
+      kind: body.kind,
+      proposedAt: body.proposedAt ? new Date(body.proposedAt) : null,
+      reason: body.reason,
+      status: "pending",
+    }).returning();
+    res.status(201).json(corr);
+  } catch (e) { next(e); }
+});
+
+// PATCH correction (manager approuve ou rejette)
+router.patch("/attendance/corrections/:id", requirePermission("attendance.manage"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const body = z.object({
+      status: z.enum(["approved", "rejected"]),
+      reviewComment: z.string().max(500).optional(),
+    }).parse(req.body);
+    const id = String(req.params["id"]);
+    const [updated] = await db.update(attendanceCorrectionsTable)
+      .set({ status: body.status, reviewerId: userId, reviewedAt: new Date(), reviewComment: body.reviewComment ?? null })
+      .where(and(eq(attendanceCorrectionsTable.id, id), eq(attendanceCorrectionsTable.organizationId, orgId)))
+      .returning();
+    if (!updated) return res.status(404).json({ error: "not_found" });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+const _u = usersTable; void _u;
+const _sql = sql; void _sql;
+const _lte = lte; void _lte;
 
 export default router;

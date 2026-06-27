@@ -58,6 +58,21 @@ const FLAG_KIND_LABEL: Record<string, string> = {
   suspicious: "Pointage suspect",
 };
 
+const CORR_KIND_LABEL: Record<string, string> = {
+  clock_in: "Correction arrivée",
+  clock_out: "Correction départ",
+  break: "Correction pause",
+  duration: "Correction durée",
+  other: "Autre",
+};
+
+type CorrectionItem = {
+  id: string; sessionId: string; collaboratorId: string;
+  kind: string; proposedAt: string | null; reason: string;
+  status: string; reviewComment: string | null;
+  collaboratorName?: string; workDate?: string | null;
+};
+
 function fmtTime(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -332,13 +347,14 @@ function HRDashboard() {
                 <th className="text-left px-3 py-2">Départ</th>
                 <th className="text-left px-3 py-2">Pause</th>
                 <th className="text-left px-3 py-2">Présence</th>
+                <th className="text-left px-3 py-2">H. sup.</th>
                 <th className="text-left px-3 py-2">Statut</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+                <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
               ) : data?.sessions.length ? data.sessions.map((s) => (
                 <tr
                   key={s.id}
@@ -351,6 +367,11 @@ function HRDashboard() {
                   <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
                   <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
                   <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {((s as any).overtimeMinutes ?? 0) > 0
+                      ? <span className="text-emerald-600 font-medium">+{formatMinutes((s as any).overtimeMinutes)}</span>
+                      : <span className="text-slate-400">—</span>}
+                  </td>
                   <td className="px-3 py-2">
                     {s.status === "closed" ? <Badge variant="secondary">Clôturée</Badge> :
                       s.isLate ? <Badge variant="destructive">Retard</Badge> :
@@ -371,7 +392,7 @@ function HRDashboard() {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">Aucun pointage pour cette date.</td></tr>
+                <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-400">Aucun pointage pour cette date.</td></tr>
               )}
             </tbody>
           </table>
@@ -397,47 +418,197 @@ function HRDashboard() {
 function AnomaliesPanel() {
   const { data, isLoading } = useAttendanceAnomalies(false);
   const resolve = useResolveAttendanceFlag();
+  const qc = useQueryClient();
+
+  const { data: corrData, isLoading: corrLoading } = useQuery<{ data: CorrectionItem[] }>({
+    queryKey: ["attendance-corrections"],
+    queryFn: () => apiFetch("/api/attendance/corrections"),
+  });
+  const pendingCorrs = (corrData?.data ?? []).filter(c => c.status === "pending");
+
+  const reviewCorr = useMutation({
+    mutationFn: ({ id, status, reviewComment }: { id: string; status: string; reviewComment?: string }) =>
+      apiFetch(`/api/attendance/corrections/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reviewComment }),
+      }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["attendance-corrections"] }); toast.success("Correction traitée"); },
+    onError: () => toast.error("Erreur lors du traitement"),
+  });
 
   return (
-    <Card className="p-6 space-y-3">
-      <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Anomalies de présence</h2>
-      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> :
-        !data?.data.length ? <p className="text-sm text-slate-500">Aucune anomalie active.</p> :
-          <div className="space-y-2">
-            {data.data.map((f) => (
-              <div key={f.id} className="flex items-start justify-between bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-semibold text-slate-800">{FLAG_KIND_LABEL[f.kind] ?? f.kind}</p>
-                  <p className="text-xs text-slate-600">{f.collaboratorName} — {f.workDate}</p>
-                  {f.description && <p className="text-xs text-slate-500">{f.description}</p>}
+    <div className="space-y-4">
+      <Card className="p-6 space-y-3">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Anomalies de présence</h2>
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> :
+          !data?.data.length ? <p className="text-sm text-slate-500">Aucune anomalie active.</p> :
+            <div className="space-y-2">
+              {data.data.map((f) => (
+                <div key={f.id} className="flex items-start justify-between bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold text-slate-800">{FLAG_KIND_LABEL[f.kind] ?? f.kind}</p>
+                    <p className="text-xs text-slate-600">{f.collaboratorName} — {f.workDate}</p>
+                    {f.description && <p className="text-xs text-slate-500">{f.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={f.severity === "high" ? "destructive" : "secondary"}>{severityLabel(f.severity)}</Badge>
+                    <Button size="sm" variant="ghost" onClick={() => resolve.mutate(f.id)}>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Résoudre
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={f.severity === "high" ? "destructive" : "secondary"}>{severityLabel(f.severity)}</Badge>
-                  <Button size="sm" variant="ghost" onClick={() => resolve.mutate(f.id)}>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Résoudre
-                  </Button>
+              ))}
+            </div>}
+      </Card>
+
+      <Card className="p-6 space-y-3">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <FilePlus2 className="w-5 h-5 text-blue-500" />
+          Demandes de correction
+          {pendingCorrs.length > 0 && (
+            <span className="ml-1 bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">{pendingCorrs.length}</span>
+          )}
+        </h2>
+        {corrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> :
+          !pendingCorrs.length ? <p className="text-sm text-slate-500">Aucune demande de correction en attente.</p> :
+            <div className="space-y-2">
+              {pendingCorrs.map((c) => (
+                <div key={c.id} className="bg-blue-50 border border-blue-200 rounded-md px-3 py-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {c.collaboratorName} <span className="font-normal text-slate-500">— {c.workDate ?? "—"}</span>
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        Type : <span className="font-medium">{CORR_KIND_LABEL[c.kind] ?? c.kind}</span>
+                        {c.proposedAt && <> · Heure proposée : <span className="font-medium">{fmtTime(c.proposedAt)}</span></>}
+                      </p>
+                      <p className="text-xs text-slate-500 italic">"{c.reason}"</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button size="sm" className="h-7 bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
+                        disabled={reviewCorr.isPending}
+                        onClick={() => reviewCorr.mutate({ id: c.id, status: "approved" })}>
+                        <ThumbsUp className="w-3 h-3" /> Approuver
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-red-600 border-red-200 hover:bg-red-50 text-xs gap-1"
+                        disabled={reviewCorr.isPending}
+                        onClick={() => reviewCorr.mutate({ id: c.id, status: "rejected" })}>
+                        <ThumbsDown className="w-3 h-3" /> Rejeter
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>}
-    </Card>
+              ))}
+            </div>}
+      </Card>
+    </div>
+  );
+}
+
+function CorrectionModal({ session, onClose, onSuccess }: {
+  session: { id: string; workDate: string } | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const qc = useQueryClient();
+  const [kind, setKind] = useState<string>("other");
+  const [proposedAt, setProposedAt] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit() {
+    if (!session || reason.trim().length < 5) { toast.error("Motif requis (min 5 caractères)"); return; }
+    setSaving(true);
+    try {
+      await apiFetch("/api/attendance/corrections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session.id, kind, proposedAt: proposedAt || undefined, reason: reason.trim() }),
+      });
+      qc.invalidateQueries({ queryKey: ["attendance-corrections"] });
+      toast.success("Demande de correction envoyée");
+      setReason(""); setProposedAt(""); setKind("other");
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!session} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><FilePlus2 className="w-4 h-4" />Demander une correction</DialogTitle>
+          {session && <p className="text-xs text-slate-500">Journée du {new Date(session.workDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-xs">Type de correction</Label>
+            <Select value={kind} onValueChange={setKind}>
+              <SelectTrigger className="h-8 text-sm mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="clock_in">Correction arrivée</SelectItem>
+                <SelectItem value="clock_out">Correction départ</SelectItem>
+                <SelectItem value="break">Correction pause</SelectItem>
+                <SelectItem value="duration">Correction durée</SelectItem>
+                <SelectItem value="other">Autre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Heure proposée (optionnel)</Label>
+            <Input type="datetime-local" value={proposedAt} onChange={e => setProposedAt(e.target.value)} className="h-8 text-sm mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Motif <span className="text-red-500">*</span></Label>
+            <Textarea rows={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="Expliquez pourquoi cette correction est nécessaire…" className="mt-1 text-sm" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>Annuler</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={saving || reason.trim().length < 5}>
+            {saving && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+            <Send className="w-3 h-3 mr-1" />Envoyer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function MyHistoryPanel() {
   const { data, isLoading } = useMyAttendanceHistory(30);
+  const qc = useQueryClient();
+  void qc;
   const sessions = data?.data ?? [];
+  const [corrSession, setCorrSession] = useState<{ id: string; workDate: string } | null>(null);
+
+  const { data: corrData } = useQuery<{ data: CorrectionItem[] }>({
+    queryKey: ["attendance-corrections"],
+    queryFn: () => apiFetch("/api/attendance/corrections"),
+  });
+  const corrBySessId = new Map((corrData?.data ?? []).map(c => [c.sessionId, c]));
+
   const totals = useMemo(() => {
     const total = sessions.reduce((acc, s) => acc + (s.effectiveMinutes ?? 0), 0);
+    const overtimeTotal = sessions.reduce((acc, s) => acc + ((s as any).overtimeMinutes ?? 0), 0);
     const lateDays = sessions.filter((s) => s.isLate).length;
-    return { total, lateDays };
+    return { total, lateDays, overtimeTotal };
   }, [sessions]);
 
   return (
     <Card className="p-6 space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900">Mon historique</h2>
-        <p className="text-xs text-slate-500">{formatMinutes(totals.total)} cumulées · {totals.lateDays} retards sur 30 jours</p>
+        <p className="text-xs text-slate-500">
+          {formatMinutes(totals.total)} cumulées · {totals.lateDays} retards
+          {totals.overtimeTotal > 0 && <> · <span className="text-emerald-600 font-medium">+{formatMinutes(totals.overtimeTotal)} h.sup.</span></>}
+          {" "}sur 30 jours
+        </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -448,27 +619,49 @@ function MyHistoryPanel() {
               <th className="text-left px-3 py-2">Départ</th>
               <th className="text-left px-3 py-2">Pause</th>
               <th className="text-left px-3 py-2">Présence</th>
+              <th className="text-left px-3 py-2">H. sup.</th>
               <th className="text-left px-3 py-2">Statut</th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
-            ) : sessions.length ? sessions.map((s) => (
-              <tr key={s.id} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-medium">{new Date(s.workDate).toLocaleDateString("fr-FR")}</td>
-                <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
-                <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
-                <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
-                <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
-                <td className="px-3 py-2">{s.status === "closed" ? "Clôturée" : "Ouverte"}</td>
-              </tr>
-            )) : (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400">Aucun pointage enregistré.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+            ) : sessions.length ? sessions.map((s) => {
+              const ot = (s as any).overtimeMinutes ?? 0;
+              const corr = corrBySessId.get(s.id);
+              return (
+                <tr key={s.id} className="border-t border-slate-100">
+                  <td className="px-3 py-2 font-medium">{new Date(s.workDate).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
+                  <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
+                  <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
+                  <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {ot > 0 ? <span className="text-emerald-600 font-medium">+{formatMinutes(ot)}</span> : <span className="text-slate-400">—</span>}
+                  </td>
+                  <td className="px-3 py-2">{s.status === "closed" ? "Clôturée" : "Ouverte"}</td>
+                  <td className="px-3 py-2">
+                    {corr ? (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${corr.status === "pending" ? "bg-blue-100 text-blue-700" : corr.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                        {corr.status === "pending" ? "En attente" : corr.status === "approved" ? "Approuvée" : "Rejetée"}
+                      </span>
+                    ) : s.status === "closed" ? (
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:bg-blue-50"
+                        onClick={() => setCorrSession({ id: s.id, workDate: s.workDate })}>
+                        <FilePlus2 className="w-3 h-3 mr-1" />Corriger
+                      </Button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">Aucun pointage enregistré.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      <CorrectionModal session={corrSession} onClose={() => setCorrSession(null)} onSuccess={() => setCorrSession(null)} />
     </Card>
   );
 }
