@@ -941,14 +941,19 @@ router.get("/super-admin/organizations/:id/attendance-settings", sa, async (req,
   } catch (e) { next(e); }
 });
 
+const VALID_SECTORS = ["btp", "logistique", "commerce", "sante", "consulting", "industrie", "ong", "education"] as const;
 router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req, res, next) => {
   try {
     const orgId = req.params.id as string;
-    const body = req.body as {
+    const raw = req.body as {
       sector?: string; expectedDailyMinutes?: number; lateThresholdMinutes?: number;
       requireGps?: boolean; requirePhoto?: boolean;
       trackByProject?: boolean; trackBySite?: boolean; allowOvertime?: boolean;
     };
+    if (raw.sector && !VALID_SECTORS.includes(raw.sector as typeof VALID_SECTORS[number])) {
+      return res.status(400).json({ error: `Secteur invalide. Valeurs acceptées: ${VALID_SECTORS.join(", ")}` });
+    }
+    const body = raw;
     const [result] = await db.insert(orgAttendanceSettingsTable)
       .values({ organizationId: orgId, ...body })
       .onConflictDoUpdate({

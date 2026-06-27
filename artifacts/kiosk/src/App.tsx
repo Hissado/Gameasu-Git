@@ -545,15 +545,17 @@ function KioskApp() {
     const requirePhoto = attSettings?.requirePhoto ?? false;
     const trackBySite = attSettings?.trackBySite ?? false;
 
-    // Determine the next screen after GPS resolution
-    const nextScreen = (gpsOk: boolean) => {
+    // Determine the next step after GPS resolution
+    const nextStep = (gpsOk: boolean) => {
       if (!gpsOk && requireGps) {
         setError("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS.");
         setScreen("error");
         return;
       }
       if (trackBySite) { setScreen("site"); return; }
-      setScreen(requirePhoto ? "photo" : "confirm");
+      if (requirePhoto) { setScreen("photo"); return; }
+      // Pas de site ni de photo : soumettre directement
+      doPunch(kind);
     };
 
     if (navigator.geolocation) {
@@ -564,23 +566,29 @@ function KioskApp() {
             longitude: pos.coords.longitude,
             accuracyMeters: Math.round(pos.coords.accuracy),
           };
-          nextScreen(true);
+          nextStep(true);
         },
-        () => { gpsRef.current = null; nextScreen(false); },
+        () => { gpsRef.current = null; nextStep(false); },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
       );
     } else {
-      nextScreen(false);
+      nextStep(false);
     }
   };
 
   const handleSiteSelected = (site: string) => {
     setSelectedSite(site);
     const requirePhoto = kiosk?.attendanceSettings?.requirePhoto ?? false;
-    setScreen(requirePhoto ? "photo" : "confirm");
+    if (requirePhoto) {
+      setScreen("photo");
+    } else if (selectedKind) {
+      // Pas de photo : soumettre directement avec le site sélectionné
+      doPunch(selectedKind, undefined, site);
+    }
   };
 
-  const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string) => {
+  // site est passé explicitement pour éviter les closures stales
+  const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string, site?: string) => {
     if (!kioskToken || !collaborator) return;
     setLoading(true);
     try {
@@ -594,7 +602,7 @@ function KioskApp() {
           kind,
           ...(photoDataUrl ? { photoDataUrl } : {}),
           ...(gps ? { latitude: gps.latitude, longitude: gps.longitude, accuracyMeters: gps.accuracyMeters } : {}),
-          ...(selectedSite ? { siteName: selectedSite } : {}),
+          ...(site ? { siteName: site } : {}),
         }),
       });
       const data = await res.json();
@@ -670,8 +678,8 @@ function KioskApp() {
         )}
         {screen === "photo" && selectedKind && (
           <PhotoScreen
-            onCapture={(url) => doPunch(selectedKind, url)}
-            onSkip={() => doPunch(selectedKind)}
+            onCapture={(url) => doPunch(selectedKind, url, selectedSite ?? undefined)}
+            onSkip={() => doPunch(selectedKind, undefined, selectedSite ?? undefined)}
           />
         )}
         {screen === "confirm" && collaborator && selectedKind && (
