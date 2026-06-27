@@ -5,7 +5,7 @@ import {
   collaboratorsTable, departmentsTable,
   timesheetEntriesTable, projectsTable,
 } from "@workspace/db";
-import { and, eq, gte, lte, isNull } from "drizzle-orm";
+import { and, eq, gte, lte, isNull, inArray } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
 import ExcelJS from "exceljs";
@@ -138,6 +138,7 @@ router.get("/attendance/reports/by-department", requirePermission("attendance.vi
     if (!orgId) return res.status(403).json({ error: "no_organization" });
     const { from, to } = parseRange(req.query["from"] as string, req.query["to"] as string);
     const rows = await fetchSessions(orgId, from, to, {
+      departmentId: req.query["departmentId"] as string | undefined,
       status: req.query["status"] as string | undefined,
     });
 
@@ -165,12 +166,19 @@ router.get("/attendance/reports/by-project", requirePermission("attendance.view"
     const { from, to } = parseRange(req.query["from"] as string, req.query["to"] as string);
     const collaboratorId = req.query["collaboratorId"] as string | undefined;
 
+    const departmentId = req.query["departmentId"] as string | undefined;
     const conditions = [
       eq(timesheetEntriesTable.organizationId, orgId),
       gte(timesheetEntriesTable.entryDate, from),
       lte(timesheetEntriesTable.entryDate, to),
     ];
     if (collaboratorId) conditions.push(eq(timesheetEntriesTable.collaboratorId, collaboratorId));
+    if (departmentId) {
+      const dc = await db.select({ id: collaboratorsTable.id }).from(collaboratorsTable)
+        .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.departmentId, departmentId), isNull(collaboratorsTable.deletedAt)));
+      if (!dc.length) return res.json({ from, to, data: [] });
+      conditions.push(inArray(timesheetEntriesTable.collaboratorId, dc.map(c => c.id)));
+    }
 
     const entries = await db.select({
       projectId: timesheetEntriesTable.projectId,
@@ -363,6 +371,8 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
     if (!orgId) return res.status(403).json({ error: "no_organization" });
 
     const reportType = req.params["reportType"] as string;
+    const VALID_TYPES = new Set(["by-collaborator","by-department","by-project","delays-absences","overtime","monthly"]);
+    if (!VALID_TYPES.has(reportType)) return res.status(400).json({ error: `Type de rapport invalide : ${reportType}` });
     const format = (req.query["format"] as string | undefined) ?? "xlsx";
     if (format !== "xlsx" && format !== "pdf") return res.status(400).json({ error: "Format invalide. Utilisez format=xlsx ou format=pdf." });
 
@@ -413,7 +423,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
       }
 
       if (reportType === "by-department") {
-        const sessions = await fetchSessions(orgId!, from, to, { status: statusFilter });
+        const sessions = await fetchSessions(orgId!, from, to, { departmentId, status: statusFilter });
         const map = new Map<string, { name: string; days: number; mins: number; late: number }>();
         for (const r of sessions) {
           const key = r.departmentId ?? "none";

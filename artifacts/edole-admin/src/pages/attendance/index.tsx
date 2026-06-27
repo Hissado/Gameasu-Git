@@ -1202,20 +1202,18 @@ function ReportsPanel() {
               </Select>
             </div>
           )}
-          {reportType !== "by-project" && (
-            <div>
-              <Label className="text-xs mb-1 block">Département</Label>
-              <Select value={filterDept} onValueChange={setFilterDept}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  {(deptOpts ?? []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label className="text-xs mb-1 block">Département</Label>
+            <Select value={filterDept} onValueChange={setFilterDept}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Tous" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {(deptOpts ?? []).map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {reportType !== "by-project" && reportType !== "delays-absences" && (
             <div>
               <Label className="text-xs mb-1 block">Statut session</Label>

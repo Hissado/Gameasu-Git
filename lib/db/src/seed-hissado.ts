@@ -32,7 +32,7 @@ import {
   ordersTable, proformasTable, invoicesTable, paymentsTable, creditNotesTable,
   servicesTable,
   kiosksTable,
-  attendanceSessionsTable, attendanceRecordsTable,
+  attendanceSessionsTable, attendanceRecordsTable, attendanceFlagsTable,
   ticketsTable,
   notificationsTable,
   suppliersTable,
@@ -589,44 +589,62 @@ export async function seedHissado() {
     isActive: true,
   }).returning();
 
-  // 5 derniers jours ouvrés pour 3 collaborateurs
-  const attendingCollabs = collabRecs.slice(0, 3);
-  for (let dayOffset = -4; dayOffset <= 0; dayOffset++) {
-    const d = new Date(); d.setDate(d.getDate() + dayOffset);
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-    const workDate = d.toISOString().slice(0, 10);
-    for (const cId of attendingCollabs) {
-      const ci = DT(d.getFullYear(), d.getMonth() + 1, d.getDate(), 8, 0);
-      const co = DT(d.getFullYear(), d.getMonth() + 1, d.getDate(), 17, 30);
-      const isLate = Math.random() > 0.8;
+  // 4 semaines × 5 collaborateurs — données de démo rapports présences
+  // Patterns variés : retards / h.sup / départs anticipés / ponctuel
+  const WORK_DATES_4W = [
+    "2026-06-02","2026-06-03","2026-06-04","2026-06-05","2026-06-06",
+    "2026-06-09","2026-06-10","2026-06-11","2026-06-12","2026-06-13",
+    "2026-06-16","2026-06-17","2026-06-18","2026-06-19","2026-06-20",
+    "2026-06-23","2026-06-24","2026-06-25","2026-06-26","2026-06-27",
+  ];
+  // Pattern par index de collab : late=jours tardifs, early=départs anticipés, ot=jours h.sup.
+  const ATTN_PATTERNS = [
+    { late: [4],              earlyLeave: [],           ot: [2,10,17]           }, // ponctuel, quelques h.sup
+    { late: [1,6,11,16],     earlyLeave: [8],           ot: [0,5,14]            }, // souvent en retard
+    { late: [0],              earlyLeave: [],           ot: [0,1,2,3,5,6,7,8,10,11,12,13] }, // champion h.sup
+    { late: [3,9],            earlyLeave: [15,18],      ot: [4,12,19]           }, // profil mixte
+    { late: [2,14],           earlyLeave: [6,10,17],    ot: [1,9]               }, // départs anticipés
+  ];
+  const demoCollabs = allCollabs.slice(0, 5).map(c => c.id);
+  for (let ci = 0; ci < demoCollabs.length; ci++) {
+    const cId = demoCollabs[ci]!;
+    const pat = ATTN_PATTERNS[ci % ATTN_PATTERNS.length]!;
+    for (let di = 0; di < WORK_DATES_4W.length; di++) {
+      const workDate = WORK_DATES_4W[di]!;
+      const [y, m, dd] = workDate.split("-").map(Number) as [number,number,number];
+      const isLate = pat.late.includes(di);
+      const isEarlyLeave = pat.earlyLeave.includes(di);
+      const isOvertime = pat.ot.includes(di);
+      const ciMins = isLate ? 30 : 0;
+      const coMins = isEarlyLeave ? -90 : isOvertime ? 90 : 30;
+      const clockIn = DT(y, m, dd, 8, 0 + ciMins);
+      const clockOut = DT(y, m, dd, 17, 30 + coMins);
+      const breakMin = 60;
+      const totalMin = Math.round((clockOut.getTime() - clockIn.getTime()) / 60_000);
+      const effectMin = totalMin - breakMin;
       const [sess] = await db.insert(attendanceSessionsTable).values({
         organizationId: orgId, collaboratorId: cId,
         workDate, status: "closed",
-        clockInAt: new Date(ci.getTime() + (isLate ? 25 * 60_000 : 0)),
-        clockOutAt: co,
-        totalMinutes: 570, breakMinutes: 60, effectiveMinutes: 510,
-        expectedMinutes: 480, isLate, isEarlyLeave: false,
-        approvalStatus: "approved",
+        clockInAt: clockIn, clockOutAt: clockOut,
+        totalMinutes: totalMin, breakMinutes: breakMin,
+        effectiveMinutes: effectMin, expectedMinutes: 480,
+        isLate, isEarlyLeave, approvalStatus: "approved",
       }).onConflictDoNothing().returning();
       if (!sess) continue;
       await db.insert(attendanceRecordsTable).values([
-        {
-          organizationId: orgId, sessionId: sess.id, collaboratorId: cId,
-          kind: "clock_in", occurredAt: sess.clockInAt!,
-          latitude: "6.1722", longitude: "1.2313",
-          locationLabel: "Hissado Consulting — Hall d'accueil",
-          sourceDevice: "Kiosk Samsung Tab S9",
-          source: "kiosk", kioskId: kiosk!.id, status: "validated",
-        },
-        {
-          organizationId: orgId, sessionId: sess.id, collaboratorId: cId,
-          kind: "clock_out", occurredAt: sess.clockOutAt!,
-          latitude: "6.1722", longitude: "1.2313",
-          locationLabel: "Hissado Consulting — Hall d'accueil",
-          sourceDevice: "Kiosk Samsung Tab S9",
-          source: "kiosk", kioskId: kiosk!.id, status: "validated",
-        },
+        { organizationId: orgId, sessionId: sess.id, collaboratorId: cId, kind: "clock_in",  occurredAt: sess.clockInAt!,  latitude: "6.1722", longitude: "1.2313", locationLabel: "Hissado Consulting — Hall d'accueil", sourceDevice: "Kiosk Samsung Tab S9", source: "kiosk", kioskId: kiosk!.id, status: "validated" },
+        { organizationId: orgId, sessionId: sess.id, collaboratorId: cId, kind: "clock_out", occurredAt: sess.clockOutAt!, latitude: "6.1722", longitude: "1.2313", locationLabel: "Hissado Consulting — Hall d'accueil", sourceDevice: "Kiosk Samsung Tab S9", source: "kiosk", kioskId: kiosk!.id, status: "validated" },
       ]).catch(() => {});
+      // Flags automatiques
+      if (isLate || isEarlyLeave) {
+        await db.insert(attendanceFlagsTable).values({
+          organizationId: orgId, collaboratorId: cId, sessionId: sess.id,
+          workDate, kind: isLate ? "late" : "early_leave",
+          severity: isLate ? "warning" : "info",
+          description: isLate ? `Arrivée tardive de 30 min (${workDate})` : `Départ anticipé de 90 min (${workDate})`,
+          isResolved: false,
+        }).onConflictDoNothing().catch(() => {});
+      }
     }
   }
 
