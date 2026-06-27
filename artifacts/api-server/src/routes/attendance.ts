@@ -252,7 +252,8 @@ async function recomputeSession(sessionId: string): Promise<void> {
     earlyThreshold.setHours(17, 0, 0, 0);
     isEarlyLeave = clockOut.getTime() < earlyThreshold.getTime();
   }
-  const expectedMinutes = s.expectedMinutes ?? orgSettings.expectedDailyMinutes ?? 480;
+  // Org settings ont la priorité sur le défaut session (480 par défaut DB)
+  const expectedMinutes = orgSettings.expectedDailyMinutes ?? s.expectedMinutes ?? 480;
   const overtimeMinutes = Math.max(0, effectiveMinutes - expectedMinutes);
   await db.update(attendanceSessionsTable).set({
     clockInAt: clockIn,

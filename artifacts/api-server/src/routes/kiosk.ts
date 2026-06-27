@@ -240,6 +240,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       latitude: z.number().optional(),
       longitude: z.number().optional(),
       accuracyMeters: z.number().optional(),
+      siteName: z.string().max(200).optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
@@ -247,7 +248,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       return;
     }
 
-    const { kioskToken, collaboratorId, kind, photoDataUrl, latitude, longitude, accuracyMeters } = parsed.data;
+    const { kioskToken, collaboratorId, kind, photoDataUrl, latitude, longitude, accuracyMeters, siteName } = parsed.data;
 
     let kiosk: { id: string; organizationId: string; isActive: boolean } | undefined;
     if (IS_NEW_TOKEN.test(kioskToken)) {
@@ -296,14 +297,19 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       return;
     }
 
-    // Validation des règles de pointage de l'org (requirePhoto)
+    // Validation des règles de pointage de l'org (requirePhoto / requireGps)
     const [orgAttSettings] = await db.select({
       requirePhoto: orgAttendanceSettingsTable.requirePhoto,
+      requireGps: orgAttendanceSettingsTable.requireGps,
     }).from(orgAttendanceSettingsTable)
       .where(eq(orgAttendanceSettingsTable.organizationId, kiosk.organizationId))
       .limit(1);
     if (orgAttSettings?.requirePhoto && !photoDataUrl) {
       res.status(400).json({ error: "La photo de présence est obligatoire pour cet espace de travail." });
+      return;
+    }
+    if (orgAttSettings?.requireGps && (latitude == null || longitude == null)) {
+      res.status(400).json({ error: "La géolocalisation est obligatoire pour pointer dans cet espace de travail." });
       return;
     }
 
@@ -379,6 +385,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         latitude: latitude != null ? String(latitude) : null,
         longitude: longitude != null ? String(longitude) : null,
         accuracyMeters: accuracyMeters != null ? Math.round(accuracyMeters) : null,
+        locationLabel: siteName ?? null,
         occurredAt: new Date(),
         status: "validated",
       })
