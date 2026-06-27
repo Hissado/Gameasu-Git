@@ -548,7 +548,11 @@ function KioskApp() {
         return;
       }
       setCollaborator(data.collaborator);
-      setKiosk(data.kiosk);
+      // Préserver attendanceSettings depuis validate (identify ne les renvoie pas)
+      setKiosk(prev => ({
+        ...(data.kiosk ?? {}),
+        attendanceSettings: prev?.attendanceSettings ?? data.kiosk?.attendanceSettings,
+      }));
       setScreen("identified");
     } catch {
       setError("Erreur de connexion");
@@ -570,7 +574,7 @@ function KioskApp() {
     // Determine the next step after GPS resolution
     const nextStep = (gpsOk: boolean) => {
       if (!gpsOk && requireGps) {
-        setError("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS.");
+        setErrorMsg("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS et réessayer.");
         setScreen("error");
         return;
       }
