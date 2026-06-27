@@ -9,6 +9,7 @@ import {
 import { and, desc, eq, gte, lte, sql, isNull, inArray } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
+import { hasPermission } from "../lib/rbac/permissions";
 import { emitToUser } from "../lib/realtime";
 import { z } from "zod/v4";
 
@@ -537,7 +538,11 @@ router.get("/attendance/corrections", requirePermission("attendance.clock"), asy
     const userId = req.authUser!.id;
     const orgId = await getCurrentOrganizationId(userId);
     if (!orgId) return res.status(403).json({ error: "no_organization" });
-    const isManager = req.authUser!.role !== "collaborator";
+    // Utiliser la vérification par permission (pas par rôle) pour éviter que
+    // des rôles comme 'commercial' (qui ont attendance.clock) accèdent aux corrections
+    // de toute l'organisation. Seuls les utilisateurs avec attendance.manage peuvent
+    // lister les corrections org-wide.
+    const isManager = await hasPermission(userId, "attendance.manage");
     if (isManager) {
       const rows = await db.select({
         correction: attendanceCorrectionsTable,
