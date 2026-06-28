@@ -203,15 +203,24 @@ function EditCollaboratorDialog({
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image trop volumineuse (max 2 Mo)");
-      return;
-    }
+    // Reset input so re-selecting same file still fires onChange
+    e.target.value = "";
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAvatarPreview(dataUrl);
-      set("avatarUrl", dataUrl);
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 512;
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        setAvatarPreview(dataUrl);
+        set("avatarUrl", dataUrl);
+      };
+      img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
