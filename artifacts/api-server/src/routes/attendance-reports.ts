@@ -4,8 +4,9 @@ import {
   attendanceSessionsTable, attendanceFlagsTable,
   collaboratorsTable, departmentsTable,
   timesheetEntriesTable, projectsTable,
+  attendanceRecordsTable,
 } from "@workspace/db";
-import { and, eq, gte, lte, isNull, inArray } from "drizzle-orm";
+import { and, eq, gte, lte, isNull, inArray, desc } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
 import ExcelJS from "exceljs";
@@ -630,6 +631,83 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
 
     doc.moveDown(1).fillColor("#999999").fontSize(7).text(`Généré le ${new Date().toLocaleDateString("fr-FR")} — Gameasu`, { align: "right" });
     doc.end();
+  } catch (e) { next(e); }
+});
+
+// ── 7. Registre plat des pointages individuels (avec filtre Méthode/source) ──
+
+router.get("/attendance/reports/records", requirePermission("attendance.view"), async (req, res, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+    const { from, to } = parseRange(req.query["from"] as string, req.query["to"] as string);
+    const sourceFilter = req.query["source"] as string | undefined;
+    const collaboratorId = req.query["collaboratorId"] as string | undefined;
+    const departmentId = req.query["departmentId"] as string | undefined;
+    const page = Math.max(1, parseInt(String(req.query["page"] ?? "1"), 10));
+    const limit = Math.min(200, Math.max(1, parseInt(String(req.query["limit"] ?? "100"), 10)));
+    const offset = (page - 1) * limit;
+
+    const conditions = [
+      eq(attendanceRecordsTable.organizationId, orgId),
+      gte(attendanceRecordsTable.occurredAt, new Date(from + "T00:00:00.000Z")),
+      lte(attendanceRecordsTable.occurredAt, new Date(to + "T23:59:59.999Z")),
+    ];
+    if (sourceFilter) conditions.push(eq(attendanceRecordsTable.source, sourceFilter as "kiosk" | "qr" | "app" | "manual"));
+    if (collaboratorId) conditions.push(eq(attendanceRecordsTable.collaboratorId, collaboratorId));
+
+    // Filtre département via join collaborateur
+    let collaboratorIds: string[] | null = null;
+    if (departmentId) {
+      const dc = await db.select({ id: collaboratorsTable.id })
+        .from(collaboratorsTable)
+        .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.departmentId, departmentId), isNull(collaboratorsTable.deletedAt)));
+      collaboratorIds = dc.map(c => c.id);
+      if (collaboratorIds.length === 0) return res.json({ from, to, total: 0, page, limit, data: [] });
+      conditions.push(inArray(attendanceRecordsTable.collaboratorId, collaboratorIds));
+    }
+
+    const records = await db
+      .select({
+        id: attendanceRecordsTable.id,
+        collaboratorId: attendanceRecordsTable.collaboratorId,
+        kind: attendanceRecordsTable.kind,
+        source: attendanceRecordsTable.source,
+        occurredAt: attendanceRecordsTable.occurredAt,
+        status: attendanceRecordsTable.status,
+        locationLabel: attendanceRecordsTable.locationLabel,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        deptName: departmentsTable.name,
+      })
+      .from(attendanceRecordsTable)
+      .leftJoin(collaboratorsTable, and(
+        eq(collaboratorsTable.id, attendanceRecordsTable.collaboratorId),
+        isNull(collaboratorsTable.deletedAt),
+      ))
+      .leftJoin(departmentsTable, and(
+        eq(departmentsTable.id, collaboratorsTable.departmentId),
+        eq(departmentsTable.organizationId, orgId),
+      ))
+      .where(and(...conditions))
+      .orderBy(desc(attendanceRecordsTable.occurredAt))
+      .limit(limit)
+      .offset(offset);
+
+    const data = records.map(r => ({
+      id: r.id,
+      collaboratorId: r.collaboratorId,
+      collaboratorName: r.firstName && r.lastName ? `${r.firstName} ${r.lastName}` : r.collaboratorId,
+      department: r.deptName ?? "—",
+      kind: r.kind,
+      source: r.source ?? "manual",
+      methode: r.source === "qr" ? "QR" : r.source === "kiosk" ? "Kiosque" : r.source === "app" ? "Application" : "Manuel",
+      occurredAt: r.occurredAt,
+      status: r.status,
+      locationLabel: r.locationLabel,
+    }));
+
+    res.json({ from, to, total: data.length, page, limit, data });
   } catch (e) { next(e); }
 });
 

@@ -45,6 +45,8 @@ import {
   ticketsTable,
   opportunitiesTable,
   orgAttendanceSettingsTable,
+  collaboratorQrTokensTable,
+  attendanceRecordsTable,
 } from "@workspace/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -945,6 +947,86 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
     log.push("✓ Template pointage secteur Consulting créé");
   } else {
     log.push("✓ Template pointage déjà existant");
+  }
+
+  // ── 18. Tokens QR & pointages historiques QR ────────────────────────────────
+  const activeCollabs = allCollabs.filter(c => c.employmentStatus === "active").slice(0, 5);
+  if (activeCollabs.length >= 2) {
+    const [qrCountRow] = await db.select({ c: sql<number>`count(*)::int` })
+      .from(collaboratorQrTokensTable)
+      .where(eq(collaboratorQrTokensTable.organizationId, ORG_ID));
+    const qrCount = Number(qrCountRow?.c ?? 0);
+    if (qrCount === 0) {
+      // Collab 0 : token actif (a été utilisé)
+      await db.insert(collaboratorQrTokensTable).values({
+        organizationId: ORG_ID,
+        collaboratorId: activeCollabs[0].id,
+        status: "active",
+        lastUsedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      }).onConflictDoNothing();
+
+      // Collab 1 : token désactivé
+      await db.insert(collaboratorQrTokensTable).values({
+        organizationId: ORG_ID,
+        collaboratorId: activeCollabs[1].id,
+        status: "disabled",
+      }).onConflictDoNothing();
+
+      // Collab 2 (si dispo) : token actif récent
+      if (activeCollabs[2]) {
+        await db.insert(collaboratorQrTokensTable).values({
+          organizationId: ORG_ID,
+          collaboratorId: activeCollabs[2].id,
+          status: "active",
+          lastUsedAt: new Date(Date.now() - 60 * 60 * 1000),
+        }).onConflictDoNothing();
+      }
+
+      // Pointages historiques QR pour collab 0 (5 derniers jours ouvrés)
+      const qrKinds: Array<"clock_in" | "clock_out"> = ["clock_in", "clock_out"];
+      for (let d = 1; d <= 5; d++) {
+        const base = new Date();
+        base.setDate(base.getDate() - d);
+        const ymd = base.toISOString().slice(0, 10);
+        for (const kind of qrKinds) {
+          const h = kind === "clock_in" ? 8 : 17;
+          const ts = new Date(`${ymd}T${String(h).padStart(2, "0")}:00:00.000Z`);
+          await db.insert(attendanceRecordsTable).values({
+            organizationId: ORG_ID,
+            collaboratorId: activeCollabs[0].id,
+            kind,
+            source: "qr",
+            occurredAt: ts,
+            status: "valid",
+            locationLabel: "Siège Hissado Consulting",
+          }).onConflictDoNothing().catch(() => {});
+        }
+      }
+
+      // Pointages historiques QR pour collab 2 (3 derniers jours)
+      if (activeCollabs[2]) {
+        for (let d = 1; d <= 3; d++) {
+          const base = new Date();
+          base.setDate(base.getDate() - d);
+          const ymd = base.toISOString().slice(0, 10);
+          const tsIn = new Date(`${ymd}T08:30:00.000Z`);
+          await db.insert(attendanceRecordsTable).values({
+            organizationId: ORG_ID,
+            collaboratorId: activeCollabs[2].id,
+            kind: "clock_in",
+            source: "qr",
+            occurredAt: tsIn,
+            status: "valid",
+            locationLabel: "Agence Nord",
+          }).onConflictDoNothing().catch(() => {});
+        }
+      }
+
+      log.push("✓ Tokens QR démo créés (actif/désactivé) + pointages QR historiques");
+      counts.qrTokens = activeCollabs.length >= 3 ? 3 : 2;
+    } else {
+      log.push(`✓ Tokens QR déjà existants (${qrCount})`);
+    }
   }
 
   return {

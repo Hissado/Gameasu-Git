@@ -178,6 +178,11 @@ function MyClockPanel() {
                       <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
                     </span>
                   )}
+                  {r.source === "qr" && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5 shrink-0">
+                      QR
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-slate-500 flex items-center gap-2 shrink-0">
                   {resolveStorageUrl(r.photoUrl) && (
@@ -267,9 +272,19 @@ function CollaboratorRecordsDialog({
                         <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
                       </span>
                     )}
+                    {r.source === "qr" && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5">
+                        QR
+                      </span>
+                    )}
                     {r.source === "app" && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">
                         Application
+                      </span>
+                    )}
+                    {(!r.source || r.source === "manual") && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-slate-100 text-slate-500 rounded px-1.5 py-0.5">
+                        Manuel
                       </span>
                     )}
                   </div>
@@ -1846,6 +1861,118 @@ function EmptyReport() {
   return <p className="text-sm text-slate-400 text-center py-12">Aucune donnée pour les critères sélectionnés.</p>;
 }
 
+const SOURCE_OPTIONS = [
+  { value: "", label: "Toutes méthodes" },
+  { value: "kiosk", label: "Kiosque (PIN)" },
+  { value: "qr", label: "QR Code" },
+  { value: "app", label: "Application" },
+  { value: "manual", label: "Manuel" },
+];
+
+function SourceBadge({ source }: { source: string | null | undefined }) {
+  if (source === "kiosk") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5"><MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque</span>;
+  if (source === "qr") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5">QR</span>;
+  if (source === "app") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">Application</span>;
+  return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-slate-100 text-slate-500 rounded px-1.5 py-0.5">Manuel</span>;
+}
+
+type RecordRow = {
+  id: string;
+  collaboratorId: string;
+  collaboratorName: string;
+  department: string;
+  kind: string;
+  source: string;
+  methode: string;
+  occurredAt: string;
+  status: string | null;
+  locationLabel: string | null;
+};
+
+function RecordsRegistrePanel() {
+  const today = new Date().toISOString().slice(0, 10);
+  const firstOfMonth = today.slice(0, 7) + "-01";
+  const [from, setFrom] = useState(firstOfMonth);
+  const [to, setTo] = useState(today);
+  const [source, setSource] = useState("");
+
+  const params = new URLSearchParams({ from, to });
+  if (source) params.set("source", source);
+
+  const { data, isLoading } = useQuery<{ from: string; to: string; total: number; data: RecordRow[] }>({
+    queryKey: ["attendance", "records-registre", from, to, source],
+    queryFn: () => apiFetch(`/api/attendance/reports/records?${params.toString()}`),
+  });
+
+  const rows = data?.data ?? [];
+
+  return (
+    <Card className="p-6 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary" />
+          Registre des pointages
+        </h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+            <span className="text-slate-400 text-sm">→</span>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+          </div>
+          <Select value={source || "__all"} onValueChange={v => setSource(v === "__all" ? "" : v)}>
+            <SelectTrigger className="w-44 h-8 text-sm">
+              <SelectValue placeholder="Toutes méthodes" />
+            </SelectTrigger>
+            <SelectContent>
+              {SOURCE_OPTIONS.map(o => (
+                <SelectItem key={o.value || "__all"} value={o.value || "__all"}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {data && (
+        <p className="text-xs text-slate-500">{rows.length} enregistrement{rows.length > 1 ? "s" : ""} sur la période</p>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="text-left px-3 py-2">Collaborateur</th>
+              <th className="text-left px-3 py-2">Département</th>
+              <th className="text-left px-3 py-2">Type</th>
+              <th className="text-left px-3 py-2">Méthode</th>
+              <th className="text-left px-3 py-2">Heure</th>
+              <th className="text-left px-3 py-2">Lieu</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">Aucun pointage pour les critères sélectionnés.</td></tr>
+            ) : rows.map(r => (
+              <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                <td className="px-3 py-2 font-medium text-slate-800">{r.collaboratorName}</td>
+                <td className="px-3 py-2 text-slate-500">{r.department}</td>
+                <td className="px-3 py-2">{KIND_LABEL[r.kind] ?? r.kind}</td>
+                <td className="px-3 py-2"><SourceBadge source={r.source} /></td>
+                <td className="px-3 py-2 tabular-nums text-slate-700">
+                  {new Date(r.occurredAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </td>
+                <td className="px-3 py-2 text-slate-500 text-xs">{r.locationLabel ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 export default function AttendancePage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -1861,6 +1988,7 @@ export default function AttendancePage() {
           <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
           <TabsTrigger value="history">Mon historique</TabsTrigger>
           <TabsTrigger value="reports">Rapports</TabsTrigger>
+          <TabsTrigger value="registre">Registre</TabsTrigger>
         </TabsList>
         <TabsContent value="me" className="mt-4 space-y-4"><MyClockPanel /></TabsContent>
         <TabsContent value="timesheets" className="mt-4"><TimesheetsPanel /></TabsContent>
@@ -1868,6 +1996,7 @@ export default function AttendancePage() {
         <TabsContent value="anomalies" className="mt-4 space-y-4"><AnomaliesPanel /></TabsContent>
         <TabsContent value="history" className="mt-4 space-y-4"><MyHistoryPanel /></TabsContent>
         <TabsContent value="reports" className="mt-4"><ReportsPanel /></TabsContent>
+        <TabsContent value="registre" className="mt-4"><RecordsRegistrePanel /></TabsContent>
       </Tabs>
     </div>
   );

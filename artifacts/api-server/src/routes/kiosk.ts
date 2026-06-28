@@ -490,18 +490,20 @@ kioskPublicRouter.post("/kiosk/scan-qr", async (req: Request, res: Response, nex
       return;
     }
 
-    // 3. Récupérer les infos collaborateur
+    // 3. Récupérer les infos collaborateur (parity avec /identify : actif requis)
     const [collab] = await db
       .select({
         id: collaboratorsTable.id,
         firstName: collaboratorsTable.firstName,
         lastName: collaboratorsTable.lastName,
         avatarUrl: collaboratorsTable.avatarUrl,
+        employmentStatus: collaboratorsTable.employmentStatus,
       })
       .from(collaboratorsTable)
       .where(and(
         eq(collaboratorsTable.id, qrRow.collaboratorId),
         eq(collaboratorsTable.organizationId, kioskOrgId),
+        eq(collaboratorsTable.employmentStatus, "active"),
         isNull(collaboratorsTable.deletedAt),
       ))
       .limit(1);
