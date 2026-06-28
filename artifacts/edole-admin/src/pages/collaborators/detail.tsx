@@ -882,17 +882,56 @@ export default function CollaboratorDetail() {
 
   // ─── Sidebar state ────────────────────────────────────────────────────────
   const [sidebarSearch, setSidebarSearch] = useState("");
+  const [sidebarStatusFilter, setSidebarStatusFilter] = useState<"all" | "active" | "inactive" | "new" | "unavailable">("all");
+  const [sidebarDeptFilter, setSidebarDeptFilter] = useState<string>("all");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
     queryKey: ["collab-sidebar-list", user?.id],
     queryFn: () => apiFetch("/api/collaborators?limit=500"),
     staleTime: 60_000,
   });
-  const filteredCollabs = (allCollabsData?.data ?? []).filter(c => {
-    if (!sidebarSearch.trim()) return true;
-    const q = sidebarSearch.toLowerCase();
-    return [c.firstName, c.lastName, c.position, c.department, c.email]
-      .some((v: string | null) => v?.toLowerCase().includes(q));
+
+  const allCollabs = allCollabsData?.data ?? [];
+
+  const sidebarDepts = Array.from(
+    new Map(
+      allCollabs
+        .filter(c => c.departmentId && c.department)
+        .map(c => [c.departmentId, c.department as string])
+    ).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredCollabs = allCollabs.filter(c => {
+    if (sidebarSearch.trim()) {
+      const q = sidebarSearch.toLowerCase();
+      const match = [c.firstName, c.lastName, c.position, c.department, c.email]
+        .some((v: string | null) => v?.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+
+    if (sidebarDeptFilter !== "all") {
+      if (c.departmentId !== sidebarDeptFilter) return false;
+    }
+
+    if (sidebarStatusFilter !== "all") {
+      if (sidebarStatusFilter === "inactive") {
+        if (c.employmentStatus === "active") return false;
+      } else if (sidebarStatusFilter === "unavailable") {
+        if (c.isAvailable || c.employmentStatus !== "active") return false;
+      } else if (sidebarStatusFilter === "new") {
+        if (!c.hireDate) return false;
+        const daysAgo = (Date.now() - new Date(c.hireDate).getTime()) / 86_400_000;
+        if (daysAgo >= 90 || c.employmentStatus !== "active" || !c.isAvailable) return false;
+      } else if (sidebarStatusFilter === "active") {
+        if (c.employmentStatus !== "active" || !c.isAvailable) return false;
+        if (c.hireDate) {
+          const daysAgo = (Date.now() - new Date(c.hireDate).getTime()) / 86_400_000;
+          if (daysAgo < 90) return false;
+        }
+      }
+    }
+
+    return true;
   });
 
   // Kiosk code inline edit
@@ -1079,8 +1118,55 @@ export default function CollaboratorDetail() {
               </button>
             )}
           </div>
+
+          {/* Status filter chips */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar">
+            {([ 
+              { value: "all", label: "Tous" },
+              { value: "active", label: "Actif" },
+              { value: "inactive", label: "Inactif" },
+              { value: "new", label: "Nouveau" },
+              { value: "unavailable", label: "Indispo." },
+            ] as const).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setSidebarStatusFilter(value)}
+                className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                  sidebarStatusFilter === value
+                    ? "bg-teal-700 text-white border-teal-700"
+                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Department filter */}
+          {sidebarDepts.length > 0 && (
+            <Select value={sidebarDeptFilter} onValueChange={setSidebarDeptFilter}>
+              <SelectTrigger className="h-7 text-xs bg-muted/40 border-border">
+                <SelectValue placeholder="Tous les départements" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les départements</SelectItem>
+                {sidebarDepts.map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <p className="text-[11px] text-muted-foreground px-0.5">
             {filteredCollabs.length} collaborateur{filteredCollabs.length !== 1 ? "s" : ""}
+            {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all") && (
+              <button
+                className="ml-2 text-primary hover:underline"
+                onClick={() => { setSidebarStatusFilter("all"); setSidebarDeptFilter("all"); }}
+              >
+                Réinitialiser
+              </button>
+            )}
           </p>
         </div>
 

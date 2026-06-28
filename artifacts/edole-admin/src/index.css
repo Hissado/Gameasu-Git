@@ -282,6 +282,10 @@
   .shadow-elev-lg { box-shadow: var(--shadow-lg); }
   .shadow-elev-xl { box-shadow: var(--shadow-xl); }
 
+  /* Masquer la scrollbar (chips horizontaux) */
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   /* Scrollbar discrète pour la sidebar (fond sombre) */
   .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

@@ -1,18 +1,36 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { collaboratorsTable, tasksTable, contractsTable } from "@workspace/db";
-import { eq, sql, isNull, and, desc } from "drizzle-orm";
+import { eq, sql, isNull, and, desc, ne } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
 
 router.get("/collaborators", async (req, res) => {
-  const { search, available, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { search, available, status, departmentId, page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const offset = (pageNum - 1) * limitNum;
 
-  const orgFilter = and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), isNull(collaboratorsTable.deletedAt));
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(collaboratorsTable.organizationId, req.authUser!.organizationId),
+    isNull(collaboratorsTable.deletedAt) as any,
+  ];
+
+  if (departmentId && departmentId !== "all") {
+    conditions.push(eq(collaboratorsTable.departmentId, departmentId) as any);
+  }
+
+  if (status === "active") {
+    conditions.push(eq(collaboratorsTable.employmentStatus, "active") as any);
+  } else if (status === "inactive") {
+    conditions.push(ne(collaboratorsTable.employmentStatus, "active") as any);
+  } else if (status === "unavailable") {
+    conditions.push(eq(collaboratorsTable.isAvailable, false) as any);
+    conditions.push(eq(collaboratorsTable.employmentStatus, "active") as any);
+  }
+
+  const orgFilter = and(...conditions);
   const data = await db.select().from(collaboratorsTable).where(orgFilter).limit(limitNum).offset(offset);
   const countResult = await db.select({ count: sql<number>`count(*)` }).from(collaboratorsTable).where(orgFilter);
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
