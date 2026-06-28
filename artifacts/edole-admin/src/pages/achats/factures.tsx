@@ -70,7 +70,7 @@ const TERMS_OPTIONS = [
 ];
 
 const LINE_CATEGORIES = [
-  { value: "", label: "—" },
+  { value: "_none", label: "—" },
   { value: "services", label: "Services" },
   { value: "materials", label: "Matériaux" },
   { value: "utilities", label: "Charges fixes" },
@@ -254,7 +254,7 @@ function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange
               <tr key={i} className="border-t hover:bg-slate-50/50">
                 <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
                 <td className="px-1 py-1">
-                  <Select value={l.category ?? ""} onValueChange={(v) => update(i, { category: v })}>
+                  <Select value={l.category || "_none"} onValueChange={(v) => update(i, { category: v === "_none" ? "" : v })}>
                     <SelectTrigger className="h-7 text-xs w-full border-0 shadow-none focus:ring-0 focus:ring-offset-0 px-1">
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
