@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useGetCollaborator, getGetCollaboratorQueryKey } from "@workspace/api-client-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
@@ -1033,6 +1033,9 @@ export default function CollaboratorDetail() {
   const [sidebarStatusFilter, setSidebarStatusFilter] = useState<"all" | "active" | "inactive" | "new" | "unavailable">("all");
   const [sidebarDeptFilter, setSidebarDeptFilter] = useState<string>("all");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
     queryKey: ["collab-sidebar-list", user?.id],
     queryFn: () => apiFetch("/api/collaborators?limit=500"),
@@ -1081,6 +1084,56 @@ export default function CollaboratorDetail() {
 
     return true;
   });
+
+  // ─── Keyboard navigation ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const isInInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable;
+
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !isInInput) {
+        e.preventDefault();
+        const currentIndex = filteredCollabs.findIndex(c => c.id === id);
+        let nextIndex: number;
+        if (e.key === "ArrowDown") {
+          nextIndex = currentIndex < filteredCollabs.length - 1 ? currentIndex + 1 : currentIndex;
+        } else {
+          nextIndex = currentIndex > 0 ? currentIndex - 1 : 0;
+        }
+        const next = filteredCollabs[nextIndex];
+        if (next && next.id !== id) {
+          navigate(`/collaborators/${next.id}`);
+        }
+        return;
+      }
+
+      if (e.key === "Escape" && isInInput && e.target === searchInputRef.current) {
+        e.preventDefault();
+        setSidebarSearch("");
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      if ((e.ctrlKey && e.key === "k") || (!isInInput && e.key === "/")) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [filteredCollabs, id, navigate]);
+
+  useEffect(() => {
+    if (!id || !listRef.current) return;
+    const activeEl = listRef.current.querySelector<HTMLElement>(`[data-collab-id="${id}"]`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: "nearest", behavior: filteredCollabs.length > 0 ? "auto" : "smooth" });
+    }
+  }, [id, filteredCollabs]);
 
   // Kiosk code inline edit
   const [kioskCodeEditing, setKioskCodeEditing] = useState(false);
@@ -1250,7 +1303,8 @@ export default function CollaboratorDetail() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Rechercher…"
+              ref={searchInputRef}
+              placeholder="Rechercher… (/ ou Ctrl+K)"
               value={sidebarSearch}
               onChange={e => setSidebarSearch(e.target.value)}
               className="pl-8 h-8 text-sm bg-muted/40"
@@ -1317,7 +1371,7 @@ export default function CollaboratorDetail() {
         </div>
 
         {/* Collaborator list */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar py-1">
+        <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar py-1">
           {filteredCollabs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <User className="w-8 h-8 mb-2 opacity-30" />
@@ -1331,6 +1385,7 @@ export default function CollaboratorDetail() {
             return (
               <Link key={c.id} href={`/collaborators/${c.id}`}>
                 <div
+                  data-collab-id={c.id}
                   onClick={() => setMobileSidebarOpen(false)}
                   className={`
                     flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-all duration-150
@@ -1365,6 +1420,23 @@ export default function CollaboratorDetail() {
               </Link>
             );
           })}
+        </div>
+
+        {/* Keyboard shortcut hints */}
+        <div className="px-3 py-2 border-t border-border shrink-0 flex items-center gap-3 text-[10px] text-muted-foreground/60">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">↑</kbd>
+            <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">↓</kbd>
+            naviguer
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">/</kbd>
+            rechercher
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">Esc</kbd>
+            effacer
+          </span>
         </div>
       </aside>
 
