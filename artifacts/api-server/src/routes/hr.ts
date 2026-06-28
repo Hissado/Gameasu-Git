@@ -27,6 +27,7 @@ import {
   attendanceFlagsTable,
   usersTable,
   bankTransferOrdersTable,
+  organizationsTable,
 } from "@workspace/db";
 import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
@@ -403,6 +404,15 @@ router.get("/hr/collaborators/:id/overview", async (req, res) => {
   const documents = await db.select().from(hrDocumentsTable)
     .where(eq(hrDocumentsTable.collaboratorId, collabId)).orderBy(desc(hrDocumentsTable.uploadedAt));
 
+  const [orgRow] = await db.select({
+    id: organizationsTable.id,
+    name: organizationsTable.name,
+    legalName: organizationsTable.legalName,
+    logoUrl: organizationsTable.logoUrl,
+  }).from(organizationsTable)
+    .where(eq(organizationsTable.id, collab.organizationId))
+    .limit(1);
+
   const totalAllocation = assignments
     .filter(a => a.a.status === "active")
     .reduce((s, a) => s + (a.a.allocationPct ?? 0), 0);
@@ -412,6 +422,7 @@ router.get("/hr/collaborators/:id/overview", async (req, res) => {
       ...collab,
       baseSalary: collab.baseSalary ? Number(collab.baseSalary) : null,
     },
+    organization: orgRow ?? null,
     department: dept[0] ?? null,
     position: position[0] ?? null,
     manager: manager[0] ? { id: manager[0].id, firstName: manager[0].firstName, lastName: manager[0].lastName } : null,

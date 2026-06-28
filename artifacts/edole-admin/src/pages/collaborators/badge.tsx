@@ -4,15 +4,6 @@ import { apiFetch } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect } from "react";
 
-type MeResponse = {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  organizationId: string | null;
-  orgName: string | null;
-  orgLegalName: string | null;
-  orgLogoUrl: string | null;
-};
 
 export default function CollaboratorBadgePrint() {
   const [, params] = useRoute("/collaborators/:id/badge");
@@ -40,11 +31,6 @@ export default function CollaboratorBadgePrint() {
     enabled: !!collaboratorId,
   });
 
-  const { data: meData } = useQuery<MeResponse>({
-    queryKey: ["auth-me-badge"],
-    queryFn: () => apiFetch("/api/auth/me"),
-  });
-
   useEffect(() => {
     if (collab && !isLoading) {
       setTimeout(() => window.print(), 900);
@@ -63,8 +49,8 @@ export default function CollaboratorBadgePrint() {
   const position = overviewData?.position?.title ?? c.position ?? "";
   const department = overviewData?.department?.name ?? "";
   const kioskCode = c.kioskCode ?? null;
-  const orgName = meData?.orgName ?? meData?.orgLegalName ?? "GAMEASU";
-  const orgLogoUrl = meData?.orgLogoUrl ?? null;
+  const orgName = overviewData?.organization?.name ?? overviewData?.organization?.legalName ?? c?.organizationId ?? "—";
+  const orgLogoUrl = overviewData?.organization?.logoUrl ?? null;
   const qrToken = qrData?.token;
   const qrStatus = qrData?.status;
 
@@ -248,10 +234,10 @@ export default function CollaboratorBadgePrint() {
           padding: "0 5mm",
         }}>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "5pt", textTransform: "uppercase", letterSpacing: "1px" }}>
-            GAMEASU ERP · Confidentiel
+            {orgName} · Confidentiel
           </div>
           <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "5pt" }}>
-            {orgName}
+            Gaméasù ERP
           </div>
         </div>
       </div>
