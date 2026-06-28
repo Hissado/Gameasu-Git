@@ -6,8 +6,8 @@
 import gameasuLogo from "@/assets/gameasu-logo.png";
 
 export const BRANDING = {
-  appName: import.meta.env.VITE_APP_NAME ?? "Gaméasù",
-  appShortName: "Gaméasù",
+  appName: import.meta.env.VITE_APP_NAME ?? "Gameasu",
+  appShortName: "Gameasu",
   appTaglineFr: import.meta.env.VITE_APP_TAGLINE_FR ?? "Gérer aujourd'hui. Construire demain.",
   appTaglineEn: import.meta.env.VITE_APP_TAGLINE_EN ?? "Manage today. Build tomorrow.",
   defaultPlanCode: import.meta.env.VITE_DEFAULT_PLAN_CODE ?? "STARTER",

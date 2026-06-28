@@ -1,7 +1,7 @@
 {
-  "name": "Gaméasù — Pilotage d'entreprise",
-  "short_name": "Gaméasù",
-  "description": "Gaméasù — Le pilotage d'entreprise nouvelle génération. Plateforme SaaS B2B pour les organisations du Togo et d'Afrique de l'Ouest francophone.",
+  "name": "Gameasu — Pilotage d'entreprise",
+  "short_name": "Gameasu",
+  "description": "Gameasu — Le pilotage d'entreprise nouvelle génération. Plateforme SaaS B2B pour les organisations du Togo et d'Afrique de l'Ouest francophone.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
