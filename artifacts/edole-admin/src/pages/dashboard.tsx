@@ -252,6 +252,9 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* ── Pointage du jour ────────────────────────────────────────────── */}
+      <QuickClockWidget />
+
       {/* ── Section 1 : KPI ─────────────────────────────────────────────── */}
       <section>
         <SectionHeader title="Vue d'ensemble" sub="Indicateurs clés de votre organisation" />
@@ -329,11 +332,8 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Pointage + Intelligence ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <QuickClockWidget />
-        <IntelligenceWidget />
-      </div>
+      {/* ── Copilote intelligence ────────────────────────────────────────── */}
+      <IntelligenceWidget />
 
       {/* ── Section 2 : Actions prioritaires ────────────────────────────── */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
