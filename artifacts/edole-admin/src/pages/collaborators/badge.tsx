@@ -33,9 +33,41 @@ export default function CollaboratorBadgePrint() {
     enabled: !!collaboratorId,
   });
 
+  // Convertit une URL en data URL base64 (requête same-origin, pas de CORS nécessaire)
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const r = await fetch(url + (url.includes("?") ? "&" : "?") + "_cb=" + Date.now());
+      if (!r.ok) return null;
+      const blob = await r.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  };
+
   const captureBadgePng = async (): Promise<{ dataUrl: string; blob: Blob; fileName: string } | null> => {
     if (!badgeRef.current) return null;
+
+    // Injecter l'avatar en base64 juste avant la capture pour éviter le canvas tainted
+    const avatarImg = badgeRef.current.querySelector<HTMLImageElement>("img[data-avatar]");
+    let originalSrc: string | null = null;
+    if (avatarImg?.src && !avatarImg.src.startsWith("data:")) {
+      const b64 = await urlToBase64(avatarImg.src);
+      if (b64) {
+        originalSrc = avatarImg.src;
+        avatarImg.src = b64;
+        await new Promise(r => setTimeout(r, 60)); // laisser le navigateur peindre
+      }
+    }
+
     const dataUrl = await toPng(badgeRef.current, { pixelRatio: 3, cacheBust: true, backgroundColor: "white" });
+
+    // Restaurer l'URL originale
+    if (avatarImg && originalSrc) avatarImg.src = originalSrc;
+
     const res = await fetch(dataUrl);
     const blob = await res.blob();
     const firstName = c?.firstName ?? "badge";
@@ -230,7 +262,7 @@ export default function CollaboratorBadgePrint() {
             flexShrink: 0,
           }}>
             {c.avatarUrl ? (
-              <img src={c.avatarUrl} alt={initials} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img data-avatar src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               <span style={{ color: "white", fontWeight: 800, fontSize: 28 }}>{initials}</span>
             )}
