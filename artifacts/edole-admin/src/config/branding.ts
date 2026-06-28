@@ -29,9 +29,9 @@ export const BRANDING = {
   defaultPlanCode: import.meta.env.VITE_DEFAULT_PLAN_CODE ?? "STARTER",
 
   // Design tokens
-  primaryColor:  "#C8A24B",   // Or sobre Gameasu
+  primaryColor:  "#2563EB",   // Or sobre Gameasu
   secondaryColor:"#0F1A3A",   // Navy profond Gameasu
-  accentColor:   "#C8A24B",
+  accentColor:   "#2563EB",
 
   // Assets
   logoFull:             gameasuLogo,

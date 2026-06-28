@@ -90,19 +90,19 @@
   --sidebar: 224 60% 14%;
   --sidebar-foreground: 220 24% 88%;
   --sidebar-border: 224 40% 22%;
-  --sidebar-primary: 42 53% 54%;
-  --sidebar-primary-foreground: 224 60% 14%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 224 50% 20%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 42 53% 54%;
+  --sidebar-ring: 221 83% 53%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 224 60% 14%;
   --popover-border: 224 20% 90%;
 
-  /* Primary : or sobre Gameasu #C8A24B (HSL 42 53% 54%) */
-  --primary: 42 53% 54%;
-  --primary-foreground: 224 60% 14%;
+  /* Primary : bleu électrique Gameasu #2563EB (HSL 221 83% 53%) */
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
 
   /* Secondary : navy profond — autorité corporate */
   --secondary: 224 60% 14%;
@@ -111,17 +111,17 @@
   --muted: 224 20% 96%;
   --muted-foreground: 224 14% 42%;
 
-  --accent: 42 40% 94%;
+  --accent: 221 100% 95%;
   --accent-foreground: 224 60% 14%;
 
   --destructive: 0 65% 48%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 224 20% 90%;
-  --ring: 42 53% 54%;
+  --ring: 221 83% 53%;
 
-  /* Charts : navy / gold / family — tonalité institutionnelle */
-  --chart-1: 42 53% 54%;    /* Or Gameasu */
+  /*/* Charts : navy / bleu / family — tonalité institutionnelle */
+  --chart-1: 221 83% 53%;    /* Bleu Gameasu */
   --chart-2: 224 60% 24%;   /* Navy clair */
   --chart-3: 200 35% 45%;   /* Bleu acier */
   --chart-4: 158 30% 42%;   /* Vert sage */
@@ -160,27 +160,27 @@
   --sidebar: 224 60% 14%;
   --sidebar-foreground: 220 24% 88%;
   --sidebar-border: 224 40% 22%;
-  --sidebar-primary: 42 53% 54%;
-  --sidebar-primary-foreground: 224 60% 14%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 224 50% 20%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 42 53% 54%;
+  --sidebar-ring: 221 83% 53%;
   --popover: 0 0% 100%;
   --popover-foreground: 224 60% 14%;
   --popover-border: 224 20% 90%;
-  --primary: 42 53% 54%;
-  --primary-foreground: 224 60% 14%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 224 60% 14%;
   --secondary-foreground: 0 0% 100%;
   --muted: 224 20% 96%;
   --muted-foreground: 224 14% 42%;
-  --accent: 42 40% 94%;
+  --accent: 221 100% 95%;
   --accent-foreground: 224 60% 14%;
   --destructive: 0 65% 48%;
   --destructive-foreground: 0 0% 100%;
   --input: 224 20% 90%;
-  --ring: 42 53% 54%;
-  --chart-1: 42 53% 54%;
+  --ring: 221 83% 53%;
+  --chart-1: 221 83% 53%;
   --chart-2: 224 60% 24%;
   --chart-3: 200 35% 45%;
   --chart-4: 158 30% 42%;

@@ -108,7 +108,7 @@ const LOCALES = [
 // ─── Couleurs prédéfinies ──────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
-  { hex: "#C8A24B", label: "Or Gameasu" },
+  { hex: "#2563EB", label: "Bleu Gameasu" },
   { hex: "#1a1a2e", label: "Marine profond" },
   { hex: "#F37021", label: "Orange EDOLE" },
   { hex: "#0F172A", label: "Ardoise foncé" },
@@ -252,7 +252,7 @@ export default function WorkspaceSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ColorField
               label="Couleur principale"
-              value={branding.primaryColor ?? "#C8A24B"}
+              value={branding.primaryColor ?? "#2563EB"}
               onChange={(v) => setBranding((s) => ({ ...s, primaryColor: v }))}
             />
             <ColorField
@@ -472,7 +472,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
             className="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-amber-500"
             style={{
               background: p.hex,
-              borderColor: value === p.hex ? "#C8A24B" : "transparent",
+              borderColor: value === p.hex ? "#2563EB" : "transparent",
               boxShadow: value === p.hex ? `0 0 0 2px white, 0 0 0 4px ${p.hex}` : "0 1px 3px rgba(0,0,0,0.2)",
             }}
           />

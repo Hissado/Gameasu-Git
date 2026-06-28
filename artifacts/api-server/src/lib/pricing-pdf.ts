@@ -53,8 +53,8 @@ function pct(v: number): string {
   return v.toFixed(1) + " %";
 }
 
-const GOLD   = "#C8A24B";
-const DARK   = "#0F172A";
+const BLUE   = "#2563EB";  // Bleu électrique Gameasu (logo "su")
+const DARK   = "#0F1A3A";  // Navy profond Gameasu
 const GRAY   = "#64748B";
 const LIGHT  = "#F8FAFC";
 const GREEN  = "#059669";
@@ -72,7 +72,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
   // ── En-tête : bandeau doré ──────────────────────────────────────────────────
   doc.rect(40, y, W, 58).fill(DARK);
 
-  doc.fontSize(16).font("Helvetica-Bold").fillColor(GOLD)
+  doc.fontSize(16).font("Helvetica-Bold").fillColor(BLUE)
     .text(org.name.toUpperCase(), 55, y + 9, { width: 300 });
   if (org.legalName && org.legalName !== org.name) {
     doc.fontSize(8).font("Helvetica").fillColor("#94A3B8")
@@ -81,7 +81,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
 
   doc.fontSize(13).font("Helvetica-Bold").fillColor("white")
     .text("ANALYSE TARIFAIRE", 370, y + 10, { width: 180, align: "right" });
-  doc.fontSize(8).font("Helvetica").fillColor(GOLD)
+  doc.fontSize(8).font("Helvetica").fillColor(BLUE)
     .text(data.generatedAt, 370, y + 28, { width: 180, align: "right" });
   doc.fontSize(7).font("Helvetica").fillColor("#94A3B8")
     .text("Gameasu · Pricing stratégique", 370, y + 40, { width: 180, align: "right" });
@@ -135,7 +135,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
   // ── Helper : sectionTitle ────────────────────────────────────────────────────
   function sectionTitle(title: string, rowY: number): number {
     doc.rect(40, rowY, W, 16).fill("#1E293B");
-    doc.fontSize(8).font("Helvetica-Bold").fillColor(GOLD)
+    doc.fontSize(8).font("Helvetica-Bold").fillColor(BLUE)
       .text(title, 50, rowY + 4, { width: W - 20 });
     return rowY + 16;
   }
@@ -211,7 +211,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
   for (const [label, val] of priceRows) {
     const bg = rowIdx % 2 === 0 ? "white" : LIGHT;
     const isTTC = label.startsWith("Prix TTC");
-    y = tableRow([label, val], pxs, pws, y, isTTC ? "#FEF9EE" : bg, isTTC, isTTC ? GOLD : DARK);
+    y = tableRow([label, val], pxs, pws, y, isTTC ? "#FEF9EE" : bg, isTTC, isTTC ? BLUE : DARK);
     rowIdx++;
   }
 
@@ -254,7 +254,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
   const targetRows: [string, string, string, string][] = [
     ["Prix minimum HT", "Seuil de rentabilité", fcfa(data.minimumPriceHT), RED],
     ["Prix recommandé HT", `Marge cible : ${data.marginTarget}%`, fcfa(data.recommendedPriceHT), GREEN],
-    ["Prix final HT", "Prix retenu", fcfa(data.finalPriceHT), GOLD],
+    ["Prix final HT", "Prix retenu", fcfa(data.finalPriceHT), BLUE],
   ];
 
   doc.rect(40, y, W, 14).fill(DARK);
@@ -335,7 +335,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
         `Gameasu · Analyse tarifaire confidentielle · Généré le ${data.generatedAt}`,
         50, pageBottom - 10, { width: 300 },
       );
-    doc.fontSize(7).font("Helvetica").fillColor(GOLD)
+    doc.fontSize(7).font("Helvetica").fillColor(BLUE)
       .text(`Page ${i + 1} / ${pageCount}`, 400, pageBottom - 10, { width: 140, align: "right" });
   }
 

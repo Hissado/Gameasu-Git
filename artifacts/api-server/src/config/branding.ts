@@ -30,9 +30,9 @@ export const BRANDING = {
   defaultSetupFee:    Number(process.env.DEFAULT_SETUP_FEE ?? 0),
 
   // Design tokens (pour emails, PDFs, Excel)
-  primaryColor:  "#C8A24B",   // Or sobre Gameasu
+  primaryColor:  "#2563EB",   // Or sobre Gameasu
   secondaryColor:"#0F1A3A",   // Navy profond Gameasu
-  accentColor:   "#C8A24B",
+  accentColor:   "#2563EB",
 } as const;
 
 export type Branding = typeof BRANDING;

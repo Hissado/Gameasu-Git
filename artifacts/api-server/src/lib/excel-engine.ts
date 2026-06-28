@@ -9,7 +9,8 @@ import type { Response } from "express";
 // ─── Color palette ────────────────────────────────────────────────────────────
 const C = {
   brandDark:     "FF0F1A3A",  // Gameasu navy #0F1A3A
-  brandOrange:   "FFC8A24B",  // Gameasu gold #C8A24B
+  brandBlue:     "FF2563EB",  // Gameasu bleu électrique #2563EB (logo "su")
+  brandOrange:   "FF2563EB",  // alias → brandBlue (rétrocompat. interne)
   orange50:      "FFFFF7ED",
   orange100:     "FFFFEDD5",
   slate800:      "FF1E293B",
