@@ -142,23 +142,28 @@ router.get("/collaborators/:id", async (req, res) => {
   const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string)))).limit(1);
   if (!collabs[0]) return res.status(404).json({ error: "Not found" });
 
-  const expiryRows = await db
-    .select({
-      daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
-    })
-    .from(contractsTable)
-    .where(and(
-      eq(contractsTable.organizationId, req.authUser!.organizationId),
-      eq(contractsTable.collaboratorId, (req.params.id as string)),
-      eq(contractsTable.status, "active"),
-      isNotNull(contractsTable.endDate),
-      sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
-      sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
-    ))
-    .orderBy(contractsTable.endDate)
-    .limit(1);
-
-  const contractExpiresInDays = expiryRows.length > 0 ? expiryRows[0].daysLeft : null;
+  let contractExpiresInDays: number | null = null;
+  try {
+    const expiryRows = await db
+      .select({
+        daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
+      })
+      .from(contractsTable)
+      .where(and(
+        eq(contractsTable.organizationId, req.authUser!.organizationId),
+        eq(contractsTable.collaboratorId, (req.params.id as string)),
+        eq(contractsTable.status, "active"),
+        isNotNull(contractsTable.endDate),
+        sql`${contractsTable.endDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+        sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
+        sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
+      ))
+      .orderBy(contractsTable.endDate)
+      .limit(1);
+    contractExpiresInDays = expiryRows.length > 0 ? expiryRows[0].daysLeft : null;
+  } catch {
+    // expiry enrichment is best-effort
+  }
   return res.json({ ...collabs[0], contractExpiresInDays });
 });
 

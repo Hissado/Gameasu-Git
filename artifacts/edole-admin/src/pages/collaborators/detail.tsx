@@ -1014,17 +1014,17 @@ export default function CollaboratorDetail() {
     enabled: !!id,
   });
 
-  const { data: leaveBalancesData } = useQuery<{ balances: Array<{ leaveType: string; allocated: number; used: number; carried: number }> }>({
+  const { data: leaveBalancesData } = useQuery<{ data: Array<{ leaveType: string; allocated: number; used: number; carried: number }> }>({
     queryKey: ["leave-balances-collab", id],
-    queryFn: () => apiFetch(`/api/hr/leaves/balances?collaboratorId=${id}&year=${new Date().getFullYear()}`),
+    queryFn: () => apiFetch(`/api/hr/leave-balances?collaboratorId=${id}&year=${new Date().getFullYear()}`),
     enabled: !!id,
   });
-  const totalLeaveAvailable = (leaveBalancesData?.balances ?? []).reduce((s, b) => s + Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0)), 0);
+  const totalLeaveAvailable = (leaveBalancesData?.data ?? []).reduce((s, b) => s + Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0)), 0);
 
   const { data: pendingLeaveReqs } = useQuery<any[]>({
     queryKey: ["pending-leave-reqs-collab", id],
     queryFn: async () => {
-      const r = await apiFetch(`/api/hr/leaves/requests?collaboratorId=${id}&status=pending`);
+      const r = await apiFetch(`/api/hr/leaves?collaboratorId=${id}&status=pending`);
       return Array.isArray(r) ? r : ((r as any)?.data ?? []);
     },
     enabled: !!id,
