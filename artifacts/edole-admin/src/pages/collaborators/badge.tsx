@@ -2,12 +2,14 @@ import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect } from "react";
-
+import { useRef, useState } from "react";
+import { toPng } from "html-to-image";
 
 export default function CollaboratorBadgePrint() {
   const [, params] = useRoute("/collaborators/:id/badge");
   const collaboratorId = params?.id ?? "";
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const { data: collab, isLoading } = useQuery<any>({
     queryKey: ["badge-collab", collaboratorId],
@@ -31,11 +33,26 @@ export default function CollaboratorBadgePrint() {
     enabled: !!collaboratorId,
   });
 
-  useEffect(() => {
-    if (collab && !isLoading) {
-      setTimeout(() => window.print(), 900);
+  const handleDownload = async () => {
+    if (!badgeRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(badgeRef.current, {
+        pixelRatio: 3,
+        cacheBust: true,
+        backgroundColor: "white",
+      });
+      const link = document.createElement("a");
+      const name = `${c?.firstName ?? "badge"}-${c?.lastName ?? ""}`.toLowerCase().replace(/\s+/g, "-");
+      link.download = `badge-${name}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Erreur téléchargement badge:", err);
+    } finally {
+      setDownloading(false);
     }
-  }, [collab, isLoading]);
+  };
 
   if (isLoading || !collab) {
     return (
@@ -49,177 +66,224 @@ export default function CollaboratorBadgePrint() {
   const position = overviewData?.position?.title ?? c.position ?? "";
   const department = overviewData?.department?.name ?? "";
   const kioskCode = c.kioskCode ?? null;
-  const orgName = overviewData?.organization?.name ?? overviewData?.organization?.legalName ?? c?.organizationId ?? "—";
+  const orgName = overviewData?.organization?.name ?? overviewData?.organization?.legalName ?? "—";
   const orgLogoUrl = overviewData?.organization?.logoUrl ?? null;
   const qrToken = qrData?.token;
   const qrStatus = qrData?.status;
-
   const initials = `${(c.firstName ?? "")[0] ?? ""}${(c.lastName ?? "")[0] ?? ""}`.toUpperCase();
 
   return (
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: white; }
+        html, body { background: #f1f5f9; }
         @media screen {
-          body { background: #f1f5f9; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; gap: 16px; }
-          .no-print { display: flex; }
+          body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 24px; gap: 16px; }
+          .toolbar { display: flex; gap: 10px; margin-bottom: 8px; }
         }
         @media print {
           body { background: white; margin: 0; }
-          .no-print { display: none !important; }
-          @page { size: A6 portrait; margin: 8mm; }
+          .toolbar { display: none !important; }
+          @page { size: A6 portrait; margin: 6mm; }
         }
       `}</style>
 
-      {/* Screen-only toolbar */}
-      <div className="no-print" style={{ gap: 8, marginBottom: 16 }}>
+      {/* Toolbar */}
+      <div className="toolbar">
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          style={{
+            padding: "10px 22px",
+            background: downloading ? "#94a3b8" : "#2563EB",
+            color: "white",
+            border: "none",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: downloading ? "wait" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 2px 8px rgba(37,99,235,0.25)",
+            transition: "background 0.2s",
+          }}
+        >
+          {downloading ? "⏳ Génération…" : "⬇ Télécharger le badge (PNG)"}
+        </button>
         <button
           onClick={() => window.print()}
-          style={{ padding: "8px 16px", background: "#2563EB", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          style={{
+            padding: "10px 18px",
+            background: "#475569",
+            color: "white",
+            border: "none",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
         >
-          🖨 Imprimer (A6)
+          🖨 Imprimer
         </button>
         <button
           onClick={() => window.close()}
-          style={{ padding: "8px 16px", background: "#475569", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", marginLeft: 8 }}
+          style={{
+            padding: "10px 14px",
+            background: "#e2e8f0",
+            color: "#475569",
+            border: "none",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
         >
-          ✕ Fermer
+          ✕
         </button>
       </div>
 
-      {/* A6 Badge — 105mm × 148mm portrait */}
-      <div style={{
-        width: "105mm",
-        minHeight: "148mm",
-        background: "white",
-        border: "1px solid #e2e8f0",
-        borderRadius: 4,
-        overflow: "hidden",
-        fontFamily: "Inter, Arial, sans-serif",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        {/* Header band */}
+      {/* Badge card — captured for download */}
+      <div
+        ref={badgeRef}
+        style={{
+          width: "320px",
+          background: "white",
+          borderRadius: 16,
+          overflow: "hidden",
+          fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+        }}
+      >
+        {/* Header */}
         <div style={{
           background: "linear-gradient(135deg, #0F1A3A 0%, #1e3a6e 100%)",
-          padding: "8mm 8mm 6mm",
+          padding: "24px 20px 20px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "3mm",
+          gap: 10,
         }}>
-          {/* Org logo or name */}
+          {/* Org identity */}
           {orgLogoUrl ? (
             <img
               src={orgLogoUrl}
               alt={orgName}
-              style={{ height: "8mm", maxWidth: "40mm", objectFit: "contain", filter: "brightness(0) invert(1)" }}
+              style={{ height: 28, maxWidth: 140, objectFit: "contain", filter: "brightness(0) invert(1)", marginBottom: 2 }}
+              crossOrigin="anonymous"
             />
           ) : (
-            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: "7pt", fontWeight: "bold", letterSpacing: "3px", textTransform: "uppercase" }}>
+            <div style={{
+              color: "rgba(255,255,255,0.7)",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 4,
+              textTransform: "uppercase",
+              marginBottom: 2,
+            }}>
               {orgName}
             </div>
           )}
 
           {/* Avatar */}
           <div style={{
-            width: "26mm",
-            height: "26mm",
+            width: 80,
+            height: 80,
             borderRadius: "50%",
             overflow: "hidden",
-            border: "2px solid rgba(255,255,255,0.35)",
-            background: "#2563EB",
+            border: "3px solid rgba(255,255,255,0.3)",
+            background: "#1d4ed8",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
           }}>
             {c.avatarUrl ? (
-              <img src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" />
             ) : (
-              <span style={{ color: "white", fontWeight: "bold", fontSize: "12pt" }}>{initials}</span>
+              <span style={{ color: "white", fontWeight: 800, fontSize: 28 }}>{initials}</span>
             )}
           </div>
 
-          {/* Name */}
+          {/* Name & role */}
           <div style={{ textAlign: "center" }}>
-            <div style={{ color: "white", fontSize: "11pt", fontWeight: "700", lineHeight: 1.2 }}>
+            <div style={{ color: "white", fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>
               {c.firstName} {c.lastName}
             </div>
             {position && (
-              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "7.5pt", marginTop: "1.5mm", fontWeight: "500" }}>
+              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 4, fontWeight: 500 }}>
                 {position}
               </div>
             )}
             {department && (
-              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "6.5pt", marginTop: "0.5mm" }}>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginTop: 2 }}>
                 {department}
               </div>
             )}
           </div>
 
-          {/* Kiosk number (PIN) */}
+          {/* Kiosk code pill */}
           {kioskCode && (
             <div style={{
-              background: "rgba(37,99,235,0.3)",
-              border: "0.5px solid rgba(37,99,235,0.6)",
-              borderRadius: "3px",
-              padding: "1mm 3.5mm",
+              background: "rgba(37,99,235,0.35)",
+              border: "1px solid rgba(99,149,255,0.5)",
+              borderRadius: 8,
+              padding: "5px 14px",
               display: "flex",
               alignItems: "center",
-              gap: "2mm",
+              gap: 8,
+              marginTop: 2,
             }}>
-              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "5.5pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, textTransform: "uppercase", letterSpacing: 2 }}>
                 Code kiosque
               </span>
-              <span style={{ color: "#93c5fd", fontSize: "8pt", fontFamily: "monospace", fontWeight: "700", letterSpacing: "3px" }}>
+              <span style={{ color: "#93c5fd", fontSize: 15, fontFamily: "'Courier New', monospace", fontWeight: 800, letterSpacing: 4 }}>
                 {kioskCode}
               </span>
             </div>
           )}
         </div>
 
-        {/* QR section */}
+        {/* QR / body */}
         <div style={{
-          flex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: "6mm 8mm",
-          gap: "3.5mm",
+          padding: "20px 20px 16px",
+          gap: 10,
           background: "white",
         }}>
           {qrToken && qrStatus === "active" ? (
             <>
               <div style={{
-                padding: "3.5mm",
+                padding: 10,
                 border: "1px solid #e2e8f0",
-                borderRadius: "4mm",
+                borderRadius: 12,
                 background: "white",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
               }}>
-                <QRCodeSVG value={qrToken} size={148} level="M" marginSize={0} />
+                <QRCodeSVG value={qrToken} size={160} level="M" marginSize={0} />
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "7.5pt", color: "#475569", fontWeight: "600" }}>Pointage par QR code</div>
-                <div style={{ fontSize: "5.5pt", color: "#94a3b8", marginTop: "1mm" }}>Présentez ce code au kiosque de présence</div>
+                <div style={{ fontSize: 12, color: "#334155", fontWeight: 700 }}>Pointage par QR code</div>
+                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>Présentez ce code au kiosque de présence</div>
               </div>
             </>
           ) : qrToken && qrStatus === "disabled" ? (
-            <div style={{ textAlign: "center", padding: "6mm" }}>
-              <div style={{ fontSize: "18pt", marginBottom: "3mm" }}>⏸</div>
-              <div style={{ fontSize: "7.5pt", color: "#92400e", fontWeight: "600" }}>Badge temporairement désactivé</div>
-              <div style={{ fontSize: "6pt", color: "#b45309", marginTop: "1mm" }}>Contactez votre administrateur</div>
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>⏸</div>
+              <div style={{ fontSize: 12, color: "#92400e", fontWeight: 700 }}>Badge temporairement désactivé</div>
+              <div style={{ fontSize: 10, color: "#b45309", marginTop: 4 }}>Contactez votre administrateur</div>
             </div>
           ) : (
-            <div style={{ textAlign: "center", padding: "6mm" }}>
-              <div style={{ fontSize: "18pt", marginBottom: "3mm" }}>📋</div>
-              <div style={{ fontSize: "7.5pt", color: "#64748b", fontWeight: "600" }}>Badge de pointage</div>
-              <div style={{ fontSize: "6pt", color: "#94a3b8", marginTop: "1mm" }}>
-                {kioskCode ? `Utilisez votre code PIN ${kioskCode} au kiosque` : "Utilisez votre code PIN au kiosque"}
-              </div>
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Badge de pointage</div>
+              {kioskCode && (
+                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
+                  Code PIN : <strong>{kioskCode}</strong>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -227,19 +291,24 @@ export default function CollaboratorBadgePrint() {
         {/* Footer */}
         <div style={{
           background: "#0F1A3A",
-          height: "7mm",
+          height: 28,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 5mm",
+          padding: "0 16px",
         }}>
-          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "5pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 8, textTransform: "uppercase", letterSpacing: 2 }}>
             {orgName} · Confidentiel
           </div>
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "5pt" }}>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8 }}>
             Gaméasù ERP
           </div>
         </div>
+      </div>
+
+      {/* Download tip */}
+      <div style={{ color: "#94a3b8", fontSize: 12, textAlign: "center", marginTop: 4 }}>
+        Téléchargez le badge en PNG pour l'enregistrer sur votre téléphone ou l'imprimer.
       </div>
     </>
   );
