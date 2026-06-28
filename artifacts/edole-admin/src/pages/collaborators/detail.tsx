@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useGetCollaborator, getGetCollaboratorQueryKey } from "@workspace/api-client-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useRoute, Link, useLocation } from "wouter";
+import { useRoute, Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1036,9 +1036,27 @@ export default function CollaboratorDetail() {
 
   // ─── Sidebar state ────────────────────────────────────────────────────────
   const [sidebarSearch, setSidebarSearch] = useState("");
-  const [sidebarStatusFilter, setSidebarStatusFilter] = useState<"all" | "active" | "inactive" | "new" | "unavailable">("all");
-  const [sidebarDeptFilter, setSidebarDeptFilter] = useState<string>("all");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Filters are persisted in URL search params so they survive navigation between profiles
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const sidebarStatusFilter = (searchParams.get("status") ?? "all") as "all" | "active" | "inactive" | "new" | "unavailable";
+  const sidebarDeptFilter = searchParams.get("dept") ?? "all";
+
+  const setSidebarStatusFilter = useCallback((value: "all" | "active" | "inactive" | "new" | "unavailable") => {
+    const p = new URLSearchParams(window.location.search);
+    if (value === "all") p.delete("status"); else p.set("status", value);
+    const qs = p.toString();
+    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+  }, [id, navigate]);
+
+  const setSidebarDeptFilter = useCallback((value: string) => {
+    const p = new URLSearchParams(window.location.search);
+    if (value === "all") p.delete("dept"); else p.set("dept", value);
+    const qs = p.toString();
+    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+  }, [id, navigate]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
@@ -1108,7 +1126,7 @@ export default function CollaboratorDetail() {
         }
         const next = filteredCollabs[nextIndex];
         if (next && next.id !== id) {
-          navigate(`/collaborators/${next.id}`);
+          navigate(`/collaborators/${next.id}${searchString ? `?${searchString}` : ""}`);
         }
         return;
       }
@@ -1367,7 +1385,7 @@ export default function CollaboratorDetail() {
             {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all") && (
               <button
                 className="ml-2 text-primary hover:underline"
-                onClick={() => { setSidebarStatusFilter("all"); setSidebarDeptFilter("all"); }}
+                onClick={() => navigate(`/collaborators/${id}`, { replace: true })}
               >
                 Réinitialiser
               </button>
@@ -1388,7 +1406,7 @@ export default function CollaboratorDetail() {
             const initials = `${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase();
             const isSelected = c.id === id;
             return (
-              <Link key={c.id} href={`/collaborators/${c.id}`}>
+              <Link key={c.id} href={`/collaborators/${c.id}${searchString ? `?${searchString}` : ""}`}>
                 <div
                   data-collab-id={c.id}
                   onClick={() => setMobileSidebarOpen(false)}
