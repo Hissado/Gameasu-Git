@@ -967,6 +967,12 @@ function getAvatarColor(id: string): string {
 }
 
 function getCollabStatus(c: any): { label: string; className: string } | null {
+  if (c.contractExpiresInDays != null && c.contractExpiresInDays <= 30) {
+    return {
+      label: c.contractExpiresInDays === 0 ? "Expire aujourd'hui" : `Expire dans ${c.contractExpiresInDays}j`,
+      className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    };
+  }
   if (c.employmentStatus === "inactive") {
     return { label: "Inactif", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
   }
@@ -1521,6 +1527,11 @@ export default function CollaboratorDetail() {
             </div>
           </div>
           <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 pb-1">
+            {(collaborator as any).contractExpiresInDays != null && (collaborator as any).contractExpiresInDays <= 30 && (
+              <Badge className="bg-orange-500/25 text-orange-200 border border-orange-400/40 text-xs">
+                {(collaborator as any).contractExpiresInDays === 0 ? "Contrat expire aujourd'hui" : `Contrat expire dans ${(collaborator as any).contractExpiresInDays}j`}
+              </Badge>
+            )}
             {(collaborator as any).isAvailable ? (
               <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs">Disponible</Badge>
             ) : (

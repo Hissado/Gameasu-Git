@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { collaboratorsTable, tasksTable, contractsTable } from "@workspace/db";
-import { eq, sql, isNull, and, desc, ne } from "drizzle-orm";
+import { eq, sql, isNull, isNotNull, inArray, and, desc, ne } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -33,7 +33,38 @@ router.get("/collaborators", async (req, res) => {
   const orgFilter = and(...conditions);
   const data = await db.select().from(collaboratorsTable).where(orgFilter).limit(limitNum).offset(offset);
   const countResult = await db.select({ count: sql<number>`count(*)` }).from(collaboratorsTable).where(orgFilter);
-  return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
+
+  const expiryMap: Record<string, number> = {};
+  if (data.length > 0) {
+    const ids = data.map(c => c.id);
+    const expiryRows = await db
+      .select({
+        collaboratorId: contractsTable.collaboratorId,
+        daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
+      })
+      .from(contractsTable)
+      .where(and(
+        eq(contractsTable.organizationId, req.authUser!.organizationId),
+        eq(contractsTable.status, "active"),
+        isNotNull(contractsTable.endDate),
+        sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
+        sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
+        inArray(contractsTable.collaboratorId, ids),
+      ));
+    for (const row of expiryRows) {
+      const current = expiryMap[row.collaboratorId];
+      if (current == null || row.daysLeft < current) {
+        expiryMap[row.collaboratorId] = row.daysLeft;
+      }
+    }
+  }
+
+  const enriched = data.map(c => ({
+    ...c,
+    contractExpiresInDays: expiryMap[c.id] ?? null,
+  }));
+
+  return res.json({ data: enriched, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
 async function generateUniqueKioskCode(orgId: string): Promise<string> {
@@ -105,7 +136,25 @@ router.get("/collaborators/workload", async (req, res) => {
 router.get("/collaborators/:id", async (req, res) => {
   const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string)))).limit(1);
   if (!collabs[0]) return res.status(404).json({ error: "Not found" });
-  return res.json(collabs[0]);
+
+  const expiryRows = await db
+    .select({
+      daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
+    })
+    .from(contractsTable)
+    .where(and(
+      eq(contractsTable.organizationId, req.authUser!.organizationId),
+      eq(contractsTable.collaboratorId, (req.params.id as string)),
+      eq(contractsTable.status, "active"),
+      isNotNull(contractsTable.endDate),
+      sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
+      sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
+    ))
+    .orderBy(contractsTable.endDate)
+    .limit(1);
+
+  const contractExpiresInDays = expiryRows.length > 0 ? expiryRows[0].daysLeft : null;
+  return res.json({ ...collabs[0], contractExpiresInDays });
 });
 
 router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
