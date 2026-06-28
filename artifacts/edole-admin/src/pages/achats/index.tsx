@@ -10,10 +10,22 @@ import { formatFCFA, formatDate } from "@/lib/format";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Building2, TrendingDown, AlertTriangle, Clock, ChevronRight, ArrowRight,
+  ShoppingCart, Receipt, CheckCircle2, Bell,
 } from "lucide-react";
 import { StatusBadgePurchases } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type UrgentInvoice = {
+  id: string; referenceNumber: string; dueDate: string | null;
+  totalAmount: number; paidAmount: number; balance: number;
+  status: string; supplierName: string | null; isOverdue: boolean;
+};
+
+type ActivityItem = {
+  id: string; type: "payment"; amount: number;
+  paidAt: string | null; supplierName: string; reference: string;
+};
 
 type OverviewData = {
   suppliersActive: number;
@@ -23,7 +35,13 @@ type OverviewData = {
   overdueAmount: number;
   upcomingPaymentsCount: number;
   upcomingPaymentsAmount: number;
+  approvalsInvoiceCount: number;
+  posPendingCount: number;
+  posPendingAmount: number;
+  expensesSubmittedCount: number;
   tunnel: Array<{ label: string; status: string; count: number; amount: number }>;
+  urgentInvoices: UrgentInvoice[];
+  recentActivity: ActivityItem[];
 };
 
 type PeriodRow = { period: string; total: number; count: number };
@@ -41,9 +59,8 @@ const TUNNEL_COLORS: Record<string, string> = {
 };
 
 const MONTH_SHORT: Record<string, string> = {
-  "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr",
-  "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû",
-  "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
+  "01":"Jan","02":"Fév","03":"Mar","04":"Avr","05":"Mai","06":"Jun",
+  "07":"Jul","08":"Aoû","09":"Sep","10":"Oct","11":"Nov","12":"Déc",
 };
 
 function periodLabel(p: string) {
@@ -53,11 +70,11 @@ function periodLabel(p: string) {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType; label: string; value: string; sub?: string; color?: string;
+function KpiCard({ icon: Icon, label, value, sub, color, href }: {
+  icon: React.ElementType; label: string; value: string; sub?: string; color?: string; href?: string;
 }) {
-  return (
-    <Card>
+  const inner = (
+    <Card className={href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}>
       <CardContent className="p-5 flex items-start gap-4">
         <div className={`rounded-lg p-2.5 ${color ?? "bg-slate-100"}`}>
           <Icon className="w-5 h-5 text-inherit" />
@@ -67,9 +84,11 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
           <p className="text-xl font-bold tracking-tight leading-tight">{value}</p>
           {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
         </div>
+        {href && <ChevronRight className="w-4 h-4 text-slate-400 self-center flex-shrink-0" />}
       </CardContent>
     </Card>
   );
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
@@ -101,12 +120,14 @@ export default function AchatsOverview() {
 
   const { data: supplierRes } = useQuery<{ data: SupplierRow[] }>({
     queryKey: ["purchases-by-supplier"],
-    queryFn: () => apiFetch("/api/purchases/reports/by-supplier?limit=8"),
+    queryFn: () => apiFetch("/api/purchases/reports/by-supplier?limit=6"),
   });
 
   const tunnel = overview?.tunnel ?? [];
   const byPeriod = periodRes?.data ?? [];
   const bySupplier = supplierRes?.data ?? [];
+  const urgent = overview?.urgentInvoices ?? [];
+  const activity = overview?.recentActivity ?? [];
 
   return (
     <div className="p-6 space-y-6">
@@ -115,10 +136,12 @@ export default function AchatsOverview() {
         subtitle="Tableau de bord des comptes fournisseurs"
       />
 
-      {/* KPI cards */}
+      {/* ── KPI cards — 7 indicateurs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {ovLoading ? (
-          [1, 2, 3, 4].map(i => <Card key={i}><CardContent className="p-5"><Skeleton className="h-16 w-full" /></CardContent></Card>)
+          Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-5"><Skeleton className="h-16 w-full" /></CardContent></Card>
+          ))
         ) : (
           <>
             <KpiCard
@@ -126,12 +149,14 @@ export default function AchatsOverview() {
               label="Fournisseurs actifs"
               value={String(overview?.suppliersActive ?? 0)}
               color="bg-slate-100 text-slate-600"
+              href="/achats/fournisseurs"
             />
             <KpiCard
               icon={TrendingDown}
               label="Décaissements ce mois"
               value={formatFCFA(overview?.monthExpenses ?? 0)}
               color="bg-blue-50 text-blue-600"
+              href="/achats/rapports"
             />
             <KpiCard
               icon={Clock}
@@ -139,6 +164,7 @@ export default function AchatsOverview() {
               value={formatFCFA(overview?.totalUnpaid ?? 0)}
               sub={`${overview?.upcomingPaymentsCount ?? 0} échéance${(overview?.upcomingPaymentsCount ?? 0) > 1 ? "s" : ""} cette semaine`}
               color="bg-orange-50 text-orange-600"
+              href="/achats/rapports"
             />
             <KpiCard
               icon={AlertTriangle}
@@ -146,11 +172,45 @@ export default function AchatsOverview() {
               value={String(overview?.overdueCount ?? 0)}
               sub={overview?.overdueAmount ? formatFCFA(overview.overdueAmount) : undefined}
               color="bg-red-50 text-red-600"
+              href="/achats/factures"
+            />
+            <KpiCard
+              icon={Bell}
+              label="Approbations en attente"
+              value={String((overview?.approvalsInvoiceCount ?? 0) + (overview?.posPendingCount ?? 0) + (overview?.expensesSubmittedCount ?? 0))}
+              sub={`${overview?.approvalsInvoiceCount ?? 0} facture${(overview?.approvalsInvoiceCount ?? 0) > 1 ? "s" : ""} · ${overview?.posPendingCount ?? 0} BC · ${overview?.expensesSubmittedCount ?? 0} NDF`}
+              color="bg-yellow-50 text-yellow-600"
+              href="/achats/approbations"
+            />
+            <KpiCard
+              icon={ShoppingCart}
+              label="BCs en cours"
+              value={String(overview?.posPendingCount ?? 0)}
+              sub={overview?.posPendingAmount ? formatFCFA(overview.posPendingAmount) : undefined}
+              color="bg-teal-50 text-teal-600"
+              href="/achats/bons-de-commande"
+            />
+            <KpiCard
+              icon={Receipt}
+              label="Notes de frais soumises"
+              value={String(overview?.expensesSubmittedCount ?? 0)}
+              sub="En attente d'approbation"
+              color="bg-purple-50 text-purple-600"
+              href="/achats/depenses"
+            />
+            <KpiCard
+              icon={CheckCircle2}
+              label="Échéances cette semaine"
+              value={String(overview?.upcomingPaymentsCount ?? 0)}
+              sub={overview?.upcomingPaymentsAmount ? formatFCFA(overview.upcomingPaymentsAmount) : undefined}
+              color="bg-emerald-50 text-emerald-600"
+              href="/achats/rapports"
             />
           </>
         )}
       </div>
 
+      {/* ── Tunnel AP + Courbe décaissements ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* AP Tunnel */}
         <Card>
@@ -164,31 +224,35 @@ export default function AchatsOverview() {
           </CardHeader>
           <CardContent>
             {ovLoading ? <Skeleton className="h-48 w-full" /> : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={tunnel} margin={{ left: 8, right: 8, bottom: 24 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" interval={0} />
-                  <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 10 }} width={70} />
-                  <Tooltip content={<FcfaTooltip />} />
-                  <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
-                    {tunnel.map((entry) => (
-                      <Cell key={entry.status} fill={TUNNEL_COLORS[entry.status] ?? "#94a3b8"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {tunnel.map(t => (
-                <div key={t.status} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: TUNNEL_COLORS[t.status] ?? "#94a3b8" }} />
-                  {t.label}: <strong>{t.count}</strong>
+              <>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={tunnel} margin={{ left: 8, right: 8, bottom: 20 }}>
+                    <XAxis dataKey="label" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" interval={0} />
+                    <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={68} />
+                    <Tooltip content={<FcfaTooltip />} />
+                    <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                      {tunnel.map((entry) => (
+                        <Cell key={entry.status} fill={TUNNEL_COLORS[entry.status] ?? "#94a3b8"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                {/* Stage-wise count links */}
+                <div className="grid grid-cols-3 gap-1.5 mt-3">
+                  {tunnel.filter(s => s.count > 0).map(s => (
+                    <Link href="/achats/factures" key={s.status}
+                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs border hover:bg-slate-50 transition-colors">
+                      <span className="text-slate-600 truncate">{s.label}</span>
+                      <span className="font-bold ml-1 flex-shrink-0" style={{ color: TUNNEL_COLORS[s.status] ?? "#64748b" }}>{s.count}</span>
+                    </Link>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* Dépenses par période */}
+        {/* Courbe décaissements */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
@@ -200,12 +264,12 @@ export default function AchatsOverview() {
           </CardHeader>
           <CardContent>
             {byPeriod.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Aucun décaissement enregistré</div>
+              <div className="h-48 flex items-center justify-center text-slate-400 text-sm">Aucune donnée de paiement</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={byPeriod} margin={{ left: 8, right: 8 }}>
-                  <XAxis dataKey="period" tickFormatter={periodLabel} tick={{ fontSize: 10 }} />
-                  <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 10 }} width={70} />
+                <BarChart data={byPeriod.map(r => ({ name: periodLabel(r.period), total: r.total }))} margin={{ left: 8 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                  <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={68} />
                   <Tooltip content={<FcfaTooltip />} />
                   <Bar dataKey="total" fill="#F37021" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -215,64 +279,138 @@ export default function AchatsOverview() {
         </Card>
       </div>
 
-      {/* Top fournisseurs */}
-      {bySupplier.length > 0 && (
+      {/* ── Factures urgentes + Top fournisseurs ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Factures urgentes */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
-              Top fournisseurs par volume facturé
-              <Link href="/achats/fournisseurs" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
-                Tous les fournisseurs <ArrowRight className="w-3 h-3" />
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                Factures urgentes
+              </span>
+              <Link href="/achats/factures" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+                Voir toutes <ArrowRight className="w-3 h-3" />
               </Link>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {bySupplier.slice(0, 6).map((s, i) => {
-                const pct = s.totalInvoiced > 0 ? Math.round((s.totalPaid / s.totalInvoiced) * 100) : 0;
-                return (
-                  <div key={s.supplierId} className="flex items-center gap-3">
-                    <span className="w-5 text-xs text-muted-foreground font-mono text-right shrink-0">{i + 1}</span>
+          <CardContent className="p-0">
+            {ovLoading ? (
+              <div className="p-4 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            ) : urgent.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-sm">
+                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
+                Aucune facture urgente
+              </div>
+            ) : (
+              <div className="divide-y">
+                {urgent.slice(0, 7).map(inv => (
+                  <div key={inv.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors ${inv.isOverdue ? "bg-red-50/30" : ""}`}>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-sm mb-0.5">
-                        <span className="font-medium truncate">{s.supplierName}</span>
-                        <span className="font-semibold shrink-0 ml-2">{formatFCFA(s.totalInvoiced)}</span>
-                      </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-100 rounded-full h-1.5">
-                          <div className="h-1.5 rounded-full bg-[#F37021]" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground w-12 text-right">{pct}% payé</span>
+                        <span className="text-xs font-mono text-slate-500">{inv.referenceNumber}</span>
+                        {inv.isOverdue && <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Échu</Badge>}
                       </div>
+                      <p className="text-sm font-medium truncate">{inv.supplierName ?? "—"}</p>
+                      <p className="text-xs text-slate-400">Éch. {inv.dueDate ? formatDate(inv.dueDate) : "—"}</p>
                     </div>
-                    {s.balance > 0 && (
-                      <Badge variant="outline" className="text-xs text-amber-700 border-amber-200 bg-amber-50 shrink-0">
-                        {formatFCFA(s.balance)} restant
-                      </Badge>
-                    )}
+                    <div className="text-right ml-3 flex-shrink-0">
+                      <p className="font-bold text-sm text-[#F37021]">{formatFCFA(inv.balance)}</p>
+                      <StatusBadgePurchases status={inv.status} />
+                    </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top fournisseurs */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Building2 className="h-4 w-4 text-slate-500" />
+                Top fournisseurs
+              </span>
+              <Link href="/achats/fournisseurs" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+                Voir tous <ArrowRight className="w-3 h-3" />
+              </Link>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {bySupplier.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-6">Aucun fournisseur</p>
+            ) : bySupplier.map(s => {
+              const pct = s.totalInvoiced > 0 ? (s.totalPaid / s.totalInvoiced) * 100 : 0;
+              return (
+                <div key={s.supplierId} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-700 truncate max-w-[55%]">{s.supplierName}</span>
+                    <span className="text-slate-500">{formatFCFA(s.totalInvoiced)} · {s.invoiceCount} fact.</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-[#F37021]" style={{ width: `${Math.min(100, pct)}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Payé {pct.toFixed(0)}%</span>
+                    <span className="text-[#F37021] font-medium">Solde {formatFCFA(s.balance)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Dernières activités ── */}
+      {activity.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-slate-500" />
+              Dernières activités
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {activity.map(a => (
+                <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
+                  <div className="rounded-full p-1.5 bg-emerald-50 flex-shrink-0">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">Paiement enregistré</p>
+                    <p className="text-xs text-slate-500 truncate">{a.supplierName} · Réf. {a.reference}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-semibold text-sm text-emerald-700">{formatFCFA(a.amount)}</p>
+                    <p className="text-xs text-slate-400">{a.paidAt ? formatDate(a.paidAt) : "—"}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Quick nav cards */}
+      {/* ── Navigation rapide ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { href: "/achats/fournisseurs", label: "Fournisseurs" },
-          { href: "/achats/factures", label: "Factures" },
-          { href: "/achats/bons-de-commande", label: "Bons de commande" },
-          { href: "/achats/paiements", label: "Paiements" },
-          { href: "/achats/depenses", label: "Notes de frais" },
-          { href: "/achats/approbations", label: "Approbations" },
-          { href: "/achats/rapports", label: "Rapports" },
-        ].map(nav => (
-          <Link key={nav.href} href={nav.href}>
-            <div className="border rounded-lg p-3 flex items-center justify-between hover:border-[#F37021] hover:bg-orange-50 transition-colors cursor-pointer group">
-              <span className="text-sm font-medium">{nav.label}</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-[#F37021]" />
+          { href: "/achats/fournisseurs",       label: "Fournisseurs",       icon: Building2 },
+          { href: "/achats/factures",            label: "Factures",           icon: TrendingDown },
+          { href: "/achats/bons-de-commande",    label: "Bons de commande",   icon: ShoppingCart },
+          { href: "/achats/paiements",           label: "Paiements",          icon: CheckCircle2 },
+          { href: "/achats/depenses",            label: "Dépenses",           icon: Receipt },
+          { href: "/achats/approbations",        label: "Approbations",       icon: Bell },
+          { href: "/achats/rapports",            label: "Rapports",           icon: AlertTriangle },
+          { href: "/achats/factures",            label: "Voir impayées",      icon: Clock },
+        ].map(({ href, label, icon: Icon }) => (
+          <Link key={href + label} href={href}>
+            <div className="flex items-center gap-2 rounded-lg border bg-white p-3 hover:bg-slate-50 hover:border-[#F37021] transition-colors cursor-pointer">
+              <Icon className="h-4 w-4 text-[#F37021]" />
+              <span className="text-sm font-medium text-slate-700">{label}</span>
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400 ml-auto" />
             </div>
           </Link>
         ))}

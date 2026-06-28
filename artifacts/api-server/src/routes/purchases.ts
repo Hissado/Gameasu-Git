@@ -13,7 +13,9 @@ import {
   purchaseOrderLinesTable,
   productsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, ilike, isNull, or, sql, inArray, ne } from "drizzle-orm";
+import { expenseReportsTable, expenseItemsTable, collaboratorsTable, organizationsTable } from "@workspace/db";
+import { ExcelReportBuilder } from "../lib/excel-engine";
+import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql, inArray, ne } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
 import { z } from "zod/v4";
 
@@ -80,6 +82,7 @@ const InvoicePatchSchema = z.object({
   status: z.enum(["draft", "review", "awaiting_approval", "approved", "pending", "partially_paid", "paid", "overdue", "cancelled", "rejected"]).optional(),
   dueDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  rejectionReason: z.string().optional().nullable(),
   expenseAccountId: z.string().uuid().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   referenceNumber: z.string().min(1).optional(),
@@ -531,15 +534,19 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
     const data = parsed.data;
 
     // If status is changing, fetch current status to record history
-    let statusHistoryAppend: Array<{ from: string; to: string; at: string; userId: string }> = [];
+    let statusHistoryAppend: Array<{ from: string; to: string; at: string; userId: string; comment?: string }> = [];
     if (data.status !== undefined) {
       const [current] = await db.select({ status: supplierInvoicesTable.status, statusHistory: supplierInvoicesTable.statusHistory })
         .from(supplierInvoicesTable)
         .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
         .limit(1);
       if (current && current.status !== data.status) {
-        const existing = (current.statusHistory as Array<{ from: string; to: string; at: string; userId: string }>) ?? [];
-        statusHistoryAppend = [...existing, { from: current.status, to: data.status, at: new Date().toISOString(), userId: req.authUser!.id }];
+        const existing = (current.statusHistory as Array<{ from: string; to: string; at: string; userId: string; comment?: string }>) ?? [];
+        const entry: { from: string; to: string; at: string; userId: string; comment?: string } = {
+          from: current.status, to: data.status, at: new Date().toISOString(), userId: req.authUser!.id,
+        };
+        if (data.status === "rejected" && data.rejectionReason) entry.comment = data.rejectionReason;
+        statusHistoryAppend = [...existing, entry];
       }
     }
 
@@ -549,6 +556,8 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
         ...(statusHistoryAppend.length > 0 && { statusHistory: statusHistoryAppend }),
         ...(data.dueDate !== undefined && { dueDate: data.dueDate }),
         ...(data.notes !== undefined && { notes: data.notes }),
+        // Store rejection reason in notes if no explicit notes field was sent
+        ...(data.status === "rejected" && data.rejectionReason && data.notes === undefined && { notes: data.rejectionReason }),
         ...(data.expenseAccountId !== undefined && { expenseAccountId: data.expenseAccountId }),
         ...(data.projectId !== undefined && { projectId: data.projectId }),
         ...(data.referenceNumber !== undefined && { referenceNumber: data.referenceNumber }),
@@ -1143,6 +1152,10 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
       invoiceStats,
       overdueCount,
       upcomingPayments,
+      posPending,
+      expensesSubmitted,
+      urgentInvoices,
+      recentPayments,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(suppliersTable)
         .where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.isActive, true), isNull(suppliersTable.deletedAt))),
@@ -1170,6 +1183,48 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
           ne(supplierInvoicesTable.status, "paid"),
           ne(supplierInvoicesTable.status, "cancelled"),
         )),
+      // BCs en attente (status = sent)
+      db.select({ count: sql<number>`count(*)`, total: sql<number>`sum(${purchaseOrdersTable.totalFcfa})` })
+        .from(purchaseOrdersTable)
+        .where(and(eq(purchaseOrdersTable.organizationId, orgId), eq(purchaseOrdersTable.status, "sent"), isNull(purchaseOrdersTable.deletedAt))),
+      // Notes de frais soumises
+      db.select({ count: sql<number>`count(*)` }).from(expenseReportsTable)
+        .where(and(eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted"))),
+      // Factures urgentes (échues ou dues dans 7 jours)
+      db.select({
+        id: supplierInvoicesTable.id,
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        dueDate: supplierInvoicesTable.dueDate,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        status: supplierInvoicesTable.status,
+        supplierName: suppliersTable.name,
+      }).from(supplierInvoicesTable)
+        .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+        .where(and(
+          eq(supplierInvoicesTable.organizationId, orgId),
+          sql`${supplierInvoicesTable.dueDate} <= ${weekEnd}`,
+          ne(supplierInvoicesTable.status, "paid"),
+          ne(supplierInvoicesTable.status, "cancelled"),
+        ))
+        .orderBy(asc(supplierInvoicesTable.dueDate))
+        .limit(10),
+      // Paiements récents
+      db.select({
+        id: supplierPaymentsTable.id,
+        amount: supplierPaymentsTable.amount,
+        paidAt: supplierPaymentsTable.paidAt,
+        supplierName: suppliersTable.name,
+        reference: supplierPaymentsTable.reference,
+      }).from(supplierPaymentsTable)
+        .leftJoin(supplierInvoicesTable, eq(supplierInvoicesTable.id, supplierPaymentsTable.supplierInvoiceId))
+        .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+        .where(and(
+          eq(supplierPaymentsTable.organizationId, orgId),
+          ne(supplierPaymentsTable.status, "annule"),
+        ))
+        .orderBy(desc(supplierPaymentsTable.paidAt))
+        .limit(8),
     ]);
 
     const byStatus: Record<string, { count: number; total: number; paid: number }> = {};
@@ -1180,12 +1235,14 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
       .filter(([k]) => !["paid", "cancelled"].includes(k))
       .reduce((s, [, v]) => s + v.total - v.paid, 0);
 
+    const approvalsInvoiceCount = (byStatus["review"]?.count ?? 0) + (byStatus["awaiting_approval"]?.count ?? 0);
+
     const tunnel = [
       { label: "Reçues", status: "review", count: byStatus["review"]?.count ?? 0, amount: byStatus["review"]?.total ?? 0 },
       { label: "À approuver", status: "awaiting_approval", count: byStatus["awaiting_approval"]?.count ?? 0, amount: byStatus["awaiting_approval"]?.total ?? 0 },
       { label: "Approuvées", status: "approved", count: byStatus["approved"]?.count ?? 0, amount: byStatus["approved"]?.total ?? 0 },
       { label: "À payer", status: "pending", count: byStatus["pending"]?.count ?? 0, amount: byStatus["pending"]?.total ?? 0 },
-      { label: "Partiellement payées", status: "partially_paid", count: byStatus["partially_paid"]?.count ?? 0, amount: byStatus["partially_paid"]?.total ?? 0 },
+      { label: "Part. payées", status: "partially_paid", count: byStatus["partially_paid"]?.count ?? 0, amount: byStatus["partially_paid"]?.total ?? 0 },
       { label: "Payées", status: "paid", count: byStatus["paid"]?.count ?? 0, amount: byStatus["paid"]?.total ?? 0 },
     ];
 
@@ -1197,8 +1254,27 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
       overdueAmount: toNum(overdueCount[0]?.total),
       upcomingPaymentsCount: toNum(upcomingPayments[0]?.count),
       upcomingPaymentsAmount: toNum(upcomingPayments[0]?.total),
+      approvalsInvoiceCount,
+      posPendingCount: toNum(posPending[0]?.count),
+      posPendingAmount: toNum(posPending[0]?.total),
+      expensesSubmittedCount: toNum(expensesSubmitted[0]?.count),
       invoicesByStatus: byStatus,
       tunnel,
+      urgentInvoices: urgentInvoices.map(r => ({
+        ...r,
+        totalAmount: toNum(r.totalAmount),
+        paidAmount: toNum(r.paidAmount),
+        balance: toNum(r.totalAmount) - toNum(r.paidAmount),
+        isOverdue: r.dueDate != null && r.dueDate < today,
+      })),
+      recentActivity: recentPayments.map(r => ({
+        id: r.id,
+        type: "payment" as const,
+        amount: toNum(r.amount),
+        paidAt: r.paidAt,
+        supplierName: r.supplierName ?? "—",
+        reference: r.reference ?? "—",
+      })),
     });
   } catch (e: any) {
     req.log.error(e, "purchases/overview GET");
@@ -1316,42 +1392,401 @@ router.get("/purchases/reports/by-supplier", requirePermission("purchases.read")
   }
 });
 
-// Approbations en attente (factures)
+// Approbations en attente — file unifiée (factures + BCs + notes de frais)
 router.get("/purchases/approvals/pending", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [invoiceRows, poRows, expenseRows] = await Promise.all([
+      // Factures fournisseurs : review + awaiting_approval
+      db.select({
+        id: supplierInvoicesTable.id,
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        status: supplierInvoicesTable.status,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        dueDate: supplierInvoicesTable.dueDate,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        notes: supplierInvoicesTable.notes,
+        supplierId: supplierInvoicesTable.supplierId,
+        supplierName: suppliersTable.name,
+        createdAt: supplierInvoicesTable.createdAt,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(
+        eq(supplierInvoicesTable.organizationId, orgId),
+        or(eq(supplierInvoicesTable.status, "review"), eq(supplierInvoicesTable.status, "awaiting_approval")),
+      ))
+      .orderBy(asc(supplierInvoicesTable.createdAt)),
+
+      // Bons de commande en attente (status = sent, nécessitent confirmation manager)
+      db.select({
+        id: purchaseOrdersTable.id,
+        reference: purchaseOrdersTable.reference,
+        status: purchaseOrdersTable.status,
+        orderDate: purchaseOrdersTable.orderDate,
+        expectedDate: purchaseOrdersTable.expectedDate,
+        totalFcfa: purchaseOrdersTable.totalFcfa,
+        notes: purchaseOrdersTable.notes,
+        supplierId: purchaseOrdersTable.supplierId,
+        supplierName: suppliersTable.name,
+        createdAt: purchaseOrdersTable.createdAt,
+      })
+      .from(purchaseOrdersTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, purchaseOrdersTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(
+        eq(purchaseOrdersTable.organizationId, orgId),
+        eq(purchaseOrdersTable.status, "sent"),
+        isNull(purchaseOrdersTable.deletedAt),
+      ))
+      .orderBy(asc(purchaseOrdersTable.createdAt)),
+
+      // Notes de frais soumises
+      db.select({
+        id: expenseReportsTable.id,
+        title: expenseReportsTable.title,
+        status: expenseReportsTable.status,
+        totalAmount: expenseReportsTable.totalAmount,
+        collaboratorId: expenseReportsTable.collaboratorId,
+        submittedAt: expenseReportsTable.submittedAt,
+        createdAt: expenseReportsTable.createdAt,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+      })
+      .from(expenseReportsTable)
+      .leftJoin(collaboratorsTable, eq(collaboratorsTable.id, expenseReportsTable.collaboratorId))
+      .where(and(
+        eq(expenseReportsTable.organizationId, orgId),
+        eq(expenseReportsTable.status, "submitted"),
+      ))
+      .orderBy(asc(expenseReportsTable.createdAt)),
+    ]);
+
+    return res.json({
+      invoices: invoiceRows.map(r => ({
+        ...r,
+        totalAmount: toNum(r.totalAmount),
+        paidAmount: toNum(r.paidAmount),
+        balance: toNum(r.totalAmount) - toNum(r.paidAmount),
+        isOverdue: r.dueDate != null && r.dueDate < today,
+      })),
+      purchaseOrders: poRows.map(r => ({
+        ...r,
+        totalFcfa: toNum(r.totalFcfa),
+      })),
+      expenseReports: expenseRows.map(r => ({
+        ...r,
+        totalAmount: toNum(r.totalAmount),
+        collaboratorName: [r.firstName, r.lastName].filter(Boolean).join(" ") || "—",
+      })),
+      total: invoiceRows.length + poRows.length + expenseRows.length,
+    });
+  } catch (e: any) {
+    req.log.error(e, "purchases/approvals/pending GET");
+    return res.status(500).json({ error: "Erreur récupération approbations" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// DÉPENSES — VUE MANAGER (expense_reports toutes équipes)
+// ════════════════════════════════════════════════════════════════
+
+router.get("/purchases/expenses", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { status, collaboratorId, periodFrom, periodTo, category, limit: lim = "50", offset: off = "0" } = req.query as Record<string, string>;
+
+    const conds = [eq(expenseReportsTable.organizationId, orgId)];
+    if (status) conds.push(eq(expenseReportsTable.status, status));
+    if (collaboratorId) conds.push(eq(expenseReportsTable.collaboratorId, collaboratorId));
+    if (periodFrom) conds.push(sql`${expenseReportsTable.createdAt}::date >= ${periodFrom}::date`);
+    if (periodTo) conds.push(sql`${expenseReportsTable.createdAt}::date <= ${periodTo}::date`);
+
+    const [rows, countResult] = await Promise.all([
+      db.select({
+        id: expenseReportsTable.id,
+        title: expenseReportsTable.title,
+        status: expenseReportsTable.status,
+        totalAmount: expenseReportsTable.totalAmount,
+        collaboratorId: expenseReportsTable.collaboratorId,
+        submittedAt: expenseReportsTable.submittedAt,
+        approvedAt: expenseReportsTable.approvedAt,
+        paidAt: expenseReportsTable.paidAt,
+        notes: expenseReportsTable.notes,
+        createdAt: expenseReportsTable.createdAt,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        department: collaboratorsTable.department,
+      })
+      .from(expenseReportsTable)
+      .leftJoin(collaboratorsTable, eq(collaboratorsTable.id, expenseReportsTable.collaboratorId))
+      .where(and(...conds))
+      .orderBy(desc(expenseReportsTable.createdAt))
+      .limit(parseInt(lim))
+      .offset(parseInt(off)),
+      db.select({ count: sql<number>`count(*)` }).from(expenseReportsTable).where(and(...conds)),
+    ]);
+
+    return res.json({
+      data: rows.map(r => ({
+        ...r,
+        totalAmount: toNum(r.totalAmount),
+        collaboratorName: [r.firstName, r.lastName].filter(Boolean).join(" ") || "—",
+      })),
+      total: toNum(countResult[0]?.count),
+    });
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses GET");
+    return res.status(500).json({ error: "Erreur récupération dépenses" });
+  }
+});
+
+router.get("/purchases/expenses/:id", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [report] = await db.select({
+      id: expenseReportsTable.id,
+      title: expenseReportsTable.title,
+      status: expenseReportsTable.status,
+      totalAmount: expenseReportsTable.totalAmount,
+      collaboratorId: expenseReportsTable.collaboratorId,
+      submittedAt: expenseReportsTable.submittedAt,
+      approvedAt: expenseReportsTable.approvedAt,
+      paidAt: expenseReportsTable.paidAt,
+      notes: expenseReportsTable.notes,
+      createdAt: expenseReportsTable.createdAt,
+      firstName: collaboratorsTable.firstName,
+      lastName: collaboratorsTable.lastName,
+      department: collaboratorsTable.department,
+    })
+    .from(expenseReportsTable)
+    .leftJoin(collaboratorsTable, eq(collaboratorsTable.id, expenseReportsTable.collaboratorId))
+    .where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)));
+    if (!report) return res.status(404).json({ error: "Note de frais introuvable" });
+
+    const items = await db.select().from(expenseItemsTable).where(eq(expenseItemsTable.expenseReportId, id));
+    return res.json({ ...report, totalAmount: toNum(report.totalAmount), collaboratorName: [report.firstName, report.lastName].filter(Boolean).join(" ") || "—", items });
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id GET");
+    return res.status(500).json({ error: "Erreur récupération note de frais" });
+  }
+});
+
+router.patch("/purchases/expenses/:id/status", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const { status, rejectionReason } = z.object({
+      status: z.enum(["approved", "rejected", "paid"]),
+      rejectionReason: z.string().optional(),
+    }).parse(req.body);
+
+    const now = new Date().toISOString();
+    const [updated] = await db.update(expenseReportsTable)
+      .set({
+        status,
+        ...(status === "approved" ? { approvedAt: now } : {}),
+        ...(status === "paid" ? { paidAt: now } : {}),
+        ...(status === "rejected" && rejectionReason ? { notes: rejectionReason } : {}),
+      })
+      .where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)))
+      .returning({ id: expenseReportsTable.id, status: expenseReportsTable.status });
+    if (!updated) return res.status(404).json({ error: "Note de frais introuvable" });
+    return res.json(updated);
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id/status PATCH");
+    return res.status(400).json({ error: e?.message ?? "Erreur mise à jour" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// RAPPORT FACTURES IMPAYÉES
+// ════════════════════════════════════════════════════════════════
+
+router.get("/purchases/reports/unpaid", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const today = new Date().toISOString().slice(0, 10);
+    const { supplierId, dateFrom, dateTo } = req.query as Record<string, string>;
+
+    const conds = [
+      eq(supplierInvoicesTable.organizationId, orgId),
+      ne(supplierInvoicesTable.status, "paid"),
+      ne(supplierInvoicesTable.status, "cancelled"),
+    ];
+    if (supplierId) conds.push(eq(supplierInvoicesTable.supplierId, supplierId));
+    if (dateFrom) conds.push(sql`${supplierInvoicesTable.dueDate}::date >= ${dateFrom}::date`);
+    if (dateTo) conds.push(sql`${supplierInvoicesTable.dueDate}::date <= ${dateTo}::date`);
+
     const rows = await db.select({
       id: supplierInvoicesTable.id,
       referenceNumber: supplierInvoicesTable.referenceNumber,
-      status: supplierInvoicesTable.status,
       invoiceDate: supplierInvoicesTable.invoiceDate,
       dueDate: supplierInvoicesTable.dueDate,
       totalAmount: supplierInvoicesTable.totalAmount,
       paidAmount: supplierInvoicesTable.paidAmount,
-      notes: supplierInvoicesTable.notes,
+      status: supplierInvoicesTable.status,
       supplierId: supplierInvoicesTable.supplierId,
       supplierName: suppliersTable.name,
       createdAt: supplierInvoicesTable.createdAt,
     })
     .from(supplierInvoicesTable)
     .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
-    .where(and(
-      eq(supplierInvoicesTable.organizationId, orgId),
-      or(
-        eq(supplierInvoicesTable.status, "review"),
-        eq(supplierInvoicesTable.status, "awaiting_approval"),
-      ),
-    ))
-    .orderBy(asc(supplierInvoicesTable.createdAt));
-    const today = new Date().toISOString().slice(0, 10);
-    return res.json({ data: rows.map(r => ({
-      ...r, totalAmount: toNum(r.totalAmount), paidAmount: toNum(r.paidAmount),
+    .where(and(...conds))
+    .orderBy(asc(supplierInvoicesTable.dueDate));
+
+    const items = rows.map(r => ({
+      ...r,
+      totalAmount: toNum(r.totalAmount),
+      paidAmount: toNum(r.paidAmount),
       balance: toNum(r.totalAmount) - toNum(r.paidAmount),
       isOverdue: r.dueDate != null && r.dueDate < today,
-    })), total: rows.length });
+      daysOverdue: r.dueDate ? Math.floor((Date.now() - new Date(r.dueDate + "T00:00:00Z").getTime()) / 864e5) : 0,
+    }));
+    return res.json({ data: items, total: items.length, totalBalance: items.reduce((s, i) => s + i.balance, 0) });
   } catch (e: any) {
-    req.log.error(e, "purchases/approvals/pending GET");
-    return res.status(500).json({ error: "Erreur récupération approbations" });
+    req.log.error(e, "purchases/reports/unpaid GET");
+    return res.status(500).json({ error: "Erreur rapport impayées" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// EXPORTS EXCEL — RAPPORTS ACHATS
+// ════════════════════════════════════════════════════════════════
+
+router.get("/purchases/reports/:type/export.xlsx", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const type = req.params.type as string;
+    const today = new Date().toISOString().slice(0, 10);
+    const [org] = await db.select({ name: organizationsTable.name }).from(organizationsTable).where(eq(organizationsTable.id, orgId));
+    const orgName = org?.name ?? "Organisation";
+
+    const titles: Record<string, string> = {
+      aging: "Vieillissement AP",
+      "by-supplier": "Top Fournisseurs",
+      unpaid: "Factures Impayées",
+      "by-period": "Dépenses par Période",
+    };
+    if (!titles[type]) return res.status(400).json({ error: "Type d'export inconnu" });
+
+    const builder = new ExcelReportBuilder({
+      orgName,
+      period: { from: new Date(new Date().getFullYear(), 0, 1), to: new Date() },
+      reportTitle: titles[type]!,
+    });
+    builder.addCoverSheet("Rapport Achats");
+
+    if (type === "aging" || type === "unpaid") {
+      const dbRows = await db.select({
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        dueDate: supplierInvoicesTable.dueDate,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        status: supplierInvoicesTable.status,
+        supplierName: suppliersTable.name,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(
+        eq(supplierInvoicesTable.organizationId, orgId),
+        ne(supplierInvoicesTable.status, "paid"),
+        ne(supplierInvoicesTable.status, "cancelled"),
+      ))
+      .orderBy(asc(supplierInvoicesTable.dueDate));
+
+      builder.addDataSheet({
+        name: type === "aging" ? "Vieillissement AP" : "Factures Impayées",
+        tabColor: "F37021",
+        cols: [
+          { header: "Référence", key: "referenceNumber", width: 20, format: "text" },
+          { header: "Fournisseur", key: "supplierName", width: 28, format: "text" },
+          { header: "Date facture", key: "invoiceDate", width: 16, format: "text" },
+          { header: "Échéance", key: "dueDate", width: 16, format: "text" },
+          { header: "Montant TTC", key: "totalAmount", width: 18, format: "money" },
+          { header: "Déjà payé", key: "paidAmount", width: 18, format: "money" },
+          { header: "Solde dû", key: "balance", width: 18, format: "money" },
+          { header: "Statut", key: "status", width: 18, format: "text" },
+          { header: "Jours échus", key: "daysOverdue", width: 14, format: "number" },
+        ],
+        rows: dbRows.map(r => {
+          const balance = toNum(r.totalAmount) - toNum(r.paidAmount);
+          const days = r.dueDate ? Math.max(0, Math.floor((Date.now() - new Date(r.dueDate + "T00:00:00Z").getTime()) / 864e5)) : 0;
+          return [r.referenceNumber ?? "—", r.supplierName ?? "—", r.invoiceDate ?? "—", r.dueDate ?? "—", toNum(r.totalAmount), toNum(r.paidAmount), balance, r.status, days];
+        }),
+        totalsRow: true,
+      });
+    } else if (type === "by-supplier") {
+      const dbRows = await db.select({
+        supplierName: suppliersTable.name,
+        totalInvoiced: sql<number>`sum(${supplierInvoicesTable.totalAmount})`,
+        totalPaid: sql<number>`sum(${supplierInvoicesTable.paidAmount})`,
+        invoiceCount: sql<number>`count(*)`,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled")))
+      .groupBy(supplierInvoicesTable.supplierId, suppliersTable.name)
+      .orderBy(desc(sql`sum(${supplierInvoicesTable.totalAmount})`));
+
+      builder.addDataSheet({
+        name: "Top Fournisseurs",
+        tabColor: "3b82f6",
+        cols: [
+          { header: "Fournisseur", key: "supplierName", width: 32, format: "text" },
+          { header: "Nb factures", key: "invoiceCount", width: 14, format: "number" },
+          { header: "Total facturé", key: "totalInvoiced", width: 20, format: "money" },
+          { header: "Total payé", key: "totalPaid", width: 20, format: "money" },
+          { header: "Solde", key: "balance", width: 20, format: "money" },
+        ],
+        rows: dbRows.map(r => [
+          r.supplierName ?? "—",
+          toNum(r.invoiceCount),
+          toNum(r.totalInvoiced),
+          toNum(r.totalPaid),
+          toNum(r.totalInvoiced) - toNum(r.totalPaid),
+        ]),
+        totalsRow: true,
+      });
+    } else {
+      // by-period
+      const dbRows = await db.select({
+        period: sql<string>`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`,
+        total: sql<number>`sum(${supplierPaymentsTable.amount})`,
+        count: sql<number>`count(*)`,
+      })
+      .from(supplierPaymentsTable)
+      .where(and(
+        eq(supplierPaymentsTable.organizationId, orgId),
+        ne(supplierPaymentsTable.status, "annule"),
+        ne(supplierPaymentsTable.status, "echoue"),
+        sql`${supplierPaymentsTable.paidAt} >= NOW() - INTERVAL '12 months'`,
+      ))
+      .groupBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`);
+
+      builder.addDataSheet({
+        name: "Dépenses par Période",
+        tabColor: "22c55e",
+        cols: [
+          { header: "Période", key: "period", width: 14, format: "text" },
+          { header: "Nb paiements", key: "count", width: 14, format: "number" },
+          { header: "Total décaissé", key: "total", width: 20, format: "money" },
+        ],
+        rows: dbRows.map(r => [r.period ?? "—", toNum(r.count), toNum(r.total)]),
+        totalsRow: true,
+      });
+    }
+
+    const filename = `purchases-${type}-${today}.xlsx`;
+    await builder.send(res, filename);
+  } catch (e: any) {
+    req.log.error(e, "purchases/reports/:type/export.xlsx GET");
+    if (!res.headersSent) return res.status(500).json({ error: "Erreur génération Excel" });
   }
 });
 

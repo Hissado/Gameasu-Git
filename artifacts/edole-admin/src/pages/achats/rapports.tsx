@@ -12,7 +12,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import { Download, AlertTriangle, TrendingDown, Building2, FileText } from "lucide-react";
-import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +31,13 @@ type SupplierRow = {
   supplierId: string; supplierName: string;
   totalInvoiced: number; totalPaid: number; balance: number; invoiceCount: number;
 };
+type UnpaidItem = {
+  id: string; referenceNumber: string; supplierName: string | null;
+  invoiceDate: string; dueDate: string | null;
+  totalAmount: number; paidAmount: number; balance: number;
+  status: string; isOverdue: boolean; daysOverdue: number;
+};
+type UnpaidData = { data: UnpaidItem[]; total: number; totalBalance: number };
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
@@ -52,453 +58,425 @@ const BUCKET_LABELS: Record<string, string> = {
   d61_90:  "61–90 j",
   over90:  "> 90 j",
 };
+
 const BUCKET_COLORS: Record<string, string> = {
   current: "#22c55e",
-  d1_30:   "#f59e0b",
-  d31_60:  "#F37021",
+  d1_30:   "#eab308",
+  d31_60:  "#f97316",
   d61_90:  "#ef4444",
-  over90:  "#7f1d1d",
+  over90:  "#991b1b",
 };
 
 const MONTH_SHORT: Record<string, string> = {
-  "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr",
-  "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû",
-  "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
+  "01":"Jan","02":"Fév","03":"Mar","04":"Avr","05":"Mai","06":"Jun",
+  "07":"Jul","08":"Aoû","09":"Sep","10":"Oct","11":"Nov","12":"Déc",
 };
-function periodLabel(p: string) {
-  const [y, m] = p.split("-");
-  return `${MONTH_SHORT[m] ?? m} ${y.slice(2)}`;
-}
+function periodLabel(p: string) { const [y, m] = p.split("-"); return `${MONTH_SHORT[m] ?? m} ${y.slice(2)}`; }
 
 function FcfaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white border rounded-lg shadow-lg p-3 text-xs">
       <p className="font-medium mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.dataKey} style={{ color: p.fill ?? p.color }}>{formatFCFA(p.value)}</p>
-      ))}
+      {payload.map((p: any) => <p key={p.dataKey} style={{ color: p.fill ?? p.color }}>{formatFCFA(p.value)}</p>)}
     </div>
   );
 }
 
-function downloadCsv(rows: any[], filename: string, cols: Array<{ key: string; header: string; fmt?: (v: any) => string }>) {
-  const header = cols.map(c => c.header).join(";");
-  const lines = rows.map(r => cols.map(c => {
-    const v = r[c.key];
-    return c.fmt ? c.fmt(v) : String(v ?? "");
-  }).join(";"));
-  const csv = [header, ...lines].join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+// ─── Excel download helper ────────────────────────────────────────────────────
+
+function downloadExcel(type: string) {
+  const token = encodeURIComponent(localStorage.getItem("auth_token") ?? "");
+  const url = `/api/purchases/reports/${type}/export.xlsx?token=${token}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `purchases-${type}.xlsx`;
+  a.click();
+}
+
+// ─── CSV export helper ────────────────────────────────────────────────────────
+
+function exportCsv(headers: string[], rows: string[][], filename: string) {
+  const bom = "\uFEFF";
+  const content = bom + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
-  toast.success("Export CSV téléchargé");
 }
 
-// ─── Tab: Aging ───────────────────────────────────────────────────────────────
+// ─── Status badge ─────────────────────────────────────────────────────────────
 
-function TabAging() {
-  const { data, isLoading } = useQuery<AgingData>({
-    queryKey: ["purchases-report-aging"],
+const INV_STATUS: Record<string, { label: string; cls: string }> = {
+  review:            { label: "À revoir",       cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  awaiting_approval: { label: "En approbation", cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  approved:          { label: "Approuvée",      cls: "bg-teal-50 text-teal-700 border-teal-200" },
+  pending:           { label: "À payer",        cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  partially_paid:    { label: "Part. payée",    cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  paid:              { label: "Payée",          cls: "bg-green-50 text-green-700 border-green-200" },
+  overdue:           { label: "En retard",      cls: "bg-red-50 text-red-700 border-red-200" },
+};
+
+function InvBadge({ status }: { status: string }) {
+  const s = INV_STATUS[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function RapportsAchatsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>("aging");
+
+  const agingQ = useQuery<AgingData>({
+    queryKey: ["purchases-aging"],
     queryFn: () => apiFetch("/api/purchases/reports/aging"),
+    enabled: activeTab === "aging",
   });
 
-  const items = data?.items ?? [];
-  const buckets = data?.buckets ?? {};
-  const bucketCounts = data?.bucketCounts ?? {};
-  const total = data?.total ?? 0;
+  const periodQ = useQuery<{ data: PeriodRow[] }>({
+    queryKey: ["purchases-by-period"],
+    queryFn: () => apiFetch("/api/purchases/reports/by-period"),
+    enabled: activeTab === "period",
+  });
 
-  const chartData = Object.keys(BUCKET_LABELS).map(key => ({
-    name: BUCKET_LABELS[key],
-    amount: buckets[key] ?? 0,
-    count: bucketCounts[key] ?? 0,
-    key,
-  }));
+  const supplierQ = useQuery<{ data: SupplierRow[] }>({
+    queryKey: ["purchases-by-supplier"],
+    queryFn: () => apiFetch("/api/purchases/reports/by-supplier?limit=20"),
+    enabled: activeTab === "supplier",
+  });
 
-  const exportCsv = () => downloadCsv(items, "aging-ap.csv", [
-    { key: "supplierName", header: "Fournisseur" },
-    { key: "referenceNumber", header: "Référence" },
-    { key: "dueDate", header: "Échéance" },
-    { key: "status", header: "Statut" },
-    { key: "totalAmount", header: "Total", fmt: (v) => String(v) },
-    { key: "balance", header: "Solde", fmt: (v) => String(v) },
-    { key: "bucket", header: "Tranche" },
-  ]);
+  const unpaidQ = useQuery<UnpaidData>({
+    queryKey: ["purchases-unpaid"],
+    queryFn: () => apiFetch("/api/purchases/reports/unpaid"),
+    enabled: activeTab === "unpaid",
+  });
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{items.length} facture{items.length !== 1 ? "s" : ""} impayées · Total : <strong>{formatFCFA(total)}</strong></p>
-        <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </Button>
-      </div>
+    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <PageHeader
+        title="Rapports Achats"
+        subtitle="Analyse des comptes fournisseurs et des décaissements"
+      />
 
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Répartition par ancienneté</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-48 w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData} margin={{ left: 8, right: 8 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 10 }} width={75} />
-                <Tooltip content={<FcfaTooltip />} />
-                <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
-                  {chartData.map(d => <Cell key={d.key} fill={BUCKET_COLORS[d.key] ?? "#94a3b8"} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-5 gap-3">
-        {chartData.map(d => (
-          <Card key={d.key} className="border" style={{ borderColor: d.amount > 0 ? BUCKET_COLORS[d.key] + "44" : undefined }}>
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">{d.name}</p>
-              <p className="font-bold text-sm" style={{ color: d.amount > 0 ? BUCKET_COLORS[d.key] : undefined }}>
-                {formatFCFA(d.amount)}
-              </p>
-              <p className="text-xs text-muted-foreground">{d.count} fact.</p>
-            </CardContent>
-          </Card>
+      {/* Tab nav */}
+      <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === id
+                ? "bg-white text-[#F37021] shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Icon className="h-4 w-4" />{label}
+          </button>
         ))}
       </div>
 
-      {/* Detail table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fournisseur</TableHead>
-                <TableHead>Référence</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead>Tranche</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Solde</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && [1,2,3].map(i => (
-                <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
-              ))}
-              {!isLoading && items.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Aucune facture impayée.</TableCell></TableRow>
-              )}
-              {items.map(it => (
-                <TableRow key={it.id}>
-                  <TableCell className="font-medium text-sm">{it.supplierName ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{it.referenceNumber}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {it.dueDate ? formatDate(it.dueDate) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" style={{ borderColor: BUCKET_COLORS[it.bucket] + "88", color: BUCKET_COLORS[it.bucket] }}>
-                      {BUCKET_LABELS[it.bucket] ?? it.bucket}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{formatFCFA(it.totalAmount)}</TableCell>
-                  <TableCell className="text-right font-semibold text-amber-700">{formatFCFA(it.balance)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+      {/* ─ Vieillissement AP ─ */}
+      {activeTab === "aging" && (
+        <div className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadExcel("aging")}>
+              <Download className="h-4 w-4 mr-1" />Export Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (!agingQ.data) return;
+              exportCsv(
+                ["Référence", "Fournisseur", "Date facture", "Échéance", "Solde", "Tranche", "Statut"],
+                agingQ.data.items.map(r => [r.referenceNumber ?? "", r.supplierName ?? "", r.invoiceDate, r.dueDate ?? "", String(r.balance), BUCKET_LABELS[r.bucket] ?? r.bucket, r.status]),
+                "vieillissement-ap.csv"
+              );
+            }}>
+              <Download className="h-4 w-4 mr-1" />Export CSV
+            </Button>
+          </div>
 
-// ─── Tab: Period ──────────────────────────────────────────────────────────────
+          {agingQ.isLoading ? <Skeleton className="h-64 w-full" /> : agingQ.data && (
+            <>
+              {/* Bucket cards */}
+              <div className="grid grid-cols-5 gap-3">
+                {Object.entries(BUCKET_LABELS).map(([key, label]) => (
+                  <Card key={key} className="border-l-4" style={{ borderLeftColor: BUCKET_COLORS[key] }}>
+                    <CardContent className="p-3">
+                      <p className="text-xs text-slate-500 mb-1">{label}</p>
+                      <p className="font-bold text-sm">{formatFCFA(agingQ.data!.buckets[key] ?? 0)}</p>
+                      <p className="text-xs text-slate-400">{agingQ.data!.bucketCounts[key] ?? 0} facture{(agingQ.data!.bucketCounts[key] ?? 0) > 1 ? "s" : ""}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-function TabPeriod() {
-  const { data, isLoading } = useQuery<{ data: PeriodRow[] }>({
-    queryKey: ["purchases-report-period"],
-    queryFn: () => apiFetch("/api/purchases/reports/by-period"),
-  });
-  const rows = data?.data ?? [];
-  const total = rows.reduce((s, r) => s + r.total, 0);
+              {/* Bar chart */}
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Solde par tranche d'échéance (FCFA)</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={Object.entries(BUCKET_LABELS).map(([k, l]) => ({ name: l, amount: agingQ.data!.buckets[k] ?? 0, fill: BUCKET_COLORS[k] }))} margin={{ left: 8 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tickFormatter={v => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={72} />
+                      <Tooltip content={<FcfaTooltip />} />
+                      <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                        {Object.keys(BUCKET_LABELS).map(k => <Cell key={k} fill={BUCKET_COLORS[k]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-  const exportCsv = () => downloadCsv(rows, "achats-par-periode.csv", [
-    { key: "period", header: "Période" },
-    { key: "count", header: "Nb paiements", fmt: String },
-    { key: "total", header: "Montant payé (FCFA)", fmt: String },
-  ]);
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">12 derniers mois · Total décaissé : <strong>{formatFCFA(total)}</strong></p>
-        <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </Button>
-      </div>
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Décaissements mensuels</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-52 w-full" /> : rows.length === 0 ? (
-            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">Aucun paiement enregistré sur la période</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={rows} margin={{ left: 8, right: 8 }}>
-                <XAxis dataKey="period" tickFormatter={periodLabel} tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 10 }} width={80} />
-                <Tooltip content={<FcfaTooltip />} formatter={(v, name) => [formatFCFA(Number(v)), "Décaissé"]} />
-                <Bar dataKey="total" fill="#F37021" radius={[4, 4, 0, 0]} name="Décaissé" />
-              </BarChart>
-            </ResponsiveContainer>
+              {/* Detail table */}
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader><TableRow className="bg-slate-50">
+                      <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
+                      <TableHead>Échéance</TableHead><TableHead>Tranche</TableHead>
+                      <TableHead className="text-right">Montant TTC</TableHead>
+                      <TableHead className="text-right">Solde dû</TableHead>
+                      <TableHead>Statut</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {agingQ.data.items.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-xs">{item.referenceNumber}</TableCell>
+                          <TableCell className="text-sm">{item.supplierName ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{item.dueDate ? formatDate(item.dueDate) : "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs" style={{ borderColor: BUCKET_COLORS[item.bucket], color: BUCKET_COLORS[item.bucket] }}>
+                              {BUCKET_LABELS[item.bucket] ?? item.bucket}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-sm">{formatFCFA(item.totalAmount)}</TableCell>
+                          <TableCell className="text-right font-bold text-sm">{formatFCFA(item.balance)}</TableCell>
+                          <TableCell><InvBadge status={item.status} /></TableCell>
+                        </TableRow>
+                      ))}
+                      {agingQ.data.items.length === 0 && (
+                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-slate-400">Aucune facture impayée</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
           )}
-        </CardContent>
-      </Card>
-      {rows.length > 0 && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Période</TableHead>
-                  <TableHead className="text-right">Nb paiements</TableHead>
-                  <TableHead className="text-right">Montant décaissé</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...rows].reverse().map(r => (
-                  <TableRow key={r.period}>
-                    <TableCell className="font-medium">{periodLabel(r.period)} ({r.period})</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{r.count}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatFCFA(r.total)}</TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="bg-slate-50 font-semibold">
-                  <TableCell>Total</TableCell>
-                  <TableCell className="text-right">{rows.reduce((s, r) => s + r.count, 0)}</TableCell>
-                  <TableCell className="text-right">{formatFCFA(total)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        </div>
       )}
-    </div>
-  );
-}
 
-// ─── Tab: Supplier ────────────────────────────────────────────────────────────
+      {/* ─ Dépenses par période ─ */}
+      {activeTab === "period" && (
+        <div className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadExcel("by-period")}>
+              <Download className="h-4 w-4 mr-1" />Export Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (!periodQ.data) return;
+              exportCsv(
+                ["Période", "Nb paiements", "Total décaissé"],
+                periodQ.data.data.map(r => [periodLabel(r.period), String(r.count), String(r.total)]),
+                "depenses-par-periode.csv"
+              );
+            }}>
+              <Download className="h-4 w-4 mr-1" />Export CSV
+            </Button>
+          </div>
 
-function TabSupplier() {
-  const { data, isLoading } = useQuery<{ data: SupplierRow[] }>({
-    queryKey: ["purchases-report-supplier"],
-    queryFn: () => apiFetch("/api/purchases/reports/by-supplier?limit=20"),
-  });
-  const rows = data?.data ?? [];
-  const totalInvoiced = rows.reduce((s, r) => s + r.totalInvoiced, 0);
+          {periodQ.isLoading ? <Skeleton className="h-64 w-full" /> : periodQ.data && (
+            <>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Décaissements mensuels — 12 derniers mois</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={periodQ.data.data.map(r => ({ name: periodLabel(r.period), total: r.total }))} margin={{ left: 8 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tickFormatter={v => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={72} />
+                      <Tooltip content={<FcfaTooltip />} />
+                      <Bar dataKey="total" fill="#F37021" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-  const chartData = rows.slice(0, 8);
-
-  const exportCsv = () => downloadCsv(rows, "achats-par-fournisseur.csv", [
-    { key: "supplierName", header: "Fournisseur" },
-    { key: "invoiceCount", header: "Factures", fmt: String },
-    { key: "totalInvoiced", header: "Total facturé (FCFA)", fmt: String },
-    { key: "totalPaid", header: "Total payé (FCFA)", fmt: String },
-    { key: "balance", header: "Solde (FCFA)", fmt: String },
-  ]);
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{rows.length} fournisseur{rows.length !== 1 ? "s" : ""} · Volume total : <strong>{formatFCFA(totalInvoiced)}</strong></p>
-        <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </Button>
-      </div>
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Top fournisseurs — Volume facturé</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-52 w-full" /> : chartData.length === 0 ? (
-            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 16 }}>
-                <XAxis type="number" tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="supplierName" tick={{ fontSize: 10 }} width={120} />
-                <Tooltip content={<FcfaTooltip />} />
-                <Bar dataKey="totalInvoiced" fill="#F37021" radius={[0, 4, 4, 0]} name="Facturé" />
-                <Bar dataKey="totalPaid" fill="#22c55e" radius={[0, 4, 4, 0]} name="Payé" />
-              </BarChart>
-            </ResponsiveContainer>
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader><TableRow className="bg-slate-50">
+                      <TableHead>Période</TableHead>
+                      <TableHead className="text-right">Nb paiements</TableHead>
+                      <TableHead className="text-right">Total décaissé</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {periodQ.data.data.map(r => (
+                        <TableRow key={r.period}>
+                          <TableCell className="font-medium text-sm">{periodLabel(r.period)}</TableCell>
+                          <TableCell className="text-right text-sm">{r.count}</TableCell>
+                          <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.total)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {periodQ.data.data.length === 0 && (
+                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">Aucun décaissement enregistré</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
           )}
-        </CardContent>
-      </Card>
-      {rows.length > 0 && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Fournisseur</TableHead>
-                  <TableHead className="text-right">Factures</TableHead>
-                  <TableHead className="text-right">Total facturé</TableHead>
-                  <TableHead className="text-right">Total payé</TableHead>
-                  <TableHead className="text-right">Solde</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && [1,2,3].map(i => (
-                  <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
-                ))}
-                {rows.map((r, i) => (
-                  <TableRow key={r.supplierId}>
-                    <TableCell className="text-xs text-muted-foreground font-mono">{i + 1}</TableCell>
-                    <TableCell className="font-medium text-sm">{r.supplierName}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{r.invoiceCount}</TableCell>
-                    <TableCell className="text-right">{formatFCFA(r.totalInvoiced)}</TableCell>
-                    <TableCell className="text-right text-emerald-700">{formatFCFA(r.totalPaid)}</TableCell>
-                    <TableCell className="text-right font-semibold text-amber-700">{r.balance > 0 ? formatFCFA(r.balance) : "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        </div>
       )}
-    </div>
-  );
-}
 
-// ─── Tab: Unpaid ──────────────────────────────────────────────────────────────
+      {/* ─ Par fournisseur ─ */}
+      {activeTab === "supplier" && (
+        <div className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadExcel("by-supplier")}>
+              <Download className="h-4 w-4 mr-1" />Export Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (!supplierQ.data) return;
+              exportCsv(
+                ["Fournisseur", "Nb factures", "Total facturé", "Total payé", "Solde"],
+                supplierQ.data.data.map(r => [r.supplierName, String(r.invoiceCount), String(r.totalInvoiced), String(r.totalPaid), String(r.balance)]),
+                "top-fournisseurs.csv"
+              );
+            }}>
+              <Download className="h-4 w-4 mr-1" />Export CSV
+            </Button>
+          </div>
 
-function TabUnpaid() {
-  const { data, isLoading } = useQuery<AgingData>({
-    queryKey: ["purchases-report-aging"],
-    queryFn: () => apiFetch("/api/purchases/reports/aging"),
-  });
-  const items = (data?.items ?? []).sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
-  const total = data?.total ?? 0;
+          {supplierQ.isLoading ? <Skeleton className="h-64 w-full" /> : supplierQ.data && (
+            <>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Top fournisseurs par volume facturé</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart
+                      data={supplierQ.data.data.slice(0, 8).map(r => ({ name: r.supplierName.slice(0, 16), facturé: r.totalInvoiced, payé: r.totalPaid }))}
+                      layout="vertical" margin={{ left: 8 }}>
+                      <XAxis type="number" tickFormatter={v => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
+                      <Tooltip content={<FcfaTooltip />} />
+                      <Bar dataKey="facturé" fill="#F37021" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="payé" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-  const exportCsv = () => downloadCsv(items, "factures-impayees.csv", [
-    { key: "supplierName", header: "Fournisseur" },
-    { key: "referenceNumber", header: "Référence" },
-    { key: "invoiceDate", header: "Date facture" },
-    { key: "dueDate", header: "Échéance" },
-    { key: "status", header: "Statut" },
-    { key: "totalAmount", header: "Total (FCFA)", fmt: String },
-    { key: "paidAmount", header: "Payé (FCFA)", fmt: String },
-    { key: "balance", header: "Solde (FCFA)", fmt: String },
-  ]);
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader><TableRow className="bg-slate-50">
+                      <TableHead>Rang</TableHead><TableHead>Fournisseur</TableHead>
+                      <TableHead className="text-right">Nb factures</TableHead>
+                      <TableHead className="text-right">Total facturé</TableHead>
+                      <TableHead className="text-right">Total payé</TableHead>
+                      <TableHead className="text-right">Solde dû</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {supplierQ.data.data.map((r, i) => (
+                        <TableRow key={r.supplierId}>
+                          <TableCell className="text-xs text-slate-400 font-mono">#{i + 1}</TableCell>
+                          <TableCell className="font-medium text-sm">{r.supplierName}</TableCell>
+                          <TableCell className="text-right text-sm">{r.invoiceCount}</TableCell>
+                          <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalInvoiced)}</TableCell>
+                          <TableCell className="text-right text-sm text-emerald-700">{formatFCFA(r.totalPaid)}</TableCell>
+                          <TableCell className="text-right font-bold text-sm text-[#F37021]">{formatFCFA(r.balance)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {supplierQ.data.data.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-400">Aucun fournisseur</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
 
-  const STATUS_LABELS: Record<string, string> = {
-    review: "À revoir", awaiting_approval: "En att. approbation",
-    approved: "Approuvée", pending: "À payer",
-    partially_paid: "Part. payée", overdue: "En retard", draft: "Brouillon",
-    rejected: "Refusée",
-  };
+      {/* ─ Factures impayées ─ */}
+      {activeTab === "unpaid" && (
+        <div className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadExcel("unpaid")}>
+              <Download className="h-4 w-4 mr-1" />Export Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (!unpaidQ.data) return;
+              exportCsv(
+                ["Référence", "Fournisseur", "Date facture", "Échéance", "Montant TTC", "Solde dû", "Jours échus", "Statut"],
+                unpaidQ.data.data.map(r => [r.referenceNumber ?? "", r.supplierName ?? "", r.invoiceDate, r.dueDate ?? "", String(r.totalAmount), String(r.balance), String(r.daysOverdue), r.status]),
+                "factures-impayees.csv"
+              );
+            }}>
+              <Download className="h-4 w-4 mr-1" />Export CSV
+            </Button>
+          </div>
 
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{items.length} facture{items.length !== 1 ? "s" : ""} impayées · Solde total : <strong>{formatFCFA(total)}</strong></p>
-        <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </Button>
-      </div>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fournisseur</TableHead>
-                <TableHead>Référence</TableHead>
-                <TableHead>Date facture</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Payé</TableHead>
-                <TableHead className="text-right">Solde</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && [1,2,3].map(i => (
-                <TableRow key={i}>{[1,2,3,4,5,6,7,8].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
-              ))}
-              {!isLoading && items.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Toutes les factures sont réglées.</TableCell></TableRow>
-              )}
-              {items.map(it => (
-                <TableRow key={it.id}>
-                  <TableCell className="font-medium text-sm">{it.supplierName ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{it.referenceNumber}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(it.invoiceDate)}</TableCell>
-                  <TableCell className="text-sm">
-                    {it.dueDate ? (
-                      <span className={it.bucket !== "current" ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                        {it.bucket !== "current" && <AlertTriangle className="w-3 h-3 inline mr-1" />}
-                        {formatDate(it.dueDate)}
-                      </span>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {STATUS_LABELS[it.status] ?? it.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{formatFCFA(it.totalAmount)}</TableCell>
-                  <TableCell className="text-right text-emerald-700">{formatFCFA(it.paidAmount)}</TableCell>
-                  <TableCell className="text-right font-semibold text-amber-700">{formatFCFA(it.balance)}</TableCell>
-                </TableRow>
-              ))}
-              {items.length > 0 && (
-                <TableRow className="bg-slate-50 font-semibold">
-                  <TableCell colSpan={5}>Total</TableCell>
-                  <TableCell className="text-right">{formatFCFA(items.reduce((s, i) => s + i.totalAmount, 0))}</TableCell>
-                  <TableCell className="text-right text-emerald-700">{formatFCFA(items.reduce((s, i) => s + i.paidAmount, 0))}</TableCell>
-                  <TableCell className="text-right text-amber-700">{formatFCFA(total)}</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+          {unpaidQ.isLoading ? <Skeleton className="h-64 w-full" /> : unpaidQ.data && (
+            <>
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">Factures impayées</p>
+                    <p className="text-2xl font-bold">{unpaidQ.data.total}</p>
+                  </CardContent>
+                </Card>
+                <Card className="col-span-2">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">Total à décaisser</p>
+                    <p className="text-2xl font-bold text-[#F37021]">{formatFCFA(unpaidQ.data.totalBalance)}</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-// ─── Main page ────────────────────────────────────────────────────────────────
-
-export default function AchatsRapports() {
-  const [tab, setTab] = useState<TabId>("aging");
-  const ActiveTab = tab === "aging" ? TabAging : tab === "period" ? TabPeriod : tab === "supplier" ? TabSupplier : TabUnpaid;
-
-  return (
-    <div className="p-6 space-y-5">
-      <PageHeader title="Rapports Achats" subtitle="Analyse et exports des données fournisseurs" />
-
-      {/* Tab nav */}
-      <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                active ? "bg-white text-[#F37021] shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <ActiveTab />
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader><TableRow className="bg-slate-50">
+                      <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
+                      <TableHead>Date facture</TableHead><TableHead>Échéance</TableHead>
+                      <TableHead className="text-right">Montant TTC</TableHead>
+                      <TableHead className="text-right">Solde dû</TableHead>
+                      <TableHead className="text-center">Jours échus</TableHead>
+                      <TableHead>Statut</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {unpaidQ.data.data.map(r => (
+                        <TableRow key={r.id} className={r.isOverdue ? "bg-red-50/40" : ""}>
+                          <TableCell className="font-mono text-xs">{r.referenceNumber}</TableCell>
+                          <TableCell className="text-sm font-medium">{r.supplierName ?? "—"}</TableCell>
+                          <TableCell className="text-xs text-slate-500">{formatDate(r.invoiceDate)}</TableCell>
+                          <TableCell className="text-xs">{r.dueDate ? formatDate(r.dueDate) : "—"}</TableCell>
+                          <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalAmount)}</TableCell>
+                          <TableCell className="text-right font-bold text-sm text-[#F37021]">{formatFCFA(r.balance)}</TableCell>
+                          <TableCell className="text-center">
+                            {r.daysOverdue > 0 ? (
+                              <Badge variant="outline" className={`text-xs ${r.daysOverdue > 60 ? "bg-red-50 text-red-700 border-red-200" : r.daysOverdue > 30 ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"}`}>
+                                +{r.daysOverdue} j
+                              </Badge>
+                            ) : <span className="text-xs text-slate-400">—</span>}
+                          </TableCell>
+                          <TableCell><InvBadge status={r.status} /></TableCell>
+                        </TableRow>
+                      ))}
+                      {unpaidQ.data.data.length === 0 && (
+                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-400">Aucune facture impayée</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
