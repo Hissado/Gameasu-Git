@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import { useGetCollaborator, getGetCollaboratorQueryKey } from "@workspace/api-client-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -808,6 +808,152 @@ function BankRequestPanel({ collaboratorId, onApproved }: { collaboratorId: stri
   );
 }
 
+// ─── Add Collaborator Dialog ──────────────────────────────────────────────────
+
+function AddCollaboratorDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "", phone: "",
+    position: "", department: "", departmentId: "", positionId: "",
+    hireDate: "", employmentStatus: "active",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const { data: departments } = useQuery<{ data: any[] }>({
+    queryKey: ["hr-departments"],
+    queryFn: () => apiFetch("/api/hr/departments"),
+    enabled: open,
+  });
+  const { data: positions } = useQuery<{ data: any[] }>({
+    queryKey: ["hr-positions"],
+    queryFn: () => apiFetch("/api/hr/positions"),
+    enabled: open,
+  });
+
+  const depts = departments?.data ?? [];
+  const posts = positions?.data ?? [];
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      toast.error("Prénom et nom sont requis");
+      return;
+    }
+    setSaving(true);
+    try {
+      const created = await apiFetch("/api/collaborators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim() || undefined,
+          phone: form.phone.trim() || undefined,
+          position: form.position.trim() || undefined,
+          department: form.department.trim() || undefined,
+          departmentId: form.departmentId || undefined,
+          positionId: form.positionId || undefined,
+          hireDate: form.hireDate || undefined,
+          employmentStatus: form.employmentStatus,
+          isAvailable: true,
+        }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["collab-sidebar-list"] });
+      toast.success(`${form.firstName} ${form.lastName} a été ajouté·e`);
+      onCreated((created as any).id);
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de la création");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-teal-600" />
+            Nouveau collaborateur
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="add-fn">Prénom <span className="text-destructive">*</span></Label>
+            <Input id="add-fn" value={form.firstName} onChange={e => set("firstName", e.target.value)} placeholder="Jean-Eude" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="add-ln">Nom <span className="text-destructive">*</span></Label>
+            <Input id="add-ln" value={form.lastName} onChange={e => set("lastName", e.target.value)} placeholder="COKOU" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="add-email">Email</Label>
+            <Input id="add-email" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="jean@entreprise.tg" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="add-phone">Téléphone</Label>
+            <Input id="add-phone" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+228 90 00 00 00" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Département</Label>
+            <Select value={form.departmentId || "__none__"} onValueChange={v => {
+              if (v === "__none__") { set("departmentId", ""); set("department", ""); return; }
+              const d = depts.find((d: any) => d.id === v);
+              set("departmentId", v);
+              if (d) set("department", d.name);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Non assigné</SelectItem>
+                {depts.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Poste</Label>
+            <Select value={form.positionId || "__none__"} onValueChange={v => {
+              if (v === "__none__") { set("positionId", ""); set("position", ""); return; }
+              const p = posts.find((p: any) => p.id === v);
+              set("positionId", v);
+              if (p) set("position", p.title);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Non assigné</SelectItem>
+                {posts.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="add-hire">Date d'embauche</Label>
+            <Input id="add-hire" type="date" value={form.hireDate} onChange={e => set("hireDate", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Statut</Label>
+            <Select value={form.employmentStatus} onValueChange={v => set("employmentStatus", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="inactive">Inactif</SelectItem>
+                <SelectItem value="on_leave">En congé</SelectItem>
+                <SelectItem value="probation">Période d'essai</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleSubmit} disabled={saving} className="bg-teal-700 hover:bg-teal-600 text-white">
+            {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1.5" />}
+            Créer le collaborateur
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Sidebar helpers ──────────────────────────────────────────────────────────
 
 const AVATAR_COLORS = [
@@ -842,7 +988,9 @@ export default function CollaboratorDetail() {
   const [, params] = useRoute("/collaborators/:id");
   const id = params?.id || "";
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   const { data: collaborator, isLoading } = useGetCollaborator(id, {
     query: { enabled: !!id, queryKey: getGetCollaboratorQueryKey(id) },
@@ -1094,12 +1242,10 @@ export default function CollaboratorDetail() {
         {/* Sidebar header */}
         <div className="px-3 pt-3 pb-2 border-b border-border shrink-0 space-y-2">
           {isManagerOrAbove && (
-            <Link href="/collaborators">
-              <Button size="sm" className="w-full gap-2 bg-teal-700 hover:bg-teal-600 text-white">
-                <UserPlus className="w-4 h-4" />
-                Ajouter un collaborateur
-              </Button>
-            </Link>
+            <Button size="sm" className="w-full gap-2 bg-teal-700 hover:bg-teal-600 text-white" onClick={() => setAddOpen(true)}>
+              <UserPlus className="w-4 h-4" />
+              Ajouter un collaborateur
+            </Button>
           )}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -2116,6 +2262,18 @@ export default function CollaboratorDetail() {
           queryClient.invalidateQueries({ queryKey: ["payslips-collab", id] });
         }}
       />
+
+      {/* ADD DIALOG */}
+      {isManagerOrAbove && (
+        <AddCollaboratorDialog
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onCreated={(newId) => {
+            setAddOpen(false);
+            navigate(`/collaborators/${newId}`);
+          }}
+        />
+      )}
 
       {/* EDIT DIALOG */}
       {editOpen && isManagerOrAbove && (
