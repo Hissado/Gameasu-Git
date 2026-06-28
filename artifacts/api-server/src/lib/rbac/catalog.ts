@@ -121,6 +121,13 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "inventory.manage", label: "Gérer produits, catégories, bons de commande et lignes de vente", category: "Inventaire" },
   { code: "inventory.receive", label: "Réceptionner les bons de commande", category: "Inventaire" },
   { code: "inventory.adjust", label: "Ajuster manuellement le stock (inventaire physique)", category: "Inventaire" },
+
+  // ─── Achats / AP (comptes fournisseurs) ─────────────────────────
+  { code: "purchases.read", label: "Consulter les achats, fournisseurs et factures", category: "Achats" },
+  { code: "purchases.write", label: "Créer / modifier des factures, bons de commande et fournisseurs", category: "Achats" },
+  { code: "purchases.approve", label: "Approuver des factures et bons de commande", category: "Achats" },
+  { code: "purchases.pay", label: "Enregistrer des paiements fournisseurs", category: "Achats" },
+  { code: "purchases.manage", label: "Accès complet au module Achats", category: "Achats" },
 ];
 
 /**
@@ -180,6 +187,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "operations.view", "operations.manage", "operations.assign", "operations.dispatch",
       "operations.checkin", "operations.incidents", "operations.checklists", "operations.performance",
       "inventory.read", "inventory.manage", "inventory.receive", "inventory.adjust",
+      "purchases.read", "purchases.write", "purchases.approve", "purchases.pay", "purchases.manage",
     ],
   },
   {

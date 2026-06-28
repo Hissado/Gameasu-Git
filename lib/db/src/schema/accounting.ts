@@ -140,6 +140,16 @@ export const suppliersTable = pgTable("suppliers", {
   address: text("address"),
   taxId: text("tax_id"),                        // numéro contribuable
   paymentTerms: text("payment_terms"),
+  // champs étendus module Achats
+  type: text("type").default("fournisseur"),           // fournisseur | sous-traitant | prestataire
+  country: text("country"),
+  city: text("city"),
+  rccm: text("rccm"),                                   // registre commerce
+  mobileMoney: text("mobile_money"),
+  bankName: text("bank_name"),
+  bankAccountNumber: text("bank_account_number"),
+  notes: text("notes"),
+  status: text("status").default("actif"),              // actif | inactif | a_verifier | suspendu
   // compte comptable auxiliaire (ex: 401001) — facultatif, sinon 401
   accountId: uuid("account_id").references(() => chartOfAccountsTable.id),
   isActive: boolean("is_active").notNull().default(true),

@@ -165,6 +165,14 @@ const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
 const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
 const ManagementPDFPage = lazy(() => import("@/pages/reports/management-pdf"));
 const MigrationPage = lazy(() => import("@/pages/migration/index"));
+const AchatsOverview = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Vue d'ensemble Achats" description="Le tableau de bord achats avec KPI et tunnel AP sera disponible prochainement." />; } })));
+const AchatsFournisseurs = lazy(() => import("@/pages/achats/fournisseurs"));
+const AchatsFactures = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Factures fournisseurs" description="La gestion des factures fournisseurs sera disponible prochainement." />; } })));
+const AchatsBonsCommande = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Bons de commande" description="La gestion des bons de commande sera disponible prochainement." />; } })));
+const AchatsPaiements = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Paiements fournisseurs" description="La gestion des paiements fournisseurs sera disponible prochainement." />; } })));
+const AchatsDepenses = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Dépenses" description="La gestion des notes de frais et dépenses sera disponible prochainement." />; } })));
+const AchatsApprobations = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Approbations" description="La file d'approbations des achats sera disponible prochainement." />; } })));
+const AchatsRapports = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Rapports Achats" description="Les rapports et exports Achats seront disponibles prochainement." />; } })));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -393,6 +401,15 @@ function AppRouter() {
                 <Route path="/billing" component={BillingPage} />
                 <Route path="/workspace-settings" component={WorkspaceSettingsPage} />
                 <Route path="/upgrade-required" component={UpgradeRequiredPage} />
+
+                <Route path="/achats" component={AchatsOverview} />
+                <Route path="/achats/fournisseurs" component={AchatsFournisseurs} />
+                <Route path="/achats/factures" component={AchatsFactures} />
+                <Route path="/achats/bons-de-commande" component={AchatsBonsCommande} />
+                <Route path="/achats/paiements" component={AchatsPaiements} />
+                <Route path="/achats/depenses" component={AchatsDepenses} />
+                <Route path="/achats/approbations" component={AchatsApprobations} />
+                <Route path="/achats/rapports" component={AchatsRapports} />
 
                 <Route component={NotFound} />
               </Switch>

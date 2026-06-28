@@ -87,6 +87,20 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "Achats",
+    icon: ShoppingCart,
+    items: [
+      { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, permissionKey: "purchases.read" },
+      { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       permissionKey: "purchases.read" },
+      { name: "Factures",             path: "/achats/factures",           icon: FileText,        permissionKey: "purchases.read" },
+      { name: "Bons de commande",     path: "/achats/bons-de-commande",   icon: ClipboardCheck,  permissionKey: "purchases.read" },
+      { name: "Paiements",            path: "/achats/paiements",          icon: CreditCard,      permissionKey: "purchases.pay" },
+      { name: "Dépenses",             path: "/achats/depenses",           icon: Banknote,        permissionKey: "purchases.read",  secondary: true },
+      { name: "Approbations",         path: "/achats/approbations",       icon: CheckSquare,     permissionKey: "purchases.approve", secondary: true },
+      { name: "Rapports",             path: "/achats/rapports",           icon: BarChart3,       permissionKey: "purchases.read",  secondary: true },
+    ],
+  },
+  {
     title: "Finance",
     icon: Landmark,
     items: [
