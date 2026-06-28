@@ -71,6 +71,8 @@ export default function LoginPage() {
     }
   }, []);
 
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+
   // OTP input — 6 chiffres individuels
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([null, null, null, null, null, null]);
@@ -101,7 +103,13 @@ export default function LoginPage() {
         setTempToken(json.tempToken);
         setPendingEmail(data.email);
         setStep("2fa");
-        setOtp(["", "", "", "", "", ""]);
+        if (json.devOtp) {
+          setDevOtp(json.devOtp);
+          setOtp(json.devOtp.split(""));
+        } else {
+          setDevOtp(null);
+          setOtp(["", "", "", "", "", ""]);
+        }
         setTimeout(() => otpRefs.current[0]?.focus(), 100);
         return;
       }
@@ -451,6 +459,14 @@ export default function LoginPage() {
                     <br />Valide 10 minutes.
                   </p>
                 </div>
+
+                {devOtp && (
+                  <div className="mb-4 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium"
+                    style={{ background: "rgba(234,179,8,0.10)", border: "1px solid rgba(234,179,8,0.35)", color: "#92400e" }}>
+                    <span className="text-base">🛠️</span>
+                    <span>Mode dev — code pré-rempli&nbsp;: <strong className="font-mono tracking-widest">{devOtp}</strong></span>
+                  </div>
+                )}
 
                 <div className="rounded-2xl p-7"
                   style={{ background: "#FFFFFF", boxShadow: "0 1px 3px rgba(8,14,28,0.06), 0 8px 32px rgba(8,14,28,0.07), 0 0 0 1px rgba(8,14,28,0.055)" }}>

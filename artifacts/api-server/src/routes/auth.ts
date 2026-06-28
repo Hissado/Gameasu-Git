@@ -177,7 +177,10 @@ router.post("/auth/login", async (req, res) => {
     { entityType: "user", entityId: user.id },
   );
 
-  return res.json({ status: "2fa_required", tempToken });
+  // En développement, exposer le code OTP dans la réponse pour éviter d'avoir besoin d'un vrai serveur mail
+  const devOtp = process.env.NODE_ENV !== "production" ? code : undefined;
+
+  return res.json({ status: "2fa_required", tempToken, ...(devOtp ? { devOtp } : {}) });
 });
 
 // Anti-bruteforce OTP : nombre d'échecs de vérification par tempToken (en mémoire).
