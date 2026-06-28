@@ -94,7 +94,7 @@ const PurchaseOrderCreateSchema = z.object({
   notes: z.string().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   lines: z.array(z.object({
-    productId: z.string().uuid("ID produit invalide"),
+    productId: z.string().uuid("ID produit invalide").optional().nullable(),
     description: z.string().min(1, "Description requise"),
     quantity: z.coerce.number().positive(),
     unitPrice: z.coerce.number().min(0),
@@ -351,7 +351,7 @@ router.delete("/purchases/suppliers/:id", requirePermission("purchases.write"), 
 
 router.get("/purchases/invoices", requirePermission("purchases.read"), async (req, res) => {
   try {
-    const { status, supplierId, search, purchaseOrderId, projectId, dateFrom, dateTo, dueBefore, dueAfter, limit = "50", offset = "0" } = req.query as Record<string, string>;
+    const { status, supplierId, search, purchaseOrderId, projectId, dateFrom, dateTo, dueBefore, dueAfter, minAmount, maxAmount, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
     const conds = [eq(supplierInvoicesTable.organizationId, orgId)];
     if (status) conds.push(eq(supplierInvoicesTable.status, status));
@@ -362,6 +362,8 @@ router.get("/purchases/invoices", requirePermission("purchases.read"), async (re
     if (dateTo) conds.push(sql`${supplierInvoicesTable.invoiceDate} <= ${dateTo}`);
     if (dueBefore) conds.push(sql`${supplierInvoicesTable.dueDate} <= ${dueBefore}`);
     if (dueAfter) conds.push(sql`${supplierInvoicesTable.dueDate} >= ${dueAfter}`);
+    if (minAmount) conds.push(sql`${supplierInvoicesTable.totalAmount}::numeric >= ${Number(minAmount)}`);
+    if (maxAmount) conds.push(sql`${supplierInvoicesTable.totalAmount}::numeric <= ${Number(maxAmount)}`);
     if (search) {
       conds.push(or(
         ilike(supplierInvoicesTable.referenceNumber, `%${search}%`),
@@ -625,12 +627,14 @@ router.post("/purchases/invoices/:id/lines", requirePermission("purchases.write"
 
 router.get("/purchases/purchase-orders", requirePermission("purchases.read"), async (req, res) => {
   try {
-    const { status, supplierId, search, limit = "50", offset = "0" } = req.query as Record<string, string>;
+    const { status, supplierId, search, limit = "50", offset = "0", dateFrom, dateTo } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
     const conds = [eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)];
     if (status) conds.push(eq(purchaseOrdersTable.status, status));
     if (supplierId) conds.push(eq(purchaseOrdersTable.supplierId, supplierId));
     if (search) conds.push(ilike(purchaseOrdersTable.reference, `%${search}%`));
+    if (dateFrom) conds.push(sql`${purchaseOrdersTable.orderDate}::date >= ${dateFrom}::date`);
+    if (dateTo) conds.push(sql`${purchaseOrdersTable.orderDate}::date <= ${dateTo}::date`);
 
     const [rows, countResult] = await Promise.all([
       db.select({
@@ -675,13 +679,16 @@ router.post("/purchases/purchase-orders", requirePermission("purchases.write"), 
     if (!poSupplier) return res.status(400).json({ error: "Fournisseur introuvable ou non autorisé" });
 
     if (data.lines.length > 0) {
-      const productIds = data.lines.map((l) => l.productId);
-      const validProducts = await db.select({ id: productsTable.id })
-        .from(productsTable)
-        .where(and(inArray(productsTable.id, productIds), eq(productsTable.organizationId, orgId)));
-      const validSet = new Set(validProducts.map((p) => p.id));
-      const invalid = productIds.find((pid) => !validSet.has(pid));
-      if (invalid) return res.status(400).json({ error: "Produit introuvable ou non autorisé" });
+      // Only validate non-null productIds
+      const productIds = data.lines.map((l) => l.productId).filter((pid): pid is string => !!pid);
+      if (productIds.length > 0) {
+        const validProducts = await db.select({ id: productsTable.id })
+          .from(productsTable)
+          .where(and(inArray(productsTable.id, productIds), eq(productsTable.organizationId, orgId)));
+        const validSet = new Set(validProducts.map((p) => p.id));
+        const invalid = productIds.find((pid) => !validSet.has(pid));
+        if (invalid) return res.status(400).json({ error: "Produit introuvable ou non autorisé" });
+      }
     }
 
     const reference = await nextPoReference(orgId);
@@ -703,7 +710,7 @@ router.post("/purchases/purchase-orders", requirePermission("purchases.write"), 
         data.lines.map((l) => ({
           organizationId: orgId,
           purchaseOrderId: po.id,
-          productId: l.productId,
+          productId: l.productId ?? null,
           description: l.description,
           quantity: String(l.quantity),
           unitPriceFcfa: String(l.unitPrice),
@@ -861,6 +868,14 @@ router.post("/purchases/payments", requirePermission("purchases.pay"), async (re
       .where(and(eq(supplierInvoicesTable.id, data.supplierInvoiceId), eq(supplierInvoicesTable.organizationId, orgId)));
     if (!invoice) return res.status(404).json({ error: "Facture introuvable" });
 
+    // Validate bankAccountId belongs to org
+    const bankAccId = (data as any).bankAccountId ?? null;
+    if (bankAccId) {
+      const [ba] = await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable)
+        .where(and(eq(bankAccountsTable.id, bankAccId), eq(bankAccountsTable.organizationId, orgId)));
+      if (!ba) return res.status(400).json({ error: "Compte bancaire introuvable ou non autorisé" });
+    }
+
     const [payment] = await db.insert(supplierPaymentsTable).values({
       organizationId: orgId,
       supplierInvoiceId: data.supplierInvoiceId,
@@ -868,7 +883,7 @@ router.post("/purchases/payments", requirePermission("purchases.pay"), async (re
       method: data.paymentMethod ?? "virement",
       reference: data.reference ?? null,
       status: data.paymentStatus ?? "confirme",
-      bankAccountId: (data as any).bankAccountId ?? null,
+      bankAccountId: bankAccId,
       paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
       notes: data.notes ?? null,
     }).returning();
@@ -908,6 +923,13 @@ router.post("/purchases/payments/multi", requirePermission("purchases.pay"), asy
     const parsed = Schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
     const data = parsed.data;
+
+    // Validate bankAccountId belongs to org
+    if (data.bankAccountId) {
+      const [ba] = await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable)
+        .where(and(eq(bankAccountsTable.id, data.bankAccountId), eq(bankAccountsTable.organizationId, orgId)));
+      if (!ba) return res.status(400).json({ error: "Compte bancaire introuvable ou non autorisé" });
+    }
 
     // Fetch and sort invoices by invoiceDate ASC (oldest first)
     const invoices = await db.select().from(supplierInvoicesTable)

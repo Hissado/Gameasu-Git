@@ -539,6 +539,9 @@ export default function AchatsFactures() {
   const [filterSupplier, setFilterSupplier] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [filterOverdue, setFilterOverdue] = useState(false);
   const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
   const [bcPrefill, setBcPrefill] = useState<Partial<{ supplierId: string; totalAmount: string; purchaseOrderId: string }> | undefined>();
@@ -552,17 +555,20 @@ export default function AchatsFactures() {
   }, [fromBcId]);
 
   // Reset to page 0 whenever filters change
-  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo]);
+  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue]);
 
   const qParams: Record<string, string> = { limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) };
   if (filterStatus !== "all") qParams.status = filterStatus;
+  else if (filterOverdue) qParams.status = "overdue";
   if (filterSupplier !== "all") qParams.supplierId = filterSupplier;
   if (searchQ) qParams.search = searchQ;
   if (dateFrom) qParams.dateFrom = dateFrom;
   if (dateTo) qParams.dateTo = dateTo;
+  if (minAmount) qParams.minAmount = minAmount;
+  if (maxAmount) qParams.maxAmount = maxAmount;
 
   const { data: res, isLoading } = useQuery<{ data: Invoice[]; total: number }>({
-    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, page],
+    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue, page],
     queryFn: () => apiFetch("/api/purchases/invoices?" + new URLSearchParams(qParams).toString()),
   });
   const invoices = res?.data ?? [];
@@ -625,8 +631,21 @@ export default function AchatsFactures() {
           <span className="text-muted-foreground text-xs px-1">→</span>
           <Input type="date" className="w-36 text-xs" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Date facture au" />
         </div>
-        {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterStatus("all"); setFilterSupplier("all"); setSearchQ(""); setDateFrom(""); setDateTo(""); }}>Effacer</Button>
+        <div className="flex items-center gap-1">
+          <Input type="number" min="0" className="w-28 text-xs" placeholder="Min FCFA" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} title="Montant minimum" />
+          <span className="text-muted-foreground text-xs px-1">–</span>
+          <Input type="number" min="0" className="w-28 text-xs" placeholder="Max FCFA" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} title="Montant maximum" />
+        </div>
+        <Button
+          size="sm"
+          variant={filterOverdue ? "default" : "outline"}
+          onClick={() => setFilterOverdue(o => !o)}
+          className={filterOverdue ? "bg-red-600 hover:bg-red-700 text-white gap-1" : "gap-1 text-red-600 border-red-200"}
+        >
+          <AlertTriangle className="w-3.5 h-3.5" /> En retard
+        </Button>
+        {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo || minAmount || maxAmount || filterOverdue) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterStatus("all"); setFilterSupplier("all"); setSearchQ(""); setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); setFilterOverdue(false); }}>Effacer</Button>
         )}
       </div>
 
@@ -640,6 +659,7 @@ export default function AchatsFactures() {
                 <TableHead>Fournisseur</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Échéance</TableHead>
+                <TableHead>Retard</TableHead>
                 <TableHead className="text-right">Montant HT</TableHead>
                 <TableHead className="text-right">Payé</TableHead>
                 <TableHead className="text-right">Solde</TableHead>
@@ -649,23 +669,22 @@ export default function AchatsFactures() {
             </TableHeader>
             <TableBody>
               {isLoading && [1,2,3,4].map(i => (
-                <TableRow key={i}>{[1,2,3,4,5,6,7,8,9].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                <TableRow key={i}>{[1,2,3,4,5,6,7,8,9,10].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
               ))}
               {!isLoading && invoices.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Aucune facture trouvée.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Aucune facture trouvée.</TableCell></TableRow>
               )}
               {invoices.map(inv => (
                 <TableRow key={inv.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(inv.id)}>
                   <TableCell className="font-mono text-sm font-medium">{inv.referenceNumber}</TableCell>
                   <TableCell className="text-sm">{inv.supplierName ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(inv.invoiceDate)}</TableCell>
-                  <TableCell className="text-sm">
-                    {inv.dueDate ? (
-                      <span className={inv.isOverdue ? "text-red-600 font-medium flex items-center gap-1" : "text-muted-foreground"}>
-                        {inv.isOverdue && <AlertTriangle className="w-3 h-3 shrink-0" />}
-                        {formatDate(inv.dueDate)}
-                      </span>
-                    ) : "—"}
+                  <TableCell className="text-sm text-muted-foreground">{inv.dueDate ? formatDate(inv.dueDate) : "—"}</TableCell>
+                  <TableCell>
+                    {inv.isOverdue
+                      ? <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200 gap-1"><AlertTriangle className="w-3 h-3" />En retard</Badge>
+                      : <span className="text-xs text-muted-foreground">—</span>
+                    }
                   </TableCell>
                   <TableCell className="text-right font-medium">{formatFCFA(Number(inv.totalAmount))}</TableCell>
                   <TableCell className="text-right text-emerald-700">{formatFCFA(Number(inv.paidAmount))}</TableCell>
