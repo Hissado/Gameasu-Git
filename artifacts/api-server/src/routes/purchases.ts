@@ -13,7 +13,7 @@ import {
   purchaseOrderLinesTable,
   productsTable,
 } from "@workspace/db";
-import { expenseReportsTable, expenseItemsTable, collaboratorsTable, organizationsTable } from "@workspace/db";
+import { expenseReportsTable, expenseItemsTable, collaboratorsTable, organizationsTable, organizationModulesTable } from "@workspace/db";
 import { ExcelReportBuilder } from "../lib/excel-engine";
 import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql, inArray, ne } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
@@ -1394,7 +1394,7 @@ router.get("/purchases/reports/aging", requirePermission("purchases.read"), asyn
 router.get("/purchases/reports/by-period", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { supplierId, periodFrom, periodTo } = req.query as Record<string, string>;
+    const { supplierId, periodFrom, periodTo, projectId, category } = req.query as Record<string, string>;
 
     const conds = [
       eq(supplierPaymentsTable.organizationId, orgId),
@@ -1406,6 +1406,12 @@ router.get("/purchases/reports/by-period", requirePermission("purchases.read"), 
     if (periodTo) conds.push(sql`${supplierPaymentsTable.paidAt}::date <= ${periodTo}::date`);
     if (supplierId) conds.push(
       sql`EXISTS (SELECT 1 FROM supplier_invoices si WHERE si.id = ${supplierPaymentsTable.supplierInvoiceId} AND si.supplier_id = ${supplierId})`
+    );
+    if (projectId) conds.push(
+      sql`EXISTS (SELECT 1 FROM supplier_invoices si WHERE si.id = ${supplierPaymentsTable.supplierInvoiceId} AND si.project_id = ${projectId})`
+    );
+    if (category) conds.push(
+      sql`EXISTS (SELECT 1 FROM supplier_invoices si WHERE si.id = ${supplierPaymentsTable.supplierInvoiceId} AND si.category = ${category})`
     );
 
     const rows = await db.select({
@@ -2055,6 +2061,44 @@ router.get("/purchases/reports/:type/export.xlsx", requirePermission("purchases.
   } catch (e: any) {
     req.log.error(e, "purchases/reports/:type/export.xlsx GET");
     if (!res.headersSent) return res.status(500).json({ error: "Erreur génération Excel" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// PURCHASES SETTINGS — seuil d'approbation
+// ════════════════════════════════════════════════════════════════
+
+const DEFAULT_THRESHOLD = 500_000;
+
+router.get("/purchases/settings/threshold", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [row] = await db.select({ config: organizationModulesTable.config })
+      .from(organizationModulesTable)
+      .where(and(eq(organizationModulesTable.organizationId, orgId), eq(organizationModulesTable.moduleKey, "purchases")));
+    const cfg = row?.config as Record<string, unknown> | null | undefined;
+    const threshold = typeof cfg?.approvalThreshold === "number" ? cfg.approvalThreshold : DEFAULT_THRESHOLD;
+    return res.json({ approvalThreshold: threshold });
+  } catch (e: any) {
+    req.log.error(e, "purchases/settings/threshold GET");
+    return res.status(500).json({ error: "Erreur lecture seuil" });
+  }
+});
+
+router.put("/purchases/settings/threshold", requirePermission("purchases.manage"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { approvalThreshold } = z.object({ approvalThreshold: z.number().min(0) }).parse(req.body);
+    await db.insert(organizationModulesTable)
+      .values({ organizationId: orgId, moduleKey: "purchases", config: { approvalThreshold } as Record<string, unknown> })
+      .onConflictDoUpdate({
+        target: [organizationModulesTable.organizationId, organizationModulesTable.moduleKey],
+        set: { config: sql`COALESCE(${organizationModulesTable.config}, '{}'::jsonb) || ${JSON.stringify({ approvalThreshold })}::jsonb` },
+      });
+    return res.json({ approvalThreshold });
+  } catch (e: any) {
+    req.log.error(e, "purchases/settings/threshold PUT");
+    if (!res.headersSent) return res.status(400).json({ error: "Paramètre invalide" });
   }
 });
 

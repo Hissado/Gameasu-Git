@@ -135,6 +135,8 @@ export default function RapportsAchatsPage() {
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
   const [periodSupplierId, setPeriodSupplierId] = useState("");
+  const [periodProjectId, setPeriodProjectId] = useState("");
+  const [periodCategory, setPeriodCategory] = useState("");
 
   const agingQ = useQuery<AgingData>({
     queryKey: ["purchases-aging"],
@@ -143,15 +145,23 @@ export default function RapportsAchatsPage() {
   });
 
   const periodQ = useQuery<{ data: PeriodRow[] }>({
-    queryKey: ["purchases-by-period", periodFrom, periodTo, periodSupplierId],
+    queryKey: ["purchases-by-period", periodFrom, periodTo, periodSupplierId, periodProjectId, periodCategory],
     queryFn: () => {
       const p = new URLSearchParams();
       if (periodFrom) p.set("periodFrom", periodFrom);
       if (periodTo) p.set("periodTo", periodTo);
       if (periodSupplierId) p.set("supplierId", periodSupplierId);
+      if (periodProjectId) p.set("projectId", periodProjectId);
+      if (periodCategory) p.set("category", periodCategory);
       return apiFetch(`/api/purchases/reports/by-period${p.toString() ? `?${p}` : ""}`);
     },
     enabled: activeTab === "period",
+  });
+
+  // Projets list for period filter
+  const projectsListQ = useQuery<{ data: Array<{ id: string; name: string }> }>({
+    queryKey: ["projects-list-for-period"],
+    queryFn: () => apiFetch("/api/projects?limit=100"),
   });
 
   const supplierQ = useQuery<{ data: SupplierRow[] }>({
@@ -316,8 +326,34 @@ export default function RapportsAchatsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {(periodFrom || periodTo || periodSupplierId) && (
-                  <Button variant="ghost" size="sm" className="h-8 text-xs mt-4" onClick={() => { setPeriodFrom(""); setPeriodTo(""); setPeriodSupplierId(""); }}>
+                <div>
+                  <Label className="text-xs text-slate-500">Projet</Label>
+                  <Select value={periodProjectId || "all"} onValueChange={v => setPeriodProjectId(v === "all" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs mt-0.5 w-44"><SelectValue placeholder="Tous" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les projets</SelectItem>
+                      {(projectsListQ.data?.data ?? []).map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Catégorie</Label>
+                  <Select value={periodCategory || "all"} onValueChange={v => setPeriodCategory(v === "all" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs mt-0.5 w-40"><SelectValue placeholder="Toutes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes catégories</SelectItem>
+                      <SelectItem value="utilities">Services publics</SelectItem>
+                      <SelectItem value="services">Prestations</SelectItem>
+                      <SelectItem value="materials">Matériaux</SelectItem>
+                      <SelectItem value="transport">Transport</SelectItem>
+                      <SelectItem value="other">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(periodFrom || periodTo || periodSupplierId || periodProjectId || periodCategory) && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs mt-4" onClick={() => { setPeriodFrom(""); setPeriodTo(""); setPeriodSupplierId(""); setPeriodProjectId(""); setPeriodCategory(""); }}>
                     Réinitialiser
                   </Button>
                 )}

@@ -171,6 +171,8 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
   projectId: uuid("project_id").references(() => projectsTable.id),
   // FK optionnel vers le bon de commande source (pas de contrainte FK pour éviter la dépendance circulaire avec inventory.ts)
   purchaseOrderId: uuid("purchase_order_id"),
+  // Catégorie comptable / analytique (utilities | services | materials | transport | other)
+  category: text("category"),
   // draft | review | awaiting_approval | approved | pending | partially_paid | paid | overdue | cancelled
   status: text("status").notNull().default("pending"),
   invoiceDate: text("invoice_date").notNull(),

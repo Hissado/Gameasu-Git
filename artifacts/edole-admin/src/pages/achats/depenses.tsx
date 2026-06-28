@@ -43,11 +43,13 @@ type Collaborator = { id: string; firstName: string; lastName: string; departmen
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:     { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
-  submitted: { label: "Soumis",     cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  approved:  { label: "Approuvé",   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  rejected:  { label: "Refusé",     cls: "bg-red-50 text-red-700 border-red-200" },
-  paid:      { label: "Payé",       cls: "bg-green-50 text-green-700 border-green-200" },
+  draft:      { label: "Brouillon",   cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  submitted:  { label: "Soumis",      cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  en_revision:{ label: "En révision", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  approved:   { label: "Approuvé",    cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  rejected:   { label: "Refusé",      cls: "bg-red-50 text-red-700 border-red-200" },
+  paid:       { label: "Remboursé",   cls: "bg-green-50 text-green-700 border-green-200" },
+  rembourse:  { label: "Remboursé",   cls: "bg-green-50 text-green-700 border-green-200" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -56,8 +58,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const EXPENSE_CATEGORIES = [
-  "transport", "hébergement", "restauration", "formation",
-  "matériel", "communication", "représentation", "autre",
+  "transport", "hébergement", "repas", "fournitures",
+  "téléphone", "sous-traitance", "autres",
 ];
 
 // ─── Ligne de dépense locale (avant soumission) ───────────────────────────────

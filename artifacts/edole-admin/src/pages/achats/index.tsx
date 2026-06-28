@@ -308,7 +308,7 @@ export default function AchatsOverview() {
               </div>
             ) : (
               <div className="divide-y">
-                {urgent.slice(0, 7).map(inv => (
+                {urgent.slice(0, 5).map(inv => (
                   <div key={inv.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors ${inv.isOverdue ? "bg-red-50/30" : ""}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -342,27 +342,28 @@ export default function AchatsOverview() {
               </Link>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="pt-0 pb-2">
             {bySupplier.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-6">Aucun fournisseur</p>
-            ) : bySupplier.map(s => {
-              const pct = s.totalInvoiced > 0 ? (s.totalPaid / s.totalInvoiced) * 100 : 0;
-              return (
-                <div key={s.supplierId} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-slate-700 truncate max-w-[55%]">{s.supplierName}</span>
-                    <span className="text-slate-500">{formatFCFA(s.totalInvoiced)} · {s.invoiceCount} fact.</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-[#F37021]" style={{ width: `${Math.min(100, pct)}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Payé {pct.toFixed(0)}%</span>
-                    <span className="text-[#F37021] font-medium">Solde {formatFCFA(s.balance)}</span>
-                  </div>
-                </div>
-              );
-            })}
+            ) : (
+              <ResponsiveContainer width="100%" height={bySupplier.slice(0, 5).length * 36 + 16}>
+                <BarChart
+                  layout="vertical"
+                  data={bySupplier.slice(0, 5).map(s => ({
+                    name: s.supplierName && s.supplierName.length > 18 ? s.supplierName.slice(0, 18) + "…" : (s.supplierName ?? "—"),
+                    Facturé: s.totalInvoiced,
+                    Solde: s.balance,
+                  }))}
+                  margin={{ top: 4, right: 8, left: 4, bottom: 4 }}
+                >
+                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={v => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
+                  <Tooltip formatter={(v: number) => [formatFCFA(v)]} />
+                  <Bar dataKey="Facturé" fill="#F37021" radius={[0, 3, 3, 0]} barSize={12} />
+                  <Bar dataKey="Solde" fill="#94a3b8" radius={[0, 3, 3, 0]} barSize={12} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

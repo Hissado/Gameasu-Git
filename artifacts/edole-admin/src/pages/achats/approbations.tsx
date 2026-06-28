@@ -317,8 +317,13 @@ export default function ApprobationsPage() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-approvals"] });
 
+  const thresholdQ = useQuery<{ approvalThreshold: number }>({
+    queryKey: ["purchases-threshold"],
+    queryFn: () => apiFetch("/api/purchases/settings/threshold"),
+  });
+
   const [urgentOnly, setUrgentOnly] = useState(false);
-  const [amountThreshold, setAmountThreshold] = useState(500_000);
+  const amountThreshold = thresholdQ.data?.approvalThreshold ?? 500_000;
 
   const allInvoices = data?.invoices ?? [];
   const allPos = data?.purchaseOrders ?? [];
