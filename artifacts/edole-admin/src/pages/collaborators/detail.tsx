@@ -1071,6 +1071,7 @@ export default function CollaboratorDetail() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
     queryKey: ["collab-sidebar-list", user?.id],
     queryFn: () => apiFetch("/api/collaborators?limit=500"),
@@ -1105,7 +1106,7 @@ export default function CollaboratorDetail() {
     ).entries()
   ).map(([id, name]) => ({ id, name }));
 
-  const filteredCollabs = allCollabs.filter(c => {
+  const filteredCollabs = React.useMemo(() => allCollabs.filter(c => {
     if (sidebarSearch.trim()) {
       const q = sidebarSearch.toLowerCase();
       const match = [c.firstName, c.lastName, c.position, c.department, c.email]
@@ -1136,7 +1137,7 @@ export default function CollaboratorDetail() {
     }
 
     return true;
-  });
+  }), [allCollabs, sidebarSearch, sidebarDeptFilter, sidebarStatusFilter]);
 
   const sortedCollabs = React.useMemo(() => {
     const arr = [...filteredCollabs];
@@ -1166,11 +1167,47 @@ export default function CollaboratorDetail() {
 
   // ─── Keyboard navigation ──────────────────────────────────────────────────
 
+  // Reset focused index whenever the search query or active filters/sort change
+  useEffect(() => { setFocusedIndex(-1); }, [sidebarSearch, sidebarStatusFilter, sidebarDeptFilter, sidebarSort]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex < 0 || !listRef.current) return;
+    const focused = listRef.current.querySelector<HTMLElement>(`[data-collab-index="${focusedIndex}"]`);
+    if (focused) focused.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [focusedIndex]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       const isInInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable;
+      const isInSearchInput = e.target === searchInputRef.current;
 
+      // Arrow keys while search input is focused — move focused highlight without leaving the input
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && isInSearchInput) {
+        e.preventDefault();
+        setFocusedIndex(prev => {
+          if (e.key === "ArrowDown") {
+            return prev < sortedCollabs.length - 1 ? prev + 1 : prev;
+          } else {
+            return prev > 0 ? prev - 1 : 0;
+          }
+        });
+        return;
+      }
+
+      // Enter while search input is focused — navigate to focused item
+      if (e.key === "Enter" && isInSearchInput) {
+        const target = focusedIndex >= 0 ? sortedCollabs[focusedIndex] : (sortedCollabs.length === 1 ? sortedCollabs[0] : null);
+        if (target) {
+          e.preventDefault();
+          navigate(`/collaborators/${target.id}${searchString ? `?${searchString}` : ""}`);
+          searchInputRef.current?.blur();
+        }
+        return;
+      }
+
+      // Arrow keys outside any input — navigate directly between profiles (existing behaviour)
       if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !isInInput) {
         e.preventDefault();
         const currentIndex = sortedCollabs.findIndex(c => c.id === id);
@@ -1187,9 +1224,10 @@ export default function CollaboratorDetail() {
         return;
       }
 
-      if (e.key === "Escape" && isInInput && e.target === searchInputRef.current) {
+      if (e.key === "Escape" && isInSearchInput) {
         e.preventDefault();
         setSidebarSearch("");
+        setFocusedIndex(-1);
         searchInputRef.current?.blur();
         return;
       }
@@ -1204,7 +1242,7 @@ export default function CollaboratorDetail() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [sortedCollabs, id, navigate]);
+  }, [sortedCollabs, id, navigate, focusedIndex, sidebarSearch, searchString]);
 
   useEffect(() => {
     if (!id || !listRef.current) return;
@@ -1508,19 +1546,23 @@ export default function CollaboratorDetail() {
               <p className="text-sm">Aucun résultat</p>
             </div>
           )}
-          {sortedCollabs.map(c => {
+          {sortedCollabs.map((c, idx) => {
             const status = getCollabStatus(c);
             const initials = `${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase();
             const isSelected = c.id === id;
+            const isFocused = idx === focusedIndex;
             return (
               <Link key={c.id} href={`/collaborators/${c.id}${searchString ? `?${searchString}` : ""}`}>
                 <div
                   data-collab-id={c.id}
+                  data-collab-index={idx}
                   onClick={() => setMobileSidebarOpen(false)}
                   className={`
                     flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-all duration-150
                     ${isSelected
                       ? "bg-teal-50 dark:bg-teal-900/20 border-l-2 border-teal-600"
+                      : isFocused
+                      ? "bg-muted/80 dark:bg-muted/50 border-l-2 border-teal-400"
                       : "hover:bg-muted/60 border-l-2 border-transparent"}
                   `}
                 >
@@ -1534,7 +1576,7 @@ export default function CollaboratorDetail() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-semibold truncate leading-tight ${isSelected ? "text-teal-700 dark:text-teal-400" : "text-foreground"}`}>
+                    <p className={`text-[13px] font-semibold truncate leading-tight ${isSelected ? "text-teal-700 dark:text-teal-400" : isFocused ? "text-teal-600 dark:text-teal-300" : "text-foreground"}`}>
                       {c.firstName} {c.lastName}
                     </p>
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -1558,6 +1600,10 @@ export default function CollaboratorDetail() {
             <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">↑</kbd>
             <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">↓</kbd>
             naviguer
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">↵</kbd>
+            ouvrir
           </span>
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-px rounded bg-muted border border-border font-mono">/</kbd>
