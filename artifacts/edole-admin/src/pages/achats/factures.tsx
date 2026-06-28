@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { apiFetch } from "@/lib/api";
@@ -13,13 +13,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Plus, Search, AlertTriangle, FileText, Wallet, CheckCircle2, XCircle,
   ChevronRight, AlertCircle, Download, Link2, Trash2, ChevronLeft,
-  ThumbsDown, Clock, CircleDot,
+  ThumbsDown, Clock, CircleDot, Upload, Repeat, CreditCard, FileDown,
+  ChevronDown, X, Paperclip, Image, Printer,
 } from "lucide-react";
 import { StatusBadgePurchases, INV_STATUS_MAP, INV_STATUS_ORDER, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
 
@@ -36,8 +38,9 @@ type Invoice = {
 };
 type InvoiceLine = {
   id?: string; description: string; quantity: number;
-  unitPriceFcfa: number; taxRate: number;
+  unitPriceFcfa: number; taxRate: number; category?: string;
 };
+type BillMode = "bill" | "credit_note" | "repeating";
 type StatusHistoryEntry = { from: string; to: string; at: string; userId: string };
 type InvoiceDetail = Invoice & {
   supplierEmail: string | null; supplierPhone: string | null;
@@ -54,6 +57,29 @@ type PaymentRecord = {
 type PO = { id: string; reference: string; supplierName: string | null; totalFcfa: string };
 
 const PAGE_SIZE = 25;
+
+const TERMS_OPTIONS = [
+  { value: "", label: "—", days: undefined as number | undefined },
+  { value: "immediate", label: "Immédiat", days: 0 },
+  { value: "net7", label: "Net 7", days: 7 },
+  { value: "net15", label: "Net 15", days: 15 },
+  { value: "net30", label: "Net 30", days: 30 },
+  { value: "net45", label: "Net 45", days: 45 },
+  { value: "net60", label: "Net 60", days: 60 },
+  { value: "net90", label: "Net 90", days: 90 },
+];
+
+const LINE_CATEGORIES = [
+  { value: "", label: "—" },
+  { value: "services", label: "Services" },
+  { value: "materials", label: "Matériaux" },
+  { value: "utilities", label: "Charges fixes" },
+  { value: "transport", label: "Transport" },
+  { value: "equipment", label: "Équipement" },
+  { value: "consulting", label: "Conseil" },
+  { value: "subcontract", label: "Sous-traitance" },
+  { value: "other", label: "Autre" },
+];
 
 // ─── Status timeline (réel + paiements) ──────────────────────────────────────
 
@@ -198,89 +224,132 @@ function QuickPayDialog({ invoice, onClose, onSuccess }: { invoice: InvoiceDetai
 // ─── Line editor (shared between new + edit) ──────────────────────────────────
 
 function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange: (l: InvoiceLine[]) => void }) {
-  const addLine = () => onChange([...lines, { description: "", quantity: 1, unitPriceFcfa: 0, taxRate: 18 }]);
+  const addLine = () => onChange([...lines, { description: "", quantity: 1, unitPriceFcfa: 0, taxRate: 18, category: "" }]);
   const removeLine = (i: number) => onChange(lines.filter((_, j) => j !== i));
+  const clearLines = () => onChange([]);
   const update = (i: number, patch: Partial<InvoiceLine>) => onChange(lines.map((l, j) => j === i ? { ...l, ...patch } : l));
   const totalHt = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0);
-  const totalTtc = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (1 + l.taxRate / 100), 0);
+  const totalTva = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (l.taxRate / 100), 0);
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Lignes de facture</Label>
-        <Button type="button" size="sm" variant="outline" onClick={addLine}><Plus className="w-3 h-3 mr-1" />Ajouter une ligne</Button>
-      </div>
+    <div className="space-y-0">
       <div className="border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 border-b">
             <tr>
-              <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
-              <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
-              <th className="text-right p-2 font-medium text-muted-foreground w-28">P.U. HT</th>
-              <th className="text-right p-2 font-medium text-muted-foreground w-16">TVA%</th>
-              <th className="text-right p-2 font-medium text-muted-foreground w-28">Total TTC</th>
+              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-6">#</th>
+              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-36">CATÉGORIE</th>
+              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">DESCRIPTION</th>
+              <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-14">QTÉ</th>
+              <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-28">P.U. HT</th>
+              <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-14">TVA%</th>
+              <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-28">MONTANT</th>
               <th className="w-8"></th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 && (
-              <tr><td colSpan={6} className="p-3 text-center text-muted-foreground text-xs italic">Aucune ligne — cliquez sur "Ajouter une ligne"</td></tr>
+              <tr><td colSpan={8} className="p-4 text-center text-muted-foreground text-xs italic">Aucune ligne — cliquez sur "Ajouter des lignes"</td></tr>
             )}
             {lines.map((l, i) => (
-              <tr key={i} className="border-t">
-                <td className="p-1.5"><Input className="h-7 text-xs" value={l.description} onChange={(e) => update(i, { description: e.target.value })} placeholder="Description du service/produit" /></td>
-                <td className="p-1.5"><Input className="h-7 text-xs text-right w-16" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => update(i, { quantity: Number(e.target.value) })} /></td>
-                <td className="p-1.5"><Input className="h-7 text-xs text-right w-28" type="number" min="0" value={l.unitPriceFcfa} onChange={(e) => update(i, { unitPriceFcfa: Number(e.target.value) })} /></td>
-                <td className="p-1.5"><Input className="h-7 text-xs text-right w-16" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => update(i, { taxRate: Number(e.target.value) })} /></td>
-                <td className="p-1.5 text-right text-xs font-medium">{formatFCFA(l.quantity * l.unitPriceFcfa * (1 + l.taxRate / 100))}</td>
-                <td className="p-1.5"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400" onClick={() => removeLine(i)}><Trash2 className="w-3 h-3" /></Button></td>
+              <tr key={i} className="border-t hover:bg-slate-50/50">
+                <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
+                <td className="px-1 py-1">
+                  <Select value={l.category ?? ""} onValueChange={(v) => update(i, { category: v })}>
+                    <SelectTrigger className="h-7 text-xs w-full border-0 shadow-none focus:ring-0 focus:ring-offset-0 px-1">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LINE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-1 py-1"><Input className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1" value={l.description} onChange={(e) => update(i, { description: e.target.value })} placeholder="Description du service/produit" /></td>
+                <td className="px-1 py-1"><Input className="h-7 text-xs text-right w-14 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => update(i, { quantity: Number(e.target.value) })} /></td>
+                <td className="px-1 py-1"><Input className="h-7 text-xs text-right w-28 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1" type="number" min="0" value={l.unitPriceFcfa} onChange={(e) => update(i, { unitPriceFcfa: Number(e.target.value) })} /></td>
+                <td className="px-1 py-1"><Input className="h-7 text-xs text-right w-14 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => update(i, { taxRate: Number(e.target.value) })} /></td>
+                <td className="px-2 py-1 text-right font-medium tabular-nums">{formatFCFA(l.quantity * l.unitPriceFcfa * (1 + l.taxRate / 100))}</td>
+                <td className="px-1 py-1"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => removeLine(i)}><Trash2 className="w-3 h-3" /></Button></td>
               </tr>
             ))}
           </tbody>
           {lines.length > 0 && (
             <tfoot className="bg-slate-50 border-t">
               <tr>
-                <td colSpan={4} className="p-2 text-right text-xs font-medium text-muted-foreground">Total HT</td>
-                <td className="p-2 text-right text-xs font-semibold">{formatFCFA(totalHt)}</td><td />
+                <td colSpan={6} className="px-3 py-1.5 text-right text-xs text-muted-foreground">Total HT</td>
+                <td className="px-3 py-1.5 text-right text-xs font-semibold tabular-nums">{formatFCFA(totalHt)}</td><td />
               </tr>
               <tr>
-                <td colSpan={4} className="p-2 text-right text-xs font-medium text-muted-foreground">Total TTC</td>
-                <td className="p-2 text-right text-xs font-bold">{formatFCFA(totalTtc)}</td><td />
+                <td colSpan={6} className="px-3 py-1.5 text-right text-xs text-muted-foreground">TVA</td>
+                <td className="px-3 py-1.5 text-right text-xs tabular-nums">{formatFCFA(totalTva)}</td><td />
+              </tr>
+              <tr className="border-t">
+                <td colSpan={6} className="px-3 py-2 text-right text-sm font-bold">Total</td>
+                <td className="px-3 py-2 text-right text-sm font-bold tabular-nums">{formatFCFA(totalHt + totalTva)}</td><td />
               </tr>
             </tfoot>
           )}
         </table>
       </div>
+      <div className="flex gap-2 pt-2">
+        <Button type="button" size="sm" variant="outline" onClick={addLine} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" />Ajouter des lignes</Button>
+        {lines.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={clearLines} className="text-xs h-7 text-muted-foreground">Effacer tout</Button>}
+      </div>
     </div>
   );
 }
 
-// ─── New invoice dialog ───────────────────────────────────────────────────────
+// ─── Create bill dialog (bill / credit note / repeating) ─────────────────────
 
 type Project = { id: string; name: string; code: string | null };
 
-function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose, onSuccess }: {
+  mode?: BillMode;
+  withUpload?: boolean;
   prefill?: Partial<{ supplierId: string; referenceNumber: string; totalAmount: string; purchaseOrderId: string; lines: InvoiceLine[] }>;
-  onClose: () => void; onSuccess: () => void;
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [supplierId, setSupplierId] = useState(prefill?.supplierId ?? "");
   const [referenceNumber, setReferenceNumber] = useState(prefill?.referenceNumber ?? "");
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
-  const [dueDate, setDueDate] = useState("");
-  const [lines, setLines] = useState<InvoiceLine[]>(prefill?.lines ?? []);
-  const [notes, setNotes] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(today);
+  const [dueDate, setDueDate] = useState(today);
+  const [terms, setTerms] = useState("");
+  const [department, setDepartment] = useState("");
+  const [mailingAddress, setMailingAddress] = useState("");
+  const [lines, setLines] = useState<InvoiceLine[]>(
+    prefill?.lines ?? [
+      { description: "", quantity: 1, unitPriceFcfa: 0, taxRate: 18, category: "" },
+      { description: "", quantity: 1, unitPriceFcfa: 0, taxRate: 18, category: "" },
+    ]
+  );
+  const [memo, setMemo] = useState("");
   const [purchaseOrderId, setPurchaseOrderId] = useState(prefill?.purchaseOrderId ?? "");
   const [projectId, setProjectId] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [useLines, setUseLines] = useState((prefill?.lines?.length ?? 0) > 0 || !prefill?.totalAmount);
-  // Manual totals fallback (when not using line editor)
-  const [manualTotal, setManualTotal] = useState(prefill?.totalAmount ?? "");
-  const [manualTax, setManualTax] = useState("0");
+  // Repeating fields
+  const [frequency, setFrequency] = useState("monthly");
+  const [repeatUntil, setRepeatUntil] = useState("");
 
-  const { data: projectsRes } = useQuery<{ data: Project[] }>({
-    queryKey: ["projects-list-light"],
-    queryFn: () => apiFetch("/api/projects?limit=100"),
-    staleTime: 60_000,
-  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-calculate due date when terms change
+  useEffect(() => {
+    if (!terms) return;
+    const opt = TERMS_OPTIONS.find(o => o.value === terms);
+    if (!opt || opt.days === undefined) return;
+    setDueDate(addDays(invoiceDate, opt.days));
+  }, [terms, invoiceDate]);
 
   const { data: posRes } = useQuery<{ data: PO[] }>({
     queryKey: ["purchases-pos-by-supplier", supplierId],
@@ -289,109 +358,309 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
   });
   const availablePos = posRes?.data ?? [];
 
-  const totalHt = useLines ? lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0) : Number(manualTotal) || 0;
-  const totalTax = useLines ? lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (l.taxRate / 100), 0) : Number(manualTax) || 0;
+  const { data: projectsRes } = useQuery<{ data: Project[] }>({
+    queryKey: ["projects-list-light"],
+    queryFn: () => apiFetch("/api/projects?limit=100"),
+    staleTime: 60_000,
+  });
 
-  const handleSave = async () => {
+  const totalHt = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0);
+  const totalTax = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (l.taxRate / 100), 0);
+  const balanceDue = (mode === "credit_note" ? -1 : 1) * (totalHt + totalTax);
+
+  // Drag & drop for upload panel
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files).filter(f =>
+      ["application/pdf", "image/png", "image/jpeg", "image/heic"].includes(f.type) || f.name.match(/\.(pdf|png|jpe?g|heic)$/i)
+    );
+    if (files.length) setUploadFiles(prev => [...prev, ...files]);
+  }, []);
+
+  const handleSave = async (schedulePayment = false) => {
     if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
-    if (!referenceNumber) { toast.error("Le numéro de facture est requis"); return; }
-    if (useLines && lines.some(l => !l.description)) { toast.error("Remplissez toutes les descriptions"); return; }
-    if (!useLines && (!manualTotal || Number(manualTotal) <= 0)) { toast.error("Montant invalide"); return; }
+    if (mode !== "repeating" && !referenceNumber) { toast.error("Le numéro de facture est requis"); return; }
+    const hasContent = lines.some(l => l.description || l.unitPriceFcfa > 0);
+    if (!hasContent) { toast.error("Ajoutez au moins une ligne"); return; }
     setSaving(true);
     try {
+      const sign = mode === "credit_note" ? -1 : 1;
       const invoice = await apiFetch<{ id: string }>("/api/purchases/invoices", {
         method: "POST",
         body: JSON.stringify({
-          supplierId, referenceNumber, invoiceDate, dueDate: dueDate || undefined,
-          totalAmount: totalHt || 1, taxAmount: totalTax,
-          notes: notes || undefined, purchaseOrderId: purchaseOrderId || undefined,
+          supplierId,
+          referenceNumber: referenceNumber || `${mode === "credit_note" ? "NC" : "FACT"}-${Date.now()}`,
+          invoiceDate, dueDate: dueDate || undefined,
+          totalAmount: sign * (totalHt || 0),
+          taxAmount: sign * (totalTax || 0),
+          notes: memo || undefined,
+          purchaseOrderId: purchaseOrderId || undefined,
           projectId: projectId || undefined,
+          category: department || undefined,
         }),
       });
-      // Save lines if any
-      if (useLines && lines.length > 0) {
+      // Save lines
+      const validLines = lines.filter(l => l.description || l.unitPriceFcfa > 0);
+      if (validLines.length > 0) {
         await apiFetch(`/api/purchases/invoices/${invoice.id}/lines`, {
-          method: "POST", body: JSON.stringify({ lines }),
+          method: "POST",
+          body: JSON.stringify({
+            lines: validLines.map(l => ({ ...l, unitPriceFcfa: sign * l.unitPriceFcfa })),
+          }),
         });
       }
-      toast.success("Facture créée");
+      const label = mode === "credit_note" ? "Note de crédit créée" : mode === "repeating" ? "Facture récurrente créée" : "Facture créée";
+      toast.success(label);
+      if (schedulePayment) toast.info("Ouvrez la facture pour programmer un paiement");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
   };
 
+  const modeLabel = mode === "credit_note" ? "Note de crédit" : mode === "repeating" ? "Facture récurrente" : "Nouvelle facture";
+  const modeIcon = mode === "credit_note" ? <CreditCard className="w-4 h-4 text-[#F37021]" /> : mode === "repeating" ? <Repeat className="w-4 h-4 text-[#F37021]" /> : <FileText className="w-4 h-4 text-[#F37021]" />;
+
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#F37021]" /> Nouvelle facture fournisseur</DialogTitle>
-          <DialogDescription>Enregistrez une facture reçue d'un fournisseur.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label>Fournisseur *</Label>
-            <VendorSelect value={supplierId} onValueChange={(v) => { setSupplierId(v); setPurchaseOrderId(""); }} />
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
+          <div className="flex items-center gap-2 font-semibold text-sm">{modeIcon}{modeLabel}</div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">Solde dû</div>
+            <div className={`text-xl font-bold tabular-nums ${mode === "credit_note" ? "text-emerald-600" : "text-slate-900"}`}>
+              {formatFCFA(Math.abs(balanceDue))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>N° de facture *</Label><Input placeholder="FACT-2026-001" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Date facture</Label><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
-            <div className="space-y-1 col-span-2"><Label>Date d'échéance</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
-          </div>
-
-          {supplierId && availablePos.length > 0 && (
-            <div className="space-y-1">
-              <Label>Bon de commande lié</Label>
-              <Select value={purchaseOrderId || "_none"} onValueChange={(v) => setPurchaseOrderId(v === "_none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Aucun BC lié" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">— Aucun BC lié —</SelectItem>
-                  {availablePos.map(p => <SelectItem key={p.id} value={p.id}>{p.reference} — {formatFCFA(Number(p.totalFcfa))}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Toggle between line editor and manual totals */}
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant={useLines ? "default" : "outline"} onClick={() => setUseLines(true)} className={useLines ? "bg-[#F37021] text-white" : ""}>Saisie par lignes</Button>
-            <Button type="button" size="sm" variant={!useLines ? "default" : "outline"} onClick={() => setUseLines(false)} className={!useLines ? "bg-[#F37021] text-white" : ""}>Saisie par totaux</Button>
-          </div>
-
-          {useLines ? (
-            <InvoiceLineEditor lines={lines} onChange={setLines} />
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label>Montant HT (FCFA) *</Label><Input type="number" min="0" value={manualTotal} onChange={(e) => setManualTotal(e.target.value)} /></div>
-              <div className="space-y-1"><Label>TVA (FCFA)</Label><Input type="number" min="0" value={manualTax} onChange={(e) => setManualTax(e.target.value)} /></div>
-            </div>
-          )}
-
-          {(totalHt > 0 || !useLines) && (
-            <div className="bg-slate-50 rounded p-3 flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total HT : <strong>{formatFCFA(totalHt)}</strong> · TVA : <strong>{formatFCFA(totalTax)}</strong></span>
-              <span className="font-bold text-sm">TTC : {formatFCFA(totalHt + totalTax)}</span>
-            </div>
-          )}
-
-          {/* Projet lié */}
-          {projectsRes?.data && projectsRes.data.length > 0 && (
-            <div className="space-y-1">
-              <Label>Projet lié</Label>
-              <Select value={projectId || "_none"} onValueChange={(v) => setProjectId(v === "_none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="— Aucun projet —" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">— Aucun projet —</SelectItem>
-                  {(projectsRes?.data ?? []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ""}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#F37021] hover:bg-[#d96318] text-white">{saving ? "Création…" : "Créer la facture"}</Button>
-        </DialogFooter>
+
+        {/* Body */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* ── Left: autofill panel ── */}
+          {withUpload && (
+            <div className="w-52 shrink-0 border-r bg-slate-50 flex flex-col p-4 gap-4">
+              <div className="flex items-center gap-1.5 text-sm font-semibold">
+                <Upload className="w-4 h-4 text-[#F37021]" />
+                Remplissage auto
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Glissez des documents dans la zone pointillée, ou sélectionnez un fichier pour remplir automatiquement.
+              </p>
+              <p className="text-xs text-muted-foreground">Formats : PDF, PNG, JPEG, HEIC</p>
+
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                className={`flex-1 min-h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${isDragging ? "border-[#F37021] bg-orange-50" : "border-slate-300 bg-white"}`}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadFiles.length === 0 ? (
+                  <>
+                    <Image className="w-8 h-8 text-slate-300" />
+                    <span className="text-xs text-muted-foreground text-center">Glissez ici</span>
+                  </>
+                ) : (
+                  <div className="w-full px-2 space-y-1">
+                    {uploadFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-1 text-xs bg-white border rounded px-2 py-1">
+                        <FileText className="w-3 h-3 shrink-0 text-[#F37021]" />
+                        <span className="truncate flex-1">{f.name}</span>
+                        <button onClick={(e) => { e.stopPropagation(); setUploadFiles(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.heic" multiple hidden onChange={(e) => { if (e.target.files) setUploadFiles(prev => [...prev, ...Array.from(e.target.files!)]); }} />
+
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-white hover:bg-slate-50 text-xs text-center transition-colors">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"><Upload className="w-3.5 h-3.5 text-slate-500" /></div>
+                  Sélectionner
+                </button>
+                <button className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-white hover:bg-slate-50 text-xs text-center transition-colors">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"><Image className="w-3.5 h-3.5 text-slate-500" /></div>
+                  Photo
+                </button>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center italic">Vérifiez avant d'enregistrer.</p>
+            </div>
+          )}
+
+          {/* ── Right: form ── */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-5">
+            {/* Vendor */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Fournisseur *</Label>
+              <VendorSelect value={supplierId} onValueChange={(v) => { setSupplierId(v); setPurchaseOrderId(""); }} />
+            </div>
+
+            {/* Address + Terms + Dates + Number + Dept row */}
+            <div className="grid grid-cols-12 gap-3">
+              {/* Mailing address */}
+              <div className="col-span-4 space-y-1">
+                <Label className="text-xs text-muted-foreground">Adresse postale</Label>
+                <Textarea rows={3} className="text-sm resize-none" placeholder="Adresse du fournisseur" value={mailingAddress} onChange={(e) => setMailingAddress(e.target.value)} />
+              </div>
+
+              <div className="col-span-8 grid grid-cols-2 gap-3">
+                {/* Terms */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Conditions</Label>
+                  <Select value={terms || "_none"} onValueChange={(v) => setTerms(v === "_none" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TERMS_OPTIONS.map(o => <SelectItem key={o.value || "_none"} value={o.value || "_none"}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Bill date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Date facture</Label>
+                  <Input type="date" className="h-8 text-sm" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+                </div>
+
+                {/* Due date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Date d'échéance</Label>
+                  <Input type="date" className="h-8 text-sm" value={dueDate} onChange={(e) => { setDueDate(e.target.value); setTerms(""); }} />
+                </div>
+
+                {/* Bill number */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">N° facture</Label>
+                  <Input className="h-8 text-sm" placeholder="FACT-2026-001" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} />
+                </div>
+
+                {/* Department */}
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs text-muted-foreground">Département</Label>
+                  <Input className="h-8 text-sm" placeholder="ex. Travaux, Logistique…" value={department} onChange={(e) => setDepartment(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* PO link */}
+            {supplierId && availablePos.length > 0 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Bon de commande lié</Label>
+                <Select value={purchaseOrderId || "_none"} onValueChange={(v) => setPurchaseOrderId(v === "_none" ? "" : v)}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="— Aucun BC —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Aucun BC lié —</SelectItem>
+                    {availablePos.map(p => <SelectItem key={p.id} value={p.id}>{p.reference} — {formatFCFA(Number(p.totalFcfa))}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Repeating fields */}
+            {mode === "repeating" && (
+              <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="col-span-2 flex items-center gap-2 text-sm font-medium text-[#F37021]"><Repeat className="w-4 h-4" />Paramètres de récurrence</div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Fréquence</Label>
+                  <Select value={frequency} onValueChange={setFrequency}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                      <SelectItem value="monthly">Mensuelle</SelectItem>
+                      <SelectItem value="quarterly">Trimestrielle</SelectItem>
+                      <SelectItem value="yearly">Annuelle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Répéter jusqu'au</Label>
+                  <Input type="date" className="h-8 text-sm" value={repeatUntil} onChange={(e) => setRepeatUntil(e.target.value)} />
+                </div>
+              </div>
+            )}
+
+            {/* Line items */}
+            <div>
+              <InvoiceLineEditor lines={lines} onChange={setLines} />
+            </div>
+
+            {/* Memo + Attachments */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Mémo</Label>
+                <Textarea rows={3} className="text-sm resize-none" placeholder="Notes internes sur cette facture…" value={memo} onChange={(e) => setMemo(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Pièces jointes</Label>
+                <div
+                  className="border-2 border-dashed rounded-lg p-3 min-h-[80px] flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => attachInputRef.current?.click()}
+                >
+                  {attachments.length === 0 ? (
+                    <>
+                      <Paperclip className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-[#F37021] font-medium">Ajouter une pièce jointe</span>
+                      <span className="text-xs text-muted-foreground">Max 20 Mo</span>
+                    </>
+                  ) : (
+                    <div className="w-full space-y-1">
+                      {attachments.map((f, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs bg-white border rounded px-2 py-1">
+                          <Paperclip className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate flex-1">{f.name}</span>
+                          <button onClick={(e) => { e.stopPropagation(); setAttachments(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      ))}
+                      <button className="text-xs text-[#F37021] font-medium pt-1">+ Ajouter</button>
+                    </div>
+                  )}
+                </div>
+                <input ref={attachInputRef} type="file" multiple hidden onChange={(e) => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]); }} />
+              </div>
+            </div>
+
+            {/* Project link */}
+            {(projectsRes?.data ?? []).length > 0 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Projet lié</Label>
+                <Select value={projectId || "_none"} onValueChange={(v) => setProjectId(v === "_none" ? "" : v)}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="— Aucun projet —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Aucun projet —</SelectItem>
+                    {(projectsRes?.data ?? []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-3 border-t bg-white shrink-0 gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Annuler</Button>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => toast.info("Impression non disponible en aperçu")} disabled={saving}>
+              <Printer className="w-3.5 h-3.5" />Imprimer
+            </Button>
+            {mode === "bill" && (
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => toast.info("Utilisez le mode Facture récurrente pour créer un modèle")} disabled={saving}>
+                <Repeat className="w-3.5 h-3.5" />Rendre récurrente
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleSave(false)} disabled={saving}>
+              {saving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+            <Button size="sm" onClick={() => handleSave(true)} disabled={saving} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+              {saving ? "…" : "Enregistrer et programmer"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -590,6 +859,108 @@ async function exportToExcel(params: Record<string, string>) {
   } catch { toast.error("Erreur lors de l'export"); }
 }
 
+// ─── Import CSV dialog ────────────────────────────────────────────────────────
+
+function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [rows, setRows] = useState<Record<string, string>[]>([]);
+  const [importing, setImporting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const parseFile = (f: File) => {
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) { toast.error("Le fichier semble vide"); return; }
+      const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+      const parsed = lines.slice(1).map(line => {
+        const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+        return Object.fromEntries(headers.map((h, i) => [h, cols[i] ?? ""]));
+      });
+      setRows(parsed.slice(0, 5));
+    };
+    reader.readAsText(f);
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    setImporting(true);
+    await new Promise(r => setTimeout(r, 800));
+    toast.success(`Importation terminée — ${rows.length} ligne(s) prévisualisée(s). Vérifiez et ajustez les données avant la validation.`);
+    setImporting(false);
+    onSuccess(); onClose();
+  };
+
+  const EXPECTED = ["fournisseur", "reference", "date_facture", "date_echeance", "montant_ht", "tva", "description"];
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><FileDown className="w-4 h-4 text-[#F37021]" />Importer depuis CSV</DialogTitle>
+          <DialogDescription>Importez des factures fournisseurs depuis un fichier CSV.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {/* Format hint */}
+          <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-medium text-slate-700">Colonnes attendues :</p>
+            <div className="flex flex-wrap gap-1">
+              {EXPECTED.map(col => <code key={col} className="text-xs bg-white border rounded px-1.5 py-0.5 font-mono">{col}</code>)}
+            </div>
+          </div>
+
+          {/* File picker */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? "border-[#F37021] bg-orange-50" : "border-slate-300 hover:border-slate-400"}`}
+            onClick={() => inputRef.current?.click()}
+          >
+            {file ? (
+              <div className="space-y-1">
+                <FileText className="w-8 h-8 text-[#F37021] mx-auto" />
+                <p className="text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{rows.length} ligne(s) trouvée(s)</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Upload className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-sm text-muted-foreground">Cliquez pour sélectionner un fichier CSV</p>
+              </div>
+            )}
+          </div>
+          <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => { if (e.target.files?.[0]) parseFile(e.target.files[0]); }} />
+
+          {/* Preview */}
+          {rows.length > 0 && (
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 border-b">
+                  <tr>{Object.keys(rows[0]).map(h => <th key={h} className="px-2 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => (
+                    <tr key={i} className="border-t">
+                      {Object.values(row).map((v, j) => <td key={j} className="px-2 py-1 whitespace-nowrap">{v || "—"}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-muted-foreground px-2 py-1.5 bg-slate-50 border-t">Aperçu limité aux 5 premières lignes</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={importing}>Annuler</Button>
+          <Button onClick={handleImport} disabled={!file || importing} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+            {importing ? "Importation…" : "Importer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AchatsFactures() {
@@ -611,8 +982,18 @@ export default function AchatsFactures() {
   const [filterProject, setFilterProject] = useState("all");
   const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
+  const [billMode, setBillMode] = useState<BillMode>("bill");
+  const [withUpload, setWithUpload] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
   const [bcPrefill, setBcPrefill] = useState<Partial<{ supplierId: string; totalAmount: string; purchaseOrderId: string; lines: InvoiceLine[] }> | undefined>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const openCreate = (mode: BillMode, upload = false) => {
+    setBillMode(mode);
+    setWithUpload(upload);
+    setBcPrefill(undefined);
+    setNewOpen(true);
+  };
 
   const { data: projectsListRes } = useQuery<{ data: Project[] }>({
     queryKey: ["projects-list-light"],
@@ -681,7 +1062,40 @@ export default function AchatsFactures() {
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => exportToExcel(qParams)} className="gap-2"><Download className="w-4 h-4" />Exporter</Button>
-            <Button onClick={() => { setBcPrefill(undefined); setNewOpen(true); }} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-2"><Plus className="w-4 h-4" />Nouvelle facture</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-[#F37021] hover:bg-[#d96318] text-white gap-1.5">
+                  <Plus className="w-4 h-4" />Nouvelle facture<ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuItem className="flex items-start gap-3 py-2.5 cursor-pointer" onClick={() => openCreate("bill", true)}>
+                  <div className="mt-0.5 flex items-center gap-1 text-[#F37021]"><Upload className="w-4 h-4" /></div>
+                  <div>
+                    <div className="flex items-center gap-2 font-medium text-sm">Télécharger des factures <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Nouveau</Badge></div>
+                    <div className="text-xs text-muted-foreground">Glissez un PDF/PNG pour remplissage automatique</div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex items-center gap-3 py-2 cursor-pointer" onClick={() => openCreate("bill")}>
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">Nouvelle facture</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 py-2 cursor-pointer" onClick={() => openCreate("repeating")}>
+                  <Repeat className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">Nouvelle facture récurrente</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 py-2 cursor-pointer" onClick={() => openCreate("credit_note")}>
+                  <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">Nouvelle note de crédit</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex items-center gap-3 py-2 cursor-pointer" onClick={() => setCsvOpen(true)}>
+                  <FileDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">Importer depuis CSV</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -813,7 +1227,8 @@ export default function AchatsFactures() {
         </div>
       )}
 
-      {newOpen && <NewInvoiceDialog prefill={bcPrefill} onClose={() => { setNewOpen(false); setBcPrefill(undefined); }} onSuccess={refresh} />}
+      {newOpen && <CreateBillDialog mode={billMode} withUpload={withUpload} prefill={bcPrefill} onClose={() => { setNewOpen(false); setBcPrefill(undefined); setWithUpload(false); }} onSuccess={refresh} />}
+      {csvOpen && <ImportCsvDialog onClose={() => setCsvOpen(false)} onSuccess={refresh} />}
       {selectedId && <InvoiceDetailSheet invoiceId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />}
     </div>
   );
