@@ -95,7 +95,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read" },
       { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read" },
-      { name: "Factures",             path: "/achats/factures",           icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read" },
+      { name: "Factures fournisseurs", path: "/achats/factures",           icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read" },
       { name: "Bons de commande",     path: "/achats/bons-de-commande",   icon: ClipboardCheck,  moduleKey: "purchases", permissionKey: "purchases.read" },
       { name: "Paiements",            path: "/achats/paiements",          icon: CreditCard,      moduleKey: "purchases", permissionKey: "purchases.pay" },
       { name: "Dépenses",             path: "/achats/depenses",           icon: Banknote,        moduleKey: "purchases", permissionKey: "purchases.read",  secondary: true },
