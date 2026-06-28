@@ -22,9 +22,12 @@ const toNum = (v: string | number | null | undefined): number => (v == null ? 0 
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
+const SUPPLIER_STATUS = z.enum(["actif", "inactif", "a_verifier", "suspendu"]);
+
 const SupplierCreateSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
   type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional().default("fournisseur"),
+  status: SUPPLIER_STATUS.optional().default("actif"),
   email: z.email().optional().nullable(),
   phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
@@ -42,6 +45,8 @@ const SupplierCreateSchema = z.object({
 const SupplierPatchSchema = z.object({
   name: z.string().min(1).optional(),
   type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional(),
+  status: SUPPLIER_STATUS.optional(),
+  isActive: z.boolean().optional(),
   email: z.email().optional().nullable(),
   phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
@@ -54,8 +59,6 @@ const SupplierPatchSchema = z.object({
   bankName: z.string().optional().nullable(),
   bankAccountNumber: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  status: z.enum(["actif", "inactif", "bloqué"]).optional(),
-  isActive: z.boolean().optional(),
 });
 
 const InvoiceCreateSchema = z.object({
@@ -212,6 +215,7 @@ router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
     const data = parsed.data;
 
     const code = await nextSupplierCode(orgId);
+    const supplierStatus = data.status ?? "actif";
     const [row] = await db.insert(suppliersTable).values({
       organizationId: orgId,
       code,
@@ -221,7 +225,7 @@ router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
       address: data.address ?? null,
       taxId: data.taxId ?? null,
       paymentTerms: data.paymentTerms ?? null,
-      isActive: true,
+      isActive: supplierStatus === "actif",
       type: data.type,
       country: data.country ?? null,
       city: data.city ?? null,
@@ -230,7 +234,7 @@ router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
       bankName: data.bankName ?? null,
       bankAccountNumber: data.bankAccountNumber ?? null,
       notes: data.notes ?? null,
-      status: "actif",
+      status: supplierStatus,
     }).returning();
     return res.status(201).json(row);
   } catch (e: any) {
@@ -478,17 +482,20 @@ router.patch("/purchases/invoices/:id", requireManagerOrAbove, async (req, res) 
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
-    const { status, dueDate, notes, expenseAccountId, projectId, referenceNumber, totalAmount, taxAmount } = req.body;
+    const parsed = InvoicePatchSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
+
     const [updated] = await db.update(supplierInvoicesTable)
       .set({
-        ...(status !== undefined && { status }),
-        ...(dueDate !== undefined && { dueDate }),
-        ...(notes !== undefined && { notes }),
-        ...(expenseAccountId !== undefined && { expenseAccountId }),
-        ...(projectId !== undefined && { projectId }),
-        ...(referenceNumber !== undefined && { referenceNumber }),
-        ...(totalAmount !== undefined && { totalAmount: String(totalAmount) }),
-        ...(taxAmount !== undefined && { taxAmount: String(taxAmount) }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.dueDate !== undefined && { dueDate: data.dueDate }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.expenseAccountId !== undefined && { expenseAccountId: data.expenseAccountId }),
+        ...(data.projectId !== undefined && { projectId: data.projectId }),
+        ...(data.referenceNumber !== undefined && { referenceNumber: data.referenceNumber }),
+        ...(data.totalAmount !== undefined && { totalAmount: String(data.totalAmount) }),
+        ...(data.taxAmount !== undefined && { taxAmount: String(data.taxAmount) }),
       })
       .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
       .returning();
@@ -633,13 +640,22 @@ router.patch("/purchases/purchase-orders/:id", requireManagerOrAbove, async (req
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
-    const { status, expectedDate, notes, receivedDate } = req.body;
+    const PoPatchSchema = z.object({
+      status: z.enum(["draft", "sent", "confirmed", "partially_received", "received", "cancelled"]).optional(),
+      expectedDate: z.string().optional().nullable(),
+      receivedDate: z.string().optional().nullable(),
+      notes: z.string().optional().nullable(),
+    });
+    const parsed = PoPatchSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
+
     const [updated] = await db.update(purchaseOrdersTable)
       .set({
-        ...(status !== undefined && { status }),
-        ...(expectedDate !== undefined && { expectedDate: expectedDate ? new Date(expectedDate) : null }),
-        ...(notes !== undefined && { notes }),
-        ...(receivedDate !== undefined && { receivedDate: receivedDate ? new Date(receivedDate) : null }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.expectedDate !== undefined && { expectedDate: data.expectedDate ? new Date(data.expectedDate) : null }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.receivedDate !== undefined && { receivedDate: data.receivedDate ? new Date(data.receivedDate) : null }),
       })
       .where(and(eq(purchaseOrdersTable.id, id), eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)))
       .returning();
