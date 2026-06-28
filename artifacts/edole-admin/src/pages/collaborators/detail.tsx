@@ -1641,76 +1641,72 @@ export default function CollaboratorDetail() {
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
       {/* HEADER BANNER — Gameasu brand navy/blue */}
       <div className="rounded-xl overflow-hidden shadow-sm border border-border/50">
-        {/* Bouton retour — desktop only */}
-        <div className="px-5 pt-4 pb-0 hidden lg:block">
-          <Link href="/hr">
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs -ml-1 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Équipe & RH
-            </Button>
-          </Link>
-        </div>
-        {/* Banner dark */}
-        <div className="bg-gradient-to-br from-[#0F1A3A] via-[#0d1526] to-[#1e293b] px-6 pt-4 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div className="flex items-end gap-5">
+        {/* Banner compact — style profil épuré */}
+        <div className="relative bg-[#0F1A3A] px-5 py-4 flex items-center justify-between gap-4 min-h-[88px]">
+          {/* Overlay subtle pour texture */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0F1A3A] via-[#132040] to-[#1a2d5a] opacity-80 pointer-events-none" />
+          <div className="relative flex items-center gap-4 min-w-0">
+            {/* Avatar */}
             <div className="relative shrink-0">
-              <Avatar className="w-24 h-24 border-4 border-white/20 shadow-xl ring-2 ring-primary/30">
-                <AvatarImage src={collaborator.avatarUrl} />
-                <AvatarFallback className="text-3xl bg-primary text-white font-bold">
+              <Avatar className="w-[68px] h-[68px] border-[3px] border-white shadow-lg ring-1 ring-white/20">
+                <AvatarImage src={collaborator.avatarUrl} className="object-cover" />
+                <AvatarFallback className="text-2xl bg-[#2563EB] text-white font-bold">
                   {collaborator.firstName[0]}{collaborator.lastName[0]}
                 </AvatarFallback>
               </Avatar>
               {isManagerOrAbove && (
                 <button
                   onClick={() => setEditOpen(true)}
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center hover:bg-slate-50 transition-colors"
-                  title="Éditer"
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center hover:bg-slate-100 transition-colors"
+                  title="Modifier la photo"
                 >
-                  <Camera className="w-3 h-3 text-slate-600" />
+                  <Camera className="w-2.5 h-2.5 text-slate-600" />
                 </button>
               )}
             </div>
-            <div className="pb-1">
-              <h1 className="text-2xl font-bold text-white tracking-tight">
+            {/* Identité */}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-white tracking-tight leading-tight truncate">
                 {collaborator.firstName} {collaborator.lastName}
               </h1>
-              <p className="text-sm text-blue-300 font-medium mt-0.5">
+              <p className="text-sm text-white/70 mt-0.5 truncate">
                 {overview?.position?.title || collaborator.position || "Fonction non définie"}
               </p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {overview?.department && (
-                  <span className="text-xs text-white/60 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
+                  <span className="text-[11px] text-white/50 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-blue-400/70 inline-block" />
                     {overview.department.name}
                   </span>
                 )}
-                {overview?.manager && (
-                  <span className="text-xs text-white/50">
-                    · Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-blue-300 hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link>
+                {(collaborator as any).employeeNumber && (
+                  <span className="text-[11px] font-mono text-white/40">
+                    #{(collaborator as any).employeeNumber}
                   </span>
                 )}
-                {(collaborator as any).employeeNumber && (
-                  <span className="text-xs font-mono bg-white/10 text-white/70 px-2 py-0.5 rounded">
-                    #{(collaborator as any).employeeNumber}
+                {overview?.manager && (
+                  <span className="text-[11px] text-white/40 hidden sm:inline">
+                    · <Link href={`/collaborators/${overview.manager.id}`} className="hover:text-white/70 transition-colors">{overview.manager.firstName} {overview.manager.lastName}</Link>
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 pb-1">
+          {/* Actions droite */}
+          <div className="relative flex flex-col items-end gap-1.5 shrink-0">
             {(collaborator as any).contractExpiresInDays != null && (collaborator as any).contractExpiresInDays <= 30 && (
-              <Badge className="bg-orange-500/25 text-orange-200 border border-orange-400/40 text-xs">
-                {(collaborator as any).contractExpiresInDays === 0 ? "Contrat expire aujourd'hui" : `Contrat expire dans ${(collaborator as any).contractExpiresInDays}j`}
+              <Badge className="bg-orange-500/25 text-orange-200 border border-orange-400/40 text-[10px] px-1.5 py-0.5">
+                {(collaborator as any).contractExpiresInDays === 0 ? "Expire aujourd'hui" : `Expire dans ${(collaborator as any).contractExpiresInDays}j`}
               </Badge>
             )}
             {(collaborator as any).isAvailable ? (
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs">Disponible</Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] px-1.5 py-0.5">Disponible</Badge>
             ) : (
-              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs">Affecté</Badge>
+              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] px-1.5 py-0.5">Affecté</Badge>
             )}
             {isManagerOrAbove && (
               <Button size="sm" onClick={() => setEditOpen(true)}
-                className="h-7 text-xs gap-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm">
+                className="h-7 text-xs gap-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 mt-0.5">
                 <Pencil className="w-3 h-3" />
                 Éditer le profil
               </Button>
