@@ -9,14 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export const INV_STATUS_MAP: Record<string, { label: string; cls: string }> = {
   draft:              { label: "Brouillon",            cls: "bg-slate-100 text-slate-600 border-slate-200" },
   review:             { label: "À revoir",             cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  awaiting_approval:  { label: "En attente appro.",    cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  awaiting_approval:  { label: "En att. approbation",  cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
   approved:           { label: "Approuvée",            cls: "bg-teal-50 text-teal-700 border-teal-200" },
   pending:            { label: "À payer",              cls: "bg-orange-50 text-orange-700 border-orange-200" },
   partially_paid:     { label: "Part. payée",          cls: "bg-amber-50 text-amber-700 border-amber-200" },
   paid:               { label: "Payée",                cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   overdue:            { label: "En retard",            cls: "bg-red-50 text-red-700 border-red-200 font-bold" },
+  rejected:           { label: "Refusée",              cls: "bg-red-100 text-red-800 border-red-300" },
   cancelled:          { label: "Annulée",              cls: "bg-slate-50 text-slate-400 border-slate-200" },
 };
+
+export const INV_STATUS_ORDER = [
+  "draft", "review", "awaiting_approval", "approved", "pending",
+  "partially_paid", "paid", "overdue", "rejected", "cancelled",
+];
 
 export function StatusBadgePurchases({ status }: { status: string }) {
   const s = INV_STATUS_MAP[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };

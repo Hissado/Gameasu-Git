@@ -187,6 +187,23 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
 });
 
 // ────────────────────────────────────────────────────────────────
+// LIGNES DE FACTURE FOURNISSEUR
+// ────────────────────────────────────────────────────────────────
+export const supplierInvoiceLinesTable = pgTable("supplier_invoice_lines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  invoiceId: uuid("invoice_id").notNull().references(() => supplierInvoicesTable.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  quantity: numeric("quantity", { precision: 12, scale: 4 }).notNull().default("1"),
+  unitPriceFcfa: numeric("unit_price_fcfa", { precision: 18, scale: 2 }).notNull(),
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("0"),
+  totalHt: numeric("total_ht", { precision: 18, scale: 2 }).notNull(),
+  totalTtc: numeric("total_ttc", { precision: 18, scale: 2 }).notNull(),
+  expenseAccountId: uuid("expense_account_id").references(() => chartOfAccountsTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ────────────────────────────────────────────────────────────────
 // BANQUES / CAISSES
 // ────────────────────────────────────────────────────────────────
 export const bankAccountsTable = pgTable("bank_accounts", {

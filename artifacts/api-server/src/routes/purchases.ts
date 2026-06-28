@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   suppliersTable,
   supplierInvoicesTable,
+  supplierInvoiceLinesTable,
   supplierPaymentsTable,
   bankAccountsTable,
   chartOfAccountsTable,
@@ -76,7 +77,7 @@ const InvoiceCreateSchema = z.object({
 });
 
 const InvoicePatchSchema = z.object({
-  status: z.enum(["draft", "review", "approved", "paid", "cancelled", "overdue"]).optional(),
+  status: z.enum(["draft", "review", "awaiting_approval", "approved", "pending", "partially_paid", "paid", "overdue", "cancelled", "rejected"]).optional(),
   dueDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   expenseAccountId: z.string().uuid().optional().nullable(),
@@ -84,6 +85,7 @@ const InvoicePatchSchema = z.object({
   referenceNumber: z.string().min(1).optional(),
   totalAmount: z.coerce.number().positive().optional(),
   taxAmount: z.coerce.number().min(0).optional(),
+  purchaseOrderId: z.string().uuid().optional().nullable(),
 });
 
 const PurchaseOrderCreateSchema = z.object({
@@ -523,6 +525,7 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
         ...(data.referenceNumber !== undefined && { referenceNumber: data.referenceNumber }),
         ...(data.totalAmount !== undefined && { totalAmount: String(data.totalAmount) }),
         ...(data.taxAmount !== undefined && { taxAmount: String(data.taxAmount) }),
+        ...(data.purchaseOrderId !== undefined && { purchaseOrderId: data.purchaseOrderId }),
       })
       .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
       .returning();
@@ -531,6 +534,88 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
   } catch (e: any) {
     req.log.error(e, "purchases/invoices/:id PATCH");
     return res.status(500).json({ error: "Erreur lors de la mise à jour" });
+  }
+});
+
+// ─── Invoice lines ────────────────────────────────────────────────────────────
+
+router.get("/purchases/invoices/:id/lines", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [inv] = await db.select({ id: supplierInvoicesTable.id })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+    if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+    const lines = await db.select({
+      id: supplierInvoiceLinesTable.id,
+      description: supplierInvoiceLinesTable.description,
+      quantity: supplierInvoiceLinesTable.quantity,
+      unitPriceFcfa: supplierInvoiceLinesTable.unitPriceFcfa,
+      taxRate: supplierInvoiceLinesTable.taxRate,
+      totalHt: supplierInvoiceLinesTable.totalHt,
+      totalTtc: supplierInvoiceLinesTable.totalTtc,
+      expenseAccountId: supplierInvoiceLinesTable.expenseAccountId,
+    }).from(supplierInvoiceLinesTable)
+      .where(and(eq(supplierInvoiceLinesTable.invoiceId, id), eq(supplierInvoiceLinesTable.organizationId, orgId)));
+    return res.json({ data: lines });
+  } catch (e: any) {
+    req.log.error(e, "purchases/invoices/:id/lines GET");
+    return res.status(500).json({ error: "Erreur lors de la récupération des lignes" });
+  }
+});
+
+router.post("/purchases/invoices/:id/lines", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const LineSchema = z.object({
+      description: z.string().min(1),
+      quantity: z.coerce.number().positive(),
+      unitPriceFcfa: z.coerce.number().min(0),
+      taxRate: z.coerce.number().min(0).max(100).optional().default(0),
+      expenseAccountId: z.string().uuid().optional().nullable(),
+    });
+    const parsed = z.array(LineSchema).safeParse(req.body.lines ?? [req.body]);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const [inv] = await db.select().from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+    if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+
+    // Delete and replace all lines
+    await db.delete(supplierInvoiceLinesTable)
+      .where(and(eq(supplierInvoiceLinesTable.invoiceId, id), eq(supplierInvoiceLinesTable.organizationId, orgId)));
+
+    const lines = parsed.data;
+    const inserted = lines.length > 0 ? await db.insert(supplierInvoiceLinesTable).values(
+      lines.map(l => {
+        const totalHt = l.quantity * l.unitPriceFcfa;
+        const totalTtc = totalHt * (1 + l.taxRate / 100);
+        return {
+          organizationId: orgId,
+          invoiceId: id,
+          description: l.description,
+          quantity: String(l.quantity),
+          unitPriceFcfa: String(l.unitPriceFcfa),
+          taxRate: String(l.taxRate),
+          totalHt: String(totalHt),
+          totalTtc: String(totalTtc),
+          expenseAccountId: l.expenseAccountId ?? null,
+        };
+      })
+    ).returning() : [];
+
+    // Recalculate invoice totals from lines
+    const newTotalHt = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0);
+    const newTaxAmount = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (l.taxRate / 100), 0);
+    await db.update(supplierInvoicesTable)
+      .set({ totalAmount: String(newTotalHt), taxAmount: String(newTaxAmount) })
+      .where(eq(supplierInvoicesTable.id, id));
+
+    return res.status(201).json({ data: inserted });
+  } catch (e: any) {
+    req.log.error(e, "purchases/invoices/:id/lines POST");
+    return res.status(500).json({ error: "Erreur lors de la sauvegarde des lignes" });
   }
 });
 
@@ -684,7 +769,7 @@ router.patch("/purchases/purchase-orders/:id", requirePermission("purchases.writ
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
     const PoPatchSchema = z.object({
-      status: z.enum(["draft", "sent", "confirmed", "partially_received", "received", "cancelled"]).optional(),
+      status: z.enum(["draft", "sent", "confirmed", "partially_received", "received", "facture", "cancelled"]).optional(),
       expectedDate: z.string().optional().nullable(),
       receivedDate: z.string().optional().nullable(),
       notes: z.string().optional().nullable(),

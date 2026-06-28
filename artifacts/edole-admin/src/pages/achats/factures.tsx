@@ -16,8 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Search, AlertTriangle, FileText, Wallet, CheckCircle2, XCircle, ChevronRight, AlertCircle, Download, Link2 } from "lucide-react";
-import { StatusBadgePurchases, INV_STATUS_MAP, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
+import {
+  Plus, Search, AlertTriangle, FileText, Wallet, CheckCircle2, XCircle,
+  ChevronRight, AlertCircle, Download, Link2, Trash2, ChevronLeft,
+  ThumbsDown, Clock, CircleDot,
+} from "lucide-react";
+import { StatusBadgePurchases, INV_STATUS_MAP, INV_STATUS_ORDER, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,8 +32,11 @@ type Invoice = {
   currency: string; notes: string | null;
   supplierId: string; supplierName: string | null; supplierCode: string | null;
   purchaseOrderId: string | null; projectId: string | null;
-  balance: number; isOverdue: boolean;
-  createdAt: string;
+  balance: number; isOverdue: boolean; createdAt: string;
+};
+type InvoiceLine = {
+  id?: string; description: string; quantity: number;
+  unitPriceFcfa: number; taxRate: number;
 };
 type InvoiceDetail = Invoice & {
   supplierEmail: string | null; supplierPhone: string | null;
@@ -42,6 +49,43 @@ type PaymentRecord = {
   bankAccountId: string | null; bankAccountName: string | null;
 };
 type PO = { id: string; reference: string; supplierName: string | null; totalFcfa: string };
+
+const PAGE_SIZE = 25;
+
+// ─── Derived status timeline ──────────────────────────────────────────────────
+
+function StatusTimeline({ inv }: { inv: InvoiceDetail }) {
+  type Event = { label: string; date: string; icon: React.ReactNode; cls: string };
+  const events: Event[] = [
+    { label: "Facture créée", date: inv.createdAt, icon: <CircleDot className="w-3.5 h-3.5" />, cls: "text-blue-600" },
+    ...inv.payments.map(p => ({
+      label: `Paiement ${p.status === "confirme" ? "confirmé" : p.status === "programme" ? "programmé" : "en attente"} — ${formatFCFA(Number(p.amount))}`,
+      date: p.paidAt,
+      icon: <Wallet className="w-3.5 h-3.5" />,
+      cls: p.status === "confirme" ? "text-emerald-600" : "text-amber-600",
+    })),
+  ];
+  if (["paid", "cancelled", "rejected"].includes(inv.status)) {
+    const lastPay = inv.payments[0];
+    const date = lastPay?.paidAt ?? inv.createdAt;
+    const statusLabel = inv.status === "paid" ? "Facture soldée" : inv.status === "rejected" ? "Facture refusée" : "Facture annulée";
+    events.push({ label: statusLabel, date, icon: inv.status === "paid" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />, cls: inv.status === "paid" ? "text-emerald-700" : "text-red-600" });
+  }
+  events.sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <div className="space-y-2">
+      {events.map((e, i) => (
+        <div key={i} className="flex items-start gap-3">
+          <div className={`mt-0.5 shrink-0 ${e.cls}`}>{e.icon}</div>
+          <div className="flex-1 flex justify-between">
+            <span className="text-sm">{e.label}</span>
+            <span className="text-xs text-muted-foreground">{formatDate(e.date)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Quick payment dialog ─────────────────────────────────────────────────────
 
@@ -95,10 +139,7 @@ function QuickPayDialog({ invoice, onClose, onSuccess }: { invoice: InvoiceDetai
             <div className="space-y-1"><Label>Date</Label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
             <div className="space-y-1"><Label>Référence</Label><Input placeholder="REF-001" value={reference} onChange={(e) => setReference(e.target.value)} /></div>
           </div>
-          <div className="space-y-1">
-            <Label>Compte bancaire source</Label>
-            <BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} />
-          </div>
+          <div className="space-y-1"><Label>Compte bancaire source</Label><BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} /></div>
           <div className="space-y-1">
             <Label>Statut du paiement</Label>
             <Select value={paymentStatus} onValueChange={setPaymentStatus}>
@@ -121,20 +162,84 @@ function QuickPayDialog({ invoice, onClose, onSuccess }: { invoice: InvoiceDetai
   );
 }
 
+// ─── Line editor (shared between new + edit) ──────────────────────────────────
+
+function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange: (l: InvoiceLine[]) => void }) {
+  const addLine = () => onChange([...lines, { description: "", quantity: 1, unitPriceFcfa: 0, taxRate: 18 }]);
+  const removeLine = (i: number) => onChange(lines.filter((_, j) => j !== i));
+  const update = (i: number, patch: Partial<InvoiceLine>) => onChange(lines.map((l, j) => j === i ? { ...l, ...patch } : l));
+  const totalHt = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0);
+  const totalTtc = lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (1 + l.taxRate / 100), 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold">Lignes de facture</Label>
+        <Button type="button" size="sm" variant="outline" onClick={addLine}><Plus className="w-3 h-3 mr-1" />Ajouter une ligne</Button>
+      </div>
+      <div className="border rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
+              <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
+              <th className="text-right p-2 font-medium text-muted-foreground w-28">P.U. HT</th>
+              <th className="text-right p-2 font-medium text-muted-foreground w-16">TVA%</th>
+              <th className="text-right p-2 font-medium text-muted-foreground w-28">Total TTC</th>
+              <th className="w-8"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.length === 0 && (
+              <tr><td colSpan={6} className="p-3 text-center text-muted-foreground text-xs italic">Aucune ligne — cliquez sur "Ajouter une ligne"</td></tr>
+            )}
+            {lines.map((l, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-1.5"><Input className="h-7 text-xs" value={l.description} onChange={(e) => update(i, { description: e.target.value })} placeholder="Description du service/produit" /></td>
+                <td className="p-1.5"><Input className="h-7 text-xs text-right w-16" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => update(i, { quantity: Number(e.target.value) })} /></td>
+                <td className="p-1.5"><Input className="h-7 text-xs text-right w-28" type="number" min="0" value={l.unitPriceFcfa} onChange={(e) => update(i, { unitPriceFcfa: Number(e.target.value) })} /></td>
+                <td className="p-1.5"><Input className="h-7 text-xs text-right w-16" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => update(i, { taxRate: Number(e.target.value) })} /></td>
+                <td className="p-1.5 text-right text-xs font-medium">{formatFCFA(l.quantity * l.unitPriceFcfa * (1 + l.taxRate / 100))}</td>
+                <td className="p-1.5"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400" onClick={() => removeLine(i)}><Trash2 className="w-3 h-3" /></Button></td>
+              </tr>
+            ))}
+          </tbody>
+          {lines.length > 0 && (
+            <tfoot className="bg-slate-50 border-t">
+              <tr>
+                <td colSpan={4} className="p-2 text-right text-xs font-medium text-muted-foreground">Total HT</td>
+                <td className="p-2 text-right text-xs font-semibold">{formatFCFA(totalHt)}</td><td />
+              </tr>
+              <tr>
+                <td colSpan={4} className="p-2 text-right text-xs font-medium text-muted-foreground">Total TTC</td>
+                <td className="p-2 text-right text-xs font-bold">{formatFCFA(totalTtc)}</td><td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── New invoice dialog ───────────────────────────────────────────────────────
 
-function NewInvoiceDialog({ prefill, onClose, onSuccess }: { prefill?: Partial<{ supplierId: string; referenceNumber: string; totalAmount: string; purchaseOrderId: string }>; onClose: () => void; onSuccess: () => void }) {
+function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
+  prefill?: Partial<{ supplierId: string; referenceNumber: string; totalAmount: string; purchaseOrderId: string }>;
+  onClose: () => void; onSuccess: () => void;
+}) {
   const [supplierId, setSupplierId] = useState(prefill?.supplierId ?? "");
   const [referenceNumber, setReferenceNumber] = useState(prefill?.referenceNumber ?? "");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState("");
-  const [totalAmount, setTotalAmount] = useState(prefill?.totalAmount ?? "");
-  const [taxAmount, setTaxAmount] = useState("0");
+  const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [notes, setNotes] = useState("");
   const [purchaseOrderId, setPurchaseOrderId] = useState(prefill?.purchaseOrderId ?? "");
   const [saving, setSaving] = useState(false);
+  const [useLines, setUseLines] = useState(true);
+  // Manual totals fallback (when not using line editor)
+  const [manualTotal, setManualTotal] = useState(prefill?.totalAmount ?? "");
+  const [manualTax, setManualTax] = useState("0");
 
-  // Load POs for linked supplier
   const { data: posRes } = useQuery<{ data: PO[] }>({
     queryKey: ["purchases-pos-by-supplier", supplierId],
     queryFn: () => apiFetch(`/api/purchases/purchase-orders?supplierId=${supplierId}&limit=50`),
@@ -142,21 +247,30 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: { prefill?: Partial<{
   });
   const availablePos = posRes?.data ?? [];
 
+  const totalHt = useLines ? lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa, 0) : Number(manualTotal) || 0;
+  const totalTax = useLines ? lines.reduce((s, l) => s + l.quantity * l.unitPriceFcfa * (l.taxRate / 100), 0) : Number(manualTax) || 0;
+
   const handleSave = async () => {
     if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
     if (!referenceNumber) { toast.error("Le numéro de facture est requis"); return; }
-    if (!totalAmount || Number(totalAmount) <= 0) { toast.error("Montant invalide"); return; }
+    if (useLines && lines.some(l => !l.description)) { toast.error("Remplissez toutes les descriptions"); return; }
+    if (!useLines && (!manualTotal || Number(manualTotal) <= 0)) { toast.error("Montant invalide"); return; }
     setSaving(true);
     try {
-      await apiFetch("/api/purchases/invoices", {
+      const invoice = await apiFetch<{ id: string }>("/api/purchases/invoices", {
         method: "POST",
         body: JSON.stringify({
           supplierId, referenceNumber, invoiceDate, dueDate: dueDate || undefined,
-          totalAmount: Number(totalAmount), taxAmount: Number(taxAmount) || 0,
-          notes: notes || undefined,
-          purchaseOrderId: purchaseOrderId || undefined,
+          totalAmount: totalHt || 1, taxAmount: totalTax,
+          notes: notes || undefined, purchaseOrderId: purchaseOrderId || undefined,
         }),
       });
+      // Save lines if any
+      if (useLines && lines.length > 0) {
+        await apiFetch(`/api/purchases/invoices/${invoice.id}/lines`, {
+          method: "POST", body: JSON.stringify({ lines }),
+        });
+      }
       toast.success("Facture créée");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
@@ -164,12 +278,12 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: { prefill?: Partial<{
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#F37021]" /> Nouvelle facture fournisseur</DialogTitle>
           <DialogDescription>Enregistrez une facture reçue d'un fournisseur.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 py-2">
+        <div className="space-y-4 py-2">
           <div className="space-y-1">
             <Label>Fournisseur *</Label>
             <VendorSelect value={supplierId} onValueChange={(v) => { setSupplierId(v); setPurchaseOrderId(""); }} />
@@ -177,10 +291,9 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: { prefill?: Partial<{
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>N° de facture *</Label><Input placeholder="FACT-2026-001" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} /></div>
             <div className="space-y-1"><Label>Date facture</Label><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Montant HT (FCFA) *</Label><Input type="number" min="0" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} /></div>
-            <div className="space-y-1"><Label>TVA (FCFA)</Label><Input type="number" min="0" value={taxAmount} onChange={(e) => setTaxAmount(e.target.value)} /></div>
             <div className="space-y-1 col-span-2"><Label>Date d'échéance</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
           </div>
+
           {supplierId && availablePos.length > 0 && (
             <div className="space-y-1">
               <Label>Bon de commande lié</Label>
@@ -193,6 +306,29 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: { prefill?: Partial<{
               </Select>
             </div>
           )}
+
+          {/* Toggle between line editor and manual totals */}
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant={useLines ? "default" : "outline"} onClick={() => setUseLines(true)} className={useLines ? "bg-[#F37021] text-white" : ""}>Saisie par lignes</Button>
+            <Button type="button" size="sm" variant={!useLines ? "default" : "outline"} onClick={() => setUseLines(false)} className={!useLines ? "bg-[#F37021] text-white" : ""}>Saisie par totaux</Button>
+          </div>
+
+          {useLines ? (
+            <InvoiceLineEditor lines={lines} onChange={setLines} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label>Montant HT (FCFA) *</Label><Input type="number" min="0" value={manualTotal} onChange={(e) => setManualTotal(e.target.value)} /></div>
+              <div className="space-y-1"><Label>TVA (FCFA)</Label><Input type="number" min="0" value={manualTax} onChange={(e) => setManualTax(e.target.value)} /></div>
+            </div>
+          )}
+
+          {(totalHt > 0 || !useLines) && (
+            <div className="bg-slate-50 rounded p-3 flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total HT : <strong>{formatFCFA(totalHt)}</strong> · TVA : <strong>{formatFCFA(totalTax)}</strong></span>
+              <span className="font-bold text-sm">TTC : {formatFCFA(totalHt + totalTax)}</span>
+            </div>
+          )}
+
           <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
         <DialogFooter>
@@ -217,7 +353,14 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
     enabled: !!invoiceId,
   });
 
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["purchase-invoice-detail", invoiceId] }); onRefresh(); };
+  const { data: linesRes } = useQuery<{ data: Array<{ id: string; description: string; quantity: string; unitPriceFcfa: string; taxRate: string; totalHt: string; totalTtc: string }> }>({
+    queryKey: ["purchase-invoice-lines", invoiceId],
+    queryFn: () => apiFetch(`/api/purchases/invoices/${invoiceId}/lines`),
+    enabled: !!invoiceId,
+  });
+  const lines = linesRes?.data ?? [];
+
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["purchase-invoice-detail", invoiceId] }); qc.invalidateQueries({ queryKey: ["purchase-invoice-lines", invoiceId] }); onRefresh(); };
 
   const updateStatus = async (status: string) => {
     setUpdating(true);
@@ -228,9 +371,10 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setUpdating(false); }
   };
 
-  const canPay = inv && !["paid", "cancelled"].includes(inv.status) && Number(inv.balance) > 0;
-  const canApprove = inv?.status === "review" || inv?.status === "awaiting_approval";
-  const canCancel = inv && !["paid", "cancelled"].includes(inv.status);
+  const canPay = inv && !["paid", "cancelled", "rejected"].includes(inv.status) && Number(inv.balance) > 0;
+  const canApprove = inv && ["review", "awaiting_approval"].includes(inv.status);
+  const canReject = inv && ["review", "awaiting_approval", "pending", "approved"].includes(inv.status);
+  const canCancel = inv && !["paid", "cancelled", "rejected"].includes(inv.status);
 
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -246,15 +390,18 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
         {inv && (
           <div className="space-y-5 py-4">
             {/* Status + actions */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <StatusBadgePurchases status={inv.status} />
               {inv.isOverdue && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-xs gap-1"><AlertTriangle className="w-3 h-3" /> En retard</Badge>}
               <div className="flex-1" />
-              {canApprove && <Button size="sm" onClick={() => updateStatus("approved")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" /> Approuver</Button>}
-              {inv.status === "review" && <Button size="sm" variant="outline" onClick={() => updateStatus("awaiting_approval")} disabled={updating}>Soumettre appro.</Button>}
-              {inv.status === "approved" && <Button size="sm" variant="outline" onClick={() => updateStatus("pending")} disabled={updating}>Marquer À payer</Button>}
-              {canPay && <Button size="sm" onClick={() => setPayOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-1"><Wallet className="w-4 h-4" /> Payer</Button>}
-              {canCancel && <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1"><XCircle className="w-4 h-4" /> Annuler</Button>}
+              <div className="flex gap-2 flex-wrap">
+                {inv.status === "review" && <Button size="sm" variant="outline" onClick={() => updateStatus("awaiting_approval")} disabled={updating} className="text-xs">Soumettre appro.</Button>}
+                {canApprove && <Button size="sm" onClick={() => updateStatus("approved")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1 text-xs"><CheckCircle2 className="w-3.5 h-3.5" />Approuver</Button>}
+                {inv.status === "approved" && <Button size="sm" variant="outline" onClick={() => updateStatus("pending")} disabled={updating} className="text-xs">Marquer À payer</Button>}
+                {canPay && <Button size="sm" onClick={() => setPayOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-1 text-xs"><Wallet className="w-3.5 h-3.5" />Payer</Button>}
+                {canReject && <Button size="sm" variant="outline" onClick={() => updateStatus("rejected")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1 text-xs"><ThumbsDown className="w-3.5 h-3.5" />Refuser</Button>}
+                {canCancel && <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-slate-600 border-slate-200 hover:bg-slate-50 gap-1 text-xs"><XCircle className="w-3.5 h-3.5" />Annuler</Button>}
+              </div>
             </div>
 
             {/* Info grid */}
@@ -267,12 +414,39 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
               <div><p className="text-xs text-muted-foreground">Montant TTC</p><p className="font-semibold text-sm">{formatFCFA(Number(inv.totalAmount) + Number(inv.taxAmount))}</p></div>
               <div><p className="text-xs text-muted-foreground">Montant payé</p><p className="font-medium text-sm text-emerald-700">{formatFCFA(Number(inv.paidAmount))}</p></div>
               <div><p className="text-xs text-muted-foreground">Solde restant</p><p className={`font-semibold text-sm ${Number(inv.balance) > 0 ? "text-amber-700" : "text-emerald-700"}`}>{formatFCFA(Number(inv.balance))}</p></div>
-              {inv.purchaseOrderId && (
-                <div className="col-span-2"><p className="text-xs text-muted-foreground">Bon de commande lié</p><p className="text-xs font-mono text-blue-600 flex items-center gap-1"><Link2 className="w-3 h-3" />{inv.purchaseOrderId}</p></div>
-              )}
+              {inv.purchaseOrderId && <div className="col-span-2"><p className="text-xs text-muted-foreground">BC lié</p><p className="text-xs font-mono text-blue-600 flex items-center gap-1"><Link2 className="w-3 h-3" />{inv.purchaseOrderId}</p></div>}
             </div>
 
             {inv.notes && <p className="text-sm text-muted-foreground italic bg-slate-50 rounded p-3">{inv.notes}</p>}
+
+            {/* Invoice lines */}
+            {lines.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Lignes ({lines.length})</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50"><tr>
+                      <th className="text-left p-2 text-xs font-medium text-muted-foreground">Description</th>
+                      <th className="text-right p-2 text-xs font-medium text-muted-foreground">Qté</th>
+                      <th className="text-right p-2 text-xs font-medium text-muted-foreground">P.U.</th>
+                      <th className="text-right p-2 text-xs font-medium text-muted-foreground">TVA%</th>
+                      <th className="text-right p-2 text-xs font-medium text-muted-foreground">Total TTC</th>
+                    </tr></thead>
+                    <tbody>
+                      {lines.map((l, i) => (
+                        <tr key={l.id ?? i} className="border-t">
+                          <td className="p-2">{l.description}</td>
+                          <td className="p-2 text-right">{Number(l.quantity)}</td>
+                          <td className="p-2 text-right">{formatFCFA(Number(l.unitPriceFcfa))}</td>
+                          <td className="p-2 text-right">{Number(l.taxRate)}%</td>
+                          <td className="p-2 text-right font-medium">{formatFCFA(Number(l.totalTtc))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Payment history */}
             <div>
@@ -288,12 +462,20 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                       {p.reference && <span className="text-muted-foreground ml-2">· {p.reference}</span>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "confirme" ? "bg-emerald-100 text-emerald-700" : p.status === "programme" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}`}>{p.status === "confirme" ? "Confirmé" : p.status === "programme" ? "Programmé" : p.status}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "confirme" ? "bg-emerald-100 text-emerald-700" : p.status === "programme" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}`}>
+                        {p.status === "confirme" ? "Confirmé" : p.status === "programme" ? "Programmé" : p.status}
+                      </span>
                       <span className="text-xs text-muted-foreground">{formatDate(p.paidAt)}</span>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Status history / timeline */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1"><Clock className="w-4 h-4 text-muted-foreground" /> Historique</h3>
+              <StatusTimeline inv={inv} />
             </div>
           </div>
         )}
@@ -307,15 +489,12 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
 
 async function exportToExcel(params: Record<string, string>) {
   try {
-    const qs = new URLSearchParams({ ...params, limit: "500" });
+    const qs = new URLSearchParams({ ...params, limit: "500", offset: "0" });
     const res = await apiFetch<{ data: Invoice[] }>(`/api/purchases/invoices?${qs}`);
     const rows = res.data ?? [];
-
-    // Dynamically import ExcelJS
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Factures fournisseurs");
-
     ws.columns = [
       { header: "Fournisseur", key: "supplierName", width: 25 },
       { header: "N° Facture", key: "referenceNumber", width: 20 },
@@ -327,35 +506,24 @@ async function exportToExcel(params: Record<string, string>) {
       { header: "Solde", key: "balance", width: 14 },
       { header: "Statut", key: "status", width: 16 },
     ];
-
     const header = ws.getRow(1);
     header.font = { bold: true, color: { argb: "FFFFFFFF" } };
     header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
-
-    rows.forEach(r => {
-      ws.addRow({
-        supplierName: r.supplierName ?? "",
-        referenceNumber: r.referenceNumber,
-        invoiceDate: r.invoiceDate,
-        dueDate: r.dueDate ?? "",
-        totalAmount: Number(r.totalAmount),
-        taxAmount: Number(r.taxAmount),
-        paidAmount: Number(r.paidAmount),
-        balance: r.balance,
-        status: INV_STATUS_MAP[r.status]?.label ?? r.status,
-      });
-    });
-
+    rows.forEach(r => ws.addRow({
+      supplierName: r.supplierName ?? "", referenceNumber: r.referenceNumber,
+      invoiceDate: r.invoiceDate, dueDate: r.dueDate ?? "",
+      totalAmount: Number(r.totalAmount), taxAmount: Number(r.taxAmount),
+      paidAmount: Number(r.paidAmount), balance: r.balance,
+      status: INV_STATUS_MAP[r.status]?.label ?? r.status,
+    }));
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `factures-fournisseurs-${new Date().toISOString().slice(0, 10)}.xlsx`; a.click();
+    a.href = url; a.download = `factures-${new Date().toISOString().slice(0, 10)}.xlsx`; a.click();
     URL.revokeObjectURL(url);
     toast.success(`${rows.length} factures exportées`);
-  } catch (e: any) {
-    toast.error("Erreur lors de l'export");
-  }
+  } catch { toast.error("Erreur lors de l'export"); }
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -371,22 +539,22 @@ export default function AchatsFactures() {
   const [filterSupplier, setFilterSupplier] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
-  const [bcPrefill, setBcPrefill] = useState<{ supplierId?: string; totalAmount?: string; purchaseOrderId?: string } | undefined>();
+  const [bcPrefill, setBcPrefill] = useState<Partial<{ supplierId: string; totalAmount: string; purchaseOrderId: string }> | undefined>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // If from_bc, load BC data and open dialog
   useEffect(() => {
     if (!fromBcId) return;
-    apiFetch<{ supplierId: string; totalFcfa: string; id: string }>(`/api/purchases/purchase-orders/${fromBcId}`)
-      .then(po => {
-        setBcPrefill({ supplierId: po.supplierId, totalAmount: po.totalFcfa, purchaseOrderId: po.id });
-        setNewOpen(true);
-      })
+    apiFetch<any>(`/api/purchases/purchase-orders/${fromBcId}`)
+      .then(po => { setBcPrefill({ supplierId: po.supplierId, totalAmount: po.totalFcfa, purchaseOrderId: po.id }); setNewOpen(true); })
       .catch(() => setNewOpen(true));
   }, [fromBcId]);
 
-  const qParams: Record<string, string> = { limit: "100" };
+  // Reset to page 0 whenever filters change
+  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo]);
+
+  const qParams: Record<string, string> = { limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) };
   if (filterStatus !== "all") qParams.status = filterStatus;
   if (filterSupplier !== "all") qParams.supplierId = filterSupplier;
   if (searchQ) qParams.search = searchQ;
@@ -394,10 +562,12 @@ export default function AchatsFactures() {
   if (dateTo) qParams.dateTo = dateTo;
 
   const { data: res, isLoading } = useQuery<{ data: Invoice[]; total: number }>({
-    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo],
+    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, page],
     queryFn: () => apiFetch("/api/purchases/invoices?" + new URLSearchParams(qParams).toString()),
   });
   const invoices = res?.data ?? [];
+  const total = res?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const { data: suppliersRes } = useQuery<{ data: Supplier[] }>({
     queryKey: ["purchases-suppliers-list"],
@@ -407,15 +577,14 @@ export default function AchatsFactures() {
   const suppliers = suppliersRes?.data ?? [];
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-invoices"] });
-
   const overdue = invoices.filter(i => i.isOverdue).length;
-  const totalUnpaid = invoices.filter(i => !["paid", "cancelled"].includes(i.status)).reduce((s, i) => s + Number(i.balance), 0);
+  const totalUnpaid = invoices.filter(i => !["paid", "cancelled", "rejected"].includes(i.status)).reduce((s, i) => s + Number(i.balance), 0);
 
   return (
     <div className="p-6 space-y-5">
       <PageHeader
         title="Factures fournisseurs"
-        subtitle={`${res?.total ?? 0} facture${(res?.total ?? 0) !== 1 ? "s" : ""}${overdue ? ` · ${overdue} en retard` : ""}`}
+        subtitle={`${total} facture${total !== 1 ? "s" : ""}${overdue ? ` · ${overdue} en retard` : ""}`}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => exportToExcel(qParams)} className="gap-2"><Download className="w-4 h-4" />Exporter</Button>
@@ -427,7 +596,7 @@ export default function AchatsFactures() {
       {totalUnpaid > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
           <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-          <span className="text-sm text-amber-800"><strong>{formatFCFA(totalUnpaid)}</strong> restant à payer sur {invoices.filter(i => !["paid","cancelled"].includes(i.status)).length} facture(s)</span>
+          <span className="text-sm text-amber-800"><strong>{formatFCFA(totalUnpaid)}</strong> restant à payer sur {invoices.filter(i => !["paid","cancelled","rejected"].includes(i.status)).length} facture(s)</span>
         </div>
       )}
 
@@ -438,10 +607,10 @@ export default function AchatsFactures() {
           <Input placeholder="Rechercher…" className="pl-9" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Tous statuts" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Tous statuts" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous statuts</SelectItem>
-            {Object.entries(INV_STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+            {INV_STATUS_ORDER.map(k => <SelectItem key={k} value={k}>{INV_STATUS_MAP[k]?.label ?? k}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterSupplier} onValueChange={setFilterSupplier}>
@@ -451,9 +620,9 @@ export default function AchatsFactures() {
             {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Input type="date" className="w-36 text-xs" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Date facture du" />
-          <span className="text-muted-foreground text-xs">→</span>
+          <span className="text-muted-foreground text-xs px-1">→</span>
           <Input type="date" className="w-36 text-xs" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Date facture au" />
         </div>
         {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo) && (
@@ -493,7 +662,7 @@ export default function AchatsFactures() {
                   <TableCell className="text-sm">
                     {inv.dueDate ? (
                       <span className={inv.isOverdue ? "text-red-600 font-medium flex items-center gap-1" : "text-muted-foreground"}>
-                        {inv.isOverdue && <AlertTriangle className="w-3 h-3" />}
+                        {inv.isOverdue && <AlertTriangle className="w-3 h-3 shrink-0" />}
                         {formatDate(inv.dueDate)}
                       </span>
                     ) : "—"}
@@ -510,12 +679,19 @@ export default function AchatsFactures() {
         </CardContent>
       </Card>
 
-      {newOpen && (
-        <NewInvoiceDialog prefill={bcPrefill} onClose={() => { setNewOpen(false); setBcPrefill(undefined); }} onSuccess={refresh} />
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Page {page + 1} / {totalPages} ({total} résultats)</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="gap-1"><ChevronLeft className="w-4 h-4" />Précédent</Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="gap-1">Suivant<ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
       )}
-      {selectedId && (
-        <InvoiceDetailSheet invoiceId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />
-      )}
+
+      {newOpen && <NewInvoiceDialog prefill={bcPrefill} onClose={() => { setNewOpen(false); setBcPrefill(undefined); }} onSuccess={refresh} />}
+      {selectedId && <InvoiceDetailSheet invoiceId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />}
     </div>
   );
 }

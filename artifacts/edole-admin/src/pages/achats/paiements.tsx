@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Search, Wallet, AlertTriangle, Clock, Landmark, Smartphone, CreditCard, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Wallet, AlertTriangle, Clock, Landmark, Smartphone, CreditCard, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { StatusBadgePayment, PAY_STATUS_MAP, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,8 +23,7 @@ type Invoice = {
   id: string; referenceNumber: string; status: string;
   invoiceDate: string; dueDate: string | null;
   totalAmount: string | number; paidAmount: string | number;
-  balance: number; isOverdue: boolean;
-  supplierName: string | null;
+  balance: number; isOverdue: boolean; supplierName: string | null;
 };
 type SupplierPayment = {
   id: string; amount: string | number; method: string; status: string;
@@ -33,6 +32,8 @@ type SupplierPayment = {
   supplierInvoiceId: string; invoiceRef: string | null;
   supplierId: string | null; supplierName: string | null;
 };
+
+const PAGE_SIZE = 25;
 
 // ─── Method icon ──────────────────────────────────────────────────────────────
 
@@ -64,18 +65,17 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
     enabled: !!supplierId,
   });
   const unpaidInvoices = (invRes?.data ?? [])
-    .filter(i => !["paid", "cancelled"].includes(i.status) && i.balance > 0)
+    .filter(i => !["paid", "cancelled", "rejected"].includes(i.status) && i.balance > 0)
     .sort((a, b) => (a.dueDate ?? a.invoiceDate).localeCompare(b.dueDate ?? b.invoiceDate));
 
   const handleSupplierChange = (v: string) => { setSupplierId(v); setSelectedIds(new Set()); setTotalAmount(""); };
 
-  const toggleInvoice = (id: string, balance: number) => {
+  const toggleInvoice = (id: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) { newSet.delete(id); } else { newSet.add(id); }
     setSelectedIds(newSet);
-    // Auto-sum selected balances
     const sum = unpaidInvoices.filter(i => newSet.has(i.id)).reduce((s, i) => s + i.balance, 0);
-    setTotalAmount(String(sum));
+    setTotalAmount(String(sum > 0 ? sum : ""));
   };
 
   const selectAll = () => {
@@ -116,6 +116,7 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
         });
       }
       qc.invalidateQueries({ queryKey: ["purchases-invoices-by-supplier", supplierId] });
+      qc.invalidateQueries({ queryKey: ["purchases-invoices-upcoming"] });
       toast.success(selectedIds.size > 1 ? `Paiement réparti sur ${selectedIds.size} factures` : "Paiement enregistré");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
@@ -131,31 +132,40 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
           <DialogDescription>Sélectionnez le fournisseur et les factures à régler.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label>Fournisseur *</Label>
-            <VendorSelect value={supplierId} onValueChange={handleSupplierChange} />
-          </div>
+          <div className="space-y-1"><Label>Fournisseur *</Label><VendorSelect value={supplierId} onValueChange={handleSupplierChange} /></div>
 
           {supplierId && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Factures à régler ({unpaidInvoices.length})</Label>
-                {unpaidInvoices.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={selectAll} className="text-xs">{selectedIds.size === unpaidInvoices.length ? "Tout désélectionner" : "Tout sélectionner"}</Button>}
+                {unpaidInvoices.length > 0 && (
+                  <Button type="button" size="sm" variant="ghost" onClick={selectAll} className="text-xs">
+                    {selectedIds.size === unpaidInvoices.length ? "Tout désélectionner" : "Tout sélectionner"}
+                  </Button>
+                )}
               </div>
               {unpaidInvoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Aucune facture impayée.</p>
+                <p className="text-sm text-muted-foreground italic">Aucune facture impayée pour ce fournisseur.</p>
               ) : (
                 <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
                   {unpaidInvoices.map(inv => (
-                    <div key={inv.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`} onClick={() => toggleInvoice(inv.id, inv.balance)}>
-                      <Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => toggleInvoice(inv.id, inv.balance)} />
+                    <div
+                      key={inv.id}
+                      className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`}
+                      onClick={() => toggleInvoice(inv.id)}
+                    >
+                      <Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => toggleInvoice(inv.id)} />
                       <div className="flex-1 min-w-0">
                         <p className="font-mono text-sm font-medium">{inv.referenceNumber}</p>
-                        {inv.dueDate && <p className={`text-xs ${inv.isOverdue ? "text-red-600" : "text-muted-foreground"}`}>Échéance : {formatDate(inv.dueDate)}{inv.isOverdue ? " ⚠️" : ""}</p>}
+                        {inv.dueDate && (
+                          <p className={`text-xs ${inv.isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                            Échéance : {formatDate(inv.dueDate)}{inv.isOverdue ? " ⚠️" : ""}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <p className="font-semibold text-sm text-amber-700">{formatFCFA(inv.balance)}</p>
-                        <p className="text-xs text-muted-foreground">Total : {formatFCFA(Number(inv.totalAmount))}</p>
+                        <p className="text-xs text-muted-foreground">/ {formatFCFA(Number(inv.totalAmount))}</p>
                       </div>
                     </div>
                   ))}
@@ -163,8 +173,8 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
               )}
               {selectedIds.size > 0 && (
                 <div className="text-sm text-right text-muted-foreground">
-                  {selectedIds.size} facture{selectedIds.size > 1 ? "s" : ""} sélectionnée{selectedIds.size > 1 ? "s" : ""} · Total dû : <strong className="text-amber-700">{formatFCFA(selectedTotal)}</strong>
-                  {selectedIds.size > 1 && <p className="text-xs">Répartition automatique sur les plus anciennes en premier</p>}
+                  <span>{selectedIds.size} facture{selectedIds.size > 1 ? "s" : ""} · Due : <strong className="text-amber-700">{formatFCFA(selectedTotal)}</strong></span>
+                  {selectedIds.size > 1 && <p className="text-xs mt-0.5">Allocation automatique sur les plus anciennes</p>}
                 </div>
               )}
             </div>
@@ -182,14 +192,8 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
                 <SelectContent>{Object.entries(PAYMENT_METHODS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label>Date</Label>
-              <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
-            </div>
-            <div className="space-y-1 col-span-2">
-              <Label>Compte bancaire source</Label>
-              <BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} />
-            </div>
+            <div className="space-y-1"><Label>Date de paiement</Label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
+            <div className="space-y-1 col-span-2"><Label>Compte bancaire source</Label><BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} /></div>
             <div className="space-y-1">
               <Label>Référence de paiement</Label>
               <Input placeholder="VIR-2026-001" value={reference} onChange={(e) => setReference(e.target.value)} />
@@ -225,7 +229,10 @@ export default function AchatsPaiements() {
   const [filterSupplier, setFilterSupplier] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterMethod, setFilterMethod] = useState("all");
+  const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
+
+  useEffect(() => { setPage(0); }, [filterSupplier, filterStatus, filterMethod]);
 
   const { data: suppliersRes } = useQuery<{ data: Supplier[] }>({
     queryKey: ["purchases-suppliers-list"],
@@ -234,16 +241,18 @@ export default function AchatsPaiements() {
   });
   const suppliers = suppliersRes?.data ?? [];
 
-  const qParams: Record<string, string> = { limit: "100" };
+  const qParams: Record<string, string> = { limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) };
   if (filterSupplier !== "all") qParams.supplierId = filterSupplier;
   if (filterStatus !== "all") qParams.status = filterStatus;
   if (filterMethod !== "all") qParams.method = filterMethod;
 
   const { data: res, isLoading } = useQuery<{ data: SupplierPayment[]; total: number }>({
-    queryKey: ["purchases-payments", filterSupplier, filterStatus, filterMethod],
+    queryKey: ["purchases-payments", filterSupplier, filterStatus, filterMethod, page],
     queryFn: () => apiFetch("/api/purchases/payments?" + new URLSearchParams(qParams).toString()),
   });
   const payments = res?.data ?? [];
+  const total = res?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const filtered = searchQ ? payments.filter(p =>
     (p.invoiceRef ?? "").toLowerCase().includes(searchQ.toLowerCase()) ||
@@ -253,18 +262,15 @@ export default function AchatsPaiements() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-payments"] });
 
-  // "À payer cette semaine" — sorted by urgency: overdue first, then by dueDate ASC
-  const today = new Date().toISOString().slice(0, 10);
+  // "À payer cette semaine" — overdue first, then by dueDate
   const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-
   const { data: upcomingRes } = useQuery<{ data: Invoice[] }>({
     queryKey: ["purchases-invoices-upcoming"],
     queryFn: () => apiFetch("/api/purchases/invoices?limit=100"),
     select: (data: any): { data: Invoice[] } => ({
       data: ((data as any).data ?? [] as Invoice[])
-        .filter((i: Invoice) => !["paid", "cancelled"].includes(i.status) && i.balance > 0 && i.dueDate && i.dueDate <= weekEnd)
+        .filter((i: Invoice) => !["paid", "cancelled", "rejected"].includes(i.status) && i.balance > 0 && i.dueDate && i.dueDate <= weekEnd)
         .sort((a: Invoice, b: Invoice) => {
-          // Overdue first, then by dueDate ASC
           if (a.isOverdue && !b.isOverdue) return -1;
           if (!a.isOverdue && b.isOverdue) return 1;
           return (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
@@ -274,7 +280,6 @@ export default function AchatsPaiements() {
   const upcoming = upcomingRes?.data ?? [];
   const upcomingTotal = upcoming.reduce((s, i) => s + i.balance, 0);
 
-  // Confirm a scheduled payment
   const confirmPayment = async (id: string) => {
     try {
       await apiFetch(`/api/purchases/payments/${id}/confirm`, { method: "PATCH" });
@@ -287,7 +292,7 @@ export default function AchatsPaiements() {
     <div className="p-6 space-y-5">
       <PageHeader
         title="Paiements fournisseurs"
-        subtitle={`${res?.total ?? 0} paiement${(res?.total ?? 0) !== 1 ? "s" : ""}`}
+        subtitle={`${total} paiement${total !== 1 ? "s" : ""}`}
         actions={<Button onClick={() => setNewOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-2"><Plus className="w-4 h-4" />Nouveau paiement</Button>}
       />
 
@@ -301,13 +306,13 @@ export default function AchatsPaiements() {
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="space-y-2">
-              {upcoming.map((inv) => (
+              {upcoming.map(inv => (
                 <div key={inv.id} className="flex items-center justify-between bg-white rounded p-3 text-sm border border-amber-100">
                   <div className="flex items-center gap-3">
                     {inv.isOverdue && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />}
                     <div>
                       <span className="font-medium">{inv.referenceNumber}</span>
-                      <span className="text-muted-foreground ml-2">· {inv.supplierName}</span>
+                      {inv.supplierName && <span className="text-muted-foreground ml-2">· {inv.supplierName}</span>}
                     </div>
                   </div>
                   <div className="text-right">
@@ -348,6 +353,9 @@ export default function AchatsPaiements() {
             {Object.entries(PAYMENT_METHODS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        {(filterSupplier !== "all" || filterStatus !== "all" || filterMethod !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterSupplier("all"); setFilterStatus("all"); setFilterMethod("all"); }}>Effacer</Button>
+        )}
       </div>
 
       {/* Table */}
@@ -403,9 +411,18 @@ export default function AchatsPaiements() {
         </CardContent>
       </Card>
 
-      {newOpen && (
-        <NewPaymentDialog onClose={() => setNewOpen(false)} onSuccess={refresh} />
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Page {page + 1} / {totalPages} ({total} résultats)</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="gap-1"><ChevronLeft className="w-4 h-4" />Précédent</Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="gap-1">Suivant<ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
       )}
+
+      {newOpen && <NewPaymentDialog onClose={() => setNewOpen(false)} onSuccess={refresh} />}
     </div>
   );
 }

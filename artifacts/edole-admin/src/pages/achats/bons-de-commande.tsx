@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiFetch } from "@/lib/api";
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle, FileText, ChevronLeft } from "lucide-react";
 import { StatusBadgePO, StatusBadgePurchases, PO_STATUS_MAP, VendorSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -43,6 +43,8 @@ type LinkedInvoice = {
   totalAmount: string | number; paidAmount: string | number;
 };
 
+const PAGE_SIZE = 25;
+
 // ─── New PO dialog ────────────────────────────────────────────────────────────
 
 function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string) => void }) {
@@ -55,22 +57,21 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   const [supplierId, setSupplierId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<PoLine[]>([{ productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 0 }]);
+  const [lines, setLines] = useState<PoLine[]>([{ productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   const [saving, setSaving] = useState(false);
 
-  const addLine = () => setLines(l => [...l, { productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 0 }]);
+  const addLine = () => setLines(l => [...l, { productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   const removeLine = (idx: number) => setLines(l => l.filter((_, i) => i !== idx));
   const updateLine = (idx: number, patch: Partial<PoLine>) => setLines(l => l.map((li, i) => i === idx ? { ...li, ...patch } : li));
   const selectProduct = (idx: number, pid: string) => {
     const p = products.find(p => p.id === pid);
     if (p) updateLine(idx, { productId: pid, description: p.name, unitPrice: Number(p.purchasePriceFcfa) || 0 });
   };
-
-  const total = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+  const totalTtc = lines.reduce((s, l) => s + l.quantity * l.unitPrice * (1 + l.taxRate / 100), 0);
 
   const handleSave = async () => {
     if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
-    if (lines.some(l => !l.productId || !l.description)) { toast.error("Remplissez toutes les lignes"); return; }
+    if (lines.some(l => !l.description)) { toast.error("Remplissez toutes les descriptions"); return; }
     setSaving(true);
     try {
       const po = await apiFetch<{ id: string }>("/api/purchases/purchase-orders", {
@@ -99,7 +100,6 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
           </div>
           <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
-          {/* Lines */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Lignes de commande *</Label>
@@ -111,33 +111,36 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                   <tr>
                     <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
                     <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-20">Qté</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-24">Prix unit.</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-16">TVA%</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-28">Total</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-24">P.U. HT</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-14">TVA%</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-24">Total TTC</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {lines.map((l, idx) => (
                     <tr key={idx} className="border-t">
-                      <td className="p-2">
-                        <Select value={l.productId} onValueChange={(v) => selectProduct(idx, v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Produit…" /></SelectTrigger>
-                          <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                      <td className="p-1.5 w-36">
+                        <Select value={l.productId || "_none"} onValueChange={(v) => v === "_none" ? updateLine(idx, { productId: "" }) : selectProduct(idx, v)}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Produit…" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_none">— Manuel —</SelectItem>
+                            {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                          </SelectContent>
                         </Select>
                       </td>
-                      <td className="p-2"><Input className="h-8 text-xs" value={l.description} onChange={(e) => updateLine(idx, { description: e.target.value })} /></td>
-                      <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="1" value={l.quantity} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value) })} /></td>
-                      <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="0" value={l.unitPrice} onChange={(e) => updateLine(idx, { unitPrice: Number(e.target.value) })} /></td>
-                      <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => updateLine(idx, { taxRate: Number(e.target.value) })} /></td>
-                      <td className="p-2 text-right font-medium text-xs">{formatFCFA(l.quantity * l.unitPrice * (1 + l.taxRate / 100))}</td>
-                      <td className="p-2"><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash2 className="w-3 h-3" /></Button></td>
+                      <td className="p-1.5"><Input className="h-7 text-xs" value={l.description} onChange={(e) => updateLine(idx, { description: e.target.value })} placeholder="Description" /></td>
+                      <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value) })} /></td>
+                      <td className="p-1.5"><Input className="h-7 text-xs text-right" type="number" min="0" value={l.unitPrice} onChange={(e) => updateLine(idx, { unitPrice: Number(e.target.value) })} /></td>
+                      <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => updateLine(idx, { taxRate: Number(e.target.value) })} /></td>
+                      <td className="p-1.5 text-right text-xs font-medium">{formatFCFA(l.quantity * l.unitPrice * (1 + l.taxRate / 100))}</td>
+                      <td className="p-1.5"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400" onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash2 className="w-3 h-3" /></Button></td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-slate-50 border-t">
-                  <tr><td colSpan={5} className="p-2 text-right font-semibold text-sm">Total TTC</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(total)}</td><td /></tr>
+                  <tr><td colSpan={5} className="p-2 text-right font-semibold text-sm">Total TTC</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(totalTtc)}</td><td /></tr>
                 </tfoot>
               </table>
             </div>
@@ -173,7 +176,11 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
   });
   const linkedInvoices = linkedInvRes?.data ?? [];
 
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["purchase-po-detail", poId] }); qc.invalidateQueries({ queryKey: ["purchase-po-invoices", poId] }); onRefresh(); };
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["purchase-po-detail", poId] });
+    qc.invalidateQueries({ queryKey: ["purchase-po-invoices", poId] });
+    onRefresh();
+  };
 
   const updateStatus = async (status: string) => {
     setUpdating(true);
@@ -192,10 +199,8 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); }
   };
 
-  const createInvoice = () => {
-    navigate("/achats/factures?from_bc=" + poId);
-    onClose();
-  };
+  const canReceive = po && ["confirmed", "partially_received", "sent"].includes(po.status);
+  const createInvoice = () => { navigate("/achats/factures?from_bc=" + poId); onClose(); };
 
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -211,18 +216,20 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
         {po && (
           <div className="space-y-5 py-4">
             {/* Actions */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <StatusBadgePO status={po.status} />
               <div className="flex-1" />
-              {po.status === "draft" && <Button size="sm" onClick={() => updateStatus("sent")} disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white gap-1"><ArrowRight className="w-4 h-4" />Marquer Envoyé</Button>}
-              {po.status === "sent" && <Button size="sm" onClick={() => updateStatus("confirmed")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" />Confirmer</Button>}
-              {["confirmed", "partially_received"].includes(po.status) && <Button size="sm" onClick={() => updateStatus("received")} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" />Marquer Reçu</Button>}
-              {["confirmed", "received", "partially_received"].includes(po.status) && (
-                <Button size="sm" variant="outline" onClick={createInvoice} className="gap-1"><FileText className="w-4 h-4" />Créer facture</Button>
-              )}
-              {!["received", "cancelled", "facture"].includes(po.status) && (
-                <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1"><XCircle className="w-4 h-4" />Annuler</Button>
-              )}
+              <div className="flex gap-2 flex-wrap">
+                {po.status === "draft" && <Button size="sm" onClick={() => updateStatus("sent")} disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs"><ArrowRight className="w-3.5 h-3.5" />Envoyer</Button>}
+                {po.status === "sent" && <Button size="sm" onClick={() => updateStatus("confirmed")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1 text-xs"><CheckCircle2 className="w-3.5 h-3.5" />Confirmer</Button>}
+                {["confirmed", "partially_received"].includes(po.status) && <Button size="sm" onClick={() => updateStatus("received")} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-xs"><CheckCircle2 className="w-3.5 h-3.5" />Marquer Reçu</Button>}
+                {["confirmed", "received", "partially_received"].includes(po.status) && (
+                  <Button size="sm" variant="outline" onClick={createInvoice} className="gap-1 text-xs"><FileText className="w-3.5 h-3.5" />Créer facture</Button>
+                )}
+                {!["received", "cancelled", "facture"].includes(po.status) && (
+                  <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1 text-xs"><XCircle className="w-3.5 h-3.5" />Annuler</Button>
+                )}
+              </div>
             </div>
 
             {/* Info */}
@@ -237,24 +244,23 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
             {/* Lines + reception */}
             <div>
-              <h3 className="text-sm font-semibold mb-3">Lignes de commande ({po.lines.length})</h3>
+              <h3 className="text-sm font-semibold mb-3">Lignes ({po.lines.length})</h3>
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Produit / Description</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">Qté</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">Reçue</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">P.U.</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">Total</th>
-                      {["confirmed", "partially_received", "sent"].includes(po.status) && <th className="w-32 p-2"></th>}
+                      {canReceive && <th className="w-32 p-2 font-medium text-muted-foreground">Réception</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {po.lines.map(l => {
                       const qtyRec = Number(l.quantityReceived ?? 0);
                       const qtyOrd = Number(l.quantity);
-                      const inputKey = l.id;
                       return (
                         <tr key={l.id} className="border-t">
                           <td className="p-2">
@@ -263,23 +269,23 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
                           </td>
                           <td className="p-2 text-right">{l.quantity}</td>
                           <td className="p-2 text-right">
-                            <span className={qtyRec < qtyOrd ? "text-amber-600" : "text-emerald-700"}>
+                            <span className={qtyRec < qtyOrd ? "text-amber-600 font-medium" : "text-emerald-700 font-medium"}>
                               {qtyRec} / {qtyOrd}
                             </span>
                           </td>
                           <td className="p-2 text-right">{formatFCFA(Number(l.unitPriceFcfa))}</td>
                           <td className="p-2 text-right font-medium">{formatFCFA(Number(l.totalFcfa))}</td>
-                          {["confirmed", "partially_received", "sent"].includes(po.status) && (
+                          {canReceive && (
                             <td className="p-2">
                               <div className="flex items-center gap-1">
                                 <Input
                                   className="h-7 text-xs w-16 text-right"
                                   type="number" min="0" max={qtyOrd}
-                                  value={receptionQty[inputKey] ?? String(qtyRec)}
-                                  onChange={(e) => setReceptionQty(prev => ({ ...prev, [inputKey]: e.target.value }))}
+                                  value={receptionQty[l.id] ?? String(qtyRec)}
+                                  onChange={(e) => setReceptionQty(prev => ({ ...prev, [l.id]: e.target.value }))}
                                 />
                                 <Button size="icon" className="h-7 w-7 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                  onClick={() => updateLineReception(l.id, Number(receptionQty[inputKey] ?? qtyRec))}>
+                                  onClick={() => updateLineReception(l.id, Number(receptionQty[l.id] ?? qtyRec))}>
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
@@ -291,9 +297,9 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
                   </tbody>
                   <tfoot className="bg-slate-50 border-t">
                     <tr>
-                      <td colSpan={["confirmed", "partially_received", "sent"].includes(po.status) ? 4 : 4} className="p-2 text-right font-semibold">Total</td>
+                      <td colSpan={4} className="p-2 text-right font-semibold">Total</td>
                       <td className="p-2 text-right font-bold">{formatFCFA(Number(po.totalFcfa))}</td>
-                      {["confirmed", "partially_received", "sent"].includes(po.status) && <td />}
+                      {canReceive && <td />}
                     </tr>
                   </tfoot>
                 </table>
@@ -302,7 +308,7 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
             {/* Linked invoices */}
             <div>
-              <h3 className="text-sm font-semibold mb-2">Factures associées ({linkedInvoices.length})</h3>
+              <h3 className="text-sm font-semibold mb-2">Factures liées ({linkedInvoices.length})</h3>
               {linkedInvoices.length === 0 && <p className="text-sm text-muted-foreground italic">Aucune facture liée à ce BC.</p>}
               <div className="space-y-2">
                 {linkedInvoices.map(inv => (
@@ -335,8 +341,11 @@ export default function AchatsBonsCommande() {
   const [filterSupplier, setFilterSupplier] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo]);
 
   const { data: suppliersRes } = useQuery<{ data: Supplier[] }>({
     queryKey: ["purchases-suppliers-list"],
@@ -345,23 +354,27 @@ export default function AchatsBonsCommande() {
   });
   const suppliers = suppliersRes?.data ?? [];
 
-  const qParams: Record<string, string> = { limit: "100" };
+  const qParams: Record<string, string> = { limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) };
   if (filterStatus !== "all") qParams.status = filterStatus;
   if (filterSupplier !== "all") qParams.supplierId = filterSupplier;
   if (searchQ) qParams.search = searchQ;
+  if (dateFrom) qParams.dateFrom = dateFrom;
+  if (dateTo) qParams.dateTo = dateTo;
 
   const { data: res, isLoading } = useQuery<{ data: PO[]; total: number }>({
-    queryKey: ["purchases-pos", filterStatus, filterSupplier, searchQ, dateFrom, dateTo],
+    queryKey: ["purchases-pos", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, page],
     queryFn: () => apiFetch("/api/purchases/purchase-orders?" + new URLSearchParams(qParams).toString()),
   });
   const pos = res?.data ?? [];
+  const total = res?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-pos"] });
 
   return (
     <div className="p-6 space-y-5">
       <PageHeader
         title="Bons de commande"
-        subtitle={`${res?.total ?? 0} BC`}
+        subtitle={`${total} BC`}
         actions={<Button onClick={() => setNewOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-2"><Plus className="w-4 h-4" />Nouveau BC</Button>}
       />
 
@@ -369,7 +382,7 @@ export default function AchatsBonsCommande() {
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Rechercher par référence…" className="pl-9" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
+          <Input placeholder="Référence…" className="pl-9" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40"><SelectValue placeholder="Tous statuts" /></SelectTrigger>
@@ -385,9 +398,9 @@ export default function AchatsBonsCommande() {
             {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Input type="date" className="w-36 text-xs" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Date commande du" />
-          <span className="text-muted-foreground text-xs">→</span>
+          <span className="text-muted-foreground text-xs px-1">→</span>
           <Input type="date" className="w-36 text-xs" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Date commande au" />
         </div>
         {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo) && (
@@ -433,12 +446,19 @@ export default function AchatsBonsCommande() {
         </CardContent>
       </Card>
 
-      {newOpen && (
-        <NewPoDialog onClose={() => setNewOpen(false)} onSuccess={(id) => { refresh(); setSelectedId(id); }} />
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Page {page + 1} / {totalPages} ({total} résultats)</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="gap-1"><ChevronLeft className="w-4 h-4" />Précédent</Button>
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="gap-1">Suivant<ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
       )}
-      {selectedId && (
-        <PoDetailSheet poId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />
-      )}
+
+      {newOpen && <NewPoDialog onClose={() => setNewOpen(false)} onSuccess={(id) => { refresh(); setSelectedId(id); }} />}
+      {selectedId && <PoDetailSheet poId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />}
     </div>
   );
 }
