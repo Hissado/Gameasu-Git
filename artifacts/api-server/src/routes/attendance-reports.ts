@@ -6,7 +6,7 @@ import {
   timesheetEntriesTable, projectsTable,
   attendanceRecordsTable,
 } from "@workspace/db";
-import { and, eq, gte, lte, isNull, inArray, desc } from "drizzle-orm";
+import { and, eq, gte, lte, isNull, inArray, desc, sql } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
 import ExcelJS from "exceljs";
@@ -707,7 +707,18 @@ router.get("/attendance/reports/records", requirePermission("attendance.view"), 
       locationLabel: r.locationLabel,
     }));
 
-    res.json({ from, to, total: data.length, page, limit, data });
+    // Total réel (toute la période, sans pagination)
+    const [countRow] = await db
+      .select({ c: sql`count(*)::int` })
+      .from(attendanceRecordsTable)
+      .leftJoin(collaboratorsTable, and(
+        eq(collaboratorsTable.id, attendanceRecordsTable.collaboratorId),
+        isNull(collaboratorsTable.deletedAt),
+      ))
+      .where(and(...conditions));
+    const total = Number((countRow as any)?.c ?? data.length);
+
+    res.json({ from, to, total, page, limit, data });
   } catch (e) { next(e); }
 });
 

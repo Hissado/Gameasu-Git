@@ -4,6 +4,16 @@ import { apiFetch } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect } from "react";
 
+type MeResponse = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  organizationId: string | null;
+  orgName: string | null;
+  orgLegalName: string | null;
+  orgLogoUrl: string | null;
+};
+
 export default function CollaboratorBadgePrint() {
   const [, params] = useRoute("/collaborators/:id/badge");
   const collaboratorId = params?.id ?? "";
@@ -25,9 +35,14 @@ export default function CollaboratorBadgePrint() {
   });
 
   const { data: overviewData } = useQuery<any>({
-    queryKey: ["hr-overview-badge", collaboratorId],
-    queryFn: () => apiFetch(`/api/hr/overview/${collaboratorId}`),
+    queryKey: ["hr-collab-overview-badge", collaboratorId],
+    queryFn: () => apiFetch(`/api/hr/collaborators/${collaboratorId}/overview`),
     enabled: !!collaboratorId,
+  });
+
+  const { data: meData } = useQuery<MeResponse>({
+    queryKey: ["auth-me-badge"],
+    queryFn: () => apiFetch("/api/auth/me"),
   });
 
   useEffect(() => {
@@ -47,8 +62,9 @@ export default function CollaboratorBadgePrint() {
   const c = collab.collaborator ?? collab;
   const position = overviewData?.position?.title ?? c.position ?? "";
   const department = overviewData?.department?.name ?? "";
-  const employeeNumber = c.employeeNumber ?? "";
-  const orgName = overviewData?.organization?.name ?? "GAMEASU";
+  const kioskCode = c.kioskCode ?? null;
+  const orgName = meData?.orgName ?? meData?.orgLegalName ?? "GAMEASU";
+  const orgLogoUrl = meData?.orgLogoUrl ?? null;
   const qrToken = qrData?.token;
   const qrStatus = qrData?.status;
 
@@ -102,21 +118,29 @@ export default function CollaboratorBadgePrint() {
         {/* Header band */}
         <div style={{
           background: "linear-gradient(135deg, #0F1A3A 0%, #1e3a6e 100%)",
-          padding: "10mm 8mm 8mm",
+          padding: "8mm 8mm 6mm",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "4mm",
+          gap: "3mm",
         }}>
-          {/* Org name */}
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "7pt", fontWeight: "bold", letterSpacing: "3px", textTransform: "uppercase" }}>
-            {orgName}
-          </div>
+          {/* Org logo or name */}
+          {orgLogoUrl ? (
+            <img
+              src={orgLogoUrl}
+              alt={orgName}
+              style={{ height: "8mm", maxWidth: "40mm", objectFit: "contain", filter: "brightness(0) invert(1)" }}
+            />
+          ) : (
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: "7pt", fontWeight: "bold", letterSpacing: "3px", textTransform: "uppercase" }}>
+              {orgName}
+            </div>
+          )}
 
           {/* Avatar */}
           <div style={{
-            width: "28mm",
-            height: "28mm",
+            width: "26mm",
+            height: "26mm",
             borderRadius: "50%",
             overflow: "hidden",
             border: "2px solid rgba(255,255,255,0.35)",
@@ -128,41 +152,44 @@ export default function CollaboratorBadgePrint() {
             {c.avatarUrl ? (
               <img src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              <span style={{ color: "white", fontWeight: "bold", fontSize: "13pt" }}>{initials}</span>
+              <span style={{ color: "white", fontWeight: "bold", fontSize: "12pt" }}>{initials}</span>
             )}
           </div>
 
           {/* Name */}
           <div style={{ textAlign: "center" }}>
-            <div style={{ color: "white", fontSize: "12pt", fontWeight: "700", lineHeight: 1.2 }}>
+            <div style={{ color: "white", fontSize: "11pt", fontWeight: "700", lineHeight: 1.2 }}>
               {c.firstName} {c.lastName}
             </div>
             {position && (
-              <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "8pt", marginTop: "1.5mm", fontWeight: "500" }}>
+              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "7.5pt", marginTop: "1.5mm", fontWeight: "500" }}>
                 {position}
               </div>
             )}
             {department && (
-              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "7pt", marginTop: "0.5mm" }}>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "6.5pt", marginTop: "0.5mm" }}>
                 {department}
               </div>
             )}
           </div>
 
-          {/* Employee number */}
-          {employeeNumber && (
+          {/* Kiosk number (PIN) */}
+          {kioskCode && (
             <div style={{
-              background: "rgba(37,99,235,0.35)",
-              border: "0.5px solid rgba(37,99,235,0.7)",
+              background: "rgba(37,99,235,0.3)",
+              border: "0.5px solid rgba(37,99,235,0.6)",
               borderRadius: "3px",
-              padding: "1.5mm 4mm",
-              color: "#93c5fd",
-              fontSize: "7pt",
-              fontFamily: "monospace",
-              fontWeight: "600",
-              letterSpacing: "1px",
+              padding: "1mm 3.5mm",
+              display: "flex",
+              alignItems: "center",
+              gap: "2mm",
             }}>
-              {employeeNumber}
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "5.5pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+                Code kiosque
+              </span>
+              <span style={{ color: "#93c5fd", fontSize: "8pt", fontFamily: "monospace", fontWeight: "700", letterSpacing: "3px" }}>
+                {kioskCode}
+              </span>
             </div>
           )}
         </div>
@@ -174,37 +201,39 @@ export default function CollaboratorBadgePrint() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "8mm",
-          gap: "4mm",
+          padding: "6mm 8mm",
+          gap: "3.5mm",
           background: "white",
         }}>
           {qrToken && qrStatus === "active" ? (
             <>
               <div style={{
-                padding: "4mm",
+                padding: "3.5mm",
                 border: "1px solid #e2e8f0",
                 borderRadius: "4mm",
                 background: "white",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
               }}>
-                <QRCodeSVG value={qrToken} size={150} level="M" marginSize={0} />
+                <QRCodeSVG value={qrToken} size={148} level="M" marginSize={0} />
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "8pt", color: "#475569", fontWeight: "600" }}>Pointage par QR code</div>
-                <div style={{ fontSize: "6pt", color: "#94a3b8", marginTop: "1mm" }}>Présentez ce code au kiosque de présence</div>
+                <div style={{ fontSize: "7.5pt", color: "#475569", fontWeight: "600" }}>Pointage par QR code</div>
+                <div style={{ fontSize: "5.5pt", color: "#94a3b8", marginTop: "1mm" }}>Présentez ce code au kiosque de présence</div>
               </div>
             </>
           ) : qrToken && qrStatus === "disabled" ? (
-            <div style={{ textAlign: "center", padding: "8mm" }}>
-              <div style={{ fontSize: "20pt", marginBottom: "3mm" }}>⏸</div>
-              <div style={{ fontSize: "8pt", color: "#92400e", fontWeight: "600" }}>Badge temporairement désactivé</div>
+            <div style={{ textAlign: "center", padding: "6mm" }}>
+              <div style={{ fontSize: "18pt", marginBottom: "3mm" }}>⏸</div>
+              <div style={{ fontSize: "7.5pt", color: "#92400e", fontWeight: "600" }}>Badge temporairement désactivé</div>
               <div style={{ fontSize: "6pt", color: "#b45309", marginTop: "1mm" }}>Contactez votre administrateur</div>
             </div>
           ) : (
-            <div style={{ textAlign: "center", padding: "8mm" }}>
-              <div style={{ fontSize: "20pt", marginBottom: "3mm" }}>📋</div>
-              <div style={{ fontSize: "8pt", color: "#64748b", fontWeight: "600" }}>Badge de pointage</div>
-              <div style={{ fontSize: "6pt", color: "#94a3b8", marginTop: "1mm" }}>Utilisez votre code PIN au kiosque</div>
+            <div style={{ textAlign: "center", padding: "6mm" }}>
+              <div style={{ fontSize: "18pt", marginBottom: "3mm" }}>📋</div>
+              <div style={{ fontSize: "7.5pt", color: "#64748b", fontWeight: "600" }}>Badge de pointage</div>
+              <div style={{ fontSize: "6pt", color: "#94a3b8", marginTop: "1mm" }}>
+                {kioskCode ? `Utilisez votre code PIN ${kioskCode} au kiosque` : "Utilisez votre code PIN au kiosque"}
+              </div>
             </div>
           )}
         </div>
@@ -221,12 +250,9 @@ export default function CollaboratorBadgePrint() {
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "5pt", textTransform: "uppercase", letterSpacing: "1px" }}>
             GAMEASU ERP · Confidentiel
           </div>
-          <div style={{
-            width: "10mm",
-            height: "2mm",
-            background: "#2563EB",
-            borderRadius: "1mm",
-          }} />
+          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "5pt" }}>
+            {orgName}
+          </div>
         </div>
       </div>
     </>
