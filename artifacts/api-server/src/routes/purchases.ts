@@ -568,6 +568,16 @@ router.post("/purchases/purchase-orders", requirePermission("purchases.write"), 
       .limit(1);
     if (!poSupplier) return res.status(400).json({ error: "Fournisseur introuvable ou non autorisé" });
 
+    if (data.lines.length > 0) {
+      const productIds = data.lines.map((l) => l.productId);
+      const validProducts = await db.select({ id: productsTable.id })
+        .from(productsTable)
+        .where(and(inArray(productsTable.id, productIds), eq(productsTable.organizationId, orgId)));
+      const validSet = new Set(validProducts.map((p) => p.id));
+      const invalid = productIds.find((pid) => !validSet.has(pid));
+      if (invalid) return res.status(400).json({ error: "Produit introuvable ou non autorisé" });
+    }
+
     const reference = await nextPoReference(orgId);
     const totalFcfa = data.lines.reduce((s, l) => s + (l.unitPrice * l.quantity), 0);
 
@@ -637,8 +647,8 @@ router.get("/purchases/purchase-orders/:id", requirePermission("purchases.read")
       quantityReceived: purchaseOrderLinesTable.quantityReceived,
       totalFcfa: purchaseOrderLinesTable.totalFcfa,
     }).from(purchaseOrderLinesTable)
-      .leftJoin(productsTable, eq(productsTable.id, purchaseOrderLinesTable.productId))
-      .where(eq(purchaseOrderLinesTable.purchaseOrderId, id))
+      .leftJoin(productsTable, and(eq(productsTable.id, purchaseOrderLinesTable.productId), eq(productsTable.organizationId, orgId)))
+      .where(and(eq(purchaseOrderLinesTable.purchaseOrderId, id), eq(purchaseOrderLinesTable.organizationId, orgId)))
       .orderBy(asc(purchaseOrderLinesTable.createdAt));
 
     return res.json({ ...po, lines });
