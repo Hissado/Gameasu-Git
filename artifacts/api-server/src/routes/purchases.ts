@@ -469,6 +469,7 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
       currency: supplierInvoicesTable.currency,
       notes: supplierInvoicesTable.notes,
       attachmentUrl: supplierInvoicesTable.attachmentUrl,
+      attachments: supplierInvoicesTable.attachments,
       expenseAccountId: supplierInvoicesTable.expenseAccountId,
       projectId: supplierInvoicesTable.projectId,
       purchaseOrderId: supplierInvoicesTable.purchaseOrderId,
@@ -654,6 +655,79 @@ router.post("/purchases/invoices/:id/lines", requirePermission("purchases.write"
   } catch (e: any) {
     req.log.error(e, "purchases/invoices/:id/lines POST");
     return res.status(500).json({ error: "Erreur lors de la sauvegarde des lignes" });
+  }
+});
+
+// ─── Pièces jointes ──────────────────────────────────────────────────────────
+
+router.get("/purchases/invoices/:id/attachments", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [inv] = await db.select({ attachments: supplierInvoicesTable.attachments })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+    if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+    return res.json({ data: inv.attachments ?? [] });
+  } catch (e: any) {
+    req.log.error(e, "purchases/invoices/:id/attachments GET");
+    return res.status(500).json({ error: "Erreur" });
+  }
+});
+
+router.post("/purchases/invoices/:id/attachments", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const AttachSchema = z.object({
+      name: z.string().min(1),
+      objectPath: z.string().min(1),
+      contentType: z.string().default("application/octet-stream"),
+      size: z.coerce.number().min(0),
+      uploadedAt: z.string().optional().default(() => new Date().toISOString()),
+    });
+    const parsed = z.array(AttachSchema).safeParse(req.body.attachments ?? [req.body]);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+
+    const [inv] = await db.select({ attachments: supplierInvoicesTable.attachments })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+    if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+
+    const existing = inv.attachments ?? [];
+    const merged = [...existing, ...parsed.data];
+
+    await db.update(supplierInvoicesTable)
+      .set({ attachments: merged })
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+
+    return res.status(201).json({ data: merged });
+  } catch (e: any) {
+    req.log.error(e, "purchases/invoices/:id/attachments POST");
+    return res.status(500).json({ error: "Erreur lors de l'enregistrement des pièces jointes" });
+  }
+});
+
+router.delete("/purchases/invoices/:id/attachments", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const { objectPath } = z.object({ objectPath: z.string().min(1) }).parse(req.body);
+
+    const [inv] = await db.select({ attachments: supplierInvoicesTable.attachments })
+      .from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+    if (!inv) return res.status(404).json({ error: "Facture introuvable" });
+
+    const filtered = (inv.attachments ?? []).filter(a => a.objectPath !== objectPath);
+    await db.update(supplierInvoicesTable)
+      .set({ attachments: filtered })
+      .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+
+    return res.json({ data: filtered });
+  } catch (e: any) {
+    req.log.error(e, "purchases/invoices/:id/attachments DELETE");
+    return res.status(500).json({ error: "Erreur" });
   }
 });
 

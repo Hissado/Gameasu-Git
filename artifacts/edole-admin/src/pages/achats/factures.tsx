@@ -42,12 +42,14 @@ type InvoiceLine = {
 };
 type BillMode = "bill" | "credit_note" | "repeating";
 type StatusHistoryEntry = { from: string; to: string; at: string; userId: string };
+type InvoiceAttachment = { name: string; objectPath: string; contentType: string; size: number; uploadedAt: string };
 type InvoiceDetail = Invoice & {
   supplierEmail: string | null; supplierPhone: string | null;
   expenseAccountId: string | null;
   purchaseOrderReference: string | null;
   statusHistory: StatusHistoryEntry[];
   payments: PaymentRecord[];
+  attachments?: InvoiceAttachment[];
 };
 type PaymentRecord = {
   id: string; amount: string | number; method: string; status: string;
@@ -410,6 +412,28 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
           }),
         });
       }
+      // Upload pièces jointes vers l'object storage
+      if (attachments.length > 0) {
+        const uploaded: Array<{ name: string; objectPath: string; contentType: string; size: number; uploadedAt: string }> = [];
+        for (const file of attachments) {
+          try {
+            const { uploadURL, objectPath } = await apiFetch<{ uploadURL: string; objectPath: string }>(
+              "/api/storage/uploads/request-url",
+              { method: "POST", body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "application/octet-stream" }) }
+            );
+            await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
+            uploaded.push({ name: file.name, objectPath, contentType: file.type || "application/octet-stream", size: file.size, uploadedAt: new Date().toISOString() });
+          } catch {
+            toast.warning(`Pièce jointe "${file.name}" non uploadée`);
+          }
+        }
+        if (uploaded.length > 0) {
+          await apiFetch(`/api/purchases/invoices/${invoice.id}/attachments`, {
+            method: "POST",
+            body: JSON.stringify({ attachments: uploaded }),
+          });
+        }
+      }
       const label = mode === "credit_note" ? "Note de crédit créée" : mode === "repeating" ? "Facture récurrente créée" : "Facture créée";
       toast.success(label);
       if (schedulePayment) toast.info("Ouvrez la facture pour programmer un paiement");
@@ -770,6 +794,46 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* Pièces jointes */}
+            {(inv.attachments ?? []).length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                  <Paperclip className="w-4 h-4 text-muted-foreground" /> Pièces jointes ({(inv.attachments ?? []).length})
+                </h3>
+                <div className="space-y-1.5">
+                  {(inv.attachments ?? []).map((att) => {
+                    const objectKey = att.objectPath.startsWith("/objects/") ? att.objectPath.slice("/objects/".length) : att.objectPath;
+                    const fileUrl = `/api/storage/objects/${objectKey}`;
+                    const isImage = att.contentType.startsWith("image/");
+                    const isPdf = att.contentType === "application/pdf";
+                    return (
+                      <a
+                        key={att.objectPath}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={att.name}
+                        className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 transition-colors group"
+                      >
+                        <span className="shrink-0">
+                          {isImage ? <Image className="w-4 h-4 text-blue-500" /> : isPdf ? <FileText className="w-4 h-4 text-red-500" /> : <Paperclip className="w-4 h-4 text-slate-400" />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-medium truncate">{att.name}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {att.size > 1024 * 1024 ? `${(att.size / 1024 / 1024).toFixed(1)} Mo` : `${Math.round(att.size / 1024)} Ko`}
+                            {" · "}
+                            {formatDate(att.uploadedAt)}
+                          </span>
+                        </span>
+                        <Download className="w-4 h-4 text-muted-foreground group-hover:text-[#F37021] shrink-0 transition-colors" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}

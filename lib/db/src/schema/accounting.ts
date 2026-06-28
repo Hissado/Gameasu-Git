@@ -184,6 +184,8 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
   expenseAccountId: uuid("expense_account_id").references(() => chartOfAccountsTable.id),
   notes: text("notes"),
   attachmentUrl: text("attachment_url"),
+  // Pièces jointes : [{name, objectPath, contentType, size, uploadedAt}]
+  attachments: jsonb("attachments").$type<Array<{ name: string; objectPath: string; contentType: string; size: number; uploadedAt: string }>>().default(sql`'[]'::jsonb`),
   // Historique des changements de statut: [{from, to, at, userId}]
   statusHistory: jsonb("status_history").$type<Array<{ from: string; to: string; at: string; userId: string }>>().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
