@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { toPng } from "html-to-image";
 
 export default function CollaboratorBadgePrint() {
@@ -10,6 +10,7 @@ export default function CollaboratorBadgePrint() {
   const collaboratorId = params?.id ?? "";
   const badgeRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
 
   const { data: collab, isLoading } = useQuery<any>({
     queryKey: ["badge-collab", collaboratorId],
@@ -32,6 +33,24 @@ export default function CollaboratorBadgePrint() {
     queryFn: () => apiFetch(`/api/hr/collaborators/${collaboratorId}/overview`),
     enabled: !!collaboratorId,
   });
+
+  // Pré-charge l'avatar en base64 pour éviter les blocages CORS lors de la capture canvas
+  useEffect(() => {
+    const url = collab ? ((collab.collaborator ?? collab).avatarUrl ?? null) : null;
+    if (!url) { setAvatarDataUrl(null); return; }
+    let cancelled = false;
+    fetch(url)
+      .then(r => r.blob())
+      .then(blob => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }))
+      .then(dataUrl => { if (!cancelled) setAvatarDataUrl(dataUrl); })
+      .catch(() => { if (!cancelled) setAvatarDataUrl(null); });
+    return () => { cancelled = true; };
+  }, [collab]);
 
   const handleDownload = async () => {
     if (!badgeRef.current) return;
@@ -198,7 +217,9 @@ export default function CollaboratorBadgePrint() {
             justifyContent: "center",
             flexShrink: 0,
           }}>
-            {c.avatarUrl ? (
+            {avatarDataUrl ? (
+              <img src={avatarDataUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : c.avatarUrl ? (
               <img src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" />
             ) : (
               <span style={{ color: "white", fontWeight: 800, fontSize: 28 }}>{initials}</span>
