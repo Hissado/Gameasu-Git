@@ -194,6 +194,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   });
   const unreadCount = unreadData?.total ?? 0;
 
+  // Pending approvals count — polled every 60 s for sidebar badge
+  const { data: approvalsData } = useQuery({
+    queryKey: ["purchases-approvals-count"],
+    queryFn: () => apiFetch<{ total: number }>("/api/purchases/approvals/pending"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    enabled: !!user,
+  });
+  const pendingApprovalsCount = approvalsData?.total ?? 0;
+
   // Collapsible groups — open the active one by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -371,6 +381,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                                     {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />}
                                     <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
                                     <span className="truncate flex-1">{item.name}</span>
+                                    {item.path === "/achats/approbations" && pendingApprovalsCount > 0 && (
+                                      <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#F37021] text-white text-[9px] font-bold flex items-center justify-center px-1">
+                                        {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
+                                      </span>
+                                    )}
                                     {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
                                   </Link>
                                 </li>

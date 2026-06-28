@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,13 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import {
-  Plus, Search, FileText, CheckCircle2, XCircle, CreditCard,
-  Receipt, ChevronRight, AlertCircle, Filter,
+  Plus, Search, Trash2, CheckCircle2, XCircle, CreditCard,
+  Receipt, ChevronRight, Filter,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -59,6 +59,228 @@ const EXPENSE_CATEGORIES = [
   "transport", "hébergement", "restauration", "formation",
   "matériel", "communication", "représentation", "autre",
 ];
+
+// ─── Ligne de dépense locale (avant soumission) ───────────────────────────────
+
+type LocalItem = {
+  key: string;
+  category: string;
+  description: string;
+  amount: string;
+  expenseDate: string;
+  receiptUrl: string;
+  isBillable: boolean;
+  notes: string;
+};
+
+function emptyItem(): LocalItem {
+  return {
+    key: crypto.randomUUID(),
+    category: "transport",
+    description: "",
+    amount: "",
+    expenseDate: new Date().toISOString().slice(0, 10),
+    receiptUrl: "",
+    isBillable: false,
+    notes: "",
+  };
+}
+
+// ─── Formulaire de création de note de frais ─────────────────────────────────
+
+function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
+  collabs: Collaborator[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [collaboratorId, setCollaboratorId] = useState("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitDirect, setSubmitDirect] = useState(false);
+  const [items, setItems] = useState<LocalItem[]>([emptyItem()]);
+  const [saving, setSaving] = useState(false);
+
+  const addItem = () => setItems(prev => [...prev, emptyItem()]);
+  const removeItem = (key: string) => setItems(prev => prev.filter(i => i.key !== key));
+  const updateItem = (key: string, field: keyof LocalItem, value: string | boolean) =>
+    setItems(prev => prev.map(i => i.key === key ? { ...i, [field]: value } : i));
+
+  const totalAmount = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+  const handleSubmit = async () => {
+    if (!title.trim()) { toast.error("Titre requis"); return; }
+    if (!collaboratorId) { toast.error("Sélectionnez un collaborateur"); return; }
+    const validItems = items.filter(i => i.description.trim() && i.amount && parseFloat(i.amount) > 0 && i.expenseDate);
+    if (validItems.length === 0) { toast.error("Ajoutez au moins une ligne de dépense valide"); return; }
+
+    setSaving(true);
+    try {
+      // 1. Create report
+      const report = await apiFetch<{ id: string }>("/api/purchases/expenses", {
+        method: "POST",
+        body: JSON.stringify({
+          collaboratorId,
+          title: title.trim(),
+          description: description.trim() || null,
+          periodStart: periodStart || null,
+          periodEnd: periodEnd || null,
+          status: "draft",
+        }),
+      });
+
+      // 2. Add items
+      for (const item of validItems) {
+        await apiFetch(`/api/purchases/expenses/${report.id}/items`, {
+          method: "POST",
+          body: JSON.stringify({
+            category: item.category,
+            description: item.description,
+            amount: parseFloat(item.amount),
+            expenseDate: item.expenseDate,
+            receiptUrl: item.receiptUrl || null,
+            isBillable: item.isBillable,
+            notes: item.notes || null,
+          }),
+        });
+      }
+
+      // 3. Optionally submit
+      if (submitDirect) {
+        await apiFetch(`/api/purchases/expenses/${report.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ status: "submitted" }),
+        });
+      }
+
+      toast.success(submitDirect ? "Note de frais soumise" : "Note de frais créée en brouillon");
+      onSuccess(); onClose();
+    } catch (e: any) { toast.error(e?.message ?? "Erreur lors de la création"); } finally { setSaving(false); }
+  };
+
+  return (
+    <Sheet open onOpenChange={v => !v && onClose()}>
+      <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-[#F37021]" />
+            Nouvelle note de frais
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto space-y-5 mt-5 pr-1">
+          {/* En-tête */}
+          <div className="space-y-3">
+            <div>
+              <Label>Titre <span className="text-red-500">*</span></Label>
+              <Input className="mt-1" placeholder="Ex: Déplacement Lomé — janvier 2026" value={title} onChange={e => setTitle(e.target.value)} />
+            </div>
+
+            <div>
+              <Label>Collaborateur <span className="text-red-500">*</span></Label>
+              <Select value={collaboratorId} onValueChange={setCollaboratorId}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner un collaborateur" /></SelectTrigger>
+                <SelectContent>
+                  {collabs.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}{c.department ? ` — ${c.department}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Période — début</Label>
+                <Input type="date" className="mt-1" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
+              </div>
+              <div>
+                <Label>Période — fin</Label>
+                <Input type="date" className="mt-1" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Description / notes</Label>
+              <Textarea className="mt-1" placeholder="Contexte optionnel…" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+            </div>
+          </div>
+
+          {/* Lignes de dépense */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-slate-700">Lignes de dépense</p>
+              <Button variant="outline" size="sm" onClick={addItem} className="h-7 text-xs">
+                <Plus className="h-3 w-3 mr-1" />Ajouter
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div key={item.key} className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-slate-500">Ligne {idx + 1}</p>
+                    {items.length > 1 && (
+                      <button onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Catégorie</Label>
+                      <Select value={item.category} onValueChange={v => updateItem(item.key, "category", v)}>
+                        <SelectTrigger className="h-8 text-xs mt-0.5"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Date <span className="text-red-500">*</span></Label>
+                      <Input type="date" className="h-8 text-xs mt-0.5" value={item.expenseDate} onChange={e => updateItem(item.key, "expenseDate", e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Description <span className="text-red-500">*</span></Label>
+                    <Input className="h-8 text-xs mt-0.5" placeholder="Libellé de la dépense" value={item.description} onChange={e => updateItem(item.key, "description", e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Montant (FCFA) <span className="text-red-500">*</span></Label>
+                      <Input type="number" className="h-8 text-xs mt-0.5" placeholder="0" value={item.amount} onChange={e => updateItem(item.key, "amount", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">URL justificatif</Label>
+                      <Input className="h-8 text-xs mt-0.5" placeholder="https://…" value={item.receiptUrl} onChange={e => updateItem(item.key, "receiptUrl", e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total */}
+            <div className="flex items-center justify-between mt-3 px-2 py-2 bg-slate-100 rounded-lg">
+              <span className="text-sm font-medium text-slate-600">Total estimé</span>
+              <span className="font-bold text-[#F37021]">{formatFCFA(totalAmount)}</span>
+            </div>
+          </div>
+        </div>
+
+        <SheetFooter className="pt-4 border-t gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button variant="outline" onClick={() => { setSubmitDirect(false); handleSubmit(); }} disabled={saving}>
+            {saving && !submitDirect ? "…" : "Enregistrer en brouillon"}
+          </Button>
+          <Button className="bg-[#F37021] hover:bg-[#d96518]" onClick={() => { setSubmitDirect(true); handleSubmit(); }} disabled={saving}>
+            <CheckCircle2 className="h-4 w-4 mr-1" />
+            {saving && submitDirect ? "Soumission…" : "Soumettre"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
@@ -209,6 +431,7 @@ export default function DepensesPage() {
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const params = new URLSearchParams({ limit: "100" });
   if (statusFilter !== "all") params.set("status", statusFilter);
@@ -246,9 +469,14 @@ export default function DepensesPage() {
         title="Gestion des dépenses"
         subtitle="Notes de frais — vue manager toutes équipes"
         actions={
-          <Button variant="outline" size="sm" onClick={refresh}>
-            <Filter className="h-4 w-4 mr-1" />Actualiser
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={refresh}>
+              <Filter className="h-4 w-4 mr-1" />Actualiser
+            </Button>
+            <Button size="sm" className="bg-[#F37021] hover:bg-[#d96518] text-white" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />Nouvelle note de frais
+            </Button>
+          </div>
         }
       />
 
@@ -352,6 +580,14 @@ export default function DepensesPage() {
           reportId={selectedId}
           onClose={() => setSelectedId(null)}
           onRefresh={() => { refresh(); setSelectedId(null); }}
+        />
+      )}
+
+      {createOpen && (
+        <CreateExpenseSheet
+          collabs={collabData?.data ?? []}
+          onClose={() => setCreateOpen(false)}
+          onSuccess={() => { refresh(); setCreateOpen(false); }}
         />
       )}
     </div>

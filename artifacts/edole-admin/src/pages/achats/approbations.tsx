@@ -226,9 +226,53 @@ function ExpenseActions({ expense, onRefresh }: { expense: PendingExpense; onRef
   );
 }
 
-// ─── PO confirm action ────────────────────────────────────────────────────────
+// ─── Reject dialog (bons de commande) ────────────────────────────────────────
+
+function RejectPoDialog({ po, onClose, onSuccess }: {
+  po: PendingPO; onClose: () => void; onSuccess: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleReject = async () => {
+    if (!reason.trim()) { toast.error("Veuillez indiquer un motif de refus"); return; }
+    setSaving(true);
+    try {
+      await apiFetch(`/api/purchases/purchase-orders/${po.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "cancelled", notes: reason.trim() }),
+      });
+      toast.success("Bon de commande annulé");
+      onSuccess(); onClose();
+    } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={v => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Annuler le bon de commande</DialogTitle>
+          <DialogDescription>{po.reference} — {po.supplierName}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <Label>Motif d'annulation <span className="text-red-500">*</span></Label>
+          <Textarea placeholder="Indiquez le motif…" value={reason} onChange={e => setReason(e.target.value)} rows={3} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button variant="destructive" onClick={handleReject} disabled={saving || !reason.trim()}>
+            <XCircle className="h-4 w-4 mr-1" />{saving ? "…" : "Confirmer l'annulation"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── PO confirm/reject actions ────────────────────────────────────────────────
 
 function PoActions({ po, onRefresh }: { po: PendingPO; onRefresh: () => void }) {
+  const [rejectOpen, setRejectOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const doConfirm = async () => {
     setSaving(true);
@@ -248,9 +292,14 @@ function PoActions({ po, onRefresh }: { po: PendingPO; onRefresh: () => void }) 
         onClick={doConfirm}>
         <CheckCircle2 className="h-3 w-3 mr-1" />{saving ? "…" : "Confirmer"}
       </Button>
+      <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:text-red-700" disabled={saving}
+        onClick={() => setRejectOpen(true)}>
+        <XCircle className="h-3 w-3 mr-1" />Annuler
+      </Button>
       <Link href={`/achats/bons-de-commande/${po.id}`}>
         <Button size="sm" variant="ghost" className="h-7 text-xs">Voir</Button>
       </Link>
+      {rejectOpen && <RejectPoDialog po={po} onClose={() => setRejectOpen(false)} onSuccess={onRefresh} />}
     </div>
   );
 }

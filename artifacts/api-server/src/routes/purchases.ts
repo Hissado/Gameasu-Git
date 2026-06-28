@@ -1360,8 +1360,8 @@ router.get("/purchases/reports/by-period", requirePermission("purchases.read"), 
   }
 });
 
-// Top fournisseurs par montant facturé
-router.get("/purchases/reports/by-supplier", requirePermission("purchases.read"), async (req, res) => {
+// Top fournisseurs par montant facturé (aussi accessible via /by-vendor)
+async function reportBySupplierHandler(req: any, res: any) {
   try {
     const orgId = req.authUser!.organizationId;
     const { limit: lim = "10" } = req.query as Record<string, string>;
@@ -1390,7 +1390,10 @@ router.get("/purchases/reports/by-supplier", requirePermission("purchases.read")
     req.log.error(e, "purchases/reports/by-supplier GET");
     return res.status(500).json({ error: "Erreur rapport par fournisseur" });
   }
-});
+}
+router.get("/purchases/reports/by-supplier", requirePermission("purchases.read"), reportBySupplierHandler);
+// alias contract
+router.get("/purchases/reports/by-vendor", requirePermission("purchases.read"), reportBySupplierHandler);
 
 // Approbations en attente — file unifiée (factures + BCs + notes de frais)
 router.get("/purchases/approvals/pending", requirePermission("purchases.read"), async (req, res) => {
@@ -1599,6 +1602,204 @@ router.patch("/purchases/expenses/:id/status", requirePermission("purchases.writ
   } catch (e: any) {
     req.log.error(e, "purchases/expenses/:id/status PATCH");
     return res.status(400).json({ error: e?.message ?? "Erreur mise à jour" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// DÉPENSES — CRUD COMPLET
+// ════════════════════════════════════════════════════════════════
+
+const ExpenseReportCreateSchema = z.object({
+  collaboratorId: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  description: z.string().optional().nullable(),
+  periodStart: z.string().optional().nullable(),
+  periodEnd: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.enum(["draft", "submitted"]).optional().default("draft"),
+});
+
+const ExpenseItemCreateSchema = z.object({
+  category: z.string().min(1),
+  description: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.string().default("XOF"),
+  expenseDate: z.string(),
+  receiptUrl: z.string().optional().nullable(),
+  isBillable: z.boolean().optional().default(false),
+  projectId: z.string().uuid().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+// Helper: recalculate and persist totalAmount for a report
+async function recalcExpenseTotal(reportId: string) {
+  const [res] = await db.select({ total: sql<number>`coalesce(sum(${expenseItemsTable.amount}), 0)` })
+    .from(expenseItemsTable).where(eq(expenseItemsTable.expenseReportId, reportId));
+  await db.update(expenseReportsTable).set({ totalAmount: String(res?.total ?? 0) })
+    .where(eq(expenseReportsTable.id, reportId));
+}
+
+// POST — créer une note de frais
+router.post("/purchases/expenses", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const parsed = ExpenseReportCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const d = parsed.data;
+
+    const [report] = await db.insert(expenseReportsTable).values({
+      organizationId: orgId,
+      collaboratorId: d.collaboratorId,
+      title: d.title,
+      description: d.description ?? null,
+      status: d.status ?? "draft",
+      periodStart: d.periodStart ?? null,
+      periodEnd: d.periodEnd ?? null,
+      notes: d.notes ?? null,
+      totalAmount: "0",
+      currency: "XOF",
+      ...(d.status === "submitted" ? { submittedAt: new Date() } : {}),
+    }).returning();
+    return res.status(201).json(report);
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses POST");
+    return res.status(500).json({ error: "Erreur création note de frais" });
+  }
+});
+
+// PUT — modifier l'en-tête d'une note de frais
+router.put("/purchases/expenses/:id", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const UpdateSchema = ExpenseReportCreateSchema.partial();
+    const parsed = UpdateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const d = parsed.data;
+
+    const setFields: Record<string, unknown> = {};
+    if (d.title !== undefined) setFields.title = d.title;
+    if (d.description !== undefined) setFields.description = d.description;
+    if (d.periodStart !== undefined) setFields.periodStart = d.periodStart;
+    if (d.periodEnd !== undefined) setFields.periodEnd = d.periodEnd;
+    if (d.notes !== undefined) setFields.notes = d.notes;
+    if (d.status !== undefined) {
+      setFields.status = d.status;
+      if (d.status === "submitted") setFields.submittedAt = new Date();
+    }
+
+    const [updated] = await db.update(expenseReportsTable)
+      .set(setFields as any)
+      .where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)))
+      .returning();
+    if (!updated) return res.status(404).json({ error: "Note de frais introuvable" });
+    return res.json(updated);
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id PUT");
+    return res.status(500).json({ error: "Erreur mise à jour note de frais" });
+  }
+});
+
+// DELETE — supprimer une note de frais (uniquement si draft)
+router.delete("/purchases/expenses/:id", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [report] = await db.select({ id: expenseReportsTable.id, status: expenseReportsTable.status })
+      .from(expenseReportsTable).where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)));
+    if (!report) return res.status(404).json({ error: "Note de frais introuvable" });
+    if (report.status !== "draft") return res.status(400).json({ error: "Seules les notes de frais en brouillon peuvent être supprimées" });
+    await db.delete(expenseReportsTable).where(eq(expenseReportsTable.id, id));
+    return res.status(204).end();
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id DELETE");
+    return res.status(500).json({ error: "Erreur suppression note de frais" });
+  }
+});
+
+// POST — ajouter une ligne de frais
+router.post("/purchases/expenses/:id/items", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [report] = await db.select({ id: expenseReportsTable.id, status: expenseReportsTable.status })
+      .from(expenseReportsTable).where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)));
+    if (!report) return res.status(404).json({ error: "Note de frais introuvable" });
+    if (report.status !== "draft") return res.status(400).json({ error: "Impossible de modifier une note soumise ou approuvée" });
+
+    const parsed = ExpenseItemCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const d = parsed.data;
+    const [item] = await db.insert(expenseItemsTable).values({
+      expenseReportId: id,
+      category: d.category,
+      description: d.description,
+      amount: String(d.amount),
+      currency: d.currency,
+      expenseDate: d.expenseDate,
+      receiptUrl: d.receiptUrl ?? null,
+      isBillable: d.isBillable ?? false,
+      projectId: d.projectId ?? null,
+      notes: d.notes ?? null,
+    }).returning();
+    await recalcExpenseTotal(id);
+    return res.status(201).json(item);
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id/items POST");
+    return res.status(500).json({ error: "Erreur ajout ligne de frais" });
+  }
+});
+
+// PUT — modifier une ligne de frais
+router.put("/purchases/expenses/:id/items/:itemId", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { id, itemId } = req.params as Record<string, string>;
+    const [report] = await db.select({ id: expenseReportsTable.id, status: expenseReportsTable.status })
+      .from(expenseReportsTable).where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)));
+    if (!report) return res.status(404).json({ error: "Note de frais introuvable" });
+    if (report.status !== "draft") return res.status(400).json({ error: "Impossible de modifier une note soumise ou approuvée" });
+
+    const parsed = ExpenseItemCreateSchema.partial().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const d = parsed.data;
+    const setFields: Record<string, unknown> = {};
+    if (d.category !== undefined) setFields.category = d.category;
+    if (d.description !== undefined) setFields.description = d.description;
+    if (d.amount !== undefined) setFields.amount = String(d.amount);
+    if (d.expenseDate !== undefined) setFields.expenseDate = d.expenseDate;
+    if (d.receiptUrl !== undefined) setFields.receiptUrl = d.receiptUrl;
+    if (d.isBillable !== undefined) setFields.isBillable = d.isBillable;
+    if (d.projectId !== undefined) setFields.projectId = d.projectId;
+    if (d.notes !== undefined) setFields.notes = d.notes;
+
+    const [item] = await db.update(expenseItemsTable).set(setFields as any)
+      .where(and(eq(expenseItemsTable.id, itemId), eq(expenseItemsTable.expenseReportId, id)))
+      .returning();
+    if (!item) return res.status(404).json({ error: "Ligne de frais introuvable" });
+    await recalcExpenseTotal(id);
+    return res.json(item);
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id/items/:itemId PUT");
+    return res.status(500).json({ error: "Erreur mise à jour ligne de frais" });
+  }
+});
+
+// DELETE — supprimer une ligne de frais
+router.delete("/purchases/expenses/:id/items/:itemId", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { id, itemId } = req.params as Record<string, string>;
+    const [report] = await db.select({ id: expenseReportsTable.id, status: expenseReportsTable.status })
+      .from(expenseReportsTable).where(and(eq(expenseReportsTable.id, id), eq(expenseReportsTable.organizationId, orgId)));
+    if (!report) return res.status(404).json({ error: "Note de frais introuvable" });
+    if (report.status !== "draft") return res.status(400).json({ error: "Impossible de modifier une note soumise ou approuvée" });
+    await db.delete(expenseItemsTable).where(and(eq(expenseItemsTable.id, itemId), eq(expenseItemsTable.expenseReportId, id)));
+    await recalcExpenseTotal(id);
+    return res.status(204).end();
+  } catch (e: any) {
+    req.log.error(e, "purchases/expenses/:id/items/:itemId DELETE");
+    return res.status(500).json({ error: "Erreur suppression ligne de frais" });
   }
 });
 
