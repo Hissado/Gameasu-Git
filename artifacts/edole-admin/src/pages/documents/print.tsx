@@ -134,7 +134,7 @@ export default function PrintDocumentPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#C8A24B]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
       </div>
     );
   }
@@ -217,7 +217,7 @@ export default function PrintDocumentPage() {
         </span>
         <Button
           onClick={() => window.print()}
-          style={{ background: "#C8A24B", color: "white", display: "flex", alignItems: "center", gap: "6px" }}
+          style={{ background: "#2563EB", color: "white", display: "flex", alignItems: "center", gap: "6px" }}
         >
           <Download style={{ width: 16, height: 16 }} />
           Enregistrer PDF
@@ -243,7 +243,7 @@ export default function PrintDocumentPage() {
             justifyContent: "space-between",
             alignItems: "flex-start",
             marginBottom: "8mm",
-            borderBottom: "2px solid #C8A24B",
+            borderBottom: "2px solid #2563EB",
             paddingBottom: "6mm",
           }}
         >
@@ -265,7 +265,7 @@ export default function PrintDocumentPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#C8A24B",
+                  color: "#2563EB",
                   fontWeight: 700,
                   fontSize: "18pt",
                 }}
@@ -284,7 +284,7 @@ export default function PrintDocumentPage() {
           </div>
 
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "18pt", fontWeight: "bold", color: "#C8A24B", marginBottom: "3px" }}>
+            <div style={{ fontSize: "18pt", fontWeight: "bold", color: "#2563EB", marginBottom: "3px" }}>
               {DOCTYPE_LABELS[docType]}
             </div>
             <div style={{ fontSize: "12pt", fontWeight: "bold", color: "#1a1a2e", marginBottom: "4px" }}>
@@ -446,7 +446,7 @@ export default function PrintDocumentPage() {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "3mm", backgroundColor: "#1a1a2e", borderRadius: "0 0 4px 4px" }}>
                     <span style={{ color: "white", fontWeight: 700, fontSize: "11pt" }}>TOTAL TTC</span>
-                    <span style={{ color: "#C8A24B", fontWeight: 700, fontSize: "11pt" }}>{formatFCFA(totals.totalTTC)}</span>
+                    <span style={{ color: "#2563EB", fontWeight: 700, fontSize: "11pt" }}>{formatFCFA(totals.totalTTC)}</span>
                   </div>
                 </div>
               </div>
@@ -468,7 +468,7 @@ export default function PrintDocumentPage() {
                   }}
                 >
                   <span style={{ color: "white", fontWeight: 700, fontSize: "11pt" }}>MONTANT TOTAL</span>
-                  <span style={{ color: "#C8A24B", fontWeight: 700, fontSize: "11pt" }}>{formatFCFA(doc.totalAmount)}</span>
+                  <span style={{ color: "#2563EB", fontWeight: 700, fontSize: "11pt" }}>{formatFCFA(doc.totalAmount)}</span>
                 </div>
               </div>
             </section>

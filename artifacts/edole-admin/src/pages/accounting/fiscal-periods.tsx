@@ -117,7 +117,7 @@ export default function FiscalPeriodsPage() {
       title="Exercices comptables"
       subtitle="Gestion des exercices fiscaux — référentiel SYSCOHADA"
       actions={
-        <Button onClick={openCreateDialog} className="bg-amber-600 hover:bg-amber-700">
+        <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" /> Nouvel exercice
         </Button>
       }
@@ -132,7 +132,7 @@ export default function FiscalPeriodsPage() {
             <CalendarDays className="w-10 h-10 mx-auto mb-3 text-slate-300" />
             <p className="font-semibold">Aucun exercice comptable</p>
             <p className="text-sm mt-1">Créez votre premier exercice pour commencer la saisie comptable.</p>
-            <Button className="mt-4 bg-amber-600 hover:bg-amber-700" onClick={openCreateDialog}>
+            <Button className="mt-4 bg-primary hover:bg-primary/90" onClick={openCreateDialog}>
               <Plus className="w-4 h-4 mr-2" /> Créer l'exercice
             </Button>
           </div>
@@ -152,7 +152,7 @@ export default function FiscalPeriodsPage() {
                 </div>
                 <Button
                   size="sm"
-                  className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap flex-shrink-0"
+                  className="bg-primary hover:bg-primary/90 whitespace-nowrap flex-shrink-0"
                   disabled={createNextMut.isPending}
                   onClick={() => createNextMut.mutate(latestPeriod.id)}
                 >
@@ -293,7 +293,7 @@ export default function FiscalPeriodsPage() {
             <Button
               onClick={() => createMut.mutate()}
               disabled={!form.name || !form.startDate || !form.endDate || createMut.isPending}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-primary hover:bg-primary/90"
             >
               {createMut.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Plus className="w-4 h-4 mr-1.5" />}
               Créer
@@ -318,7 +318,7 @@ export default function FiscalPeriodsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmClose(null)}>Annuler</Button>
             <Button
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-primary hover:bg-primary/90"
               onClick={() => confirmClose && closeMut.mutate(confirmClose.id)}
               disabled={closeMut.isPending}
             >

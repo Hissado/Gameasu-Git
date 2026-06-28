@@ -439,7 +439,7 @@ function PaymentModal({
               <Button
                 onClick={handleInitStripe}
                 disabled={saving || total <= 0}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)} TTC`}
               </Button>
@@ -447,7 +447,7 @@ function PaymentModal({
               <Button
                 onClick={handleSubmitManual}
                 disabled={saving || total <= 0}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)} TTC`}
               </Button>
@@ -780,7 +780,7 @@ function AutopayPanel({
             </div>
             <Button
               onClick={() => setShowSaveCard(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <CreditCard className="w-4 h-4 mr-2" /> Ajouter une carte
             </Button>
@@ -1122,7 +1122,7 @@ export default function BillingPage() {
                     <p className="text-sm text-amber-700">
                       Votre organisation dépasse 50 utilisateurs. Contactez notre équipe commerciale pour un devis sur-mesure adapté à votre volume.
                     </p>
-                    <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                    <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B%20${userCount}%20utilisateurs`}>
                         <Mail className="w-4 h-4 mr-2" /> Demander un devis
                       </a>
@@ -1163,14 +1163,14 @@ export default function BillingPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {isEnterprise ? (
-                  <Button asChild className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                     <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B${userCount}%20utilisateurs`}>
                       <Mail className="w-4 h-4 mr-2" /> Demander un devis
                     </a>
                   </Button>
                 ) : (
                   <Button
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={() => setShowPayModal(true)}
                     disabled={!ttc || ttc <= 0}
                   >
@@ -1310,13 +1310,13 @@ export default function BillingPage() {
               </p>
             </div>
             {isEnterprise ? (
-              <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B${userCount}%20utilisateurs`}>
                   <Mail className="w-4 h-4 mr-2" /> Demander un devis
                 </a>
               </Button>
             ) : (
-              <Button onClick={() => setShowPayModal(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <Button onClick={() => setShowPayModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
               </Button>
             )}

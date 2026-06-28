@@ -57,7 +57,7 @@ export default function PipelineIntelligence() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" /><YAxis tickFormatter={(v) => (v / 1_000_000).toFixed(0) + "M"} /><Tooltip formatter={(v: any) => formatFCFA(Number(v))} /><Legend />
                     <Bar dataKey="expected" fill="#94a3b8" name="Attendu" />
-                    <Bar dataKey="weighted" fill="#F37021" name="Pondéré" />
+                    <Bar dataKey="weighted" fill="#2563EB" name="Pondéré" />
                   </BarChart>
                 </ResponsiveContainer>
               )}

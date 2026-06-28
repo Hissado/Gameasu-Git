@@ -296,7 +296,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
             </div>
             <div className="flex justify-between font-bold text-base border-t pt-2 mt-1">
               <span>Total TTC</span>
-              <span className="tabular-nums text-[#C8A24B]">{formatFCFA(totals.totalTTC)}</span>
+              <span className="tabular-nums text-[#2563EB]">{formatFCFA(totals.totalTTC)}</span>
             </div>
           </div>
         </div>

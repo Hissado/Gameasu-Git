@@ -159,7 +159,7 @@ function NewOpportunityDialog({ onClose, onSuccess }: { onClose: () => void; onS
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-[#C8A24B]" /> Nouvelle opportunité
+            <Briefcase className="w-5 h-5 text-[#2563EB]" /> Nouvelle opportunité
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
@@ -191,7 +191,7 @@ function NewOpportunityDialog({ onClose, onSuccess }: { onClose: () => void; onS
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Création…" : "Créer l'opportunité"}
           </Button>
         </DialogFooter>
@@ -246,7 +246,7 @@ export default function CrmHome() {
               </Button>
             </Link>
             <Button onClick={() => setNewOppOpen(true)}
-              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+              className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
               <Plus className="w-4 h-4" strokeWidth={3} />
               Nouvelle opportunité
             </Button>
@@ -268,7 +268,7 @@ export default function CrmHome() {
         return (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
             <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
-              <div className="p-2 bg-amber-50 rounded-lg shrink-0"><Target className="w-4 h-4 text-[#C8A24B]" /></div>
+              <div className="p-2 bg-amber-50 rounded-lg shrink-0"><Target className="w-4 h-4 text-[#2563EB]" /></div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Pipeline total</div>
                 <div className="text-sm sm:text-base font-black text-foreground leading-tight break-words">{formatFCFACompact(pipeline?.totalValue ?? 0)}</div>
@@ -361,7 +361,7 @@ export default function CrmHome() {
                               )}
                             </div>
                             {opp.probability != null && (
-                              <Progress value={opp.probability} className="h-1 [&>div]:bg-[#C8A24B]" />
+                              <Progress value={opp.probability} className="h-1 [&>div]:bg-[#2563EB]" />
                             )}
                           </div>
                         )}
@@ -426,7 +426,7 @@ export default function CrmHome() {
                                 onClick={() => moveMutation.mutate({ id: opp.id, stage: STAGE_NEXT[stage.key] })}
                                 disabled={moveMutation.isPending}
                                 title={`Avancer vers ${STAGES.find(s => s.key === STAGE_NEXT[stage.key])?.label}`}
-                                className="flex-1 text-[10px] font-semibold py-1 rounded border border-[#C8A24B]/40 hover:border-[#C8A24B] text-[#8a6b2a] hover:bg-amber-50 transition-colors flex items-center justify-center gap-0.5">
+                                className="flex-1 text-[10px] font-semibold py-1 rounded border border-[#2563EB]/40 hover:border-[#2563EB] text-[#8a6b2a] hover:bg-amber-50 transition-colors flex items-center justify-center gap-0.5">
                                 Avancer <ChevronRight className="w-3 h-3" />
                               </button>
                             )}

@@ -122,7 +122,7 @@ export default function FinanceIntelligencePage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
                     <Tooltip formatter={(v: any) => formatFCFA(Number(v))} />
-                    <Line type="monotone" dataKey="cumulative" stroke="#F37021" strokeWidth={2} name="Théorique" dot={false} />
+                    <Line type="monotone" dataKey="cumulative" stroke="#2563EB" strokeWidth={2} name="Théorique" dot={false} />
                     <Line type="monotone" dataKey="cumulativeWeighted" stroke="#10b981" strokeWidth={2} name="Pondéré" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>

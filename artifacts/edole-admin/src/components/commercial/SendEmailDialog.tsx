@@ -74,7 +74,7 @@ export function SendEmailDialog({ docType, docId, referenceNumber, clientName, c
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-[#C8A24B]" />
+            <Mail className="w-5 h-5 text-[#2563EB]" />
             Envoyer le {label.toLowerCase()} par email
           </DialogTitle>
           <DialogDescription>
@@ -102,12 +102,12 @@ export function SendEmailDialog({ docType, docId, referenceNumber, clientName, c
         ) : (
           <div className="space-y-4 py-1">
             <div className="bg-muted/40 rounded-lg p-3 flex items-center gap-3 border">
-              <FileText className="w-8 h-8 text-[#C8A24B] shrink-0" />
+              <FileText className="w-8 h-8 text-[#2563EB] shrink-0" />
               <div>
                 <p className="font-semibold text-sm">{label} {referenceNumber}</p>
                 <p className="text-xs text-muted-foreground">{clientName ?? "Client non spécifié"}</p>
                 {totalAmount != null && (
-                  <p className="text-xs font-medium text-[#C8A24B] mt-0.5">{formatFCFA(totalAmount)}</p>
+                  <p className="text-xs font-medium text-[#2563EB] mt-0.5">{formatFCFA(totalAmount)}</p>
                 )}
               </div>
             </div>
@@ -142,7 +142,7 @@ export function SendEmailDialog({ docType, docId, referenceNumber, clientName, c
             {result ? "Fermer" : "Annuler"}
           </Button>
           {!result && (
-            <Button onClick={handleSend} disabled={sending || !to.trim()} className="gap-2 bg-[#C8A24B] hover:bg-[#b08d3f] text-white">
+            <Button onClick={handleSend} disabled={sending || !to.trim()} className="gap-2 bg-primary hover:bg-primary/90 text-white">
               <Send className="w-4 h-4" />
               {sending ? "Envoi en cours…" : `Envoyer le ${label.toLowerCase()}`}
             </Button>

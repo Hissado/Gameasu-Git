@@ -118,7 +118,7 @@ export default function FixedAssetsPage() {
       title="Immobilisations"
       subtitle="Suivi du parc d'actifs immobilisés et plan d'amortissement"
       actions={
-        <Button onClick={() => setOpenCreate(true)} className="bg-amber-600 hover:bg-amber-700">
+        <Button onClick={() => setOpenCreate(true)} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />Nouvelle immobilisation
         </Button>
       }
@@ -259,7 +259,7 @@ export default function FixedAssetsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenCreate(false)}>Annuler</Button>
-            <Button onClick={() => create.mutate()} disabled={!form.code || !form.label || !form.acquisitionCost || !form.accountId || create.isPending} className="bg-amber-600 hover:bg-amber-700">Créer</Button>
+            <Button onClick={() => create.mutate()} disabled={!form.code || !form.label || !form.acquisitionCost || !form.accountId || create.isPending} className="bg-primary hover:bg-primary/90">Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -334,7 +334,7 @@ export default function FixedAssetsPage() {
               />
 
               <div className="flex justify-end">
-                <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => depreciate.mutate(detail.id)} disabled={depreciate.isPending}>
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => depreciate.mutate(detail.id)} disabled={depreciate.isPending}>
                   <Calculator className="w-3 h-3 mr-2" />Comptabiliser dotation annuelle
                 </Button>
               </div>
@@ -357,7 +357,7 @@ export default function FixedAssetsPage() {
                       <Line type="monotone" dataKey="netBookValue" name="VNC" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
                       <Line type="monotone" dataKey="accumulated" name="Cumul amorti" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
                       {detail.history.length > 0 && (
-                        <ReferenceLine x={detail.schedule[detail.history.length - 1]?.year} stroke="#F37021" strokeDasharray="4 2" label={{ value: "Aujourd'hui", fontSize: 10, fill: "#F37021" }} />
+                        <ReferenceLine x={detail.schedule[detail.history.length - 1]?.year} stroke="#2563EB" strokeDasharray="4 2" label={{ value: "Aujourd'hui", fontSize: 10, fill: "#2563EB" }} />
                       )}
                     </LineChart>
                   </ResponsiveContainer>

@@ -261,8 +261,8 @@ export default function TresoreriePage() {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="gradOrange" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F37021" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#F37021" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -293,7 +293,7 @@ export default function TresoreriePage() {
                 <Area
                   type="monotone"
                   dataKey="cumulé"
-                  stroke="#F37021"
+                  stroke="#2563EB"
                   strokeWidth={2}
                   fill="url(#gradOrange)"
                   name="Théorique (optimiste)"

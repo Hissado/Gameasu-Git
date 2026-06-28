@@ -94,7 +94,7 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-[#C8A24B]" /> Créer une commande</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-[#2563EB]" /> Créer une commande</DialogTitle>
           <DialogDescription>Bon de commande client — vous pourrez générer la facture depuis ce tableau.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -164,7 +164,7 @@ function NewOrderDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Création…" : totals.totalTTC > 0 ? `Créer la commande — ${formatFCFA(totals.totalTTC)}` : "Créer la commande"}
           </Button>
         </DialogFooter>
@@ -206,7 +206,7 @@ function EditOrderDialog({ order, onClose, onSuccess }: { order: Order; onClose:
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#C8A24B]" /> Modifier la commande</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#2563EB]" /> Modifier la commande</DialogTitle>
           <DialogDescription>
             <strong>{order.referenceNumber}</strong> · {STATUS_MAP[order.status]?.label}
             {order.status === "confirmed" && <span className="ml-2 text-amber-600 text-xs">⚠ Commande confirmée — seules les notes sont modifiables.</span>}
@@ -231,7 +231,7 @@ function EditOrderDialog({ order, onClose, onSuccess }: { order: Order; onClose:
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Fermer</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -350,7 +350,7 @@ export default function OrdersList() {
         subtitle={`${allOrders.length} commande${allOrders.length !== 1 ? "s" : ""} au total`}
         icon={ShoppingCart}
         actions={
-          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+          <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer une commande
           </Button>
         }

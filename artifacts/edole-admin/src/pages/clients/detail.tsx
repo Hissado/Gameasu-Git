@@ -348,9 +348,9 @@ function CommunicationTab({ client }: { client: Client }) {
 
       {/* AI synthesis */}
       {emails.length > 0 && (
-        <Card className="border-amber-200/60 bg-amber-50/40">
+        <Card className="border-amber-200/60 bg-primary/5">
           <CardContent className="p-4 flex gap-3">
-            <Sparkles className="w-5 h-5 text-[#C8A24B] shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-[#2563EB] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div className="text-sm font-semibold text-amber-800">Synthèse des échanges</div>
               <p className="text-sm text-amber-700/90">

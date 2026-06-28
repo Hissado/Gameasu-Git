@@ -165,7 +165,7 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
       <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto flex flex-col">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-[#F37021]" />
+            <Receipt className="h-5 w-5 text-[#2563EB]" />
             Nouvelle note de frais
           </SheetTitle>
         </SheetHeader>
@@ -263,7 +263,7 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
             {/* Total */}
             <div className="flex items-center justify-between mt-3 px-2 py-2 bg-slate-100 rounded-lg">
               <span className="text-sm font-medium text-slate-600">Total estimé</span>
-              <span className="font-bold text-[#F37021]">{formatFCFA(totalAmount)}</span>
+              <span className="font-bold text-[#2563EB]">{formatFCFA(totalAmount)}</span>
             </div>
           </div>
         </div>
@@ -273,7 +273,7 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
           <Button variant="outline" onClick={() => handleSubmit(false)} disabled={saving}>
             {saving ? "…" : "Enregistrer en brouillon"}
           </Button>
-          <Button className="bg-[#F37021] hover:bg-[#d96518]" onClick={() => handleSubmit(true)} disabled={saving}>
+          <Button className="bg-[#2563EB] hover:bg-[#d96518]" onClick={() => handleSubmit(true)} disabled={saving}>
             <CheckCircle2 className="h-4 w-4 mr-1" />
             {saving ? "Soumission…" : "Soumettre"}
           </Button>
@@ -317,7 +317,7 @@ function ReportDetailSheet({ reportId, onClose, onRefresh }: {
       <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-[#F37021]" />
+            <Receipt className="h-5 w-5 text-[#2563EB]" />
             Note de frais
           </SheetTitle>
         </SheetHeader>
@@ -389,7 +389,7 @@ function ReportDetailSheet({ reportId, onClose, onRefresh }: {
               </div>
             )}
             {detail.status === "approved" && (
-              <Button className="w-full bg-[#F37021] hover:bg-[#d96518]" onClick={() => doAction("paid")} disabled={!!saving}>
+              <Button className="w-full bg-[#2563EB] hover:bg-[#d96518]" onClick={() => doAction("paid")} disabled={!!saving}>
                 <CreditCard className="h-4 w-4 mr-1" />{saving === "paid" ? "…" : "Marquer comme payé"}
               </Button>
             )}
@@ -476,7 +476,7 @@ export default function DepensesPage() {
             <Button variant="outline" size="sm" onClick={refresh}>
               <Filter className="h-4 w-4 mr-1" />Actualiser
             </Button>
-            <Button size="sm" className="bg-[#F37021] hover:bg-[#d96518] text-white" onClick={() => setCreateOpen(true)}>
+            <Button size="sm" className="bg-[#2563EB] hover:bg-[#d96518] text-white" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-1" />Nouvelle note de frais
             </Button>
           </div>

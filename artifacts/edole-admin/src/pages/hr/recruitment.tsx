@@ -23,7 +23,7 @@ async function fetchJSON(url: string, opts?: RequestInit) {
 const PIPELINE_STAGES = [
   { key: "new", label: "Nouveau", color: "bg-slate-100 border-slate-300 text-slate-700" },
   { key: "screening", label: "Présélection", color: "bg-blue-50 border-blue-300 text-blue-700" },
-  { key: "interview", label: "Entretien", color: "bg-orange-50 border-orange-300 text-orange-700" },
+  { key: "interview", label: "Entretien", color: "bg-primary/5 border-orange-300 text-primary" },
   { key: "offer", label: "Offre", color: "bg-purple-50 border-purple-300 text-purple-700" },
   { key: "hired", label: "Recruté", color: "bg-green-50 border-green-300 text-green-700" },
   { key: "rejected", label: "Rejeté", color: "bg-red-50 border-red-300 text-red-700" },
@@ -84,7 +84,7 @@ export default function RecruitmentPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: Briefcase, label: "Offres ouvertes", value: stats?.openJobs ?? 0, color: "text-blue-600 bg-blue-50" },
-            { icon: Users, label: "Candidatures", value: stats?.totalCandidacies ?? 0, color: "text-orange-600 bg-orange-50" },
+            { icon: Users, label: "Candidatures", value: stats?.totalCandidacies ?? 0, color: "text-primary bg-primary/5" },
             { icon: Clock, label: "En entretien", value: stats?.inInterview ?? 0, color: "text-purple-600 bg-purple-50" },
             { icon: UserCheck, label: "Recrutés", value: stats?.hired ?? 0, color: "text-green-600 bg-green-50" },
           ].map((k) => (

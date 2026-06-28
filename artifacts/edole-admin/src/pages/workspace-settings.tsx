@@ -110,7 +110,7 @@ const LOCALES = [
 const COLOR_PRESETS = [
   { hex: "#2563EB", label: "Bleu Gameasu" },
   { hex: "#1a1a2e", label: "Marine profond" },
-  { hex: "#F37021", label: "Orange EDOLE" },
+  { hex: "#2563EB", label: "Bleu Gameasu" },
   { hex: "#0F172A", label: "Ardoise foncé" },
   { hex: "#2563EB", label: "Bleu Royal" },
   { hex: "#16A34A", label: "Vert Succès" },

@@ -154,7 +154,7 @@ function RecordPaymentDialog({ invoices, preselectedInvoiceId, onClose, onSucces
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><CreditCard className="w-5 h-5 text-[#C8A24B]" /> Enregistrer un encaissement</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><CreditCard className="w-5 h-5 text-[#2563EB]" /> Enregistrer un encaissement</DialogTitle>
           <DialogDescription>Le paiement sera comptabilisé automatiquement (débit 521/571, crédit 411).</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -206,7 +206,7 @@ function RecordPaymentDialog({ invoices, preselectedInvoiceId, onClose, onSucces
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || !invoiceId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving || !invoiceId} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Enregistrement…" : "Valider le paiement"}
           </Button>
         </DialogFooter>
@@ -263,7 +263,7 @@ function NewDocumentDialog({ mode, clientId, clientName, onClose, onSuccess }: {
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Icon className="w-5 h-5 text-[#C8A24B]" /> {config.title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Icon className="w-5 h-5 text-[#2563EB]" /> {config.title}</DialogTitle>
           <DialogDescription>Client : <strong>{clientName}</strong></DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -290,7 +290,7 @@ function NewDocumentDialog({ mode, clientId, clientName, onClose, onSuccess }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Création…" : "Créer"}
           </Button>
         </DialogFooter>
@@ -472,7 +472,7 @@ export default function ClientDetail() {
           <Button size="sm"
             onClick={() => { setPaymentInvoiceId(null); setQuickDialog("payment"); }}
             disabled={unpaidInvoices.length === 0}
-            className="gap-1.5 h-8 bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            className="gap-1.5 h-8 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             <Wallet className="w-3.5 h-3.5" /> Enregistrer paiement
           </Button>
           {unpaidInvoices.length === 0 && invoices.length > 0 && (
@@ -512,11 +512,11 @@ export default function ClientDetail() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors flex items-center gap-1.5
                 ${tab === t.key
-                  ? "bg-white border border-b-white border-slate-200 text-[#C8A24B] -mb-px"
+                  ? "bg-white border border-b-white border-slate-200 text-[#2563EB] -mb-px"
                   : "text-muted-foreground hover:text-foreground"}`}>
               {t.label}
               {t.count !== undefined && t.count > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-[#C8A24B]/10 text-[#C8A24B]" : "bg-slate-100 text-slate-500"}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-[#2563EB]/10 text-[#2563EB]" : "bg-slate-100 text-slate-500"}`}>
                   {t.count}
                 </span>
               )}
@@ -674,7 +674,7 @@ export default function ClientDetail() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{proformas.length} devis</p>
-                <Button size="sm" onClick={() => setQuickDialog("proforma")} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+                <Button size="sm" onClick={() => setQuickDialog("proforma")} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
                   <Plus className="w-4 h-4" /> Nouveau devis
                 </Button>
               </div>
@@ -721,7 +721,7 @@ export default function ClientDetail() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{orders.length} commande{orders.length !== 1 ? "s" : ""}</p>
-                <Button size="sm" onClick={() => setQuickDialog("order")} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+                <Button size="sm" onClick={() => setQuickDialog("order")} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
                   <Plus className="w-4 h-4" /> Nouvelle commande
                 </Button>
               </div>
@@ -766,7 +766,7 @@ export default function ClientDetail() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{invoices.length} facture{invoices.length !== 1 ? "s" : ""}</p>
-                <Button size="sm" onClick={() => setQuickDialog("invoice")} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+                <Button size="sm" onClick={() => setQuickDialog("invoice")} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
                   <Plus className="w-4 h-4" /> Nouvelle facture
                 </Button>
               </div>
@@ -805,7 +805,7 @@ export default function ClientDetail() {
                           </TableCell>
                           <TableCell>
                             {canPay && (
-                              <Button size="sm" className="h-7 text-xs gap-1 bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+                              <Button size="sm" className="h-7 text-xs gap-1 bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
                                 onClick={() => { setPaymentInvoiceId(inv.id); setQuickDialog("payment"); }}>
                                 <Wallet className="w-3 h-3" /> Encaisser
                               </Button>
@@ -828,7 +828,7 @@ export default function ClientDetail() {
                 <Button size="sm"
                   onClick={() => { setPaymentInvoiceId(null); setQuickDialog("payment"); }}
                   disabled={unpaidInvoices.length === 0}
-                  className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+                  className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
                   <Plus className="w-4 h-4" /> Enregistrer paiement
                 </Button>
               </div>

@@ -199,7 +199,7 @@ export default function RapportsAchatsPage() {
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === id
-                ? "bg-white text-[#F37021] shadow-sm"
+                ? "bg-white text-primary shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
@@ -394,7 +394,7 @@ export default function RapportsAchatsPage() {
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                       <YAxis tickFormatter={v => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={72} />
                       <Tooltip content={<FcfaTooltip />} />
-                      <Bar dataKey="total" fill="#F37021" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="total" fill="#2563EB" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -459,7 +459,7 @@ export default function RapportsAchatsPage() {
                       <XAxis type="number" tickFormatter={v => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
                       <Tooltip content={<FcfaTooltip />} />
-                      <Bar dataKey="facturé" fill="#F37021" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="facturé" fill="#2563EB" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="payé" fill="#22c55e" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -484,7 +484,7 @@ export default function RapportsAchatsPage() {
                           <TableCell className="text-right text-sm">{r.invoiceCount}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalInvoiced)}</TableCell>
                           <TableCell className="text-right text-sm text-emerald-700">{formatFCFA(r.totalPaid)}</TableCell>
-                          <TableCell className="text-right font-bold text-sm text-[#F37021]">{formatFCFA(r.balance)}</TableCell>
+                          <TableCell className="text-right font-bold text-sm text-primary">{formatFCFA(r.balance)}</TableCell>
                         </TableRow>
                       ))}
                       {supplierQ.data.data.length === 0 && (
@@ -530,7 +530,7 @@ export default function RapportsAchatsPage() {
                 <Card className="col-span-2">
                   <CardContent className="p-4">
                     <p className="text-xs text-slate-500 mb-1">Total à décaisser</p>
-                    <p className="text-2xl font-bold text-[#F37021]">{formatFCFA(unpaidQ.data.totalBalance)}</p>
+                    <p className="text-2xl font-bold text-primary">{formatFCFA(unpaidQ.data.totalBalance)}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -554,7 +554,7 @@ export default function RapportsAchatsPage() {
                           <TableCell className="text-xs text-slate-500">{formatDate(r.invoiceDate)}</TableCell>
                           <TableCell className="text-xs">{r.dueDate ? formatDate(r.dueDate) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalAmount)}</TableCell>
-                          <TableCell className="text-right font-bold text-sm text-[#F37021]">{formatFCFA(r.balance)}</TableCell>
+                          <TableCell className="text-right font-bold text-sm text-primary">{formatFCFA(r.balance)}</TableCell>
                           <TableCell className="text-center">
                             {r.daysOverdue > 0 ? (
                               <Badge variant="outline" className={`text-xs ${r.daysOverdue > 60 ? "bg-red-50 text-red-700 border-red-200" : r.daysOverdue > 30 ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"}`}>

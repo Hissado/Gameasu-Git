@@ -175,7 +175,7 @@ export default function FpaDashboardPage() {
               </Button>
             </Link>
             <Link href="/fpa/reports">
-              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0">
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                 <FileSpreadsheet className="w-4 h-4 mr-1.5" />Exports
               </Button>
             </Link>

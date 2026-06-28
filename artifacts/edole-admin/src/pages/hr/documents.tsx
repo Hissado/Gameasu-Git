@@ -26,7 +26,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 const TYPE_COLOR: Record<string, string> = {
   identity: "bg-blue-50 text-blue-700 border-blue-200",
-  diploma: "bg-violet-50 text-violet-700 border-violet-200",
+  diploma: "bg-primary/5 text-primary border-primary/20",
   contract: "bg-emerald-50 text-emerald-700 border-emerald-200",
   medical: "bg-rose-50 text-rose-700 border-rose-200",
   certification: "bg-amber-50 text-amber-700 border-amber-200",

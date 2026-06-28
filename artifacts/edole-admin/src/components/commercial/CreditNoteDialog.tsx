@@ -196,7 +196,7 @@ export function CreditNoteDialog({ invoice, onClose, onSuccess }: Props) {
           <Button
             onClick={handleSave}
             disabled={saving || !finalReason.trim() || effectiveAmount <= 0}
-            className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+            className="gap-2 bg-primary hover:bg-primary/90 text-white"
           >
             <MinusCircle className="w-4 h-4" />
             {saving ? "Création…" : "Émettre l'avoir"}

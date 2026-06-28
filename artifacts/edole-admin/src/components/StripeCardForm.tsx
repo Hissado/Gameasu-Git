@@ -183,7 +183,7 @@ function InnerCardForm({ clientSecret, amount, saveCard, onSuccess, onError }: I
       <Button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5"
+        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2.5"
       >
         {loading ? "Traitement en cours…" : `Payer ${formatFCFA(amount)}`}
       </Button>
@@ -282,7 +282,7 @@ function InnerSetupForm({ clientSecret, onSuccess, onError }: SetupFormProps) {
         <Lock className="w-3.5 h-3.5" />
         <span>Carte sauvegardée de façon sécurisée par Stripe — aucune donnée sensible n'est stockée sur nos serveurs.</span>
       </div>
-      <Button type="submit" disabled={!stripe || loading} className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+      <Button type="submit" disabled={!stripe || loading} className="w-full bg-primary hover:bg-primary/90 text-white">
         {loading ? "Sauvegarde…" : "Sauvegarder la carte"}
       </Button>
     </form>

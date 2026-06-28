@@ -3,7 +3,7 @@ import { Sparkles, Crown, Rocket, Building2 } from "lucide-react";
 const COLOR_MAP: Record<string, string> = {
   STARTER: "bg-white/[0.06] text-slate-200 ring-white/15",
   GROWTH: "bg-[#1B5E5E]/30 text-emerald-200 ring-emerald-400/25",
-  PROFESSIONAL: "bg-[#C8A24B]/15 text-[#E0BE6E] ring-[#C8A24B]/40",
+  PROFESSIONAL: "bg-[#2563EB]/15 text-[#93c5fd] ring-[#2563EB]/40",
   ENTERPRISE: "bg-[#3E2C5F]/40 text-violet-200 ring-violet-300/30",
 };
 
@@ -20,7 +20,7 @@ export function PlanBadge({
   if (!code) return null;
   const Icon = ICON_MAP[code] ?? Sparkles;
   const cls = light
-    ? "bg-[#C8A24B]/12 text-[#8A6A22] ring-[#C8A24B]/40"
+    ? "bg-[#2563EB]/12 text-[#1e40af] ring-[#2563EB]/40"
     : (COLOR_MAP[code] ?? COLOR_MAP.STARTER);
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-wide ring-1 ${cls}`}>

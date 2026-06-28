@@ -89,7 +89,7 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-[#F37021]" /> Nouveau bon de commande</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-[#2563EB]" /> Nouveau bon de commande</DialogTitle>
           <DialogDescription>Créez un BC pour commander auprès d'un fournisseur.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -150,7 +150,7 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#F37021] hover:bg-[#d96318] text-white">{saving ? "Création…" : "Créer le BC"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">{saving ? "Création…" : "Créer le BC"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -209,7 +209,7 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
       <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#F37021]" />
+            <Package className="w-5 h-5 text-[#2563EB]" />
             {isLoading ? "Chargement…" : po?.reference}
           </SheetTitle>
         </SheetHeader>
@@ -377,7 +377,7 @@ export default function AchatsBonsCommande() {
       <PageHeader
         title="Bons de commande"
         subtitle={`${total} BC`}
-        actions={<Button onClick={() => setNewOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-2"><Plus className="w-4 h-4" />Nouveau BC</Button>}
+        actions={<Button onClick={() => setNewOpen(true)} className="bg-primary hover:bg-primary/90 text-white gap-2"><Plus className="w-4 h-4" />Nouveau BC</Button>}
       />
 
       {/* Filters */}

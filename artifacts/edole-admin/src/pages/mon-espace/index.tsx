@@ -189,7 +189,7 @@ function NewLeaveRequestDialog({ onClose, onSuccess }: { onClose: () => void; on
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button
-            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+            className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
             disabled={!type || !startDate || !endDate || mutation.isPending}
             onClick={() => mutation.mutate()}
           >
@@ -211,14 +211,14 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
     <div className="space-y-6">
       {/* Accueil personnalisé */}
       <div className="flex items-center gap-4 bg-gradient-to-r from-[#0f172a] to-[#1e293b] rounded-xl p-5 text-white">
-        <Avatar className="w-14 h-14 border-2 border-[#C8A24B]">
+        <Avatar className="w-14 h-14 border-2 border-[#2563EB]">
           <AvatarImage src={profile?.avatarUrl ?? undefined} />
-          <AvatarFallback className="bg-[#C8A24B] text-white font-bold text-lg">
+          <AvatarFallback className="bg-[#2563EB] text-white font-bold text-lg">
             {profile ? `${profile.firstName[0]}${profile.lastName[0]}` : "?"}
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-[#C8A24B] text-sm font-medium">Bienvenue,</p>
+          <p className="text-[#2563EB] text-sm font-medium">Bienvenue,</p>
           <h2 className="text-xl font-bold">{profile ? `${profile.firstName} ${profile.lastName}` : "—"}</h2>
           <p className="text-slate-400 text-sm">{profile?.jobTitle ?? "—"}</p>
         </div>
@@ -249,7 +249,7 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
           <CardContent className="pt-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-slate-600">Dernier net à payer</span>
-              <Banknote className="w-4 h-4 text-[#C8A24B]" />
+              <Banknote className="w-4 h-4 text-[#2563EB]" />
             </div>
             <div className="text-2xl font-bold text-slate-900">
               {latestPayslip ? fmt(latestPayslip.netSalary) : "—"}
@@ -286,7 +286,7 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
                 <div key={type} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                   <p className="text-xs text-slate-500 mb-1">{LEAVE_TYPE_LABELS[type] ?? type}</p>
                   <p className="text-lg font-bold text-slate-900">{data.remaining} <span className="text-xs font-normal text-slate-400">/ {data.right} j</span></p>
-                  <Progress value={data.right > 0 ? (data.taken / data.right) * 100 : 0} className="mt-1 h-1 bg-slate-200 [&>div]:bg-[#C8A24B]" />
+                  <Progress value={data.right > 0 ? (data.taken / data.right) * 100 : 0} className="mt-1 h-1 bg-slate-200 [&>div]:bg-[#2563EB]" />
                 </div>
               ))}
             </div>
@@ -319,7 +319,7 @@ function BulletinsTab({ payslips, loading }: { payslips: Payslip[]; loading: boo
           <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#0f172a] flex items-center justify-center">
-                <FileText className="w-4 h-4 text-[#C8A24B]" />
+                <FileText className="w-4 h-4 text-[#2563EB]" />
               </div>
               <div>
                 <p className="font-semibold text-sm text-slate-900">{moisLabel} {yr}</p>
@@ -376,7 +376,7 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
       {/* Actions */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-slate-800">Mes demandes</h3>
-        <Button size="sm" className="h-8 gap-1.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white" onClick={() => setShowNew(true)}>
+        <Button size="sm" className="h-8 gap-1.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white" onClick={() => setShowNew(true)}>
           <Plus className="w-3.5 h-3.5" /> Nouvelle demande
         </Button>
       </div>
@@ -386,7 +386,7 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
         <div className="text-center py-12 text-slate-400">
           <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Aucune demande de congé pour le moment.</p>
-          <Button variant="link" size="sm" className="text-[#C8A24B] mt-2" onClick={() => setShowNew(true)}>Faire une demande</Button>
+          <Button variant="link" size="sm" className="text-[#2563EB] mt-2" onClick={() => setShowNew(true)}>Faire une demande</Button>
         </div>
       ) : (
         <div className="space-y-2">
@@ -454,7 +454,7 @@ function ContratTab({ contract, loading }: { contract: Contract | null; loading:
     <Card className="border-slate-200">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Briefcase className="w-4 h-4 text-[#C8A24B]" />
+          <Briefcase className="w-4 h-4 text-[#2563EB]" />
           Votre contrat de travail
         </CardTitle>
         <CardDescription>Les informations de votre contrat actif.</CardDescription>
@@ -534,7 +534,7 @@ function FormationsTab({ trainings, evaluations, loadingT, loadingE }: { trainin
       {/* Formations */}
       <div>
         <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-[#C8A24B]" /> Mes formations
+          <BookOpen className="w-4 h-4 text-[#2563EB]" /> Mes formations
         </h3>
         {loadingT ? <Skeleton className="h-24 rounded-lg" /> : trainings.length === 0 ? (
           <p className="text-sm text-slate-400 py-6 text-center">Aucune formation enregistrée.</p>
@@ -571,7 +571,7 @@ function FormationsTab({ trainings, evaluations, loadingT, loadingE }: { trainin
       {/* Évaluations */}
       <div>
         <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-          <Star className="w-4 h-4 text-[#C8A24B]" /> Mes évaluations
+          <Star className="w-4 h-4 text-[#2563EB]" /> Mes évaluations
         </h3>
         {loadingE ? <Skeleton className="h-24 rounded-lg" /> : evaluations.length === 0 ? (
           <p className="text-sm text-slate-400 py-6 text-center">Aucune évaluation disponible.</p>
@@ -674,10 +674,10 @@ function MesTravauxTab({ userId }: { userId?: string }) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-            <ListTodo className="w-4 h-4 text-[#C8A24B]" /> Mes tâches
+            <ListTodo className="w-4 h-4 text-[#2563EB]" /> Mes tâches
           </h3>
           <Link href="/tasks">
-            <a className="text-xs text-[#C8A24B] hover:underline flex items-center gap-1">
+            <a className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
               Voir toutes <ChevronRight className="w-3 h-3" />
             </a>
           </Link>
@@ -708,7 +708,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
                         <Link key={task.id} href={`/tasks/${task.id}`}>
                           <a className={`flex items-center gap-3 px-4 py-2.5 bg-white border border-l-4 ${section.accent} rounded-lg hover:shadow-sm transition-all group`}>
                             <Circle className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                            <span className="flex-1 text-sm text-slate-800 truncate group-hover:text-[#C8A24B] transition-colors">{task.title}</span>
+                            <span className="flex-1 text-sm text-slate-800 truncate group-hover:text-[#2563EB] transition-colors">{task.title}</span>
                             {task.dueDate && (
                               <span className={`text-[10px] font-medium ${section.key === "overdue" ? "text-red-500" : "text-slate-400"}`}>
                                 {new Date(task.dueDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
@@ -732,10 +732,10 @@ function MesTravauxTab({ userId }: { userId?: string }) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-            <FolderKanban className="w-4 h-4 text-[#C8A24B]" /> Projets actifs
+            <FolderKanban className="w-4 h-4 text-[#2563EB]" /> Projets actifs
           </h3>
           <Link href="/projects">
-            <a className="text-xs text-[#C8A24B] hover:underline flex items-center gap-1">
+            <a className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
               Voir tous <ChevronRight className="w-3 h-3" />
             </a>
           </Link>
@@ -759,10 +759,10 @@ function MesTravauxTab({ userId }: { userId?: string }) {
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${rag.dot}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-slate-800 truncate group-hover:text-[#C8A24B] transition-colors">{project.name}</span>
+                        <span className="text-sm font-medium text-slate-800 truncate group-hover:text-[#2563EB] transition-colors">{project.name}</span>
                         <span className="text-xs text-slate-500 ml-2 flex-shrink-0">{prog}%</span>
                       </div>
-                      <Progress value={prog} className="h-1.5 bg-slate-100 [&>div]:bg-[#C8A24B]" />
+                      <Progress value={prog} className="h-1.5 bg-slate-100 [&>div]:bg-[#2563EB]" />
                     </div>
                     <div className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${rag.cls}`}>{rag.label}</div>
                     <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-slate-500 flex-shrink-0" />
@@ -836,7 +836,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
       <Card className="border-slate-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <Landmark className="w-4 h-4 text-[#C8A24B]" /> Coordonnées bancaires enregistrées
+            <Landmark className="w-4 h-4 text-[#2563EB]" /> Coordonnées bancaires enregistrées
           </CardTitle>
           <CardDescription className="text-xs">
             Ces informations sont utilisées pour le virement de votre salaire.
@@ -910,7 +910,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
       <div className="flex justify-end">
         <Button
           onClick={openForm}
-          className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2"
+          className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-2"
           disabled={pendingRequest !== null}
         >
           <Landmark className="w-4 h-4" />
@@ -928,7 +928,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Landmark className="w-4 h-4 text-[#C8A24B]" />
+              <Landmark className="w-4 h-4 text-[#2563EB]" />
               {hasCurrent ? "Corriger mes coordonnées bancaires" : "Soumettre mes coordonnées bancaires"}
             </DialogTitle>
             <DialogDescription>
@@ -972,7 +972,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Annuler</Button>
             <Button
-              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+              className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
               disabled={(!bankName && !bankCode && !bankAccountNumber) || submitMutation.isPending}
               onClick={() => submitMutation.mutate()}
             >

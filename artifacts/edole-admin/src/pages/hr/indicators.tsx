@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Users, TrendingDown, TrendingUp, Clock, UserCheck, UserMinus, Calendar } from "lucide-react";
 
-const COLORS = ["#F37021", "#C8A24B", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#f59e0b", "#6366f1"];
+const COLORS = ["#2563EB", "#0F1A3A", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function HrIndicatorsPage() {
@@ -83,7 +83,7 @@ export default function HrIndicatorsPage() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="department" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip formatter={(v: any) => [`${v} collaborateurs`]} />
-                  <Bar dataKey="count" fill="#F37021" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" fill="#2563EB" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -118,7 +118,7 @@ export default function HrIndicatorsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#F37021" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>

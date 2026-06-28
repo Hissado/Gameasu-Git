@@ -57,11 +57,11 @@ export default function BanksPage() {
     <AccountingShell
       title="Banques & caisses"
       subtitle="Trésorerie : comptes, mouvements, rapprochements"
-      actions={<Button onClick={() => setOpenBank(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-4 h-4 mr-2" />Nouveau compte</Button>}
+      actions={<Button onClick={() => setOpenBank(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Nouveau compte</Button>}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {banks?.data.map((b) => (
-          <Card key={b.id} className={`cursor-pointer transition ${selected === b.id ? "border-amber-500 ring-2 ring-amber-200" : ""}`} onClick={() => setSelected(b.id)}>
+          <Card key={b.id} className={`cursor-pointer transition ${selected === b.id ? "border-primary ring-2 ring-amber-200" : ""}`} onClick={() => setSelected(b.id)}>
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function BanksPage() {
               <span className="font-bold">Mouvements — {banks?.data.find((b) => b.id === selected)?.name}</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setOpenRecon(true)}><ArrowLeftRight className="w-3 h-3 mr-1" />Rapprochement</Button>
-                <Button size="sm" onClick={() => setOpenTx(true)} className="bg-amber-600 hover:bg-amber-700"><Plus className="w-3 h-3 mr-1" />Mouvement</Button>
+                <Button size="sm" onClick={() => setOpenTx(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-3 h-3 mr-1" />Mouvement</Button>
               </div>
             </div>
             <table className="w-full text-sm">
@@ -146,7 +146,7 @@ export default function BanksPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenBank(false)}>Annuler</Button>
-            <Button onClick={() => createBank.mutate()} disabled={!bankForm.name || !bankForm.accountId || createBank.isPending} className="bg-amber-600 hover:bg-amber-700">Créer</Button>
+            <Button onClick={() => createBank.mutate()} disabled={!bankForm.name || !bankForm.accountId || createBank.isPending} className="bg-primary hover:bg-primary/90">Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -163,7 +163,7 @@ export default function BanksPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenTx(false)}>Annuler</Button>
-            <Button onClick={() => createTx.mutate()} disabled={!txForm.label || !txForm.amount || createTx.isPending} className="bg-amber-600 hover:bg-amber-700">Enregistrer</Button>
+            <Button onClick={() => createTx.mutate()} disabled={!txForm.label || !txForm.amount || createTx.isPending} className="bg-primary hover:bg-primary/90">Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

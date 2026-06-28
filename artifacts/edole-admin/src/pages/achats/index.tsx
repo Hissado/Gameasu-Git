@@ -57,7 +57,7 @@ const TUNNEL_COLORS: Record<string, string> = {
   review: "#3b82f6",
   awaiting_approval: "#eab308",
   approved: "#14b8a6",
-  pending: "#F37021",
+  pending: "#2563EB",
   partially_paid: "#f59e0b",
   paid: "#22c55e",
 };
@@ -221,7 +221,7 @@ export default function AchatsOverview() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               Tunnel AP — Factures par statut
-              <Link href="/achats/factures" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+              <Link href="/achats/factures" className="text-xs font-normal text-[#2563EB] flex items-center gap-1 hover:underline">
                 Voir toutes <ArrowRight className="w-3 h-3" />
               </Link>
             </CardTitle>
@@ -261,7 +261,7 @@ export default function AchatsOverview() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               Décaissements — 12 derniers mois
-              <Link href="/achats/rapports" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+              <Link href="/achats/rapports" className="text-xs font-normal text-[#2563EB] flex items-center gap-1 hover:underline">
                 Rapports <ArrowRight className="w-3 h-3" />
               </Link>
             </CardTitle>
@@ -275,7 +275,7 @@ export default function AchatsOverview() {
                   <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                   <YAxis tickFormatter={(v) => formatFCFA(v).replace(" FCFA", "")} tick={{ fontSize: 9 }} width={68} />
                   <Tooltip content={<FcfaTooltip />} />
-                  <Bar dataKey="total" fill="#F37021" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" fill="#2563EB" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -293,7 +293,7 @@ export default function AchatsOverview() {
                 <AlertTriangle className="h-4 w-4 text-red-500" />
                 Factures urgentes
               </span>
-              <Link href="/achats/factures" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+              <Link href="/achats/factures" className="text-xs font-normal text-[#2563EB] flex items-center gap-1 hover:underline">
                 Voir toutes <ArrowRight className="w-3 h-3" />
               </Link>
             </CardTitle>
@@ -319,7 +319,7 @@ export default function AchatsOverview() {
                       <p className="text-xs text-slate-400">Éch. {inv.dueDate ? formatDate(inv.dueDate) : "—"}</p>
                     </div>
                     <div className="text-right ml-3 flex-shrink-0">
-                      <p className="font-bold text-sm text-[#F37021]">{formatFCFA(inv.balance)}</p>
+                      <p className="font-bold text-sm text-[#2563EB]">{formatFCFA(inv.balance)}</p>
                       <StatusBadgePurchases status={inv.status} />
                     </div>
                   </div>
@@ -337,7 +337,7 @@ export default function AchatsOverview() {
                 <Building2 className="h-4 w-4 text-slate-500" />
                 Top fournisseurs
               </span>
-              <Link href="/achats/fournisseurs" className="text-xs font-normal text-[#F37021] flex items-center gap-1 hover:underline">
+              <Link href="/achats/fournisseurs" className="text-xs font-normal text-[#2563EB] flex items-center gap-1 hover:underline">
                 Voir tous <ArrowRight className="w-3 h-3" />
               </Link>
             </CardTitle>
@@ -359,7 +359,7 @@ export default function AchatsOverview() {
                   <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={v => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
                   <Tooltip formatter={(v: number) => [formatFCFA(v)]} />
-                  <Bar dataKey="Facturé" fill="#F37021" radius={[0, 3, 3, 0]} barSize={12} />
+                  <Bar dataKey="Facturé" fill="#2563EB" radius={[0, 3, 3, 0]} barSize={12} />
                   <Bar dataKey="Solde" fill="#94a3b8" radius={[0, 3, 3, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
@@ -417,8 +417,8 @@ export default function AchatsOverview() {
           { href: "/achats/factures",            label: "Voir impayées",      icon: Clock },
         ].map(({ href, label, icon: Icon }) => (
           <Link key={href + label} href={href}>
-            <div className="flex items-center gap-2 rounded-lg border bg-white p-3 hover:bg-slate-50 hover:border-[#F37021] transition-colors cursor-pointer">
-              <Icon className="h-4 w-4 text-[#F37021]" />
+            <div className="flex items-center gap-2 rounded-lg border bg-white p-3 hover:bg-slate-50 hover:border-[#2563EB] transition-colors cursor-pointer">
+              <Icon className="h-4 w-4 text-[#2563EB]" />
               <span className="text-sm font-medium text-slate-700">{label}</span>
               <ChevronRight className="h-3.5 w-3.5 text-slate-400 ml-auto" />
             </div>

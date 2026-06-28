@@ -1708,9 +1708,9 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
   };
 
   const docIcons: Record<DocTarget, React.ReactNode> = {
-    proforma: <FileSignature className="w-5 h-5 text-[#C8A24B]" />,
-    order:    <ShoppingCart className="w-5 h-5 text-[#C8A24B]" />,
-    invoice:  <Banknote className="w-5 h-5 text-[#C8A24B]" />,
+    proforma: <FileSignature className="w-5 h-5 text-[#2563EB]" />,
+    order:    <ShoppingCart className="w-5 h-5 text-[#2563EB]" />,
+    invoice:  <Banknote className="w-5 h-5 text-[#2563EB]" />,
   };
   const docTitles: Record<DocTarget, string> = {
     proforma: "Créer un devis", order: "Créer une commande", invoice: "Créer une facture",
@@ -1745,7 +1745,7 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
             <div className="flex justify-between"><span className="text-muted-foreground">Prix HT :</span><span className="font-semibold">{formatFCFA(Math.round(result.priceHT))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">TVA ({scenario.taxRate}%) :</span><span>{formatFCFA(Math.round(result.taxAmount))}</span></div>
             {result.corporateTax > 0 && <div className="flex justify-between text-orange-700"><span>IS incrémental :</span><span className="font-semibold">{formatFCFA(Math.round(result.corporateTax))}</span></div>}
-            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#C8A24B]">{formatFCFA(Math.round(result.priceTTC))}</span></div>
+            <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Prix TTC :</span><span className="font-bold text-[#2563EB]">{formatFCFA(Math.round(result.priceTTC))}</span></div>
           </div>
           <div>
             <Label>Client *</Label>
@@ -1756,10 +1756,10 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
           </div>
           {scenario.quantity > 1 && (
             <div className="flex gap-2">
-              <Button size="sm" variant={!useUnit ? "default" : "outline"} onClick={() => setUseUnit(false)} className={!useUnit ? "bg-[#C8A24B] text-white" : ""}>
+              <Button size="sm" variant={!useUnit ? "default" : "outline"} onClick={() => setUseUnit(false)} className={!useUnit ? "bg-[#2563EB] text-white" : ""}>
                 Global ({formatFCFA(Math.round(result.priceTTC))})
               </Button>
-              <Button size="sm" variant={useUnit ? "default" : "outline"} onClick={() => setUseUnit(true)} className={useUnit ? "bg-[#C8A24B] text-white" : ""}>
+              <Button size="sm" variant={useUnit ? "default" : "outline"} onClick={() => setUseUnit(true)} className={useUnit ? "bg-[#2563EB] text-white" : ""}>
                 Unitaire ({formatFCFA(Math.round(result.unitTTC))})
               </Button>
             </div>
@@ -1767,7 +1767,7 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Création…" : docBtnLabels[docType]}</Button>
+          <Button onClick={handleCreate} disabled={saving || !clientId} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Création…" : docBtnLabels[docType]}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -2310,7 +2310,7 @@ function UnifiedStructurePanel({
                       value={monthly || ""}
                       placeholder={realMonthly > 0 ? String(realMonthly) : "0"}
                       onChange={e => updateSection(sec.key, parseFloat(e.target.value) || 0)}
-                      className={`h-8 text-sm w-36 text-right ${monthly > 0 && realMonthly > 0 && monthly !== realMonthly ? "border-amber-300 bg-amber-50/50" : ""}`} />
+                      className={`h-8 text-sm w-36 text-right ${monthly > 0 && realMonthly > 0 && monthly !== realMonthly ? "border-amber-300 bg-primary/5" : ""}`} />
                     <div className="text-[10px] mt-0.5 text-right">
                       {diff !== 0 && realMonthly > 0 && monthly > 0 ? (
                         <span className={diff > 0 ? "text-amber-600" : "text-emerald-600"}>
@@ -2741,8 +2741,8 @@ export default function PricingCalculator() {
         {/* Header — ligne 1 : titre + actions */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#C8A24B]/15 flex items-center justify-center">
-              <Calculator className="w-5 h-5 text-[#C8A24B]" />
+            <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 flex items-center justify-center">
+              <Calculator className="w-5 h-5 text-[#2563EB]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">Calculateur tarifaire</h1>
@@ -2775,7 +2775,7 @@ export default function PricingCalculator() {
             <Button size="sm"
               onClick={saveScenario}
               disabled={isSaving}
-              className={`gap-1.5 text-xs ${savedId && !isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-[#C8A24B] hover:bg-[#b8922b] text-white"}`}>
+              className={`gap-1.5 text-xs ${savedId && !isDirty ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-[#2563EB] hover:bg-[#1d4ed8] text-white"}`}>
               {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               {isSaving ? "Enregistrement…" : savedId && !isDirty ? "Enregistré" : "Enregistrer"}
             </Button>
@@ -2830,7 +2830,7 @@ export default function PricingCalculator() {
         <div className="flex items-center gap-2 flex-wrap">
           {scenarios.map(s => (
             <Button key={s.id} size="sm" variant={s.id === activeScenarioId ? "default" : "outline"}
-              className={s.id === activeScenarioId ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}
+              className={s.id === activeScenarioId ? "bg-[#2563EB] text-white border-[#2563EB]" : ""}
               onClick={() => setActiveScenarioId(s.id)}>
               {s.name}
             </Button>
@@ -2856,7 +2856,7 @@ export default function PricingCalculator() {
             {/* General info */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-sm flex items-center gap-2"><Tag className="w-4 h-4 text-[#C8A24B]" />Informations générales</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><Tag className="w-4 h-4 text-[#2563EB]" />Informations générales</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -2937,7 +2937,7 @@ export default function PricingCalculator() {
                 <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-[#C8A24B]" />
+                      <Layers className="w-4 h-4 text-[#2563EB]" />
                       <CardTitle className="text-sm">Composantes du deal</CardTitle>
                       {(scenario.dealComponents ?? []).length > 0 && (
                         <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
@@ -3417,7 +3417,7 @@ export default function PricingCalculator() {
             {/* Marge & TVA */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" />Marge cible & TVA</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#2563EB]" />Marge cible & TVA</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -3442,7 +3442,7 @@ export default function PricingCalculator() {
                     </div>
                     <div className="flex gap-1 mt-1.5 flex-wrap">
                       {(scenario.marginMode === "markup" ? [20,30,40,50] : [10,15,20,25,33]).map(v => (
-                        <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.marginTarget === v ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ marginTarget: v })}>{v}%</Button>
+                        <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.marginTarget === v ? "bg-[#2563EB] text-white border-[#2563EB]" : ""}`} onClick={() => updateScenario({ marginTarget: v })}>{v}%</Button>
                       ))}
                     </div>
                   </div>
@@ -3453,14 +3453,14 @@ export default function PricingCalculator() {
                       <span className="text-sm font-semibold text-muted-foreground">%</span>
                     </div>
                     <div className="flex gap-1 mt-1.5">
-                      {[0,10,18,20].map(v => <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.taxRate === v ? "bg-[#C8A24B] text-white border-[#C8A24B]" : ""}`} onClick={() => updateScenario({ taxRate: v })}>{v === 0 ? "Exonéré" : `${v}%`}</Button>)}
+                      {[0,10,18,20].map(v => <Button key={v} size="sm" variant="outline" className={`h-6 text-xs px-2 ${scenario.taxRate === v ? "bg-[#2563EB] text-white border-[#2563EB]" : ""}`} onClick={() => updateScenario({ taxRate: v })}>{v === 0 ? "Exonéré" : `${v}%`}</Button>)}
                     </div>
                   </div>
                   <div>
                     <Label className="text-xs">Application de la TVA</Label>
                     <div className="flex gap-2 mt-1">
-                      <Button size="sm" variant={scenario.taxMode === "on_top" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "on_top" ? "bg-[#C8A24B] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "on_top" })}>TVA en sus</Button>
-                      <Button size="sm" variant={scenario.taxMode === "included" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "included" ? "bg-[#C8A24B] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "included" })}>TVA incluse</Button>
+                      <Button size="sm" variant={scenario.taxMode === "on_top" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "on_top" ? "bg-[#2563EB] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "on_top" })}>TVA en sus</Button>
+                      <Button size="sm" variant={scenario.taxMode === "included" ? "default" : "outline"} className={`flex-1 text-xs h-8 ${scenario.taxMode === "included" ? "bg-[#2563EB] text-white" : ""}`} onClick={() => updateScenario({ taxMode: "included" })}>TVA incluse</Button>
                     </div>
                   </div>
 
@@ -3590,7 +3590,7 @@ export default function PricingCalculator() {
                 <div className="text-xl font-bold">{formatFCFA(result.totalCost)}</div>
                 {scenario.quantity > 1 && <div className="text-xs text-slate-400 mt-0.5">Unit. : {formatFCFA(result.unitCost)}</div>}
               </div>
-              <div className="bg-gradient-to-br from-[#C8A24B] to-[#a8862f] text-white rounded-xl p-4 shadow">
+              <div className="bg-gradient-to-br from-[#2563EB] to-[#a8862f] text-white rounded-xl p-4 shadow">
                 <div className="text-xs text-amber-100 font-medium mb-1">Prix de vente HT</div>
                 {result.discountAmount > 0 && (
                   <div className="text-xs text-amber-200 line-through leading-none mb-0.5">{formatFCFA(Math.round(result.priceHTBrut))}</div>
@@ -3616,7 +3616,7 @@ export default function PricingCalculator() {
             {result.totalCost > 0 && (
               <Card className="shadow-sm">
                 <CardHeader className="pb-2 border-b">
-                  <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4 text-[#C8A24B]" />Décomposition du coût</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4 text-[#2563EB]" />Décomposition du coût</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -3659,7 +3659,7 @@ export default function PricingCalculator() {
             {/* Income statement */}
             <Card className="shadow-sm">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C8A24B]" />Compte de résultat synthétique</CardTitle>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#2563EB]" />Compte de résultat synthétique</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <table className="w-full text-xs">
@@ -3707,10 +3707,10 @@ export default function PricingCalculator() {
                         <td className="px-4 py-2 text-right text-orange-500">{result.priceHT > 0 ? `${((result.corporateTax / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
                       </tr>
                     )}
-                    <tr className="bg-[#C8A24B]/10">
+                    <tr className="bg-[#2563EB]/10">
                       <td className="px-4 py-3 font-bold text-[#8a6b2a]">{fiscalConfig.enabled ? "Bénéfice net après IS" : "Marge nette"}</td>
-                      <td className={`px-4 py-3 text-right font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{formatFCFA(result.netProfit)}</td>
-                      <td className={`px-4 py-3 text-right font-bold ${result.netMarginPct < 0 ? "text-red-600" : "text-[#C8A24B]"}`}>{result.netMarginPct.toFixed(1)}%</td>
+                      <td className={`px-4 py-3 text-right font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-[#2563EB]"}`}>{formatFCFA(result.netProfit)}</td>
+                      <td className={`px-4 py-3 text-right font-bold ${result.netMarginPct < 0 ? "text-red-600" : "text-[#2563EB]"}`}>{result.netMarginPct.toFixed(1)}%</td>
                     </tr>
                   </tbody>
                 </table>
@@ -3722,7 +3722,7 @@ export default function PricingCalculator() {
               <Card className="shadow-sm">
                 <CardHeader className="pb-2 border-b">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-[#C8A24B]" />Détail par composante
+                    <Layers className="w-4 h-4 text-[#2563EB]" />Détail par composante
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -3769,7 +3769,7 @@ export default function PricingCalculator() {
             {/* Key metrics */}
             <Card className="shadow-sm">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-sm flex items-center gap-2"><Target className="w-4 h-4 text-[#C8A24B]" />Indicateurs clés</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><Target className="w-4 h-4 text-[#2563EB]" />Indicateurs clés</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-3 gap-3 text-center">
@@ -3817,7 +3817,7 @@ export default function PricingCalculator() {
 
                 {/* Prix cibles */}
                 <div className="border-t border-slate-100 pt-3 space-y-2">
-                  <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><Target className="w-3.5 h-3.5 text-[#C8A24B]" />Prix cibles</div>
+                  <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><Target className="w-3.5 h-3.5 text-[#2563EB]" />Prix cibles</div>
                   <div className="flex justify-between text-xs bg-red-50 border border-red-100 rounded-lg p-2.5">
                     <span className="text-red-700 font-medium">Prix minimum (seuil de rentabilité)</span>
                     <span className="font-bold text-red-700">{formatFCFA(Math.round(result.minimumPriceHT))} HT</span>
@@ -3845,7 +3845,7 @@ export default function PricingCalculator() {
               <Button size="sm" variant="outline" onClick={() => setSendDocType("order")} className="gap-1.5 text-xs flex-1">
                 <ShoppingCart className="w-3.5 h-3.5" />Créer commande
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setSendDocType("invoice")} className="gap-1.5 text-xs flex-1 border-[#C8A24B] text-[#C8A24B] hover:bg-[#C8A24B]/10">
+              <Button size="sm" variant="outline" onClick={() => setSendDocType("invoice")} className="gap-1.5 text-xs flex-1 border-[#2563EB] text-[#2563EB] hover:bg-[#2563EB]/10">
                 <Banknote className="w-3.5 h-3.5" />Créer facture
               </Button>
             </div>
@@ -3857,7 +3857,7 @@ export default function PricingCalculator() {
           <div className="col-span-12 lg:col-span-8">
             <Card className="shadow-sm">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4 text-[#C8A24B]" />Scénarios de pricing automatiques</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4 text-[#2563EB]" />Scénarios de pricing automatiques</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -3904,7 +3904,7 @@ export default function PricingCalculator() {
           <div className="col-span-12 lg:col-span-4">
             <Card className="shadow-sm h-full">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2"><Lightbulb className="w-4 h-4 text-[#C8A24B]" />Recommandations</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><Lightbulb className="w-4 h-4 text-[#2563EB]" />Recommandations</CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-2.5">
                 {recommendations.length === 0 ? (
@@ -3979,7 +3979,7 @@ export default function PricingCalculator() {
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-[#C8A24B]" />
+                <FolderOpen className="w-4 h-4 text-[#2563EB]" />
                 Mes scénarios sauvegardés
               </DialogTitle>
               <DialogDescription>Chargez un scénario pour l'ouvrir dans le calculateur.</DialogDescription>
@@ -3994,8 +3994,8 @@ export default function PricingCalculator() {
               ) : (
                 savedScenariosMeta.map(s => (
                   <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
-                    <div className="w-8 h-8 rounded-lg bg-[#C8A24B]/10 flex items-center justify-center shrink-0">
-                      <Calculator className="w-4 h-4 text-[#C8A24B]" />
+                    <div className="w-8 h-8 rounded-lg bg-[#2563EB]/10 flex items-center justify-center shrink-0">
+                      <Calculator className="w-4 h-4 text-[#2563EB]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate">{s.name}</div>
@@ -4039,7 +4039,7 @@ export default function PricingCalculator() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-[#C8A24B]" />
+                <Share2 className="w-4 h-4 text-[#2563EB]" />
                 Partager le scénario
               </DialogTitle>
               <DialogDescription>
@@ -4081,18 +4081,18 @@ export default function PricingCalculator() {
               <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50 text-xs text-muted-foreground space-y-1">
                 <div className="font-medium text-slate-700 mb-1">Vous pouvez aussi :</div>
                 <div className="flex items-center gap-2">
-                  <Download className="w-3.5 h-3.5 text-[#C8A24B] shrink-0" />
+                  <Download className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
                   <span>Exporter un PDF professionnel et l'envoyer par email</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FileSignature className="w-3.5 h-3.5 text-[#C8A24B] shrink-0" />
+                  <FileSignature className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
                   <span>Convertir en devis via le bouton « Créer un devis »</span>
                 </div>
               </div>
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fermer</Button>
-              <Button onClick={exportPDF} className="gap-1.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+              <Button onClick={exportPDF} className="gap-1.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
                 <Download className="w-3.5 h-3.5" />Exporter PDF
               </Button>
             </DialogFooter>
@@ -4104,7 +4104,7 @@ export default function PricingCalculator() {
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <GitCompare className="w-4 h-4 text-[#C8A24B]" />
+                <GitCompare className="w-4 h-4 text-[#2563EB]" />
                 Comparer des scénarios
               </DialogTitle>
               <DialogDescription>
@@ -4125,10 +4125,10 @@ export default function PricingCalculator() {
                       <tr className="bg-slate-900 text-white">
                         <th className="text-left px-4 py-3 font-semibold w-40">Indicateur</th>
                         {savedScenariosMeta.slice(0, 4).map(s => (
-                          <th key={s.id} className={`text-center px-3 py-3 font-semibold ${s.id === savedId ? "text-[#C8A24B]" : "text-white"}`}>
+                          <th key={s.id} className={`text-center px-3 py-3 font-semibold ${s.id === savedId ? "text-[#2563EB]" : "text-white"}`}>
                             <div className="truncate max-w-[140px] mx-auto">{s.name}</div>
                             {s.productName && <div className="text-[9px] font-normal text-slate-400 truncate max-w-[140px] mx-auto">{s.productName}</div>}
-                            {s.id === savedId && <div className="text-[9px] font-medium text-[#C8A24B] mt-0.5">● Actif</div>}
+                            {s.id === savedId && <div className="text-[9px] font-medium text-[#2563EB] mt-0.5">● Actif</div>}
                           </th>
                         ))}
                       </tr>

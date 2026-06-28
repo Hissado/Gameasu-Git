@@ -305,7 +305,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 >
                   <GroupIcon
                     className={`w-[15px] h-[15px] shrink-0 transition-colors duration-150 ${
-                      hasActive ? "text-[#C8A24B]" : isOpen ? "text-white/50" : "text-white/25"
+                      hasActive ? "text-[#2563EB]" : isOpen ? "text-white/50" : "text-white/25"
                     }`}
                     strokeWidth={hasActive ? 2 : 1.75}
                   />
@@ -314,13 +314,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </span>
                   {/* Badge "Nouveau" pour les modules récemment ajoutés */}
                   {group.isNew && !hasActive && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide bg-[#F37021]/20 text-[#F37021] border border-[#F37021]/30 uppercase shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide bg-[#2563EB]/15 text-[#2563EB] border border-[#2563EB]/25 uppercase shrink-0">
                       Nouveau
                     </span>
                   )}
                   {/* Active dot when group collapsed and has active item */}
                   {hasActive && !isOpen && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C8A24B] shadow-[0_0_6px_rgba(200,162,75,0.6)]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shadow-[0_0_6px_rgba(37,99,235,0.5)]" />
                   )}
                   <ChevronRight
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
@@ -351,7 +351,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                                 active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
                               }`}
                             >
-                              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />}
+                              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
                               <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
                               <span className="truncate flex-1">{item.name}</span>
                               {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
@@ -377,11 +377,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                                       active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
                                     }`}
                                   >
-                                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#C8A24B] shadow-[0_0_8px_rgba(200,162,75,0.5)]" />}
+                                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
                                     <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
                                     <span className="truncate flex-1">{item.name}</span>
                                     {item.path === "/achats/approbations" && pendingApprovalsCount > 0 && (
-                                      <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#F37021] text-white text-[9px] font-bold flex items-center justify-center px-1">
+                                      <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2563EB] text-white text-[9px] font-bold flex items-center justify-center px-1">
                                         {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
                                       </span>
                                     )}
@@ -592,7 +592,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </div>
                   <Avatar className="w-8 h-8 ring-2 ring-border group-hover:ring-primary/30 transition-all">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                    <AvatarFallback className="bg-[#0F1A3A] text-[#C8A24B] font-semibold text-sm">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-[#0F1A3A] text-[#2563EB] font-semibold text-sm">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -601,13 +601,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 {/* ── Carte profil ── */}
                 <div className="bg-gradient-to-br from-[#0F1A3A] to-[#162040] px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-14 h-14 ring-2 ring-[#C8A24B]/40 shrink-0">
+                    <Avatar className="w-14 h-14 ring-2 ring-[#2563EB]/40 shrink-0">
                       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                      <AvatarFallback className="bg-[#C8A24B]/20 text-[#C8A24B] font-bold text-lg">{initials}</AvatarFallback>
+                      <AvatarFallback className="bg-[#2563EB]/15 text-[#2563EB] font-bold text-lg">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-white leading-tight truncate">{fullName}</p>
-                      <p className="text-xs text-[#C8A24B] font-medium mt-0.5">{roleLabel}</p>
+                      <p className="text-xs text-[#2563EB] font-medium mt-0.5">{roleLabel}</p>
                       {user?.email && (
                         <p className="text-[11px] text-white/50 mt-1 truncate">{user.email}</p>
                       )}

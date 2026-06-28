@@ -177,7 +177,7 @@ function NewPaymentDialog({ onClose, onSuccess, allSuppliers }: { onClose: () =>
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#F37021]" /> Enregistrer un paiement</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#2563EB]" /> Enregistrer un paiement</DialogTitle>
           <DialogDescription>
             {step === 1
               ? "Cochez un ou plusieurs fournisseurs à régler."
@@ -278,14 +278,14 @@ function NewPaymentDialog({ onClose, onSuccess, allSuppliers }: { onClose: () =>
             <Button
               onClick={() => setStep(2)}
               disabled={selectedSupplierIds.size === 0}
-              className="bg-[#F37021] hover:bg-[#d96318] text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               Continuer ({selectedSupplierIds.size} fournisseur{selectedSupplierIds.size > 1 ? "s" : ""})
             </Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>Retour</Button>
-              <Button onClick={handleSave} disabled={saving || totalInvoicesSelected === 0} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+              <Button onClick={handleSave} disabled={saving || totalInvoicesSelected === 0} className="bg-primary hover:bg-primary/90 text-white">
                 {saving ? "Enregistrement…" : `Valider ${selectedSuppliersInfo.length > 1 ? selectedSuppliersInfo.length + " paiements" : "le paiement"}`}
               </Button>
             </>
@@ -368,7 +368,7 @@ export default function AchatsPaiements() {
       <PageHeader
         title="Paiements fournisseurs"
         subtitle={`${total} paiement${total !== 1 ? "s" : ""}`}
-        actions={<Button onClick={() => setNewOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-2"><Plus className="w-4 h-4" />Nouveau paiement</Button>}
+        actions={<Button onClick={() => setNewOpen(true)} className="bg-primary hover:bg-primary/90 text-white gap-2"><Plus className="w-4 h-4" />Nouveau paiement</Button>}
       />
 
       {/* À payer cette semaine */}

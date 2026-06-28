@@ -214,7 +214,7 @@ export function QuickClockWidget() {
           {canBreakEnd && (
             <Button
               size="sm"
-              className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white flex-1 min-w-[160px]"
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-white flex-1 min-w-[160px]"
               onClick={() => handleClock("break_end")}
               disabled={clock.isPending}
             >

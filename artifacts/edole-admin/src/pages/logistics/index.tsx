@@ -84,7 +84,7 @@ function CreateLogisticsDialog({ open, onClose }: { open: boolean; onClose: () =
             <div className="flex gap-2">
               {[
                 { v: "delivery", label: "Livraison", cls: form.type === "delivery" ? "bg-primary text-white border-primary" : "border-slate-200 text-slate-600" },
-                { v: "pickup",   label: "Enlèvement", cls: form.type === "pickup"  ? "bg-indigo-600 text-white border-indigo-600" : "border-slate-200 text-slate-600" },
+                { v: "pickup",   label: "Enlèvement", cls: form.type === "pickup"  ? "bg-primary text-white border-indigo-600" : "border-slate-200 text-slate-600" },
               ].map(opt => (
                 <button
                   key={opt.v}

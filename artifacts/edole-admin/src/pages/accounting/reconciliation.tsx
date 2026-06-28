@@ -480,7 +480,7 @@ export default function ReconciliationPage() {
                             <div className="mt-2 flex gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="sm"
-                                className="h-7 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+                                className="h-7 text-xs bg-primary hover:bg-primary text-white"
                                 disabled={!selectedLine || matchMut.isPending}
                                 onClick={() => selectedLine && matchMut.mutate({ transactionId: tx.id, lineId: selectedLine })}
                               >

@@ -87,7 +87,7 @@ function RecordPaymentDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#C8A24B]" /> Enregistrer un paiement</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#2563EB]" /> Enregistrer un paiement</DialogTitle>
           <DialogDescription>
             <strong>{invoice.referenceNumber}</strong> · {invoice.clientName} · Reste dû : <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
           </DialogDescription>
@@ -109,7 +109,7 @@ function RecordPaymentDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Enregistrement…" : "Valider"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Enregistrement…" : "Valider"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -151,7 +151,7 @@ function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#C8A24B]" /> Nouvelle facture</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#2563EB]" /> Nouvelle facture</DialogTitle>
           <DialogDescription>La facture sera comptabilisée automatiquement. Sélectionnez les produits/services facturés.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -179,7 +179,7 @@ function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Création…" : totals.totalTTC > 0 ? `Créer — ${formatFCFA(totals.totalTTC)}` : "Créer la facture"}
           </Button>
         </DialogFooter>
@@ -223,7 +223,7 @@ function EditInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice; 
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#C8A24B]" /> Modifier la facture</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#2563EB]" /> Modifier la facture</DialogTitle>
           <DialogDescription>
             <strong>{invoice.referenceNumber}</strong> · {STATUS_MAP[invoice.status]?.label ?? invoice.status}
             {invoice.status !== "draft" && <span className="ml-2 text-amber-600 text-xs">⚠ Seuls les champs autorisés par le statut sont modifiables.</span>}
@@ -253,7 +253,7 @@ function EditInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice; 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Fermer</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -385,7 +385,7 @@ export default function InvoicesList() {
           </>
         }
         actions={
-          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+          <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer une facture
           </Button>
         }
@@ -490,14 +490,14 @@ export default function InvoicesList() {
                     <TableRow key={inv.id} className={`hover:bg-slate-50/50 ${isOverdue ? "bg-red-50/20" : ""} ${isCancelled ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold">
                         {inv.clientId
-                          ? <Link href={`/clients/${inv.clientId}`}><span className="hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.referenceNumber}</span></Link>
+                          ? <Link href={`/clients/${inv.clientId}`}><span className="hover:text-[#2563EB] hover:underline cursor-pointer">{inv.referenceNumber}</span></Link>
                           : inv.referenceNumber}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           {inv.clientId
-                            ? <Link href={`/clients/${inv.clientId}`}><span className="font-medium text-sm hover:text-[#C8A24B] hover:underline cursor-pointer">{inv.clientName || "—"}</span></Link>
+                            ? <Link href={`/clients/${inv.clientId}`}><span className="font-medium text-sm hover:text-[#2563EB] hover:underline cursor-pointer">{inv.clientName || "—"}</span></Link>
                             : <span className="font-medium text-sm">{inv.clientName || "—"}</span>}
                         </div>
                       </TableCell>
@@ -523,7 +523,7 @@ export default function InvoicesList() {
                           <div className="flex items-center gap-1">
                             {canPay && (
                               <Button size="sm" onClick={() => setPayingInvoice(inv)}
-                                className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+                                className="h-7 text-xs gap-0.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
                                 <Wallet className="w-3 h-3" /> Encaisser
                               </Button>
                             )}

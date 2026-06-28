@@ -421,7 +421,7 @@ function StandardCatalogTab({ onOpen }: { onOpen: (tabTarget: string, reportName
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-1.5">
+            <Button className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
               <PlusCircle className="w-4 h-4" /> Créer un rapport <ChevronDown className="w-3.5 h-3.5 opacity-70" />
             </Button>
           </DropdownMenuTrigger>
@@ -470,7 +470,7 @@ function StandardCatalogTab({ onOpen }: { onOpen: (tabTarget: string, reportName
               className="w-full flex items-center gap-2.5 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
             >
               {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />}
-              <Icon className="w-4 h-4 text-[#C8A24B] shrink-0" />
+              <Icon className="w-4 h-4 text-[#2563EB] shrink-0" />
               <span className="font-semibold text-sm text-slate-800">{cat.label}</span>
               <span className="ml-auto text-xs text-slate-400">{cat.reports.length} rapport{cat.reports.length > 1 ? "s" : ""}</span>
             </button>
@@ -511,7 +511,7 @@ function ReportRow({ report, tab, isFav, onOpen, onToggleFav }: {
         className="flex-1 text-left min-w-0"
         onClick={() => onOpen(tab, report.name)}
       >
-        <span className="text-sm font-medium text-slate-800 hover:text-[#C8A24B] hover:underline underline-offset-2 cursor-pointer leading-tight">
+        <span className="text-sm font-medium text-slate-800 hover:text-[#2563EB] hover:underline underline-offset-2 cursor-pointer leading-tight">
           {report.name}
         </span>
         <span className="block text-xs text-muted-foreground mt-0.5 truncate">{report.desc}</span>
@@ -655,7 +655,7 @@ function KpisTab({ periodQuery }: { periodQuery: string }) {
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} />
                 <Tooltip formatter={(v: number) => formatFCFA(v)} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="facture" name="Facturé" fill="#C8A24B" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="facture" name="Facturé" fill="#2563EB" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="encaisse" name="Encaissé" fill="#10B981" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -670,7 +670,7 @@ function KpisTab({ periodQuery }: { periodQuery: string }) {
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} />
                 <Tooltip formatter={(v: number) => formatFCFA(v)} />
-                <Line type="monotone" dataKey="amount" name="CA" stroke="#C8A24B" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="amount" name="CA" stroke="#2563EB" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -702,7 +702,7 @@ function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void
             <button key={d.id} onClick={() => onOpen(d.tab, d.title)}
               className={`text-left border bg-gradient-to-br ${d.color} rounded-xl p-5 hover:shadow-md transition-shadow group`}>
               <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-white rounded-lg shadow-sm border"><Icon className="w-5 h-5 text-[#C8A24B]" /></div>
+                <div className="p-2 bg-white rounded-lg shadow-sm border"><Icon className="w-5 h-5 text-[#2563EB]" /></div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors mt-1" />
               </div>
               <p className="font-semibold text-sm text-slate-800 mb-1">{d.title}</p>
@@ -933,8 +933,8 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     return (
                       <button key={m.id} onClick={() => setModule(m.id)}
                         className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-all ${module === m.id
-                          ? "bg-[#C8A24B] text-white border-[#C8A24B] shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-[#C8A24B]/50 hover:bg-amber-50/40"}`}>
+                          ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm"
+                          : "bg-white border-slate-200 text-slate-600 hover:border-[#2563EB]/50 hover:bg-primary/5"}`}>
                         <Icon className="w-3.5 h-3.5 shrink-0" /> {m.label}
                       </button>
                     );
@@ -1000,7 +1000,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Colonnes affichées</p>
                   <div className="flex gap-1.5">
-                    <button onClick={() => setCols([...allCols])} className="text-xs text-[#C8A24B] hover:underline">Tout</button>
+                    <button onClick={() => setCols([...allCols])} className="text-xs text-[#2563EB] hover:underline">Tout</button>
                     <span className="text-slate-300">|</span>
                     <button onClick={() => setCols([])} className="text-xs text-slate-400 hover:underline">Aucune</button>
                   </div>
@@ -1047,14 +1047,14 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
               {!generated ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                    <Table2 className="w-5 h-5 text-[#C8A24B]" />
+                    <Table2 className="w-5 h-5 text-[#2563EB]" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-600">Configurez et générez votre rapport</p>
                     <p className="text-xs text-muted-foreground mt-1">Sélectionnez la source, les filtres et les colonnes, puis cliquez sur Générer.</p>
                   </div>
                   <Button onClick={handleGenerate} disabled={generating || cols.length === 0}
-                    className="mt-2 bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+                    className="mt-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-2">
                     {generating
                       ? <><RefreshCcw className="w-4 h-4 animate-spin" /> Génération…</>
                       : <><Zap className="w-4 h-4" /> Générer le rapport</>
@@ -1117,7 +1117,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
           {/* Bouton Générer visible sous le panneau colonnes quand pas encore généré */}
           {!generated && (
             <Button onClick={handleGenerate} disabled={generating || cols.length === 0}
-              className="w-full bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+              className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-2">
               {generating
                 ? <><RefreshCcw className="w-4 h-4 animate-spin" /> Génération en cours…</>
                 : <><Zap className="w-4 h-4" /> Générer le rapport</>
@@ -1132,7 +1132,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
         <Card className="shadow-none border-slate-200">
           <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-[#C8A24B]" /> Modèles prêts à l'emploi
+              <Star className="w-3.5 h-3.5 text-[#2563EB]" /> Modèles prêts à l'emploi
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
@@ -1150,8 +1150,8 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                 { label: "Avancement projets",          mod: "projects",   period: "this_quarter", desc: "Budget vs réalisé par projet" },
               ].map(t => (
                 <button key={t.label} onClick={() => { setModule(t.mod); setPeriod(t.period); setReportName(t.label); setCols((MODULE_COLS[t.mod]??[]).slice(0,5)); setGenerated(false); }}
-                  className="text-left border border-slate-200 rounded-lg p-3 hover:border-[#C8A24B]/60 hover:bg-amber-50/20 transition-all group">
-                  <p className="text-xs font-semibold text-slate-700 group-hover:text-[#C8A24B] transition-colors">{t.label}</p>
+                  className="text-left border border-slate-200 rounded-lg p-3 hover:border-[#2563EB]/60 hover:bg-primary/5 transition-all group">
+                  <p className="text-xs font-semibold text-slate-700 group-hover:text-[#2563EB] transition-colors">{t.label}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</p>
                 </button>
               ))}
@@ -1186,10 +1186,10 @@ function PerformanceTab({ onOpen }: { onOpen: (tab: string, name: string) => voi
           const Icon = r.icon;
           return (
             <button key={r.name} onClick={() => onOpen(r.tab, r.name)}
-              className="text-left border rounded-xl p-4 hover:border-[#C8A24B] hover:bg-amber-50/30 transition-all group">
+              className="text-left border rounded-xl p-4 hover:border-[#2563EB] hover:bg-primary/5 transition-all group">
               <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-4 h-4 text-[#C8A24B]" />
-                <span className="font-semibold text-sm text-slate-800 group-hover:text-[#C8A24B] transition-colors">{r.name}</span>
+                <Icon className="w-4 h-4 text-[#2563EB]" />
+                <span className="font-semibold text-sm text-slate-800 group-hover:text-[#2563EB] transition-colors">{r.name}</span>
               </div>
               <p className="text-xs text-muted-foreground">{r.desc}</p>
             </button>
@@ -1444,7 +1444,7 @@ export default function ReportsPage() {
                 onClick={() => setMainTab(t.id)}
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   active
-                    ? "border-[#C8A24B] text-[#C8A24B]"
+                    ? "border-[#2563EB] text-[#2563EB]"
                     : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
                 }`}
               >
@@ -2472,7 +2472,7 @@ function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
                       <XAxis dataKey="month" />
                       <YAxis tickFormatter={(v) => Intl.NumberFormat("fr-FR", { notation: "compact" }).format(v as number)} />
                       <Tooltip formatter={(v: number) => formatFCFA(v)} />
-                      <Bar dataKey="netFlow" name="Flux net" fill="#F37021" radius={[4, 4, 0, 0]}
+                      <Bar dataKey="netFlow" name="Flux net" fill="#2563EB" radius={[4, 4, 0, 0]}
                         label={false}
                       />
                     </BarChart>
@@ -3075,7 +3075,7 @@ function ReconciliationSubTab({ periodQuery }: { periodQuery: string }) {
               <CardContent>
                 <div className="space-y-2">
                   {data!.unreconciledList.map(t => (
-                    <div key={t.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-amber-50/30">
+                    <div key={t.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-primary/5">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm truncate">{t.label}</span>
@@ -3270,13 +3270,13 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       {/* ── En-tête rapport — design bicolonne ───────────────────────── */}
       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
         {/* Barre or Gameasu */}
-        <div className="h-1 w-full bg-[#C8A24B]" />
+        <div className="h-1 w-full bg-[#2563EB]" />
         <div className="flex">
           {/* Colonne gauche — bleu marine Gameasu */}
           <div className="bg-[#0F1A3A] text-white px-5 py-5 flex flex-col justify-between" style={{ minWidth: 200, width: "28%" }}>
             <div>
               <p className="text-[9px] uppercase tracking-[0.28em] text-white/40 font-bold">Document confidentiel</p>
-              <div className="w-7 h-[2px] bg-[#C8A24B] mt-2 mb-3" />
+              <div className="w-7 h-[2px] bg-[#2563EB] mt-2 mb-3" />
               <p className="text-[11px] text-white/50 leading-[1.6]">Rapport préparé par</p>
               <p className="text-sm font-bold text-white mt-0.5">Gameasu</p>
             </div>
@@ -3291,9 +3291,9 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           {/* Colonne droite blanche */}
           <div className="flex-1 bg-white px-6 py-5 flex items-start justify-between">
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#C8A24B] font-bold mb-1">Exercice {yearLabel}</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#2563EB] font-bold mb-1">Exercice {yearLabel}</p>
               <h1 className="text-2xl font-extrabold tracking-tight text-[#0F1A3A] leading-[1.0]">
-                Rapport<br /><span className="text-[#C8A24B]">de Gestion</span>
+                Rapport<br /><span className="text-[#2563EB]">de Gestion</span>
               </h1>
               <p className="text-slate-500 text-sm mt-2">{periodLabel}</p>
             </div>

@@ -31,7 +31,7 @@ function initials(c: Collaborator) {
 }
 
 const DEPT_COLORS = [
-  "#F37021", "#C8A24B", "#0ea5e9", "#8b5cf6", "#10b981",
+  "#2563EB", "#0F1A3A", "#0ea5e9", "#8b5cf6", "#10b981",
   "#f59e0b", "#ef4444", "#6366f1", "#14b8a6", "#ec4899",
 ];
 
@@ -39,7 +39,7 @@ function CollabCard({ collab, highlight }: { collab: Collaborator; highlight: st
   const fullName = `${collab.firstName} ${collab.lastName}`;
   const matches = highlight && fullName.toLowerCase().includes(highlight.toLowerCase());
   return (
-    <div className={`flex items-center gap-2 p-2 rounded-lg border transition-all hover:shadow-sm ${matches ? "border-[#C8A24B] bg-amber-50/50" : "border-slate-100 bg-white hover:border-slate-200"}`}>
+    <div className={`flex items-center gap-2 p-2 rounded-lg border transition-all hover:shadow-sm ${matches ? "border-primary bg-primary/5" : "border-slate-100 bg-white hover:border-slate-200"}`}>
       <Avatar className="w-8 h-8 shrink-0">
         <AvatarImage src={collab.avatarUrl ?? undefined} />
         <AvatarFallback className="text-xs font-bold bg-slate-700 text-white">{initials(collab)}</AvatarFallback>

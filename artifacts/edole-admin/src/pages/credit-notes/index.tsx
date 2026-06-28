@@ -72,7 +72,7 @@ export default function CreditNotesList() {
         icon={MinusCircle}
         actions={
           <Link href="/invoices">
-            <button className="inline-flex items-center gap-1.5 text-xs font-medium text-[#C8A24B] border border-[#C8A24B]/40 rounded-lg px-3 py-1.5 hover:bg-[#C8A24B]/10 transition-colors">
+            <button className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2563EB] border border-[#2563EB]/40 rounded-lg px-3 py-1.5 hover:bg-[#2563EB]/10 transition-colors">
               <Link2 className="w-3.5 h-3.5" />Créer un avoir depuis les Factures
             </button>
           </Link>
@@ -106,7 +106,7 @@ export default function CreditNotesList() {
             <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Émettez un avoir</div>
             <div className="text-xs text-muted-foreground mt-1">
               Via le bouton <strong>Avoir</strong> dans la page{" "}
-              <Link href="/invoices"><span className="text-[#C8A24B] hover:underline cursor-pointer">Factures</span></Link>
+              <Link href="/invoices"><span className="text-[#2563EB] hover:underline cursor-pointer">Factures</span></Link>
             </div>
           </CardContent>
         </Card>

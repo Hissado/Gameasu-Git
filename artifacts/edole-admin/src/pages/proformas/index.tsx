@@ -85,7 +85,7 @@ function NewProformaDialog({ onClose, onSuccess }: { onClose: () => void; onSucc
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#C8A24B]" /> Nouveau devis</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-[#2563EB]" /> Nouveau devis</DialogTitle>
           <DialogDescription>Sélectionnez les produits/services et définissez les conditions commerciales.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -117,7 +117,7 @@ function NewProformaDialog({ onClose, onSuccess }: { onClose: () => void; onSucc
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+          <Button onClick={handleSave} disabled={saving || !clientId || lines.length === 0} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {saving ? "Création…" : totals.totalTTC > 0 ? `Créer le devis — ${formatFCFA(totals.totalTTC)}` : "Créer le devis"}
           </Button>
         </DialogFooter>
@@ -164,7 +164,7 @@ function EditProformaDialog({ proforma, onClose, onSuccess }: { proforma: Profor
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#C8A24B]" /> Modifier le devis</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-[#2563EB]" /> Modifier le devis</DialogTitle>
           <DialogDescription>
             <strong>{proforma.referenceNumber}</strong> · Statut : {STATUS_MAP[proforma.status]?.label ?? proforma.status}
             {proforma.status === "sent" && <span className="ml-2 text-amber-600 text-xs">⚠ Certains champs sont verrouillés car le devis a été envoyé.</span>}
@@ -194,7 +194,7 @@ function EditProformaDialog({ proforma, onClose, onSuccess }: { proforma: Profor
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Fermer</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -336,7 +336,7 @@ export default function ProformasList() {
         subtitle={`${allProformas.length} devis · Propositions commerciales`}
         icon={FileText}
         actions={
-          <Button onClick={() => setNewOpen(true)} className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold gap-1.5">
+          <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer un devis
           </Button>
         }
@@ -432,13 +432,13 @@ export default function ProformasList() {
                               <Printer className="w-3 h-3" /> PDF
                             </Button>
                             {(p.status === "draft" || p.status === "sent") && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-primary border-indigo-200 hover:bg-primary/5"
                                 disabled={generatingOrderId === p.id} onClick={() => generateOrder(p.id)}>
                                 <ShoppingCart className="w-3 h-3" />{generatingOrderId === p.id ? "…" : "Commande"}
                               </Button>
                             )}
                             {p.status !== "rejected" && p.status !== "cancelled" && (
-                              <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+                              <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
                                 disabled={generatingId === p.id} onClick={() => generateInvoice(p.id)}>
                                 <Receipt className="w-3 h-3" />{generatingId === p.id ? "…" : "Facture"}
                               </Button>

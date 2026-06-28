@@ -68,7 +68,7 @@ export default function PublicInvoicePage() {
       <div className="max-w-xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#C8A24B] flex items-center justify-center text-white font-bold text-lg">G</div>
+          <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center text-white font-bold text-lg">G</div>
           <div>
             <p className="font-bold text-lg leading-tight">Gameasu</p>
             <p className="text-xs text-muted-foreground">Plateforme de gestion d'entreprise</p>
@@ -110,7 +110,7 @@ export default function PublicInvoicePage() {
             )}
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="font-bold">Reste à payer</span>
-              <span className={`text-xl font-bold ${isOverdue ? "text-red-600" : remaining === 0 ? "text-emerald-600" : "text-[#C8A24B]"}`}>
+              <span className={`text-xl font-bold ${isOverdue ? "text-red-600" : remaining === 0 ? "text-emerald-600" : "text-[#2563EB]"}`}>
                 {remaining === 0 ? "Soldé ✓" : formatFCFA(remaining)}
               </span>
             </div>

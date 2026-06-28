@@ -485,7 +485,7 @@ export default function HrReports() {
                         className={cn(
                           "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                           active
-                            ? "bg-orange-500 text-white shadow-sm"
+                            ? "bg-primary text-white shadow-sm"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         )}
                       >
@@ -512,7 +512,7 @@ export default function HrReports() {
                   <input
                     type="date" value={from}
                     onChange={e => setFrom(e.target.value)}
-                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -520,7 +520,7 @@ export default function HrReports() {
                   <input
                     type="date" value={to}
                     onChange={e => setTo(e.target.value)}
-                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </>
@@ -533,7 +533,7 @@ export default function HrReports() {
                 <input
                   type="month" value={period}
                   onChange={e => setPeriod(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             )}
@@ -545,7 +545,7 @@ export default function HrReports() {
                 <input
                   type="date" value={expiringBefore}
                   onChange={e => setExpiringBefore(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             )}
@@ -601,7 +601,7 @@ export default function HrReports() {
                 size="sm"
                 disabled={rows.length === 0}
                 onClick={() => exportCSV(rows, cols, `rapport-rh-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`)}
-                className="h-9 gap-1.5 bg-orange-500 hover:bg-orange-600"
+                className="h-9 gap-1.5 bg-primary hover:bg-primary/90"
               >
                 <Download className="h-3.5 w-3.5" />
                 Exporter CSV

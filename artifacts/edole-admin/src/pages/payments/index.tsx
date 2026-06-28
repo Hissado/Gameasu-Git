@@ -196,7 +196,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-[#C8A24B]" /> Saisir un encaissement
+            <Wallet className="w-5 h-5 text-[#2563EB]" /> Saisir un encaissement
           </DialogTitle>
           <DialogDescription>
             Le paiement est comptabilisé automatiquement (débit 521/571 · crédit 411).
@@ -404,7 +404,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
             <Button
               onClick={handleSave}
               disabled={saving || !invoiceId}
-              className="bg-[#C8A24B] hover:bg-[#b8922b] text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               {saving ? "Enregistrement…" : "Valider le paiement"}
             </Button>
@@ -445,7 +445,7 @@ export default function PaymentsList() {
         actions={
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white font-semibold shadow-sm gap-1.5"
+            className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-sm gap-1.5"
           >
             <Plus className="w-4 h-4" strokeWidth={3} />
             Saisir un encaissement

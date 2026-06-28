@@ -194,7 +194,7 @@ export default function MyProfile() {
             <div className="relative shrink-0">
               <Avatar className="w-20 h-20 ring-2 ring-border">
                 {avatarPreview && <AvatarImage src={avatarPreview} />}
-                <AvatarFallback className="text-2xl bg-[#0F1A3A] text-[#C8A24B] font-bold">{initials}</AvatarFallback>
+                <AvatarFallback className="text-2xl bg-[#0F1A3A] text-[#2563EB] font-bold">{initials}</AvatarFallback>
               </Avatar>
               <button
                 type="button"

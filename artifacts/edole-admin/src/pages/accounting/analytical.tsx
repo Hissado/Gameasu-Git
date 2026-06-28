@@ -60,7 +60,7 @@ const COST_TYPES = [
   { value: "support",        label: "Support" },
 ];
 
-const COLORS_PIE = ["#F37021","#1E3A5F","#10b981","#6366f1","#f59e0b","#ef4444","#0891b2","#7c3aed","#84cc16"];
+const COLORS_PIE = ["#2563EB","#0F1A3A","#10b981","#6366f1","#f59e0b","#ef4444","#0891b2","#7c3aed","#84cc16"];
 const CC_COLORS = ["bg-blue-500","bg-orange-500","bg-emerald-500","bg-purple-500","bg-red-500","bg-cyan-500","bg-amber-500","bg-rose-500"];
 
 function fmt(v: number) { return formatFCFA(v); }

@@ -24,7 +24,7 @@ const badgeVariants = cva(
         navy:
           "bg-[#0F1A3A]/8 text-[#0F1A3A] border-[#0F1A3A]/15",
         gold:
-          "bg-[#C8A24B]/10 text-[#8B6914] border-[#C8A24B]/25",
+          "bg-[#2563EB]/10 text-[#1d4ed8] border-[#2563EB]/25",
       },
     },
     defaultVariants: {

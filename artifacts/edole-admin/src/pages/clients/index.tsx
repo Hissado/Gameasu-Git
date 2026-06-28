@@ -99,7 +99,7 @@ export default function ClientsWorkspace() {
                 <Link href="/proformas">
                   <button
                     title="Créer un devis pour ce client"
-                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-md bg-[#C8A24B] hover:bg-[#b8922b] text-white shadow-md transition-colors">
+                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md transition-colors">
                     <FileSignature className="w-3 h-3" /> Devis
                   </button>
                 </Link>

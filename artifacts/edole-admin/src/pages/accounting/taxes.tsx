@@ -292,8 +292,8 @@ function TaxFormDialog({ open, onClose, initial, onSave }: {
                   onClick={() => toggleAppliesTo(k)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors
                     ${form.appliesTo.includes(k)
-                      ? "bg-[#C8A24B] border-[#C8A24B] text-white"
-                      : "border-slate-200 text-slate-600 hover:border-[#C8A24B]"}`}>
+                      ? "bg-primary border-primary text-white"
+                      : "border-slate-200 text-slate-600 hover:border-primary"}`}>
                   {v}
                 </button>
               ))}
@@ -315,7 +315,7 @@ function TaxFormDialog({ open, onClose, initial, onSave }: {
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
           <Button onClick={handleSave} disabled={saving}
-            className="bg-[#C8A24B] hover:bg-[#b8922b] text-white">
+            className="bg-primary hover:bg-primary/90 text-white">
             {saving ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer"}
           </Button>
         </DialogFooter>
@@ -486,7 +486,7 @@ export default function TaxesPage() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors
                 ${tab === t.key
-                  ? "bg-white border border-b-white border-slate-200 text-[#C8A24B] -mb-px"
+                  ? "bg-white border border-b-white border-slate-200 text-primary -mb-px"
                   : "text-muted-foreground hover:text-foreground"}`}>
               {t.label}
             </button>
@@ -502,7 +502,7 @@ export default function TaxesPage() {
                 <p className="text-sm text-muted-foreground">{taxes.length} taxe{taxes.length > 1 ? "s" : ""} configurée{taxes.length > 1 ? "s" : ""}</p>
               </div>
               <Button onClick={() => { setEditTax(null); setFormOpen(true); }}
-                className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2">
+                className="bg-primary hover:bg-primary/90 text-white gap-2">
                 <Plus className="w-4 h-4" /> Nouvelle taxe
               </Button>
             </div>
@@ -661,7 +661,7 @@ export default function TaxesPage() {
             <Card className="border-dashed">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-[#C8A24B] mt-0.5 shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm text-muted-foreground">
                     <strong className="text-foreground">Délais légaux Togo / UEMOA :</strong>{" "}
                     TVA — 15 du mois suivant · IRPP/IPTS — 15 du mois suivant · AIB — 15 du trimestre suivant · CNSS — 15 du mois suivant · IS — 30 avril N+1.
@@ -775,7 +775,7 @@ export default function TaxesPage() {
                 <Button
                   onClick={saveFiscalSettings}
                   disabled={isSaving || !isEdited}
-                  className="bg-[#C8A24B] hover:bg-[#b8922b] text-white gap-2"
+                  className="bg-primary hover:bg-primary/90 text-white gap-2"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? "Enregistrement…" : "Enregistrer"}
@@ -934,7 +934,7 @@ export default function TaxesPage() {
             <Card className="border-dashed">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-[#C8A24B] mt-0.5 shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm text-muted-foreground">
                     <strong className="text-foreground">Barème Togo BIC (référence 2024) :</strong>{" "}
                     0% jusqu'à 2 000 000 XOF · 15% de 2 à 10 M · 25% de 10 à 50 M · 29% au-delà.

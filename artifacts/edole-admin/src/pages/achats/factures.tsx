@@ -182,7 +182,7 @@ function QuickPayDialog({ invoice, onClose, onSuccess }: { invoice: InvoiceDetai
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#F37021]" /> Enregistrer un paiement</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#2563EB]" /> Enregistrer un paiement</DialogTitle>
           <DialogDescription>
             <strong>{invoice.referenceNumber}</strong> · {invoice.supplierName} · Reste dû : <strong className="text-amber-600">{formatFCFA(remaining)}</strong>
           </DialogDescription>
@@ -216,7 +216,7 @@ function QuickPayDialog({ invoice, onClose, onSuccess }: { invoice: InvoiceDetai
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#F37021] hover:bg-[#d96318] text-white">{saving ? "Enregistrement…" : "Valider"}</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">{saving ? "Enregistrement…" : "Valider"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -442,7 +442,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
   };
 
   const modeLabel = mode === "credit_note" ? "Note de crédit" : mode === "repeating" ? "Facture récurrente" : "Nouvelle facture";
-  const modeIcon = mode === "credit_note" ? <CreditCard className="w-4 h-4 text-[#F37021]" /> : mode === "repeating" ? <Repeat className="w-4 h-4 text-[#F37021]" /> : <FileText className="w-4 h-4 text-[#F37021]" />;
+  const modeIcon = mode === "credit_note" ? <CreditCard className="w-4 h-4 text-[#2563EB]" /> : mode === "repeating" ? <Repeat className="w-4 h-4 text-[#2563EB]" /> : <FileText className="w-4 h-4 text-[#2563EB]" />;
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -464,7 +464,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
           {withUpload && (
             <div className="w-52 shrink-0 border-r bg-slate-50 flex flex-col p-4 gap-4">
               <div className="flex items-center gap-1.5 text-sm font-semibold">
-                <Upload className="w-4 h-4 text-[#F37021]" />
+                <Upload className="w-4 h-4 text-[#2563EB]" />
                 Remplissage auto
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -477,7 +477,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className={`flex-1 min-h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${isDragging ? "border-[#F37021] bg-orange-50" : "border-slate-300 bg-white"}`}
+                className={`flex-1 min-h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${isDragging ? "border-[#2563EB] bg-orange-50" : "border-slate-300 bg-white"}`}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploadFiles.length === 0 ? (
@@ -489,7 +489,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                   <div className="w-full px-2 space-y-1">
                     {uploadFiles.map((f, i) => (
                       <div key={i} className="flex items-center gap-1 text-xs bg-white border rounded px-2 py-1">
-                        <FileText className="w-3 h-3 shrink-0 text-[#F37021]" />
+                        <FileText className="w-3 h-3 shrink-0 text-[#2563EB]" />
                         <span className="truncate flex-1">{f.name}</span>
                         <button onClick={(e) => { e.stopPropagation(); setUploadFiles(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                       </div>
@@ -587,7 +587,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
             {/* Repeating fields */}
             {mode === "repeating" && (
               <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <div className="col-span-2 flex items-center gap-2 text-sm font-medium text-[#F37021]"><Repeat className="w-4 h-4" />Paramètres de récurrence</div>
+                <div className="col-span-2 flex items-center gap-2 text-sm font-medium text-[#2563EB]"><Repeat className="w-4 h-4" />Paramètres de récurrence</div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Fréquence</Label>
                   <Select value={frequency} onValueChange={setFrequency}>
@@ -627,7 +627,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                   {attachments.length === 0 ? (
                     <>
                       <Paperclip className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-[#F37021] font-medium">Ajouter une pièce jointe</span>
+                      <span className="text-xs text-[#2563EB] font-medium">Ajouter une pièce jointe</span>
                       <span className="text-xs text-muted-foreground">Max 20 Mo</span>
                     </>
                   ) : (
@@ -639,7 +639,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                           <button onClick={(e) => { e.stopPropagation(); setAttachments(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
                       ))}
-                      <button className="text-xs text-[#F37021] font-medium pt-1">+ Ajouter</button>
+                      <button className="text-xs text-[#2563EB] font-medium pt-1">+ Ajouter</button>
                     </div>
                   )}
                 </div>
@@ -680,7 +680,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
             <Button variant="outline" size="sm" onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Enregistrement…" : "Enregistrer"}
             </Button>
-            <Button size="sm" onClick={() => handleSave(true)} disabled={saving} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+            <Button size="sm" onClick={() => handleSave(true)} disabled={saving} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
               {saving ? "…" : "Enregistrer et programmer"}
             </Button>
           </div>
@@ -731,7 +731,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#F37021]" />
+            <FileText className="w-5 h-5 text-[#2563EB]" />
             {isLoading ? "Chargement…" : inv?.referenceNumber}
           </SheetTitle>
         </SheetHeader>
@@ -748,7 +748,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                 {inv.status === "review" && <Button size="sm" variant="outline" onClick={() => updateStatus("awaiting_approval")} disabled={updating} className="text-xs">Soumettre appro.</Button>}
                 {canApprove && <Button size="sm" onClick={() => updateStatus("approved")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1 text-xs"><CheckCircle2 className="w-3.5 h-3.5" />Approuver</Button>}
                 {inv.status === "approved" && <Button size="sm" variant="outline" onClick={() => updateStatus("pending")} disabled={updating} className="text-xs">Marquer À payer</Button>}
-                {canPay && <Button size="sm" onClick={() => setPayOpen(true)} className="bg-[#F37021] hover:bg-[#d96318] text-white gap-1 text-xs"><Wallet className="w-3.5 h-3.5" />Payer</Button>}
+                {canPay && <Button size="sm" onClick={() => setPayOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1 text-xs"><Wallet className="w-3.5 h-3.5" />Payer</Button>}
                 {canReject && <Button size="sm" variant="outline" onClick={() => updateStatus("rejected")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1 text-xs"><ThumbsDown className="w-3.5 h-3.5" />Refuser</Button>}
                 {canCancel && <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-slate-600 border-slate-200 hover:bg-slate-50 gap-1 text-xs"><XCircle className="w-3.5 h-3.5" />Annuler</Button>}
               </div>
@@ -830,7 +830,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                             {formatDate(att.uploadedAt)}
                           </span>
                         </span>
-                        <Download className="w-4 h-4 text-muted-foreground group-hover:text-[#F37021] shrink-0 transition-colors" />
+                        <Download className="w-4 h-4 text-muted-foreground group-hover:text-[#2563EB] shrink-0 transition-colors" />
                       </a>
                     );
                   })}
@@ -900,7 +900,7 @@ async function exportToExcel(params: Record<string, string>) {
     ];
     const header = ws.getRow(1);
     header.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
     rows.forEach(r => {
       const ht = Number(r.totalAmount);
       const tva = Number(r.taxAmount);
@@ -963,7 +963,7 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><FileDown className="w-4 h-4 text-[#F37021]" />Importer depuis CSV</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><FileDown className="w-4 h-4 text-[#2563EB]" />Importer depuis CSV</DialogTitle>
           <DialogDescription>Importez des factures fournisseurs depuis un fichier CSV.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -977,12 +977,12 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
 
           {/* File picker */}
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? "border-[#F37021] bg-orange-50" : "border-slate-300 hover:border-slate-400"}`}
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? "border-[#2563EB] bg-orange-50" : "border-slate-300 hover:border-slate-400"}`}
             onClick={() => inputRef.current?.click()}
           >
             {file ? (
               <div className="space-y-1">
-                <FileText className="w-8 h-8 text-[#F37021] mx-auto" />
+                <FileText className="w-8 h-8 text-[#2563EB] mx-auto" />
                 <p className="text-sm font-medium">{file.name}</p>
                 <p className="text-xs text-muted-foreground">{rows.length} ligne(s) trouvée(s)</p>
               </div>
@@ -1016,7 +1016,7 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={importing}>Annuler</Button>
-          <Button onClick={handleImport} disabled={!file || importing} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+          <Button onClick={handleImport} disabled={!file || importing} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
             {importing ? "Importation…" : "Importer"}
           </Button>
         </DialogFooter>
@@ -1128,13 +1128,13 @@ export default function AchatsFactures() {
             <Button variant="outline" size="sm" onClick={() => exportToExcel(qParams)} className="gap-2"><Download className="w-4 h-4" />Exporter</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-[#F37021] hover:bg-[#d96318] text-white gap-1.5">
+                <Button className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">
                   <Plus className="w-4 h-4" />Nouvelle facture<ChevronDown className="w-3.5 h-3.5 opacity-70" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuItem className="flex items-start gap-3 py-2.5 cursor-pointer" onClick={() => openCreate("bill", true)}>
-                  <div className="mt-0.5 flex items-center gap-1 text-[#F37021]"><Upload className="w-4 h-4" /></div>
+                  <div className="mt-0.5 flex items-center gap-1 text-[#2563EB]"><Upload className="w-4 h-4" /></div>
                   <div>
                     <div className="flex items-center gap-2 font-medium text-sm">Télécharger des factures <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Nouveau</Badge></div>
                     <div className="text-xs text-muted-foreground">Glissez un PDF/PNG pour remplissage automatique</div>
