@@ -23,7 +23,7 @@ import {
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle, CalendarClock,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
   FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
-  Search, UserPlus, PanelLeftOpen, PanelLeftClose,
+  Search, UserPlus, PanelLeftOpen, PanelLeftClose, ArrowUpDown,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -1057,6 +1057,16 @@ export default function CollaboratorDetail() {
     const qs = p.toString();
     navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
   }, [id, navigate]);
+
+  type SidebarSort = "name_asc" | "name_desc" | "hire_desc" | "hire_asc" | "workload_desc";
+  const sidebarSort = (searchParams.get("sort") ?? "name_asc") as SidebarSort;
+  const setSidebarSort = useCallback((value: SidebarSort) => {
+    const p = new URLSearchParams(window.location.search);
+    if (value === "name_asc") p.delete("sort"); else p.set("sort", value);
+    const qs = p.toString();
+    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+  }, [id, navigate]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
@@ -1126,6 +1136,32 @@ export default function CollaboratorDetail() {
     return true;
   });
 
+  const sortedCollabs = React.useMemo(() => {
+    const arr = [...filteredCollabs];
+    switch (sidebarSort) {
+      case "name_desc":
+        return arr.sort((a, b) =>
+          `${b.lastName} ${b.firstName}`.localeCompare(`${a.lastName} ${a.firstName}`, "fr"));
+      case "hire_desc":
+        return arr.sort((a, b) => {
+          const da = a.hireDate ? new Date(a.hireDate).getTime() : 0;
+          const db2 = b.hireDate ? new Date(b.hireDate).getTime() : 0;
+          return db2 - da;
+        });
+      case "hire_asc":
+        return arr.sort((a, b) => {
+          const da = a.hireDate ? new Date(a.hireDate).getTime() : Infinity;
+          const db2 = b.hireDate ? new Date(b.hireDate).getTime() : Infinity;
+          return da - db2;
+        });
+      case "workload_desc":
+        return arr.sort((a, b) => (b.currentProjectsCount || 0) - (a.currentProjectsCount || 0));
+      default:
+        return arr.sort((a, b) =>
+          `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "fr"));
+    }
+  }, [filteredCollabs, sidebarSort]);
+
   // ─── Keyboard navigation ──────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1135,14 +1171,14 @@ export default function CollaboratorDetail() {
 
       if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !isInInput) {
         e.preventDefault();
-        const currentIndex = filteredCollabs.findIndex(c => c.id === id);
+        const currentIndex = sortedCollabs.findIndex(c => c.id === id);
         let nextIndex: number;
         if (e.key === "ArrowDown") {
-          nextIndex = currentIndex < filteredCollabs.length - 1 ? currentIndex + 1 : currentIndex;
+          nextIndex = currentIndex < sortedCollabs.length - 1 ? currentIndex + 1 : currentIndex;
         } else {
           nextIndex = currentIndex > 0 ? currentIndex - 1 : 0;
         }
-        const next = filteredCollabs[nextIndex];
+        const next = sortedCollabs[nextIndex];
         if (next && next.id !== id) {
           navigate(`/collaborators/${next.id}${searchString ? `?${searchString}` : ""}`);
         }
@@ -1166,15 +1202,15 @@ export default function CollaboratorDetail() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filteredCollabs, id, navigate]);
+  }, [sortedCollabs, id, navigate]);
 
   useEffect(() => {
     if (!id || !listRef.current) return;
     const activeEl = listRef.current.querySelector<HTMLElement>(`[data-collab-id="${id}"]`);
     if (activeEl) {
-      activeEl.scrollIntoView({ block: "nearest", behavior: filteredCollabs.length > 0 ? "auto" : "smooth" });
+      activeEl.scrollIntoView({ block: "nearest", behavior: sortedCollabs.length > 0 ? "auto" : "smooth" });
     }
-  }, [id, filteredCollabs]);
+  }, [id, sortedCollabs]);
 
   // Kiosk code inline edit
   const [kioskCodeEditing, setKioskCodeEditing] = useState(false);
@@ -1405,9 +1441,26 @@ export default function CollaboratorDetail() {
             </Select>
           )}
 
+          {/* Sort selector */}
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="w-3 h-3 text-muted-foreground shrink-0" />
+            <Select value={sidebarSort} onValueChange={setSidebarSort}>
+              <SelectTrigger className="h-7 text-xs bg-muted/40 border-border flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc">Nom A → Z</SelectItem>
+                <SelectItem value="name_desc">Nom Z → A</SelectItem>
+                <SelectItem value="hire_desc">Embauche : récent → ancien</SelectItem>
+                <SelectItem value="hire_asc">Embauche : ancien → récent</SelectItem>
+                <SelectItem value="workload_desc">Charge : élevée → faible</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <p className="text-[11px] text-muted-foreground px-0.5">
             {filteredCollabs.length} collaborateur{filteredCollabs.length !== 1 ? "s" : ""}
-            {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all") && (
+            {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all" || sidebarSort !== "name_asc") && (
               <button
                 className="ml-2 text-primary hover:underline"
                 onClick={() => navigate(`/collaborators/${id}`, { replace: true })}
@@ -1420,13 +1473,13 @@ export default function CollaboratorDetail() {
 
         {/* Collaborator list */}
         <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar py-1">
-          {filteredCollabs.length === 0 && (
+          {sortedCollabs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <User className="w-8 h-8 mb-2 opacity-30" />
               <p className="text-sm">Aucun résultat</p>
             </div>
           )}
-          {filteredCollabs.map(c => {
+          {sortedCollabs.map(c => {
             const status = getCollabStatus(c);
             const initials = `${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase();
             const isSelected = c.id === id;
