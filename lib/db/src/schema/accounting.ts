@@ -182,6 +182,8 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
   expenseAccountId: uuid("expense_account_id").references(() => chartOfAccountsTable.id),
   notes: text("notes"),
   attachmentUrl: text("attachment_url"),
+  // Historique des changements de statut: [{from, to, at, userId}]
+  statusHistory: jsonb("status_history").$type<Array<{ from: string; to: string; at: string; userId: string }>>().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

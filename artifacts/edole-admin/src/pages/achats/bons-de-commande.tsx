@@ -74,9 +74,11 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
     if (lines.some(l => !l.description)) { toast.error("Remplissez toutes les descriptions"); return; }
     setSaving(true);
     try {
+      // Normalise productId: ne jamais envoyer "" (pas un UUID valide)
+      const normalizedLines = lines.map(l => ({ ...l, productId: l.productId || null }));
       const po = await apiFetch<{ id: string }>("/api/purchases/purchase-orders", {
         method: "POST",
-        body: JSON.stringify({ supplierId, deliveryDate: deliveryDate || undefined, notes: notes || undefined, lines }),
+        body: JSON.stringify({ supplierId, deliveryDate: deliveryDate || undefined, notes: notes || undefined, lines: normalizedLines }),
       });
       toast.success("Bon de commande créé");
       onSuccess(po.id); onClose();

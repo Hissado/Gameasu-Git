@@ -469,6 +469,7 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
       expenseAccountId: supplierInvoicesTable.expenseAccountId,
       projectId: supplierInvoicesTable.projectId,
       purchaseOrderId: supplierInvoicesTable.purchaseOrderId,
+      statusHistory: supplierInvoicesTable.statusHistory,
       supplierId: supplierInvoicesTable.supplierId,
       supplierName: suppliersTable.name,
       supplierCode: suppliersTable.code,
@@ -478,6 +479,16 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
     }).from(supplierInvoicesTable)
       .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
       .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+
+    // Fetch linked PO reference if any
+    let purchaseOrderReference: string | null = null;
+    if (inv?.purchaseOrderId) {
+      const [po] = await db.select({ reference: purchaseOrdersTable.reference })
+        .from(purchaseOrdersTable)
+        .where(and(eq(purchaseOrdersTable.id, inv.purchaseOrderId), eq(purchaseOrdersTable.organizationId, orgId)))
+        .limit(1);
+      purchaseOrderReference = po?.reference ?? null;
+    }
 
     if (!inv) return res.status(404).json({ error: "Facture introuvable" });
 
@@ -499,6 +510,8 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
     const today = new Date().toISOString().slice(0, 10);
     return res.json({
       ...inv,
+      purchaseOrderReference,
+      statusHistory: inv.statusHistory ?? [],
       balance: toNum(inv.totalAmount) - toNum(inv.paidAmount),
       isOverdue: inv.status !== "paid" && inv.status !== "cancelled" && inv.dueDate && inv.dueDate < today,
       payments,
@@ -517,9 +530,23 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
     const data = parsed.data;
 
+    // If status is changing, fetch current status to record history
+    let statusHistoryAppend: Array<{ from: string; to: string; at: string; userId: string }> = [];
+    if (data.status !== undefined) {
+      const [current] = await db.select({ status: supplierInvoicesTable.status, statusHistory: supplierInvoicesTable.statusHistory })
+        .from(supplierInvoicesTable)
+        .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
+        .limit(1);
+      if (current && current.status !== data.status) {
+        const existing = (current.statusHistory as Array<{ from: string; to: string; at: string; userId: string }>) ?? [];
+        statusHistoryAppend = [...existing, { from: current.status, to: data.status, at: new Date().toISOString(), userId: req.authUser!.id }];
+      }
+    }
+
     const [updated] = await db.update(supplierInvoicesTable)
       .set({
         ...(data.status !== undefined && { status: data.status }),
+        ...(statusHistoryAppend.length > 0 && { statusHistory: statusHistoryAppend }),
         ...(data.dueDate !== undefined && { dueDate: data.dueDate }),
         ...(data.notes !== undefined && { notes: data.notes }),
         ...(data.expenseAccountId !== undefined && { expenseAccountId: data.expenseAccountId }),

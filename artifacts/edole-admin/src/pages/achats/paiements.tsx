@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Search, Wallet, AlertTriangle, Clock, Landmark, Smartphone, CreditCard, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
-import { StatusBadgePayment, PAY_STATUS_MAP, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
+import { StatusBadgePayment, PAY_STATUS_MAP, PAYMENT_METHODS, BankAccountSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,13 +44,51 @@ function MethodIcon({ method }: { method: string }) {
   return <Wallet className="w-4 h-4 text-slate-400" />;
 }
 
-// ─── Multi-invoice payment dialog ─────────────────────────────────────────────
+// ─── Per-supplier invoice selector ────────────────────────────────────────────
 
-function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function SupplierInvoiceSection({
+  supplierId, supplierName, selectedIds, onToggle,
+}: { supplierId: string; supplierName: string; selectedIds: Set<string>; onToggle: (id: string, balance: number) => void }) {
+  const { data: invRes } = useQuery<{ data: Invoice[] }>({
+    queryKey: ["purchases-invoices-by-supplier", supplierId],
+    queryFn: () => apiFetch(`/api/purchases/invoices?supplierId=${supplierId}&limit=100`),
+  });
+  const unpaid = (invRes?.data ?? [])
+    .filter(i => !["paid", "cancelled", "rejected"].includes(i.status) && i.balance > 0)
+    .sort((a, b) => (a.dueDate ?? a.invoiceDate).localeCompare(b.dueDate ?? b.invoiceDate));
+
+  if (!invRes) return <p className="text-xs text-muted-foreground px-3 py-1">Chargement…</p>;
+  if (unpaid.length === 0) return <p className="text-xs text-muted-foreground italic px-3 py-1">Aucune facture impayée.</p>;
+  return (
+    <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
+      {unpaid.map(inv => (
+        <div key={inv.id} className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-slate-50 ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`}
+          onClick={() => onToggle(inv.id, inv.balance)}>
+          <Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => onToggle(inv.id, inv.balance)} />
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-xs font-medium">{inv.referenceNumber}</p>
+            {inv.dueDate && <p className={`text-xs ${inv.isOverdue ? "text-red-600" : "text-muted-foreground"}`}>Éch. {formatDate(inv.dueDate)}{inv.isOverdue ? " ⚠️" : ""}</p>}
+          </div>
+          <p className="font-semibold text-xs text-amber-700 shrink-0">{formatFCFA(inv.balance)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Multi-supplier payment dialog ─────────────────────────────────────────────
+
+function NewPaymentDialog({ onClose, onSuccess, allSuppliers }: { onClose: () => void; onSuccess: () => void; allSuppliers: Supplier[] }) {
   const qc = useQueryClient();
-  const [supplierId, setSupplierId] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [totalAmount, setTotalAmount] = useState("");
+
+  // Step 1: choose suppliers (multi). Step 2: choose invoices + amounts.
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<Set<string>>(new Set());
+  // Map supplierId → Set<invoiceId>
+  const [selectedInvoices, setSelectedInvoices] = useState<Map<string, Set<string>>>(new Map());
+  // Map supplierId → amount string
+  const [amounts, setAmounts] = useState<Map<string, string>>(new Map());
+
   const [method, setMethod] = useState("virement");
   const [bankAccountId, setBankAccountId] = useState("");
   const [reference, setReference] = useState("");
@@ -58,163 +96,200 @@ function NewPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
   const [paymentStatus, setPaymentStatus] = useState("confirme");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState("");
 
-  const { data: invRes } = useQuery<{ data: Invoice[] }>({
-    queryKey: ["purchases-invoices-by-supplier", supplierId],
-    queryFn: () => apiFetch(`/api/purchases/invoices?supplierId=${supplierId}&limit=100`),
-    enabled: !!supplierId,
-  });
-  const unpaidInvoices = (invRes?.data ?? [])
-    .filter(i => !["paid", "cancelled", "rejected"].includes(i.status) && i.balance > 0)
-    .sort((a, b) => (a.dueDate ?? a.invoiceDate).localeCompare(b.dueDate ?? b.invoiceDate));
+  const filteredSuppliers = allSuppliers.filter(s =>
+    s.name.toLowerCase().includes(supplierSearch.toLowerCase())
+  );
 
-  const handleSupplierChange = (v: string) => { setSupplierId(v); setSelectedIds(new Set()); setTotalAmount(""); };
-
-  const toggleInvoice = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) { newSet.delete(id); } else { newSet.add(id); }
-    setSelectedIds(newSet);
-    const sum = unpaidInvoices.filter(i => newSet.has(i.id)).reduce((s, i) => s + i.balance, 0);
-    setTotalAmount(String(sum > 0 ? sum : ""));
+  const toggleSupplier = (id: string) => {
+    const next = new Set(selectedSupplierIds);
+    if (next.has(id)) { next.delete(id); selectedInvoices.delete(id); amounts.delete(id); }
+    else next.add(id);
+    setSelectedSupplierIds(next);
   };
 
-  const selectAll = () => {
-    if (selectedIds.size === unpaidInvoices.length) {
-      setSelectedIds(new Set()); setTotalAmount("");
-    } else {
-      const all = new Set(unpaidInvoices.map(i => i.id));
-      setSelectedIds(all);
-      setTotalAmount(String(unpaidInvoices.reduce((s, i) => s + i.balance, 0)));
-    }
+  const toggleInvoice = (supplierId: string, invoiceId: string, balance: number) => {
+    const newMap = new Map(selectedInvoices);
+    const set = new Set(newMap.get(supplierId) ?? []);
+    if (set.has(invoiceId)) set.delete(invoiceId); else set.add(invoiceId);
+    newMap.set(supplierId, set);
+    setSelectedInvoices(newMap);
+    // Auto-sum amount for this supplier
+    // We compute sum outside via the query cache — just flag for user to confirm
+    const newAmt = new Map(amounts);
+    if (set.size === 0) newAmt.delete(supplierId);
+    setAmounts(newAmt);
   };
+
+  const setSupplierAmount = (supplierId: string, val: string) => {
+    const next = new Map(amounts);
+    next.set(supplierId, val);
+    setAmounts(next);
+  };
+
+  const totalInvoicesSelected = Array.from(selectedInvoices.values()).reduce((s, set) => s + set.size, 0);
 
   const handleSave = async () => {
-    if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
-    if (selectedIds.size === 0) { toast.error("Sélectionnez au moins une facture"); return; }
-    if (!totalAmount || Number(totalAmount) <= 0) { toast.error("Montant invalide"); return; }
+    const suppliersToPay = Array.from(selectedSupplierIds).filter(sid => (selectedInvoices.get(sid)?.size ?? 0) > 0);
+    if (suppliersToPay.length === 0) { toast.error("Sélectionnez au moins une facture"); return; }
+    const invalidAmt = suppliersToPay.find(sid => !amounts.get(sid) || Number(amounts.get(sid)) <= 0);
+    if (invalidAmt) { toast.error("Renseignez le montant pour chaque fournisseur sélectionné"); return; }
+
     setSaving(true);
     try {
-      if (selectedIds.size === 1) {
-        const [invoiceId] = selectedIds;
-        await apiFetch("/api/purchases/payments", {
-          method: "POST",
-          body: JSON.stringify({
-            supplierInvoiceId: invoiceId, amount: Number(totalAmount), paymentMethod: method,
-            bankAccountId: bankAccountId || undefined, reference: reference || undefined,
-            paidAt, paymentStatus, notes: notes || undefined,
-          }),
-        });
-      } else {
-        await apiFetch("/api/purchases/payments/multi", {
-          method: "POST",
-          body: JSON.stringify({
-            supplierId, invoiceIds: Array.from(selectedIds), totalAmount: Number(totalAmount),
-            paymentMethod: method, bankAccountId: bankAccountId || undefined,
-            reference: reference || undefined, paidAt, paymentStatus,
-            notes: notes || undefined,
-          }),
-        });
+      let paymentsCreated = 0;
+      for (const sid of suppliersToPay) {
+        const invoiceIds = Array.from(selectedInvoices.get(sid)!);
+        const amt = Number(amounts.get(sid));
+        if (invoiceIds.length === 1) {
+          await apiFetch("/api/purchases/payments", {
+            method: "POST",
+            body: JSON.stringify({
+              supplierInvoiceId: invoiceIds[0], amount: amt, paymentMethod: method,
+              bankAccountId: bankAccountId || undefined, reference: reference || undefined,
+              paidAt, paymentStatus, notes: notes || undefined,
+            }),
+          });
+        } else {
+          await apiFetch("/api/purchases/payments/multi", {
+            method: "POST",
+            body: JSON.stringify({
+              supplierId: sid, invoiceIds, totalAmount: amt,
+              paymentMethod: method, bankAccountId: bankAccountId || undefined,
+              reference: reference || undefined, paidAt, paymentStatus,
+              notes: notes || undefined,
+            }),
+          });
+        }
+        paymentsCreated++;
+        qc.invalidateQueries({ queryKey: ["purchases-invoices-by-supplier", sid] });
       }
-      qc.invalidateQueries({ queryKey: ["purchases-invoices-by-supplier", supplierId] });
       qc.invalidateQueries({ queryKey: ["purchases-invoices-upcoming"] });
-      toast.success(selectedIds.size > 1 ? `Paiement réparti sur ${selectedIds.size} factures` : "Paiement enregistré");
+      toast.success(paymentsCreated > 1 ? `${paymentsCreated} paiements enregistrés` : "Paiement enregistré");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setSaving(false); }
   };
 
-  const selectedTotal = unpaidInvoices.filter(i => selectedIds.has(i.id)).reduce((s, i) => s + i.balance, 0);
+  const selectedSuppliersInfo = allSuppliers.filter(s => selectedSupplierIds.has(s.id));
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-[#F37021]" /> Enregistrer un paiement</DialogTitle>
-          <DialogDescription>Sélectionnez le fournisseur et les factures à régler.</DialogDescription>
+          <DialogDescription>
+            {step === 1
+              ? "Cochez un ou plusieurs fournisseurs à régler."
+              : "Sélectionnez les factures et saisissez les montants par fournisseur."}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1"><Label>Fournisseur *</Label><VendorSelect value={supplierId} onValueChange={handleSupplierChange} /></div>
 
-          {supplierId && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Factures à régler ({unpaidInvoices.length})</Label>
-                {unpaidInvoices.length > 0 && (
-                  <Button type="button" size="sm" variant="ghost" onClick={selectAll} className="text-xs">
-                    {selectedIds.size === unpaidInvoices.length ? "Tout désélectionner" : "Tout sélectionner"}
-                  </Button>
-                )}
+        <div className="space-y-4 py-2">
+          {step === 1 && (
+            <>
+              <div className="space-y-1">
+                <Label>Rechercher un fournisseur</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input className="pl-8 text-sm" placeholder="Nom du fournisseur…" value={supplierSearch} onChange={e => setSupplierSearch(e.target.value)} />
+                </div>
               </div>
-              {unpaidInvoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Aucune facture impayée pour ce fournisseur.</p>
-              ) : (
-                <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
-                  {unpaidInvoices.map(inv => (
-                    <div
-                      key={inv.id}
-                      className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`}
-                      onClick={() => toggleInvoice(inv.id)}
-                    >
-                      <Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => toggleInvoice(inv.id)} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-mono text-sm font-medium">{inv.referenceNumber}</p>
-                        {inv.dueDate && (
-                          <p className={`text-xs ${inv.isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
-                            Échéance : {formatDate(inv.dueDate)}{inv.isOverdue ? " ⚠️" : ""}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-sm text-amber-700">{formatFCFA(inv.balance)}</p>
-                        <p className="text-xs text-muted-foreground">/ {formatFCFA(Number(inv.totalAmount))}</p>
-                      </div>
+              <div className="border rounded-lg divide-y max-h-72 overflow-y-auto">
+                {filteredSuppliers.length === 0 && <p className="p-3 text-sm text-muted-foreground italic">Aucun fournisseur trouvé.</p>}
+                {filteredSuppliers.map(s => (
+                  <div key={s.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 ${selectedSupplierIds.has(s.id) ? "bg-orange-50" : ""}`}
+                    onClick={() => toggleSupplier(s.id)}>
+                    <Checkbox checked={selectedSupplierIds.has(s.id)} onCheckedChange={() => toggleSupplier(s.id)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{s.name}</p>
+                      {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
+              {selectedSupplierIds.size > 0 && (
+                <p className="text-xs text-muted-foreground text-right">{selectedSupplierIds.size} fournisseur{selectedSupplierIds.size > 1 ? "s" : ""} sélectionné{selectedSupplierIds.size > 1 ? "s" : ""}</p>
               )}
-              {selectedIds.size > 0 && (
-                <div className="text-sm text-right text-muted-foreground">
-                  <span>{selectedIds.size} facture{selectedIds.size > 1 ? "s" : ""} · Due : <strong className="text-amber-700">{formatFCFA(selectedTotal)}</strong></span>
-                  {selectedIds.size > 1 && <p className="text-xs mt-0.5">Allocation automatique sur les plus anciennes</p>}
-                </div>
-              )}
-            </div>
+            </>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1 col-span-2">
-              <Label>Montant total à payer (FCFA) *</Label>
-              <Input type="number" min="1" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} placeholder="Paiement partiel possible" />
-            </div>
-            <div className="space-y-1">
-              <Label>Mode de paiement</Label>
-              <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(PAYMENT_METHODS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1"><Label>Date de paiement</Label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
-            <div className="space-y-1 col-span-2"><Label>Compte bancaire source</Label><BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} /></div>
-            <div className="space-y-1">
-              <Label>Référence de paiement</Label>
-              <Input placeholder="VIR-2026-001" value={reference} onChange={(e) => setReference(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Statut</Label>
-              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="confirme">Confirmé (débite solde)</SelectItem>
-                  <SelectItem value="programme">Programmé (futur)</SelectItem>
-                  <SelectItem value="en_attente">En attente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          {step === 2 && (
+            <>
+              {/* Per-supplier invoice selection + amount */}
+              {selectedSuppliersInfo.map(s => (
+                <div key={s.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold text-sm">{s.name}</Label>
+                    <span className="text-xs text-muted-foreground">Factures impayées</span>
+                  </div>
+                  <SupplierInvoiceSection
+                    supplierId={s.id}
+                    supplierName={s.name}
+                    selectedIds={selectedInvoices.get(s.id) ?? new Set()}
+                    onToggle={(id, balance) => toggleInvoice(s.id, id, balance)}
+                  />
+                  {(selectedInvoices.get(s.id)?.size ?? 0) > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Montant à payer à {s.name} (FCFA) *</Label>
+                      <Input type="number" min="1" placeholder="Paiement partiel possible"
+                        value={amounts.get(s.id) ?? ""}
+                        onChange={e => setSupplierAmount(s.id, e.target.value)} />
+                      {selectedInvoices.get(s.id)!.size > 1 && (
+                        <p className="text-xs text-muted-foreground">Répartition automatique sur les factures les plus anciennes.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Shared payment options */}
+              <div className="border-t pt-3 grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Mode de paiement</Label>
+                  <Select value={method} onValueChange={setMethod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(PAYMENT_METHODS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1"><Label>Date de paiement</Label><Input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} /></div>
+                <div className="space-y-1 col-span-2"><Label>Compte bancaire source</Label><BankAccountSelect value={bankAccountId} onValueChange={setBankAccountId} /></div>
+                <div className="space-y-1"><Label>Référence</Label><Input placeholder="VIR-2026-001" value={reference} onChange={e => setReference(e.target.value)} /></div>
+                <div className="space-y-1">
+                  <Label>Statut</Label>
+                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="confirme">Confirmé (débite solde)</SelectItem>
+                      <SelectItem value="programme">Programmé (futur)</SelectItem>
+                      <SelectItem value="en_attente">En attente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} /></div>
+            </>
+          )}
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving || selectedIds.size === 0} className="bg-[#F37021] hover:bg-[#d96318] text-white">{saving ? "Enregistrement…" : "Valider le paiement"}</Button>
+          {step === 1 ? (
+            <Button
+              onClick={() => setStep(2)}
+              disabled={selectedSupplierIds.size === 0}
+              className="bg-[#F37021] hover:bg-[#d96318] text-white"
+            >
+              Continuer ({selectedSupplierIds.size} fournisseur{selectedSupplierIds.size > 1 ? "s" : ""})
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>Retour</Button>
+              <Button onClick={handleSave} disabled={saving || totalInvoicesSelected === 0} className="bg-[#F37021] hover:bg-[#d96318] text-white">
+                {saving ? "Enregistrement…" : `Valider ${selectedSuppliersInfo.length > 1 ? selectedSuppliersInfo.length + " paiements" : "le paiement"}`}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -422,7 +497,7 @@ export default function AchatsPaiements() {
         </div>
       )}
 
-      {newOpen && <NewPaymentDialog onClose={() => setNewOpen(false)} onSuccess={refresh} />}
+      {newOpen && <NewPaymentDialog onClose={() => setNewOpen(false)} onSuccess={refresh} allSuppliers={suppliers} />}
     </div>
   );
 }

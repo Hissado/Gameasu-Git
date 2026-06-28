@@ -94,7 +94,7 @@ export const purchaseOrderLinesTable = pgTable("purchase_order_lines", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   purchaseOrderId: uuid("purchase_order_id").notNull().references(() => purchaseOrdersTable.id, { onDelete: "cascade" }),
-  productId: uuid("product_id").notNull().references(() => productsTable.id, { onDelete: "restrict" }),
+  productId: uuid("product_id").references(() => productsTable.id, { onDelete: "set null" }),
   description: text("description"),                                 // override libellé
   quantity: numeric("quantity", { precision: 18, scale: 3 }).notNull(),
   unitPriceFcfa: numeric("unit_price_fcfa", { precision: 18, scale: 2 }).notNull(),

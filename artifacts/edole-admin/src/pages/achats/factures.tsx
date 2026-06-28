@@ -38,9 +38,12 @@ type InvoiceLine = {
   id?: string; description: string; quantity: number;
   unitPriceFcfa: number; taxRate: number;
 };
+type StatusHistoryEntry = { from: string; to: string; at: string; userId: string };
 type InvoiceDetail = Invoice & {
   supplierEmail: string | null; supplierPhone: string | null;
   expenseAccountId: string | null;
+  purchaseOrderReference: string | null;
+  statusHistory: StatusHistoryEntry[];
   payments: PaymentRecord[];
 };
 type PaymentRecord = {
@@ -52,26 +55,56 @@ type PO = { id: string; reference: string; supplierName: string | null; totalFcf
 
 const PAGE_SIZE = 25;
 
-// ─── Derived status timeline ──────────────────────────────────────────────────
+// ─── Status timeline (réel + paiements) ──────────────────────────────────────
+
+const STATUS_LABEL_FULL: Record<string, string> = {
+  draft: "Brouillon",
+  review: "À revoir",
+  awaiting_approval: "En attente d'approbation",
+  approved: "Approuvée",
+  pending: "À payer",
+  partially_paid: "Partiellement payée",
+  paid: "Payée",
+  overdue: "En retard",
+  cancelled: "Annulée",
+  rejected: "Refusée",
+};
 
 function StatusTimeline({ inv }: { inv: InvoiceDetail }) {
   type Event = { label: string; date: string; icon: React.ReactNode; cls: string };
+
+  // Combine persisted status history + payments
   const events: Event[] = [
     { label: "Facture créée", date: inv.createdAt, icon: <CircleDot className="w-3.5 h-3.5" />, cls: "text-blue-600" },
-    ...inv.payments.map(p => ({
+  ];
+
+  // Real persisted status transitions
+  (inv.statusHistory ?? []).forEach(h => {
+    events.push({
+      label: `Statut : ${STATUS_LABEL_FULL[h.from] ?? h.from} → ${STATUS_LABEL_FULL[h.to] ?? h.to}`,
+      date: h.at,
+      icon: h.to === "paid" ? <CheckCircle2 className="w-3.5 h-3.5" />
+        : ["cancelled", "rejected"].includes(h.to) ? <XCircle className="w-3.5 h-3.5" />
+        : <CircleDot className="w-3.5 h-3.5" />,
+      cls: h.to === "paid" ? "text-emerald-700"
+        : ["cancelled", "rejected"].includes(h.to) ? "text-red-600"
+        : h.to === "approved" ? "text-teal-600"
+        : "text-blue-500",
+    });
+  });
+
+  // Payment events
+  inv.payments.forEach(p => {
+    events.push({
       label: `Paiement ${p.status === "confirme" ? "confirmé" : p.status === "programme" ? "programmé" : "en attente"} — ${formatFCFA(Number(p.amount))}`,
       date: p.paidAt,
       icon: <Wallet className="w-3.5 h-3.5" />,
       cls: p.status === "confirme" ? "text-emerald-600" : "text-amber-600",
-    })),
-  ];
-  if (["paid", "cancelled", "rejected"].includes(inv.status)) {
-    const lastPay = inv.payments[0];
-    const date = lastPay?.paidAt ?? inv.createdAt;
-    const statusLabel = inv.status === "paid" ? "Facture soldée" : inv.status === "rejected" ? "Facture refusée" : "Facture annulée";
-    events.push({ label: statusLabel, date, icon: inv.status === "paid" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />, cls: inv.status === "paid" ? "text-emerald-700" : "text-red-600" });
-  }
+    });
+  });
+
   events.sort((a, b) => a.date.localeCompare(b.date));
+
   return (
     <div className="space-y-2">
       {events.map((e, i) => (
@@ -438,7 +471,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
               <div><p className="text-xs text-muted-foreground">Montant TTC</p><p className="font-semibold text-sm">{formatFCFA(Number(inv.totalAmount) + Number(inv.taxAmount))}</p></div>
               <div><p className="text-xs text-muted-foreground">Montant payé</p><p className="font-medium text-sm text-emerald-700">{formatFCFA(Number(inv.paidAmount))}</p></div>
               <div><p className="text-xs text-muted-foreground">Solde restant</p><p className={`font-semibold text-sm ${Number(inv.balance) > 0 ? "text-amber-700" : "text-emerald-700"}`}>{formatFCFA(Number(inv.balance))}</p></div>
-              {inv.purchaseOrderId && <div className="col-span-2"><p className="text-xs text-muted-foreground">BC lié</p><p className="text-xs font-mono text-blue-600 flex items-center gap-1"><Link2 className="w-3 h-3" />{inv.purchaseOrderId}</p></div>}
+              {inv.purchaseOrderId && <div className="col-span-2"><p className="text-xs text-muted-foreground">BC lié</p><p className="text-xs font-mono text-blue-600 flex items-center gap-1"><Link2 className="w-3 h-3" />{inv.purchaseOrderReference ?? inv.purchaseOrderId}</p></div>}
             </div>
 
             {inv.notes && <p className="text-sm text-muted-foreground italic bg-slate-50 rounded p-3">{inv.notes}</p>}
