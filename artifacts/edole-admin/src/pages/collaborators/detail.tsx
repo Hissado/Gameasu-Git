@@ -1035,7 +1035,6 @@ export default function CollaboratorDetail() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const [, navigate] = useLocation();
   const { data: allCollabsData } = useQuery<{ data: any[] }>({
     queryKey: ["collab-sidebar-list", user?.id],
     queryFn: () => apiFetch("/api/collaborators?limit=500"),
