@@ -436,6 +436,7 @@ router.get("/hr/collaborators/:id/overview", async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 router.get("/hr/dashboard", async (req, res) => {
   const orgId = req.authUser!.organizationId;
+  const today = new Date().toISOString().slice(0, 10);
 
   const [totalCollabs] = await db.select({ n: sql<number>`COUNT(*)` })
     .from(collaboratorsTable)
@@ -473,12 +474,86 @@ router.get("/hr/dashboard", async (req, res) => {
     .leftJoin(collaboratorsTable, and(eq(contractsTable.collaboratorId, collaboratorsTable.id), eq(collaboratorsTable.organizationId, orgId)))
     .where(and(eq(contractsTable.organizationId, orgId), sql`${contractsTable.status} = 'active' AND ${contractsTable.endDate} IS NOT NULL AND ${contractsTable.endDate} <= CURRENT_DATE + INTERVAL '30 days'`));
 
+  // Masse salariale totale (salaires de base actifs)
+  const [masseSal] = await db.select({ total: sql<string>`COALESCE(SUM(${collaboratorsTable.baseSalary}), 0)` })
+    .from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
+
+  // Absents aujourd'hui (congés approuvés couvrant la date du jour)
+  const [absentsToday] = await db.select({ n: sql<number>`COUNT(*)` })
+    .from(leaveRequestsTable)
+    .where(and(
+      eq(leaveRequestsTable.organizationId, orgId),
+      eq(leaveRequestsTable.status, "approved"),
+      sql`${leaveRequestsTable.startDate} <= ${today}`,
+      sql`${leaveRequestsTable.endDate} >= ${today}`,
+    ));
+
+  // Répartition des âges
+  const ageDist = await db.select({
+    ageGroup: sql<string>`
+      CASE
+        WHEN ${collaboratorsTable.birthDate} IS NULL THEN 'Non renseigné'
+        WHEN EXTRACT(YEAR FROM AGE(${collaboratorsTable.birthDate}::date)) < 26 THEN '18-25 ans'
+        WHEN EXTRACT(YEAR FROM AGE(${collaboratorsTable.birthDate}::date)) < 36 THEN '26-35 ans'
+        WHEN EXTRACT(YEAR FROM AGE(${collaboratorsTable.birthDate}::date)) < 46 THEN '36-45 ans'
+        ELSE '45+ ans'
+      END
+    `,
+    count: sql<number>`COUNT(*)`,
+  }).from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+    .groupBy(sql`1`)
+    .orderBy(sql`1`);
+
+  // Évolution de l'effectif : embauches cumulées par mois sur les 6 derniers mois
+  const monthlyHires = await db.select({
+    month: sql<string>`TO_CHAR(${collaboratorsTable.hireDate}::date, 'YYYY-MM')`,
+    count: sql<number>`COUNT(*)`,
+  }).from(collaboratorsTable)
+    .where(and(
+      eq(collaboratorsTable.organizationId, orgId),
+      isNull(collaboratorsTable.deletedAt),
+      sql`${collaboratorsTable.hireDate} IS NOT NULL`,
+      sql`${collaboratorsTable.hireDate}::date >= CURRENT_DATE - INTERVAL '6 months'`,
+    ))
+    .groupBy(sql`TO_CHAR(${collaboratorsTable.hireDate}::date, 'YYYY-MM')`)
+    .orderBy(sql`TO_CHAR(${collaboratorsTable.hireDate}::date, 'YYYY-MM')`);
+
+  // Charges sociales : depuis les bulletins du mois courant (ou du dernier run clôturé)
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const chargesRows = await db.select({
+    cnssEmployee: sql<string>`COALESCE(SUM(${payslipsTable.cnssEmployee}),0)`,
+    cnssEmployer: sql<string>`COALESCE(SUM(${payslipsTable.cnssEmployer}),0)`,
+    irpp: sql<string>`COALESCE(SUM(${payslipsTable.irpp}),0)`,
+    ipts: sql<string>`COALESCE(SUM(${payslipsTable.ipts}),0)`,
+    grossSalary: sql<string>`COALESCE(SUM(${payslipsTable.grossSalary}),0)`,
+    period: payslipsTable.period,
+  }).from(payslipsTable)
+    .where(and(
+      eq(payslipsTable.organizationId, orgId),
+      sql`${payslipsTable.period} <= ${currentMonth}`,
+    ))
+    .groupBy(payslipsTable.period)
+    .orderBy(desc(payslipsTable.period))
+    .limit(1);
+
+  const charges = chargesRows[0];
+
+  // Taux d'absence (absents / total)
+  const totalCollabsN = Number(totalCollabs?.n ?? 0);
+  const absentsN = Number(absentsToday?.n ?? 0);
+  const tauxAbsence = totalCollabsN > 0 ? Math.round((absentsN / totalCollabsN) * 100 * 10) / 10 : 0;
+
   return res.json({
     kpis: {
-      totalCollaborators: Number(totalCollabs?.n ?? 0),
+      totalCollaborators: totalCollabsN,
       activeContracts: Number(activeContracts?.n ?? 0),
       departmentsCount: byDept.filter(d => d.departmentName).length,
       contractsExpiringSoon: expiring.length,
+      masseSalariale: Number(masseSal?.total ?? 0),
+      absentsToday: absentsN,
+      tauxAbsence,
     },
     distributionByDepartment: byDept.map(d => ({
       department: d.departmentName ?? "Non assigné",
@@ -489,6 +564,25 @@ router.get("/hr/dashboard", async (req, res) => {
       ...e.c,
       collaboratorName: `${e.collabFirst ?? ""} ${e.collabLast ?? ""}`.trim(),
     })),
+    ageDistribution: ageDist.filter(a => a.ageGroup !== "Non renseigné").map(a => ({
+      name: a.ageGroup,
+      value: Number(a.count),
+    })),
+    monthlyHires: monthlyHires.map(m => ({
+      month: m.month,
+      count: Number(m.count),
+    })),
+    chargesPayroll: charges ? {
+      period: charges.period,
+      cnssEmployee: Number(charges.cnssEmployee),
+      cnssEmployer: Number(charges.cnssEmployer),
+      irpp: Number(charges.irpp),
+      ipts: Number(charges.ipts),
+      grossSalary: Number(charges.grossSalary),
+      chargesSalariales: Number(charges.cnssEmployee) + Number(charges.irpp) + Number(charges.ipts),
+      chargesPatronales: Number(charges.cnssEmployer),
+      totalCharges: Number(charges.cnssEmployee) + Number(charges.irpp) + Number(charges.ipts) + Number(charges.cnssEmployer),
+    } : null,
   });
 });
 

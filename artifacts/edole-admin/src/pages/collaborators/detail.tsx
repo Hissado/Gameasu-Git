@@ -20,7 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Mail, Phone, Calendar, FolderKanban, Briefcase, FileSignature, Wrench,
   FolderArchive, GitBranch, Building2, BadgeCheck, ListTodo, ExternalLink,
-  Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle,
+  Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle, CalendarClock,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
   FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
 } from "lucide-react";
@@ -831,6 +831,13 @@ export default function CollaboratorDetail() {
     enabled: !!id,
   });
 
+  const { data: leaveBalancesData } = useQuery<{ balances: Array<{ leaveType: string; allocated: number; used: number; carried: number }> }>({
+    queryKey: ["leave-balances-collab", id],
+    queryFn: () => apiFetch(`/api/hr/leaves/balances?collaboratorId=${id}&year=${new Date().getFullYear()}`),
+    enabled: !!id,
+  });
+  const totalLeaveAvailable = (leaveBalancesData?.balances ?? []).reduce((s, b) => s + Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0)), 0);
+
   const isManagerOrAbove = ["admin", "super_admin", "manager"].includes(user?.role || "");
   const isAdmin = ["admin", "super_admin"].includes(user?.role || "");
   const queryClient = useQueryClient();
@@ -972,56 +979,114 @@ export default function CollaboratorDetail() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* HEADER */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-6">
+      {/* HEADER BANNER — style Uptimise dark teal */}
+      <div className="rounded-xl overflow-hidden shadow-sm border border-border/50">
+        {/* Bouton retour */}
+        <div className="px-5 pt-4 pb-0">
           <Link href="/hr">
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
-              <ArrowLeft className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs -ml-1 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-3.5 h-3.5" />
               Équipe & RH
             </Button>
           </Link>
-          <div className="flex items-center gap-5">
-            <Avatar className="w-20 h-20 border-4 border-background shadow-md">
-              <AvatarImage src={collaborator.avatarUrl} />
-              <AvatarFallback className="text-2xl bg-primary text-primary-foreground font-bold">
-                {collaborator.firstName[0]}{collaborator.lastName[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">{collaborator.firstName} {collaborator.lastName}</h1>
-              <p className="text-sm font-medium text-primary mt-1 uppercase tracking-wider">
+        </div>
+        {/* Banner dark */}
+        <div className="bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 px-6 pt-4 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="flex items-end gap-5">
+            <div className="relative shrink-0">
+              <Avatar className="w-24 h-24 border-4 border-white/20 shadow-xl ring-2 ring-teal-400/30">
+                <AvatarImage src={collaborator.avatarUrl} />
+                <AvatarFallback className="text-3xl bg-teal-700 text-white font-bold">
+                  {collaborator.firstName[0]}{collaborator.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+              {isManagerOrAbove && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center hover:bg-slate-50 transition-colors"
+                  title="Éditer"
+                >
+                  <Camera className="w-3 h-3 text-slate-600" />
+                </button>
+              )}
+            </div>
+            <div className="pb-1">
+              <h1 className="text-2xl font-bold text-white tracking-tight">
+                {collaborator.firstName} {collaborator.lastName}
+              </h1>
+              <p className="text-sm text-teal-300 font-medium mt-0.5">
                 {overview?.position?.title || collaborator.position || "Fonction non définie"}
               </p>
-              <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
-                {overview?.department ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: overview.department.color || "#94a3b8" }} />
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {overview?.department && (
+                  <span className="text-xs text-white/60 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 inline-block" />
                     {overview.department.name}
-                  </>
-                ) : (collaborator.department || "Département non défini")}
-                {overview?.manager && (
-                  <> · Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-primary hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link></>
+                  </span>
                 )}
-              </p>
+                {overview?.manager && (
+                  <span className="text-xs text-white/50">
+                    · Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-teal-300 hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link>
+                  </span>
+                )}
+                {(collaborator as any).employeeNumber && (
+                  <span className="text-xs font-mono bg-white/10 text-white/70 px-2 py-0.5 rounded">
+                    #{(collaborator as any).employeeNumber}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+          <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 pb-1">
+            {(collaborator as any).isAvailable ? (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs">Disponible</Badge>
+            ) : (
+              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs">Affecté</Badge>
+            )}
+            {isManagerOrAbove && (
+              <Button size="sm" onClick={() => setEditOpen(true)}
+                className="h-7 text-xs gap-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm">
+                <Pencil className="w-3 h-3" />
+                Éditer le profil
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {(collaborator as any).isAvailable ? (
-            <Badge className="bg-green-100 text-green-800 border-green-200 text-sm px-4 py-1">Disponible pour affectation</Badge>
-          ) : (
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-sm px-4 py-1">Actuellement Affecté</Badge>
-          )}
-          {(collaborator as any).employeeNumber && (
-            <Badge variant="outline" className="font-mono text-xs">Matricule {(collaborator as any).employeeNumber}</Badge>
-          )}
-          {isManagerOrAbove && (
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5 mt-1">
-              <Pencil className="w-3.5 h-3.5" />
-              Éditer le profil
-            </Button>
-          )}
+
+        {/* Bande KPI rapide sous le banner */}
+        <div className="grid grid-cols-3 divide-x divide-border bg-card border-t border-border/50">
+          {/* Congés disponibles */}
+          <div className="px-5 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
+              <CalendarClock className="w-4 h-4 text-teal-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground leading-none">{totalLeaveAvailable}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Jours de congé dispo.</p>
+            </div>
+          </div>
+          {/* Salaire de base */}
+          <div className="px-5 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground leading-none">
+                {(collaborator as any).baseSalary ? formatFCFA(Number((collaborator as any).baseSalary)) : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Salaire de base</p>
+            </div>
+          </div>
+          {/* Charge de travail */}
+          <div className="px-5 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground leading-none">{wl?.totalAllocationPct ?? 0}%</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Taux d'allocation</p>
+            </div>
+          </div>
         </div>
       </div>
 
