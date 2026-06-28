@@ -495,7 +495,7 @@ export default function LoginPage() {
                     ))}
                   </div>
 
-                  <button onClick={onVerify2FA} disabled={isLoading || otp.join("").length < 6}
+                  <button onClick={() => onVerify2FA()} disabled={isLoading || otp.join("").length < 6}
                     className="w-full h-[46px] rounded-xl text-[13.5px] font-semibold text-white flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.985] disabled:opacity-60"
                     style={{
                       background: isLoading ? "#1D6CE8" : "linear-gradient(135deg, #1D6CE8 0%, #1558C8 100%)",
