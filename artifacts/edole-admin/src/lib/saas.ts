@@ -211,6 +211,7 @@ export const ROUTE_MODULE_MAP: Array<{ test: (path: string) => boolean; moduleKe
   { test: (p) => p.startsWith("/hr") || p.startsWith("/collaborators"), moduleKey: "team_hr" },
   { test: (p) => p.startsWith("/messaging") || p.startsWith("/calls"), moduleKey: "communications" },
   { test: (p) => p.startsWith("/reports") || p.startsWith("/map"), moduleKey: "reports" },
+  { test: (p) => p.startsWith("/achats"), moduleKey: "purchases" },
   { test: (p) => p.startsWith("/marketing"), moduleKey: "marketing" },
   { test: (p) => p.startsWith("/admin") || p.startsWith("/users"), moduleKey: "administration" },
   { test: (p) => p.startsWith("/billing"), moduleKey: "billing_subscription" },

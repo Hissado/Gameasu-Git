@@ -20,6 +20,92 @@ const router = Router();
 
 const toNum = (v: string | number | null | undefined): number => (v == null ? 0 : Number(v));
 
+// ─── Zod schemas ──────────────────────────────────────────────────────────────
+
+const SupplierCreateSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
+  type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional().default("fournisseur"),
+  email: z.email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  taxId: z.string().optional().nullable(),
+  paymentTerms: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  rccm: z.string().optional().nullable(),
+  mobileMoney: z.string().optional().nullable(),
+  bankName: z.string().optional().nullable(),
+  bankAccountNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const SupplierPatchSchema = z.object({
+  name: z.string().min(1).optional(),
+  type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional(),
+  email: z.email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  taxId: z.string().optional().nullable(),
+  paymentTerms: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  rccm: z.string().optional().nullable(),
+  mobileMoney: z.string().optional().nullable(),
+  bankName: z.string().optional().nullable(),
+  bankAccountNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.enum(["actif", "inactif", "bloqué"]).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const InvoiceCreateSchema = z.object({
+  supplierId: z.string().uuid("ID fournisseur invalide"),
+  referenceNumber: z.string().min(1, "La référence est requise"),
+  invoiceDate: z.string().optional(),
+  dueDate: z.string().optional().nullable(),
+  totalAmount: z.coerce.number().positive("Le montant doit être positif"),
+  taxAmount: z.coerce.number().min(0).optional().default(0),
+  currency: z.string().length(3).optional().default("XOF"),
+  notes: z.string().optional().nullable(),
+  projectId: z.string().uuid().optional().nullable(),
+  expenseAccountId: z.string().uuid().optional().nullable(),
+  purchaseOrderId: z.string().uuid().optional().nullable(),
+});
+
+const InvoicePatchSchema = z.object({
+  status: z.enum(["draft", "review", "approved", "paid", "cancelled", "overdue"]).optional(),
+  dueDate: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  expenseAccountId: z.string().uuid().optional().nullable(),
+  projectId: z.string().uuid().optional().nullable(),
+  referenceNumber: z.string().min(1).optional(),
+  totalAmount: z.coerce.number().positive().optional(),
+  taxAmount: z.coerce.number().min(0).optional(),
+});
+
+const PurchaseOrderCreateSchema = z.object({
+  supplierId: z.string().uuid("ID fournisseur invalide"),
+  deliveryDate: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  projectId: z.string().uuid().optional().nullable(),
+  lines: z.array(z.object({
+    productId: z.string().uuid().optional().nullable(),
+    description: z.string().min(1, "Description requise"),
+    quantity: z.coerce.number().positive(),
+    unitPrice: z.coerce.number().min(0),
+    taxRate: z.coerce.number().min(0).optional().default(0),
+  })).min(1, "Au moins une ligne est requise"),
+});
+
+const PaymentCreateSchema = z.object({
+  supplierInvoiceId: z.string().uuid("ID facture invalide"),
+  amount: z.coerce.number().positive("Le montant doit être positif"),
+  paidAt: z.string().optional(),
+  paymentMethod: z.string().optional().nullable(),
+  reference: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
 // ─── Auto-generate supplier code ────────────────────────────────────────────
 async function nextSupplierCode(orgId: string): Promise<string> {
   const result = await db
@@ -121,31 +207,29 @@ router.get("/purchases/suppliers", async (req, res) => {
 router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const {
-      name, email, phone, address, taxId, paymentTerms,
-      type, country, city, rccm, mobileMoney, bankName, bankAccountNumber, notes,
-    } = req.body;
-    if (!name) return res.status(400).json({ error: "Le nom est requis" });
+    const parsed = SupplierCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
 
     const code = await nextSupplierCode(orgId);
     const [row] = await db.insert(suppliersTable).values({
       organizationId: orgId,
       code,
-      name: name as string,
-      email: email || null,
-      phone: phone || null,
-      address: address || null,
-      taxId: taxId || null,
-      paymentTerms: paymentTerms || null,
+      name: data.name,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      address: data.address ?? null,
+      taxId: data.taxId ?? null,
+      paymentTerms: data.paymentTerms ?? null,
       isActive: true,
-      type: type || "fournisseur",
-      country: country || null,
-      city: city || null,
-      rccm: rccm || null,
-      mobileMoney: mobileMoney || null,
-      bankName: bankName || null,
-      bankAccountNumber: bankAccountNumber || null,
-      notes: notes || null,
+      type: data.type,
+      country: data.country ?? null,
+      city: data.city ?? null,
+      rccm: data.rccm ?? null,
+      mobileMoney: data.mobileMoney ?? null,
+      bankName: data.bankName ?? null,
+      bankAccountNumber: data.bankAccountNumber ?? null,
+      notes: data.notes ?? null,
       status: "actif",
     }).returning();
     return res.status(201).json(row);
@@ -207,24 +291,28 @@ router.patch("/purchases/suppliers/:id", requireManagerOrAbove, async (req, res)
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
-    const { name, email, phone, address, taxId, paymentTerms, isActive, type, country, city, rccm, mobileMoney, bankName, bankAccountNumber, notes, status } = req.body;
+    const parsed = SupplierPatchSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
+
     const patch: Record<string, unknown> = {};
-    if (name !== undefined) patch.name = name;
-    if (email !== undefined) patch.email = email;
-    if (phone !== undefined) patch.phone = phone;
-    if (address !== undefined) patch.address = address;
-    if (taxId !== undefined) patch.taxId = taxId;
-    if (paymentTerms !== undefined) patch.paymentTerms = paymentTerms;
-    if (isActive !== undefined) patch.isActive = isActive;
-    if (type !== undefined) patch.type = type;
-    if (country !== undefined) patch.country = country;
-    if (city !== undefined) patch.city = city;
-    if (rccm !== undefined) patch.rccm = rccm;
-    if (mobileMoney !== undefined) patch.mobileMoney = mobileMoney;
-    if (bankName !== undefined) patch.bankName = bankName;
-    if (bankAccountNumber !== undefined) patch.bankAccountNumber = bankAccountNumber;
-    if (notes !== undefined) patch.notes = notes;
-    if (status !== undefined) { patch.status = status; patch.isActive = status === "actif"; }
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.email !== undefined) patch.email = data.email;
+    if (data.phone !== undefined) patch.phone = data.phone;
+    if (data.address !== undefined) patch.address = data.address;
+    if (data.taxId !== undefined) patch.taxId = data.taxId;
+    if (data.paymentTerms !== undefined) patch.paymentTerms = data.paymentTerms;
+    if (data.isActive !== undefined) patch.isActive = data.isActive;
+    if (data.type !== undefined) patch.type = data.type;
+    if (data.country !== undefined) patch.country = data.country;
+    if (data.city !== undefined) patch.city = data.city;
+    if (data.rccm !== undefined) patch.rccm = data.rccm;
+    if (data.mobileMoney !== undefined) patch.mobileMoney = data.mobileMoney;
+    if (data.bankName !== undefined) patch.bankName = data.bankName;
+    if (data.bankAccountNumber !== undefined) patch.bankAccountNumber = data.bankAccountNumber;
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.status !== undefined) { patch.status = data.status; patch.isActive = data.status === "actif"; }
+
     const [updated] = await db.update(suppliersTable)
       .set(patch as any)
       .where(and(eq(suppliersTable.id, id), eq(suppliersTable.organizationId, orgId), isNull(suppliersTable.deletedAt)))
@@ -313,29 +401,24 @@ router.get("/purchases/invoices", async (req, res) => {
 router.post("/purchases/invoices", requireManagerOrAbove, async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const {
-      supplierId, referenceNumber, invoiceDate, dueDate,
-      totalAmount, taxAmount, currency, notes, projectId,
-      expenseAccountId, purchaseOrderId,
-    } = req.body;
-    if (!supplierId || !referenceNumber || !totalAmount) {
-      return res.status(400).json({ error: "Fournisseur, référence et montant sont requis" });
-    }
+    const parsed = InvoiceCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
+
     const [row] = await db.insert(supplierInvoicesTable).values({
       organizationId: orgId,
-      supplierId: supplierId as string,
-      referenceNumber: referenceNumber as string,
+      supplierId: data.supplierId,
+      referenceNumber: data.referenceNumber,
       status: "review",
-      invoiceDate: invoiceDate || new Date().toISOString().slice(0, 10),
-      dueDate: dueDate || null,
-      totalAmount: String(totalAmount),
-      taxAmount: taxAmount ? String(taxAmount) : "0",
+      invoiceDate: data.invoiceDate || new Date().toISOString().slice(0, 10),
+      dueDate: data.dueDate ?? null,
+      totalAmount: String(data.totalAmount),
+      taxAmount: String(data.taxAmount ?? 0),
       paidAmount: "0",
-      currency: currency || "XOF",
-      notes: notes || null,
-      projectId: projectId || null,
-      expenseAccountId: expenseAccountId || null,
-      ...(purchaseOrderId !== undefined && { purchaseOrderId }),
+      currency: data.currency ?? "XOF",
+      notes: data.notes ?? null,
+      projectId: data.projectId ?? null,
+      expenseAccountId: data.expenseAccountId ?? null,
     } as any).returning();
     return res.status(201).json(row);
   } catch (e: any) {
@@ -462,33 +545,34 @@ router.get("/purchases/purchase-orders", async (req, res) => {
 router.post("/purchases/purchase-orders", requireManagerOrAbove, async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { supplierId, expectedDate, notes, lines = [] } = req.body;
-    if (!supplierId) return res.status(400).json({ error: "Fournisseur requis" });
+    const parsed = PurchaseOrderCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
 
     const reference = await nextPoReference(orgId);
-    const totalFcfa = (lines as any[]).reduce((s: number, l: any) => s + (toNum(l.unitPriceFcfa) * toNum(l.quantity)), 0);
+    const totalFcfa = data.lines.reduce((s, l) => s + (l.unitPrice * l.quantity), 0);
 
     const [po] = await db.insert(purchaseOrdersTable).values({
       organizationId: orgId,
       reference,
-      supplierId: supplierId as string,
+      supplierId: data.supplierId,
       status: "draft",
-      expectedDate: expectedDate ? new Date(expectedDate) : null,
+      expectedDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
       totalFcfa: String(totalFcfa),
-      notes: notes || null,
+      notes: data.notes ?? null,
       createdById: req.authUser!.id,
     }).returning();
 
-    if (lines.length > 0) {
+    if (data.lines.length > 0) {
       await db.insert(purchaseOrderLinesTable).values(
-        (lines as any[]).map((l: any) => ({
+        data.lines.map((l) => ({
           organizationId: orgId,
           purchaseOrderId: po.id,
-          productId: l.productId,
-          description: l.description || null,
+          productId: l.productId ?? null,
+          description: l.description,
           quantity: String(l.quantity),
-          unitPriceFcfa: String(l.unitPriceFcfa),
-          totalFcfa: String(toNum(l.unitPriceFcfa) * toNum(l.quantity)),
+          unitPriceFcfa: String(l.unitPrice),
+          totalFcfa: String(l.unitPrice * l.quantity),
         }))
       );
     }
@@ -615,32 +699,30 @@ router.get("/purchases/payments", async (req, res) => {
 router.post("/purchases/payments", requireManagerOrAbove, async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const { supplierInvoiceId, amount, method, reference, paidAt, bankAccountId, notes } = req.body;
-    if (!supplierInvoiceId || !amount || !method) {
-      return res.status(400).json({ error: "Facture, montant et mode de paiement sont requis" });
-    }
+    const parsed = PaymentCreateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
 
     const [invoice] = await db.select().from(supplierInvoicesTable)
-      .where(and(eq(supplierInvoicesTable.id, supplierInvoiceId as string), eq(supplierInvoicesTable.organizationId, orgId)));
+      .where(and(eq(supplierInvoicesTable.id, data.supplierInvoiceId), eq(supplierInvoicesTable.organizationId, orgId)));
     if (!invoice) return res.status(404).json({ error: "Facture introuvable" });
 
     const [payment] = await db.insert(supplierPaymentsTable).values({
       organizationId: orgId,
-      supplierInvoiceId: supplierInvoiceId as string,
-      amount: String(amount),
-      method: method as string,
-      reference: reference || null,
-      paidAt: paidAt ? new Date(paidAt) : new Date(),
-      bankAccountId: bankAccountId || null,
-      notes: notes || null,
+      supplierInvoiceId: data.supplierInvoiceId,
+      amount: String(data.amount),
+      method: data.paymentMethod ?? "virement",
+      reference: data.reference ?? null,
+      paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
+      notes: data.notes ?? null,
     }).returning();
 
-    const newPaid = toNum(invoice.paidAmount) + toNum(amount);
+    const newPaid = toNum(invoice.paidAmount) + data.amount;
     const total = toNum(invoice.totalAmount);
     const newStatus = newPaid >= total ? "paid" : "partially_paid";
     await db.update(supplierInvoicesTable)
       .set({ paidAmount: String(newPaid), status: newStatus })
-      .where(eq(supplierInvoicesTable.id, supplierInvoiceId as string));
+      .where(eq(supplierInvoicesTable.id, data.supplierInvoiceId));
 
     return res.status(201).json(payment);
   } catch (e: any) {

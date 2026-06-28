@@ -34,6 +34,8 @@ type NavGroup = {
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   items: NavItem[];
+  isNew?: boolean;
+  moduleKey?: string;
 };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -89,15 +91,17 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Achats",
     icon: ShoppingCart,
+    moduleKey: "purchases",
+    isNew: true,
     items: [
-      { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, permissionKey: "purchases.read" },
-      { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       permissionKey: "purchases.read" },
-      { name: "Factures",             path: "/achats/factures",           icon: FileText,        permissionKey: "purchases.read" },
-      { name: "Bons de commande",     path: "/achats/bons-de-commande",   icon: ClipboardCheck,  permissionKey: "purchases.read" },
-      { name: "Paiements",            path: "/achats/paiements",          icon: CreditCard,      permissionKey: "purchases.pay" },
-      { name: "Dépenses",             path: "/achats/depenses",           icon: Banknote,        permissionKey: "purchases.read",  secondary: true },
-      { name: "Approbations",         path: "/achats/approbations",       icon: CheckSquare,     permissionKey: "purchases.approve", secondary: true },
-      { name: "Rapports",             path: "/achats/rapports",           icon: BarChart3,       permissionKey: "purchases.read",  secondary: true },
+      { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read" },
+      { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read" },
+      { name: "Factures",             path: "/achats/factures",           icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read" },
+      { name: "Bons de commande",     path: "/achats/bons-de-commande",   icon: ClipboardCheck,  moduleKey: "purchases", permissionKey: "purchases.read" },
+      { name: "Paiements",            path: "/achats/paiements",          icon: CreditCard,      moduleKey: "purchases", permissionKey: "purchases.pay" },
+      { name: "Dépenses",             path: "/achats/depenses",           icon: Banknote,        moduleKey: "purchases", permissionKey: "purchases.read",  secondary: true },
+      { name: "Approbations",         path: "/achats/approbations",       icon: CheckSquare,     moduleKey: "purchases", permissionKey: "purchases.approve", secondary: true },
+      { name: "Rapports",             path: "/achats/rapports",           icon: BarChart3,       moduleKey: "purchases", permissionKey: "purchases.read",  secondary: true },
     ],
   },
   {
@@ -299,6 +303,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <span className={`flex-1 text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-150`}>
                     {group.title}
                   </span>
+                  {/* Badge "Nouveau" pour les modules récemment ajoutés */}
+                  {group.isNew && !hasActive && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide bg-[#F37021]/20 text-[#F37021] border border-[#F37021]/30 uppercase shrink-0">
+                      Nouveau
+                    </span>
+                  )}
                   {/* Active dot when group collapsed and has active item */}
                   {hasActive && !isOpen && (
                     <span className="w-1.5 h-1.5 rounded-full bg-[#C8A24B] shadow-[0_0_6px_rgba(200,162,75,0.6)]" />
@@ -322,7 +332,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       {/* ── Items primaires — filtrés par permission ── */}
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                        const locked = false;
+                        const locked = !!(item.moduleKey && modules && !enabledKeys.has(item.moduleKey));
                         const href = item.path;
                         return (
                           <li key={item.path}>
@@ -348,7 +358,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                           <>
                             {isExp && sec.map((item) => {
                               const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                              const locked = false;
+                              const locked = !!(item.moduleKey && modules && !enabledKeys.has(item.moduleKey));
                               const href = item.path;
                               return (
                                 <li key={item.path}>
