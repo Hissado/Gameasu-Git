@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,12 @@ export default function RapportsAchatsPage() {
     enabled: activeTab === "supplier",
   });
 
+  // Suppliers list for period filter
+  const suppliersListQ = useQuery<{ data: SupplierRow[] }>({
+    queryKey: ["purchases-by-supplier-list"],
+    queryFn: () => apiFetch("/api/purchases/reports/by-supplier?limit=100"),
+  });
+
   const unpaidQ = useQuery<UnpaidData>({
     queryKey: ["purchases-unpaid"],
     queryFn: () => apiFetch("/api/purchases/reports/unpaid"),
@@ -297,7 +304,19 @@ export default function RapportsAchatsPage() {
                   <Label className="text-xs text-slate-500">Période — fin</Label>
                   <Input type="date" className="h-8 text-xs mt-0.5 w-36" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
                 </div>
-                {(periodFrom || periodTo) && (
+                <div>
+                  <Label className="text-xs text-slate-500">Fournisseur</Label>
+                  <Select value={periodSupplierId || "all"} onValueChange={v => setPeriodSupplierId(v === "all" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs mt-0.5 w-44"><SelectValue placeholder="Tous" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les fournisseurs</SelectItem>
+                      {(suppliersListQ.data?.data ?? []).map(s => (
+                        <SelectItem key={s.supplierId} value={s.supplierId}>{s.supplierName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(periodFrom || periodTo || periodSupplierId) && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs mt-4" onClick={() => { setPeriodFrom(""); setPeriodTo(""); setPeriodSupplierId(""); }}>
                     Réinitialiser
                   </Button>

@@ -296,8 +296,8 @@ function PoActions({ po, onRefresh }: { po: PendingPO; onRefresh: () => void }) 
         onClick={() => setRejectOpen(true)}>
         <XCircle className="h-3 w-3 mr-1" />Annuler
       </Button>
-      <Link href={`/achats/bons-de-commande/${po.id}`}>
-        <Button size="sm" variant="ghost" className="h-7 text-xs">Voir</Button>
+      <Link href="/achats/bons-de-commande">
+        <Button size="sm" variant="ghost" className="h-7 text-xs">Voir liste</Button>
       </Link>
       {rejectOpen && <RejectPoDialog po={po} onClose={() => setRejectOpen(false)} onSuccess={onRefresh} />}
     </div>
@@ -317,10 +317,17 @@ export default function ApprobationsPage() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-approvals"] });
 
-  const invoices = data?.invoices ?? [];
-  const pos = data?.purchaseOrders ?? [];
-  const expenses = data?.expenseReports ?? [];
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [amountThreshold, setAmountThreshold] = useState(500_000);
+
+  const allInvoices = data?.invoices ?? [];
+  const allPos = data?.purchaseOrders ?? [];
+  const allExpenses = data?.expenseReports ?? [];
   const total = (data?.total ?? 0);
+
+  const invoices = urgentOnly ? allInvoices.filter(i => i.totalAmount >= amountThreshold) : allInvoices;
+  const pos = urgentOnly ? allPos.filter(p => p.totalFcfa >= amountThreshold) : allPos;
+  const expenses = urgentOnly ? allExpenses.filter(e => e.totalAmount >= amountThreshold) : allExpenses;
 
   const reviewInv = invoices.filter(i => i.status === "review");
   const awaitingInv = invoices.filter(i => i.status === "awaiting_approval");
@@ -331,9 +338,20 @@ export default function ApprobationsPage() {
         title="File d'approbations"
         subtitle={`${total} élément${total !== 1 ? "s" : ""} en attente de décision`}
         actions={
-          <Button variant="outline" size="sm" onClick={refresh}>
-            <Clock className="h-4 w-4 mr-1" />Actualiser
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={urgentOnly ? "default" : "outline"}
+              size="sm"
+              className={urgentOnly ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+              onClick={() => setUrgentOnly(v => !v)}
+            >
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              {urgentOnly ? `Urgences ≥ ${formatFCFA(amountThreshold)}` : "Filtrer urgences"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={refresh}>
+              <Clock className="h-4 w-4 mr-1" />Actualiser
+            </Button>
+          </div>
         }
       />
 

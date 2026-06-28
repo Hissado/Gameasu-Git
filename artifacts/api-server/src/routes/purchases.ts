@@ -2058,5 +2058,98 @@ router.get("/purchases/reports/:type/export.xlsx", requirePermission("purchases.
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+// ALIAS EXPORT ROUTES — contrat /reports/export/:type.{xlsx,csv}
+// ════════════════════════════════════════════════════════════════
+
+// .xlsx — alias vers le handler existant
+router.get("/purchases/reports/export/:type.xlsx", requirePermission("purchases.read"), async (req, res) => {
+  // Re-route internally by forwarding to the canonical route handler
+  req.params.type = req.params.type as string;
+  // Reuse the same logic by calling the URL directly would need an internal redirect.
+  // Instead: inline the dispatch — just set a synthetic param and fall through.
+  (req as any).url = req.url.replace("/reports/export/", "/reports/").replace(".xlsx", "") + "/export.xlsx";
+  res.redirect(307, `/api/purchases/reports/${req.params.type}/export.xlsx?token=${(req.query as any).token ?? ""}`);
+});
+
+// .csv — serveur (données brutes sans formatage Excel)
+router.get("/purchases/reports/export/:type.csv", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const type = req.params.type as string;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const validTypes: Record<string, string> = {
+      aging: "vieillissement-ap",
+      unpaid: "factures-impayees",
+      "by-supplier": "top-fournisseurs",
+      "by-period": "depenses-par-periode",
+    };
+    if (!validTypes[type]) return res.status(400).json({ error: "Type d'export inconnu" });
+
+    let headers: string[] = [];
+    let rows: (string | number | null)[][] = [];
+
+    if (type === "aging" || type === "unpaid") {
+      const dbRows = await db.select({
+        referenceNumber: supplierInvoicesTable.referenceNumber,
+        supplierName: suppliersTable.name,
+        invoiceDate: supplierInvoicesTable.invoiceDate,
+        dueDate: supplierInvoicesTable.dueDate,
+        totalAmount: supplierInvoicesTable.totalAmount,
+        paidAmount: supplierInvoicesTable.paidAmount,
+        status: supplierInvoicesTable.status,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "paid"), ne(supplierInvoicesTable.status, "cancelled")))
+      .orderBy(asc(supplierInvoicesTable.dueDate));
+      headers = ["Référence", "Fournisseur", "Date facture", "Échéance", "Montant TTC", "Déjà payé", "Solde dû", "Statut"];
+      rows = dbRows.map(r => [
+        r.referenceNumber ?? "—", r.supplierName ?? "—", r.invoiceDate ?? "—", r.dueDate ?? "—",
+        toNum(r.totalAmount), toNum(r.paidAmount), toNum(r.totalAmount) - toNum(r.paidAmount), r.status,
+      ]);
+    } else if (type === "by-supplier") {
+      const dbRows = await db.select({
+        supplierName: suppliersTable.name,
+        invoiceCount: sql<number>`count(*)`,
+        totalInvoiced: sql<number>`sum(${supplierInvoicesTable.totalAmount})`,
+        totalPaid: sql<number>`sum(${supplierInvoicesTable.paidAmount})`,
+      })
+      .from(supplierInvoicesTable)
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+      .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled")))
+      .groupBy(supplierInvoicesTable.supplierId, suppliersTable.name)
+      .orderBy(desc(sql`sum(${supplierInvoicesTable.totalAmount})`));
+      headers = ["Fournisseur", "Nb factures", "Total facturé", "Total payé", "Solde"];
+      rows = dbRows.map(r => [r.supplierName ?? "—", toNum(r.invoiceCount), toNum(r.totalInvoiced), toNum(r.totalPaid), toNum(r.totalInvoiced) - toNum(r.totalPaid)]);
+    } else {
+      const dbRows = await db.select({
+        period: sql<string>`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`,
+        total: sql<number>`sum(${supplierPaymentsTable.amount})`,
+        count: sql<number>`count(*)`,
+      })
+      .from(supplierPaymentsTable)
+      .where(and(eq(supplierPaymentsTable.organizationId, orgId), ne(supplierPaymentsTable.status, "annule"), ne(supplierPaymentsTable.status, "echoue"), sql`${supplierPaymentsTable.paidAt} >= NOW() - INTERVAL '12 months'`))
+      .groupBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`);
+      headers = ["Période", "Nb paiements", "Total décaissé"];
+      rows = dbRows.map(r => [r.period ?? "—", toNum(r.count), toNum(r.total)]);
+    }
+
+    const bom = "\uFEFF";
+    const csvContent = bom + [headers, ...rows]
+      .map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="purchases-${validTypes[type]}-${today}.csv"`);
+    return res.send(csvContent);
+  } catch (e: any) {
+    req.log.error(e, "purchases/reports/export/:type.csv GET");
+    return res.status(500).json({ error: "Erreur génération CSV" });
+  }
+});
+
 export default router;
 
