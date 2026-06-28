@@ -283,10 +283,7 @@ function EditCollaboratorDialog({
 
         {/* Avatar */}
         <div className="flex items-center gap-4 py-2 border-b border-border mb-2">
-          <div
-            className="relative cursor-pointer group"
-            onClick={() => avatarInputRef.current?.click()}
-          >
+          <label htmlFor="collab-avatar-input" className="relative cursor-pointer group">
             <Avatar className="w-16 h-16 ring-2 ring-border">
               {avatarPreview ? <AvatarImage src={avatarPreview} /> : null}
               <AvatarFallback className="text-xl bg-primary text-primary-foreground font-bold">
@@ -296,16 +293,15 @@ function EditCollaboratorDialog({
             <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <Camera className="w-5 h-5 text-white" />
             </div>
-          </div>
+          </label>
           <div>
             <p className="text-sm font-medium text-foreground">{form.firstName} {form.lastName}</p>
-            <button
-              type="button"
-              onClick={() => avatarInputRef.current?.click()}
-              className="text-xs text-primary hover:underline mt-0.5"
+            <label
+              htmlFor="collab-avatar-input"
+              className="text-xs text-primary hover:underline mt-0.5 cursor-pointer"
             >
               Changer la photo de profil
-            </button>
+            </label>
             {avatarPreview && (
               <button
                 type="button"
@@ -317,6 +313,7 @@ function EditCollaboratorDialog({
             )}
           </div>
           <input
+            id="collab-avatar-input"
             ref={avatarInputRef}
             type="file"
             accept="image/*"
