@@ -169,7 +169,9 @@ export const supplierInvoicesTable = pgTable("supplier_invoices", {
   referenceNumber: text("reference_number").notNull(),
   supplierId: uuid("supplier_id").notNull().references(() => suppliersTable.id),
   projectId: uuid("project_id").references(() => projectsTable.id),
-  // draft | pending | paid | overdue | cancelled
+  // FK optionnel vers le bon de commande source (pas de contrainte FK pour éviter la dépendance circulaire avec inventory.ts)
+  purchaseOrderId: uuid("purchase_order_id"),
+  // draft | review | awaiting_approval | approved | pending | partially_paid | paid | overdue | cancelled
   status: text("status").notNull().default("pending"),
   invoiceDate: text("invoice_date").notNull(),
   dueDate: text("due_date"),
@@ -276,6 +278,8 @@ export const supplierPaymentsTable = pgTable("supplier_payments", {
   currency: text("currency").default("XOF"),
   method: text("method").notNull(),
   reference: text("reference"),
+  // programme | en_attente | confirme | echoue | annule
+  status: text("status").notNull().default("confirme"),
   paidAt: timestamp("paid_at", { withTimezone: true }).notNull().defaultNow(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

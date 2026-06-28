@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -16,11 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { StatusBadgePO, StatusBadgePurchases, PO_STATUS_MAP, VendorSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Supplier = { id: string; name: string; code: string };
 type Product = { id: string; name: string; sku: string; purchasePriceFcfa: string | number; unit: string | null };
 type PoLine = { productId: string; description: string; quantity: number; unitPrice: number; taxRate: number };
 type PO = {
@@ -38,26 +37,15 @@ type PoLineDetail = {
   id: string; productId: string; productName: string | null; productSku: string | null;
   description: string; quantity: string; unitPriceFcfa: string; quantityReceived: string | null; totalFcfa: string;
 };
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-const PO_STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:              { label: "Brouillon",           cls: "bg-slate-100 text-slate-600 border-slate-200" },
-  sent:               { label: "Envoyé",              cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  confirmed:          { label: "Confirmé",            cls: "bg-teal-50 text-teal-700 border-teal-200" },
-  partially_received: { label: "Part. reçu",          cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  received:           { label: "Reçu",                cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  cancelled:          { label: "Annulé",              cls: "bg-slate-50 text-slate-400 border-slate-200" },
+type LinkedInvoice = {
+  id: string; referenceNumber: string; status: string;
+  invoiceDate: string; dueDate: string | null;
+  totalAmount: string | number; paidAmount: string | number;
 };
-
-function StatusBadge({ status }: { status: string }) {
-  const s = PO_STATUS_MAP[status] ?? { label: status, cls: "bg-slate-100 text-slate-600" };
-  return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;
-}
 
 // ─── New PO dialog ────────────────────────────────────────────────────────────
 
-function NewPoDialog({ suppliers, onClose, onSuccess }: { suppliers: Supplier[]; onClose: () => void; onSuccess: (id: string) => void }) {
+function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string) => void }) {
   const { data: productsRes } = useQuery<{ data: Product[] }>({
     queryKey: ["purchases-products"],
     queryFn: () => apiFetch("/api/purchases/products"),
@@ -105,12 +93,9 @@ function NewPoDialog({ suppliers, onClose, onSuccess }: { suppliers: Supplier[];
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Fournisseur *</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.code})</SelectItem>)}</SelectContent>
-              </Select>
+              <VendorSelect value={supplierId} onValueChange={setSupplierId} />
             </div>
-            <div className="space-y-1"><Label>Date de livraison prévue</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Date livraison prévue</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></div>
           </div>
           <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
@@ -127,7 +112,8 @@ function NewPoDialog({ suppliers, onClose, onSuccess }: { suppliers: Supplier[];
                     <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
                     <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
                     <th className="text-right p-2 font-medium text-muted-foreground w-20">Qté</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-28">Prix unit.</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-24">Prix unit.</th>
+                    <th className="text-right p-2 font-medium text-muted-foreground w-16">TVA%</th>
                     <th className="text-right p-2 font-medium text-muted-foreground w-28">Total</th>
                     <th className="w-8"></th>
                   </tr>
@@ -144,13 +130,14 @@ function NewPoDialog({ suppliers, onClose, onSuccess }: { suppliers: Supplier[];
                       <td className="p-2"><Input className="h-8 text-xs" value={l.description} onChange={(e) => updateLine(idx, { description: e.target.value })} /></td>
                       <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="1" value={l.quantity} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value) })} /></td>
                       <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="0" value={l.unitPrice} onChange={(e) => updateLine(idx, { unitPrice: Number(e.target.value) })} /></td>
-                      <td className="p-2 text-right font-medium">{formatFCFA(l.quantity * l.unitPrice)}</td>
+                      <td className="p-2"><Input className="h-8 text-xs text-right" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => updateLine(idx, { taxRate: Number(e.target.value) })} /></td>
+                      <td className="p-2 text-right font-medium text-xs">{formatFCFA(l.quantity * l.unitPrice * (1 + l.taxRate / 100))}</td>
                       <td className="p-2"><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash2 className="w-3 h-3" /></Button></td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-slate-50 border-t">
-                  <tr><td colSpan={4} className="p-2 text-right font-semibold text-sm">Total</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(total)}</td><td /></tr>
+                  <tr><td colSpan={5} className="p-2 text-right font-semibold text-sm">Total TTC</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(total)}</td><td /></tr>
                 </tfoot>
               </table>
             </div>
@@ -171,6 +158,7 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
   const qc = useQueryClient();
   const [, navigate] = useLocation();
   const [updating, setUpdating] = useState(false);
+  const [receptionQty, setReceptionQty] = useState<Record<string, string>>({});
 
   const { data: po, isLoading } = useQuery<PODetail>({
     queryKey: ["purchase-po-detail", poId],
@@ -178,7 +166,14 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
     queryFn: () => apiFetch(`/api/purchases/purchase-orders/${poId}`),
   });
 
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["purchase-po-detail", poId] }); onRefresh(); };
+  const { data: linkedInvRes } = useQuery<{ data: LinkedInvoice[] }>({
+    queryKey: ["purchase-po-invoices", poId],
+    enabled: !!poId,
+    queryFn: () => apiFetch(`/api/purchases/purchase-orders/${poId}/invoices`),
+  });
+  const linkedInvoices = linkedInvRes?.data ?? [];
+
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["purchase-po-detail", poId] }); qc.invalidateQueries({ queryKey: ["purchase-po-invoices", poId] }); onRefresh(); };
 
   const updateStatus = async (status: string) => {
     setUpdating(true);
@@ -189,6 +184,14 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
     } catch (e: any) { toast.error(e?.message ?? "Erreur"); } finally { setUpdating(false); }
   };
 
+  const updateLineReception = async (lineId: string, qty: number) => {
+    try {
+      await apiFetch(`/api/purchases/purchase-orders/${poId}/lines/${lineId}`, { method: "PATCH", body: JSON.stringify({ quantityReceived: qty }) });
+      toast.success("Réception mise à jour");
+      refresh();
+    } catch (e: any) { toast.error(e?.message ?? "Erreur"); }
+  };
+
   const createInvoice = () => {
     navigate("/achats/factures?from_bc=" + poId);
     onClose();
@@ -196,7 +199,7 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Package className="w-5 h-5 text-[#F37021]" />
@@ -206,29 +209,23 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
         {isLoading && <div className="space-y-3 py-6">{[1,2,3].map(i => <Skeleton key={i} className="h-12 rounded" />)}</div>}
         {po && (
-          <div className="space-y-6 py-4">
-            {/* Status + actions */}
+          <div className="space-y-5 py-4">
+            {/* Actions */}
             <div className="flex items-center gap-3 flex-wrap">
-              <StatusBadge status={po.status} />
+              <StatusBadgePO status={po.status} />
               <div className="flex-1" />
-              {po.status === "draft" && (
-                <Button size="sm" onClick={() => updateStatus("sent")} disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white gap-1"><ArrowRight className="w-4 h-4" /> Marquer Envoyé</Button>
-              )}
-              {po.status === "sent" && (
-                <Button size="sm" onClick={() => updateStatus("confirmed")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" /> Confirmer</Button>
-              )}
-              {["confirmed", "partially_received"].includes(po.status) && (
-                <Button size="sm" onClick={() => updateStatus("received")} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" /> Marquer Reçu</Button>
-              )}
+              {po.status === "draft" && <Button size="sm" onClick={() => updateStatus("sent")} disabled={updating} className="bg-blue-600 hover:bg-blue-700 text-white gap-1"><ArrowRight className="w-4 h-4" />Marquer Envoyé</Button>}
+              {po.status === "sent" && <Button size="sm" onClick={() => updateStatus("confirmed")} disabled={updating} className="bg-teal-600 hover:bg-teal-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" />Confirmer</Button>}
+              {["confirmed", "partially_received"].includes(po.status) && <Button size="sm" onClick={() => updateStatus("received")} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"><CheckCircle2 className="w-4 h-4" />Marquer Reçu</Button>}
               {["confirmed", "received", "partially_received"].includes(po.status) && (
-                <Button size="sm" variant="outline" onClick={createInvoice} className="gap-1"><ArrowRight className="w-4 h-4" /> Créer facture</Button>
+                <Button size="sm" variant="outline" onClick={createInvoice} className="gap-1"><FileText className="w-4 h-4" />Créer facture</Button>
               )}
-              {!["received", "cancelled"].includes(po.status) && (
-                <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1"><XCircle className="w-4 h-4" /> Annuler</Button>
+              {!["received", "cancelled", "facture"].includes(po.status) && (
+                <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1"><XCircle className="w-4 h-4" />Annuler</Button>
               )}
             </div>
 
-            {/* Info grid */}
+            {/* Info */}
             <div className="grid grid-cols-2 gap-3 bg-slate-50 rounded-lg p-4">
               <div><p className="text-xs text-muted-foreground">Fournisseur</p><p className="font-medium text-sm">{po.supplierName ?? "—"}</p></div>
               <div><p className="text-xs text-muted-foreground">Livraison prévue</p><p className="font-medium text-sm">{po.expectedDate ? formatDate(String(po.expectedDate)) : "—"}</p></div>
@@ -238,42 +235,88 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
             {po.notes && <p className="text-sm text-muted-foreground italic bg-slate-50 rounded p-3">{po.notes}</p>}
 
-            {/* Lines */}
+            {/* Lines + reception */}
             <div>
               <h3 className="text-sm font-semibold mb-3">Lignes de commande ({po.lines.length})</h3>
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="text-left p-2 font-medium text-muted-foreground">Produit / Description</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Qté cmd</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Qté reçue</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground">Qté</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground">Reçue</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">P.U.</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">Total</th>
+                      {["confirmed", "partially_received", "sent"].includes(po.status) && <th className="w-32 p-2"></th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {po.lines.map(l => (
-                      <tr key={l.id} className="border-t">
-                        <td className="p-2">
-                          <p className="font-medium">{l.productName ?? l.description}</p>
-                          {l.productSku && <p className="text-xs text-muted-foreground">{l.productSku}</p>}
-                        </td>
-                        <td className="p-2 text-right">{l.quantity}</td>
-                        <td className="p-2 text-right">
-                          <span className={Number(l.quantityReceived) < Number(l.quantity) ? "text-amber-600" : "text-emerald-700"}>
-                            {l.quantityReceived ?? "0"}
-                          </span>
-                        </td>
-                        <td className="p-2 text-right">{formatFCFA(Number(l.unitPriceFcfa))}</td>
-                        <td className="p-2 text-right font-medium">{formatFCFA(Number(l.totalFcfa))}</td>
-                      </tr>
-                    ))}
+                    {po.lines.map(l => {
+                      const qtyRec = Number(l.quantityReceived ?? 0);
+                      const qtyOrd = Number(l.quantity);
+                      const inputKey = l.id;
+                      return (
+                        <tr key={l.id} className="border-t">
+                          <td className="p-2">
+                            <p className="font-medium">{l.productName ?? l.description}</p>
+                            {l.productSku && <p className="text-xs text-muted-foreground">{l.productSku}</p>}
+                          </td>
+                          <td className="p-2 text-right">{l.quantity}</td>
+                          <td className="p-2 text-right">
+                            <span className={qtyRec < qtyOrd ? "text-amber-600" : "text-emerald-700"}>
+                              {qtyRec} / {qtyOrd}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right">{formatFCFA(Number(l.unitPriceFcfa))}</td>
+                          <td className="p-2 text-right font-medium">{formatFCFA(Number(l.totalFcfa))}</td>
+                          {["confirmed", "partially_received", "sent"].includes(po.status) && (
+                            <td className="p-2">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  className="h-7 text-xs w-16 text-right"
+                                  type="number" min="0" max={qtyOrd}
+                                  value={receptionQty[inputKey] ?? String(qtyRec)}
+                                  onChange={(e) => setReceptionQty(prev => ({ ...prev, [inputKey]: e.target.value }))}
+                                />
+                                <Button size="icon" className="h-7 w-7 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  onClick={() => updateLineReception(l.id, Number(receptionQty[inputKey] ?? qtyRec))}>
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot className="bg-slate-50 border-t">
-                    <tr><td colSpan={4} className="p-2 text-right font-semibold">Total</td><td className="p-2 text-right font-bold">{formatFCFA(Number(po.totalFcfa))}</td></tr>
+                    <tr>
+                      <td colSpan={["confirmed", "partially_received", "sent"].includes(po.status) ? 4 : 4} className="p-2 text-right font-semibold">Total</td>
+                      <td className="p-2 text-right font-bold">{formatFCFA(Number(po.totalFcfa))}</td>
+                      {["confirmed", "partially_received", "sent"].includes(po.status) && <td />}
+                    </tr>
                   </tfoot>
                 </table>
+              </div>
+            </div>
+
+            {/* Linked invoices */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Factures associées ({linkedInvoices.length})</h3>
+              {linkedInvoices.length === 0 && <p className="text-sm text-muted-foreground italic">Aucune facture liée à ce BC.</p>}
+              <div className="space-y-2">
+                {linkedInvoices.map(inv => (
+                  <div key={inv.id} className="flex items-center justify-between bg-slate-50 rounded p-3 text-sm">
+                    <div>
+                      <span className="font-mono font-medium">{inv.referenceNumber}</span>
+                      <span className="text-muted-foreground ml-2">· {formatFCFA(Number(inv.totalAmount))}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadgePurchases status={inv.status} />
+                      <span className="text-xs text-muted-foreground">{formatDate(inv.invoiceDate)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -287,16 +330,18 @@ function PoDetailSheet({ poId, onClose, onRefresh }: { poId: string; onClose: ()
 
 export default function AchatsBonsCommande() {
   const qc = useQueryClient();
-  const [, navigate] = useLocation();
   const [searchQ, setSearchQ] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSupplier, setFilterSupplier] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: suppliersRes } = useQuery<{ data: Supplier[] }>({
     queryKey: ["purchases-suppliers-list"],
     queryFn: () => apiFetch("/api/purchases/suppliers?limit=200"),
+    staleTime: 60_000,
   });
   const suppliers = suppliersRes?.data ?? [];
 
@@ -306,14 +351,14 @@ export default function AchatsBonsCommande() {
   if (searchQ) qParams.search = searchQ;
 
   const { data: res, isLoading } = useQuery<{ data: PO[]; total: number }>({
-    queryKey: ["purchases-pos", filterStatus, filterSupplier, searchQ],
+    queryKey: ["purchases-pos", filterStatus, filterSupplier, searchQ, dateFrom, dateTo],
     queryFn: () => apiFetch("/api/purchases/purchase-orders?" + new URLSearchParams(qParams).toString()),
   });
   const pos = res?.data ?? [];
   const refresh = () => qc.invalidateQueries({ queryKey: ["purchases-pos"] });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <PageHeader
         title="Bons de commande"
         subtitle={`${res?.total ?? 0} BC`}
@@ -322,24 +367,32 @@ export default function AchatsBonsCommande() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Rechercher par référence…" className="pl-9" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Tous statuts" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="all">Tous statuts</SelectItem>
             {Object.entries(PO_STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterSupplier} onValueChange={setFilterSupplier}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Tous les fournisseurs" /></SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Tous fournisseurs" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tous les fournisseurs</SelectItem>
+            <SelectItem value="all">Tous fournisseurs</SelectItem>
             {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Input type="date" className="w-36 text-xs" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Date commande du" />
+          <span className="text-muted-foreground text-xs">→</span>
+          <Input type="date" className="w-36 text-xs" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Date commande au" />
+        </div>
+        {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterStatus("all"); setFilterSupplier("all"); setSearchQ(""); setDateFrom(""); setDateTo(""); }}>Effacer</Button>
+        )}
       </div>
 
       {/* Table */}
@@ -350,6 +403,7 @@ export default function AchatsBonsCommande() {
               <TableRow>
                 <TableHead>Référence</TableHead>
                 <TableHead>Fournisseur</TableHead>
+                <TableHead>Date commande</TableHead>
                 <TableHead>Livraison prévue</TableHead>
                 <TableHead className="text-right">Montant</TableHead>
                 <TableHead>Statut</TableHead>
@@ -358,18 +412,19 @@ export default function AchatsBonsCommande() {
             </TableHeader>
             <TableBody>
               {isLoading && [1,2,3].map(i => (
-                <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                <TableRow key={i}>{[1,2,3,4,5,6,7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
               ))}
               {!isLoading && pos.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Aucun bon de commande trouvé.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Aucun bon de commande trouvé.</TableCell></TableRow>
               )}
               {pos.map(po => (
                 <TableRow key={po.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(po.id)}>
                   <TableCell className="font-mono text-sm font-medium">{po.reference}</TableCell>
                   <TableCell className="text-sm">{po.supplierName ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{po.orderDate ? formatDate(String(po.orderDate)) : "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{po.expectedDate ? formatDate(String(po.expectedDate)) : "—"}</TableCell>
                   <TableCell className="text-right font-medium">{formatFCFA(Number(po.totalFcfa))}</TableCell>
-                  <TableCell><StatusBadge status={po.status} /></TableCell>
+                  <TableCell><StatusBadgePO status={po.status} /></TableCell>
                   <TableCell><ChevronRight className="w-4 h-4 text-muted-foreground" /></TableCell>
                 </TableRow>
               ))}
@@ -379,13 +434,8 @@ export default function AchatsBonsCommande() {
       </Card>
 
       {newOpen && (
-        <NewPoDialog
-          suppliers={suppliers}
-          onClose={() => setNewOpen(false)}
-          onSuccess={(id) => { refresh(); setSelectedId(id); }}
-        />
+        <NewPoDialog onClose={() => setNewOpen(false)} onSuccess={(id) => { refresh(); setSelectedId(id); }} />
       )}
-
       {selectedId && (
         <PoDetailSheet poId={selectedId} onClose={() => setSelectedId(null)} onRefresh={refresh} />
       )}

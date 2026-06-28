@@ -349,11 +349,17 @@ router.delete("/purchases/suppliers/:id", requirePermission("purchases.write"), 
 
 router.get("/purchases/invoices", requirePermission("purchases.read"), async (req, res) => {
   try {
-    const { status, supplierId, search, limit = "50", offset = "0" } = req.query as Record<string, string>;
+    const { status, supplierId, search, purchaseOrderId, projectId, dateFrom, dateTo, dueBefore, dueAfter, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
     const conds = [eq(supplierInvoicesTable.organizationId, orgId)];
     if (status) conds.push(eq(supplierInvoicesTable.status, status));
     if (supplierId) conds.push(eq(supplierInvoicesTable.supplierId, supplierId));
+    if (purchaseOrderId) conds.push(eq(supplierInvoicesTable.purchaseOrderId, purchaseOrderId));
+    if (projectId) conds.push(eq(supplierInvoicesTable.projectId, projectId));
+    if (dateFrom) conds.push(sql`${supplierInvoicesTable.invoiceDate} >= ${dateFrom}`);
+    if (dateTo) conds.push(sql`${supplierInvoicesTable.invoiceDate} <= ${dateTo}`);
+    if (dueBefore) conds.push(sql`${supplierInvoicesTable.dueDate} <= ${dueBefore}`);
+    if (dueAfter) conds.push(sql`${supplierInvoicesTable.dueDate} >= ${dueAfter}`);
     if (search) {
       conds.push(or(
         ilike(supplierInvoicesTable.referenceNumber, `%${search}%`),
@@ -375,13 +381,15 @@ router.get("/purchases/invoices", requirePermission("purchases.read"), async (re
         notes: supplierInvoicesTable.notes,
         attachmentUrl: supplierInvoicesTable.attachmentUrl,
         supplierId: supplierInvoicesTable.supplierId,
+        purchaseOrderId: supplierInvoicesTable.purchaseOrderId,
+        projectId: supplierInvoicesTable.projectId,
         supplierName: suppliersTable.name,
         supplierCode: suppliersTable.code,
         createdAt: supplierInvoicesTable.createdAt,
         updatedAt: supplierInvoicesTable.updatedAt,
       })
         .from(supplierInvoicesTable)
-        .leftJoin(suppliersTable, eq(suppliersTable.id, supplierInvoicesTable.supplierId))
+        .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
         .where(and(...conds))
         .orderBy(desc(supplierInvoicesTable.invoiceDate))
         .limit(parseInt(limit))
@@ -429,7 +437,8 @@ router.post("/purchases/invoices", requirePermission("purchases.write"), async (
       notes: data.notes ?? null,
       projectId: data.projectId ?? null,
       expenseAccountId: data.expenseAccountId ?? null,
-    } as any).returning();
+      purchaseOrderId: data.purchaseOrderId ?? null,
+    }).returning();
     return res.status(201).json(row);
   } catch (e: any) {
     req.log.error(e, "purchases/invoices POST");
@@ -455,6 +464,7 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
       attachmentUrl: supplierInvoicesTable.attachmentUrl,
       expenseAccountId: supplierInvoicesTable.expenseAccountId,
       projectId: supplierInvoicesTable.projectId,
+      purchaseOrderId: supplierInvoicesTable.purchaseOrderId,
       supplierId: supplierInvoicesTable.supplierId,
       supplierName: suppliersTable.name,
       supplierCode: suppliersTable.code,
@@ -462,12 +472,23 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
       supplierPhone: suppliersTable.phone,
       createdAt: supplierInvoicesTable.createdAt,
     }).from(supplierInvoicesTable)
-      .leftJoin(suppliersTable, eq(suppliersTable.id, supplierInvoicesTable.supplierId))
+      .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
       .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
 
     if (!inv) return res.status(404).json({ error: "Facture introuvable" });
 
-    const payments = await db.select().from(supplierPaymentsTable)
+    const payments = await db.select({
+      id: supplierPaymentsTable.id,
+      amount: supplierPaymentsTable.amount,
+      method: supplierPaymentsTable.method,
+      status: supplierPaymentsTable.status,
+      reference: supplierPaymentsTable.reference,
+      paidAt: supplierPaymentsTable.paidAt,
+      notes: supplierPaymentsTable.notes,
+      bankAccountId: supplierPaymentsTable.bankAccountId,
+      bankAccountName: bankAccountsTable.name,
+    }).from(supplierPaymentsTable)
+      .leftJoin(bankAccountsTable, eq(bankAccountsTable.id, supplierPaymentsTable.bankAccountId))
       .where(and(eq(supplierPaymentsTable.supplierInvoiceId, id), eq(supplierPaymentsTable.organizationId, orgId)))
       .orderBy(desc(supplierPaymentsTable.paidAt));
 
@@ -695,10 +716,12 @@ router.patch("/purchases/purchase-orders/:id", requirePermission("purchases.writ
 
 router.get("/purchases/payments", requirePermission("purchases.read"), async (req, res) => {
   try {
-    const { supplierId, invoiceId, limit = "50", offset = "0" } = req.query as Record<string, string>;
+    const { supplierId, invoiceId, method, status, dateFrom, dateTo, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
     const conds = [eq(supplierPaymentsTable.organizationId, orgId)];
     if (invoiceId) conds.push(eq(supplierPaymentsTable.supplierInvoiceId, invoiceId));
+    if (method) conds.push(eq(supplierPaymentsTable.method, method));
+    if (status) conds.push(eq(supplierPaymentsTable.status, status));
     if (supplierId) {
       conds.push(
         sql`${supplierPaymentsTable.supplierInvoiceId} IN (
@@ -711,16 +734,20 @@ router.get("/purchases/payments", requirePermission("purchases.read"), async (re
         id: supplierPaymentsTable.id,
         amount: supplierPaymentsTable.amount,
         method: supplierPaymentsTable.method,
+        status: supplierPaymentsTable.status,
         reference: supplierPaymentsTable.reference,
         paidAt: supplierPaymentsTable.paidAt,
         notes: supplierPaymentsTable.notes,
+        bankAccountId: supplierPaymentsTable.bankAccountId,
+        bankAccountName: bankAccountsTable.name,
         supplierInvoiceId: supplierPaymentsTable.supplierInvoiceId,
         invoiceRef: supplierInvoicesTable.referenceNumber,
         supplierId: supplierInvoicesTable.supplierId,
         supplierName: suppliersTable.name,
       }).from(supplierPaymentsTable)
         .leftJoin(supplierInvoicesTable, eq(supplierInvoicesTable.id, supplierPaymentsTable.supplierInvoiceId))
-        .leftJoin(suppliersTable, eq(suppliersTable.id, supplierInvoicesTable.supplierId))
+        .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+        .leftJoin(bankAccountsTable, eq(bankAccountsTable.id, supplierPaymentsTable.bankAccountId))
         .where(and(...conds))
         .orderBy(desc(supplierPaymentsTable.paidAt))
         .limit(parseInt(limit))
@@ -737,7 +764,11 @@ router.get("/purchases/payments", requirePermission("purchases.read"), async (re
 router.post("/purchases/payments", requirePermission("purchases.pay"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const parsed = PaymentCreateSchema.safeParse(req.body);
+    const PaySchema = PaymentCreateSchema.extend({
+      bankAccountId: z.string().uuid().optional().nullable(),
+      paymentStatus: z.enum(["programme", "en_attente", "confirme", "echoue", "annule"]).optional().default("confirme"),
+    });
+    const parsed = PaySchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
     const data = parsed.data;
 
@@ -751,21 +782,190 @@ router.post("/purchases/payments", requirePermission("purchases.pay"), async (re
       amount: String(data.amount),
       method: data.paymentMethod ?? "virement",
       reference: data.reference ?? null,
+      status: data.paymentStatus ?? "confirme",
+      bankAccountId: (data as any).bankAccountId ?? null,
       paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
       notes: data.notes ?? null,
     }).returning();
 
-    const newPaid = toNum(invoice.paidAmount) + data.amount;
-    const total = toNum(invoice.totalAmount);
-    const newStatus = newPaid >= total ? "paid" : "partially_paid";
-    await db.update(supplierInvoicesTable)
-      .set({ paidAmount: String(newPaid), status: newStatus })
-      .where(eq(supplierInvoicesTable.id, data.supplierInvoiceId));
+    // Only update invoice balance if payment is confirmed
+    if ((data.paymentStatus ?? "confirme") === "confirme") {
+      const newPaid = toNum(invoice.paidAmount) + data.amount;
+      const total = toNum(invoice.totalAmount);
+      const newStatus = newPaid >= total ? "paid" : "partially_paid";
+      await db.update(supplierInvoicesTable)
+        .set({ paidAmount: String(newPaid), status: newStatus })
+        .where(eq(supplierInvoicesTable.id, data.supplierInvoiceId));
+    }
 
     return res.status(201).json(payment);
   } catch (e: any) {
     req.log.error(e, "purchases/payments POST");
     return res.status(500).json({ error: "Erreur lors de l'enregistrement du paiement" });
+  }
+});
+
+// Multi-invoice payment: allocate oldest-first
+router.post("/purchases/payments/multi", requirePermission("purchases.pay"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const Schema = z.object({
+      supplierId: z.string().uuid(),
+      invoiceIds: z.array(z.string().uuid()).min(1),
+      totalAmount: z.coerce.number().positive(),
+      paymentMethod: z.string().optional().default("virement"),
+      bankAccountId: z.string().uuid().optional().nullable(),
+      reference: z.string().optional().nullable(),
+      paidAt: z.string().optional(),
+      notes: z.string().optional().nullable(),
+      paymentStatus: z.enum(["programme", "en_attente", "confirme"]).optional().default("confirme"),
+    });
+    const parsed = Schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+    const data = parsed.data;
+
+    // Fetch and sort invoices by invoiceDate ASC (oldest first)
+    const invoices = await db.select().from(supplierInvoicesTable)
+      .where(and(
+        inArray(supplierInvoicesTable.id, data.invoiceIds),
+        eq(supplierInvoicesTable.organizationId, orgId),
+        eq(supplierInvoicesTable.supplierId, data.supplierId),
+      ))
+      .orderBy(asc(supplierInvoicesTable.invoiceDate));
+    if (!invoices.length) return res.status(400).json({ error: "Aucune facture trouvable" });
+
+    let remaining = data.totalAmount;
+    const created: any[] = [];
+    const paidAt = data.paidAt ? new Date(data.paidAt) : new Date();
+    const isConfirmed = (data.paymentStatus ?? "confirme") === "confirme";
+
+    for (const inv of invoices) {
+      if (remaining <= 0) break;
+      const balance = toNum(inv.totalAmount) - toNum(inv.paidAmount);
+      if (balance <= 0) continue;
+      const payAmt = Math.min(remaining, balance);
+      remaining -= payAmt;
+
+      const [p] = await db.insert(supplierPaymentsTable).values({
+        organizationId: orgId,
+        supplierInvoiceId: inv.id,
+        amount: String(payAmt),
+        method: data.paymentMethod ?? "virement",
+        reference: data.reference ?? null,
+        status: data.paymentStatus ?? "confirme",
+        bankAccountId: data.bankAccountId ?? null,
+        paidAt,
+        notes: data.notes ?? null,
+      }).returning();
+      created.push(p);
+
+      if (isConfirmed) {
+        const newPaid = toNum(inv.paidAmount) + payAmt;
+        const newStatus = newPaid >= toNum(inv.totalAmount) ? "paid" : "partially_paid";
+        await db.update(supplierInvoicesTable)
+          .set({ paidAmount: String(newPaid), status: newStatus })
+          .where(eq(supplierInvoicesTable.id, inv.id));
+      }
+    }
+
+    return res.status(201).json({ payments: created, allocatedCount: created.length, remainingAmount: remaining });
+  } catch (e: any) {
+    req.log.error(e, "purchases/payments/multi POST");
+    return res.status(500).json({ error: "Erreur lors des paiements groupés" });
+  }
+});
+
+// Confirm a scheduled payment
+router.patch("/purchases/payments/:id/confirm", requirePermission("purchases.pay"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const [p] = await db.select().from(supplierPaymentsTable)
+      .where(and(eq(supplierPaymentsTable.id, id), eq(supplierPaymentsTable.organizationId, orgId)));
+    if (!p) return res.status(404).json({ error: "Paiement introuvable" });
+    if (p.status === "confirme") return res.json(p);
+
+    const [updated] = await db.update(supplierPaymentsTable).set({ status: "confirme" })
+      .where(eq(supplierPaymentsTable.id, id)).returning();
+
+    // Update invoice balance
+    const [inv] = await db.select().from(supplierInvoicesTable)
+      .where(eq(supplierInvoicesTable.id, p.supplierInvoiceId));
+    if (inv) {
+      const newPaid = toNum(inv.paidAmount) + toNum(p.amount);
+      const newStatus = newPaid >= toNum(inv.totalAmount) ? "paid" : "partially_paid";
+      await db.update(supplierInvoicesTable)
+        .set({ paidAmount: String(newPaid), status: newStatus })
+        .where(eq(supplierInvoicesTable.id, inv.id));
+    }
+
+    return res.json(updated);
+  } catch (e: any) {
+    req.log.error(e, "purchases/payments/:id/confirm PATCH");
+    return res.status(500).json({ error: "Erreur lors de la confirmation" });
+  }
+});
+
+// Get invoices linked to a PO
+router.get("/purchases/purchase-orders/:id/invoices", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const id = req.params.id as string;
+    const rows = await db.select({
+      id: supplierInvoicesTable.id,
+      referenceNumber: supplierInvoicesTable.referenceNumber,
+      status: supplierInvoicesTable.status,
+      invoiceDate: supplierInvoicesTable.invoiceDate,
+      dueDate: supplierInvoicesTable.dueDate,
+      totalAmount: supplierInvoicesTable.totalAmount,
+      paidAmount: supplierInvoicesTable.paidAmount,
+    }).from(supplierInvoicesTable)
+      .where(and(eq(supplierInvoicesTable.purchaseOrderId, id), eq(supplierInvoicesTable.organizationId, orgId)))
+      .orderBy(desc(supplierInvoicesTable.invoiceDate));
+    return res.json({ data: rows });
+  } catch (e: any) {
+    req.log.error(e, "purchases/purchase-orders/:id/invoices GET");
+    return res.status(500).json({ error: "Erreur lors de la récupération" });
+  }
+});
+
+// Update line quantity received
+router.patch("/purchases/purchase-orders/:id/lines/:lineId", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { id, lineId } = req.params as Record<string, string>;
+    const Schema = z.object({ quantityReceived: z.coerce.number().min(0) });
+    const parsed = Schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
+
+    // Verify PO belongs to org
+    const [po] = await db.select({ id: purchaseOrdersTable.id })
+      .from(purchaseOrdersTable)
+      .where(and(eq(purchaseOrdersTable.id, id), eq(purchaseOrdersTable.organizationId, orgId), isNull(purchaseOrdersTable.deletedAt)));
+    if (!po) return res.status(404).json({ error: "Bon de commande introuvable" });
+
+    const [updated] = await db.update(purchaseOrderLinesTable)
+      .set({ quantityReceived: String(parsed.data.quantityReceived) })
+      .where(and(eq(purchaseOrderLinesTable.id, lineId), eq(purchaseOrderLinesTable.purchaseOrderId, id), eq(purchaseOrderLinesTable.organizationId, orgId)))
+      .returning();
+    if (!updated) return res.status(404).json({ error: "Ligne introuvable" });
+
+    // Auto-update PO status based on all lines
+    const allLines = await db.select({ qty: purchaseOrderLinesTable.quantity, received: purchaseOrderLinesTable.quantityReceived })
+      .from(purchaseOrderLinesTable)
+      .where(and(eq(purchaseOrderLinesTable.purchaseOrderId, id), eq(purchaseOrderLinesTable.organizationId, orgId)));
+    const totalQty = allLines.reduce((s, l) => s + toNum(l.qty), 0);
+    const totalReceived = allLines.reduce((s, l) => s + toNum(l.received), 0);
+    const newPoStatus = totalReceived >= totalQty ? "received" : totalReceived > 0 ? "partially_received" : undefined;
+    if (newPoStatus) {
+      await db.update(purchaseOrdersTable).set({ status: newPoStatus })
+        .where(and(eq(purchaseOrdersTable.id, id), eq(purchaseOrdersTable.organizationId, orgId)));
+    }
+
+    return res.json(updated);
+  } catch (e: any) {
+    req.log.error(e, "purchases/purchase-orders/:id/lines/:lineId PATCH");
+    return res.status(500).json({ error: "Erreur lors de la mise à jour de la ligne" });
   }
 });
 
