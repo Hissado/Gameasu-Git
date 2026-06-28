@@ -43,7 +43,7 @@ function getCollabStatus(c: any): { label: string; className: string } | null {
   if (c.hireDate) {
     const daysAgo = (Date.now() - new Date(c.hireDate).getTime()) / 86_400_000;
     if (daysAgo < 90) {
-      return { label: "Nouveau", className: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" };
+      return { label: "Nouveau", className: "bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary" };
     }
   }
   return null;
@@ -283,7 +283,7 @@ export default function CollaboratorsList() {
         {isManagerOrAbove && (
           <Button
             size="sm"
-            className="gap-2 bg-teal-700 hover:bg-teal-600 text-white shrink-0"
+            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
             onClick={() => setAddOpen(true)}
           >
             <UserPlus className="w-4 h-4" />
@@ -332,7 +332,7 @@ export default function CollaboratorsList() {
                 disabled={isEmpty}
                 className={`text-xs font-medium px-3 py-1 rounded-full border transition-colors ${
                   isActive
-                    ? "bg-teal-700 text-white border-teal-700"
+                    ? "bg-primary text-primary-foreground border-primary"
                     : isEmpty
                     ? "bg-muted/30 text-muted-foreground/40 border-border/40 cursor-not-allowed"
                     : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
@@ -388,7 +388,7 @@ export default function CollaboratorsList() {
           <span className="text-xs text-muted-foreground ml-auto">
             {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
             {focusedIndex >= 0 && (
-              <span className="ml-2 text-teal-700 font-medium">
+              <span className="ml-2 text-primary font-medium">
                 · {focusedIndex + 1}/{filtered.length} sélectionné
               </span>
             )}
@@ -442,7 +442,7 @@ export default function CollaboratorsList() {
                   "flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-all duration-100",
                   "border-l-2",
                   isFocused
-                    ? "bg-teal-50 border-l-teal-600 dark:bg-teal-900/20"
+                    ? "bg-primary/5 border-l-primary dark:bg-primary/10"
                     : "border-l-transparent hover:bg-slate-50",
                 )}
               >
@@ -459,7 +459,7 @@ export default function CollaboratorsList() {
                 <div className="flex-1 min-w-0">
                   <p className={cn(
                     "text-sm font-semibold truncate leading-tight",
-                    isFocused ? "text-teal-700 dark:text-teal-400" : "text-slate-800",
+                    isFocused ? "text-primary dark:text-primary" : "text-slate-800",
                   )}>
                     {c.firstName} {c.lastName}
                   </p>
@@ -484,7 +484,7 @@ export default function CollaboratorsList() {
                     </span>
                   )}
                   {isFocused && (
-                    <kbd className="hidden sm:inline-flex items-center text-[10px] px-1.5 py-px rounded border border-teal-300 bg-teal-100 text-teal-700 font-mono font-bold">
+                    <kbd className="hidden sm:inline-flex items-center text-[10px] px-1.5 py-px rounded border border-primary/30 bg-primary/10 text-primary font-mono font-bold">
                       ↵
                     </kbd>
                   )}
@@ -609,7 +609,7 @@ export default function CollaboratorsList() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Annuler</Button>
             <Button
-              className="bg-teal-700 hover:bg-teal-600 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={!addForm.firstName || !addForm.lastName || addMutation.isPending}
               onClick={() => addMutation.mutate(addForm)}
             >

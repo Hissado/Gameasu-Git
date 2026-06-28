@@ -874,7 +874,7 @@ function AddCollaboratorDialog({ open, onClose, onCreated }: { open: boolean; on
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-teal-600" />
+            <UserPlus className="w-5 h-5 text-primary" />
             Nouveau collaborateur
           </DialogTitle>
         </DialogHeader>
@@ -944,7 +944,7 @@ function AddCollaboratorDialog({ open, onClose, onCreated }: { open: boolean; on
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={handleSubmit} disabled={saving} className="bg-teal-700 hover:bg-teal-600 text-white">
+          <Button onClick={handleSubmit} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1.5" />}
             Créer le collaborateur
           </Button>
@@ -982,7 +982,7 @@ function getCollabStatus(c: any): { label: string; className: string } | null {
   if (c.hireDate) {
     const daysAgo = (Date.now() - new Date(c.hireDate).getTime()) / 86_400_000;
     if (daysAgo < 90) {
-      return { label: "Nouveau", className: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" };
+      return { label: "Nouveau", className: "bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary" };
     }
   }
   return null;
@@ -1439,7 +1439,7 @@ export default function CollaboratorDetail() {
         {/* Sidebar header */}
         <div className="px-3 pt-3 pb-2 border-b border-border shrink-0 space-y-2">
           {isManagerOrAbove && (
-            <Button size="sm" className="w-full gap-2 bg-teal-700 hover:bg-teal-600 text-white" onClick={() => setAddOpen(true)}>
+            <Button size="sm" className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => setAddOpen(true)}>
               <UserPlus className="w-4 h-4" />
               Ajouter un collaborateur
             </Button>
@@ -1481,7 +1481,7 @@ export default function CollaboratorDetail() {
                 disabled={isEmpty}
                 className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
                   isActive
-                    ? "bg-teal-700 text-white border-teal-700"
+                    ? "bg-primary text-primary-foreground border-primary"
                     : isEmpty
                     ? "bg-muted/30 text-muted-foreground/40 border-border/40 cursor-not-allowed"
                     : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
@@ -1560,9 +1560,9 @@ export default function CollaboratorDetail() {
                   className={`
                     flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-all duration-150
                     ${isSelected
-                      ? "bg-teal-50 dark:bg-teal-900/20 border-l-2 border-teal-600"
+                      ? "bg-primary/5 dark:bg-primary/10 border-l-2 border-primary"
                       : isFocused
-                      ? "bg-muted/80 dark:bg-muted/50 border-l-2 border-teal-400"
+                      ? "bg-muted/80 dark:bg-muted/50 border-l-2 border-primary/60"
                       : "hover:bg-muted/60 border-l-2 border-transparent"}
                   `}
                 >
@@ -1576,7 +1576,7 @@ export default function CollaboratorDetail() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-semibold truncate leading-tight ${isSelected ? "text-teal-700 dark:text-teal-400" : isFocused ? "text-teal-600 dark:text-teal-300" : "text-foreground"}`}>
+                    <p className={`text-[13px] font-semibold truncate leading-tight ${isSelected ? "text-primary dark:text-primary" : isFocused ? "text-primary dark:text-primary/80" : "text-foreground"}`}>
                       {c.firstName} {c.lastName}
                     </p>
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -1639,7 +1639,7 @@ export default function CollaboratorDetail() {
         </div>
 
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
-      {/* HEADER BANNER — style Uptimise dark teal */}
+      {/* HEADER BANNER — Gameasu brand navy/blue */}
       <div className="rounded-xl overflow-hidden shadow-sm border border-border/50">
         {/* Bouton retour — desktop only */}
         <div className="px-5 pt-4 pb-0 hidden lg:block">
@@ -1651,12 +1651,12 @@ export default function CollaboratorDetail() {
           </Link>
         </div>
         {/* Banner dark */}
-        <div className="bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 px-6 pt-4 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="bg-gradient-to-br from-[#0F1A3A] via-[#0d1526] to-[#1e293b] px-6 pt-4 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="flex items-end gap-5">
             <div className="relative shrink-0">
-              <Avatar className="w-24 h-24 border-4 border-white/20 shadow-xl ring-2 ring-teal-400/30">
+              <Avatar className="w-24 h-24 border-4 border-white/20 shadow-xl ring-2 ring-primary/30">
                 <AvatarImage src={collaborator.avatarUrl} />
-                <AvatarFallback className="text-3xl bg-teal-700 text-white font-bold">
+                <AvatarFallback className="text-3xl bg-primary text-white font-bold">
                   {collaborator.firstName[0]}{collaborator.lastName[0]}
                 </AvatarFallback>
               </Avatar>
@@ -1674,19 +1674,19 @@ export default function CollaboratorDetail() {
               <h1 className="text-2xl font-bold text-white tracking-tight">
                 {collaborator.firstName} {collaborator.lastName}
               </h1>
-              <p className="text-sm text-teal-300 font-medium mt-0.5">
+              <p className="text-sm text-blue-300 font-medium mt-0.5">
                 {overview?.position?.title || collaborator.position || "Fonction non définie"}
               </p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {overview?.department && (
                   <span className="text-xs text-white/60 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
                     {overview.department.name}
                   </span>
                 )}
                 {overview?.manager && (
                   <span className="text-xs text-white/50">
-                    · Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-teal-300 hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link>
+                    · Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-blue-300 hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link>
                   </span>
                 )}
                 {(collaborator as any).employeeNumber && (
@@ -1722,8 +1722,8 @@ export default function CollaboratorDetail() {
         <div className="grid grid-cols-3 divide-x divide-border bg-card border-t border-border/50">
           {/* Congés disponibles */}
           <div className="px-5 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-              <CalendarClock className="w-4 h-4 text-teal-600" />
+            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
+              <CalendarClock className="w-4 h-4 text-primary" />
             </div>
             <div>
               <p className="text-lg font-bold text-foreground leading-none">{totalLeaveAvailable}</p>
@@ -1765,7 +1765,7 @@ export default function CollaboratorDetail() {
           <Card className="shadow-sm border-border overflow-hidden">
             <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-teal-600" /> Congés
+                <CalendarClock className="w-4 h-4 text-primary" /> Congés
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
@@ -1785,7 +1785,7 @@ export default function CollaboratorDetail() {
                     return (
                       <div key={b.leaveType} className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2 text-muted-foreground text-xs">
-                          <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                           {b.leaveType}
                         </span>
                         <span className="font-semibold text-foreground text-sm">{avail} j</span>
@@ -2066,18 +2066,18 @@ export default function CollaboratorDetail() {
                     </Button>
                   </div>
                   {linkedUser ? (
-                    <div className="flex items-center gap-2.5 p-2 rounded-lg bg-teal-50 border border-teal-200">
-                      <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
+                    <div className="flex items-center gap-2.5 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
                         {(linkedUser.firstName?.[0] ?? "") + (linkedUser.lastName?.[0] ?? "")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-teal-900 truncate">
+                        <p className="text-xs font-semibold text-foreground truncate">
                           {linkedUser.firstName} {linkedUser.lastName}
                         </p>
-                        <p className="text-[10px] text-teal-700 truncate">{linkedUser.email}</p>
+                        <p className="text-[10px] text-primary truncate">{linkedUser.email}</p>
                       </div>
                       <Button size="sm" variant="ghost"
-                        className="h-6 w-6 p-0 text-teal-400 hover:text-rose-500 hover:bg-rose-50 shrink-0"
+                        className="h-6 w-6 p-0 text-blue-400 hover:text-rose-500 hover:bg-rose-50 shrink-0"
                         title="Délier ce compte"
                         onClick={() => linkUserMutation.mutate(null)}>
                         <UserX className="w-3.5 h-3.5" />
@@ -2098,7 +2098,7 @@ export default function CollaboratorDetail() {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-base">
-                  <Link2 className="w-4 h-4 text-teal-600" />
+                  <Link2 className="w-4 h-4 text-primary" />
                   {linkedUser ? "Changer le compte lié" : "Lier un compte utilisateur"}
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -2123,7 +2123,7 @@ export default function CollaboratorDetail() {
                     usersForLink.map((u: any) => (
                       <button
                         key={u.id}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-teal-50 transition-colors ${linkedUser?.id === u.id ? "bg-teal-50 ring-1 ring-teal-300" : ""}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-primary/5 transition-colors ${linkedUser?.id === u.id ? "bg-primary/5 ring-1 ring-primary/40" : ""}`}
                         onClick={() => linkUserMutation.mutate(u.id)}
                         disabled={linkUserMutation.isPending}
                       >
@@ -2133,14 +2133,14 @@ export default function CollaboratorDetail() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {u.firstName} {u.lastName}
-                            {linkedUser?.id === u.id && <span className="ml-2 text-xs text-teal-600 font-normal">(actuel)</span>}
+                            {linkedUser?.id === u.id && <span className="ml-2 text-xs text-primary font-normal">(actuel)</span>}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                         </div>
                         {linkUserMutation.isPending ? (
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
                         ) : linkedUser?.id === u.id ? (
-                          <Check className="w-4 h-4 text-teal-600 shrink-0" />
+                          <Check className="w-4 h-4 text-primary shrink-0" />
                         ) : null}
                       </button>
                     ))
@@ -2164,7 +2164,7 @@ export default function CollaboratorDetail() {
               <div className="space-y-4 relative pl-6">
                 <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border/60" />
                 <div className="relative">
-                  <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-teal-500 border-2 border-white shadow-sm" />
+                  <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-primary border-2 border-white shadow-sm" />
                   <p className="text-xs font-semibold text-foreground">Date de début</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {(collaborator as any).hireDate
