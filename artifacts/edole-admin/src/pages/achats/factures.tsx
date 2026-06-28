@@ -223,22 +223,31 @@ function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange
 
 // ─── New invoice dialog ───────────────────────────────────────────────────────
 
+type Project = { id: string; name: string; code: string | null };
+
 function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
-  prefill?: Partial<{ supplierId: string; referenceNumber: string; totalAmount: string; purchaseOrderId: string }>;
+  prefill?: Partial<{ supplierId: string; referenceNumber: string; totalAmount: string; purchaseOrderId: string; lines: InvoiceLine[] }>;
   onClose: () => void; onSuccess: () => void;
 }) {
   const [supplierId, setSupplierId] = useState(prefill?.supplierId ?? "");
   const [referenceNumber, setReferenceNumber] = useState(prefill?.referenceNumber ?? "");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState("");
-  const [lines, setLines] = useState<InvoiceLine[]>([]);
+  const [lines, setLines] = useState<InvoiceLine[]>(prefill?.lines ?? []);
   const [notes, setNotes] = useState("");
   const [purchaseOrderId, setPurchaseOrderId] = useState(prefill?.purchaseOrderId ?? "");
+  const [projectId, setProjectId] = useState("");
   const [saving, setSaving] = useState(false);
-  const [useLines, setUseLines] = useState(true);
+  const [useLines, setUseLines] = useState((prefill?.lines?.length ?? 0) > 0 || !prefill?.totalAmount);
   // Manual totals fallback (when not using line editor)
   const [manualTotal, setManualTotal] = useState(prefill?.totalAmount ?? "");
   const [manualTax, setManualTax] = useState("0");
+
+  const { data: projectsRes } = useQuery<{ data: Project[] }>({
+    queryKey: ["projects-list-light"],
+    queryFn: () => apiFetch("/api/projects?limit=100"),
+    staleTime: 60_000,
+  });
 
   const { data: posRes } = useQuery<{ data: PO[] }>({
     queryKey: ["purchases-pos-by-supplier", supplierId],
@@ -263,6 +272,7 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
           supplierId, referenceNumber, invoiceDate, dueDate: dueDate || undefined,
           totalAmount: totalHt || 1, taxAmount: totalTax,
           notes: notes || undefined, purchaseOrderId: purchaseOrderId || undefined,
+          projectId: projectId || undefined,
         }),
       });
       // Save lines if any
@@ -326,6 +336,20 @@ function NewInvoiceDialog({ prefill, onClose, onSuccess }: {
             <div className="bg-slate-50 rounded p-3 flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Total HT : <strong>{formatFCFA(totalHt)}</strong> · TVA : <strong>{formatFCFA(totalTax)}</strong></span>
               <span className="font-bold text-sm">TTC : {formatFCFA(totalHt + totalTax)}</span>
+            </div>
+          )}
+
+          {/* Projet lié */}
+          {projectsRes?.data && projectsRes.data.length > 0 && (
+            <div className="space-y-1">
+              <Label>Projet lié</Label>
+              <Select value={projectId || "_none"} onValueChange={(v) => setProjectId(v === "_none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="— Aucun projet —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— Aucun projet —</SelectItem>
+                  {(projectsRes?.data ?? []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ""}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -500,22 +524,29 @@ async function exportToExcel(params: Record<string, string>) {
       { header: "N° Facture", key: "referenceNumber", width: 20 },
       { header: "Date facture", key: "invoiceDate", width: 14 },
       { header: "Échéance", key: "dueDate", width: 14 },
-      { header: "Montant HT", key: "totalAmount", width: 16 },
-      { header: "TVA", key: "taxAmount", width: 12 },
-      { header: "Payé", key: "paidAmount", width: 14 },
-      { header: "Solde", key: "balance", width: 14 },
-      { header: "Statut", key: "status", width: 16 },
+      { header: "Retard", key: "isOverdue", width: 10 },
+      { header: "Montant HT (FCFA)", key: "totalAmount", width: 18 },
+      { header: "TVA (FCFA)", key: "taxAmount", width: 14 },
+      { header: "Montant TTC (FCFA)", key: "totalTtc", width: 18 },
+      { header: "Payé (FCFA)", key: "paidAmount", width: 14 },
+      { header: "Solde (FCFA)", key: "balance", width: 14 },
+      { header: "Statut", key: "status", width: 18 },
     ];
     const header = ws.getRow(1);
     header.font = { bold: true, color: { argb: "FFFFFFFF" } };
     header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
-    rows.forEach(r => ws.addRow({
-      supplierName: r.supplierName ?? "", referenceNumber: r.referenceNumber,
-      invoiceDate: r.invoiceDate, dueDate: r.dueDate ?? "",
-      totalAmount: Number(r.totalAmount), taxAmount: Number(r.taxAmount),
-      paidAmount: Number(r.paidAmount), balance: r.balance,
-      status: INV_STATUS_MAP[r.status]?.label ?? r.status,
-    }));
+    rows.forEach(r => {
+      const ht = Number(r.totalAmount);
+      const tva = Number(r.taxAmount);
+      ws.addRow({
+        supplierName: r.supplierName ?? "", referenceNumber: r.referenceNumber,
+        invoiceDate: r.invoiceDate, dueDate: r.dueDate ?? "",
+        isOverdue: r.isOverdue ? "Oui" : "Non",
+        totalAmount: ht, taxAmount: tva, totalTtc: ht + tva,
+        paidAmount: Number(r.paidAmount), balance: r.balance,
+        status: INV_STATUS_MAP[r.status]?.label ?? r.status,
+      });
+    });
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
@@ -542,33 +573,56 @@ export default function AchatsFactures() {
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
   const [filterOverdue, setFilterOverdue] = useState(false);
+  const [dueDateFrom, setDueDateFrom] = useState("");
+  const [dueDateTo, setDueDateTo] = useState("");
+  const [filterProject, setFilterProject] = useState("all");
   const [page, setPage] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
-  const [bcPrefill, setBcPrefill] = useState<Partial<{ supplierId: string; totalAmount: string; purchaseOrderId: string }> | undefined>();
+  const [bcPrefill, setBcPrefill] = useState<Partial<{ supplierId: string; totalAmount: string; purchaseOrderId: string; lines: InvoiceLine[] }> | undefined>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { data: projectsListRes } = useQuery<{ data: Project[] }>({
+    queryKey: ["projects-list-light"],
+    queryFn: () => apiFetch("/api/projects?limit=100"),
+    staleTime: 60_000,
+  });
+  const projectsList = projectsListRes?.data ?? [];
 
   useEffect(() => {
     if (!fromBcId) return;
     apiFetch<any>(`/api/purchases/purchase-orders/${fromBcId}`)
-      .then(po => { setBcPrefill({ supplierId: po.supplierId, totalAmount: po.totalFcfa, purchaseOrderId: po.id }); setNewOpen(true); })
+      .then(po => {
+        // Convert PO lines to invoice lines
+        const prefillLines: InvoiceLine[] = (po.lines ?? []).map((l: any) => ({
+          description: l.productName ?? l.description,
+          quantity: Number(l.quantity),
+          unitPriceFcfa: Number(l.unitPriceFcfa),
+          taxRate: 18,
+        }));
+        setBcPrefill({ supplierId: po.supplierId, purchaseOrderId: po.id, lines: prefillLines });
+        setNewOpen(true);
+      })
       .catch(() => setNewOpen(true));
   }, [fromBcId]);
 
   // Reset to page 0 whenever filters change
-  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue]);
+  useEffect(() => { setPage(0); }, [filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue, dueDateFrom, dueDateTo, filterProject]);
 
   const qParams: Record<string, string> = { limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) };
   if (filterStatus !== "all") qParams.status = filterStatus;
   else if (filterOverdue) qParams.status = "overdue";
   if (filterSupplier !== "all") qParams.supplierId = filterSupplier;
+  if (filterProject !== "all") qParams.projectId = filterProject;
   if (searchQ) qParams.search = searchQ;
   if (dateFrom) qParams.dateFrom = dateFrom;
   if (dateTo) qParams.dateTo = dateTo;
+  if (dueDateFrom) qParams.dueAfter = dueDateFrom;
+  if (dueDateTo) qParams.dueBefore = dueDateTo;
   if (minAmount) qParams.minAmount = minAmount;
   if (maxAmount) qParams.maxAmount = maxAmount;
 
   const { data: res, isLoading } = useQuery<{ data: Invoice[]; total: number }>({
-    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue, page],
+    queryKey: ["purchases-invoices", filterStatus, filterSupplier, searchQ, dateFrom, dateTo, minAmount, maxAmount, filterOverdue, dueDateFrom, dueDateTo, filterProject, page],
     queryFn: () => apiFetch("/api/purchases/invoices?" + new URLSearchParams(qParams).toString()),
   });
   const invoices = res?.data ?? [];
@@ -631,6 +685,23 @@ export default function AchatsFactures() {
           <span className="text-muted-foreground text-xs px-1">→</span>
           <Input type="date" className="w-36 text-xs" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Date facture au" />
         </div>
+        {/* Projet filter */}
+        {projectsList.length > 0 && (
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Tous projets" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous projets</SelectItem>
+              {projectsList.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {/* Date échéance filter */}
+        <div className="flex items-center gap-1">
+          <span className="text-muted-foreground text-xs shrink-0">Éch.</span>
+          <Input type="date" className="w-32 text-xs" value={dueDateFrom} onChange={(e) => setDueDateFrom(e.target.value)} title="Échéance du" />
+          <span className="text-muted-foreground text-xs px-0.5">→</span>
+          <Input type="date" className="w-32 text-xs" value={dueDateTo} onChange={(e) => setDueDateTo(e.target.value)} title="Échéance au" />
+        </div>
         <div className="flex items-center gap-1">
           <Input type="number" min="0" className="w-28 text-xs" placeholder="Min FCFA" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} title="Montant minimum" />
           <span className="text-muted-foreground text-xs px-1">–</span>
@@ -644,8 +715,8 @@ export default function AchatsFactures() {
         >
           <AlertTriangle className="w-3.5 h-3.5" /> En retard
         </Button>
-        {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo || minAmount || maxAmount || filterOverdue) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterStatus("all"); setFilterSupplier("all"); setSearchQ(""); setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); setFilterOverdue(false); }}>Effacer</Button>
+        {(filterStatus !== "all" || filterSupplier !== "all" || searchQ || dateFrom || dateTo || minAmount || maxAmount || filterOverdue || dueDateFrom || dueDateTo || filterProject !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterStatus("all"); setFilterSupplier("all"); setSearchQ(""); setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); setFilterOverdue(false); setDueDateFrom(""); setDueDateTo(""); setFilterProject("all"); }}>Effacer</Button>
         )}
       </div>
 
