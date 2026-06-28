@@ -15,7 +15,7 @@ export function SidebarLogo({ onNavigate }: { onNavigate?: () => void }) {
         alt={BRANDING.appName}
         draggable={false}
         style={{
-          height: 48,
+          height: 56,
           width: "auto",
           display: "block",
           userSelect: "none",
