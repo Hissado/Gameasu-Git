@@ -92,7 +92,6 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Achats",
     icon: ShoppingCart,
     moduleKey: "purchases",
-    isNew: true,
     items: [
       { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read" },
       { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read" },
