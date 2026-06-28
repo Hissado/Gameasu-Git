@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useGetCollaborator, getGetCollaboratorQueryKey } from "@workspace/api-client-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { QRCodeSVG } from "qrcode.react";
 import { useRoute, Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +24,7 @@ import {
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle, CalendarClock,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
   FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
-  Search, UserPlus, PanelLeftOpen, PanelLeftClose, ArrowUpDown, Link2, UserX,
+  Search, UserPlus, PanelLeftOpen, PanelLeftClose, ArrowUpDown, Link2, UserX, QrCode, RefreshCcw, Printer, ShieldOff,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -1255,6 +1256,30 @@ export default function CollaboratorDetail() {
   // Kiosk code inline edit
   const [kioskCodeEditing, setKioskCodeEditing] = useState(false);
   const [kioskCodeInput, setKioskCodeInput] = useState("");
+  const qrTokenQuery = useQuery<{ token: string | null; expiresAt: string | null; createdAt: string | null }>({
+    queryKey: ["collab-qr-token", id],
+    queryFn: () => apiFetch(`/api/collaborators/${id}/qr-token`),
+    enabled: !!id,
+  });
+
+  const generateQrTokenMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/collaborators/${id}/qr-token`, { method: "POST" }),
+    onSuccess: () => {
+      qrTokenQuery.refetch();
+      toast.success("Badge QR généré avec succès");
+    },
+    onError: () => toast.error("Erreur lors de la génération du QR"),
+  });
+
+  const revokeQrTokenMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/collaborators/${id}/qr-token`, { method: "DELETE" }),
+    onSuccess: () => {
+      qrTokenQuery.refetch();
+      toast.success("Badge QR révoqué");
+    },
+    onError: () => toast.error("Erreur lors de la révocation"),
+  });
+
   const kioskCodeMutation = useMutation({
     mutationFn: (code: string | null) =>
       apiFetch(`/api/collaborators/${id}/kiosk-code`, {
@@ -1895,6 +1920,88 @@ export default function CollaboratorDetail() {
                         : <span className="text-xs text-muted-foreground font-normal">Non attribué</span>}
                     </p>
                   )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── BADGE QR ── */}
+          <Card className="shadow-sm border-border">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-primary" />
+                    Badge QR — Pointage
+                  </CardTitle>
+                  <CardDescription>QR code pour pointer au kiosque de présence</CardDescription>
+                </div>
+                <button
+                  onClick={() => window.open(`/collaborators/${id}/badge`, "_blank")}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Imprimer le badge
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-5">
+              {qrTokenQuery.isLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Chargement…
+                </div>
+              ) : qrTokenQuery.data?.token ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-3 bg-white border border-border rounded-xl shadow-sm">
+                    <QRCodeSVG value={qrTokenQuery.data.token} size={140} level="M" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">
+                      {qrTokenQuery.data.token}
+                    </p>
+                    {qrTokenQuery.data.createdAt && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Généré le {formatDate(qrTokenQuery.data.createdAt)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 w-full">
+                    <button
+                      onClick={() => generateQrTokenMutation.mutate()}
+                      disabled={generateQrTokenMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-colors"
+                    >
+                      {generateQrTokenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCcw className="w-3.5 h-3.5" />}
+                      Régénérer
+                    </button>
+                    <button
+                      onClick={() => { if (window.confirm("Révoquer le badge QR de ce collaborateur ?")) revokeQrTokenMutation.mutate(); }}
+                      disabled={revokeQrTokenMutation.isPending}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-destructive/40 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors"
+                    >
+                      {revokeQrTokenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                      Révoquer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center">
+                    <QrCode className="w-7 h-7 text-muted-foreground/50" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground">Aucun badge QR</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Générez un badge pour permettre le pointage QR</p>
+                  </div>
+                  <button
+                    onClick={() => generateQrTokenMutation.mutate()}
+                    disabled={generateQrTokenMutation.isPending}
+                    className="flex items-center gap-2 py-2.5 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    {generateQrTokenMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                    Générer le badge QR
+                  </button>
                 </div>
               )}
             </CardContent>

@@ -34,6 +34,7 @@ const MapPage = lazy(() => import("@/pages/map/index"));
 const InspectionCompare = lazy(() => import("@/pages/inspections/compare"));
 const CollaboratorsList = lazy(() => import("@/pages/collaborators/index"));
 const CollaboratorDetail = lazy(() => import("@/pages/collaborators/detail"));
+const CollaboratorBadgePrint = lazy(() => import("@/pages/collaborators/badge"));
 const RentalsList = lazy(() => import("@/pages/rentals/index"));
 const RentalDetail = lazy(() => import("@/pages/rentals/detail"));
 const InspectionsList = lazy(() => import("@/pages/inspections/index"));
@@ -262,6 +263,7 @@ function AppRouter() {
                 <Route path="/inspections/compare/:rentalId" component={InspectionCompare} />
 
                 <Route path="/collaborators" component={CollaboratorsList} />
+                <Route path="/collaborators/:id/badge" component={CollaboratorBadgePrint} />
                 <Route path="/collaborators/:id" component={CollaboratorDetail} />
 
                 <Route path="/rentals" component={RentalsList} />

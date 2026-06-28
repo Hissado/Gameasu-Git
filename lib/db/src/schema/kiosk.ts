@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import { organizationsTable } from "./saas";
 import { usersTable } from "./users";
 import { departmentsTable } from "./hr";
+import { collaboratorsTable } from "./collaborators";
 
 // ─────────────────────────────────────────────────────────────────
 // KIOSK — Borne de pointage autonome (Phase 19)
@@ -79,3 +80,24 @@ export const kioskTokensTable = pgTable("kiosk_tokens", {
 
 export const insertKioskTokenSchema = createInsertSchema(kioskTokensTable).omit({ id: true, createdAt: true });
 export type KioskToken = typeof kioskTokensTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
+// COLLABORATOR_QR_TOKENS — QR codes de pointage individuels
+// Un token UUID par collaborateur, encodé dans un QR code sur son
+// badge physique.  Révocable et renouvelable à tout moment.
+// ─────────────────────────────────────────────────────────────────
+export const collaboratorQrTokensTable = pgTable("collaborator_qr_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  token: uuid("token").notNull().defaultRandom(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdByUserId: uuid("created_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orgIdx: index("collab_qr_tokens_org_idx").on(t.organizationId),
+  collaboratorIdx: index("collab_qr_tokens_collab_idx").on(t.collaboratorId),
+  tokenIdx: uniqueIndex("collab_qr_tokens_token_uidx").on(t.token),
+}));
+
+export type CollaboratorQrToken = typeof collaboratorQrTokensTable.$inferSelect;

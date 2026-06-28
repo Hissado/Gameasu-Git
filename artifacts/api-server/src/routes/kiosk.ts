@@ -8,6 +8,7 @@ import {
   attendanceRecordsTable,
   attendanceSessionsTable,
   orgAttendanceSettingsTable,
+  collaboratorQrTokensTable,
 } from "@workspace/db";
 import { and, eq, isNull, desc, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -236,6 +237,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       kioskToken: z.string().min(36), // UUID legacy ou hex64 new
       collaboratorId: z.string().uuid(),
       kind: z.enum(["clock_in", "clock_out", "break_start", "break_end"]),
+      source: z.enum(["kiosk", "qr"]).optional().default("kiosk"),
       photoDataUrl: z.string().optional(),
       latitude: z.number().optional(),
       longitude: z.number().optional(),
@@ -248,7 +250,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
       return;
     }
 
-    const { kioskToken, collaboratorId, kind, photoDataUrl, latitude, longitude, accuracyMeters, siteName } = parsed.data;
+    const { kioskToken, collaboratorId, kind, source, photoDataUrl, latitude, longitude, accuracyMeters, siteName } = parsed.data;
 
     let kiosk: { id: string; organizationId: string; isActive: boolean } | undefined;
     if (IS_NEW_TOKEN.test(kioskToken)) {
@@ -379,7 +381,7 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
         collaboratorId,
         sessionId,
         kind,
-        source: "kiosk",
+        source: source ?? "kiosk",
         kioskId: kiosk.id,
         photoUrl,
         latitude: latitude != null ? String(latitude) : null,
@@ -409,6 +411,109 @@ kioskPublicRouter.post("/kiosk/punch", async (req: Request, res: Response, next)
 // ─────────────────────────────────────────────────────────────────
 // Admin router — monté après requireAuth
 // ─────────────────────────────────────────────────────────────────
+// POST /api/kiosk/scan-qr — Identifier un collaborateur via son QR code badge
+kioskPublicRouter.post("/kiosk/scan-qr", async (req: Request, res: Response, next) => {
+  try {
+    const schema = z.object({
+      qrToken: z.string().uuid(),
+      kioskToken: z.string().min(36),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Données invalides" });
+      return;
+    }
+
+    const { qrToken, kioskToken } = parsed.data;
+
+    // 1. Valider le kiosk token
+    let kioskOrgId: string;
+    let kioskId: string;
+    if (IS_NEW_TOKEN.test(kioskToken)) {
+      const [tokenRow] = await db
+        .select({ kioskId: kioskTokensTable.kioskId })
+        .from(kioskTokensTable)
+        .where(and(eq(kioskTokensTable.tokenHash, hashToken(kioskToken)), eq(kioskTokensTable.isActive, true), isNull(kioskTokensTable.revokedAt)))
+        .limit(1);
+      if (!tokenRow) { res.status(403).json({ error: "Kiosk non autorisé" }); return; }
+      const [k] = await db
+        .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.id, tokenRow.kioskId), eq(kiosksTable.isActive, true)))
+        .limit(1);
+      if (!k) { res.status(403).json({ error: "Kiosk désactivé" }); return; }
+      kioskOrgId = k.organizationId;
+      kioskId = k.id;
+    } else {
+      const [k] = await db
+        .select({ id: kiosksTable.id, organizationId: kiosksTable.organizationId, isActive: kiosksTable.isActive })
+        .from(kiosksTable)
+        .where(and(eq(kiosksTable.token, kioskToken), eq(kiosksTable.isActive, true), isNull(kiosksTable.revokedAt)))
+        .limit(1);
+      if (!k) { res.status(403).json({ error: "Kiosk non autorisé" }); return; }
+      kioskOrgId = k.organizationId;
+      kioskId = k.id;
+    }
+
+    // 2. Résoudre le QR token → collaborateur
+    const [qrRow] = await db
+      .select({
+        id: collaboratorQrTokensTable.id,
+        collaboratorId: collaboratorQrTokensTable.collaboratorId,
+        organizationId: collaboratorQrTokensTable.organizationId,
+        expiresAt: collaboratorQrTokensTable.expiresAt,
+      })
+      .from(collaboratorQrTokensTable)
+      .where(and(
+        eq(collaboratorQrTokensTable.token, qrToken),
+        eq(collaboratorQrTokensTable.organizationId, kioskOrgId),
+      ))
+      .limit(1);
+
+    if (!qrRow) {
+      res.status(404).json({ error: "QR code invalide ou non reconnu" });
+      return;
+    }
+
+    if (qrRow.expiresAt && new Date() > new Date(qrRow.expiresAt)) {
+      res.status(403).json({ error: "QR code expiré. Contactez votre administrateur." });
+      return;
+    }
+
+    // 3. Récupérer les infos collaborateur
+    const [collab] = await db
+      .select({
+        id: collaboratorsTable.id,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+        avatarUrl: collaboratorsTable.avatarUrl,
+      })
+      .from(collaboratorsTable)
+      .where(and(
+        eq(collaboratorsTable.id, qrRow.collaboratorId),
+        eq(collaboratorsTable.organizationId, kioskOrgId),
+        isNull(collaboratorsTable.deletedAt),
+      ))
+      .limit(1);
+
+    if (!collab) {
+      res.status(404).json({ error: "Collaborateur non trouvé" });
+      return;
+    }
+
+    res.json({
+      collaborator: {
+        id: collab.id,
+        firstName: collab.firstName,
+        lastName: collab.lastName,
+        position: null,
+        avatarUrl: collab.avatarUrl ?? null,
+      },
+      kiosk: { id: kioskId, organizationId: kioskOrgId },
+    });
+  } catch (err) { next(err); }
+});
+
 const kioskAdminRouter: IRouter = Router();
 
 kioskAdminRouter.get("/kiosks", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
@@ -874,6 +979,65 @@ kioskAdminRouter.post("/kiosk/tokens/:id/revoke", requirePermission("attendance.
       payload: { tokenLabel: tokenRow.label },
     }).catch(() => {});
     res.json(tokenRow);
+  } catch (err) { next(err); }
+});
+
+// ── QR TOKEN COLLABORATEUR ─────────────────────────────────────────
+// GET /api/collaborators/:id/qr-token — Obtenir le token QR actuel
+kioskAdminRouter.get("/collaborators/:id/qr-token", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const [row] = await db
+      .select({ id: collaboratorQrTokensTable.id, token: collaboratorQrTokensTable.token, expiresAt: collaboratorQrTokensTable.expiresAt, createdAt: collaboratorQrTokensTable.createdAt })
+      .from(collaboratorQrTokensTable)
+      .where(and(eq(collaboratorQrTokensTable.collaboratorId, (req.params.id as string)!), eq(collaboratorQrTokensTable.organizationId, orgId)))
+      .limit(1);
+    res.json({ token: row?.token ?? null, expiresAt: row?.expiresAt ?? null, createdAt: row?.createdAt ?? null });
+  } catch (err) { next(err); }
+});
+
+// POST /api/collaborators/:id/qr-token — Générer (ou régénérer) un token QR
+kioskAdminRouter.post("/collaborators/:id/qr-token", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    const collaboratorId = (req.params.id as string)!;
+    const [collab] = await db.select({ id: collaboratorsTable.id })
+      .from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.id, collaboratorId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+      .limit(1);
+    if (!collab) { res.status(404).json({ error: "Collaborateur non trouvé" }); return; }
+
+    // Supprimer l'ancien token s'il existe
+    await db.delete(collaboratorQrTokensTable)
+      .where(and(eq(collaboratorQrTokensTable.collaboratorId, collaboratorId), eq(collaboratorQrTokensTable.organizationId, orgId)));
+
+    const [newRow] = await db.insert(collaboratorQrTokensTable).values({
+      organizationId: orgId,
+      collaboratorId,
+      createdByUserId: req.authUser!.id,
+    }).returning({ id: collaboratorQrTokensTable.id, token: collaboratorQrTokensTable.token, createdAt: collaboratorQrTokensTable.createdAt });
+
+    audit(req, "qr_token_generate", {
+      entityType: "collaborator", entityId: collaboratorId, organizationId: orgId, payload: {},
+    }).catch(() => {});
+
+    res.status(201).json({ token: newRow!.token, expiresAt: null, createdAt: newRow!.createdAt });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/collaborators/:id/qr-token — Révoquer le token QR
+kioskAdminRouter.delete("/collaborators/:id/qr-token", requirePermission("attendance.manage_settings"), async (req: Request, res: Response, next) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id);
+    if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
+    await db.delete(collaboratorQrTokensTable)
+      .where(and(eq(collaboratorQrTokensTable.collaboratorId, (req.params.id as string)!), eq(collaboratorQrTokensTable.organizationId, orgId)));
+    audit(req, "qr_token_revoke", {
+      entityType: "collaborator", entityId: (req.params.id as string)!, organizationId: orgId, payload: {},
+    }).catch(() => {});
+    res.status(204).end();
   } catch (err) { next(err); }
 });
 

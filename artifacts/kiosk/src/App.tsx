@@ -37,8 +37,9 @@ interface KioskInfo {
   attendanceSettings?: AttendanceSettings;
 }
 
-type Screen = "idle" | "keypad" | "identified" | "site" | "photo" | "confirm" | "error";
+type Screen = "idle" | "keypad" | "qr_scan" | "identified" | "site" | "photo" | "confirm" | "error";
 type PunchKind = "clock_in" | "clock_out" | "break_start" | "break_end";
+type PunchSource = "kiosk" | "qr";
 
 const PUNCH_LABELS: Record<PunchKind, { label: string; sub: string; color: string; bg: string; icon: string }> = {
   clock_in:    { label: "Entrée",       sub: "Début de journée",  color: "text-emerald-300", bg: "bg-emerald-500/20 border-emerald-500/40 hover:bg-emerald-500/30", icon: "▶" },
@@ -78,7 +79,7 @@ function SiteScreen({ onSelect, onCancel }: { onSelect: (site: string) => void; 
         {SITES.map(s => (
           <button key={s}
             onClick={() => onSelect(s)}
-            className="py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-amber-500/20 hover:border-amber-400/40 transition-all text-left"
+            className="py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-blue-500/20 hover:border-blue-400/40 transition-all text-left"
           >
             {s}
           </button>
@@ -89,13 +90,13 @@ function SiteScreen({ onSelect, onCancel }: { onSelect: (site: string) => void; 
           value={site}
           onChange={e => setSite(e.target.value)}
           placeholder="Ou saisissez le nom du site…"
-          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-amber-400/60"
+          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-400/60"
           onKeyDown={e => e.key === "Enter" && site.trim() && onSelect(site.trim())}
         />
         <div className="flex gap-2 mt-3">
           {site.trim() && (
             <button onClick={() => onSelect(site.trim())}
-              className="flex-1 py-3 bg-amber-400 text-slate-900 font-semibold rounded-xl hover:bg-amber-300 transition-all text-sm">
+              className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-500 transition-all text-sm">
               Confirmer
             </button>
           )}
@@ -110,14 +111,19 @@ function SiteScreen({ onSelect, onCancel }: { onSelect: (site: string) => void; 
 }
 
 // ─── Idle Screen ─────────────────────────────────────────────────
-function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () => void }) {
+function IdleScreen({
+  kiosk,
+  onPinCode,
+  onQrScan,
+}: {
+  kiosk: KioskInfo | null;
+  onPinCode: () => void;
+  onQrScan: () => void;
+}) {
   return (
-    <div
-      className="flex flex-col items-center justify-between h-full py-16 px-8 cursor-pointer select-none"
-      onClick={onStart}
-    >
+    <div className="flex flex-col items-center justify-between h-full py-16 px-8 select-none">
       <div className="flex flex-col items-center gap-3">
-        <div className="text-3xl font-bold tracking-widest text-amber-400 uppercase">
+        <div className="text-3xl font-bold tracking-widest text-white uppercase">
           {kiosk?.settings?.orgName ?? "Gameasu"}
         </div>
         <div className="text-sm text-white/40 uppercase tracking-widest">
@@ -128,11 +134,28 @@ function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () =
 
       <div className="flex flex-col items-center gap-8">
         <Clock />
-        <div className="flex flex-col items-center gap-2 mt-6">
-          <div className="text-2xl text-white/70">
-            {kiosk?.settings?.welcomeMessage ?? "Touchez pour pointer"}
+        <div className="flex flex-col items-center gap-6 mt-4">
+          <div className="text-lg text-white/60">
+            {kiosk?.settings?.welcomeMessage ?? "Comment souhaitez-vous pointer ?"}
           </div>
-          <div className="text-sm text-white/30 mt-1">Appuyez n'importe où pour commencer</div>
+          <div className="flex gap-4">
+            <button
+              onClick={onPinCode}
+              className="flex flex-col items-center justify-center gap-2.5 w-44 h-36 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/15 active:scale-95 transition-all"
+            >
+              <span className="text-3xl">🔢</span>
+              <span className="text-white font-semibold text-base">Mon code</span>
+              <span className="text-white/40 text-xs">Code PIN à 4 chiffres</span>
+            </button>
+            <button
+              onClick={onQrScan}
+              className="flex flex-col items-center justify-center gap-2.5 w-44 h-36 rounded-2xl bg-blue-600/30 border border-blue-400/40 hover:bg-blue-600/40 active:scale-95 transition-all"
+            >
+              <span className="text-3xl">📷</span>
+              <span className="text-blue-200 font-semibold text-base">Scanner QR</span>
+              <span className="text-white/40 text-xs">Badge QR code</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -180,7 +203,7 @@ function KeypadScreen({
             key={i}
             className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
               i < digits.length
-                ? "bg-amber-400 border-amber-400 scale-110"
+                ? "bg-blue-500 border-blue-500 scale-110"
                 : "bg-transparent border-white/30"
             }`}
           />
@@ -209,7 +232,7 @@ function KeypadScreen({
               disabled={loading}
               className={`h-20 rounded-2xl text-2xl font-medium transition-all active:scale-95 border disabled:opacity-40
                 ${isBackspace ? "bg-white/5 border-white/10 text-white/60 hover:bg-white/10" :
-                  isConfirm ? "bg-amber-400/20 border-amber-400/40 text-amber-300 hover:bg-amber-400/30" :
+                  isConfirm ? "bg-blue-600/20 border-blue-500/40 text-blue-300 hover:bg-blue-600/30" :
                   "bg-white/8 border-white/12 text-white hover:bg-white/15 active:bg-white/20"
                 }
               `}
@@ -229,27 +252,142 @@ function KeypadScreen({
   );
 }
 
+// ─── QR Scan Screen ───────────────────────────────────────────────
+function QrScanScreen({
+  onScan,
+  onCancel,
+  loading,
+  error,
+}: {
+  onScan: (token: string) => void;
+  onCancel: () => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  const [cameraStatus, setCameraStatus] = useState<"starting" | "scanning" | "error">("starting");
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const scannerRef = useRef<any>(null);
+  const scannedRef = useRef(false);
+  const QR_DIV_ID = "qr-scan-video";
+
+  useEffect(() => {
+    scannedRef.current = false;
+    let qrInstance: any;
+
+    import("html5-qrcode").then(({ Html5Qrcode }) => {
+      qrInstance = new Html5Qrcode(QR_DIV_ID, { verbose: false });
+      scannerRef.current = qrInstance;
+
+      qrInstance.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
+        (decodedText: string) => {
+          if (scannedRef.current) return;
+          scannedRef.current = true;
+          qrInstance.stop().catch(() => {});
+          onScan(decodedText.trim());
+        },
+        () => {},
+      )
+        .then(() => setCameraStatus("scanning"))
+        .catch((err: any) => {
+          setCameraStatus("error");
+          setCameraError(err?.message ?? "Caméra inaccessible. Vérifiez les autorisations.");
+        });
+    }).catch(() => {
+      setCameraStatus("error");
+      setCameraError("Impossible de charger le lecteur QR.");
+    });
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+      }
+    };
+  }, [onScan]);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
+      <div className="text-2xl font-medium text-white/70">Scanner votre badge QR</div>
+      <div className="text-sm text-white/40">Présentez le QR code de votre badge devant la caméra</div>
+
+      {cameraStatus === "error" ? (
+        <div className="flex flex-col items-center gap-4 py-6">
+          <div className="text-5xl">📷</div>
+          <div className="text-red-400 font-semibold text-lg">Caméra inaccessible</div>
+          <div className="text-white/50 text-sm max-w-xs text-center">{cameraError}</div>
+          <div className="text-white/30 text-xs text-center">Essayez le code PIN à la place.</div>
+        </div>
+      ) : (
+        <div className="relative w-full max-w-sm">
+          {/* Scanner container */}
+          <div
+            id={QR_DIV_ID}
+            className="w-full rounded-2xl overflow-hidden bg-black"
+            style={{ minHeight: 300 }}
+          />
+          {cameraStatus === "starting" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-2xl">
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-2xl animate-spin inline-block">⟳</span>
+                <div className="text-white/60 text-sm">Démarrage de la caméra…</div>
+              </div>
+            </div>
+          )}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-2xl">
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-2xl animate-spin inline-block">⟳</span>
+                <div className="text-white/60 text-sm">Identification en cours…</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-6 py-3 text-red-300 text-center max-w-xs">
+          {error}
+        </div>
+      )}
+
+      <button onClick={onCancel} className="text-white/30 hover:text-white/60 text-sm transition-colors">
+        ← Retour
+      </button>
+    </div>
+  );
+}
+
 // ─── Action Screen ───────────────────────────────────────────────
 function ActionScreen({
   collaborator,
   onAction,
   onCancel,
+  source,
 }: {
   collaborator: CollaboratorInfo;
   onAction: (kind: PunchKind) => void;
   onCancel: () => void;
+  source: PunchSource;
 }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-8">
       {/* Collaborator card */}
       <div className="flex flex-col items-center gap-3">
-        <div className="w-24 h-24 rounded-full border-2 border-amber-400/60 overflow-hidden bg-white/10 flex items-center justify-center">
-          {collaborator.avatarUrl ? (
-            <img src={collaborator.avatarUrl} alt={collaborator.firstName} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-4xl font-bold text-amber-400">
-              {collaborator.firstName[0]}{collaborator.lastName[0]}
-            </span>
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full border-2 border-blue-400/60 overflow-hidden bg-white/10 flex items-center justify-center">
+            {collaborator.avatarUrl ? (
+              <img src={collaborator.avatarUrl} alt={collaborator.firstName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl font-bold text-blue-400">
+                {collaborator.firstName[0]}{collaborator.lastName[0]}
+              </span>
+            )}
+          </div>
+          {source === "qr" && (
+            <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border-2 border-slate-900">
+              <span className="text-[10px]">QR</span>
+            </div>
           )}
         </div>
         <div className="text-center">
@@ -322,7 +460,6 @@ function PhotoScreen({
           if (capturedRef.current) return;
           capturedRef.current = true;
           video.play();
-          // Brief pause so the first frame is actually rendered
           setTimeout(() => {
             const canvas = canvasRef.current;
             if (!canvas) { handleSkipOrError("Erreur de canvas."); return; }
@@ -337,7 +474,7 @@ function PhotoScreen({
           }, 1500);
         };
       })
-      .catch(() => handleSkipOrError("Accès à la caméra refusé. Veuillez autoriser l'accès à la caméra pour pointer."));
+      .catch(() => handleSkipOrError("Accès à la caméra refusé."));
 
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -350,7 +487,7 @@ function PhotoScreen({
         <div className="text-5xl">📷</div>
         <div className="text-lg font-semibold text-red-400">Caméra requise</div>
         <div className="text-sm text-white/60 max-w-sm">{cameraError}</div>
-        <div className="text-xs text-white/30">La photo est obligatoire pour ce site. Contactez votre administrateur si le problème persiste.</div>
+        <div className="text-xs text-white/30">La photo est obligatoire pour ce site. Contactez votre administrateur.</div>
       </div>
     );
   }
@@ -418,7 +555,7 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
       <div className="text-xl text-white/80 text-center max-w-sm">{message}</div>
       <button
         onClick={onRetry}
-        className="px-8 py-4 bg-amber-400 text-slate-900 font-semibold text-lg rounded-xl hover:bg-amber-300 active:scale-95 transition-all"
+        className="px-8 py-4 bg-blue-600 text-white font-semibold text-lg rounded-xl hover:bg-blue-500 active:scale-95 transition-all"
       >
         Réessayer
       </button>
@@ -431,7 +568,7 @@ function SetupScreen({ onSetup, tokenError }: { onSetup: (token: string) => void
   const [input, setInput] = useState("");
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
-      <div className="text-2xl font-bold text-amber-400">Configuration du kiosk</div>
+      <div className="text-2xl font-bold text-blue-400">Configuration du kiosk</div>
       <div className="text-white/50 text-center max-w-sm">
         Entrez le token du kiosk (visible dans la page d'administration Gameasu)
       </div>
@@ -445,12 +582,12 @@ function SetupScreen({ onSetup, tokenError }: { onSetup: (token: string) => void
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        className="w-full max-w-md px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-center font-mono text-sm focus:outline-none focus:border-amber-400/60"
+        className="w-full max-w-md px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-center font-mono text-sm focus:outline-none focus:border-blue-400/60"
       />
       <button
         onClick={() => { if (input.trim()) onSetup(input.trim()); }}
         disabled={!input.trim()}
-        className="px-8 py-4 bg-amber-400 disabled:opacity-40 text-slate-900 font-semibold rounded-xl hover:bg-amber-300 transition-all"
+        className="px-8 py-4 bg-blue-600 disabled:opacity-40 text-white font-semibold rounded-xl hover:bg-blue-500 transition-all"
       >
         Activer le kiosk
       </button>
@@ -480,6 +617,7 @@ function KioskApp() {
   const [collaborator, setCollaborator] = useState<CollaboratorInfo | null>(null);
   const [selectedKind, setSelectedKind] = useState<PunchKind | null>(null);
   const [selectedSite, setSelectedSite] = useState<string | null>(null);
+  const [punchSource, setPunchSource] = useState<PunchSource>("kiosk");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -516,14 +654,13 @@ function KioskApp() {
       .finally(() => setTokenValidating(false));
   }, [kioskToken]);
 
-  // Pre-warm camera permission as soon as the kiosk token is set,
-  // so the browser doesn't show a permission popup during a punch.
+  // Pre-warm camera permission
   useEffect(() => {
     if (!kioskToken) return;
     navigator.mediaDevices
       ?.getUserMedia({ video: true })
       .then((stream) => stream.getTracks().forEach((t) => t.stop()))
-      .catch(() => { /* permission denied — photo will be skipped silently */ });
+      .catch(() => {});
   }, [kioskToken]);
 
   const handleSetupToken = (token: string) => {
@@ -548,7 +685,37 @@ function KioskApp() {
         return;
       }
       setCollaborator(data.collaborator);
-      // Préserver attendanceSettings depuis validate (identify ne les renvoie pas)
+      setPunchSource("kiosk");
+      setKiosk(prev => ({
+        ...(data.kiosk ?? {}),
+        attendanceSettings: prev?.attendanceSettings ?? data.kiosk?.attendanceSettings,
+      }));
+      setScreen("identified");
+    } catch {
+      setError("Erreur de connexion");
+    } finally {
+      setLoading(false);
+    }
+  }, [kioskToken]);
+
+  const handleScanQr = useCallback(async (qrToken: string) => {
+    if (!kioskToken) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/kiosk/scan-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrToken, kioskToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "QR code invalide ou expiré");
+        setLoading(false);
+        return;
+      }
+      setCollaborator(data.collaborator);
+      setPunchSource("qr");
       setKiosk(prev => ({
         ...(data.kiosk ?? {}),
         attendanceSettings: prev?.attendanceSettings ?? data.kiosk?.attendanceSettings,
@@ -571,7 +738,6 @@ function KioskApp() {
     const requirePhoto = attSettings?.requirePhoto ?? false;
     const trackBySite = attSettings?.trackBySite ?? false;
 
-    // Determine the next step after GPS resolution
     const nextStep = (gpsOk: boolean) => {
       if (!gpsOk && requireGps) {
         setErrorMsg("La géolocalisation est requise pour pointer. Veuillez autoriser l'accès au GPS et réessayer.");
@@ -580,7 +746,6 @@ function KioskApp() {
       }
       if (trackBySite) { setScreen("site"); return; }
       if (requirePhoto) { setScreen("photo"); return; }
-      // Pas de site ni de photo : soumettre directement
       doPunch(kind);
     };
 
@@ -608,12 +773,10 @@ function KioskApp() {
     if (requirePhoto) {
       setScreen("photo");
     } else if (selectedKind) {
-      // Pas de photo : soumettre directement avec le site sélectionné
       doPunch(selectedKind, undefined, site);
     }
   };
 
-  // site est passé explicitement pour éviter les closures stales
   const doPunch = useCallback(async (kind: PunchKind, photoDataUrl?: string, site?: string) => {
     if (!kioskToken || !collaborator) return;
     setLoading(true);
@@ -626,6 +789,7 @@ function KioskApp() {
           kioskToken,
           collaboratorId: collaborator.id,
           kind,
+          source: punchSource,
           ...(photoDataUrl ? { photoDataUrl } : {}),
           ...(gps ? { latitude: gps.latitude, longitude: gps.longitude, accuracyMeters: gps.accuracyMeters } : {}),
           ...(site ? { siteName: site } : {}),
@@ -644,13 +808,14 @@ function KioskApp() {
     } finally {
       setLoading(false);
     }
-  }, [kioskToken, collaborator]);
+  }, [kioskToken, collaborator, punchSource]);
 
   const reset = useCallback(() => {
     setScreen("idle");
     setCollaborator(null);
     setSelectedKind(null);
     setSelectedSite(null);
+    setPunchSource("kiosk");
     setError(null);
     setErrorMsg("");
     setLoading(false);
@@ -679,11 +844,23 @@ function KioskApp() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <div className="h-screen max-w-2xl mx-auto">
         {screen === "idle" && (
-          <IdleScreen kiosk={kiosk} onStart={() => setScreen("keypad")} />
+          <IdleScreen
+            kiosk={kiosk}
+            onPinCode={() => setScreen("keypad")}
+            onQrScan={() => setScreen("qr_scan")}
+          />
         )}
         {screen === "keypad" && (
           <KeypadScreen
             onIdentify={handleIdentify}
+            onCancel={reset}
+            loading={loading}
+            error={error}
+          />
+        )}
+        {screen === "qr_scan" && (
+          <QrScanScreen
+            onScan={handleScanQr}
             onCancel={reset}
             loading={loading}
             error={error}
@@ -694,6 +871,7 @@ function KioskApp() {
             collaborator={collaborator}
             onAction={handleAction}
             onCancel={reset}
+            source={punchSource}
           />
         )}
         {screen === "site" && selectedKind && (
