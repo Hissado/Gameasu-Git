@@ -540,10 +540,56 @@ router.get("/hr/dashboard", async (req, res) => {
 
   const charges = chargesRows[0];
 
+  // Anniversaires ce mois-ci
+  const currentMonthNum = new Date().getMonth() + 1;
+  const birthdaysThisMonth = await db.select({
+    id: collaboratorsTable.id,
+    firstName: collaboratorsTable.firstName,
+    lastName: collaboratorsTable.lastName,
+    avatarUrl: collaboratorsTable.avatarUrl,
+    birthDate: collaboratorsTable.birthDate,
+  }).from(collaboratorsTable)
+    .where(and(
+      eq(collaboratorsTable.organizationId, orgId),
+      isNull(collaboratorsTable.deletedAt),
+      sql`${collaboratorsTable.birthDate} IS NOT NULL`,
+      sql`EXTRACT(MONTH FROM ${collaboratorsTable.birthDate}::date) = ${currentMonthNum}`,
+    ))
+    .orderBy(sql`EXTRACT(DAY FROM ${collaboratorsTable.birthDate}::date)`);
+
+  // Turnover approximatif : départs sur les 12 derniers mois
+  const [leaversResult] = await db.select({ n: sql<number>`COUNT(*)` })
+    .from(collaboratorsTable)
+    .where(and(
+      eq(collaboratorsTable.organizationId, orgId),
+      sql`${collaboratorsTable.deletedAt} IS NOT NULL`,
+      sql`${collaboratorsTable.deletedAt} >= CURRENT_DATE - INTERVAL '12 months'`,
+    ));
+
+  // Période d'essai : embauchés il y a moins de 90 jours (proxy)
+  const recentHiresTrialPeriod = await db.select({
+    id: collaboratorsTable.id,
+    firstName: collaboratorsTable.firstName,
+    lastName: collaboratorsTable.lastName,
+    hireDate: collaboratorsTable.hireDate,
+    avatarUrl: collaboratorsTable.avatarUrl,
+  }).from(collaboratorsTable)
+    .where(and(
+      eq(collaboratorsTable.organizationId, orgId),
+      isNull(collaboratorsTable.deletedAt),
+      eq(collaboratorsTable.employmentStatus, "active"),
+      sql`${collaboratorsTable.hireDate} IS NOT NULL`,
+      sql`${collaboratorsTable.hireDate}::date >= CURRENT_DATE - INTERVAL '90 days'`,
+    ))
+    .orderBy(desc(collaboratorsTable.hireDate))
+    .limit(5);
+
   // Taux d'absence (absents / total)
   const totalCollabsN = Number(totalCollabs?.n ?? 0);
   const absentsN = Number(absentsToday?.n ?? 0);
   const tauxAbsence = totalCollabsN > 0 ? Math.round((absentsN / totalCollabsN) * 100 * 10) / 10 : 0;
+  const leaversN = Number(leaversResult?.n ?? 0);
+  const tauxTurnover = totalCollabsN > 0 ? Math.round((leaversN / totalCollabsN) * 100 * 100) / 100 : 0;
 
   return res.json({
     kpis: {
@@ -554,6 +600,7 @@ router.get("/hr/dashboard", async (req, res) => {
       masseSalariale: Number(masseSal?.total ?? 0),
       absentsToday: absentsN,
       tauxAbsence,
+      tauxTurnover,
     },
     distributionByDepartment: byDept.map(d => ({
       department: d.departmentName ?? "Non assigné",
@@ -563,6 +610,14 @@ router.get("/hr/dashboard", async (req, res) => {
     contractsExpiringSoon: expiring.map(e => ({
       ...e.c,
       collaboratorName: `${e.collabFirst ?? ""} ${e.collabLast ?? ""}`.trim(),
+    })),
+    trialPeriodCollaborators: recentHiresTrialPeriod,
+    birthdaysThisMonth: birthdaysThisMonth.map(b => ({
+      id: b.id,
+      name: `${b.firstName} ${b.lastName}`.trim(),
+      avatarUrl: b.avatarUrl,
+      birthDate: b.birthDate,
+      dayOfMonth: b.birthDate ? new Date(b.birthDate).getDate() : null,
     })),
     ageDistribution: ageDist.filter(a => a.ageGroup !== "Non renseigné").map(a => ({
       name: a.ageGroup,
