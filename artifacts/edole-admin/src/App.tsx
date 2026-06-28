@@ -165,14 +165,14 @@ const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
 const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
 const ManagementPDFPage = lazy(() => import("@/pages/reports/management-pdf"));
 const MigrationPage = lazy(() => import("@/pages/migration/index"));
-const AchatsOverview = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Vue d'ensemble Achats" description="Le tableau de bord achats avec KPI et tunnel AP sera disponible prochainement." />; } })));
+const AchatsOverview = lazy(() => import("@/pages/achats/index"));
 const AchatsFournisseurs = lazy(() => import("@/pages/achats/fournisseurs"));
 const AchatsFactures = lazy(() => import("@/pages/achats/factures"));
 const AchatsBonsCommande = lazy(() => import("@/pages/achats/bons-de-commande"));
 const AchatsPaiements = lazy(() => import("@/pages/achats/paiements"));
-const AchatsDepenses = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Dépenses" description="La gestion des notes de frais et dépenses sera disponible prochainement." />; } })));
-const AchatsApprobations = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Approbations" description="La file d'approbations des achats sera disponible prochainement." />; } })));
-const AchatsRapports = lazy(() => import("@/pages/achats/_placeholder").then(m => ({ default: () => { const { AchatsPlaceholder } = m; return <AchatsPlaceholder title="Rapports Achats" description="Les rapports et exports Achats seront disponibles prochainement." />; } })));
+const AchatsDepenses = lazy(() => import("@/pages/achats/depenses"));
+const AchatsApprobations = lazy(() => import("@/pages/achats/approbations"));
+const AchatsRapports = lazy(() => import("@/pages/achats/rapports"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({

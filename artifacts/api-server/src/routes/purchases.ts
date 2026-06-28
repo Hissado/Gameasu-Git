@@ -1206,4 +1206,154 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+// RAPPORTS ACHATS
+// ════════════════════════════════════════════════════════════════
+
+// AP Aging: factures impayées par tranche d'échéance
+router.get("/purchases/reports/aging", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = await db.select({
+      id: supplierInvoicesTable.id,
+      referenceNumber: supplierInvoicesTable.referenceNumber,
+      supplierId: supplierInvoicesTable.supplierId,
+      supplierName: suppliersTable.name,
+      dueDate: supplierInvoicesTable.dueDate,
+      invoiceDate: supplierInvoicesTable.invoiceDate,
+      totalAmount: supplierInvoicesTable.totalAmount,
+      paidAmount: supplierInvoicesTable.paidAmount,
+      status: supplierInvoicesTable.status,
+    })
+    .from(supplierInvoicesTable)
+    .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+    .where(and(
+      eq(supplierInvoicesTable.organizationId, orgId),
+      ne(supplierInvoicesTable.status, "paid"),
+      ne(supplierInvoicesTable.status, "cancelled"),
+    ))
+    .orderBy(asc(supplierInvoicesTable.dueDate));
+
+    const todayMs = new Date(today).getTime();
+    const buckets: Record<string, number> = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0 };
+    const bucketCounts: Record<string, number> = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0 };
+    const items = rows.map(r => {
+      const balance = toNum(r.totalAmount) - toNum(r.paidAmount);
+      let bucket = "current";
+      if (r.dueDate) {
+        const daysOverdue = Math.floor((todayMs - new Date(r.dueDate + "T00:00:00Z").getTime()) / 864e5);
+        if (daysOverdue > 90) bucket = "over90";
+        else if (daysOverdue > 60) bucket = "d61_90";
+        else if (daysOverdue > 30) bucket = "d31_60";
+        else if (daysOverdue > 0) bucket = "d1_30";
+      }
+      buckets[bucket] += balance;
+      bucketCounts[bucket]++;
+      return { ...r, balance, bucket, totalAmount: toNum(r.totalAmount), paidAmount: toNum(r.paidAmount) };
+    });
+    return res.json({ items, buckets, bucketCounts, total: items.reduce((s, i) => s + i.balance, 0) });
+  } catch (e: any) {
+    req.log.error(e, "purchases/reports/aging GET");
+    return res.status(500).json({ error: "Erreur calcul vieillissement" });
+  }
+});
+
+// Dépenses par période (12 derniers mois)
+router.get("/purchases/reports/by-period", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select({
+      period: sql<string>`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`,
+      total: sql<number>`sum(${supplierPaymentsTable.amount})`,
+      count: sql<number>`count(*)`,
+    })
+    .from(supplierPaymentsTable)
+    .where(and(
+      eq(supplierPaymentsTable.organizationId, orgId),
+      ne(supplierPaymentsTable.status, "annule"),
+      ne(supplierPaymentsTable.status, "echoue"),
+      sql`${supplierPaymentsTable.paidAt} >= NOW() - INTERVAL '12 months'`,
+    ))
+    .groupBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`)
+    .orderBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`);
+    return res.json({ data: rows.map(r => ({ period: r.period, total: toNum(r.total), count: toNum(r.count) })) });
+  } catch (e: any) {
+    req.log.error(e, "purchases/reports/by-period GET");
+    return res.status(500).json({ error: "Erreur rapport par période" });
+  }
+});
+
+// Top fournisseurs par montant facturé
+router.get("/purchases/reports/by-supplier", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { limit: lim = "10" } = req.query as Record<string, string>;
+    const rows = await db.select({
+      supplierId: supplierInvoicesTable.supplierId,
+      supplierName: suppliersTable.name,
+      totalInvoiced: sql<number>`sum(${supplierInvoicesTable.totalAmount})`,
+      totalPaid: sql<number>`sum(${supplierInvoicesTable.paidAmount})`,
+      invoiceCount: sql<number>`count(*)`,
+    })
+    .from(supplierInvoicesTable)
+    .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+    .where(and(eq(supplierInvoicesTable.organizationId, orgId), ne(supplierInvoicesTable.status, "cancelled")))
+    .groupBy(supplierInvoicesTable.supplierId, suppliersTable.name)
+    .orderBy(desc(sql`sum(${supplierInvoicesTable.totalAmount})`))
+    .limit(parseInt(lim));
+    return res.json({ data: rows.map(r => ({
+      supplierId: r.supplierId,
+      supplierName: r.supplierName ?? "—",
+      totalInvoiced: toNum(r.totalInvoiced),
+      totalPaid: toNum(r.totalPaid),
+      balance: toNum(r.totalInvoiced) - toNum(r.totalPaid),
+      invoiceCount: toNum(r.invoiceCount),
+    })) });
+  } catch (e: any) {
+    req.log.error(e, "purchases/reports/by-supplier GET");
+    return res.status(500).json({ error: "Erreur rapport par fournisseur" });
+  }
+});
+
+// Approbations en attente (factures)
+router.get("/purchases/approvals/pending", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const rows = await db.select({
+      id: supplierInvoicesTable.id,
+      referenceNumber: supplierInvoicesTable.referenceNumber,
+      status: supplierInvoicesTable.status,
+      invoiceDate: supplierInvoicesTable.invoiceDate,
+      dueDate: supplierInvoicesTable.dueDate,
+      totalAmount: supplierInvoicesTable.totalAmount,
+      paidAmount: supplierInvoicesTable.paidAmount,
+      notes: supplierInvoicesTable.notes,
+      supplierId: supplierInvoicesTable.supplierId,
+      supplierName: suppliersTable.name,
+      createdAt: supplierInvoicesTable.createdAt,
+    })
+    .from(supplierInvoicesTable)
+    .leftJoin(suppliersTable, and(eq(suppliersTable.id, supplierInvoicesTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+    .where(and(
+      eq(supplierInvoicesTable.organizationId, orgId),
+      or(
+        eq(supplierInvoicesTable.status, "review"),
+        eq(supplierInvoicesTable.status, "awaiting_approval"),
+      ),
+    ))
+    .orderBy(asc(supplierInvoicesTable.createdAt));
+    const today = new Date().toISOString().slice(0, 10);
+    return res.json({ data: rows.map(r => ({
+      ...r, totalAmount: toNum(r.totalAmount), paidAmount: toNum(r.paidAmount),
+      balance: toNum(r.totalAmount) - toNum(r.paidAmount),
+      isOverdue: r.dueDate != null && r.dueDate < today,
+    })), total: rows.length });
+  } catch (e: any) {
+    req.log.error(e, "purchases/approvals/pending GET");
+    return res.status(500).json({ error: "Erreur récupération approbations" });
+  }
+});
+
 export default router;
+
