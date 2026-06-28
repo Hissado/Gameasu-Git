@@ -297,27 +297,48 @@ function EditCollaboratorDialog({
           </label>
           <div>
             <p className="text-sm font-medium text-foreground">{form.firstName} {form.lastName}</p>
-            <label
-              htmlFor="collab-avatar-input"
-              className="text-xs text-primary hover:underline mt-0.5 cursor-pointer"
-            >
-              Changer la photo de profil
-            </label>
-            {avatarPreview && (
-              <button
-                type="button"
-                onClick={() => { setAvatarPreview(null); set("avatarUrl", ""); }}
-                className="text-xs text-destructive hover:underline ml-3 mt-0.5"
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <label
+                htmlFor="collab-avatar-input"
+                className="text-xs text-primary hover:underline cursor-pointer"
               >
-                Supprimer
-              </button>
-            )}
+                Galerie
+              </label>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <label
+                htmlFor="collab-avatar-camera"
+                className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+              >
+                <Camera className="w-3 h-3" />
+                Prendre une photo
+              </label>
+              {avatarPreview && (
+                <>
+                  <span className="text-muted-foreground/40 text-xs">·</span>
+                  <button
+                    type="button"
+                    onClick={() => { setAvatarPreview(null); set("avatarUrl", ""); }}
+                    className="text-xs text-destructive hover:underline"
+                  >
+                    Supprimer
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <input
             id="collab-avatar-input"
             ref={avatarInputRef}
             type="file"
             accept="image/*"
+            className="hidden"
+            onChange={handleAvatarFile}
+          />
+          <input
+            id="collab-avatar-camera"
+            type="file"
+            accept="image/*"
+            capture="user"
             className="hidden"
             onChange={handleAvatarFile}
           />
