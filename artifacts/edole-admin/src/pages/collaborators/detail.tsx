@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1303,6 +1304,17 @@ export default function CollaboratorDetail() {
     onError: () => toast.error("Erreur lors de la révocation"),
   });
 
+  type QrPendingAction = "regenerate" | "disable" | "reactivate" | "revoke" | null;
+  const [qrPendingAction, setQrPendingAction] = useState<QrPendingAction>(null);
+
+  const confirmQrAction = () => {
+    if (qrPendingAction === "regenerate") generateQrTokenMutation.mutate();
+    else if (qrPendingAction === "disable") toggleQrStatusMutation.mutate("disabled");
+    else if (qrPendingAction === "reactivate") toggleQrStatusMutation.mutate("active");
+    else if (qrPendingAction === "revoke") revokeQrTokenMutation.mutate();
+    setQrPendingAction(null);
+  };
+
   const kioskCodeMutation = useMutation({
     mutationFn: (code: string | null) =>
       apiFetch(`/api/collaborators/${id}/kiosk-code`, {
@@ -2020,7 +2032,7 @@ export default function CollaboratorDetail() {
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => generateQrTokenMutation.mutate()}
+                      onClick={() => setQrPendingAction("regenerate")}
                       disabled={generateQrTokenMutation.isPending}
                       className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-colors"
                     >
@@ -2029,7 +2041,7 @@ export default function CollaboratorDetail() {
                     </button>
                     {qrTokenQuery.data.status === "active" ? (
                       <button
-                        onClick={() => toggleQrStatusMutation.mutate("disabled")}
+                        onClick={() => setQrPendingAction("disable")}
                         disabled={toggleQrStatusMutation.isPending}
                         className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-colors"
                       >
@@ -2038,7 +2050,7 @@ export default function CollaboratorDetail() {
                       </button>
                     ) : qrTokenQuery.data.status === "disabled" ? (
                       <button
-                        onClick={() => toggleQrStatusMutation.mutate("active")}
+                        onClick={() => setQrPendingAction("reactivate")}
                         disabled={toggleQrStatusMutation.isPending}
                         className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-50 transition-colors"
                       >
@@ -2048,7 +2060,7 @@ export default function CollaboratorDetail() {
                     ) : null}
                     {qrTokenQuery.data.status !== "revoked" && (
                       <button
-                        onClick={() => { if (window.confirm("Révoquer définitivement le badge QR ? Cette action est irréversible.")) revokeQrTokenMutation.mutate(); }}
+                        onClick={() => setQrPendingAction("revoke")}
                         disabled={revokeQrTokenMutation.isPending}
                         className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-destructive/40 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors"
                       >
@@ -2057,6 +2069,38 @@ export default function CollaboratorDetail() {
                       </button>
                     )}
                   </div>
+
+                  {/* Confirmation double-clic pour actions critiques */}
+                  <AlertDialog open={qrPendingAction !== null} onOpenChange={(open) => { if (!open) setQrPendingAction(null); }}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {qrPendingAction === "regenerate" && "Régénérer le badge QR ?"}
+                          {qrPendingAction === "disable" && "Désactiver le badge QR ?"}
+                          {qrPendingAction === "reactivate" && "Réactiver le badge QR ?"}
+                          {qrPendingAction === "revoke" && "Révoquer définitivement le badge QR ?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {qrPendingAction === "regenerate" && "Un nouveau QR code sera généré. L'ancien sera immédiatement invalide et le collaborateur ne pourra plus pointer avec son badge actuel."}
+                          {qrPendingAction === "disable" && "Le badge sera temporairement suspendu. Le collaborateur ne pourra plus pointer jusqu'à réactivation."}
+                          {qrPendingAction === "reactivate" && "Le badge redeviendra actif. Le collaborateur pourra à nouveau pointer au kiosque."}
+                          {qrPendingAction === "revoke" && "Cette action est irréversible. Le badge sera définitivement révoqué et il faudra en générer un nouveau pour ce collaborateur."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={confirmQrAction}
+                          className={qrPendingAction === "revoke" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : qrPendingAction === "disable" ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
+                        >
+                          {qrPendingAction === "regenerate" && "Oui, régénérer"}
+                          {qrPendingAction === "disable" && "Oui, désactiver"}
+                          {qrPendingAction === "reactivate" && "Oui, réactiver"}
+                          {qrPendingAction === "revoke" && "Oui, révoquer définitivement"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   {/* Historique des 10 derniers scans QR */}
                   {qrTokenQuery.data.recentScans && qrTokenQuery.data.recentScans.length > 0 && (
