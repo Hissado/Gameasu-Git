@@ -301,7 +301,7 @@ export default function CollaboratorBadgePrint() {
             {orgName} · Confidentiel
           </div>
           <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8 }}>
-            Gaméasù ERP
+            Gameasu ERP
           </div>
         </div>
       </div>
