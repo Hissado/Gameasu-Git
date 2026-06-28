@@ -770,6 +770,30 @@ router.post("/purchases/payments", requirePermission("purchases.pay"), async (re
 });
 
 // ════════════════════════════════════════════════════════════════
+// PRODUITS (pour sélecteur BC)
+// ════════════════════════════════════════════════════════════════
+
+router.get("/purchases/products", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { search, limit = "100" } = req.query as Record<string, string>;
+    const conds = [eq(productsTable.organizationId, orgId), eq(productsTable.isActive, true)];
+    if (search) conds.push(or(ilike(productsTable.name, `%${search}%`), ilike(productsTable.sku, `%${search}%`))!);
+    const rows = await db.select({
+      id: productsTable.id,
+      name: productsTable.name,
+      sku: productsTable.sku,
+      purchasePriceFcfa: productsTable.purchasePriceFcfa,
+      unit: productsTable.unit,
+    }).from(productsTable).where(and(...conds)).orderBy(asc(productsTable.name)).limit(parseInt(limit));
+    return res.json({ data: rows });
+  } catch (e: any) {
+    req.log.error(e, "purchases/products GET");
+    return res.status(500).json({ error: "Erreur lors de la récupération des produits" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // VUE D'ENSEMBLE (KPI)
 // ════════════════════════════════════════════════════════════════
 
