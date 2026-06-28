@@ -84,20 +84,26 @@ export type KioskToken = typeof kioskTokensTable.$inferSelect;
 // ─────────────────────────────────────────────────────────────────
 // COLLABORATOR_QR_TOKENS — QR codes de pointage individuels
 // Un token UUID par collaborateur, encodé dans un QR code sur son
-// badge physique.  Révocable et renouvelable à tout moment.
+// badge physique.  Révocable, désactivable et renouvelable à tout moment.
 // ─────────────────────────────────────────────────────────────────
 export const collaboratorQrTokensTable = pgTable("collaborator_qr_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
   token: uuid("token").notNull().defaultRandom(),
+  status: text("status").notNull().default("active"), // active | disabled | revoked
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  lastUsedByKioskId: uuid("last_used_by_kiosk_id").references(() => kiosksTable.id, { onDelete: "set null" }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedByUserId: uuid("revoked_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   createdByUserId: uuid("created_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   orgIdx: index("collab_qr_tokens_org_idx").on(t.organizationId),
   collaboratorIdx: index("collab_qr_tokens_collab_idx").on(t.collaboratorId),
   tokenIdx: uniqueIndex("collab_qr_tokens_token_uidx").on(t.token),
+  statusIdx: index("collab_qr_tokens_status_idx").on(t.status),
 }));
 
 export type CollaboratorQrToken = typeof collaboratorQrTokensTable.$inferSelect;
