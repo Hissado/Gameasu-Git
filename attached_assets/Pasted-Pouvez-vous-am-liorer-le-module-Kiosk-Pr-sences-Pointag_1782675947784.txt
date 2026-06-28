@@ -1,0 +1,325 @@
+Pouvez-vous améliorer le module Kiosk / Présences & Pointage de Gameasu en ajoutant une option de pointage par QR code personnel, rattaché au profil de chaque collaborateur, en complément du numéro kiosk existant ?
+
+Objectif
+
+Je veux que chaque collaborateur puisse pointer de deux façons :
+
+1. avec son numéro kiosk
+2. avec un QR code personnel sécurisé
+
+Je veux aussi que Gameasu génère automatiquement un badge collaborateur depuis le profil RH, avec photo, nom, poste, numéro kiosk et QR code.
+
+L’objectif est de rendre le pointage plus rapide, plus moderne, plus professionnel et plus adapté aux organisations qui utilisent un kiosque physique, une tablette, un téléphone ou un ordinateur partagé.
+
+⸻
+
+1. Ajouter un QR code personnel au profil collaborateur
+
+Dans chaque profil collaborateur, ajouter une nouvelle section :
+
+Badge & Pointage
+
+Cette section doit afficher :
+
+* photo du collaborateur
+* nom complet
+* poste
+* département
+* site ou bureau rattaché
+* numéro kiosk
+* QR code personnel
+* statut du QR code : actif, désactivé, expiré ou régénéré
+* date de création du QR code
+* dernière utilisation du QR code
+* historique des pointages via QR code
+
+Actions disponibles
+
+Ajouter les boutons suivants :
+
+* Générer le QR code
+* Régénérer le QR code
+* Désactiver le QR code
+* Réactiver le QR code
+* Télécharger le badge PDF
+* Imprimer le badge
+* Voir l’historique d’utilisation
+
+⸻
+
+2. Créer un QR code sécurisé
+
+Le QR code ne doit pas contenir directement les informations personnelles du collaborateur.
+
+Il doit utiliser un identifiant sécurisé ou un token unique rattaché au profil collaborateur.
+
+Exemple :
+
+* collaborateur_id interne
+* qr_token sécurisé
+* statut actif / inactif
+* date de génération
+* date d’expiration optionnelle
+* organisation_id
+* tenant_id
+
+Le QR code doit permettre au système d’identifier le collaborateur sans exposer ses données sensibles.
+
+Si le badge est perdu, l’administrateur doit pouvoir régénérer le QR code et désactiver l’ancien.
+
+⸻
+
+3. Générer un badge collaborateur professionnel
+
+Depuis le profil collaborateur, permettre de générer un badge PDF professionnel.
+
+Le badge doit contenir :
+
+* logo de l’organisation ou de Gameasu
+* photo du collaborateur
+* nom complet
+* poste
+* département
+* site / bureau
+* numéro kiosk
+* QR code personnel
+* nom de l’organisation
+* mention “Badge de pointage”
+* statut du badge
+* date de génération
+
+Le badge doit être propre, bien aligné, lisible et prêt à imprimer.
+
+Prévoir deux formats :
+
+* badge individuel
+* planche de badges pour imprimer plusieurs collaborateurs en une fois
+
+⸻
+
+4. Ajouter l’option “Scanner QR code” dans le Kiosk
+
+Dans l’interface Kiosk, ajouter deux options principales :
+
+* Pointer avec mon code
+* Scanner mon QR code
+
+L’option “Scanner mon QR code” doit ouvrir la caméra de l’appareil utilisé comme kiosk.
+
+Le système doit pouvoir scanner le QR code depuis :
+
+* tablette
+* téléphone
+* ordinateur avec caméra
+* lecteur QR externe si applicable
+
+⸻
+
+5. Workflow de pointage par QR code
+
+Après scan du QR code :
+
+1. le système vérifie que le QR code est valide
+2. le système identifie le collaborateur
+3. le système affiche la photo, le nom, le poste et le département
+4. l’utilisateur confirme son pointage
+5. le système détecte l’action attendue : entrée, sortie, début pause ou fin pause
+6. le pointage est enregistré
+7. les données sont synchronisées avec Présences, RH, Paie et Rapports
+
+Informations à enregistrer
+
+Chaque pointage QR doit enregistrer :
+
+* collaborateur
+* date
+* heure
+* type de pointage : entrée, sortie, pause début, pause fin
+* méthode : QR code
+* kiosk utilisé
+* site / bureau / chantier
+* appareil utilisé
+* localisation si activée
+* photo de confirmation si activée
+* statut : validé, en attente, rejeté ou suspect
+* utilisateur ou appareil ayant enregistré le pointage
+
+⸻
+
+6. Sécurité et contrôle
+
+Ajouter des règles de sécurité pour éviter les abus.
+
+Prévoir :
+
+* QR code unique par collaborateur
+* QR code désactivable
+* QR code régénérable
+* ancien QR code automatiquement invalidé après régénération
+* vérification du statut du collaborateur
+* vérification du tenant / organisation
+* vérification du kiosk autorisé
+* limitation par site ou département si activée
+* blocage des doubles pointages
+* journal d’audit complet
+* détection des pointages suspects
+* option de photo au moment du pointage
+* option de géolocalisation
+* permission admin pour générer ou régénérer les badges
+
+⸻
+
+7. Paramètres administrateur
+
+Dans les paramètres Kiosk / Présences, ajouter des options permettant à l’admin de configurer :
+
+* activer ou désactiver le pointage par QR code
+* exiger une confirmation après scan
+* exiger une photo au moment du pointage
+* exiger la géolocalisation
+* limiter le QR code à un site spécifique
+* autoriser ou non le pointage hors zone
+* définir la durée de validité du QR code
+* autoriser la régénération automatique
+* choisir le format du badge
+* afficher ou masquer certaines informations sur le badge
+
+⸻
+
+8. Connexion avec les modules Gameasu
+
+Le pointage par QR code doit être connecté aux modules suivants :
+
+* RH
+* Collaborateurs
+* Présences & Pointage
+* Kiosk
+* Paie
+* Rapports
+* Admin
+* Rôles & Permissions
+* Documents
+* Notifications
+* Audit log
+
+Exemples de synchronisation
+
+* QR scan validé → présence enregistrée
+* présence validée → feuille de temps
+* feuille de temps → paie
+* badge généré → document RH
+* QR code régénéré → audit log
+* pointage suspect → notification manager
+* absence de pointage → alerte RH
+
+⸻
+
+9. Permissions
+
+Le système doit respecter les permissions.
+
+Prévoir des permissions comme :
+
+* voir les badges collaborateurs
+* générer un badge
+* télécharger un badge
+* imprimer un badge
+* régénérer un QR code
+* désactiver un QR code
+* voir l’historique des scans
+* configurer le pointage QR
+* utiliser le kiosk
+* valider ou corriger un pointage
+
+Les permissions doivent être vérifiées côté frontend et backend.
+
+⸻
+
+10. Interface utilisateur
+
+L’interface doit être simple, propre et professionnelle.
+
+Dans le profil collaborateur
+
+Ajouter une carte claire :
+
+Badge & Pointage
+
+Avec :
+
+* aperçu du badge
+* QR code visible
+* numéro kiosk
+* boutons d’action
+* statut du QR
+* historique rapide
+
+Dans le Kiosk
+
+Créer une interface très simple avec deux grandes options :
+
+* Pointer avec mon code
+* Scanner mon QR code
+
+L’expérience doit être rapide, lisible, responsive et adaptée à une tablette posée à l’entrée d’un bureau, d’un chantier ou d’un site.
+
+⸻
+
+11. Rapports
+
+Ajouter des rapports permettant de suivre :
+
+* pointages par QR code
+* pointages par numéro kiosk
+* pointages par site
+* pointages par collaborateur
+* pointages suspects
+* badges actifs
+* badges désactivés
+* QR codes régénérés
+* historique d’utilisation des badges
+
+Les rapports doivent être exportables en PDF et Excel avec le branding Gameasu.
+
+⸻
+
+12. Données demo
+
+Ajouter des données demo pour Hissado Consulting afin de tester :
+
+* collaborateurs avec numéro kiosk
+* collaborateurs avec QR code actif
+* collaborateurs sans QR code
+* badges générés
+* pointages par code
+* pointages par QR code
+* pointages suspects
+* QR code régénéré
+* badge désactivé
+* rapport de présence
+
+Tous les emails Hissado doivent utiliser :
+
+@hissadoconsulting.com
+
+Aucune donnée ne doit utiliser edole.africa, hissado.tg ou une ancienne variation de Gameasu.
+
+⸻
+
+13. Résultat attendu
+
+Je veux que Gameasu permette aux organisations de gérer un pointage moderne et professionnel avec :
+
+* numéro kiosk
+* QR code personnel
+* badge collaborateur PDF
+* scan QR depuis le kiosk
+* historique complet
+* sécurité renforcée
+* permissions
+* rapports PDF / Excel
+* connexion avec RH, Présences et Paie
+
+Objectif final
+
+Transformer le Kiosk Gameasu en un vrai système de pointage professionnel, rapide et sécurisé, où chaque collaborateur peut pointer avec son code ou avec son badge QR, directement rattaché à son profil RH.
