@@ -32,6 +32,7 @@ const MODULES: ModuleSeed[] = [
   { key: "tasks", name: "Tâches", category: "core", sortOrder: 50, isCore: true, icon: "CheckSquare" },
   { key: "sales_crm", name: "Ventes & Relation client", category: "business", sortOrder: 60, icon: "Target" },
   { key: "accounting", name: "Comptabilité", category: "business", sortOrder: 70, icon: "Calculator" },
+  { key: "purchases", name: "Achats & Fournisseurs", category: "business", sortOrder: 75, icon: "ShoppingCart" },
   { key: "financial_planning", name: "Planification financière", category: "business", sortOrder: 80, icon: "TrendingUp" },
   { key: "operations", name: "Opérations", category: "business", sortOrder: 90, icon: "Truck" },
   { key: "inventory_assets", name: "Parc & équipements", category: "business", sortOrder: 100, icon: "Wrench" },
@@ -88,7 +89,7 @@ const PLANS = [
     maxSeats: 30,
     includedModules: [
       "dashboard", "clients", "services", "projects", "tasks",
-      "sales_crm", "accounting", "documents", "team_hr",
+      "sales_crm", "accounting", "purchases", "documents", "team_hr",
       "communications", "reports",
       "administration", "billing_subscription", "workspace_settings",
     ],
@@ -115,7 +116,7 @@ const PLANS = [
     maxSeats: 100,
     includedModules: [
       "dashboard", "clients", "services", "projects", "tasks",
-      "sales_crm", "accounting", "financial_planning",
+      "sales_crm", "accounting", "purchases", "financial_planning",
       "operations", "inventory_assets", "inventory_products", "rentals",
       "documents", "team_hr", "communications", "reports",
       "client_portal", "marketing",

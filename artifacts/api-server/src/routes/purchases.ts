@@ -13,7 +13,7 @@ import {
   productsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, ilike, isNull, or, sql, inArray, ne } from "drizzle-orm";
-import { requireManagerOrAbove } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import { z } from "zod/v4";
 
 const router = Router();
@@ -139,7 +139,7 @@ async function nextPoReference(orgId: string): Promise<string> {
 // FOURNISSEURS
 // ════════════════════════════════════════════════════════════════
 
-router.get("/purchases/suppliers", async (req, res) => {
+router.get("/purchases/suppliers", requirePermission("purchases.read"), async (req, res) => {
   try {
     const { search, status, type, limit = "100", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
@@ -207,7 +207,7 @@ router.get("/purchases/suppliers", async (req, res) => {
   }
 });
 
-router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
+router.post("/purchases/suppliers", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const parsed = SupplierCreateSchema.safeParse(req.body);
@@ -243,7 +243,7 @@ router.post("/purchases/suppliers", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.get("/purchases/suppliers/:id", async (req, res) => {
+router.get("/purchases/suppliers/:id", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -291,7 +291,7 @@ router.get("/purchases/suppliers/:id", async (req, res) => {
   }
 });
 
-router.patch("/purchases/suppliers/:id", requireManagerOrAbove, async (req, res) => {
+router.patch("/purchases/suppliers/:id", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -329,7 +329,7 @@ router.patch("/purchases/suppliers/:id", requireManagerOrAbove, async (req, res)
   }
 });
 
-router.delete("/purchases/suppliers/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/purchases/suppliers/:id", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -347,7 +347,7 @@ router.delete("/purchases/suppliers/:id", requireManagerOrAbove, async (req, res
 // FACTURES FOURNISSEURS
 // ════════════════════════════════════════════════════════════════
 
-router.get("/purchases/invoices", async (req, res) => {
+router.get("/purchases/invoices", requirePermission("purchases.read"), async (req, res) => {
   try {
     const { status, supplierId, search, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
@@ -402,7 +402,7 @@ router.get("/purchases/invoices", async (req, res) => {
   }
 });
 
-router.post("/purchases/invoices", requireManagerOrAbove, async (req, res) => {
+router.post("/purchases/invoices", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const parsed = InvoiceCreateSchema.safeParse(req.body);
@@ -431,7 +431,7 @@ router.post("/purchases/invoices", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.get("/purchases/invoices/:id", async (req, res) => {
+router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -478,7 +478,7 @@ router.get("/purchases/invoices/:id", async (req, res) => {
   }
 });
 
-router.patch("/purchases/invoices/:id", requireManagerOrAbove, async (req, res) => {
+router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -511,7 +511,7 @@ router.patch("/purchases/invoices/:id", requireManagerOrAbove, async (req, res) 
 // BONS DE COMMANDE
 // ════════════════════════════════════════════════════════════════
 
-router.get("/purchases/purchase-orders", async (req, res) => {
+router.get("/purchases/purchase-orders", requirePermission("purchases.read"), async (req, res) => {
   try {
     const { status, supplierId, search, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
@@ -549,7 +549,7 @@ router.get("/purchases/purchase-orders", async (req, res) => {
   }
 });
 
-router.post("/purchases/purchase-orders", requireManagerOrAbove, async (req, res) => {
+router.post("/purchases/purchase-orders", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const parsed = PurchaseOrderCreateSchema.safeParse(req.body);
@@ -590,7 +590,7 @@ router.post("/purchases/purchase-orders", requireManagerOrAbove, async (req, res
   }
 });
 
-router.get("/purchases/purchase-orders/:id", async (req, res) => {
+router.get("/purchases/purchase-orders/:id", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -636,7 +636,7 @@ router.get("/purchases/purchase-orders/:id", async (req, res) => {
   }
 });
 
-router.patch("/purchases/purchase-orders/:id", requireManagerOrAbove, async (req, res) => {
+router.patch("/purchases/purchase-orders/:id", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -671,7 +671,7 @@ router.patch("/purchases/purchase-orders/:id", requireManagerOrAbove, async (req
 // PAIEMENTS FOURNISSEURS
 // ════════════════════════════════════════════════════════════════
 
-router.get("/purchases/payments", async (req, res) => {
+router.get("/purchases/payments", requirePermission("purchases.read"), async (req, res) => {
   try {
     const { supplierId, invoiceId, limit = "50", offset = "0" } = req.query as Record<string, string>;
     const orgId = req.authUser!.organizationId;
@@ -712,7 +712,7 @@ router.get("/purchases/payments", async (req, res) => {
   }
 });
 
-router.post("/purchases/payments", requireManagerOrAbove, async (req, res) => {
+router.post("/purchases/payments", requirePermission("purchases.pay"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const parsed = PaymentCreateSchema.safeParse(req.body);
@@ -751,7 +751,7 @@ router.post("/purchases/payments", requireManagerOrAbove, async (req, res) => {
 // VUE D'ENSEMBLE (KPI)
 // ════════════════════════════════════════════════════════════════
 
-router.get("/purchases/overview", async (req, res) => {
+router.get("/purchases/overview", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const today = new Date().toISOString().slice(0, 10);
