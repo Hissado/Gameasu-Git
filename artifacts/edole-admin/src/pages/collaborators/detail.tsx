@@ -838,6 +838,15 @@ export default function CollaboratorDetail() {
   });
   const totalLeaveAvailable = (leaveBalancesData?.balances ?? []).reduce((s, b) => s + Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0)), 0);
 
+  const { data: pendingLeaveReqs } = useQuery<any[]>({
+    queryKey: ["pending-leave-reqs-collab", id],
+    queryFn: async () => {
+      const r = await apiFetch(`/api/hr/leaves/requests?collaboratorId=${id}&status=pending`);
+      return Array.isArray(r) ? r : ((r as any)?.data ?? []);
+    },
+    enabled: !!id,
+  });
+
   const isManagerOrAbove = ["admin", "super_admin", "manager"].includes(user?.role || "");
   const isAdmin = ["admin", "super_admin"].includes(user?.role || "");
   const queryClient = useQueryClient();
@@ -1090,230 +1099,348 @@ export default function CollaboratorDetail() {
         </div>
       </div>
 
-      {/* COLONNES */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* COLONNE GAUCHE — INFOS */}
-        <Card className="col-span-1 shadow-sm h-fit border-border">
-          <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-            <CardTitle className="text-base">Informations</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5 text-sm">
-            {(collaborator as any).professionalEmail && (
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email pro</p>
-                  <p className="font-medium mt-0.5 break-all">{(collaborator as any).professionalEmail}</p>
+      {/* APERÇU — 3 colonnes style Uptimise */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* ── COL GAUCHE : Congés + Contrat ── */}
+        <div className="space-y-5">
+
+          {/* CONGÉS */}
+          <Card className="shadow-sm border-border overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-teal-600" /> Congés
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="flex items-end gap-2 mb-5">
+                <span className="text-5xl font-bold text-foreground leading-none">{totalLeaveAvailable}</span>
+                <div className="pb-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-tight">Jours</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-tight">disponibles</p>
                 </div>
               </div>
-            )}
-            {collaborator.email && (
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email perso</p>
-                  <p className="font-medium mt-0.5 break-all">{collaborator.email}</p>
-                </div>
-              </div>
-            )}
-            {!(collaborator as any).professionalEmail && !collaborator.email && (
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email</p>
-                  <p className="font-medium mt-0.5 text-amber-600 italic text-sm">Non renseigné</p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-start gap-3">
-              <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Téléphone</p>
-                <p className="font-medium mt-0.5">{collaborator.phone || "Non renseigné"}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Date d'embauche</p>
-                <p className="font-medium mt-0.5">{(collaborator as any).hireDate ? formatDate((collaborator as any).hireDate) : formatDate(collaborator.createdAt)}</p>
-              </div>
-            </div>
-            {(collaborator as any).baseSalary && (
-              <div className="flex items-start gap-3">
-                <BadgeCheck className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Salaire de base</p>
-                  <p className="font-medium mt-0.5">{formatFCFA(Number((collaborator as any).baseSalary))}</p>
-                </div>
-              </div>
-            )}
-            {overview?.position && (
-              <div className="flex items-start gap-3">
-                <Building2 className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Poste</p>
-                  <p className="font-medium mt-0.5">{overview.position.title}</p>
-                </div>
-              </div>
-            )}
-            {/* Infos admin si présentes */}
-            {(collaborator as any).nationalId && (
-              <div className="flex items-start gap-3">
-                <BadgeCheck className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">N° Identité</p>
-                  <p className="font-medium mt-0.5 font-mono">{(collaborator as any).nationalId}</p>
-                </div>
-              </div>
-            )}
-            {(collaborator as any).address && (
-              <div className="flex items-start gap-3">
-                <Building2 className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Adresse</p>
-                  <p className="font-medium mt-0.5 text-xs">{(collaborator as any).address}</p>
-                </div>
-              </div>
-            )}
-            {(collaborator as any).emergencyContact && (
-              <div className="pt-2 border-t border-border/50">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Contact d'urgence</p>
-                <p className="text-sm font-medium">{(collaborator as any).emergencyContact.name}</p>
-                <p className="text-xs text-muted-foreground">{(collaborator as any).emergencyContact.phone} · {(collaborator as any).emergencyContact.relation}</p>
-              </div>
-            )}
-            {/* Coordonnées bancaires */}
-            {isManagerOrAbove && ((collaborator as any).bankName || (collaborator as any).bankAccountNumber) && (
-              <div className="pt-2 border-t border-border/50">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Landmark className="w-3 h-3" /> Coordonnées bancaires
-                </p>
-                {(collaborator as any).bankName && (
-                  <p className="text-sm font-medium">{(collaborator as any).bankName}
-                    {(collaborator as any).bankCode && <span className="text-muted-foreground font-normal text-xs ml-1.5">(code {(collaborator as any).bankCode})</span>}
-                  </p>
-                )}
-                {(collaborator as any).bankAccountNumber && (
-                  <p className="text-xs font-mono text-muted-foreground mt-0.5">{(collaborator as any).bankAccountNumber}</p>
-                )}
-              </div>
-            )}
-            {/* Demande bancaire en attente */}
-            {isManagerOrAbove && <BankRequestPanel collaboratorId={id} onApproved={() => { queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(id) }); }} />}
-            {/* Kiosk code */}
-            {isAdmin && (
-              <div className="pt-2 border-t border-border/50">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Keyboard className="w-3 h-3" /> Code kiosk
-                  </p>
-                  {!kioskCodeEditing && (
-                    <button
-                      onClick={() => { setKioskCodeInput((collaborator as any).kioskCode || ""); setKioskCodeEditing(true); }}
-                      className="text-[10px] text-primary hover:underline"
-                    >
-                      Modifier
-                    </button>
+              {(leaveBalancesData?.balances ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">Non configuré pour cette année.</p>
+              ) : (
+                <div className="space-y-2.5 border-t border-border/50 pt-3">
+                  {leaveBalancesData!.balances.map(b => {
+                    const avail = Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0));
+                    return (
+                      <div key={b.leaveType} className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2 text-muted-foreground text-xs">
+                          <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
+                          {b.leaveType}
+                        </span>
+                        <span className="font-semibold text-foreground text-sm">{avail} j</span>
+                      </div>
+                    );
+                  })}
+                  {leaveBalancesData!.balances.some(b => (b.carried ?? 0) > 0) && (
+                    <p className="text-[10px] text-muted-foreground pt-2 border-t border-border/50">
+                      Dont {leaveBalancesData!.balances.reduce((s, b) => s + (b.carried ?? 0), 0)} j reporté(s)
+                    </p>
                   )}
                 </div>
-                {kioskCodeEditing ? (
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      value={kioskCodeInput}
-                      onChange={e => setKioskCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      placeholder="0000"
-                      maxLength={4}
-                      className="h-7 text-sm font-mono w-24 px-2"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => kioskCodeMutation.mutate(kioskCodeInput.length === 4 ? kioskCodeInput : null)}
-                      disabled={kioskCodeMutation.isPending}
-                      className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
-                    >
-                      {kioskCodeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                    </button>
-                    <button onClick={() => setKioskCodeEditing(false)} className="p-1 rounded hover:bg-muted text-muted-foreground">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="font-mono font-bold text-lg tracking-widest text-foreground">
-                    {(collaborator as any).kioskCode
-                      ? <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{(collaborator as any).kioskCode}</span>
-                      : <span className="text-xs text-muted-foreground font-normal">Non attribué</span>
-                    }
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* COLONNE DROITE — CHARGE + ACTIVITÉ */}
-        <div className="col-span-1 md:col-span-2 space-y-6">
+          {/* INFORMATIONS CONTRACTUELLES */}
           <Card className="shadow-sm border-border">
-            <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-              <CardTitle className="text-base">Charge de travail & activité</CardTitle>
-              <CardDescription>Synthèse opérationnelle cross-modules</CardDescription>
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileSignature className="w-4 h-4" /> Informations contractuelles
+                </CardTitle>
+                {(() => {
+                  const ac = overview?.contracts.find(c => c.status === "active");
+                  return ac
+                    ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-[10px] font-semibold">Contrat actif</Badge>
+                    : overview?.contracts.length
+                    ? <Badge variant="outline" className="text-[10px]">Inactif</Badge>
+                    : null;
+                })()}
+              </div>
             </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 text-blue-600 rounded-md"><Briefcase className="w-5 h-5" /></div>
-                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Affectations</div><div className="text-2xl font-bold">{wl?.activeAssignments ?? 0}</div></div>
+            <CardContent className="pt-4 space-y-3 text-sm">
+              {(() => {
+                const ac = overview?.contracts.find(c => c.status === "active") ?? overview?.contracts[0];
+                if (!ac) return <p className="text-muted-foreground text-xs py-2 text-center">Aucun contrat enregistré.</p>;
+                return (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <FileSignature className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="font-semibold">
+                        {ac.type === "cdi" ? "CDI" : ac.type === "cdd" ? "CDD" : ac.type === "freelance" ? "Freelance" : ac.type === "stage" ? "Stage" : ac.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                      <Calendar className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        Depuis le {ac.startDate ? new Date(ac.startDate).toLocaleDateString("fr-FR") : "—"}
+                        {ac.endDate ? ` → ${new Date(ac.endDate).toLocaleDateString("fr-FR")}` : ""}
+                      </span>
+                    </div>
+                    {ac.jobTitle && (
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                        <span>{ac.jobTitle}</span>
+                      </div>
+                    )}
+                    {overview?.position && (
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>{overview.position.title}</span>
+                      </div>
+                    )}
+                    {overview?.department && (
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Membre de l'équipe <strong className="text-foreground">{overview.department.name}</strong></span>
+                      </div>
+                    )}
+                    {overview?.manager && (
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <User className="w-3.5 h-3.5 shrink-0" />
+                        <span>Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-primary hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link></span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              {canSeePayslips && payslips.length > 0 && (
+                <div className="pt-3 border-t border-border/50 flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-xs h-8" onClick={() => handleDownloadPdf(payslips[0])}>
+                    <Download className="w-3 h-3" /> Aperçu du bulletin
+                  </Button>
                 </div>
-                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">
-                  <div className="p-2 bg-amber-100 text-amber-700 rounded-md"><ListTodo className="w-5 h-5" /></div>
-                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Tâches actives</div><div className="text-2xl font-bold">{wl?.activeTasks ?? 0}</div></div>
+              )}
+              {isAdmin && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Keyboard className="w-3 h-3" /> Code kiosk
+                    </p>
+                    {!kioskCodeEditing && (
+                      <button onClick={() => { setKioskCodeInput((collaborator as any).kioskCode || ""); setKioskCodeEditing(true); }} className="text-[10px] text-primary hover:underline">
+                        Modifier
+                      </button>
+                    )}
+                  </div>
+                  {kioskCodeEditing ? (
+                    <div className="flex items-center gap-1.5">
+                      <Input value={kioskCodeInput} onChange={e => setKioskCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0000" maxLength={4} className="h-7 text-sm font-mono w-24 px-2" autoFocus />
+                      <button onClick={() => kioskCodeMutation.mutate(kioskCodeInput.length === 4 ? kioskCodeInput : null)} disabled={kioskCodeMutation.isPending} className="p-1 rounded hover:bg-emerald-100 text-emerald-600">
+                        {kioskCodeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => setKioskCodeEditing(false)} className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ) : (
+                    <p className="font-mono font-bold text-lg tracking-widest text-foreground">
+                      {(collaborator as any).kioskCode
+                        ? <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{(collaborator as any).kioskCode}</span>
+                        : <span className="text-xs text-muted-foreground font-normal">Non attribué</span>}
+                    </p>
+                  )}
                 </div>
-                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">
-                  <div className="p-2 bg-violet-100 text-violet-600 rounded-md"><Wrench className="w-5 h-5" /></div>
-                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Équipements</div><div className="text-2xl font-bold">{wl?.responsibleEquipmentsCount ?? 0}</div></div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── COL CENTRE : Charge + Affectations ── */}
+        <div className="space-y-5">
+
+          {/* CHARGE DE TRAVAIL */}
+          <Card className="shadow-sm border-border">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <CardTitle className="text-base">Charge de travail</CardTitle>
+              <CardDescription>Synthèse opérationnelle</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-2.5">
+                  <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md"><Briefcase className="w-4 h-4" /></div>
+                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Affectations</div><div className="text-xl font-bold">{wl?.activeAssignments ?? 0}</div></div>
                 </div>
-                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 text-emerald-600 rounded-md"><GitBranch className="w-5 h-5" /></div>
-                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Projets dirigés</div><div className="text-2xl font-bold">{wl?.ledProjectsCount ?? 0}</div></div>
+                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-2.5">
+                  <div className="p-1.5 bg-amber-100 text-amber-700 rounded-md"><ListTodo className="w-4 h-4" /></div>
+                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Tâches</div><div className="text-xl font-bold">{wl?.activeTasks ?? 0}</div></div>
+                </div>
+                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-2.5">
+                  <div className="p-1.5 bg-violet-100 text-violet-600 rounded-md"><Wrench className="w-4 h-4" /></div>
+                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Équipements</div><div className="text-xl font-bold">{wl?.responsibleEquipmentsCount ?? 0}</div></div>
+                </div>
+                <div className="bg-muted/30 border border-border p-3 rounded-lg flex items-center gap-2.5">
+                  <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-md"><GitBranch className="w-4 h-4" /></div>
+                  <div><div className="text-[10px] font-bold text-muted-foreground uppercase">Projets dirigés</div><div className="text-xl font-bold">{wl?.ledProjectsCount ?? 0}</div></div>
                 </div>
               </div>
-              <div className="bg-muted/20 border border-border p-4 rounded-lg">
+              <div className="bg-muted/20 border border-border p-3 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Taux d'allocation cumulé</span>
-                  <span className={`text-lg font-bold ${(wl?.totalAllocationPct ?? 0) > 100 ? "text-destructive" : "text-foreground"}`}>{wl?.totalAllocationPct ?? 0}%</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Taux d'allocation</span>
+                  <span className={`text-base font-bold ${(wl?.totalAllocationPct ?? 0) > 100 ? "text-destructive" : "text-foreground"}`}>{wl?.totalAllocationPct ?? 0}%</span>
                 </div>
                 <Progress value={Math.min(wl?.totalAllocationPct ?? 0, 100)} className={`h-2 ${loadColor}`} />
-                {(wl?.totalAllocationPct ?? 0) > 100 && <p className="text-xs text-destructive mt-2">⚠ Surcharge : la somme des allocations dépasse 100%.</p>}
+                {(wl?.totalAllocationPct ?? 0) > 100 && <p className="text-xs text-destructive mt-1.5">⚠ Surcharge détectée</p>}
               </div>
             </CardContent>
           </Card>
 
-          {/* AFFECTATIONS */}
+          {/* AFFECTATIONS PROJETS */}
           <Card className="shadow-sm border-border">
-            <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-              <CardTitle className="text-base flex items-center gap-2"><GitBranch className="w-4 h-4" /> Affectations sur projets</CardTitle>
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <CardTitle className="text-base flex items-center gap-2"><GitBranch className="w-4 h-4" /> Affectations projets</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              {overviewLoading ? <Skeleton className="h-20" /> : (overview?.assignments.length ?? 0) === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">Aucune affectation. <Link href="/hr/assignments" className="text-primary hover:underline">Créer une affectation</Link></p>
+              {overviewLoading ? <Skeleton className="h-16" /> : (overview?.assignments.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground py-5 text-center">Aucune affectation active.<br /><Link href="/hr/assignments" className="text-primary hover:underline text-xs">Créer une affectation</Link></p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground border-b">
-                    <tr><th className="py-2">Projet</th><th>Rôle</th><th className="text-right">Charge</th><th>Période</th><th>Statut</th></tr>
-                  </thead>
-                  <tbody>
-                    {overview!.assignments.map((a) => (
-                      <tr key={a.id} className="border-b last:border-0">
-                        <td className="py-2.5 font-medium"><Link href={`/projects/${a.projectId}`} className="hover:text-primary">{a.projectName}</Link></td>
-                        <td><Badge variant="outline" className="text-xs">{a.role}</Badge></td>
-                        <td className="text-right font-semibold">{a.allocationPct}%</td>
-                        <td className="text-xs text-muted-foreground">{a.startDate ? new Date(a.startDate).toLocaleDateString("fr-FR") : "—"} → {a.endDate ? new Date(a.endDate).toLocaleDateString("fr-FR") : "…"}</td>
-                        <td>{statusBadge(a.status)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="space-y-1">
+                  {overview!.assignments.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <Link href={`/projects/${a.projectId}`} className="text-sm font-medium hover:text-primary truncate block">{a.projectName}</Link>
+                        <p className="text-xs text-muted-foreground mt-0.5">{a.role} · <strong>{a.allocationPct}%</strong></p>
+                      </div>
+                      {statusBadge(a.status)}
+                    </div>
+                  ))}
+                </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── COL DROITE : Demandes + Infos perso + Historique ── */}
+        <div className="space-y-5">
+
+          {/* DEMANDES À APPROUVER */}
+          {isManagerOrAbove && (
+            <Card className="shadow-sm border-border">
+              <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+                <CardTitle className="text-base">Demandes à approuver</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {(pendingLeaveReqs ?? []).length === 0 ? (
+                  <div className="flex flex-col items-center py-5 gap-2 text-muted-foreground">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                    <p className="text-xs text-center">Aucune demande à approuver</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {pendingLeaveReqs!.map((req: any) => (
+                      <div key={req.id} className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                        <div>
+                          <p className="text-sm font-medium">{req.leaveType ?? req.type}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {req.startDate ? new Date(req.startDate).toLocaleDateString("fr-FR") : "—"} → {req.endDate ? new Date(req.endDate).toLocaleDateString("fr-FR") : "—"}
+                          </p>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-[10px] shrink-0">En attente</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* INFORMATIONS PERSONNELLES */}
+          <Card className="shadow-sm border-border">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Informations personnelles</CardTitle>
+                {isManagerOrAbove && (
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => setEditOpen(true)}>
+                    <Pencil className="w-3 h-3" /> Mettre à jour
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="break-all text-xs">{(collaborator as any).professionalEmail || collaborator.email || <span className="text-muted-foreground italic">Email non renseigné</span>}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs">{collaborator.phone || <span className="text-muted-foreground italic">Téléphone non renseigné</span>}</span>
+              </div>
+              {(collaborator as any).address && (
+                <div className="flex items-start gap-2.5">
+                  <Home className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <span className="text-xs">{(collaborator as any).address}</span>
+                </div>
+              )}
+              {(collaborator as any).nationalId && (
+                <div className="flex items-center gap-2.5">
+                  <BadgeCheck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs font-mono">{(collaborator as any).nationalId}</span>
+                </div>
+              )}
+              {isManagerOrAbove && ((collaborator as any).bankName || (collaborator as any).bankAccountNumber) && (
+                <div className="pt-2 border-t border-border/50">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><Landmark className="w-3 h-3" /> Coordonnées bancaires</p>
+                  {(collaborator as any).bankName && <p className="text-xs font-medium">{(collaborator as any).bankName}{(collaborator as any).bankCode && <span className="text-muted-foreground ml-1.5">(code {(collaborator as any).bankCode})</span>}</p>}
+                  {(collaborator as any).bankAccountNumber && <p className="text-xs font-mono text-muted-foreground mt-0.5">{(collaborator as any).bankAccountNumber}</p>}
+                </div>
+              )}
+              {isManagerOrAbove && <BankRequestPanel collaboratorId={id} onApproved={() => { queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(id) }); }} />}
+              {(collaborator as any).emergencyContact && (
+                <div className="pt-2 border-t border-border/50">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Contact d'urgence</p>
+                  <p className="text-xs font-medium">{(collaborator as any).emergencyContact.name}</p>
+                  <p className="text-xs text-muted-foreground">{(collaborator as any).emergencyContact.phone} · {(collaborator as any).emergencyContact.relation}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* HISTORIQUE */}
+          <Card className="shadow-sm border-border">
+            <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
+              <CardTitle className="text-base">Historique</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-4 relative pl-6">
+                <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border/60" />
+                <div className="relative">
+                  <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-teal-500 border-2 border-white shadow-sm" />
+                  <p className="text-xs font-semibold text-foreground">Date de début</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {(collaborator as any).hireDate
+                      ? new Date((collaborator as any).hireDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+                      : formatDate(collaborator.createdAt)}
+                  </p>
+                </div>
+                {overview?.contracts.find(c => c.status === "active") && (
+                  <div className="relative">
+                    <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+                    <p className="text-xs font-semibold text-foreground">Contrat actif signé</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(overview.contracts.find(c => c.status === "active")!.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  </div>
+                )}
+                {overview?.position && (
+                  <div className="relative">
+                    <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-blue-400 border-2 border-white shadow-sm" />
+                    <p className="text-xs font-semibold text-foreground">Poste actuel</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{overview.position.title}</p>
+                  </div>
+                )}
+                {(collaborator as any).birthDate && (
+                  <div className="relative">
+                    <div className="absolute -left-[25px] top-0.5 w-4 h-4 rounded-full bg-violet-400 border-2 border-white shadow-sm" />
+                    <p className="text-xs font-semibold text-foreground">Date de naissance</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date((collaborator as any).birthDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
