@@ -1,19 +1,19 @@
 export function EquipeProximite() {
   const testimonials = [
     {
-      quote: "Gaméasù a transformé notre infrastructure IT en moins de 6 mois. Leur équipe sur place à Lomé a fait toute la différence.",
+      quote: "Gameasu a transformé notre infrastructure IT en moins de 6 mois. Leur équipe sur place à Lomé a fait toute la différence.",
       name: "Kofi Mensah",
       title: "DSI, Banque Panafricaine",
       country: "🇹🇬 Togo"
     },
     {
-      quote: "Des experts certifiés, une vraie compréhension de nos enjeux africains. Gaméasù est bien plus qu'un prestataire, c'est un partenaire.",
+      quote: "Des experts certifiés, une vraie compréhension de nos enjeux africains. Gameasu est bien plus qu'un prestataire, c'est un partenaire.",
       name: "Aïssatou Diallo",
       title: "DG, Réseau Éducatif Sahel",
       country: "🇲🇱 Mali"
     },
     {
-      quote: "La migration cloud gérée par Gaméasù nous a permis de sécuriser nos données et de réduire nos coûts de 35%.",
+      quote: "La migration cloud gérée par Gameasu nous a permis de sécuriser nos données et de réduire nos coûts de 35%.",
       name: "Jean-Pierre Kouassi",
       title: "CTO, Groupe de Distribution",
       country: "🇨🇮 Côte d'Ivoire"
@@ -35,7 +35,7 @@ export function EquipeProximite() {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center">
             <span className="text-white font-black text-sm">G</span>
           </div>
-          <span className="font-bold text-slate-900 text-xl tracking-tight">Gaméasù</span>
+          <span className="font-bold text-slate-900 text-xl tracking-tight">Gameasu</span>
         </div>
         <div className="flex items-center gap-7 text-sm text-slate-600">
           <span className="hover:text-blue-600 cursor-pointer transition-colors font-medium">Services</span>
@@ -69,7 +69,7 @@ export function EquipeProximite() {
           </p>
 
           <p className="text-slate-500 text-base leading-relaxed mb-8 max-w-md">
-            Gaméasù déploie des solutions technologiques modernes pour les 
+            Gameasu déploie des solutions technologiques modernes pour les 
             entreprises, institutions et organisations en Afrique et dans le monde — 
             avec une présence locale, des standards mondiaux et une équipe humaine.
           </p>

@@ -45,7 +45,7 @@ export default function IntelligenceCenter() {
             <Brain className="w-7 h-7 text-primary" /> Centre d'intelligence
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
-            Insights, recommandations, risques détectés et résumés exécutifs générés par Gaméasù.
+            Insights, recommandations, risques détectés et résumés exécutifs générés par Gameasu.
           </p>
         </div>
         <Badge variant="outline" className={overview?.aiAvailable ? "border-emerald-500/30 text-emerald-600" : "border-amber-500/30 text-amber-600"}>
@@ -141,7 +141,7 @@ function RecommendationsTab() {
   const apply = useApplyRecommendation();
   const dismiss = useDismissRecommendation();
   if (isLoading) return <Skeleton className="h-40 w-full" />;
-  if (!data?.length) return <EmptyState icon={Sparkles} title="Aucune recommandation active" body="Les prochaines meilleures actions suggérées par Gaméasù apparaîtront ici." />;
+  if (!data?.length) return <EmptyState icon={Sparkles} title="Aucune recommandation active" body="Les prochaines meilleures actions suggérées par Gameasu apparaîtront ici." />;
   return (
     <div className="grid gap-3">
       {data.map((r) => (

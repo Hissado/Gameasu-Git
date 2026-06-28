@@ -4,7 +4,7 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 const router: IRouter = Router();
 
 router.get("/", (_req, res) => {
-  res.json({ status: "ok", name: "Gaméasù API" });
+  res.json({ status: "ok", name: "Gameasu API" });
 });
 
 router.get("/healthz", (_req, res) => {

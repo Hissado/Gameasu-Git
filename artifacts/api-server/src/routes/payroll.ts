@@ -677,7 +677,7 @@ router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (re
     const [yr, mo] = p.period.split("-");
     const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
     const periodLabel = `${MOIS[(parseInt(mo, 10) - 1)] ?? mo} ${yr}`;
-    const orgName = org?.name ?? "Gaméasù";
+    const orgName = org?.name ?? "Gameasu";
 
     const safeName = (p.collaboratorName ?? "bulletin").replace(/[^a-zA-Z0-9_-]/g, "_");
     const pdfFilename = `bulletin_${p.period}_${safeName}.pdf`;
@@ -861,7 +861,7 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
       .limit(1);
 
     const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-    const orgName = org?.name ?? "Gaméasù";
+    const orgName = org?.name ?? "Gameasu";
 
     // Rate-limited sequential send: process one at a time with a 500 ms pause
     // between each to stay well within Resend's 2 req/s free-tier limit.

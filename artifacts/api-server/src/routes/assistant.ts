@@ -1,5 +1,5 @@
 /**
- * Koffi — Assistant conversationnel intelligent de Gaméasù.
+ * Koffi — Assistant conversationnel intelligent de Gameasu.
  *  - POST /api/assistant/ask  { question, context? }
  *
  * Koffi comprend toutes les sections de la plateforme : Pilotage, Commercial,
@@ -116,10 +116,10 @@ function detectIntent(q: string): Intent {
 
 // ── Connaissance complète de l'application ────────────────────────────────────
 const APP_KNOWLEDGE = `
-PLATEFORME GAMÉASÙ — GUIDE COMPLET POUR KOFFI
+PLATEFORME GAMEASU — GUIDE COMPLET POUR KOFFI
 
 ## Structure générale
-Gaméasù est un ERP SaaS B2B pour les organisations d'Afrique de l'Ouest francophone.
+Gameasu est un ERP SaaS B2B pour les organisations d'Afrique de l'Ouest francophone.
 La navigation se fait via la barre latérale gauche, organisée en groupes :
 
 ## PILOTAGE (/)
@@ -621,7 +621,7 @@ async function buildContext(intent: Intent, userId: string, q: string): Promise<
 
 function heuristicAnswer(intent: Intent, ctx: string, q: string): string {
   if (intent === "help" || intent === "navigation") {
-    return `Je suis Koffi, votre assistant Gaméasù. Voici ce que je peux faire pour vous :
+    return `Je suis Koffi, votre assistant Gameasu. Voici ce que je peux faire pour vous :
 • Répondre aux questions sur n'importe quel module (Projets, CRM, Finance, RH, Équipements…)
 • Expliquer comment utiliser une fonctionnalité étape par étape
 • Retrouver des données : clients, projets, tâches, factures, risques
@@ -654,7 +654,7 @@ router.post("/assistant/ask", async (req, res, next) => {
 
     if (aiAvailable()) {
       const summary = await summarize({
-        system: `Tu es Koffi, l'assistant intelligent intégré à la plateforme ERP Gaméasù (SaaS B2B, Togo/Afrique de l'Ouest francophone).
+        system: `Tu es Koffi, l'assistant intelligent intégré à la plateforme ERP Gameasu (SaaS B2B, Togo/Afrique de l'Ouest francophone).
 
 CONNAISSANCE DE L'APPLICATION :
 ${APP_KNOWLEDGE}
@@ -665,7 +665,7 @@ INSTRUCTIONS :
 - Quand tu expliques comment faire quelque chose, donne les étapes concrètes
 - Indique le chemin de navigation précis (ex: "Allez dans Projets → cliquez Nouveau projet")
 - Si le contexte est vide mais que tu sais répondre depuis ta connaissance de l'app, réponds quand même
-- Ne dis jamais "je ne suis qu'un assistant" — tu es Koffi, l'expert Gaméasù
+- Ne dis jamais "je ne suis qu'un assistant" — tu es Koffi, l'expert Gameasu
 - Pas de markdown, pas de préambule, pas de disclaimer`,
         context: `Question utilisateur : ${question}\n\nDonnées en temps réel :\n${text || "(aucune donnée pertinente récupérée — réponds depuis ta connaissance de l'application)"}`,
         maxTokens: 500,

@@ -174,7 +174,7 @@ export default function IncidentsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Déclarer un incident</DialogTitle>
-            <DialogDescription>Déclarez un incident affectant la plateforme Gaméasù.</DialogDescription>
+            <DialogDescription>Déclarez un incident affectant la plateforme Gameasu.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">

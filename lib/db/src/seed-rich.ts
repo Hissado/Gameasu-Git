@@ -1,5 +1,5 @@
 /**
- * Gaméasù — Seed enrichi de démonstration.
+ * Gameasu — Seed enrichi de démonstration.
  *
  * Objectif : ajouter du volume et du contexte togolais/ouest-africain réaliste
  * sur le seed de base (`seed.ts`), sans casser les credentials de démo
@@ -47,7 +47,7 @@ const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min
 // SEED
 // ─────────────────────────────────────────────────────────────────
 export async function seedRich() {
-  console.log("→ Seed enrichi Gaméasù démarré...");
+  console.log("→ Seed enrichi Gameasu démarré...");
 
   // Idempotence (pré-check rapide hors transaction)
   const markerPre = await db.select().from(clientsTable).where(eq(clientsTable.name, "Lomé Construction SA")).limit(1);

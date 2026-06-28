@@ -245,7 +245,7 @@ export default function LoginPage() {
           <div>
             <div className="mb-12">
               <p className="text-[11px] font-semibold tracking-[0.18em] uppercase mb-4"
-                style={{ color: "rgba(91,163,240,0.7)" }}>Plateforme ERP Gaméasù</p>
+                style={{ color: "rgba(91,163,240,0.7)" }}>Plateforme ERP Gameasu</p>
               <h2 className="text-[30px] xl:text-[34px] font-bold leading-[1.18] text-white mb-5"
                 style={{ letterSpacing: "-0.03em" }}>
                 Gérez votre entreprise<br />avec précision.

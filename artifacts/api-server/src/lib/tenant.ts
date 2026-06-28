@@ -1,5 +1,5 @@
 /**
- * Contexte tenant Gaméasù.
+ * Contexte tenant Gameasu.
  * Pour cette première itération SaaS, chaque utilisateur est rattaché
  * à une et une seule organisation via `organization_members`. On expose un
  * helper `getCurrentOrganizationId(userId)` utilisé par toutes les routes

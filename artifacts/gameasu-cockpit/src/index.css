@@ -66,7 +66,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE — Gaméasù Premium (navy + gold) */
+/* LIGHT MODE — Gameasu Premium (navy + gold) */
 :root {
   --button-outline: rgba(15, 26, 58, .10);
   --badge-outline: rgba(15, 26, 58, .06);
@@ -83,7 +83,7 @@
   --card-foreground: 224 60% 14%;
   --card-border: 224 20% 90%;
 
-  /* Sidebar : bleu nuit Gaméasù #0F1A3A */
+  /* Sidebar : bleu nuit Gameasu #0F1A3A */
   --sidebar: 224 60% 14%;
   --sidebar-foreground: 220 24% 88%;
   --sidebar-border: 224 40% 22%;
@@ -97,7 +97,7 @@
   --popover-foreground: 224 60% 14%;
   --popover-border: 224 20% 90%;
 
-  /* Primary : or sobre Gaméasù #C8A24B */
+  /* Primary : or sobre Gameasu #C8A24B */
   --primary: 42 53% 54%;
   --primary-foreground: 224 60% 14%;
 
@@ -147,7 +147,7 @@
 }
 
 .dark {
-  /* Dark mode → même palette Gaméasù (pas de dark alternatif) */
+  /* Dark mode → même palette Gameasu (pas de dark alternatif) */
   --background: 40 25% 97%;
   --foreground: 224 60% 14%;
   --border: 224 20% 90%;

@@ -1,5 +1,5 @@
 /**
- * Phase 12 — Recherche universelle Gaméasù.
+ * Phase 12 — Recherche universelle Gameasu.
  */
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";

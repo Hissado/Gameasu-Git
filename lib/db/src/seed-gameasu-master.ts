@@ -1,5 +1,5 @@
 /**
- * Gaméasù — Master Demo Seed v2.0
+ * Gameasu — Master Demo Seed v2.0
  *
  * Seed complet et professionnel pour la démonstration de la plateforme.
  * Couvre : Users, SaaS, Clients, CRM, Projets, RH, Équipements, Locations,
@@ -120,7 +120,7 @@ const PLANS = [
 
 async function main() {
   console.log("═══════════════════════════════════════════════════════════════");
-  console.log("  Gaméasù — Master Demo Seed v2.0");
+  console.log("  Gameasu — Master Demo Seed v2.0");
   console.log("═══════════════════════════════════════════════════════════════\n");
 
   // ── 0. Truncate business data ──────────────────────────────────────────
@@ -167,8 +167,8 @@ async function main() {
   if (!org) {
     const rows = await db.insert(organizationsTable).values({
       slug: "gameasu-technologies",
-      name: "Gaméasù Technologies",
-      legalName: "Gaméasù Technologies SARL",
+      name: "Gameasu Technologies",
+      legalName: "Gameasu Technologies SARL",
       industry: "Services aux entreprises & BTP",
       country: "TG",
       currency: "XOF",
@@ -180,7 +180,7 @@ async function main() {
       secondaryColor: "#0F172A",
     }).onConflictDoUpdate({
       target: organizationsTable.slug,
-      set: { name: "Gaméasù Technologies", isDefault: true },
+      set: { name: "Gameasu Technologies", isDefault: true },
     }).returning();
     org = rows[0]!;
   }
@@ -810,7 +810,7 @@ async function main() {
     { organizationId: orgId, name: "Plan d'exécution fondations — Siège Lomé Construction", category: "technical", fileUrl: "https://files.gameasu.com/plans/lc-fondations-ex-2026.dwg", entityType: "project", entityId: projects[1]?.id, uploadedBy: directeur.id },
     { organizationId: orgId, name: "Rapport d'avancement CHU — Juin 2026", category: "reports", fileUrl: "https://files.gameasu.com/reports/chu-avancement-juin2026.pdf", entityType: "project", entityId: projects[2]?.id, uploadedBy: directeur.id },
     { organizationId: orgId, name: "PV réception voirie Adakpamé — km 0 à 2", category: "reception", fileUrl: "https://files.gameasu.com/pvs/voirie-adakpame-km0-2.pdf", entityType: "project", entityId: projects[3]?.id, uploadedBy: cChefProj?.id ?? admin.id },
-    { organizationId: orgId, name: "RCCM — Gaméasù Technologies SARL", category: "administrative", fileUrl: "https://files.gameasu.com/legal/rccm-gameasu-tech.pdf", uploadedBy: admin.id },
+    { organizationId: orgId, name: "RCCM — Gameasu Technologies SARL", category: "administrative", fileUrl: "https://files.gameasu.com/legal/rccm-gameasu-tech.pdf", uploadedBy: admin.id },
     { organizationId: orgId, name: "Agrément technique MIETFP — Génie civil", category: "administrative", fileUrl: "https://files.gameasu.com/legal/agrement-mietfp-gc.pdf", uploadedBy: admin.id },
     { organizationId: orgId, name: "Assurance décennale — Police 2026", category: "administrative", fileUrl: "https://files.gameasu.com/legal/assurance-decennale-2026.pdf", uploadedBy: admin.id },
     { organizationId: orgId, name: "Planning directeur — Projet CHU bloc opératoire", category: "technical", fileUrl: "https://files.gameasu.com/planning/chu-planning-directeur.xlsx", entityType: "project", entityId: projects[2]?.id, uploadedBy: cArchi?.id ?? admin.id },
@@ -941,7 +941,7 @@ async function main() {
   console.log(`  ✓ ${attendanceData.length} sessions de pointage (14 jours × 8 collabs)`);
 
   console.log("\n═══════════════════════════════════════════════════════════════");
-  console.log("  ✅ Gaméasù Master Demo Seed — Terminé avec succès !");
+  console.log("  ✅ Gameasu Master Demo Seed — Terminé avec succès !");
   console.log("─────────────────────────────────────────────────────────────");
   console.log("  Comptes démo :");
   console.log("    admin@gameasu.com       / admin123");

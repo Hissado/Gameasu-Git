@@ -136,16 +136,16 @@ async function sendPaymentConfirmationEmail(orgId: string, amount: number, recei
       subject: `✅ Paiement confirmé — ${receiptNumber}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-          <h2 style="color:#d97706;">Gaméasù — Paiement confirmé</h2>
+          <h2 style="color:#d97706;">Gameasu — Paiement confirmé</h2>
           <p>Bonjour,</p>
-          <p>Votre paiement de <strong>${amountFmt}</strong> pour votre abonnement <strong>Gaméasù — Accès complet</strong> a été confirmé avec succès.</p>
+          <p>Votre paiement de <strong>${amountFmt}</strong> pour votre abonnement <strong>Gameasu — Accès complet</strong> a été confirmé avec succès.</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0;">
             <tr><td style="padding:8px;border:1px solid #e5e7eb;color:#6b7280;">N° de reçu</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">${receiptNumber}</td></tr>
             <tr><td style="padding:8px;border:1px solid #e5e7eb;color:#6b7280;">Organisation</td><td style="padding:8px;border:1px solid #e5e7eb;">${org.name}</td></tr>
             <tr><td style="padding:8px;border:1px solid #e5e7eb;color:#6b7280;">Montant</td><td style="padding:8px;border:1px solid #e5e7eb;">${amountFmt}</td></tr>
           </table>
           <p>Votre accès à la plateforme a été renouvelé automatiquement.</p>
-          <p style="color:#6b7280;font-size:12px;">Gaméasù — Plateforme SaaS</p>
+          <p style="color:#6b7280;font-size:12px;">Gameasu — Plateforme SaaS</p>
         </div>`,
       text: `Paiement confirmé — ${receiptNumber}\n\nMontant : ${amountFmt}\nOrganisation : ${org.name}\n\nVotre accès a été renouvelé.`,
       category: "payment_confirmation",
@@ -168,14 +168,14 @@ async function sendPaymentFailedEmail(orgId: string, planName: string): Promise<
       to: org.contactEmail,
       subject: "⚠️ Échec du paiement — action requise",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-        <h2 style="color:#dc2626;">Gaméasù — Paiement échoué</h2>
+        <h2 style="color:#dc2626;">Gameasu — Paiement échoué</h2>
         <p>Bonjour,</p>
         <p>Le prélèvement automatique pour la formule <strong>${planName}</strong> de l'organisation <strong>${org.name}</strong> a échoué.</p>
         <p>Veuillez vous connecter à la plateforme pour mettre à jour votre moyen de paiement et régulariser votre situation.</p>
         <p>Sans action de votre part, votre accès pourra être suspendu.</p>
-        <p style="color:#6b7280;font-size:12px;">Gaméasù — Plateforme SaaS</p>
+        <p style="color:#6b7280;font-size:12px;">Gameasu — Plateforme SaaS</p>
       </div>`,
-      text: `Gaméasù — Paiement échoué\n\nLe prélèvement pour ${planName} (${org.name}) a échoué. Connectez-vous pour régulariser.`,
+      text: `Gameasu — Paiement échoué\n\nLe prélèvement pour ${planName} (${org.name}) a échoué. Connectez-vous pour régulariser.`,
       category: "payment_failed",
     });
   } catch (e) {
@@ -257,7 +257,7 @@ router.post("/billing/stripe/payment-intent", requireAdmin, async (req, res) => 
         billingCycle: sub.billingCycle,
         seats: String(sub.seats),
       },
-      description: `Gaméasù — ${plan.name} (${sub.billingCycle === "annual" ? "annuel" : "mensuel"}) — ${sub.seats} siège(s)`,
+      description: `Gameasu — ${plan.name} (${sub.billingCycle === "annual" ? "annuel" : "mensuel"}) — ${sub.seats} siège(s)`,
       receipt_email: req.authUser!.email ?? undefined,
     });
 

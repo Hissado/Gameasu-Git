@@ -66,7 +66,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-3">
           <div>
-            <p className="text-sm font-bold text-sidebar-foreground leading-tight tracking-tight">Gaméasù</p>
+            <p className="text-sm font-bold text-sidebar-foreground leading-tight tracking-tight">Gameasu</p>
             <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">Cockpit Admin</p>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm">Gaméasù Cockpit</span>
+            <span className="font-bold text-sm">Gameasu Cockpit</span>
           </div>
         </header>
 

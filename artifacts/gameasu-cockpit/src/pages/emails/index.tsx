@@ -73,7 +73,7 @@ export default function EmailsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Emails envoyés</h1>
-          <p className="page-subtitle">Historique des emails envoyés par la plateforme Gaméasù</p>
+          <p className="page-subtitle">Historique des emails envoyés par la plateforme Gameasu</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />

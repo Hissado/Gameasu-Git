@@ -1,5 +1,5 @@
 /**
- * Migration multi-tenant Gaméasù.
+ * Migration multi-tenant Gameasu.
  *
  * Pour chaque table historique listée, on :
  *   1. ajoute `organization_id uuid` (nullable, idempotent via IF NOT EXISTS)

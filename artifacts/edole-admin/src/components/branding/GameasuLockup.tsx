@@ -1,7 +1,7 @@
 import { BRANDING } from "@/config/branding";
 
 /**
- * Verrouillage logotype Gaméasù.
+ * Verrouillage logotype Gameasu.
  * Le logo officiel (mark « G » + mot « améasù » + filet or + slogan) est livré
  * comme une seule image. On le pose directement sur le support, sans cartouche :
  * la version transparente est utilisée partout, avec un voile d'opacité réduit
@@ -19,7 +19,7 @@ const SIZES: Record<Size, { h: string }> = {
   xl: { h: "h-16" },
 };
 
-export function GaméasùLockup({
+export function GameasuLockup({
   size = "md",
   variant = "light",
   className = "",

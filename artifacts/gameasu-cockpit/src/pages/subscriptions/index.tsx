@@ -69,7 +69,7 @@ export default function SubscriptionsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Abonnements</h1>
-          <p className="page-subtitle">Tous les abonnements des organisations sur la plateforme Gaméasù</p>
+          <p className="page-subtitle">Tous les abonnements des organisations sur la plateforme Gameasu</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />

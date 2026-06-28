@@ -70,7 +70,7 @@ export default function PublicInvoicePage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-[#C8A24B] flex items-center justify-center text-white font-bold text-lg">G</div>
           <div>
-            <p className="font-bold text-lg leading-tight">Gaméasù</p>
+            <p className="font-bold text-lg leading-tight">Gameasu</p>
             <p className="text-xs text-muted-foreground">Plateforme de gestion d'entreprise</p>
           </div>
         </div>

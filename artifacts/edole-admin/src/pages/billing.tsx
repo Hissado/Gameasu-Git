@@ -281,7 +281,7 @@ function PaymentModal({
             <Wallet className="w-5 h-5 text-amber-600" /> Payer votre abonnement
           </DialogTitle>
           <DialogDescription>
-            Gaméasù · Accès complet · {userCount} utilisateur{userCount > 1 ? "s" : ""}
+            Gameasu · Accès complet · {userCount} utilisateur{userCount > 1 ? "s" : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -590,7 +590,7 @@ function ReceiptModal({ txId, onClose }: { txId: string; onClose: () => void }) 
                 ["Réf. passerelle", data.gatewayRef || "—"],
                 ["Téléphone", data.payerPhone || "—"],
                 ["Organisation", data.organization?.name || "—"],
-                ["Émis par", data.issuedBy || "Gaméasù"],
+                ["Émis par", data.issuedBy || "Gameasu"],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-2">
                   <span className="text-muted-foreground">{label}</span>
@@ -1218,7 +1218,7 @@ export default function BillingPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-amber-600" /> Grille tarifaire Gaméasù
+                <Receipt className="w-4 h-4 text-amber-600" /> Grille tarifaire Gameasu
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1292,7 +1292,7 @@ export default function BillingPage() {
           <div>
             <h2 className="text-base font-semibold text-slate-900">Add-ons & services complémentaires</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Étendez les capacités de votre espace Gaméasù avec des modules optionnels activables à la demande.
+              Étendez les capacités de votre espace Gameasu avec des modules optionnels activables à la demande.
             </p>
           </div>
           <AddonsPanel />

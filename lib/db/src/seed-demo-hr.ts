@@ -1,5 +1,5 @@
 /**
- * Seed démo RH — Gaméasù
+ * Seed démo RH — Gameasu
  *
  * Ajoute :
  *  - 5 départements
@@ -109,7 +109,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-001",
       firstName: "Jacques", lastName: "Mballa",
-      email: "j.mballa@gaméasù.tg", phone: "+237 677 000 001",
+      email: "j.mballa@gameasu.tg", phone: "+237 677 000 001",
       position: "Directeur Général", department: "Administration",
       positionId: pDG?.id, departmentId: dAdm.id,
       hireDate: D(2018, 3, 1), baseSalary: "950000",
@@ -119,7 +119,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-002",
       firstName: "Aissatou", lastName: "Bah",
-      email: "a.bah@gaméasù.tg", phone: "+237 677 000 002",
+      email: "a.bah@gameasu.tg", phone: "+237 677 000 002",
       position: "Directrice Technique", department: "Technique",
       positionId: pDT?.id, departmentId: dTech.id,
       hireDate: D(2019, 7, 15), baseSalary: "780000",
@@ -129,7 +129,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-003",
       firstName: "Kofi", lastName: "Asante",
-      email: "k.asante@gaméasù.tg", phone: "+237 677 000 003",
+      email: "k.asante@gameasu.tg", phone: "+237 677 000 003",
       position: "Directeur Commercial", department: "Commercial",
       positionId: pComDir?.id, departmentId: dCom.id,
       hireDate: D(2020, 1, 10), baseSalary: "620000",
@@ -139,7 +139,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-004",
       firstName: "Sylvie", lastName: "Ekanga",
-      email: "s.ekanga@gaméasù.tg", phone: "+237 677 000 010",
+      email: "s.ekanga@gameasu.tg", phone: "+237 677 000 010",
       position: "Comptable Général", department: "Administration",
       positionId: pCpt?.id, departmentId: dAdm.id,
       hireDate: D(2021, 4, 1), baseSalary: "420000",
@@ -149,7 +149,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-005",
       firstName: "Pascal", lastName: "Nkolo",
-      email: "p.nkolo@gaméasù.tg", phone: "+237 677 000 011",
+      email: "p.nkolo@gameasu.tg", phone: "+237 677 000 011",
       position: "Commercial Terrain", department: "Commercial",
       positionId: pComTer?.id, departmentId: dCom.id,
       hireDate: D(2022, 6, 15), baseSalary: "320000",
@@ -159,7 +159,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-006",
       firstName: "Hervé", lastName: "Boua",
-      email: "h.boua@gaméasù.tg", phone: "+237 677 200 006",
+      email: "h.boua@gameasu.tg", phone: "+237 677 200 006",
       position: "Conducteur de Travaux", department: "Opérations",
       positionId: pCond?.id, departmentId: dOps.id,
       hireDate: D(2021, 9, 1), baseSalary: "350000",
@@ -169,7 +169,7 @@ export async function seedDemoHR() {
     {
       organizationId: orgId, employeeNumber: "EMP-007",
       firstName: "Chloé", lastName: "Mbassi",
-      email: "c.mbassi@gaméasù.tg", phone: "+237 677 200 007",
+      email: "c.mbassi@gameasu.tg", phone: "+237 677 200 007",
       position: "Assistante Administrative", department: "Administration",
       positionId: pAss?.id, departmentId: dAdm.id,
       hireDate: D(2023, 2, 20), baseSalary: "240000",

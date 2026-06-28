@@ -1,5 +1,5 @@
 /**
- * Seed SaaS Gaméasù — crée/maintient :
+ * Seed SaaS Gameasu — crée/maintient :
  *  - organisation par défaut (où vivent les données métier existantes)
  *  - catalogue des modules
  *  - 4 plans (Starter / Growth / Professional / Enterprise) + features
@@ -207,8 +207,8 @@ async function ensureDefaultOrganization(): Promise<string> {
 
   const [org] = await db.insert(organizationsTable).values({
     slug: "nexora-demo",
-    name: "Gaméasù Demo",
-    legalName: "Gaméasù Demo SARL",
+    name: "Gameasu Demo",
+    legalName: "Gameasu Demo SARL",
     industry: "Services aux entreprises",
     country: "TG",
     currency: "XOF",
@@ -343,7 +343,7 @@ async function ensureBillingDemo(orgId: string, subId: string) {
 export async function seedSaas(opts: { includeDemoData?: boolean } = {}) {
   console.log("• Catalogue modules…");
   await upsertModuleCatalog();
-  console.log("• Plans Gaméasù…");
+  console.log("• Plans Gameasu…");
   const planIds = await upsertPlans();
 
   if (!opts.includeDemoData) {

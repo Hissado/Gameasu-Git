@@ -119,7 +119,7 @@ function formatFCFA(amount: number): string {
 function applyExcelBranding(ws: ExcelJS.Worksheet, title: string, period: { from: Date; to: Date }) {
   ws.mergeCells("A1:F1");
   const titleCell = ws.getCell("A1");
-  titleCell.value = `GAMÉASÙ — ${title}`;
+  titleCell.value = `GAMEASU — ${title}`;
   titleCell.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC8A24B" } };
   titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
@@ -227,7 +227,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (req, res) => {
   res.setHeader("Content-Disposition", `inline; filename="rapport-stock-${new Date().toISOString().slice(0, 10)}.pdf"`);
   doc.pipe(res);
 
-  doc.fontSize(20).fillColor("#C8A24B").text("GAMÉASÙ", { align: "left" });
+  doc.fontSize(20).fillColor("#C8A24B").text("GAMEASU", { align: "left" });
   doc.fontSize(10).fillColor("#666").text("Le pilotage d'entreprise nouvelle génération");
   doc.moveDown();
 
@@ -255,7 +255,7 @@ router.get("/reports/stock-daily/pdf", requireAuth, async (req, res) => {
   }
 
   doc.moveDown(2);
-  doc.fontSize(8).fillColor("#999").text("GAMÉASÙ — Document confidentiel — Généré automatiquement par la plateforme.", { align: "center" });
+  doc.fontSize(8).fillColor("#999").text("GAMEASU — Document confidentiel — Généré automatiquement par la plateforme.", { align: "center" });
 
   doc.end();
 });
@@ -1053,7 +1053,7 @@ router.get("/reports/finance/export.csv", requireAuth, requireManagerOrAbove, as
     const period = parsePeriod(req);
     const r = await buildFinanceReport(period);
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport Finance"],
+      ["GAMEASU — Rapport Finance"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["Indicateur", "Valeur"],
@@ -1085,7 +1085,7 @@ router.get("/reports/sales/export.csv", requireAuth, async (req, res, next) => {
     const period = parsePeriod(req);
     const r = await buildSalesReport(period);
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport Ventes"],
+      ["GAMEASU — Rapport Ventes"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["Indicateur", "Valeur"],
@@ -1114,7 +1114,7 @@ router.get("/reports/projects/export.csv", requireAuth, async (req, res, next) =
     const period = parsePeriod(req);
     const r = await buildProjectsReport(period);
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport Projets"],
+      ["GAMEASU — Rapport Projets"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["Indicateur", "Valeur"],
@@ -1144,7 +1144,7 @@ router.get("/reports/hr/export.csv", requireAuth, requireManagerOrAbove, async (
     const period = parsePeriod(req);
     const r = await buildHrReport(period);
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport RH"],
+      ["GAMEASU — Rapport RH"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["Indicateur", "Valeur"],
@@ -1260,7 +1260,7 @@ router.get("/reports/overview/export.xlsx", requireAuth, requireManagerOrAbove, 
     });
 
     xls.addNotesSheet([
-      { title: "Périmètre de la synthèse", body: `Ce rapport consolide les données de tous les modules Gaméasù pour la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nChaque onglet correspond à un domaine fonctionnel distinct.` },
+      { title: "Périmètre de la synthèse", body: `Ce rapport consolide les données de tous les modules Gameasu pour la période du ${period.from.toLocaleDateString("fr-FR")} au ${period.to.toLocaleDateString("fr-FR")}.\nChaque onglet correspond à un domaine fonctionnel distinct.` },
       { title: "Interprétation des KPIs", body: "Les indicateurs marqués ✅ sont favorables, ⚠️ stables (variation < 5 %), ❌ défavorables.\nLa colonne Variation calcule automatiquement l'écart par rapport à la période N-1 si disponible." },
       { title: "Usage recommandé", body: "Ce classeur est conçu pour être utilisé en Comité de Direction ou en réunion de pilotage.\nLes données peuvent être filtrées et triées directement dans Excel sans modification des formules." },
     ]);
@@ -1279,7 +1279,7 @@ router.get("/reports/overview/export.csv", requireAuth, requireManagerOrAbove, a
       buildHrReport(period),
     ]);
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport de Synthèse"],
+      ["GAMEASU — Rapport de Synthèse"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["=== FINANCE ==="],
@@ -1783,7 +1783,7 @@ router.get("/reports/purchases/export.csv", requireAuth, requireManagerOrAbove, 
         lte(supplierInvoicesTable.invoiceDate, toIso),
       ));
     const rows: (string | number)[][] = [
-      ["GAMÉASÙ — Rapport Achats & Fournisseurs"],
+      ["GAMEASU — Rapport Achats & Fournisseurs"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
       [],
       ["Référence", "Fournisseur", "Date facture", "Échéance", "Montant TTC (FCFA)", "Taxes (FCFA)", "Réglé (FCFA)", "Solde (FCFA)", "Statut"],

@@ -1,5 +1,5 @@
 /**
- * Clôture des périodes financières — Gaméasù
+ * Clôture des périodes financières — Gameasu
  * Month-end close, checklist, audit trail, year-end close.
  */
 import { useState, useMemo } from "react";

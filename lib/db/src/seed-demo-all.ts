@@ -1,5 +1,5 @@
 /**
- * Runner combiné — lance tous les seeds démo Gaméasù dans l'ordre.
+ * Runner combiné — lance tous les seeds démo Gameasu dans l'ordre.
  *
  * Ordre :
  *   1. seed.ts (base — users, demo data)           → supposé déjà exécuté
@@ -23,7 +23,7 @@ import { seedOperationsDemo }   from "./seed-operations";
 
 async function main() {
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("  Gaméasù — Seeds démo complets");
+  console.log("  Gameasu — Seeds démo complets");
   console.log("═══════════════════════════════════════════════════════════\n");
 
   await seedDemoAccounting();

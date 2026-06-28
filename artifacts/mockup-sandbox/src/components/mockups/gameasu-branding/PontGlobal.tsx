@@ -22,7 +22,7 @@ export function PontGlobal() {
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-white font-black text-sm">G</span>
           </div>
-          <span className="font-bold text-slate-900 text-lg tracking-tight">Gaméasù</span>
+          <span className="font-bold text-slate-900 text-lg tracking-tight">Gameasu</span>
           <span className="text-blue-500 font-bold text-xs ml-1 uppercase tracking-widest">Global</span>
         </div>
         <div className="flex items-center gap-7 text-sm text-slate-600">
@@ -81,7 +81,7 @@ export function PontGlobal() {
           </p>
 
           <p className="text-blue-100 text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
-            Fondée aux États-Unis en 2023, Gaméasù déploie des solutions technologiques 
+            Fondée aux États-Unis en 2023, Gameasu déploie des solutions technologiques 
             de classe mondiale auprès des entreprises, institutions et organisations 
             d'Afrique, d'Europe et d'Amérique du Nord.
           </p>

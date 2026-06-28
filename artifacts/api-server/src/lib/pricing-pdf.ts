@@ -1,6 +1,6 @@
 /**
  * Générateur de PDF pour scénarios de tarification (PDFKit)
- * Format professionnel Gaméasù — FCFA
+ * Format professionnel Gameasu — FCFA
  */
 import PDFDocument from "pdfkit";
 import type { Writable } from "stream";
@@ -84,7 +84,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
   doc.fontSize(8).font("Helvetica").fillColor(GOLD)
     .text(data.generatedAt, 370, y + 28, { width: 180, align: "right" });
   doc.fontSize(7).font("Helvetica").fillColor("#94A3B8")
-    .text("Gaméasù · Pricing stratégique", 370, y + 40, { width: 180, align: "right" });
+    .text("Gameasu · Pricing stratégique", 370, y + 40, { width: 180, align: "right" });
 
   y += 66;
 
@@ -332,7 +332,7 @@ export function generatePricingPdf(data: PricingPdfData, org: OrgPdfData, output
     doc.rect(40, pageBottom - 14, W, 14).fill(DARK);
     doc.fontSize(7).font("Helvetica").fillColor("#94A3B8")
       .text(
-        `Gaméasù · Analyse tarifaire confidentielle · Généré le ${data.generatedAt}`,
+        `Gameasu · Analyse tarifaire confidentielle · Généré le ${data.generatedAt}`,
         50, pageBottom - 10, { width: 300 },
       );
     doc.fontSize(7).font("Helvetica").fillColor(GOLD)

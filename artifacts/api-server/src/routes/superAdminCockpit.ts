@@ -47,7 +47,7 @@ const sa: RequestHandler = (req, res, next) => {
   next();
 };
 
-// ─── Politique tarifaire Gaméasù ─────────────────────────────────────────────
+// ─── Politique tarifaire Gameasu ─────────────────────────────────────────────
 //
 //  1er utilisateur       : 10 000 FCFA HT
 //  Utilisateurs 2 à 5    :  5 000 FCFA HT / utilisateur
@@ -80,7 +80,7 @@ export interface PriceResult {
 
 /**
  * Calcule le prix mensuel HT pour une organisation selon la politique tarifaire
- * officielle de Gaméasù.
+ * officielle de Gameasu.
  *
  * @param activeUsers   Nombre d'utilisateurs actifs facturables.
  * @param negotiatedHt  Prix mensuel HT négocié (utilisé uniquement si activeUsers > 50).
@@ -529,9 +529,9 @@ router.post("/super-admin/organizations/:id/users", sa, async (req, res, next) =
     const acceptUrl = `${baseUrl()}/accept-invitation?token=${inviteToken}`;
     await sendEmail({
       to: emailLc,
-      subject: `Invitation à rejoindre ${org.name} sur Gaméasù`,
-      html: `<p>Bonjour ${firstName},</p><p>Vous avez été invité(e) à rejoindre <strong>${org.name}</strong> sur la plateforme Gaméasù.</p><p>Cliquez sur le lien ci-dessous pour activer votre compte :</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
-      text: `Bonjour ${firstName},\n\nVous avez été invité(e) à rejoindre ${org.name} sur Gaméasù.\n\nActivez votre compte : ${acceptUrl}\n\nCe lien expire dans 7 jours.`,
+      subject: `Invitation à rejoindre ${org.name} sur Gameasu`,
+      html: `<p>Bonjour ${firstName},</p><p>Vous avez été invité(e) à rejoindre <strong>${org.name}</strong> sur la plateforme Gameasu.</p><p>Cliquez sur le lien ci-dessous pour activer votre compte :</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
+      text: `Bonjour ${firstName},\n\nVous avez été invité(e) à rejoindre ${org.name} sur Gameasu.\n\nActivez votre compte : ${acceptUrl}\n\nCe lien expire dans 7 jours.`,
     });
 
     await cockpitAudit(req.authUser!.id, req.authUser!.email, "org_user.create", "user", newUser.id, {
@@ -617,8 +617,8 @@ router.post("/super-admin/organizations/:orgId/users/:userId/reset-password", sa
     const resetUrl = `${baseUrl()}/reset-password?token=${token}`;
     await sendEmail({
       to: user.email,
-      subject: "Réinitialisation de votre mot de passe Gaméasù",
-      html: `<p>Bonjour ${user.firstName},</p><p>Un administrateur a demandé la réinitialisation de votre mot de passe sur Gaméasù.</p><p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ce lien expire dans 24 heures.</p>`,
+      subject: "Réinitialisation de votre mot de passe Gameasu",
+      html: `<p>Bonjour ${user.firstName},</p><p>Un administrateur a demandé la réinitialisation de votre mot de passe sur Gameasu.</p><p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ce lien expire dans 24 heures.</p>`,
       text: `Bonjour ${user.firstName},\n\nRéinitialisez votre mot de passe : ${resetUrl}\n\nCe lien expire dans 24 heures.`,
     });
 
@@ -654,8 +654,8 @@ router.post("/super-admin/organizations/:orgId/users/:userId/resend-invite", sa,
     const acceptUrl = `${baseUrl()}/accept-invitation?token=${token}`;
     await sendEmail({
       to: user.email,
-      subject: `Invitation à rejoindre ${org?.name ?? "votre organisation"} sur Gaméasù`,
-      html: `<p>Bonjour ${user.firstName},</p><p>Votre invitation à rejoindre <strong>${org?.name ?? "votre organisation"}</strong> sur Gaméasù a été renouvelée.</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
+      subject: `Invitation à rejoindre ${org?.name ?? "votre organisation"} sur Gameasu`,
+      html: `<p>Bonjour ${user.firstName},</p><p>Votre invitation à rejoindre <strong>${org?.name ?? "votre organisation"}</strong> sur Gameasu a été renouvelée.</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>Ce lien expire dans 7 jours.</p>`,
       text: `Bonjour ${user.firstName},\n\nActivez votre compte : ${acceptUrl}\n\nCe lien expire dans 7 jours.`,
     });
 

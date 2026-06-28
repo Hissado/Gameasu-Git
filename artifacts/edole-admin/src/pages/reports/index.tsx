@@ -3269,16 +3269,16 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
 
       {/* ── En-tête rapport — design bicolonne ───────────────────────── */}
       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-        {/* Barre or Gaméasù */}
+        {/* Barre or Gameasu */}
         <div className="h-1 w-full bg-[#C8A24B]" />
         <div className="flex">
-          {/* Colonne gauche — bleu marine Gaméasù */}
+          {/* Colonne gauche — bleu marine Gameasu */}
           <div className="bg-[#0F1A3A] text-white px-5 py-5 flex flex-col justify-between" style={{ minWidth: 200, width: "28%" }}>
             <div>
               <p className="text-[9px] uppercase tracking-[0.28em] text-white/40 font-bold">Document confidentiel</p>
               <div className="w-7 h-[2px] bg-[#C8A24B] mt-2 mb-3" />
               <p className="text-[11px] text-white/50 leading-[1.6]">Rapport préparé par</p>
-              <p className="text-sm font-bold text-white mt-0.5">Gaméasù</p>
+              <p className="text-sm font-bold text-white mt-0.5">Gameasu</p>
             </div>
             <div className="mt-4">
               <div className="flex items-center gap-1.5">
@@ -3953,7 +3953,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
 
       {/* ── Note de bas de rapport ────────────────────────────────── */}
       <div className="text-center py-3 text-xs text-slate-400 border-t border-slate-200">
-        Rapport généré le {generatedAt} · Données au {new Date(d.period.to).toLocaleDateString("fr-FR")} · Gaméasù Analytics
+        Rapport généré le {generatedAt} · Données au {new Date(d.period.to).toLocaleDateString("fr-FR")} · Gameasu Analytics
       </div>
 
       <ExecSummaryConfigDialog

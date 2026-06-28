@@ -1,5 +1,5 @@
 /**
- * Migration Engine — Gaméasù
+ * Migration Engine — Gameasu
  * Définit les 8 modules importables, leurs champs, validations et exécuteurs.
  */
 import { randomUUID } from "node:crypto";

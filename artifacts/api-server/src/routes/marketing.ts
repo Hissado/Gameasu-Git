@@ -546,7 +546,7 @@ router.post("/marketing/campaigns/:id/send", requireManagerOrAbove, async (req, 
         sendMode = "resend";
         const resend = new Resend(apiKey);
         const fromEmail = (emailConn.config?.fromEmail as string) || "noreply@gameasu.com";
-        const fromName = (emailConn.config?.fromName as string) || "Gaméasù";
+        const fromName = (emailConn.config?.fromName as string) || "Gameasu";
         const baseUrl = getBaseUrl(req);
 
         for (const r of validWithTokens.filter((x) => x.email)) {

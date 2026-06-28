@@ -181,7 +181,7 @@ seedRbac()
   .then((s) => console.log(`[rbac] seed OK : ${s.permissions} permissions, ${s.roles} rôles système`))
   .catch((e) => console.warn("[rbac] seed failed:", e?.message));
 
-// Seed Gaméasù SaaS. Le catalogue (plans + modules) est TOUJOURS semé
+// Seed Gameasu SaaS. Le catalogue (plans + modules) est TOUJOURS semé
 // (référence indispensable, idempotent). Les données de démonstration
 // (organisation démo, intelligence, opérations, inventaire, kiosk) ne sont
 // semées que si SEED_DEMO_DATA=true : ainsi, en production comme après une

@@ -118,7 +118,7 @@ export default function OnboardStructurePage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-white p-4 py-8">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Building2 className="w-6 h-6 text-primary" />Bienvenue sur Gaméasù</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Building2 className="w-6 h-6 text-primary" />Bienvenue sur Gameasu</CardTitle>
           <CardDescription>Configurez votre organisation en quelques secondes. Essai gratuit {init.trialDays} jours, sans engagement.</CardDescription>
         </CardHeader>
         <CardContent>

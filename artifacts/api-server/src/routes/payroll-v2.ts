@@ -1412,7 +1412,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
 
     if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
-      wb.creator = "Gaméasù";
+      wb.creator = "Gameasu";
       wb.created = new Date();
       const ws = wb.addWorksheet("CNSS");
 
@@ -1570,7 +1570,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
 
     if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
-      wb.creator = "Gaméasù";
+      wb.creator = "Gameasu";
       wb.created = new Date();
 
       // Onglet 1 : Récapitulatif
@@ -1838,7 +1838,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
 
     if ((req.query.format as string) === "excel") {
       const wb = new ExcelJS.Workbook();
-      wb.creator = "Gaméasù";
+      wb.creator = "Gameasu";
       wb.created = new Date();
 
       // ── Onglet CNSS ──────────────────────────────────────────────

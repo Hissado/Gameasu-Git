@@ -5,7 +5,7 @@ import { usersTable } from "./users";
 import { organizationsTable } from "./saas";
 
 /**
- * Collaborateurs / employés Gaméasù.
+ * Collaborateurs / employés Gameasu.
  *
  * - Le champ legacy `position` (text) est conservé pour rétro-compat ; les
  *   nouveaux enregistrements doivent utiliser `positionId` (FK vers

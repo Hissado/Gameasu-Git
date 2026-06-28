@@ -108,7 +108,7 @@ const LOCALES = [
 // ─── Couleurs prédéfinies ──────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
-  { hex: "#C8A24B", label: "Or Gaméasù" },
+  { hex: "#C8A24B", label: "Or Gameasu" },
   { hex: "#1a1a2e", label: "Marine profond" },
   { hex: "#F37021", label: "Orange EDOLE" },
   { hex: "#0F172A", label: "Ardoise foncé" },

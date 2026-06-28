@@ -900,7 +900,7 @@ router.put("/invoices/:id/lines", requireManagerOrAbove, async (req, res, next) 
 async function getOrgBranding(orgId: string) {
   const [org] = await db.select({ name: organizationsTable.name, logoUrl: organizationsTable.logoUrl, primaryColor: organizationsTable.primaryColor })
     .from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
-  return org ?? { name: "Gaméasù", logoUrl: null, primaryColor: "#C8A24B" };
+  return org ?? { name: "Gameasu", logoUrl: null, primaryColor: "#C8A24B" };
 }
 
 router.post("/proformas/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
@@ -1025,7 +1025,7 @@ router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next
 
     const outstanding = (toNum(inv.totalAmount) ?? 0) - (toNum(inv.paidAmount) ?? 0);
     const org = await getOrgBranding(orgId);
-    const orgName = org?.name ?? "Gaméasù";
+    const orgName = org?.name ?? "Gameasu";
     const dueDateStr = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("fr-FR") : "—";
     const daysOverdue = inv.dueDate
       ? Math.max(0, Math.floor((Date.now() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24)))

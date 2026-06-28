@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useCurrentSubscription } from "@/lib/saas";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
-import { GaméasùMark } from "@/components/branding/GameasuMark";
+import { GameasuMark } from "@/components/branding/GameasuMark";
 
 export function useModuleEnabled(_moduleKey: string | null | undefined) {
   return { enabled: true, loading: false };
@@ -22,12 +22,12 @@ export function UpgradeRequired({ moduleKey }: { moduleKey?: string }) {
       <div className="max-w-lg w-full text-center bg-card border border-border/70 rounded-xl p-10 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 gold-divider" />
         <div className="mx-auto mb-5 inline-flex items-center justify-center">
-          <GaméasùMark className="w-14 h-14 rounded-xl" variant="dark" />
+          <GameasuMark className="w-14 h-14 rounded-xl" variant="dark" />
           <span className="-ml-3 w-8 h-8 rounded-full bg-[#C8A24B] text-[#0F1A3A] flex items-center justify-center ring-4 ring-card shadow-md">
             <Lock className="w-4 h-4" />
           </span>
         </div>
-        <p className="text-[10.5px] font-bold uppercase tracking-[0.28em] text-[#7A5E1F] mb-2">Module premium Gaméasù</p>
+        <p className="text-[10.5px] font-bold uppercase tracking-[0.28em] text-[#7A5E1F] mb-2">Module premium Gameasu</p>
         <h1 className="font-display text-[24px] font-bold tracking-[-0.03em]">Cette section nécessite un plan supérieur</h1>
         <p className="text-muted-foreground mt-3 leading-relaxed">
           Votre formule actuelle{current?.plan ? ` (${current.plan.name})` : ""} n'inclut pas{" "}

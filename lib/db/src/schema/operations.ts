@@ -1,5 +1,5 @@
 /**
- * Operations Command Center — Gaméasù.
+ * Operations Command Center — Gameasu.
  *
  * Module Opérations & Logistique multi-secteurs (BTP, retail, restauration,
  * services, ONG…). Couvre missions, dispatching, suivi terrain, preuves

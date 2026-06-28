@@ -266,7 +266,7 @@ router.get("/billing/payment-transactions/:id/receipt", requireAdmin, async (req
     purpose: PURPOSE_LABELS[tx.purpose] ?? tx.purpose,
     notes: tx.notes,
     organization: org ?? { name: "—", taxId: null },
-    issuedBy: "Gaméasù — Plateforme SaaS",
+    issuedBy: "Gameasu — Plateforme SaaS",
   });
 });
 

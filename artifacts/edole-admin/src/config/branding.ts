@@ -1,22 +1,43 @@
 /**
- * Branding centralisé Gaméasù (frontend).
+ * Branding centralisé Gameasu (frontend).
  * Toute mention de nom, slogan ou identité visuelle doit passer par ici
  * pour rester rebrandable en un seul endroit.
  */
 import gameasuLogo from "@/assets/gameasu-logo.png";
 
 export const BRANDING = {
-  appName: import.meta.env.VITE_APP_NAME ?? "Gameasu",
-  appShortName: "Gameasu",
-  appTaglineFr: import.meta.env.VITE_APP_TAGLINE_FR ?? "Gérer aujourd'hui. Construire demain.",
-  appTaglineEn: import.meta.env.VITE_APP_TAGLINE_EN ?? "Manage today. Build tomorrow.",
+  appName:       import.meta.env.VITE_APP_NAME    ?? "Gameasu",
+  appShortName:  "Gameasu",
+  brandName:     "Gameasu",
+  companyName:   "Gameasu",
+  legalName:     "Gameasu Technology",
+  appTaglineFr:  import.meta.env.VITE_APP_TAGLINE_FR ?? "Gérer aujourd'hui. Construire demain.",
+  appTaglineEn:  import.meta.env.VITE_APP_TAGLINE_EN ?? "Manage today. Build tomorrow.",
+
+  // URLs
+  mainDomain:    "gameasu.com",
+  appUrl:        import.meta.env.VITE_APP_URL     ?? "https://app.gameasu.com",
+  cockpitUrl:    import.meta.env.VITE_COCKPIT_URL ?? "https://cockpit.gameasu.com",
+
+  // Contacts
+  supportEmail:  "support@gameasu.com",
+  noreplyEmail:  "noreply@gameasu.com",
+  infoEmail:     "info@gameasu.com",
+  salesEmail:    "sales@gameasu.com",
+
+  // Billing
   defaultPlanCode: import.meta.env.VITE_DEFAULT_PLAN_CODE ?? "STARTER",
-  primaryColor: "#C8A24B",
-  secondaryColor: "#0F1A3A",
-  logoFull: gameasuLogo,
-  logoFullTransparent: gameasuLogo,
-  logoMark: gameasuLogo,
-  legalName: "Gaméasù Technology",
+
+  // Design tokens
+  primaryColor:  "#C8A24B",   // Or sobre Gameasu
+  secondaryColor:"#0F1A3A",   // Navy profond Gameasu
+  accentColor:   "#C8A24B",
+
+  // Assets
+  logoFull:             gameasuLogo,
+  logoFullTransparent:  gameasuLogo,
+  logoMark:             gameasuLogo,
+
   marketBaseline: "Conçu pour les organisations du Togo et d'Afrique de l'Ouest francophone",
 } as const;
 

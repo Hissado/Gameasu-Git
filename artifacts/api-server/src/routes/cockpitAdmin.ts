@@ -1,5 +1,5 @@
 /**
- * Cockpit Admin — routes étendues pour le Gaméasù Cockpit.
+ * Cockpit Admin — routes étendues pour le Gameasu Cockpit.
  * Toutes les routes exigent le rôle super_admin (middleware `sa`).
  *
  *  GET  /super-admin/tickets              — tous les tickets (cross-tenant)

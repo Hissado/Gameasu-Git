@@ -25,7 +25,7 @@ function allBorders(): Partial<ExcelJS.Borders> {
 
 export async function generateTemplate(mod: ModuleDef, res: Response): Promise<void> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Gaméasù";
+  wb.creator = "Gameasu";
   wb.created = new Date();
   wb.modified = new Date();
 
@@ -36,7 +36,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
   // Titre en A1
   ws.mergeCells("A1", `${colLetter(mod.fields.length)}1`);
   const titleCell = ws.getCell("A1");
-  titleCell.value = `Template d'import — ${mod.label}  |  Gaméasù`;
+  titleCell.value = `Template d'import — ${mod.label}  |  Gameasu`;
   titleCell.fill = DARK_FILL;
   titleCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
   titleCell.alignment = { vertical: "middle", horizontal: "center" };
@@ -99,7 +99,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // Print setup
   ws.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
-  ws.headerFooter.oddHeader = `&L&B${mod.label}&RGaméasù — Template d'import`;
+  ws.headerFooter.oddHeader = `&L&B${mod.label}&RGameasu — Template d'import`;
   ws.headerFooter.oddFooter = "&LConfidentiel&CPage &P / &N&RGénéré le " + new Date().toLocaleDateString("fr-FR");
 
   // ── Feuille 2 : Instructions ────────────────────────────────────────────────
@@ -175,9 +175,9 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
     ["3", "Les colonnes marquées * sont obligatoires. Les autres sont facultatives."],
     ["4", "Supprimer la ligne d'exemple (ligne 4) avant d'importer."],
     ["5", "Enregistrer le fichier au format Excel (.xlsx) ou CSV."],
-    ["6", "Dans Gaméasù, aller dans Paramètres → Migration & Import."],
+    ["6", "Dans Gameasu, aller dans Paramètres → Migration & Import."],
     ["7", "Sélectionner le module correspondant et téléverser votre fichier."],
-    ["8", "Vérifier le mapping des colonnes proposé par Gaméasù."],
+    ["8", "Vérifier le mapping des colonnes proposé par Gameasu."],
     ["9", "Lancer la validation pour détecter les erreurs avant l'import."],
     ["10", "Corriger les erreurs signalées, puis lancer l'import définitif."],
     ["11", "Vérifier les données importées dans le module concerné."],

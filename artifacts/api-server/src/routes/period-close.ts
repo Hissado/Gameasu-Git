@@ -1,5 +1,5 @@
 /**
- * Clôture des périodes financières — Gaméasù
+ * Clôture des périodes financières — Gameasu
  * Month-end close, year-end close, checklists, audit trail.
  */
 import { Router } from "express";

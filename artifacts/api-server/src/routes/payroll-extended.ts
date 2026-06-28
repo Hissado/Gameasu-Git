@@ -490,7 +490,7 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
             const emailHtml = `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
   <div style="background:#1e1e2e;padding:24px 32px;">
-    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gaméasù</span>
+    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gameasu</span>
     <span style="color:#9ca3af;font-size:14px;margin-left:12px;">RH · Virements bancaires</span>
   </div>
   <div style="padding:32px;border:1px solid #e5e7eb;border-top:none;">
@@ -504,7 +504,7 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
       <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Modifié par</td><td style="padding:8px 0;font-size:14px;">${actorName}</td></tr>
       <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Date</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString("fr-FR")}</td></tr>
     </table>
-    <p style="color:#6b7280;font-size:13px;margin:0;">Ce message est envoyé automatiquement par Gaméasù. Ne pas répondre à cet email.</p>
+    <p style="color:#6b7280;font-size:13px;margin:0;">Ce message est envoyé automatiquement par Gameasu. Ne pas répondre à cet email.</p>
   </div>
 </div>`;
             const emailText = `${emailSubject}\n\nRéférence : ${row.reference}\nMontant : ${formatFCFA(toNum(row.totalAmount))} XOF\nStatut : ${statusLabels[body.status] ?? body.status}\nModifié par : ${actorName}\nDate : ${new Date().toLocaleString("fr-FR")}`;
@@ -600,7 +600,7 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
               const htmlEmployee = `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
   <div style="background:#1e1e2e;padding:24px 32px;">
-    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gaméasù</span>
+    <span style="color:#f37021;font-size:22px;font-weight:bold;">Gameasu</span>
     <span style="color:#9ca3af;font-size:14px;margin-left:12px;">RH · Paie</span>
   </div>
   <div style="padding:32px;border:1px solid #e5e7eb;border-top:none;">
@@ -621,10 +621,10 @@ router.patch("/payroll/transfer-orders/:id", requireManagerOrAbove, async (req, 
     </table>
     <p style="color:#6b7280;font-size:13px;margin:0;">
       Ce virement devrait apparaître sur votre compte bancaire dans un délai de 1 à 3 jours ouvrés selon votre établissement.<br>
-      Ce message est envoyé automatiquement par Gaméasù. Ne pas répondre à cet email.
+      Ce message est envoyé automatiquement par Gameasu. Ne pas répondre à cet email.
     </p>
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center;">© ${new Date().getFullYear()} Gaméasù — Tous droits réservés</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center;">© ${new Date().getFullYear()} Gameasu — Tous droits réservés</div>
 </div>`;
 
               const textEmployee = [
@@ -859,7 +859,7 @@ router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, as
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Gaméasù Plateforme";
+    wb.creator = "Gameasu Plateforme";
     wb.created = new Date();
 
     const ws = wb.addWorksheet("Ordre de virement");
@@ -1129,7 +1129,7 @@ router.get("/payroll/transfer-audit-log/export.xlsx", requireManagerOrAbove, asy
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Gaméasù Plateforme";
+    wb.creator = "Gameasu Plateforme";
     wb.created = new Date();
 
     const ws = wb.addWorksheet("Journal d'audit virements");

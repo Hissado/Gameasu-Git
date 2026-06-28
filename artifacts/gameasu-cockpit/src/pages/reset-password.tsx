@@ -51,7 +51,7 @@ export default function ResetPasswordPage() {
           <div className="inline-flex w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 items-center justify-center mb-4">
             {done ? <CheckCircle2 className="w-8 h-8 text-primary" /> : <ShieldCheck className="w-8 h-8 text-primary" />}
           </div>
-          <h1 className="text-2xl font-bold text-white">Gaméasù Cockpit</h1>
+          <h1 className="text-2xl font-bold text-white">Gameasu Cockpit</h1>
           <p className="text-sm text-slate-400 mt-1">Définition du mot de passe</p>
         </div>
 
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">Gaméasù Technology · Espace d'administration interne</p>
+        <p className="text-center text-xs text-slate-600 mt-6">Gameasu Technology · Espace d'administration interne</p>
       </div>
     </div>
   );

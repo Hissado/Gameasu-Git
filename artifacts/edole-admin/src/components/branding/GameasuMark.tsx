@@ -1,11 +1,11 @@
 import { BRANDING } from "@/config/branding";
 
 /**
- * Gaméasù — monogramme officiel.
+ * Gameasu — monogramme officiel.
  * Sur fond clair comme sur fond sombre, on affiche la version transparente du
  * logo (le mark « G » navy + accent or supporte les deux contextes).
  */
-export function GaméasùMark({
+export function GameasuMark({
   className = "w-10 h-10",
 }: {
   className?: string;

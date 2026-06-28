@@ -163,7 +163,7 @@ export default function PrintDocumentPage() {
         ? "Échéance"
         : null;
 
-  const orgDisplayName = org.organizationName ?? "Gaméasù";
+  const orgDisplayName = org.organizationName ?? "Gameasu";
   const orgSubline = org.organizationLegalName ?? org.organizationName ?? "";
 
   return (

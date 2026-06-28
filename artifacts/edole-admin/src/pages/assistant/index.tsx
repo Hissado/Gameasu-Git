@@ -103,7 +103,7 @@ export default function KoffiPage() {
                     <Sparkles className="w-4 h-4 text-primary" />
                   </div>
                   <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-100 text-sm text-slate-700 leading-relaxed max-w-[85%]">
-                    Bonjour ! Je suis <strong>Koffi</strong>, votre assistant Gaméasù. Posez-moi n'importe quelle question sur la plateforme — modules, données en temps réel, navigation, fonctionnalités, et bien plus.
+                    Bonjour ! Je suis <strong>Koffi</strong>, votre assistant Gameasu. Posez-moi n'importe quelle question sur la plateforme — modules, données en temps réel, navigation, fonctionnalités, et bien plus.
                   </div>
                 </div>
                 <div className="ml-11">

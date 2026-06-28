@@ -1,5 +1,5 @@
 /**
- * Migration & Import API — Gaméasù
+ * Migration & Import API — Gameasu
  * Endpoints pour télécharger les templates, uploader/parser/valider/importer des fichiers.
  */
 import { Router } from "express";

@@ -381,7 +381,7 @@ router.get("/timesheets/export", requirePermission("attendance.view"), async (re
       : [];
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Gaméasù";
+    wb.creator = "Gameasu";
 
     const ORANGE = "FFF37021";
     const headerFill: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE } };

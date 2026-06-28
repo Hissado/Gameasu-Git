@@ -1,5 +1,5 @@
 /**
- * ExcelReportBuilder — Professional Excel workbook generator for Gaméasù reports.
+ * ExcelReportBuilder — Professional Excel workbook generator for Gameasu reports.
  * Produces enterprise-grade, multi-sheet, formula-driven Excel files.
  */
 
@@ -8,8 +8,8 @@ import type { Response } from "express";
 
 // ─── Color palette ────────────────────────────────────────────────────────────
 const C = {
-  brandDark:     "FF0F172A",
-  brandOrange:   "FFF97316",
+  brandDark:     "FF0F1A3A",  // Gameasu navy #0F1A3A
+  brandOrange:   "FFC8A24B",  // Gameasu gold #C8A24B
   orange50:      "FFFFF7ED",
   orange100:     "FFFFEDD5",
   slate800:      "FF1E293B",
@@ -106,7 +106,7 @@ export class ExcelReportBuilder {
     this.orgName     = opts.orgName;
     this.period      = opts.period;
     this.reportTitle = opts.reportTitle;
-    this.generatedBy = opts.generatedBy ?? "Gaméasù Platform";
+    this.generatedBy = opts.generatedBy ?? "Gameasu Platform";
 
     // Workbook metadata
     this.wb.creator  = this.generatedBy;
@@ -114,8 +114,8 @@ export class ExcelReportBuilder {
     this.wb.modified = new Date();
     this.wb.title    = opts.reportTitle;
     this.wb.subject  = opts.orgName;
-    this.wb.keywords = "Gaméasù, Rapport, Finance, Gestion";
-    this.wb.description = `Rapport généré automatiquement par Gaméasù pour ${opts.orgName}`;
+    this.wb.keywords = "Gameasu, Rapport, Finance, Gestion";
+    this.wb.description = `Rapport généré automatiquement par Gameasu pour ${opts.orgName}`;
   }
 
   // ── 1. Cover sheet ─────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ export class ExcelReportBuilder {
       ["Date de génération", new Date().toLocaleDateString("fr-FR")],
       ["Devise",             "FCFA (XOF)"],
       ["Version",            "1.0"],
-      ["Plateforme",         "Gaméasù Management Platform"],
+      ["Plateforme",         "Gameasu Management Platform"],
     ];
     metaRows.forEach(([key, val], i) => {
       const r = 17 + i;
@@ -557,7 +557,7 @@ export class ExcelReportBuilder {
     };
     ws.headerFooter = {
       oddHeader: `&L&"Calibri,Bold"${this.orgName}&C${opts.title ?? opts.name}&R&"Calibri"&D`,
-      oddFooter:  `&LConfidentiel — Usage interne&C&P / &N&RGaméasù Platform`,
+      oddFooter:  `&LConfidentiel — Usage interne&C&P / &N&RGameasu Platform`,
     };
 
     return this;

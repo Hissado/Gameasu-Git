@@ -1440,7 +1440,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
     doc.rect(0, 0, 595, 80).fill("#0f172a");
     doc.fillColor("white").fontSize(20).font("Helvetica-Bold").text("BULLETIN DE PAIE", 40, 18);
     doc.fontSize(10).font("Helvetica").text(`Période : ${payslip.period}`, 40, 48);
-    doc.fontSize(9).text("Gaméasù Technology", 440, 18, { width: 115, align: "right" });
+    doc.fontSize(9).text("Gameasu Technology", 440, 18, { width: 115, align: "right" });
     doc.fontSize(8).fillColor("#94a3b8").text("Document officiel", 440, 34, { width: 115, align: "right" });
 
     // Bloc collaborateur
@@ -1526,7 +1526,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
     // Pied de page
     doc.moveTo(40, 770).lineTo(555, 770).lineWidth(0.5).stroke("#e2e8f0");
     doc.fillColor("#94a3b8").fontSize(7).font("Helvetica")
-      .text("Document généré automatiquement par Gaméasù Technology. Ce bulletin est confidentiel.", 40, 776, { align: "center", width: 515 });
+      .text("Document généré automatiquement par Gameasu Technology. Ce bulletin est confidentiel.", 40, 776, { align: "center", width: 515 });
 
     doc.end();
   } catch (e) { next(e); }
@@ -1554,7 +1554,7 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
     doc.rect(0, 0, 595, 80).fill("#0f172a");
     doc.fillColor("white").fontSize(20).font("Helvetica-Bold").text("BULLETIN DE PAIE", 40, 18);
     doc.fontSize(10).font("Helvetica").text(`Période : ${payslip.period}`, 40, 48);
-    doc.fontSize(9).text("Gaméasù Technology", 440, 18, { width: 115, align: "right" });
+    doc.fontSize(9).text("Gameasu Technology", 440, 18, { width: 115, align: "right" });
 
     doc.fillColor("#374151").fontSize(9).font("Helvetica");
     const period = payslip.period;
@@ -1597,7 +1597,7 @@ router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, 
     doc.text(`Charges patronales CNSS (16,4%) : ${fmtFCFA(toN(payslip.cnssEmployer))}  |  Coût total employeur : ${fmtFCFA(toN(payslip.grossSalary) + toN(payslip.cnssEmployer))}`, 40, y, { width: 515, align: "center" });
 
     doc.moveTo(40, 770).lineTo(555, 770).lineWidth(0.5).stroke("#e2e8f0");
-    doc.fillColor("#94a3b8").fontSize(7).text("Document généré par Gaméasù Technology — Confidentiel", 40, 776, { align: "center", width: 515 });
+    doc.fillColor("#94a3b8").fontSize(7).text("Document généré par Gameasu Technology — Confidentiel", 40, 776, { align: "center", width: 515 });
     doc.end();
   } catch (e) { next(e); }
 });
@@ -2108,7 +2108,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   doc.pipe(res);
 
   // En-tête
-  doc.fontSize(10).fillColor("#666666").text("GAMÉASÙ AFRICA", 60, 60);
+  doc.fontSize(10).fillColor("#666666").text("GAMEASU AFRICA", 60, 60);
   doc.fontSize(8).fillColor("#999999").text("Plateforme de gestion RH", 60, 75);
   doc.moveTo(60, 95).lineTo(535, 95).strokeColor("#F37021").lineWidth(2).stroke();
 
@@ -2122,7 +2122,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   doc.moveDown(2);
 
   // Corps
-  const soussigne = "La Direction des Ressources Humaines de GAMÉASÙ AFRICA";
+  const soussigne = "La Direction des Ressources Humaines de GAMEASU AFRICA";
   doc.font("Helvetica").fontSize(11).fillColor("#1a1a1a");
 
   if (type === "travail") {
@@ -2166,7 +2166,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   // Pied de page
   doc.moveTo(60, 760).lineTo(535, 760).strokeColor("#e2e8f0").lineWidth(1).stroke();
   doc.fontSize(8).fillColor("#999999").font("Helvetica")
-    .text("Document généré automatiquement — GAMÉASÙ Africa | www.gameasu.com", 0, 768, { align: "center" });
+    .text("Document généré automatiquement — GAMEASU Africa | www.gameasu.com", 0, 768, { align: "center" });
 
   doc.end();
 }

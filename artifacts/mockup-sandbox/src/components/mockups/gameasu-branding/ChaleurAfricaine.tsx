@@ -24,7 +24,7 @@ export function ChaleurAfricaine() {
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
             <span className="text-stone-950 font-black text-sm">G</span>
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">Gaméasù</span>
+          <span className="font-bold text-white text-lg tracking-tight">Gameasu</span>
         </div>
         <div className="flex items-center gap-8 text-sm text-stone-400">
           <span className="hover:text-white cursor-pointer transition-colors">Services</span>
@@ -83,7 +83,7 @@ export function ChaleurAfricaine() {
               </p>
 
               <p className="text-stone-400 text-lg leading-relaxed mb-10 max-w-lg">
-                Gaméasù accompagne les entreprises, institutions, ONG et organisations 
+                Gameasu accompagne les entreprises, institutions, ONG et organisations 
                 d'Afrique et du monde dans leur transformation numérique — avec des standards 
                 techniques mondiaux et une profonde compréhension des marchés locaux.
               </p>

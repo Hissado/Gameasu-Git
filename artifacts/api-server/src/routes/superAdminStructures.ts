@@ -260,7 +260,7 @@ router.post("/super-admin/structures", sa, async (req, res, next) => {
     if (sendEmailInvite) {
       const tpl = buildInvitationEmail({
         recipientName: `${req.body.adminFirstName} ${req.body.adminLastName}`,
-        inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gaméasù",
+        inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gameasu",
         orgName: created.organization.name,
         acceptUrl: created.acceptUrl,
         temporaryPassword: created.temporaryPassword,
@@ -329,11 +329,11 @@ router.post("/super-admin/structures/invite-link", sa, async (req, res, next) =>
     if (sendEmailInvite && contactEmail) {
       delivery = await sendEmail({
         to: String(contactEmail),
-        subject: "Invitation à rejoindre Gaméasù",
+        subject: "Invitation à rejoindre Gameasu",
         text: [
           `Bonjour ${contactName || ""},`,
           ``,
-          `Vous êtes invité(e) à activer votre espace Gaméasù.`,
+          `Vous êtes invité(e) à activer votre espace Gameasu.`,
           ``,
           `Cliquez sur ce lien pour configurer votre organisation (essai gratuit ${TRIAL_DAYS} jours) :`,
           onboardUrl,
@@ -341,14 +341,14 @@ router.post("/super-admin/structures/invite-link", sa, async (req, res, next) =>
           `Lien valable ${INVITE_TTL_DAYS} jours.`,
           ``,
           `À très bientôt,`,
-          `L'équipe Gaméasù`,
+          `L'équipe Gameasu`,
         ].join("\n"),
         html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee">
-  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Activez votre espace</h1></div>
+  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMEASU</div><h1 style="margin:0;font-size:22px">Activez votre espace</h1></div>
   <div style="padding:24px 28px;line-height:1.6">
     <p>Bonjour ${contactName || ""},</p>
-    <p>Vous êtes invité(e) à créer votre organisation sur Gaméasù — pilotage d'entreprise nouvelle génération.</p>
+    <p>Vous êtes invité(e) à créer votre organisation sur Gameasu — pilotage d'entreprise nouvelle génération.</p>
     <p style="text-align:center;margin:24px 0">
       <a href="${onboardUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Configurer mon espace</a>
     </p>
@@ -644,9 +644,9 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
     if (sendEmailInvite && contactEmail) {
       delivery = await sendEmail({
         to: String(contactEmail),
-        subject: `Lien d'accès Gaméasù — ${org.name}`,
-        text: `Bonjour ${contactName || ""},\n\nVoici votre lien d'accès à la plateforme Gaméasù :\n${onboardUrl}\n\nLien valable ${INVITE_TTL_DAYS} jours.\n\nL'équipe Gaméasù`,
-        html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gaméasù pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
+        subject: `Lien d'accès Gameasu — ${org.name}`,
+        text: `Bonjour ${contactName || ""},\n\nVoici votre lien d'accès à la plateforme Gameasu :\n${onboardUrl}\n\nLien valable ${INVITE_TTL_DAYS} jours.\n\nL'équipe Gameasu`,
+        html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMEASU</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gameasu pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
       }).catch((e: unknown) => ({ error: (e as Error)?.message }));
     }
 
@@ -720,7 +720,7 @@ router.post("/super-admin/organizations/:id/admin-invitations/regenerate", sa, a
         .from(organizationsTable).where(eq(organizationsTable.id, (req.params.id as string))).limit(1);
       const tpl = buildInvitationEmail({
         recipientName: `${user.firstName} ${user.lastName}`,
-        inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gaméasù",
+        inviterName: req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "L'équipe Gameasu",
         orgName: org?.name,
         acceptUrl,
         temporaryPassword: tempPassword,

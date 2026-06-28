@@ -391,7 +391,7 @@ export default function ProfilePage() {
               </p>
               <div className="text-xs text-muted-foreground space-y-1 p-3 rounded-lg bg-white/70 border border-red-200">
                 <p className="font-medium text-foreground">Sont conservés :</p>
-                <p>• La structure (tables, schéma, migrations, routes, branding Gaméasù)</p>
+                <p>• La structure (tables, schéma, migrations, routes, branding Gameasu)</p>
                 <p>• Le catalogue des offres, des modules et le socle des rôles/permissions</p>
                 <p className="pt-1">
                   Après la purge, seul le super-admin <strong>cockpit@gameasu.com</strong> est recréé (sans mot de passe).

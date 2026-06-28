@@ -8,7 +8,7 @@ const router = Router();
 const TVA_RATE = 0.18;
 
 /**
- * Catalogue Gaméasù Add-ons — modèle tarifaire :
+ * Catalogue Gameasu Add-ons — modèle tarifaire :
  *
  * credits  → achat ponctuel d'unités (SMS / emails), priceHT = prix par unité en FCFA HT,
  *             pas d'échéance, solde = creditsPurchased - usageUsed
@@ -23,7 +23,7 @@ const ADDON_CATALOG_SEED = [
   {
     slug: "sms_custom",
     name: "SMS personnalisés",
-    description: "Envoyez des SMS depuis Gaméasù avec un expéditeur personnalisé. Prix à l'unité, sans expiration.",
+    description: "Envoyez des SMS depuis Gameasu avec un expéditeur personnalisé. Prix à l'unité, sans expiration.",
     category: "sms",
     billingType: "credits",
     priceHT: 25,           // 25 FCFA HT / SMS
@@ -73,7 +73,7 @@ const ADDON_CATALOG_SEED = [
   {
     slug: "support_priority",
     name: "Support prioritaire",
-    description: "Accès prioritaire au support Gaméasù avec SLA dédié. Tarif selon la taille de votre organisation et le niveau de service souhaité.",
+    description: "Accès prioritaire au support Gameasu avec SLA dédié. Tarif selon la taille de votre organisation et le niveau de service souhaité.",
     category: "support",
     billingType: "quote",
     priceHT: 0,
@@ -85,7 +85,7 @@ const ADDON_CATALOG_SEED = [
   {
     slug: "onboarding",
     name: "Assistance à l'intégration",
-    description: "Accompagnement personnalisé pour la mise en place de votre espace Gaméasù. Tarif selon la complexité du projet et le périmètre fonctionnel.",
+    description: "Accompagnement personnalisé pour la mise en place de votre espace Gameasu. Tarif selon la complexité du projet et le périmètre fonctionnel.",
     category: "support",
     billingType: "quote",
     priceHT: 0,

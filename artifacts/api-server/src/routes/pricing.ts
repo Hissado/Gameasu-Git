@@ -392,7 +392,7 @@ router.get("/pricing/scenarios/:id/export.pdf", async (req, res) => {
   };
 
   const orgData = {
-    name: orgRow?.name ?? "Gaméasù",
+    name: orgRow?.name ?? "Gameasu",
     legalName: (orgRow as any)?.legalName ?? null,
     address: (orgRow as any)?.address ?? null,
     taxId: (orgRow as any)?.taxId ?? null,

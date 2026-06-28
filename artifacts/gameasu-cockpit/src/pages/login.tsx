@@ -56,7 +56,7 @@ export default function LoginPage() {
       }
 
       // Trusted device bypass
-      if (data.user?.role !== "super_admin") throw new Error("Accès réservé aux super-administrateurs Gaméasù");
+      if (data.user?.role !== "super_admin") throw new Error("Accès réservé aux super-administrateurs Gameasu");
       if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
       login(data.token, data.user);
       navigate("/");
@@ -87,7 +87,7 @@ export default function LoginPage() {
         return;
       }
       const data = await r.json() as any;
-      if (data.user?.role !== "super_admin") { setError("Accès réservé aux super-administrateurs Gaméasù"); return; }
+      if (data.user?.role !== "super_admin") { setError("Accès réservé aux super-administrateurs Gameasu"); return; }
       if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
       login(data.token, data.user);
       navigate("/");
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <div className="inline-flex w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 items-center justify-center mb-4">
             {step === "2fa" ? <Mail className="w-8 h-8 text-primary" /> : <Shield className="w-8 h-8 text-primary" />}
           </div>
-          <h1 className="text-2xl font-bold text-white">Gaméasù Cockpit</h1>
+          <h1 className="text-2xl font-bold text-white">Gameasu Cockpit</h1>
           <p className="text-sm text-slate-400 mt-1">
             {step === "2fa" ? "Vérification en 2 étapes" : "Administration interne — accès restreint"}
           </p>
@@ -292,7 +292,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">Gaméasù Technology · Espace d'administration interne</p>
+        <p className="text-center text-xs text-slate-600 mt-6">Gameasu Technology · Espace d'administration interne</p>
       </div>
     </div>
   );

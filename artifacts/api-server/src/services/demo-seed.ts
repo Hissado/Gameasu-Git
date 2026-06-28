@@ -1,5 +1,5 @@
 /**
- * Génération de données de démo réalistes et interconnectées pour GAMÉASÙ.
+ * Génération de données de démo réalistes et interconnectées pour GAMEASU.
  *
  * Stratégie :
  * - Idempotent : marqueur via un client "BTP Vision SARL" — si présent, on saute.

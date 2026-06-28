@@ -1,5 +1,5 @@
 /**
- * Moteur de tarification Gaméasù — modèle dégressif par utilisateur.
+ * Moteur de tarification Gameasu — modèle dégressif par utilisateur.
  *
  * Paliers HT (FCFA) :
  *   1er utilisateur       → 10 000

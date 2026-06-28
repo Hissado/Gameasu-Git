@@ -1,5 +1,5 @@
 /**
- * Seed démo Comptabilité — Gaméasù
+ * Seed démo Comptabilité — Gameasu
  *
  * Ajoute ce qui manque pour avoir un jeu de données démo complet :
  *  - Exercice fiscal 2026 (créé si absent)

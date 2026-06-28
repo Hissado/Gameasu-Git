@@ -108,7 +108,7 @@ export function KoffiChat() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm leading-none">Koffi</p>
-            <p className="text-white/50 text-[11px] mt-0.5">Assistant Gaméasù · IA</p>
+            <p className="text-white/50 text-[11px] mt-0.5">Assistant Gameasu · IA</p>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -139,7 +139,7 @@ export function KoffiChat() {
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <div className="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5 shadow-sm border border-slate-100 text-sm text-slate-700 leading-relaxed max-w-[85%]">
-                  Bonjour ! Je suis <strong>Koffi</strong>, votre assistant Gaméasù. Posez-moi n'importe quelle question sur l'application — modules, données, navigation, fonctionnalités.
+                  Bonjour ! Je suis <strong>Koffi</strong>, votre assistant Gameasu. Posez-moi n'importe quelle question sur l'application — modules, données, navigation, fonctionnalités.
                 </div>
               </div>
               <div className="ml-9 flex flex-wrap gap-1.5">
@@ -241,7 +241,7 @@ export function KoffiChat() {
             : "bg-[#0F1A3A] hover:bg-[#1a2d5a] text-white"
         }`}
         style={{ boxShadow: "0 8px 24px rgba(15,26,58,0.35)" }}
-        aria-label="Ouvrir Koffi — assistant Gaméasù"
+        aria-label="Ouvrir Koffi — assistant Gameasu"
       >
         <div className="relative">
           <Sparkles className={`w-4.5 h-4.5 transition-transform duration-200 ${open ? "rotate-180 scale-90" : "group-hover:scale-110"}`} />

@@ -23,8 +23,8 @@ async function ensurePlatformOrg(): Promise<string> {
     .insert(organizationsTable)
     .values({
       slug: PLATFORM_ORG_SLUG,
-      name: "Gaméasù Plateforme",
-      legalName: "Gaméasù Technology",
+      name: "Gameasu Plateforme",
+      legalName: "Gameasu Technology",
       industry: "Édition de logiciels",
       country: "TG",
       isActive: true,

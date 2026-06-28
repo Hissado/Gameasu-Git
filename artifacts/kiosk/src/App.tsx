@@ -118,7 +118,7 @@ function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () =
     >
       <div className="flex flex-col items-center gap-3">
         <div className="text-3xl font-bold tracking-widest text-amber-400 uppercase">
-          {kiosk?.settings?.orgName ?? "Gaméasù"}
+          {kiosk?.settings?.orgName ?? "Gameasu"}
         </div>
         <div className="text-sm text-white/40 uppercase tracking-widest">
           {kiosk?.name ?? "Kiosque de Pointage"}
@@ -136,7 +136,7 @@ function IdleScreen({ kiosk, onStart }: { kiosk: KioskInfo | null; onStart: () =
         </div>
       </div>
 
-      <div className="text-xs text-white/20 tracking-widest uppercase">Gaméasù ERP © 2026</div>
+      <div className="text-xs text-white/20 tracking-widest uppercase">Gameasu ERP © 2026</div>
     </div>
   );
 }
@@ -433,7 +433,7 @@ function SetupScreen({ onSetup, tokenError }: { onSetup: (token: string) => void
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
       <div className="text-2xl font-bold text-amber-400">Configuration du kiosk</div>
       <div className="text-white/50 text-center max-w-sm">
-        Entrez le token du kiosk (visible dans la page d'administration Gaméasù)
+        Entrez le token du kiosk (visible dans la page d'administration Gameasu)
       </div>
       {tokenError && (
         <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-6 py-3 text-red-300 text-center max-w-sm text-sm">

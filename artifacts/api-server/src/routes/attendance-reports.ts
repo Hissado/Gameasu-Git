@@ -565,7 +565,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
 
     if (format === "xlsx") {
       const wb = new ExcelJS.Workbook();
-      wb.creator = "Gaméasù"; wb.created = new Date();
+      wb.creator = "Gameasu"; wb.created = new Date();
       const ws = wb.addWorksheet(tableData.title.slice(0, 31));
       addMeta(ws, tableData.title, period);
       ws.columns = tableData.headers.map((h, i) => ({ key: String(i), width: i === 0 ? 28 : i === 1 ? 22 : 16 }));
@@ -586,7 +586,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
     doc.pipe(res);
 
     // Title
-    doc.fillColor("#F37021").fontSize(16).font("Helvetica-Bold").text("Gaméasù — Rapport de présences", { align: "center" });
+    doc.fillColor("#F37021").fontSize(16).font("Helvetica-Bold").text("Gameasu — Rapport de présences", { align: "center" });
     doc.moveDown(0.3);
     doc.fillColor("#333333").fontSize(11).font("Helvetica-Bold").text(tableData.title, { align: "center" });
     doc.fillColor("#666666").fontSize(9).font("Helvetica").text(`Période : ${period}`, { align: "center" });
@@ -628,7 +628,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
       rowIdx++;
     }
 
-    doc.moveDown(1).fillColor("#999999").fontSize(7).text(`Généré le ${new Date().toLocaleDateString("fr-FR")} — Gaméasù`, { align: "right" });
+    doc.moveDown(1).fillColor("#999999").fontSize(7).text(`Généré le ${new Date().toLocaleDateString("fr-FR")} — Gameasu`, { align: "right" });
     doc.end();
   } catch (e) { next(e); }
 });

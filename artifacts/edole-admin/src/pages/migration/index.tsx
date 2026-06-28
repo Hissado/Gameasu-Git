@@ -209,7 +209,7 @@ export default function MigrationPage() {
     <div className="space-y-4 pb-10">
       <PageHeader
         title="Migration & Import des données"
-        subtitle="Importez vos données existantes dans Gaméasù étape par étape"
+        subtitle="Importez vos données existantes dans Gameasu étape par étape"
         icon={Database}
       />
 
@@ -400,7 +400,7 @@ export default function MigrationPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Associez chaque colonne de votre fichier au champ Gaméasù correspondant.
+                    Associez chaque colonne de votre fichier au champ Gameasu correspondant.
                     Le système a pré-rempli les correspondances détectées automatiquement.
                   </p>
 
@@ -410,7 +410,7 @@ export default function MigrationPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-xs w-[40%]">Colonne dans votre fichier</TableHead>
-                          <TableHead className="text-xs w-[40%]">Champ Gaméasù</TableHead>
+                          <TableHead className="text-xs w-[40%]">Champ Gameasu</TableHead>
                           <TableHead className="text-xs w-[20%]">Aperçu</TableHead>
                         </TableRow>
                       </TableHeader>

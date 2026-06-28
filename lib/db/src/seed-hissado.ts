@@ -1,5 +1,5 @@
 /**
- * Seed Hissado Consulting — Gaméasù
+ * Seed Hissado Consulting — Gameasu
  *
  * Organisation démo complète : conseil, technologie, finance & transformation
  * digitale — Lomé, Togo.
@@ -135,7 +135,7 @@ export async function seedHissado() {
     }
     await db.insert(billingEventsTable).values({
       organizationId: orgId, subscriptionId: subId,
-      kind: "setup_fee", label: "Frais d'installation & onboarding Gaméasù",
+      kind: "setup_fee", label: "Frais d'installation & onboarding Gameasu",
       amount: 750_000, status: "paid", currency: "XOF",
       reference: "HC-SETUP-001",
       occurredAt: DT(2024, 1, 10),
@@ -682,7 +682,7 @@ export async function seedHissado() {
     { subject: "Export Excel budget — colonnes manquantes",                 desc: "L'export FP&A Budget ne génère pas les colonnes 'Écart %'.",   cat: "bug",       prio: "medium", status: "in_progress", createdById: finId },
     { subject: "Demande d'accès module Comptabilité pour Koami Adzoa",     desc: "Koami Adzoa (Analyste) doit accéder au module Comptabilité.", cat: "access",    prio: "low",    status: "resolved", createdById: rhId,   resolvedAt: DT(2026,5,20,14) },
     { subject: "Erreur 500 sur /api/fpa/variance lors du filtre département", desc: "Filtre département dans la page Variance FP&A cause une 500.", cat: "bug",  prio: "high",   status: "resolved", createdById: finId,  resolvedAt: DT(2026,6,1,11) },
-    { subject: "Question : Comment archiver une facture dans Gaméasù ?",   desc: "Je cherche la procédure pour archiver les factures payées.", cat: "question",  prio: "low",    status: "resolved", createdById: finId,  resolvedAt: DT(2026,4,10,9) },
+    { subject: "Question : Comment archiver une facture dans Gameasu ?",   desc: "Je cherche la procédure pour archiver les factures payées.", cat: "question",  prio: "low",    status: "resolved", createdById: finId,  resolvedAt: DT(2026,4,10,9) },
     { subject: "Doublon collaborateur après import",                        desc: "Un collaborateur apparaît deux fois dans la liste RH.",       cat: "bug",       prio: "medium", status: "open",     createdById: rhId },
   ];
   for (const t of TICKETS) {
@@ -707,7 +707,7 @@ export async function seedHissado() {
     { uid: opsId, title: "Tâche en retard — Audit SI BSIC",          body: "La tâche « Rédaction rapport final » est en retard de 5 jours.",                   type: "warning", isRead: "false" },
     { uid: dgId,  title: "Nouveau ticket support ouvert",            body: "Un ticket priorité HAUTE a été ouvert : Problème synchronisation kiosk.",           type: "warning", isRead: "false" },
     { uid: comId, title: "Opportunité gagnée !",                     body: "L'opportunité « Audit réglementaire BCEAO » est marquée comme gagnée (32M FCFA).", type: "success", isRead: "true" },
-    { uid: finId, title: "Abonnement Gaméasù renouvelé",             body: "Votre abonnement Professional a été renouvelé pour le mois prochain.",              type: "info",    isRead: "true" },
+    { uid: finId, title: "Abonnement Gameasu renouvelé",             body: "Votre abonnement Professional a été renouvelé pour le mois prochain.",              type: "info",    isRead: "true" },
     { uid: rhId,  title: "Anniversaire d'embauche — Mawuena Agbeko", body: "Mawuena Agbeko fête ses 7 ans dans l'entreprise aujourd'hui. Félicitations !",     type: "info",    isRead: "false" },
     { uid: opsId, title: "Nouveau projet créé",                      body: "Le projet « Implémentation ERP Bolloré Togo » a été créé et vous a été assigné.",   type: "info",    isRead: "true" },
     { uid: finId, title: "Export budget disponible",                 body: "L'export Excel du budget FP&A 2026 est prêt au téléchargement.",                   type: "success", isRead: "false" },

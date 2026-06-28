@@ -1,5 +1,5 @@
 /**
- * Recherche universelle Gaméasù.
+ * Recherche universelle Gameasu.
  *  - GET /api/search?q=…&limit=10
  *
  * ACL fine : utilise userAccessibleProjectIds / userAccessibleClientIds pour

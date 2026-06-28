@@ -82,7 +82,7 @@ export default function CockpitUsersPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Équipe Cockpit</h1>
-          <p className="page-subtitle">Gérez les membres qui ont accès au Cockpit d'administration Gaméasù</p>
+          <p className="page-subtitle">Gérez les membres qui ont accès au Cockpit d'administration Gameasu</p>
         </div>
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>

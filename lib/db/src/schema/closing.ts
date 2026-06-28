@@ -1,5 +1,5 @@
 /**
- * Clôture financière — Gaméasù
+ * Clôture financière — Gameasu
  * Tables: period_months, closing_checklist_items, closing_audit_log
  */
 import { pgTable, uuid, text, timestamp, integer, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
