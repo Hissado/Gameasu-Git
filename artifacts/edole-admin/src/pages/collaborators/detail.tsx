@@ -331,7 +331,7 @@ function EditCollaboratorDialog({
             ref={avatarInputRef}
             type="file"
             accept="image/*"
-            className="hidden"
+            style={{ position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }}
             onChange={handleAvatarFile}
           />
           <input
@@ -339,7 +339,7 @@ function EditCollaboratorDialog({
             type="file"
             accept="image/*"
             capture="user"
-            className="hidden"
+            style={{ position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }}
             onChange={handleAvatarFile}
           />
         </div>
