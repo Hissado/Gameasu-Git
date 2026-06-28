@@ -1067,6 +1067,24 @@ export default function CollaboratorDetail() {
 
   const allCollabs = allCollabsData?.data ?? [];
 
+  const statusCounts = React.useMemo(() => {
+    const now = Date.now();
+    let active = 0, inactive = 0, newCollab = 0, unavailable = 0;
+    for (const c of allCollabs) {
+      const daysAgo = c.hireDate ? (now - new Date(c.hireDate).getTime()) / 86_400_000 : Infinity;
+      if (c.employmentStatus !== "active") {
+        inactive++;
+      } else if (!c.isAvailable) {
+        unavailable++;
+      } else if (daysAgo < 90) {
+        newCollab++;
+      } else {
+        active++;
+      }
+    }
+    return { active, inactive, new: newCollab, unavailable };
+  }, [allCollabs]);
+
   const sidebarDepts = Array.from(
     new Map(
       allCollabs
@@ -1345,24 +1363,31 @@ export default function CollaboratorDetail() {
           {/* Status filter chips */}
           <div className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar">
             {([ 
-              { value: "all", label: "Tous" },
-              { value: "active", label: "Actif" },
-              { value: "inactive", label: "Inactif" },
-              { value: "new", label: "Nouveau" },
-              { value: "unavailable", label: "Indispo." },
-            ] as const).map(({ value, label }) => (
+              { value: "all", label: "Tous", count: allCollabs.length },
+              { value: "active", label: "Actif", count: statusCounts.active },
+              { value: "inactive", label: "Inactif", count: statusCounts.inactive },
+              { value: "new", label: "Nouveau", count: statusCounts.new },
+              { value: "unavailable", label: "Indispo.", count: statusCounts.unavailable },
+            ] as const).map(({ value, label, count }) => {
+              const isActive = sidebarStatusFilter === value;
+              const isEmpty = value !== "all" && count === 0;
+              return (
               <button
                 key={value}
                 onClick={() => setSidebarStatusFilter(value)}
+                disabled={isEmpty}
                 className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
-                  sidebarStatusFilter === value
+                  isActive
                     ? "bg-teal-700 text-white border-teal-700"
+                    : isEmpty
+                    ? "bg-muted/30 text-muted-foreground/40 border-border/40 cursor-not-allowed"
                     : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
                 }`}
               >
-                {label}
+                {label}{value !== "all" ? ` (${count})` : ""}
               </button>
-            ))}
+              );
+            })}
           </div>
 
           {/* Department filter */}
