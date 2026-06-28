@@ -34,13 +34,19 @@ export default function CollaboratorBadgePrint() {
     enabled: !!collaboratorId,
   });
 
-  // Pré-charge l'avatar en base64 pour éviter les blocages CORS lors de la capture canvas
+  // Pré-charge l'avatar en base64 (avec auth token) pour la capture canvas sans CORS
   useEffect(() => {
     const url = collab ? ((collab.collaborator ?? collab).avatarUrl ?? null) : null;
     if (!url) { setAvatarDataUrl(null); return; }
     let cancelled = false;
-    fetch(url)
-      .then(r => r.blob())
+    const token = localStorage.getItem("auth_token");
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    fetch(url, { headers })
+      .then(r => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.blob();
+      })
       .then(blob => new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -52,15 +58,51 @@ export default function CollaboratorBadgePrint() {
     return () => { cancelled = true; };
   }, [collab]);
 
+  const fetchAsBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const r = await fetch(url, { headers });
+      if (!r.ok) return null;
+      const blob = await r.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
   const handleDownload = async () => {
     if (!badgeRef.current) return;
     setDownloading(true);
     try {
+      // Injecte le base64 directement dans le DOM avant la capture pour contourner CORS
+      const avatarImg = badgeRef.current.querySelector<HTMLImageElement>("img[data-avatar]");
+      let restoredSrc: string | null = null;
+      if (avatarImg) {
+        const b64 = avatarDataUrl ?? (c?.avatarUrl ? await fetchAsBase64(c.avatarUrl) : null);
+        if (b64) {
+          restoredSrc = avatarImg.src;
+          avatarImg.src = b64;
+          // Laisser le navigateur rendre la nouvelle src
+          await new Promise(r => setTimeout(r, 80));
+        }
+      }
+
       const dataUrl = await toPng(badgeRef.current, {
         pixelRatio: 3,
         cacheBust: true,
         backgroundColor: "white",
       });
+
+      // Restaurer la src originale
+      if (avatarImg && restoredSrc) avatarImg.src = restoredSrc;
+
       const link = document.createElement("a");
       const name = `${c?.firstName ?? "badge"}-${c?.lastName ?? ""}`.toLowerCase().replace(/\s+/g, "-");
       link.download = `badge-${name}.png`;
@@ -218,9 +260,9 @@ export default function CollaboratorBadgePrint() {
             flexShrink: 0,
           }}>
             {avatarDataUrl ? (
-              <img src={avatarDataUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img data-avatar src={avatarDataUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : c.avatarUrl ? (
-              <img src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} crossOrigin="anonymous" />
+              <img data-avatar src={c.avatarUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               <span style={{ color: "white", fontWeight: 800, fontSize: 28 }}>{initials}</span>
             )}
