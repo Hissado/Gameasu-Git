@@ -23,7 +23,7 @@ import {
   Pencil, Camera, Loader2, Save, User, DollarSign, AlertCircle, CalendarClock,
   HardHat, Clock, TrendingUp, Bus, Home, Utensils, Gift, Info as InfoIcon, Keyboard, X, Check,
   FileText, Download, Landmark, MailCheck, CheckCircle2, XCircle, RefreshCw,
-  Search, UserPlus, PanelLeftOpen, PanelLeftClose, ArrowUpDown,
+  Search, UserPlus, PanelLeftOpen, PanelLeftClose, ArrowUpDown, Link2, UserX,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -997,6 +997,8 @@ export default function CollaboratorDetail() {
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [linkUserOpen, setLinkUserOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
 
   const { data: collaborator, isLoading } = useGetCollaborator(id, {
     query: { enabled: !!id, queryKey: getGetCollaboratorQueryKey(id) },
@@ -1234,6 +1236,33 @@ export default function CollaboratorDetail() {
   const collabUserId = (collaborator as any)?.userId as string | undefined;
   const isOwnProfile = !isManagerOrAbove && collabUserId === user?.id;
   const canSeePayslips = isManagerOrAbove || isOwnProfile;
+  const linkedUser = (collaborator as any)?.linkedUser as { id: string; firstName: string | null; lastName: string | null; email: string } | null | undefined;
+
+  const { data: usersListData } = useQuery<{ data: any[] }>({
+    queryKey: ["users-list-for-link"],
+    queryFn: () => apiFetch("/api/users?limit=200"),
+    enabled: linkUserOpen,
+  });
+  const usersForLink = (usersListData?.data ?? []).filter((u: any) =>
+    !userSearch ||
+    `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const linkUserMutation = useMutation({
+    mutationFn: (userId: string | null) =>
+      apiFetch(`/api/collaborators/${id}/link-user`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetCollaboratorQueryKey(id) });
+      setLinkUserOpen(false);
+      setUserSearch("");
+      toast.success(linkedUser ? "Compte utilisateur modifié" : "Compte utilisateur lié avec succès");
+    },
+    onError: () => toast.error("Erreur lors de la liaison"),
+  });
 
   const currentYear = new Date().getFullYear();
   const [payslipYear, setPayslipYear] = useState<number>(currentYear);
@@ -1976,8 +2005,109 @@ export default function CollaboratorDetail() {
                   <p className="text-xs text-muted-foreground">{(collaborator as any).emergencyContact.phone} · {(collaborator as any).emergencyContact.relation}</p>
                 </div>
               )}
+
+              {/* ─── Compte utilisateur lié ─── */}
+              {isManagerOrAbove && (
+                <div className="pt-3 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Link2 className="w-3 h-3" /> Compte utilisateur lié
+                    </p>
+                    <Button size="sm" variant="ghost" className="h-6 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={() => { setUserSearch(""); setLinkUserOpen(true); }}>
+                      <Pencil className="w-3 h-3" />
+                      {linkedUser ? "Modifier" : "Lier"}
+                    </Button>
+                  </div>
+                  {linkedUser ? (
+                    <div className="flex items-center gap-2.5 p-2 rounded-lg bg-teal-50 border border-teal-200">
+                      <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
+                        {(linkedUser.firstName?.[0] ?? "") + (linkedUser.lastName?.[0] ?? "")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-teal-900 truncate">
+                          {linkedUser.firstName} {linkedUser.lastName}
+                        </p>
+                        <p className="text-[10px] text-teal-700 truncate">{linkedUser.email}</p>
+                      </div>
+                      <Button size="sm" variant="ghost"
+                        className="h-6 w-6 p-0 text-teal-400 hover:text-rose-500 hover:bg-rose-50 shrink-0"
+                        title="Délier ce compte"
+                        onClick={() => linkUserMutation.mutate(null)}>
+                        <UserX className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      Aucun compte utilisateur lié — ce collaborateur ne peut pas se connecter à son espace RH.
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* DIALOG — Lier un compte utilisateur */}
+          <Dialog open={linkUserOpen} onOpenChange={(v) => { if (!v) { setLinkUserOpen(false); setUserSearch(""); } }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Link2 className="w-4 h-4 text-teal-600" />
+                  {linkedUser ? "Changer le compte lié" : "Lier un compte utilisateur"}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Le collaborateur pourra ainsi accéder à son espace RH (bulletins de paie, congés, pointage…).
+                </p>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9 text-sm"
+                    placeholder="Rechercher par nom ou email…"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1 rounded-lg border border-border p-1">
+                  {usersForLink.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Aucun utilisateur trouvé</p>
+                  ) : (
+                    usersForLink.map((u: any) => (
+                      <button
+                        key={u.id}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-teal-50 transition-colors ${linkedUser?.id === u.id ? "bg-teal-50 ring-1 ring-teal-300" : ""}`}
+                        onClick={() => linkUserMutation.mutate(u.id)}
+                        disabled={linkUserMutation.isPending}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
+                          {(u.firstName?.[0] ?? "") + (u.lastName?.[0] ?? "")}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {u.firstName} {u.lastName}
+                            {linkedUser?.id === u.id && <span className="ml-2 text-xs text-teal-600 font-normal">(actuel)</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                        </div>
+                        {linkUserMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+                        ) : linkedUser?.id === u.id ? (
+                          <Check className="w-4 h-4 text-teal-600 shrink-0" />
+                        ) : null}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setLinkUserOpen(false); setUserSearch(""); }}>
+                  Annuler
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* HISTORIQUE */}
           <Card className="shadow-sm border-border">

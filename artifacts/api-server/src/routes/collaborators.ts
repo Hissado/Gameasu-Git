@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { collaboratorsTable, tasksTable, contractsTable } from "@workspace/db";
+import { collaboratorsTable, tasksTable, contractsTable, usersTable } from "@workspace/db";
 import { eq, sql, isNull, isNotNull, inArray, and, desc, ne } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
@@ -164,7 +164,19 @@ router.get("/collaborators/:id", async (req, res) => {
   } catch {
     // expiry enrichment is best-effort
   }
-  return res.json({ ...collabs[0], contractExpiresInDays });
+
+  let linkedUser: { id: string; firstName: string | null; lastName: string | null; email: string } | null = null;
+  if (collabs[0].userId) {
+    const [u] = await db.select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      email: usersTable.email,
+    }).from(usersTable).where(eq(usersTable.id, collabs[0].userId)).limit(1);
+    linkedUser = u ?? null;
+  }
+
+  return res.json({ ...collabs[0], contractExpiresInDays, linkedUser });
 });
 
 router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
@@ -203,6 +215,19 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
 router.delete("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
   await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string))));
   return res.status(204).send();
+});
+
+router.patch("/collaborators/:id/link-user", requireManagerOrAbove, async (req, res) => {
+  const { userId } = req.body; // null to unlink
+  const [collab] = await db.update(collaboratorsTable)
+    .set({ userId: userId ?? null })
+    .where(and(
+      eq(collaboratorsTable.organizationId, req.authUser!.organizationId),
+      eq(collaboratorsTable.id, (req.params.id as string)),
+    ))
+    .returning();
+  if (!collab) return res.status(404).json({ error: "Collaborateur introuvable" });
+  return res.json(collab);
 });
 
 // ════════════════════════════════════════════════════════════════
