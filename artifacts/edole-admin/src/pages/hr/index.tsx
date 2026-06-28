@@ -1,525 +1,666 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { HrShell } from "./_layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import {
-  Users, AlertTriangle, Bell, UserCheck, CalendarClock,
-  TrendingDown, Wallet, UserX, Building2, ChevronRight,
+  AlertCircle,
+  Cake,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FileWarning,
+  TrendingDown,
+  TrendingUp,
+  UserCheck,
+  Users,
 } from "lucide-react";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  Tooltip as ReTooltip, Legend,
+  Cell,
+  Bar,
+  BarChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RTooltip,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
-import { formatFCFA } from "@/lib/format";
-import { Link } from "wouter";
 
-type Dashboard = {
-  kpis: {
-    totalCollaborators: number;
-    activeContracts: number;
-    departmentsCount: number;
-    contractsExpiringSoon: number;
-    masseSalariale: number;
-    absentsToday: number;
-    tauxAbsence: number;
-  };
-  distributionByDepartment: { department: string; count: number }[];
-  recentHires: { id: string; firstName: string; lastName: string; hireDate: string; avatarUrl?: string }[];
-  contractsExpiringSoon: { id: string; collaboratorName: string; type: string; endDate: string }[];
-  ageDistribution: { name: string; value: number }[];
-  monthlyHires: { month: string; count: number }[];
-  chargesPayroll: {
-    period: string;
-    cnssEmployee: number;
-    cnssEmployer: number;
-    irpp: number;
-    ipts: number;
-    grossSalary: number;
-    chargesSalariales: number;
-    chargesPatronales: number;
-    totalCharges: number;
-  } | null;
-};
+// ─────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────
 
-type HrAlerts = {
-  expiringContracts: { id: string; collaboratorName: string; type: string; endDate: string; daysLeft: number; urgency: "high" | "medium"; poste: string | null }[];
-  trialEnding: { id: string; collaboratorName: string; type: string; startDate: string; daysSinceStart: number | null; poste: string | null }[];
-  anniversaries: { id: string; collaboratorName: string; startDate: string; years: number }[];
-};
-
-const AGE_COLORS = ["#0d9488", "#0891b2", "#7c3aed", "#d97706", "#64748b"];
-const MOIS_SHORT: Record<string, string> = {
-  "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr",
-  "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû",
-  "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
-};
-
-function monthLabel(ym: string) {
-  const [, m] = ym.split("-");
-  return MOIS_SHORT[m ?? ""] ?? ym;
+function daysLeftInMonth() {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return lastDay - now.getDate();
 }
 
-const CustomPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-  if (percent < 0.05) return null;
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
+function monthNameFr(monthIndex: number) {
+  return new Date(2000, monthIndex, 1).toLocaleDateString("fr-FR", { month: "long" });
+}
 
-export default function HrDashboard() {
-  const { data, isLoading } = useQuery<Dashboard>({
+function shortMonthFr(monthIndex: number) {
+  return new Date(2000, monthIndex, 1).toLocaleDateString("fr-FR", { month: "short" });
+}
+
+const AGE_COLORS = ["#0e7490", "#0891b2", "#22d3ee", "#a5f3fc", "#cffafe"];
+const CHARGE_COLORS = { salariales: "#0e7490", patronales: "#f97316" };
+
+// ─────────────────────────────────────────────────────────────────
+// Mini Calendar
+// ─────────────────────────────────────────────────────────────────
+
+function MiniCalendar({ events }: { events: { dayOfMonth: number | null; name: string }[] }) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startOffset = (firstDow + 6) % 7;
+
+  const eventDays = new Set(
+    events
+      .filter((e) => e.dayOfMonth && viewYear === today.getFullYear() && viewMonth === today.getMonth())
+      .map((e) => e.dayOfMonth)
+  );
+
+  const prev = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const next = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const cells: (number | null)[] = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const isToday = (d: number | null) =>
+    d !== null && d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  const DOW = ["L", "M", "M", "J", "V", "S", "D"];
+
+  return (
+    <div className="select-none">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-semibold text-sm capitalize text-slate-800">
+          {monthNameFr(viewMonth)} {viewYear}
+        </span>
+        <div className="flex gap-1">
+          <button onClick={prev} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
+            <ChevronLeft className="w-4 h-4 text-slate-500" />
+          </button>
+          <button onClick={next} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-7 gap-0">
+        {DOW.map((d, i) => (
+          <div key={i} className="text-center text-[10px] font-bold text-slate-400 pb-1.5">{d}</div>
+        ))}
+        {cells.map((d, i) => (
+          <div key={i} className="flex items-center justify-center py-0.5">
+            {d === null ? null : (
+              <div className={cn(
+                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium relative",
+                isToday(d) && "bg-cyan-700 text-white font-bold",
+                !isToday(d) && "text-slate-700 hover:bg-slate-100",
+                eventDays.has(d) && !isToday(d) && "text-orange-600 font-semibold",
+              )}>
+                {d}
+                {eventDays.has(d) && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-400" />
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Month-close gauge
+// ─────────────────────────────────────────────────────────────────
+
+function MonthCloseGauge({ daysLeft }: { daysLeft: number }) {
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const r = 48;
+  const cx = 60;
+  const cy = 60;
+  const circumference = Math.PI * r;
+  const strokeDashoffset = circumference * Math.max(0, Math.min(1, daysLeft / daysInMonth));
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative" style={{ width: 120, height: 70 }}>
+        <svg width="120" height="70" viewBox="0 0 120 70">
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="#e2e8f0" strokeWidth="10" strokeLinecap="round" />
+          <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none"
+            stroke={daysLeft <= 5 ? "#ef4444" : daysLeft <= 10 ? "#f97316" : "#0e7490"}
+            strokeWidth="10" strokeLinecap="round"
+            strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+          <span className="text-2xl font-extrabold text-slate-800 leading-none">
+            {String(daysLeft).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 -mt-1">
+        Jours restants
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tooltip charges
+// ─────────────────────────────────────────────────────────────────
+
+function ChargeTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+      <div className="font-semibold text-slate-800">{payload[0].name}</div>
+      <div className="text-slate-600 mt-0.5">{formatFCFA(payload[0].value)}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────
+
+export default function HrOverview() {
+  const { user } = useAuth();
+  const [eventsTab, setEventsTab] = useState<"today" | "upcoming">("today");
+
+  const { data: hrDash, isLoading } = useQuery<any>({
     queryKey: ["hr-dashboard"],
     queryFn: () => apiFetch("/api/hr/dashboard"),
+    staleTime: 60_000,
   });
 
-  const { data: alerts } = useQuery<HrAlerts>({
-    queryKey: ["hr-alerts"],
-    queryFn: () => apiFetch("/api/hr/alerts/upcoming"),
-  });
+  const kpis = hrDash?.kpis ?? {};
+  const contractsExpiring: any[] = hrDash?.contractsExpiringSoon ?? [];
+  const trialPeriod: any[] = hrDash?.trialPeriodCollaborators ?? [];
+  const birthdaysThisMonth: any[] = hrDash?.birthdaysThisMonth ?? [];
+  const ageDistribution: any[] = hrDash?.ageDistribution ?? [];
+  const monthlyHires: any[] = hrDash?.monthlyHires ?? [];
+  const charges = hrDash?.chargesPayroll;
+  const daysLeft = daysLeftInMonth();
 
-  const actionsCount = (alerts?.expiringContracts.length ?? 0) + (alerts?.trialEnding.length ?? 0);
-  const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const daysRemaining = daysInMonth - today.getDate();
+  const now = new Date();
+  const monthLabel = `${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+  const cotisationsDate = `15/${monthLabel}`;
+  const impotsDate = `10/${monthLabel}`;
+
+  const chargesData = charges
+    ? [
+        { name: "Charges salariales", value: charges.chargesSalariales },
+        { name: "Charges patronales", value: charges.chargesPatronales },
+      ]
+    : [];
+
+  const hiresData = monthlyHires.map((m: any) => ({
+    mois: shortMonthFr(parseInt(m.month.split("-")[1]) - 1),
+    embauches: m.count,
+  }));
+
+  const todayDay = now.getDate();
+  const birthdaysToday = birthdaysThisMonth.filter((b: any) => b.dayOfMonth === todayDay);
+  const birthdaysUpcoming = birthdaysThisMonth.filter((b: any) => b.dayOfMonth > todayDay);
+  const totalActions = contractsExpiring.length + trialPeriod.length;
+
+  const greeting = (() => {
+    const h = now.getHours();
+    if (h < 12) return "Bonjour";
+    if (h < 18) return "Bon après-midi";
+    return "Bonsoir";
+  })();
+
+  const fullDate = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <HrShell title="Ressources Humaines" subtitle="Tableau de bord · Vue d'ensemble RH">
-      {isLoading || !data ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-28 bg-muted animate-pulse rounded-xl" />)}
-        </div>
-      ) : (
-        <div className="space-y-6">
+    <HrShell title="Vue d'ensemble" subtitle="Tableau de bord RH">
+      <div className="space-y-5">
 
-          {/* ── HERO KPI ROW ─────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Collaborateurs */}
-            <Card className="border-0 shadow-sm bg-white">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collaborateurs</span>
-                  <span className="text-xs text-rose-500 font-medium flex items-center gap-0.5">
-                    <TrendingDown className="w-3 h-3" />
-                    {data.kpis.activeContracts > 0
-                      ? `${Math.round((data.kpis.contractsExpiringSoon / data.kpis.totalCollaborators) * 100)}% risque`
-                      : "—"}
+        {/* Header */}
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">
+            {greeting}{user?.firstName ? ` ${user.firstName}` : ""} ! 👋
+          </h2>
+          <p className="text-sm text-slate-500 mt-0.5 capitalize">{fullDate}</p>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+            </div>
+            <Skeleton className="h-36 rounded-2xl" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-48 rounded-2xl" />
+              <Skeleton className="h-48 rounded-2xl" />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ── KPI Row ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+              {/* Collaborateurs */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5" /> Collaborateurs
+                    </div>
+                    <div className="text-4xl font-extrabold text-slate-900 mt-2 leading-none">
+                      {kpis.totalCollaborators ?? 0}
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "flex items-center gap-0.5 text-xs font-bold mt-1",
+                    kpis.tauxTurnover > 5 ? "text-rose-600" : "text-emerald-600"
+                  )}>
+                    {kpis.tauxTurnover > 5 ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                    {kpis.tauxTurnover > 0 ? `-${kpis.tauxTurnover}%` : "+0%"}
                   </span>
                 </div>
-                <div className="text-4xl font-bold text-foreground">{data.kpis.totalCollaborators}</div>
-                <div className="flex items-center gap-3 mt-2">
-                  <Badge variant="secondary" className="text-xs font-normal">{data.kpis.activeContracts} contrats actifs</Badge>
-                  <Badge variant="secondary" className="text-xs font-normal">{data.kpis.departmentsCount} depts</Badge>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Taux de Turnover</span>
+                  <span className={cn(
+                    "text-xs font-bold px-2 py-0.5 rounded-full",
+                    kpis.tauxTurnover > 5 ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
+                  )}>
+                    {kpis.tauxTurnover ?? 0}%
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Absents */}
-            <Card className="border-0 shadow-sm bg-white">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Absents aujourd'hui</span>
-                  <span className="text-xs text-amber-600 font-medium">{data.kpis.tauxAbsence}% taux</span>
+              {/* Absents */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5" /> Absents
+                    </div>
+                    <div className="text-4xl font-extrabold text-slate-900 mt-2 leading-none">
+                      {kpis.absentsToday ?? 0}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-4xl font-bold text-foreground">{data.kpis.absentsToday}</div>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Taux d'absences</span>
+                  <span className={cn(
+                    "text-xs font-bold px-2 py-0.5 rounded-full",
+                    kpis.tauxAbsence > 10 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"
+                  )}>
+                    {kpis.tauxAbsence ?? 0}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Coût salarial global */}
+              <div className="rounded-2xl p-5 shadow-sm" style={{ background: "linear-gradient(135deg, #0f4c5c 0%, #0e7490 100%)" }}>
+                <div className="text-xs font-semibold uppercase tracking-widest text-cyan-200">
+                  Coût salarial global
+                </div>
                 <div className="mt-2">
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400 rounded-full transition-all"
-                      style={{ width: `${Math.min(data.kpis.tauxAbsence * 5, 100)}%` }}
-                    />
+                  <span className="text-3xl font-extrabold text-white leading-none">
+                    {formatFCFACompact(kpis.masseSalariale ?? 0)}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-cyan-300">
+                  Masse salariale brute · {now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Main 2-col ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+              {/* Left 2/3 */}
+              <div className="lg:col-span-2 space-y-5">
+
+                {/* Actions requises */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
+                      <span className="font-semibold text-slate-800 text-sm">Vos actions requises</span>
+                      {totalActions > 0 && (
+                        <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {totalActions}
+                        </span>
+                      )}
+                    </div>
+                    <Link href="/collaborators">
+                      <span className="text-xs text-cyan-700 font-semibold hover:underline cursor-pointer">Voir tout</span>
+                    </Link>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">Congés approuvés en cours</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Masse salariale */}
-            <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-700 to-teal-900 text-white">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Masse salariale</span>
-                  <Wallet className="w-4 h-4 text-teal-300" />
-                </div>
-                <div className="text-2xl font-bold text-white leading-tight">
-                  {formatFCFA(data.kpis.masseSalariale)}
-                </div>
-                <p className="text-xs text-teal-300 mt-1.5">Somme des salaires de base</p>
-                {data.chargesPayroll && (
-                  <div className="mt-3 pt-3 border-t border-teal-600 text-xs text-teal-200">
-                    <span className="font-medium">Coût total employeur ≈ </span>
-                    {formatFCFA(data.chargesPayroll.grossSalary + data.chargesPayroll.chargesPatronales)}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ── MAIN GRID ────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* COLONNE GAUCHE */}
-            <div className="space-y-4">
-              {/* Actions requises */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Bell className="w-4 h-4 text-primary" /> Vos actions requises</span>
-                    {actionsCount > 0 && (
-                      <Badge className="bg-rose-100 text-rose-700 border-0 text-xs">{actionsCount}</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-1 pb-3">
-                  {actionsCount === 0 ? (
-                    <p className="text-xs text-muted-foreground py-2">Aucune action en attente.</p>
+                  {totalActions === 0 ? (
+                    <div className="text-center py-4 text-sm text-slate-400">Aucune action requise</div>
                   ) : (
                     <div className="space-y-2">
-                      {alerts?.expiringContracts.slice(0, 3).map(c => (
-                        <div key={c.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
-                          <div>
-                            <p className="font-medium text-sm leading-tight">{c.collaboratorName}</p>
-                            <p className="text-xs text-muted-foreground">Fin de contrat</p>
-                          </div>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.urgency === "high" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-                            J−{c.daysLeft}
-                          </span>
-                        </div>
-                      ))}
-                      {alerts?.trialEnding.slice(0, 2).map(t => (
-                        <div key={t.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
-                          <div>
-                            <p className="font-medium text-sm leading-tight">{t.collaboratorName}</p>
-                            <p className="text-xs text-muted-foreground">Fin période d'essai</p>
-                          </div>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {t.daysSinceStart != null ? `J+${t.daysSinceStart}` : "—"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Clôture du mois */}
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Clôture du mois en cours
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-16">
-                      <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                        <circle
-                          cx="18" cy="18" r="15.9" fill="none"
-                          stroke="#0d9488" strokeWidth="3" strokeLinecap="round"
-                          strokeDasharray={`${(1 - daysRemaining / daysInMonth) * 100} 100`}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-lg font-bold leading-none">{daysRemaining}</span>
-                        <span className="text-[8px] text-muted-foreground uppercase font-medium">jours</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Jours restants</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Anniversaires */}
-              {(alerts?.anniversaries.length ?? 0) > 0 && (
-                <Card className="border-0 shadow-sm border-l-4 border-l-emerald-500">
-                  <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-sm flex items-center gap-2 text-emerald-700">
-                      <CalendarClock className="w-4 h-4" /> Anniversaires ce mois
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 pb-3">
-                    <div className="space-y-1.5">
-                      {alerts!.anniversaries.map(a => (
-                        <div key={a.id} className="flex items-center justify-between text-sm">
-                          <span className="font-medium">{a.collaboratorName}</span>
-                          <Badge variant="secondary" className="text-xs">{a.years} an{a.years > 1 ? "s" : ""}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* COLONNE CENTRE */}
-            <div className="space-y-4">
-              {/* Charges patronales & salariales */}
-              {data.chargesPayroll && data.chargesPayroll.totalCharges > 0 ? (
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2 pt-4">
-                    <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                      <span>Charges sociales</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        {data.chargesPayroll.period
-                          ? (() => {
-                            const [y, m] = data.chargesPayroll!.period.split("-");
-                            const mois = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
-                            return `${mois[parseInt(m ?? "1") - 1] ?? m} ${y}`;
-                          })()
-                          : ""}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-1 pb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 h-32 shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: "Charges salariales", value: data.chargesPayroll.chargesSalariales },
-                                { name: "Charges patronales", value: data.chargesPayroll.chargesPatronales },
-                              ]}
-                              cx="50%" cy="50%"
-                              innerRadius={28} outerRadius={52}
-                              dataKey="value" startAngle={90} endAngle={-270}
-                            >
-                              <Cell fill="#0d9488" />
-                              <Cell fill="#0891b2" />
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <p className="text-2xl font-bold text-foreground">
-                            {formatFCFA(data.chargesPayroll.totalCharges)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">Charges totales</p>
-                        </div>
-                        <div className="space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-teal-600 inline-block" />Charges salariales</span>
-                            <span className="font-medium">{formatFCFA(data.chargesPayroll.chargesSalariales)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-cyan-500 inline-block" />Charges patronales</span>
-                            <span className="font-medium">{formatFCFA(data.chargesPayroll.chargesPatronales)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-5 flex items-center gap-3 text-muted-foreground">
-                    <Wallet className="w-5 h-5 shrink-0" />
-                    <p className="text-sm">Aucun bulletin de paie clôturé ce mois.</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Répartition des âges */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-semibold">Répartition des âges</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-4">
-                  {data.ageDistribution.length === 0 ? (
-                    <p className="text-xs text-muted-foreground py-2">Dates de naissance non renseignées.</p>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <div className="w-28 h-28 shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={data.ageDistribution}
-                              cx="50%" cy="50%"
-                              innerRadius={22} outerRadius={50}
-                              dataKey="value"
-                              labelLine={false}
-                              label={CustomPieLabel}
-                            >
-                              {data.ageDistribution.map((_, i) => (
-                                <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex-1 space-y-1.5">
-                        {data.ageDistribution.map((d, i) => (
-                          <div key={d.name} className="flex items-center justify-between text-xs">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: AGE_COLORS[i % AGE_COLORS.length] }} />
-                              {d.name}
-                            </span>
-                            <span className="font-semibold">{d.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* COLONNE DROITE */}
-            <div className="space-y-4">
-              {/* Effectif par département */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-primary" /> Effectif par département
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-1 pb-3">
-                  {data.distributionByDepartment.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Aucun département configuré.</p>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {data.distributionByDepartment.map((d) => {
-                        const max = Math.max(...data.distributionByDepartment.map(x => x.count), 1);
-                        const pct = (d.count / max) * 100;
-                        return (
-                          <div key={d.department}>
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="font-medium truncate max-w-[140px]">{d.department}</span>
-                              <span className="text-muted-foreground shrink-0 ml-2">{d.count}</span>
+                      {contractsExpiring.map((c: any) => (
+                        <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                              <FileWarning className="w-4 h-4 text-orange-600" />
                             </div>
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-slate-800 truncate">Fin de contrat</div>
+                              <div className="text-xs text-slate-500 truncate">{c.collaboratorName}</div>
                             </div>
+                            <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50 shrink-0">
+                              {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR") : "—"}
+                            </Badge>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Embauches récentes */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-emerald-600" /> Embauches récentes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-1 pb-3">
-                  {data.recentHires.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Aucune embauche enregistrée.</p>
-                  ) : (
-                    <ul className="space-y-2.5">
-                      {data.recentHires.map((h) => (
-                        <li key={h.id}>
-                          <Link href={`/collaborators/${h.id}`} className="flex items-center gap-2.5 group">
+                        </Link>
+                      ))}
+                      {trialPeriod.map((c: any) => (
+                        <Link key={c.id} href={`/collaborators/${c.id}`}>
+                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
                             <Avatar className="w-8 h-8 shrink-0">
-                              {h.avatarUrl && <AvatarImage src={h.avatarUrl} />}
-                              <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
-                                {(h.firstName[0] + h.lastName[0]).toUpperCase()}
+                              <AvatarImage src={c.avatarUrl} />
+                              <AvatarFallback className="bg-cyan-100 text-cyan-700 text-xs font-bold">
+                                {(c.firstName?.[0] ?? "") + (c.lastName?.[0] ?? "")}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                                {h.firstName} {h.lastName}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(h.hireDate).toLocaleDateString("fr-FR")}
-                              </p>
+                              <div className="text-sm font-semibold text-slate-800 truncate">Fin de période d'essai</div>
+                              <div className="text-xs text-slate-500 truncate">{c.firstName} {c.lastName}</div>
                             </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* ── BOTTOM CHARTS ─────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Évolution de l'effectif */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="text-sm font-semibold">Évolution de l'effectif</CardTitle>
-                <p className="text-xs text-muted-foreground">Embauches sur les 6 derniers mois</p>
-              </CardHeader>
-              <CardContent className="pb-4">
-                {data.monthlyHires.length === 0 ? (
-                  <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
-                    Aucune embauche enregistrée sur la période.
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={160}>
-                    <BarChart data={data.monthlyHires.map(m => ({ ...m, mois: monthLabel(m.month) }))} barSize={28}>
-                      <XAxis dataKey="mois" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <ReTooltip
-                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                        formatter={(v: number) => [`${v} embauche${v > 1 ? "s" : ""}`, ""]}
-                      />
-                      <Bar dataKey="count" name="Embauches" fill="#0d9488" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Contrats arrivant à échéance */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" /> Contrats à surveiller
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-1 pb-3">
-                {data.contractsExpiringSoon.length === 0 ? (
-                  <div className="py-6 flex flex-col items-center text-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <UserCheck className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">Aucun contrat n'expire dans les 30 jours.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {data.contractsExpiringSoon.map(c => (
-                      <div key={c.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                            <UserX className="w-3.5 h-3.5 text-amber-700" />
+                            <Badge variant="outline" className="text-xs border-slate-200 text-slate-600 shrink-0">
+                              Embauché {c.hireDate ? new Date(c.hireDate).toLocaleDateString("fr-FR") : "—"}
+                            </Badge>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium leading-tight">{c.collaboratorName}</p>
-                            <p className="text-xs text-muted-foreground">{c.type}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Charges + Clôture */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                  {/* Charges patronales */}
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-slate-800 text-sm">Charges patronales et salariales</span>
+                      {charges?.period && <span className="text-[10px] text-slate-400">{charges.period}</span>}
+                    </div>
+                    {!charges ? (
+                      <div className="flex flex-col items-center justify-center py-6 text-slate-400 text-sm">Aucun bulletin clôturé</div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4 mt-3">
+                          <div style={{ width: 100, height: 100 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie data={chargesData} cx="50%" cy="50%" innerRadius={28} outerRadius={42} dataKey="value" strokeWidth={2}>
+                                  <Cell fill={CHARGE_COLORS.salariales} />
+                                  <Cell fill={CHARGE_COLORS.patronales} />
+                                </Pie>
+                                <RTooltip content={<ChargeTooltip />} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHARGE_COLORS.salariales }} />
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Salariales</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 mt-0.5">{formatFCFACompact(charges.chargesSalariales)}</div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHARGE_COLORS.patronales }} />
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Patronales</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 mt-0.5">{formatFCFACompact(charges.chargesPatronales)}</div>
+                            </div>
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                          {new Date(c.endDate).toLocaleDateString("fr-FR")}
-                        </span>
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          <div className="text-xs text-slate-500">Charges totales</div>
+                          <div className="text-xl font-extrabold text-slate-900 mt-0.5">{formatFCFA(charges.totalCharges)}</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Clôture du mois */}
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col items-center justify-between">
+                    <div className="w-full">
+                      <span className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        Clôture du mois de {now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+                      </span>
+                    </div>
+                    <div className="my-4">
+                      <MonthCloseGauge daysLeft={daysLeft} />
+                    </div>
+                    <Link href="/hr/payroll" className="w-full">
+                      <Button variant="outline" className="w-full border-cyan-700 text-cyan-700 hover:bg-cyan-50 text-sm font-semibold">
+                        Clôturer votre paie
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Dates clés */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CalendarDays className="w-4 h-4 text-slate-500" />
+                    <span className="font-semibold text-slate-800 text-sm">Dates clés</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Paiement cotisations sociales</span>
+                      <span className="font-semibold text-cyan-700">{cotisationsDate}</span>
+                    </div>
+                    <div className="h-px bg-slate-100" />
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Paiement impôts (IRPP/IPTS)</span>
+                      <span className="font-semibold text-cyan-700">{impotsDate}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Charts */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                  {/* Répartition des âges */}
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <span className="font-semibold text-slate-800 text-sm">Répartition des âges</span>
+                    <p className="text-xs text-slate-400 mt-0.5 mb-3">Ensemble des collaborateurs</p>
+                    {ageDistribution.length === 0 ? (
+                      <div className="flex items-center justify-center h-32 text-sm text-slate-400">Données insuffisantes</div>
+                    ) : (
+                      <>
+                        <div style={{ height: 130 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={ageDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" strokeWidth={2}>
+                                {ageDistribution.map((_: any, i: number) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
+                              </Pie>
+                              <RTooltip formatter={(v: any, n: any) => [`${v} collab.`, n]} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                          {ageDistribution.map((a: any, i: number) => (
+                            <div key={i} className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: AGE_COLORS[i % AGE_COLORS.length] }} />
+                              <span className="text-[10px] text-slate-500">{a.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Évolution effectif */}
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <span className="font-semibold text-slate-800 text-sm">Évolution de l'effectif</span>
+                    <p className="text-xs text-slate-400 mt-0.5 mb-3">Les 6 derniers mois</p>
+                    {hiresData.length === 0 ? (
+                      <div className="flex items-center justify-center h-32 text-sm text-slate-400">Aucune embauche récente</div>
+                    ) : (
+                      <div style={{ height: 150 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={hiresData} barSize={20}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="mois" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={24} allowDecimals={false} />
+                            <RTooltip formatter={(v: any) => [`${v} embauche(s)`, "Embauches"]} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                            <Bar dataKey="embauches" radius={[4, 4, 0, 0]} fill="#0e7490" />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right 1/3 — Calendar + Events */}
+              <div className="space-y-5">
+
+                {/* Mini calendar + events */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                  <MiniCalendar events={birthdaysThisMonth} />
+
+                  <div className="mt-4 border-t border-slate-100 pt-4">
+                    <div className="flex rounded-lg border border-slate-200 overflow-hidden mb-3 text-xs font-semibold">
+                      <button
+                        onClick={() => setEventsTab("today")}
+                        className={cn("flex-1 py-1.5 transition-colors",
+                          eventsTab === "today" ? "bg-cyan-700 text-white" : "text-slate-500 hover:bg-slate-50")}
+                      >
+                        Évènements du jour
+                      </button>
+                      <button
+                        onClick={() => setEventsTab("upcoming")}
+                        className={cn("flex-1 py-1.5 transition-colors",
+                          eventsTab === "upcoming" ? "bg-cyan-700 text-white" : "text-slate-500 hover:bg-slate-50")}
+                      >
+                        À venir
+                      </button>
+                    </div>
+
+                    {eventsTab === "today" && (
+                      <div className="space-y-2">
+                        {birthdaysToday.length === 0 ? (
+                          <div className="text-center py-4 text-xs text-slate-400">Aucun événement aujourd'hui</div>
+                        ) : (
+                          birthdaysToday.map((b: any) => (
+                            <Link key={b.id} href={`/collaborators/${b.id}`}>
+                              <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
+                                <Avatar className="w-9 h-9 shrink-0">
+                                  <AvatarImage src={b.avatarUrl} />
+                                  <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-bold">
+                                    {b.name?.split(" ").map((n: string) => n[0]).join("") ?? "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1">
+                                    <Cake className="w-3 h-3 text-orange-500" />
+                                    <span className="text-xs font-semibold text-slate-700">Anniversaire</span>
+                                  </div>
+                                  <div className="text-xs text-slate-500 truncate">{b.name}</div>
+                                  <div className="text-[10px] text-slate-400">Aujourd'hui</div>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {eventsTab === "upcoming" && (
+                      <div className="space-y-2">
+                        {birthdaysUpcoming.length === 0 ? (
+                          <div className="text-center py-4 text-xs text-slate-400">Aucun événement à venir ce mois-ci</div>
+                        ) : (
+                          birthdaysUpcoming.slice(0, 5).map((b: any) => (
+                            <Link key={b.id} href={`/collaborators/${b.id}`}>
+                              <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
+                                <Avatar className="w-8 h-8 shrink-0">
+                                  <AvatarImage src={b.avatarUrl} />
+                                  <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-bold">
+                                    {b.name?.split(" ").map((n: string) => n[0]).join("") ?? "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1">
+                                    <Cake className="w-3 h-3 text-orange-400" />
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{b.name}</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    Le {b.dayOfMonth} {now.toLocaleDateString("fr-FR", { month: "long" })}
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contrats critiques */}
+                {contractsExpiring.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-orange-200 shadow-sm p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileWarning className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm font-semibold text-slate-800">Contrats critiques</span>
+                      <span className="ml-auto text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                        {contractsExpiring.length}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {contractsExpiring.slice(0, 4).map((c: any) => (
+                        <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                          <div className="flex items-center gap-2 text-xs py-1.5 hover:bg-slate-50 rounded px-1 cursor-pointer transition-colors">
+                            <span className="flex-1 text-slate-700 font-medium truncate">{c.collaboratorName}</span>
+                            <span className="text-orange-600 font-semibold shrink-0">
+                              {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </HrShell>
   );
 }

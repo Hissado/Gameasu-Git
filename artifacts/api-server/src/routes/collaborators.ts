@@ -36,26 +36,31 @@ router.get("/collaborators", async (req, res) => {
 
   const expiryMap: Record<string, number> = {};
   if (data.length > 0) {
-    const ids = data.map(c => c.id);
-    const expiryRows = await db
-      .select({
-        collaboratorId: contractsTable.collaboratorId,
-        daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
-      })
-      .from(contractsTable)
-      .where(and(
-        eq(contractsTable.organizationId, req.authUser!.organizationId),
-        eq(contractsTable.status, "active"),
-        isNotNull(contractsTable.endDate),
-        sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
-        sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
-        inArray(contractsTable.collaboratorId, ids),
-      ));
-    for (const row of expiryRows) {
-      const current = expiryMap[row.collaboratorId];
-      if (current == null || row.daysLeft < current) {
-        expiryMap[row.collaboratorId] = row.daysLeft;
+    try {
+      const ids = data.map(c => c.id);
+      const expiryRows = await db
+        .select({
+          collaboratorId: contractsTable.collaboratorId,
+          daysLeft: sql<number>`GREATEST(0, EXTRACT(day FROM (${contractsTable.endDate}::date - CURRENT_DATE))::int)`,
+        })
+        .from(contractsTable)
+        .where(and(
+          eq(contractsTable.organizationId, req.authUser!.organizationId),
+          eq(contractsTable.status, "active"),
+          isNotNull(contractsTable.endDate),
+          sql`${contractsTable.endDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+          sql`${contractsTable.endDate}::date >= CURRENT_DATE`,
+          sql`${contractsTable.endDate}::date <= CURRENT_DATE + INTERVAL '30 days'`,
+          inArray(contractsTable.collaboratorId, ids),
+        ));
+      for (const row of expiryRows) {
+        const current = expiryMap[row.collaboratorId];
+        if (current == null || row.daysLeft < current) {
+          expiryMap[row.collaboratorId] = row.daysLeft;
+        }
       }
+    } catch {
+      // expiry enrichment is best-effort; don't fail the list endpoint
     }
   }
 
