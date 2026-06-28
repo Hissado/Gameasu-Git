@@ -1156,6 +1156,8 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
       expensesSubmitted,
       urgentInvoices,
       recentPayments,
+      recentPOs,
+      recentExpenseApprovals,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(suppliersTable)
         .where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.isActive, true), isNull(suppliersTable.deletedAt))),
@@ -1224,7 +1226,39 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
           ne(supplierPaymentsTable.status, "annule"),
         ))
         .orderBy(desc(supplierPaymentsTable.paidAt))
-        .limit(8),
+        .limit(5),
+      // BCs confirmés récemment
+      db.select({
+        id: purchaseOrdersTable.id,
+        reference: purchaseOrdersTable.reference,
+        totalFcfa: purchaseOrdersTable.totalFcfa,
+        updatedAt: purchaseOrdersTable.updatedAt,
+        supplierName: suppliersTable.name,
+      }).from(purchaseOrdersTable)
+        .leftJoin(suppliersTable, and(eq(suppliersTable.id, purchaseOrdersTable.supplierId), eq(suppliersTable.organizationId, orgId)))
+        .where(and(
+          eq(purchaseOrdersTable.organizationId, orgId),
+          eq(purchaseOrdersTable.status, "confirmed"),
+          isNull(purchaseOrdersTable.deletedAt),
+        ))
+        .orderBy(desc(purchaseOrdersTable.updatedAt))
+        .limit(3),
+      // Notes de frais approuvées récemment
+      db.select({
+        id: expenseReportsTable.id,
+        title: expenseReportsTable.title,
+        totalAmount: expenseReportsTable.totalAmount,
+        approvedAt: expenseReportsTable.approvedAt,
+        firstName: collaboratorsTable.firstName,
+        lastName: collaboratorsTable.lastName,
+      }).from(expenseReportsTable)
+        .leftJoin(collaboratorsTable, eq(collaboratorsTable.id, expenseReportsTable.collaboratorId))
+        .where(and(
+          eq(expenseReportsTable.organizationId, orgId),
+          eq(expenseReportsTable.status, "approved"),
+        ))
+        .orderBy(desc(expenseReportsTable.approvedAt))
+        .limit(3),
     ]);
 
     const byStatus: Record<string, { count: number; total: number; paid: number }> = {};
@@ -1267,14 +1301,35 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
         balance: toNum(r.totalAmount) - toNum(r.paidAmount),
         isOverdue: r.dueDate != null && r.dueDate < today,
       })),
-      recentActivity: recentPayments.map(r => ({
-        id: r.id,
-        type: "payment" as const,
-        amount: toNum(r.amount),
-        paidAt: r.paidAt,
-        supplierName: r.supplierName ?? "—",
-        reference: r.reference ?? "—",
-      })),
+      recentActivity: [
+        ...recentPayments.map(r => ({
+          id: r.id,
+          type: "payment" as const,
+          amount: toNum(r.amount),
+          eventAt: r.paidAt,
+          label: `Paiement fournisseur`,
+          sublabel: `${r.supplierName ?? "—"} · Réf. ${r.reference ?? "—"}`,
+        })),
+        ...recentPOs.map(r => ({
+          id: r.id,
+          type: "po_confirmed" as const,
+          amount: toNum(r.totalFcfa),
+          eventAt: r.updatedAt,
+          label: `BC confirmé`,
+          sublabel: `${r.supplierName ?? "—"} · ${r.reference}`,
+        })),
+        ...recentExpenseApprovals.map(r => ({
+          id: r.id,
+          type: "expense_approved" as const,
+          amount: toNum(r.totalAmount),
+          eventAt: r.approvedAt,
+          label: `Note de frais approuvée`,
+          sublabel: `${[r.firstName, r.lastName].filter(Boolean).join(" ") || "—"} · ${r.title}`,
+        })),
+      ]
+        .filter(a => a.eventAt != null)
+        .sort((a, b) => new Date(b.eventAt!).getTime() - new Date(a.eventAt!).getTime())
+        .slice(0, 10),
     });
   } catch (e: any) {
     req.log.error(e, "purchases/overview GET");
@@ -1339,18 +1394,27 @@ router.get("/purchases/reports/aging", requirePermission("purchases.read"), asyn
 router.get("/purchases/reports/by-period", requirePermission("purchases.read"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const { supplierId, periodFrom, periodTo } = req.query as Record<string, string>;
+
+    const conds = [
+      eq(supplierPaymentsTable.organizationId, orgId),
+      ne(supplierPaymentsTable.status, "annule"),
+      ne(supplierPaymentsTable.status, "echoue"),
+    ];
+    if (periodFrom) conds.push(sql`${supplierPaymentsTable.paidAt}::date >= ${periodFrom}::date`);
+    else conds.push(sql`${supplierPaymentsTable.paidAt} >= NOW() - INTERVAL '12 months'`);
+    if (periodTo) conds.push(sql`${supplierPaymentsTable.paidAt}::date <= ${periodTo}::date`);
+    if (supplierId) conds.push(
+      sql`EXISTS (SELECT 1 FROM supplier_invoices si WHERE si.id = ${supplierPaymentsTable.supplierInvoiceId} AND si.supplier_id = ${supplierId})`
+    );
+
     const rows = await db.select({
       period: sql<string>`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`,
       total: sql<number>`sum(${supplierPaymentsTable.amount})`,
       count: sql<number>`count(*)`,
     })
     .from(supplierPaymentsTable)
-    .where(and(
-      eq(supplierPaymentsTable.organizationId, orgId),
-      ne(supplierPaymentsTable.status, "annule"),
-      ne(supplierPaymentsTable.status, "echoue"),
-      sql`${supplierPaymentsTable.paidAt} >= NOW() - INTERVAL '12 months'`,
-    ))
+    .where(and(...conds))
     .groupBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`)
     .orderBy(sql`to_char(${supplierPaymentsTable.paidAt}, 'YYYY-MM')`);
     return res.json({ data: rows.map(r => ({ period: r.period, total: toNum(r.total), count: toNum(r.count) })) });
@@ -1506,6 +1570,9 @@ router.get("/purchases/expenses", requirePermission("purchases.read"), async (re
     if (collaboratorId) conds.push(eq(expenseReportsTable.collaboratorId, collaboratorId));
     if (periodFrom) conds.push(sql`${expenseReportsTable.createdAt}::date >= ${periodFrom}::date`);
     if (periodTo) conds.push(sql`${expenseReportsTable.createdAt}::date <= ${periodTo}::date`);
+    if (category) conds.push(
+      sql`EXISTS (SELECT 1 FROM expense_items ei WHERE ei.expense_report_id = ${expenseReportsTable.id} AND ei.category = ${category})`
+    );
 
     const [rows, countResult] = await Promise.all([
       db.select({

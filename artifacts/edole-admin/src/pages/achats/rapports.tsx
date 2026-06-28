@@ -11,7 +11,9 @@ import { formatFCFA, formatDate } from "@/lib/format";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { Download, AlertTriangle, TrendingDown, Building2, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, AlertTriangle, TrendingDown, Building2, FileText, Filter } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +130,11 @@ function InvBadge({ status }: { status: string }) {
 export default function RapportsAchatsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("aging");
 
+  // Filtres onglet période
+  const [periodFrom, setPeriodFrom] = useState("");
+  const [periodTo, setPeriodTo] = useState("");
+  const [periodSupplierId, setPeriodSupplierId] = useState("");
+
   const agingQ = useQuery<AgingData>({
     queryKey: ["purchases-aging"],
     queryFn: () => apiFetch("/api/purchases/reports/aging"),
@@ -135,8 +142,14 @@ export default function RapportsAchatsPage() {
   });
 
   const periodQ = useQuery<{ data: PeriodRow[] }>({
-    queryKey: ["purchases-by-period"],
-    queryFn: () => apiFetch("/api/purchases/reports/by-period"),
+    queryKey: ["purchases-by-period", periodFrom, periodTo, periodSupplierId],
+    queryFn: () => {
+      const p = new URLSearchParams();
+      if (periodFrom) p.set("periodFrom", periodFrom);
+      if (periodTo) p.set("periodTo", periodTo);
+      if (periodSupplierId) p.set("supplierId", periodSupplierId);
+      return apiFetch(`/api/purchases/reports/by-period${p.toString() ? `?${p}` : ""}`);
+    },
     enabled: activeTab === "period",
   });
 
@@ -269,6 +282,29 @@ export default function RapportsAchatsPage() {
       {/* ─ Dépenses par période ─ */}
       {activeTab === "period" && (
         <div className="space-y-4">
+          {/* Filtres */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1">
+                  <Filter className="h-4 w-4" />Filtres
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Période — début</Label>
+                  <Input type="date" className="h-8 text-xs mt-0.5 w-36" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Période — fin</Label>
+                  <Input type="date" className="h-8 text-xs mt-0.5 w-36" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
+                </div>
+                {(periodFrom || periodTo) && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs mt-4" onClick={() => { setPeriodFrom(""); setPeriodTo(""); setPeriodSupplierId(""); }}>
+                    Réinitialiser
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => downloadExcel("by-period")}>
               <Download className="h-4 w-4 mr-1" />Export Excel

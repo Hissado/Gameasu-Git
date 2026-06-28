@@ -23,8 +23,12 @@ type UrgentInvoice = {
 };
 
 type ActivityItem = {
-  id: string; type: "payment"; amount: number;
-  paidAt: string | null; supplierName: string; reference: string;
+  id: string;
+  type: "payment" | "po_confirmed" | "expense_approved";
+  amount: number;
+  eventAt: string | null;
+  label: string;
+  sublabel: string;
 };
 
 type OverviewData = {
@@ -374,21 +378,26 @@ export default function AchatsOverview() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {activity.map(a => (
-                <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                  <div className="rounded-full p-1.5 bg-emerald-50 flex-shrink-0">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              {activity.map(a => {
+                const iconBg = a.type === "payment" ? "bg-emerald-50" : a.type === "po_confirmed" ? "bg-blue-50" : "bg-amber-50";
+                const iconColor = a.type === "payment" ? "text-emerald-600" : a.type === "po_confirmed" ? "text-blue-600" : "text-amber-600";
+                const amtColor = a.type === "payment" ? "text-emerald-700" : a.type === "po_confirmed" ? "text-blue-700" : "text-amber-700";
+                return (
+                  <div key={a.id + a.type} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
+                    <div className={`rounded-full p-1.5 flex-shrink-0 ${iconBg}`}>
+                      <CheckCircle2 className={`h-3.5 w-3.5 ${iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{a.label}</p>
+                      <p className="text-xs text-slate-500 truncate">{a.sublabel}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`font-semibold text-sm ${amtColor}`}>{formatFCFA(a.amount)}</p>
+                      <p className="text-xs text-slate-400">{a.eventAt ? formatDate(a.eventAt) : "—"}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">Paiement enregistré</p>
-                    <p className="text-xs text-slate-500 truncate">{a.supplierName} · Réf. {a.reference}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-semibold text-sm text-emerald-700">{formatFCFA(a.amount)}</p>
-                    <p className="text-xs text-slate-400">{a.paidAt ? formatDate(a.paidAt) : "—"}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

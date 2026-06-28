@@ -98,7 +98,6 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [description, setDescription] = useState("");
-  const [submitDirect, setSubmitDirect] = useState(false);
   const [items, setItems] = useState<LocalItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
 
@@ -109,7 +108,7 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
 
   const totalAmount = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (doSubmit: boolean) => {
     if (!title.trim()) { toast.error("Titre requis"); return; }
     if (!collaboratorId) { toast.error("Sélectionnez un collaborateur"); return; }
     const validItems = items.filter(i => i.description.trim() && i.amount && parseFloat(i.amount) > 0 && i.expenseDate);
@@ -147,14 +146,14 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
       }
 
       // 3. Optionally submit
-      if (submitDirect) {
+      if (doSubmit) {
         await apiFetch(`/api/purchases/expenses/${report.id}`, {
           method: "PUT",
           body: JSON.stringify({ status: "submitted" }),
         });
       }
 
-      toast.success(submitDirect ? "Note de frais soumise" : "Note de frais créée en brouillon");
+      toast.success(doSubmit ? "Note de frais soumise" : "Note de frais créée en brouillon");
       onSuccess(); onClose();
     } catch (e: any) { toast.error(e?.message ?? "Erreur lors de la création"); } finally { setSaving(false); }
   };
@@ -269,12 +268,12 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
 
         <SheetFooter className="pt-4 border-t gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button variant="outline" onClick={() => { setSubmitDirect(false); handleSubmit(); }} disabled={saving}>
-            {saving && !submitDirect ? "…" : "Enregistrer en brouillon"}
+          <Button variant="outline" onClick={() => handleSubmit(false)} disabled={saving}>
+            {saving ? "…" : "Enregistrer en brouillon"}
           </Button>
-          <Button className="bg-[#F37021] hover:bg-[#d96518]" onClick={() => { setSubmitDirect(true); handleSubmit(); }} disabled={saving}>
+          <Button className="bg-[#F37021] hover:bg-[#d96518]" onClick={() => handleSubmit(true)} disabled={saving}>
             <CheckCircle2 className="h-4 w-4 mr-1" />
-            {saving && submitDirect ? "Soumission…" : "Soumettre"}
+            {saving ? "Soumission…" : "Soumettre"}
           </Button>
         </SheetFooter>
       </SheetContent>
