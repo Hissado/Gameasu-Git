@@ -33,22 +33,52 @@ export default function CollaboratorBadgePrint() {
     enabled: !!collaboratorId,
   });
 
+  const captureBadgePng = async (): Promise<{ dataUrl: string; blob: Blob; fileName: string } | null> => {
+    if (!badgeRef.current) return null;
+    const dataUrl = await toPng(badgeRef.current, { pixelRatio: 3, cacheBust: true, backgroundColor: "white" });
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const firstName = c?.firstName ?? "badge";
+    const lastName = c?.lastName ?? "";
+    const fileName = `badge-${firstName}-${lastName}`.toLowerCase().replace(/\s+/g, "-") + ".png";
+    return { dataUrl, blob, fileName };
+  };
+
   const handleDownload = async () => {
     if (!badgeRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(badgeRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
-        backgroundColor: "white",
-      });
+      const result = await captureBadgePng();
+      if (!result) return;
       const link = document.createElement("a");
-      const name = `${c?.firstName ?? "badge"}-${c?.lastName ?? ""}`.toLowerCase().replace(/\s+/g, "-");
-      link.download = `badge-${name}.png`;
-      link.href = dataUrl;
+      link.download = result.fileName;
+      link.href = result.dataUrl;
       link.click();
     } catch (err) {
       console.error("Erreur téléchargement badge:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!badgeRef.current) return;
+    setDownloading(true);
+    try {
+      const result = await captureBadgePng();
+      if (!result) return;
+      const file = new File([result.blob], result.fileName, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Badge — ${c?.firstName ?? ""} ${c?.lastName ?? ""}` });
+      } else {
+        // Fallback : téléchargement direct
+        const link = document.createElement("a");
+        link.download = result.fileName;
+        link.href = result.dataUrl;
+        link.click();
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") console.error("Erreur partage badge:", err);
     } finally {
       setDownloading(false);
     }
@@ -112,19 +142,20 @@ export default function CollaboratorBadgePrint() {
           {downloading ? "⏳ Génération…" : "⬇ Télécharger le badge (PNG)"}
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={handleShare}
+          disabled={downloading}
           style={{
             padding: "10px 18px",
-            background: "#475569",
+            background: downloading ? "#94a3b8" : "#0f172a",
             color: "white",
             border: "none",
             borderRadius: 10,
             fontSize: 14,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: downloading ? "wait" : "pointer",
           }}
         >
-          🖨 Imprimer
+          ↑ Partager
         </button>
         <button
           onClick={() => window.close()}
