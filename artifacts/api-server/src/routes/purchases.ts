@@ -92,7 +92,7 @@ const PurchaseOrderCreateSchema = z.object({
   notes: z.string().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   lines: z.array(z.object({
-    productId: z.string().uuid().optional().nullable(),
+    productId: z.string().uuid("ID produit invalide"),
     description: z.string().min(1, "Description requise"),
     quantity: z.coerce.number().positive(),
     unitPrice: z.coerce.number().min(0),
@@ -409,6 +409,12 @@ router.post("/purchases/invoices", requirePermission("purchases.write"), async (
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
     const data = parsed.data;
 
+    const [supplier] = await db.select({ id: suppliersTable.id })
+      .from(suppliersTable)
+      .where(and(eq(suppliersTable.id, data.supplierId), eq(suppliersTable.organizationId, orgId), isNull(suppliersTable.deletedAt)))
+      .limit(1);
+    if (!supplier) return res.status(400).json({ error: "Fournisseur introuvable ou non autorisé" });
+
     const [row] = await db.insert(supplierInvoicesTable).values({
       organizationId: orgId,
       supplierId: data.supplierId,
@@ -556,6 +562,12 @@ router.post("/purchases/purchase-orders", requirePermission("purchases.write"), 
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Données invalides" });
     const data = parsed.data;
 
+    const [poSupplier] = await db.select({ id: suppliersTable.id })
+      .from(suppliersTable)
+      .where(and(eq(suppliersTable.id, data.supplierId), eq(suppliersTable.organizationId, orgId), isNull(suppliersTable.deletedAt)))
+      .limit(1);
+    if (!poSupplier) return res.status(400).json({ error: "Fournisseur introuvable ou non autorisé" });
+
     const reference = await nextPoReference(orgId);
     const totalFcfa = data.lines.reduce((s, l) => s + (l.unitPrice * l.quantity), 0);
 
@@ -575,7 +587,7 @@ router.post("/purchases/purchase-orders", requirePermission("purchases.write"), 
         data.lines.map((l) => ({
           organizationId: orgId,
           purchaseOrderId: po.id,
-          productId: l.productId ?? null,
+          productId: l.productId,
           description: l.description,
           quantity: String(l.quantity),
           unitPriceFcfa: String(l.unitPrice),
