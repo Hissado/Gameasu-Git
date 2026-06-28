@@ -1158,6 +1158,7 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
       recentPayments,
       recentPOs,
       recentExpenseApprovals,
+      monthPaymentsQuery,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(suppliersTable)
         .where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.isActive, true), isNull(suppliersTable.deletedAt))),
@@ -1259,12 +1260,22 @@ router.get("/purchases/overview", requirePermission("purchases.read"), async (re
         ))
         .orderBy(desc(expenseReportsTable.approvedAt))
         .limit(3),
+      // Paiements du mois courant
+      db.select({ total: sql<number>`COALESCE(sum(${supplierPaymentsTable.amount}), 0)` })
+        .from(supplierPaymentsTable)
+        .where(and(
+          eq(supplierPaymentsTable.organizationId, orgId),
+          ne(supplierPaymentsTable.status, "annule"),
+          ne(supplierPaymentsTable.status, "echoue"),
+          sql`${supplierPaymentsTable.paidAt} >= ${monthStart}::date`,
+          sql`${supplierPaymentsTable.paidAt} < (${monthStart}::date + INTERVAL '1 month')`,
+        )),
     ]);
 
     const byStatus: Record<string, { count: number; total: number; paid: number }> = {};
     invoiceStats.forEach(s => { byStatus[s.status] = { count: toNum(s.count), total: toNum(s.total), paid: toNum(s.paid) }; });
 
-    const monthExpenses = Object.values(byStatus).reduce((s, v) => s + v.paid, 0);
+    const monthExpenses = toNum(monthPaymentsQuery[0]?.total);
     const totalUnpaid = Object.entries(byStatus)
       .filter(([k]) => !["paid", "cancelled"].includes(k))
       .reduce((s, [, v]) => s + v.total - v.paid, 0);

@@ -429,6 +429,7 @@ export default function DepensesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [collaboratorFilter, setCollaboratorFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -437,11 +438,12 @@ export default function DepensesPage() {
   const params = new URLSearchParams({ limit: "100" });
   if (statusFilter !== "all") params.set("status", statusFilter);
   if (collaboratorFilter !== "all") params.set("collaboratorId", collaboratorFilter);
+  if (categoryFilter !== "all") params.set("category", categoryFilter);
   if (periodFrom) params.set("periodFrom", periodFrom);
   if (periodTo) params.set("periodTo", periodTo);
 
   const { data, isLoading } = useQuery<{ data: ExpenseReport[]; total: number }>({
-    queryKey: ["purchases-expenses", statusFilter, collaboratorFilter, periodFrom, periodTo],
+    queryKey: ["purchases-expenses", statusFilter, collaboratorFilter, categoryFilter, periodFrom, periodTo],
     queryFn: () => apiFetch(`/api/purchases/expenses?${params}`),
   });
 
@@ -501,7 +503,7 @@ export default function DepensesPage() {
       {/* Filtres */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
               <Input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
@@ -521,6 +523,16 @@ export default function DepensesPage() {
                 <SelectItem value="all">Tous</SelectItem>
                 {(collabData?.data ?? []).map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Catégorie" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes catégories</SelectItem>
+                {EXPENSE_CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

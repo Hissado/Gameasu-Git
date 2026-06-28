@@ -88,9 +88,11 @@ function FcfaTooltip({ active, payload, label }: any) {
 
 // ─── Excel download helper ────────────────────────────────────────────────────
 
-function downloadExcel(type: string) {
+function downloadExcel(type: string, filters?: Record<string, string>) {
   const token = encodeURIComponent(localStorage.getItem("auth_token") ?? "");
-  const url = `/api/purchases/reports/${type}/export.xlsx?token=${token}`;
+  const p = new URLSearchParams({ token });
+  if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) p.set(k, v); });
+  const url = `/api/purchases/reports/${type}/export.xlsx?${p}`;
   const a = document.createElement("a");
   a.href = url;
   a.download = `purchases-${type}.xlsx`;
@@ -361,7 +363,13 @@ export default function RapportsAchatsPage() {
             </CardContent>
           </Card>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => downloadExcel("by-period")}>
+            <Button variant="outline" size="sm" onClick={() => downloadExcel("by-period", {
+              ...(periodFrom && { periodFrom }),
+              ...(periodTo && { periodTo }),
+              ...(periodSupplierId && { supplierId: periodSupplierId }),
+              ...(periodProjectId && { projectId: periodProjectId }),
+              ...(periodCategory && { category: periodCategory }),
+            })}>
               <Download className="h-4 w-4 mr-1" />Export Excel
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
