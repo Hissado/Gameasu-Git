@@ -319,13 +319,13 @@ export default function CollaboratorBadgePrint() {
           {qrToken && qrStatus === "active" ? (
             <>
               <div style={{
-                padding: 10,
+                padding: 12,
                 border: "1px solid #e2e8f0",
                 borderRadius: 12,
                 background: "white",
                 boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
               }}>
-                <QRCodeSVG value={qrToken} size={160} level="M" marginSize={0} />
+                <QRCodeSVG value={qrToken} size={210} level="H" marginSize={1} />
               </div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 12, color: "#334155", fontWeight: 700 }}>Pointage par QR code</div>

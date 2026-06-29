@@ -9,6 +9,7 @@ interface CollaboratorInfo {
   firstName: string;
   lastName: string;
   position: string | null;
+  department: string | null;
   avatarUrl: string | null;
 }
 
@@ -138,24 +139,23 @@ function IdleScreen({
           <div className="text-lg text-white/60">
             {kiosk?.settings?.welcomeMessage ?? "Comment souhaitez-vous pointer ?"}
           </div>
-          <div className="flex gap-4">
-            <button
-              onClick={onPinCode}
-              className="flex flex-col items-center justify-center gap-2.5 w-44 h-36 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/15 active:scale-95 transition-all"
-            >
-              <span className="text-3xl">🔢</span>
-              <span className="text-white font-semibold text-base">Mon code</span>
-              <span className="text-white/40 text-xs">Code PIN à 4 chiffres</span>
-            </button>
-            <button
-              onClick={onQrScan}
-              className="flex flex-col items-center justify-center gap-2.5 w-44 h-36 rounded-2xl bg-blue-600/30 border border-blue-400/40 hover:bg-blue-600/40 active:scale-95 transition-all"
-            >
-              <span className="text-3xl">📷</span>
-              <span className="text-blue-200 font-semibold text-base">Scanner QR</span>
-              <span className="text-white/40 text-xs">Badge QR code</span>
-            </button>
-          </div>
+          {/* QR primary button */}
+          <button
+            onClick={onQrScan}
+            className="flex flex-col items-center justify-center gap-3 w-72 h-48 rounded-3xl bg-blue-600/40 border-2 border-blue-400/60 hover:bg-blue-600/55 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+          >
+            <span className="text-6xl">📷</span>
+            <span className="text-blue-100 font-bold text-2xl">Scanner mon badge QR</span>
+            <span className="text-blue-300/60 text-sm">Présentez votre badge devant la caméra</span>
+          </button>
+          {/* PIN fallback — smaller */}
+          <button
+            onClick={onPinCode}
+            className="flex items-center justify-center gap-2.5 w-72 h-14 rounded-2xl bg-white/8 border border-white/15 hover:bg-white/12 active:scale-95 transition-all"
+          >
+            <span className="text-xl">🔢</span>
+            <span className="text-white/60 font-medium text-base">Entrer mon code kiosk</span>
+          </button>
         </div>
       </div>
 
@@ -279,7 +279,7 @@ function QrScanScreen({
       scannerRef.current = qrInstance;
 
       qrInstance.start(
-        { facingMode: "environment" },
+        { facingMode: "user" },
         { fps: 10, qrbox: { width: 260, height: 260 } },
         (decodedText: string) => {
           if (scannedRef.current) return;
@@ -307,16 +307,27 @@ function QrScanScreen({
   }, [onScan]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 px-8">
-      <div className="text-2xl font-medium text-white/70">Scanner votre badge QR</div>
-      <div className="text-sm text-white/40">Présentez le QR code de votre badge devant la caméra</div>
+    <div className="flex flex-col items-center justify-center h-full gap-5 px-6 select-none">
+      <style>{`
+        @keyframes scan-line { 0%,100%{top:12%} 50%{top:82%} }
+        @keyframes corner-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .scan-corner { animation: corner-pulse 2s ease-in-out infinite; }
+        .scan-line-anim { animation: scan-line 2.4s ease-in-out infinite; }
+      `}</style>
+
+      <div className="text-center">
+        <div className="text-3xl font-bold text-white mb-1">📱 Scannez votre badge</div>
+        <div className="text-base text-white/50">Présentez le QR code devant la caméra</div>
+      </div>
 
       {cameraStatus === "error" ? (
-        <div className="flex flex-col items-center gap-4 py-6">
-          <div className="text-5xl">📷</div>
-          <div className="text-red-400 font-semibold text-lg">Caméra inaccessible</div>
+        <div className="flex flex-col items-center gap-4 py-8">
+          <div className="w-20 h-20 rounded-full bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center text-4xl">📷</div>
+          <div className="text-red-400 font-semibold text-xl">Caméra inaccessible</div>
           <div className="text-white/50 text-sm max-w-xs text-center">{cameraError}</div>
-          <div className="text-white/30 text-xs text-center">Essayez le code PIN à la place.</div>
+          <div className="mt-2 px-5 py-3 bg-white/10 border border-white/20 rounded-xl text-white/50 text-sm text-center max-w-xs">
+            Utilisez l'option <strong className="text-white/70">Code PIN</strong> comme alternative
+          </div>
         </div>
       ) : (
         <div className="relative w-full max-w-sm">
@@ -324,21 +335,38 @@ function QrScanScreen({
           <div
             id={QR_DIV_ID}
             className="w-full rounded-2xl overflow-hidden bg-black"
-            style={{ minHeight: 300 }}
+            style={{ minHeight: 320 }}
           />
+
+          {/* Animated corner frame overlay */}
+          {cameraStatus === "scanning" && !loading && (
+            <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: 16 }}>
+              {/* Top-left */}
+              <div className="scan-corner absolute" style={{ top: "calc(50% - 100px)", left: "calc(50% - 100px)", width: 36, height: 36, borderTop: "4px solid #60a5fa", borderLeft: "4px solid #60a5fa", borderRadius: "6px 0 0 0" }} />
+              {/* Top-right */}
+              <div className="scan-corner absolute" style={{ top: "calc(50% - 100px)", right: "calc(50% - 100px)", width: 36, height: 36, borderTop: "4px solid #60a5fa", borderRight: "4px solid #60a5fa", borderRadius: "0 6px 0 0" }} />
+              {/* Bottom-left */}
+              <div className="scan-corner absolute" style={{ bottom: "calc(50% - 100px)", left: "calc(50% - 100px)", width: 36, height: 36, borderBottom: "4px solid #60a5fa", borderLeft: "4px solid #60a5fa", borderRadius: "0 0 0 6px" }} />
+              {/* Bottom-right */}
+              <div className="scan-corner absolute" style={{ bottom: "calc(50% - 100px)", right: "calc(50% - 100px)", width: 36, height: 36, borderBottom: "4px solid #60a5fa", borderRight: "4px solid #60a5fa", borderRadius: "0 0 6px 0" }} />
+              {/* Scanning line */}
+              <div className="scan-line-anim absolute left-1/2 -translate-x-1/2" style={{ width: 180, height: 2, background: "linear-gradient(90deg, transparent, #60a5fa, transparent)", borderRadius: 2 }} />
+            </div>
+          )}
+
           {cameraStatus === "starting" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-2xl">
               <div className="flex flex-col items-center gap-3">
-                <span className="text-2xl animate-spin inline-block">⟳</span>
-                <div className="text-white/60 text-sm">Démarrage de la caméra…</div>
+                <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <div className="text-white/60 text-sm">Activation de la caméra…</div>
               </div>
             </div>
           )}
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-2xl">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/90 rounded-2xl">
               <div className="flex flex-col items-center gap-3">
-                <span className="text-2xl animate-spin inline-block">⟳</span>
-                <div className="text-white/60 text-sm">Identification en cours…</div>
+                <div className="w-10 h-10 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                <div className="text-white/70 text-base font-medium">Identification…</div>
               </div>
             </div>
           )}
@@ -346,13 +374,13 @@ function QrScanScreen({
       )}
 
       {error && (
-        <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-6 py-3 text-red-300 text-center max-w-xs">
+        <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-6 py-4 text-red-300 text-center max-w-sm text-base font-medium">
           {error}
         </div>
       )}
 
-      <button onClick={onCancel} className="text-white/30 hover:text-white/60 text-sm transition-colors">
-        ← Retour
+      <button onClick={onCancel} className="mt-2 px-6 py-3 bg-white/8 border border-white/15 rounded-xl text-white/40 hover:text-white/70 text-sm transition-colors">
+        ← Retour à l'accueil
       </button>
     </div>
   );
@@ -395,7 +423,10 @@ function ActionScreen({
             {collaborator.firstName} {collaborator.lastName}
           </div>
           {collaborator.position && (
-            <div className="text-base text-white/50 mt-1">{collaborator.position}</div>
+            <div className="text-base text-white/60 mt-1">{collaborator.position}</div>
+          )}
+          {collaborator.department && (
+            <div className="text-sm text-white/35 mt-0.5">{collaborator.department}</div>
           )}
         </div>
       </div>

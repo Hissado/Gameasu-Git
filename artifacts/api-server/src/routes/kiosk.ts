@@ -9,6 +9,8 @@ import {
   attendanceSessionsTable,
   orgAttendanceSettingsTable,
   collaboratorQrTokensTable,
+  positionsTable,
+  departmentsTable,
 } from "@workspace/db";
 import { and, eq, isNull, desc, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -190,6 +192,7 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
         position: collaboratorsTable.position,
         avatarUrl: collaboratorsTable.avatarUrl,
         employmentStatus: collaboratorsTable.employmentStatus,
+        departmentId: collaboratorsTable.departmentId,
       })
       .from(collaboratorsTable)
       .where(
@@ -209,12 +212,17 @@ kioskPublicRouter.post("/kiosk/identify", async (req: Request, res: Response, ne
       return;
     }
 
+    const deptRow = collab.departmentId
+      ? await db.select({ name: departmentsTable.name }).from(departmentsTable).where(eq(departmentsTable.id, collab.departmentId)).limit(1).then(r => r[0] ?? null)
+      : null;
+
     res.json({
       collaborator: {
         id: collab.id,
         firstName: collab.firstName,
         lastName: collab.lastName,
         position: collab.position,
+        department: deptRow?.name ?? null,
         avatarUrl: collab.avatarUrl,
       },
       kiosk: {
@@ -498,6 +506,8 @@ kioskPublicRouter.post("/kiosk/scan-qr", async (req: Request, res: Response, nex
         lastName: collaboratorsTable.lastName,
         avatarUrl: collaboratorsTable.avatarUrl,
         employmentStatus: collaboratorsTable.employmentStatus,
+        positionId: collaboratorsTable.positionId,
+        departmentId: collaboratorsTable.departmentId,
       })
       .from(collaboratorsTable)
       .where(and(
@@ -513,6 +523,16 @@ kioskPublicRouter.post("/kiosk/scan-qr", async (req: Request, res: Response, nex
       return;
     }
 
+    // Résoudre position et département (2-query pattern)
+    const [posRow, deptRow] = await Promise.all([
+      collab.positionId
+        ? db.select({ title: positionsTable.title }).from(positionsTable).where(eq(positionsTable.id, collab.positionId)).limit(1).then(r => r[0] ?? null)
+        : Promise.resolve(null),
+      collab.departmentId
+        ? db.select({ name: departmentsTable.name }).from(departmentsTable).where(eq(departmentsTable.id, collab.departmentId)).limit(1).then(r => r[0] ?? null)
+        : Promise.resolve(null),
+    ]);
+
     // 4. Mettre à jour les métadonnées d'utilisation du token (best-effort)
     db.update(collaboratorQrTokensTable)
       .set({ lastUsedAt: new Date(), lastUsedByKioskId: kioskId })
@@ -524,7 +544,8 @@ kioskPublicRouter.post("/kiosk/scan-qr", async (req: Request, res: Response, nex
         id: collab.id,
         firstName: collab.firstName,
         lastName: collab.lastName,
-        position: null,
+        position: posRow?.title ?? null,
+        department: deptRow?.name ?? null,
         avatarUrl: collab.avatarUrl ?? null,
       },
       kiosk: { id: kioskId, organizationId: kioskOrgId },

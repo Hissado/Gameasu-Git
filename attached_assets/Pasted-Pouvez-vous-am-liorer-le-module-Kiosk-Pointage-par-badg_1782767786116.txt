@@ -1,0 +1,135 @@
+Pouvez-vous améliorer le module **Kiosk / Pointage par badge QR** de Gameasu afin que les collaborateurs puissent pointer en utilisant la **caméra frontale d’une tablette fixée au mur** ?
+
+### Objectif
+
+Le kiosk sera installé sur une tablette fixée au mur, à l’entrée d’un bureau, d’un site, d’un chantier ou d’un espace de travail.
+Je veux que les collaborateurs puissent présenter leur badge QR devant la caméra frontale de la tablette pour pointer rapidement.
+
+L’expérience doit être simple, fluide, professionnelle et adaptée à une utilisation réelle sur terrain.
+
+---
+
+## 1. Fonctionnement attendu
+
+Sur l’écran du kiosk, ajouter une option visible :
+
+**Scanner mon badge QR**
+
+Lorsque le collaborateur clique sur ce bouton :
+
+1. la caméra frontale de la tablette s’active ;
+2. un cadre de scan apparaît à l’écran ;
+3. le collaborateur présente son badge devant la caméra ;
+4. le système lit le QR code ;
+5. le système identifie le collaborateur ;
+6. le profil du collaborateur s’affiche avec :
+
+   * photo
+   * nom complet
+   * poste
+   * département
+7. le collaborateur confirme son action :
+
+   * Entrée
+   * Sortie
+   * Début pause
+   * Fin pause
+8. le pointage est enregistré automatiquement ;
+9. un message de confirmation s’affiche.
+
+---
+
+## 2. Interface kiosk adaptée à une tablette murale
+
+L’interface doit être très simple, avec de gros boutons et une lecture facile à distance.
+
+Prévoir :
+
+* bouton **Scanner mon badge QR**
+* bouton **Entrer mon code kiosk** comme option de secours
+* instructions claires : “Présentez votre badge devant la caméra”
+* cadre de scan visible
+* message d’erreur clair si le QR code n’est pas reconnu
+* confirmation visuelle après pointage
+* retour automatique à l’écran d’accueil après quelques secondes
+
+---
+
+## 3. Badge QR bien conçu
+
+Le badge collaborateur doit être optimisé pour être scanné facilement par la caméra frontale.
+
+Le badge doit inclure :
+
+* QR code suffisamment grand
+* bon contraste noir/blanc
+* photo du collaborateur
+* nom complet
+* poste
+* département
+* numéro kiosk
+* nom de l’organisation
+* logo de l’organisation ou Gameasu
+
+Le QR code ne doit pas être trop petit, trop proche d’autres éléments ou difficile à lire.
+
+---
+
+## 4. Sécurité et validation
+
+Avant d’enregistrer le pointage, le système doit vérifier :
+
+* QR code valide
+* collaborateur actif
+* QR code actif
+* organisation correcte
+* kiosk autorisé
+* pointage non dupliqué
+* statut du collaborateur
+* site ou département autorisé si cette restriction est activée
+
+Si le badge est perdu ou compromis, l’administrateur doit pouvoir désactiver ou régénérer le QR code depuis le profil collaborateur.
+
+---
+
+## 5. Données à enregistrer
+
+Chaque pointage par badge QR doit enregistrer :
+
+* collaborateur
+* date
+* heure
+* type de pointage : entrée, sortie, pause début, pause fin
+* méthode : badge QR
+* kiosk utilisé
+* appareil utilisé
+* site / bureau / chantier
+* statut du pointage
+* éventuelle anomalie détectée
+* historique d’audit
+
+---
+
+## 6. Option de secours
+
+Conserver le **numéro kiosk** comme méthode alternative.
+
+Cela permet au collaborateur de pointer même si :
+
+* il a oublié son badge
+* le QR code est abîmé
+* la caméra ne lit pas correctement
+* la lumière est mauvaise
+* le badge n’a pas encore été généré
+
+---
+
+## 7. Résultat attendu
+
+Je veux une expérience de pointage simple et professionnelle :
+
+**Le collaborateur arrive devant la tablette → clique sur Scanner mon badge QR → présente son badge → son profil s’affiche → il confirme Entrée / Sortie / Pause → le pointage est enregistré.**
+
+### Objectif final
+
+Permettre à Gameasu d’utiliser une tablette murale comme vrai kiosk de pointage, avec scan QR via caméra frontale, badge collaborateur, confirmation visuelle, sécurité, historique et option de secours par numéro kiosk.
