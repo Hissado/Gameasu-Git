@@ -94,7 +94,7 @@ export function SendEmailDialog({ docType, docId, referenceNumber, clientName, c
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {result.delivered
-                  ? `Expédié via ${result.provider} à ${to}`
+                  ? `Email envoyé à ${to}`
                   : result.error}
               </p>
             </div>
