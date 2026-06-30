@@ -212,8 +212,8 @@ function InviteDialog({ roles, departments, onClose, onDone }: { roles: Role[]; 
               <div className="font-mono text-base">{result.temporaryPassword}</div>
             </div>
             <div className="text-xs text-muted-foreground">
-              Statut envoi : <Badge variant="outline">{result.delivery?.provider}</Badge>{" "}
-              {result.delivery?.delivered ? "✓ envoyé" : "(échec d'envoi — copiez le lien manuellement)"}
+              Statut envoi :{" "}
+              {result.delivery?.delivered ? "✓ envoyé" : "Échec d'envoi — copiez le lien manuellement"}
             </div>
           </div>
           <DialogFooter><Button onClick={onClose}>Fermer</Button></DialogFooter>

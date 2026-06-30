@@ -99,7 +99,9 @@ export default function AdminInvitationsPage() {
                     <div className="font-medium">{p.subject}</div>
                     <div className="text-xs text-muted-foreground">À : {p.to} · {new Date(p.sentAt).toLocaleString("fr-FR")}</div>
                   </div>
-                  <Badge variant="outline">{p.result.provider}</Badge>
+                  <Badge variant="outline" className={p.result.delivered ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}>
+                    {p.result.delivered ? "Envoyé" : "Échec"}
+                  </Badge>
                 </div>
               ))}
             </div>

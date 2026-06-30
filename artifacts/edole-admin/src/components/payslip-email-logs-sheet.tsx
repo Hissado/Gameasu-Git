@@ -206,7 +206,7 @@ export function PayslipEmailLogsSheet({
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Statut</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Date &amp; Heure</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Destinataire</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Provider</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Réf. message</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Message ID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Erreur</th>
                   </tr>
@@ -241,11 +241,7 @@ export function PayslipEmailLogsSheet({
                         {log.sentTo}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {log.provider && log.provider !== "unknown" ? (
-                          <span className="capitalize">{log.provider}</span>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
+                        <span className="text-muted-foreground/50">—</span>
                       </td>
                       <td className="px-4 py-3">
                         {log.messageId ? (
