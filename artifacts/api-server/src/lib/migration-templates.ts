@@ -217,6 +217,248 @@ export function getModuleTemplate(moduleId: string): ModuleDef | undefined {
   return MODULES.find(m => m.id === moduleId);
 }
 
+// ── Template complet d'intégration ────────────────────────────────────────────
+
+export async function generateCompleteTemplate(res: Response): Promise<void> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Gameasu";
+  wb.created = new Date();
+
+  // ── Onglet 1 : Guide d'intégration ──────────────────────────────────────
+  const wg = wb.addWorksheet("Guide d'intégration");
+  wg.properties.tabColor = { argb: ORANGE };
+  wg.getColumn(1).width = 6;
+  wg.getColumn(2).width = 36;
+  wg.getColumn(3).width = 22;
+  wg.getColumn(4).width = 30;
+
+  wg.mergeCells("A1", "D1");
+  const gtitle = wg.getCell("A1");
+  gtitle.value = "Template complet d'intégration — Gaméasù";
+  gtitle.fill = DARK_FILL;
+  gtitle.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+  gtitle.alignment = { vertical: "middle", horizontal: "center" };
+  wg.getRow(1).height = 44;
+
+  wg.mergeCells("A2", "D2");
+  const gsub = wg.getCell("A2");
+  gsub.value = `Généré le ${new Date().toLocaleDateString("fr-FR")}  |  Chaque onglet correspond à un module Gameasu`;
+  gsub.fill = LIGHT_FILL;
+  gsub.font = { italic: true, size: 10, color: { argb: "FF64748B" } };
+  gsub.alignment = { vertical: "middle", horizontal: "center" };
+  wg.getRow(2).height = 22;
+
+  wg.mergeCells("A4", "D4");
+  const ordreTitle = wg.getCell("A4");
+  ordreTitle.value = "Ordre recommandé d'importation";
+  ordreTitle.fill = HEADER_FILL;
+  ordreTitle.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+  ordreTitle.alignment = { vertical: "middle", horizontal: "center" };
+  wg.getRow(4).height = 28;
+
+  const orderHeader = wg.getRow(5);
+  ["#", "Module", "Onglet dans ce fichier", "Remarque"].forEach((h, i) => {
+    const c = orderHeader.getCell(i + 1);
+    c.value = h; c.fill = HEADER_FILL;
+    c.font = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+    c.border = allBorders(); c.alignment = { vertical: "middle", horizontal: "center" };
+  });
+  orderHeader.height = 22;
+
+  const ORDER = [
+    [1,  "Départements",       "departments",      "À importer en premier (référencé par collaborateurs)"],
+    [2,  "Utilisateurs",       "users",            "Mot de passe temporaire généré automatiquement"],
+    [3,  "Plan comptable",     "chart_of_accounts","Comptes SYSCOHADA + balances d'ouverture"],
+    [4,  "Clients",            "clients",          "Clients et prospects CRM"],
+    [5,  "Contacts clients",   "contacts",         "Importer après les clients"],
+    [6,  "Fournisseurs",       "suppliers",        "Sous-traitants, prestataires"],
+    [7,  "Produits & Services","services",         "Catalogue facturable"],
+    [8,  "Factures clients",   "invoices",         "Soldes ouverts — importer après clients"],
+    [9,  "Encaissements",      "payments",         "Importer après les factures"],
+    [10, "Collaborateurs",     "collaborators",    "RH — importer après départements"],
+    [11, "Projets",            "projects",         "Portefeuille chantiers"],
+    [12, "Équipements",        "equipment",        "Parc matériel"],
+  ];
+
+  ORDER.forEach(([num, label, sheet, note], idx) => {
+    const r = wg.getRow(6 + idx);
+    r.height = 20;
+    const bg = idx % 2 === 0 ? "FFFFFFFF" : "FFF8FAFC";
+    const cells = [num, label, sheet, note];
+    cells.forEach((val, ci) => {
+      const c = r.getCell(ci + 1);
+      c.value = val as string | number;
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ci === 0 ? ORANGE : bg } };
+      c.font = { size: 9, bold: ci === 0, color: { argb: ci === 0 ? "FFFFFFFF" : "FF1E293B" } };
+      c.border = allBorders();
+      c.alignment = { vertical: "middle" };
+    });
+  });
+
+  // Légende
+  const legRow = wg.getRow(6 + ORDER.length + 2);
+  wg.mergeCells(`A${legRow.number}`, `D${legRow.number}`);
+  legRow.getCell(1).value = "💡 Comment utiliser ce fichier : Ouvrez l'onglet du module voulu → remplissez les données → supprimez la ligne Exemple → importez dans Gameasu via Admin > Migration & Import";
+  legRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF475569" } };
+  legRow.getCell(1).fill = LIGHT_FILL;
+  legRow.height = 32;
+  legRow.getCell(1).alignment = { wrapText: true, vertical: "middle" };
+
+  // ── Onglet par module ────────────────────────────────────────────────────
+  for (const mod of MODULES) {
+    const ws = wb.addWorksheet(mod.label.slice(0, 31)); // Excel tab max 31 chars
+    ws.properties.tabColor = { argb: mod.category === "RH" ? "FF8B5CF6" : mod.category === "Ventes" ? "FF10B981" : mod.category === "Comptabilité" ? "FFF59E0B" : mod.category === "Admin" ? "FF3B82F6" : ORANGE };
+    ws.views = [{ state: "frozen", xSplit: 0, ySplit: 3 }];
+
+    // Titre
+    ws.mergeCells("A1", `${colLetter(mod.fields.length)}1`);
+    const tc = ws.getCell("A1");
+    tc.value = `${mod.label} — Template d'import Gaméasù`;
+    tc.fill = DARK_FILL; tc.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    tc.alignment = { vertical: "middle", horizontal: "center" };
+    ws.getRow(1).height = 28;
+
+    // Légende
+    ws.mergeCells("A2", `${colLetter(mod.fields.length)}2`);
+    const lc = ws.getCell("A2");
+    lc.value = `🟠 Obligatoire * | 🟢 Optionnel | ${mod.fields.filter(f => f.required).length} champ(s) obligatoire(s) sur ${mod.fields.length}`;
+    lc.fill = LIGHT_FILL; lc.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
+    lc.alignment = { vertical: "middle", horizontal: "center" };
+    ws.getRow(2).height = 18;
+
+    // Headers
+    const hr = ws.getRow(3);
+    hr.height = 24;
+    mod.fields.forEach((field, ci) => {
+      const c = hr.getCell(ci + 1);
+      c.value = `${field.label}${field.required ? " *" : ""}`;
+      c.fill = HEADER_FILL; c.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 9 };
+      c.alignment = { vertical: "middle", horizontal: "center", wrapText: false };
+      c.border = allBorders();
+      ws.getColumn(ci + 1).width = Math.max(field.label.length + 4, 16);
+    });
+
+    // Example row
+    const er = ws.getRow(4);
+    er.height = 18;
+    mod.fields.forEach((field, ci) => {
+      const c = er.getCell(ci + 1);
+      c.value = field.examples;
+      c.fill = field.required ? REQ_FILL : OPT_FILL;
+      c.font = { italic: true, size: 9, color: { argb: "FF94A3B8" } };
+      c.border = allBorders();
+      if (field.type === "enum" && field.acceptedValues) {
+        c.dataValidation = { type: "list", allowBlank: !field.required, formulae: [`"${field.acceptedValues.join(",")}"`] };
+      }
+    });
+
+    // 40 blank rows
+    for (let r = 5; r <= 45; r++) {
+      const dr = ws.getRow(r);
+      dr.height = 17;
+      mod.fields.forEach((field, ci) => {
+        const c = dr.getCell(ci + 1);
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: r % 2 === 0 ? "FFF8FAFC" : "FFFFFFFF" } };
+        c.border = allBorders();
+        if (field.type === "enum" && field.acceptedValues) {
+          c.dataValidation = { type: "list", allowBlank: !field.required, formulae: [`"${field.acceptedValues.join(",")}"`] };
+        }
+      });
+    }
+  }
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", 'attachment; filename="template-complet-integration-gameasu.xlsx"');
+  await wb.xlsx.write(res);
+}
+
+// ── Rapport d'erreurs Excel ────────────────────────────────────────────────────
+
+export async function generateErrorReport(
+  sessionId: string,
+  moduleName: string,
+  errors: Array<{ row: number; message: string }>,
+  res: Response,
+): Promise<void> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Gameasu";
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet("Rapport d'erreurs");
+  ws.properties.tabColor = { argb: "FFEF4444" };
+  ws.views = [{ state: "frozen", xSplit: 0, ySplit: 3 }];
+
+  // Titre
+  ws.mergeCells("A1", "D1");
+  const t = ws.getCell("A1");
+  t.value = `Rapport d'erreurs d'import — ${moduleName}`;
+  t.fill = DARK_FILL; t.font = { bold: true, size: 13, color: { argb: "FFFFFFFF" } };
+  t.alignment = { vertical: "middle", horizontal: "center" };
+  ws.getRow(1).height = 36;
+
+  ws.mergeCells("A2", "D2");
+  const sub = ws.getCell("A2");
+  sub.value = `Session : ${sessionId}  |  ${errors.length} erreur(s) détectée(s)  |  Généré le ${new Date().toLocaleDateString("fr-FR")}`;
+  sub.fill = LIGHT_FILL; sub.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
+  sub.alignment = { vertical: "middle", horizontal: "center" };
+  ws.getRow(2).height = 20;
+
+  // Headers
+  const hr = ws.getRow(3);
+  hr.height = 24;
+  ["N° Ligne", "Message d'erreur", "Action recommandée"].forEach((h, i) => {
+    const c = hr.getCell(i + 1);
+    c.value = h; c.fill = HEADER_FILL;
+    c.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+    c.border = allBorders(); c.alignment = { vertical: "middle", horizontal: "center" };
+  });
+  ws.getColumn(1).width = 12;
+  ws.getColumn(2).width = 60;
+  ws.getColumn(3).width = 50;
+
+  // Error rows
+  errors.forEach((err, idx) => {
+    const r = ws.getRow(4 + idx);
+    r.height = 20;
+    const bg = idx % 2 === 0 ? "FFFEF2F2" : "FFFFFFFF";
+
+    const rowCell = r.getCell(1);
+    rowCell.value = err.row;
+    rowCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFECACA" } };
+    rowCell.font = { bold: true, size: 9 }; rowCell.border = allBorders();
+    rowCell.alignment = { vertical: "middle", horizontal: "center" };
+
+    const msgCell = r.getCell(2);
+    msgCell.value = err.message;
+    msgCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+    msgCell.font = { size: 9 }; msgCell.border = allBorders();
+    msgCell.alignment = { vertical: "middle", wrapText: true };
+
+    const actionCell = r.getCell(3);
+    actionCell.value = guessAction(err.message);
+    actionCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
+    actionCell.font = { size: 9, italic: true, color: { argb: "FFF97316" } };
+    actionCell.border = allBorders();
+    actionCell.alignment = { vertical: "middle", wrapText: true };
+  });
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename="rapport-erreurs-${sessionId.slice(0, 8)}.xlsx"`);
+  await wb.xlsx.write(res);
+}
+
+function guessAction(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("manquant") || m.includes("obligatoire")) return "Remplir le champ obligatoire indiqué";
+  if (m.includes("email")) return "Vérifier le format de l'email (ex: nom@domaine.com)";
+  if (m.includes("date")) return "Utiliser le format JJ/MM/AAAA (ex: 01/01/2024)";
+  if (m.includes("montant") || m.includes("numérique")) return "Entrer un nombre sans espaces ni symboles (ex: 150000)";
+  if (m.includes("introuvable")) return "Vérifier que l'entrée référencée a bien été importée avant";
+  if (m.includes("déjà existant") || m.includes("conflict")) return "Modifier le code/référence pour le rendre unique";
+  if (m.includes("valeur") && m.includes("acceptée")) return "Consulter la colonne Valeurs acceptées dans la feuille Instructions";
+  return "Corriger la valeur et re-importer le fichier corrigé";
+}
+
 function colLetter(n: number): string {
   let result = "";
   while (n > 0) {

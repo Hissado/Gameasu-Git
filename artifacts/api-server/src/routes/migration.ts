@@ -25,7 +25,7 @@ import {
   getParsedFile,
   deleteParsedFile,
 } from "../lib/migration-engine.js";
-import { generateTemplate } from "../lib/migration-templates.js";
+import { generateTemplate, generateCompleteTemplate, generateErrorReport } from "../lib/migration-templates.js";
 
 const router = Router();
 
@@ -291,6 +291,38 @@ router.get("/migration/sessions/:id", requireAuth, requireManagerOrAbove, async 
       .where(and(eq(importSessionsTable.id, (req.params.id as string)), eq(importSessionsTable.organizationId, orgId)));
     if (!session) { res.status(404).json({ error: "Session introuvable" }); return; }
     res.json(session);
+  } catch (e) { next(e); }
+});
+
+// ── GET /migration/templates/all — template complet ──────────────────────────
+
+router.get("/migration/templates/all", requireAuth, async (req, res, next) => {
+  try {
+    await generateCompleteTemplate(res);
+  } catch (e) { next(e); }
+});
+
+// ── GET /migration/sessions/:id/report.xlsx — rapport d'erreurs ──────────────
+
+router.get("/migration/sessions/:id/report.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const [session] = await db.select({
+      id: importSessionsTable.id,
+      module: importSessionsTable.module,
+      errors: importSessionsTable.errors,
+    }).from(importSessionsTable)
+      .where(and(eq(importSessionsTable.id, (req.params.id as string)), eq(importSessionsTable.organizationId, orgId)));
+    if (!session) { res.status(404).json({ error: "Session introuvable" }); return; }
+
+    const mod = getModule(session.module);
+    const errors: Array<{ row: number; message: string }> = (session.errors ?? []) as Array<{ row: number; message: string }>;
+
+    if (errors.length === 0) {
+      res.status(200).json({ message: "Aucune erreur à exporter" }); return;
+    }
+
+    await generateErrorReport(session.id, mod?.label ?? session.module, errors, res);
   } catch (e) { next(e); }
 });
 

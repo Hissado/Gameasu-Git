@@ -5,6 +5,7 @@
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { eq, and, isNull } from "drizzle-orm";
+import bcryptjs from "bcryptjs";
 import {
   clientsTable, clientContactsTable,
   collaboratorsTable,
@@ -14,6 +15,9 @@ import {
   equipmentTable,
   organizationsTable,
   suppliersTable,
+  departmentsTable,
+  servicesTable,
+  usersTable,
 } from "@workspace/db/schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -220,6 +224,48 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
+    id: "departments",
+    label: "Départements",
+    icon: "Building2",
+    description: "Structure organisationnelle — départements et pôles",
+    category: "RH",
+    fields: [
+      { key: "code",        label: "Code",         required: true,  type: "string", examples: "ADMIN",                             aliases: ["code", "code_dept", "ref", "identifiant"] },
+      { key: "name",        label: "Nom",           required: true,  type: "string", examples: "Administration",                    aliases: ["nom", "name", "intitule", "libelle", "departement"] },
+      { key: "description", label: "Description",   required: false, type: "string", examples: "Direction générale et administration", aliases: ["description", "notes", "detail"] },
+      { key: "color",       label: "Couleur (hex)", required: false, type: "string", examples: "#3B82F6",                           aliases: ["couleur", "color", "hex"] },
+    ],
+  },
+  {
+    id: "services",
+    label: "Produits & Services",
+    icon: "Briefcase",
+    description: "Catalogue produits, services et prestations facturables",
+    category: "Ventes",
+    fields: [
+      { key: "code",        label: "Code",               required: true,  type: "string", examples: "PREST-001",            aliases: ["code", "ref", "sku", "code_service", "code_produit", "article"] },
+      { key: "name",        label: "Nom",                required: true,  type: "string", examples: "Audit informatique",    aliases: ["nom", "name", "designation", "libelle", "intitule", "service", "produit"] },
+      { key: "category",    label: "Catégorie",          required: false, type: "string", examples: "Conseil",               aliases: ["categorie", "category", "famille", "type", "groupe"] },
+      { key: "unit",        label: "Unité",              required: false, type: "string", examples: "forfait",               aliases: ["unite", "unit", "unité_mesure", "um", "unité"] },
+      { key: "unitPrice",   label: "Prix unitaire (FCFA)", required: false, type: "number", examples: "250000",            aliases: ["prix", "tarif", "unit_price", "prix_unitaire", "montant", "taux"] },
+      { key: "description", label: "Description",        required: false, type: "string", examples: "Prestation d'audit",   aliases: ["description", "notes", "detail"] },
+    ],
+  },
+  {
+    id: "users",
+    label: "Utilisateurs",
+    icon: "Users",
+    description: "Comptes utilisateurs — le mot de passe temporaire sera à changer à la 1ère connexion",
+    category: "Admin",
+    fields: [
+      { key: "email",     label: "Email",    required: true,  type: "email",  examples: "a.diallo@hissadoconsulting.com", aliases: ["email", "mail", "courriel", "e-mail", "adresse_email"] },
+      { key: "firstName", label: "Prénom",   required: true,  type: "string", examples: "Aminata",                        aliases: ["prenom", "first_name", "prénom", "firstname"] },
+      { key: "lastName",  label: "Nom",      required: true,  type: "string", examples: "Diallo",                         aliases: ["nom", "last_name", "lastname", "nom_famille"] },
+      { key: "role",      label: "Rôle",     required: false, type: "enum",   examples: "manager",                        acceptedValues: ["admin", "manager", "commercial", "collaborator", "comptable"], aliases: ["role", "profil", "fonction", "niveau_acces"] },
+      { key: "phone",     label: "Téléphone", required: false, type: "phone",  examples: "+228 90 00 00 00",              aliases: ["telephone", "tel", "mobile", "phone", "portable"] },
+    ],
+  },
+  {
     id: "equipment",
     label: "Équipements",
     icon: "Wrench",
@@ -398,6 +444,9 @@ export async function executeImport(
     case "projects":     return importProjects(parsedFile, mapping, orgId, db, result);
     case "equipment":    return importEquipment(parsedFile, mapping, orgId, db, result);
     case "suppliers":    return importSuppliers(parsedFile, mapping, orgId, db, result);
+    case "departments":  return importDepartments(parsedFile, mapping, orgId, db, result);
+    case "services":     return importServices(parsedFile, mapping, orgId, db, result);
+    case "users":        return importUsers(parsedFile, mapping, orgId, db, result);
     default: throw new Error(`Exécuteur non implémenté pour : ${parsedFile.module}`);
   }
 }
@@ -678,6 +727,96 @@ async function importSuppliers(f: ParsedFile, mapping: Record<string, string>, o
       }).onConflictDoNothing().returning({ id: suppliersTable.id });
       if (rec) { r.ids.push(rec.id); r.imported++; }
       else { r.errors.push({ row: i + 2, message: `Code déjà existant : "${o.code}"` }); r.skipped++; }
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Departments ───────────────────────────────────────────────────────────────
+
+async function importDepartments(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.code || !o.name) { r.errors.push({ row: i + 2, message: "Code et nom du département obligatoires" }); r.skipped++; continue; }
+    try {
+      const [rec] = await db.insert(departmentsTable).values({
+        id: randomUUID(), organizationId: orgId,
+        code: o.code.toUpperCase().trim(),
+        name: o.name.trim(),
+        description: o.description || null,
+        color: o.color || null,
+      }).onConflictDoNothing().returning({ id: departmentsTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Code département déjà existant : "${o.code}"` }); r.skipped++; }
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Services / Produits ───────────────────────────────────────────────────────
+
+async function importServices(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.code || !o.name) { r.errors.push({ row: i + 2, message: "Code et nom obligatoires" }); r.skipped++; continue; }
+    try {
+      const [rec] = await db.insert(servicesTable).values({
+        id: randomUUID(), organizationId: orgId,
+        code: o.code.trim(),
+        name: o.name.trim(),
+        category: o.category || null,
+        unit: o.unit || "forfait",
+        unitPrice: num(o.unitPrice) ?? "0",
+        description: o.description || null,
+        isActive: true,
+      }).onConflictDoNothing().returning({ id: servicesTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Code service déjà existant : "${o.code}"` }); r.skipped++; }
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Users ──────────────────────────────────────────────────────────────────────
+
+async function importUsers(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  const validRoles = ["admin", "manager", "commercial", "collaborator", "comptable"];
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.email || !o.firstName || !o.lastName) {
+      r.errors.push({ row: i + 2, message: "Email, prénom et nom obligatoires" }); r.skipped++; continue;
+    }
+    try {
+      const tempPassword = `Gameasu@${Math.random().toString(36).slice(2, 8)}`;
+      const hashedPwd = bcryptjs.hashSync(tempPassword, 10);
+      const [rec] = await db.insert(usersTable).values({
+        id: randomUUID(), organizationId: orgId,
+        email: o.email.toLowerCase().trim(),
+        password: hashedPwd,
+        firstName: o.firstName.trim(),
+        lastName: o.lastName.trim(),
+        role: validRoles.includes(o.role ?? "") ? (o.role as string) : "collaborator",
+        phone: o.phone || null,
+        mustChangePassword: true,
+        isActive: true,
+      }).onConflictDoNothing().returning({ id: usersTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Email déjà existant : "${o.email}"` }); r.skipped++; }
     } catch (e) {
       r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
       r.skipped++;

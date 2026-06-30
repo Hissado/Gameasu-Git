@@ -16,6 +16,7 @@ import {
   ArrowRight, Database, FileSpreadsheet, ClipboardCheck, Loader2,
   Building2, Users, UserCheck, FileText, CreditCard, BookOpen,
   Briefcase, Wrench, History, RefreshCw, Info, ChevronRight,
+  ListOrdered, PackageOpen, FileDown,
 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
@@ -301,6 +302,38 @@ export default function MigrationPage() {
                 })}
               </div>
 
+              {/* Ordre recommandé */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ListOrdered className="w-4 h-4 text-primary" />
+                    Ordre recommandé d'importation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Respectez cet ordre pour éviter les erreurs de dépendances entre modules.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                    {IMPORT_ORDER.map((step) => {
+                      const available = modulesData?.modules.find(m => m.id === step.moduleId);
+                      return (
+                        <div key={step.order} className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs ${available ? "bg-slate-50 border border-slate-100" : "bg-slate-50/50 border border-dashed border-slate-200 opacity-60"}`}>
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${available ? "bg-primary text-white" : "bg-slate-200 text-slate-500"}`}>{step.order}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium truncate block">{step.label}</span>
+                            {step.note && <span className="text-[10px] text-muted-foreground">{step.note}</span>}
+                          </div>
+                          {available
+                            ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            : <span className="text-[9px] text-muted-foreground shrink-0 bg-slate-200 px-1 rounded">bientôt</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Template downloads */}
               <Card>
                 <CardHeader className="pb-2">
@@ -310,8 +343,23 @@ export default function MigrationPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Template complet CTA */}
+                  <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg flex items-start gap-3">
+                    <PackageOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-primary">Template complet d'intégration</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Un seul fichier Excel avec tous les modules, l'ordre recommandé et les instructions complètes. Recommandé pour les nouveaux clients.
+                      </p>
+                    </div>
+                    <Button size="sm" className="gap-2 shrink-0"
+                      onClick={() => downloadAuthed("/api/migration/templates/all", "template-complet-integration-gameasu.xlsx")}>
+                      <Download className="w-3.5 h-3.5" /> Télécharger
+                    </Button>
+                  </div>
+
                   <p className="text-xs text-muted-foreground mb-3">
-                    Chaque template contient : feuille Données à remplir · feuille Instructions · exemples · validation des valeurs acceptées.
+                    Ou téléchargez les templates individuels — chaque fichier contient : feuille Données · Instructions · Procédure · exemples réels · validations.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {modulesData?.modules.map(mod => (
@@ -677,11 +725,13 @@ export default function MigrationPage() {
                     <TableHead className="text-xs">Importées</TableHead>
                     <TableHead className="text-xs">Erreurs</TableHead>
                     <TableHead className="text-xs">Statut</TableHead>
+                    <TableHead className="text-xs">Rapport</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sessionsData!.sessions.map(s => {
                     const mod = MODULES_LABELS[s.module] ?? s.module;
+                    const hasErrors = (s.errorRows ?? 0) > 0;
                     return (
                       <TableRow key={s.id}>
                         <TableCell className="text-xs font-medium">{mod}</TableCell>
@@ -691,6 +741,14 @@ export default function MigrationPage() {
                         <TableCell className="text-xs text-emerald-600 font-semibold">{s.importedRows ?? "—"}</TableCell>
                         <TableCell className="text-xs text-red-500">{s.errorRows ? (s.errorRows > 0 ? s.errorRows : "—") : "—"}</TableCell>
                         <TableCell><StatusBadge status={s.status} /></TableCell>
+                        <TableCell>
+                          {hasErrors ? (
+                            <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1 text-red-600 hover:text-red-700 hover:bg-red-50 px-2"
+                              onClick={() => downloadAuthed(`/api/migration/sessions/${s.id}/report.xlsx`, `rapport-erreurs-${s.id.slice(0, 8)}.xlsx`)}>
+                              <FileDown className="w-3 h-3" /> Excel
+                            </Button>
+                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -704,9 +762,32 @@ export default function MigrationPage() {
   );
 }
 
+const IMPORT_ORDER: Array<{ order: number; label: string; moduleId: string | null; note?: string }> = [
+  { order: 1,  label: "Départements",        moduleId: "departments",       note: "Référencé par collaborateurs" },
+  { order: 2,  label: "Utilisateurs",         moduleId: "users",             note: "Mot de passe temporaire auto" },
+  { order: 3,  label: "Plan comptable",       moduleId: "chart_of_accounts", note: "Comptes SYSCOHADA + balances" },
+  { order: 4,  label: "Centres analytiques",  moduleId: null },
+  { order: 5,  label: "Banques & caisses",    moduleId: null },
+  { order: 6,  label: "Clients",              moduleId: "clients" },
+  { order: 7,  label: "Contacts clients",     moduleId: "contacts",          note: "Importer après les clients" },
+  { order: 8,  label: "Fournisseurs",         moduleId: "suppliers" },
+  { order: 9,  label: "Produits & Services",  moduleId: "services" },
+  { order: 10, label: "Balance d'ouverture",  moduleId: null },
+  { order: 11, label: "Factures clients",     moduleId: "invoices",          note: "Importer après clients" },
+  { order: 12, label: "Encaissements",        moduleId: "payments",          note: "Importer après factures" },
+  { order: 13, label: "Stock initial",        moduleId: null },
+  { order: 14, label: "Collaborateurs",       moduleId: "collaborators",     note: "Importer après départements" },
+  { order: 15, label: "Projets",              moduleId: "projects" },
+  { order: 16, label: "Équipements",          moduleId: "equipment" },
+  { order: 17, label: "Paie & Congés",        moduleId: null },
+  { order: 18, label: "Budgets",              moduleId: null },
+  { order: 19, label: "Documents",            moduleId: null },
+];
+
 const MODULES_LABELS: Record<string, string> = {
   clients: "Clients", contacts: "Contacts", collaborators: "Collaborateurs",
   invoices: "Factures clients", payments: "Encaissements",
   chart_of_accounts: "Plan comptable", projects: "Projets", equipment: "Équipements",
-  suppliers: "Fournisseurs",
+  suppliers: "Fournisseurs", departments: "Départements",
+  services: "Produits & Services", users: "Utilisateurs",
 };

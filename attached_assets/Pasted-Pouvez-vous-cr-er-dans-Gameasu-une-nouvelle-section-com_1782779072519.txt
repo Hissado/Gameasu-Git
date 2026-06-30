@@ -1,0 +1,480 @@
+Pouvez-vous créer dans Gameasu une nouvelle section complète appelée Centre d’importation des données ou Assistant d’intégration, permettant aux clients de télécharger des templates Excel, remplir leurs données, les uploader dans l’ERP, mapper les colonnes, vérifier les erreurs et importer les informations dans les bons modules ?
+
+Objectif
+
+Je veux simplifier l’intégration des nouveaux clients dans Gameasu.
+
+Le client doit pouvoir :
+
+1. télécharger un template Excel adapté à chaque module ;
+2. remplir ses données dans le fichier ;
+3. uploader le fichier dans Gameasu ;
+4. mapper les colonnes si nécessaire ;
+5. vérifier les erreurs avant importation ;
+6. corriger les données invalides ;
+7. valider l’importation finale ;
+8. retrouver les données importées dans les bons modules.
+
+L’objectif est de rendre l’onboarding client plus professionnel, plus rapide et plus sécurisé.
+
+⸻
+
+1. Créer une section “Centre d’importation des données”
+
+Ajouter une nouvelle section dans l’application :
+
+Paramètres > Importation des données
+
+ou
+
+Admin > Assistant d’intégration
+
+Cette section doit contenir :
+
+* liste des templates disponibles ;
+* bouton de téléchargement par template ;
+* possibilité d’uploader un fichier rempli ;
+* statut des imports ;
+* historique des imports ;
+* rapports d’erreurs ;
+* guide d’utilisation ;
+* ordre recommandé d’importation.
+
+⸻
+
+2. Templates Excel à créer
+
+Créer des templates Excel téléchargeables pour tous les modules Gameasu.
+
+Templates principaux
+
+* Entreprise
+* Utilisateurs
+* Rôles & permissions
+* Départements
+* Sites / agences
+* Clients
+* Prospects CRM
+* Produits & services
+* Fournisseurs
+* Factures clients ouvertes
+* Factures fournisseurs ouvertes
+* Encaissements
+* Paiements fournisseurs
+* Bons de commande
+* Dépenses
+* Banques & caisses
+* Plan comptable
+* Balance d’ouverture
+* Centres analytiques
+* Budgets
+* Stock initial
+* Entrepôts
+* Équipements / immobilisations
+* Collaborateurs
+* Paie
+* Congés
+* Présences & kiosk
+* Projets
+* Opérations
+* Documents
+* Rapports souhaités
+
+⸻
+
+3. Fichier complet d’intégration
+
+Créer aussi un fichier Excel global appelé :
+
+Template complet d’intégration Gameasu
+
+Ce fichier doit contenir plusieurs onglets :
+
+1. Instructions
+2. Entreprise
+3. Utilisateurs
+4. Rôles & permissions
+5. Départements
+6. Sites
+7. Clients
+8. Prospects CRM
+9. Produits & services
+10. Fournisseurs
+11. Factures clients ouvertes
+12. Factures fournisseurs ouvertes
+13. Encaissements
+14. Paiements fournisseurs
+15. Bons de commande
+16. Dépenses
+17. Banques & caisses
+18. Plan comptable
+19. Balance d’ouverture
+20. Centres analytiques
+21. Budgets
+22. Stock initial
+23. Entrepôts
+24. Équipements
+25. Collaborateurs
+26. Paie
+27. Congés
+28. Présences & kiosk
+29. Projets
+30. Opérations
+31. Documents
+32. Rapports souhaités
+
+Ce fichier complet doit être recommandé pour les clients qui veulent utiliser tous les modules Gameasu.
+
+⸻
+
+4. Structure de chaque template
+
+Chaque template doit être très clair et professionnel.
+
+Chaque fichier doit contenir :
+
+* une feuille Instructions
+* une feuille Données à remplir
+* une feuille Exemples
+* des colonnes obligatoires clairement identifiées
+* des colonnes optionnelles
+* des exemples réalistes
+* des listes déroulantes si possible
+* des formats de date standardisés
+* des formats de montant standardisés
+* une indication des champs obligatoires
+* une indication des champs à ne pas modifier
+* une note expliquant comment uploader le fichier dans Gameasu
+
+Exemple de colonnes obligatoires
+
+Les colonnes obligatoires doivent être marquées avec :
+
+* Obligatoire
+
+Exemple :
+
+* Nom client *
+* Téléphone *
+* Type client *
+* Email
+* Adresse
+* Conditions de paiement
+* Solde d’ouverture
+
+⸻
+
+5. Assistant d’importation en plusieurs étapes
+
+Créer un workflow simple en 5 étapes.
+
+Étape 1 — Choisir le module
+
+L’utilisateur choisit le type de données à importer :
+
+* clients
+* fournisseurs
+* produits
+* stock
+* collaborateurs
+* factures
+* plan comptable
+* etc.
+
+Étape 2 — Télécharger le template
+
+L’utilisateur télécharge le template correspondant.
+
+Afficher :
+
+* description du template
+* champs obligatoires
+* ordre recommandé d’importation
+* exemple de données
+* bouton Télécharger le template Excel
+
+Étape 3 — Uploader le fichier rempli
+
+L’utilisateur téléverse son fichier rempli.
+
+Formats acceptés :
+
+* Excel .xlsx
+* CSV .csv
+
+Le système doit vérifier le format du fichier avant de continuer.
+
+Étape 4 — Mapping des colonnes
+
+Afficher un écran permettant de mapper les colonnes du fichier aux champs Gameasu.
+
+Si le fichier utilise le template officiel, le mapping doit être automatique.
+
+Si le fichier est personnalisé, l’utilisateur doit pouvoir mapper manuellement les colonnes.
+
+Exemple :
+
+* Nom client → Client Name
+* Téléphone → Phone
+* Email → Email
+* Solde d’ouverture → Opening Balance
+* Catégorie → Category
+
+Étape 5 — Vérification et importation
+
+Avant importation finale, Gameasu doit afficher :
+
+* nombre total de lignes détectées
+* nombre de lignes valides
+* nombre de lignes avec erreurs
+* nombre de doublons détectés
+* champs obligatoires manquants
+* formats incorrects
+* aperçu des données à importer
+
+L’utilisateur doit pouvoir cliquer sur :
+
+Valider et importer
+
+⸻
+
+6. Validation automatique des données
+
+Avant l’importation, Gameasu doit vérifier :
+
+* champs obligatoires manquants
+* doublons
+* emails invalides
+* numéros de téléphone invalides
+* dates incorrectes
+* montants mal formatés
+* devises incorrectes
+* TVA incorrecte
+* comptes comptables inexistants
+* clients inexistants
+* fournisseurs inexistants
+* produits inexistants
+* centres analytiques inexistants
+* départements inexistants
+* utilisateurs inexistants
+* factures déjà importées
+* stock négatif
+* soldes incohérents
+
+Aucune donnée critique ne doit être importée sans validation.
+
+⸻
+
+7. Rapport d’erreurs téléchargeable
+
+Si des erreurs sont détectées, Gameasu doit générer un rapport d’erreurs téléchargeable en Excel.
+
+Ce rapport doit contenir :
+
+* numéro de ligne
+* colonne concernée
+* valeur problématique
+* type d’erreur
+* explication claire
+* correction recommandée
+
+Exemple :
+
+Ligne	Colonne	Erreur	Correction recommandée
+12	Email	Format invalide	Entrer un email valide
+18	Client	Client introuvable	Créer le client avant d’importer la facture
+22	Montant TTC	Format incorrect	Utiliser uniquement des chiffres
+
+⸻
+
+8. Ordre recommandé d’importation
+
+Afficher dans l’application un ordre recommandé pour éviter les erreurs de relations entre modules.
+
+Ordre recommandé :
+
+1. Entreprise
+2. Utilisateurs
+3. Rôles & permissions
+4. Départements
+5. Sites
+6. Plan comptable
+7. Centres analytiques
+8. Banques & caisses
+9. Clients
+10. Fournisseurs
+11. Produits & services
+12. Balance d’ouverture
+13. Factures clients ouvertes
+14. Factures fournisseurs ouvertes
+15. Encaissements
+16. Paiements fournisseurs
+17. Stock initial
+18. Collaborateurs
+19. Paie
+20. Congés
+21. Présences & kiosk
+22. Projets
+23. Opérations
+24. Budgets
+25. Équipements
+26. Documents
+
+Gameasu doit guider l’utilisateur et afficher une alerte si un import dépend d’un autre module non encore configuré.
+
+⸻
+
+9. Historique des imports
+
+Créer une section Historique des imports.
+
+Chaque import doit enregistrer :
+
+* module concerné
+* nom du fichier
+* utilisateur ayant importé
+* date et heure
+* nombre de lignes détectées
+* nombre de lignes importées
+* nombre de lignes rejetées
+* nombre d’erreurs
+* statut : réussi, partiel, échoué
+* rapport d’erreurs téléchargeable
+* fichier original
+* possibilité d’annuler l’import si techniquement possible
+
+⸻
+
+10. Gestion des doublons
+
+Ajouter une logique de détection des doublons.
+
+Exemples :
+
+* client déjà existant avec même nom ou email
+* fournisseur déjà existant
+* produit déjà existant
+* facture déjà importée avec le même numéro
+* collaborateur déjà existant avec le même email ou matricule
+* compte comptable déjà existant
+
+Le système doit proposer :
+
+* ignorer la ligne
+* mettre à jour la donnée existante
+* créer une nouvelle donnée
+* fusionner si applicable
+
+⸻
+
+11. Importation sécurisée par tenant
+
+L’importation doit respecter l’architecture multi-tenant de Gameasu.
+
+Chaque donnée importée doit être rattachée automatiquement à :
+
+* organisation_id
+* tenant_id
+* utilisateur importateur
+* module concerné
+
+Aucune donnée d’un client ne doit être visible ou mélangée avec les données d’un autre client.
+
+⸻
+
+12. Permissions
+
+Ajouter des permissions spécifiques :
+
+* télécharger les templates
+* uploader un fichier
+* mapper les colonnes
+* valider un import
+* annuler un import
+* voir l’historique des imports
+* télécharger les rapports d’erreurs
+* importer des données financières
+* importer des données RH
+* importer des données sensibles
+
+Les permissions doivent être vérifiées côté frontend et backend.
+
+⸻
+
+13. Interface utilisateur
+
+L’interface doit être simple, claire et professionnelle.
+
+Prévoir :
+
+* cartes par module
+* bouton Télécharger le template
+* bouton Importer un fichier
+* indicateurs de progression
+* badges de statut
+* aperçu avant import
+* messages d’erreur clairs
+* instructions courtes
+* design responsive
+* aucune surcharge visuelle
+
+Le client doit comprendre facilement quoi faire sans assistance technique.
+
+⸻
+
+14. Branding des templates
+
+Les templates Excel doivent être professionnels et alignés avec l’identité Gameasu.
+
+Chaque template doit inclure :
+
+* nom Gameasu
+* titre du template
+* nom du module
+* date de génération
+* instructions claires
+* exemple de données
+* colonnes bien formatées
+* onglets bien nommés
+* couleurs cohérentes avec le branding Gameasu
+* largeur des colonnes bien ajustée
+* filtres activés
+* formats de dates et montants propres
+
+⸻
+
+15. Données demo pour Hissado Consulting
+
+Ajouter des exemples réalistes dans les templates pour le tenant demo Hissado Consulting.
+
+Tous les emails doivent utiliser :
+
+@hissadoconsulting.com
+
+Ne pas utiliser :
+
+* edole.africa
+* hissado.tg
+* anciennes variations de Gameasu
+
+Les exemples doivent être adaptés au contexte francophone et africain, avec des montants en FCFA.
+
+⸻
+
+16. Résultat attendu
+
+Je veux que Gameasu dispose d’un vrai assistant d’intégration des données, permettant aux clients de :
+
+* télécharger des templates Excel ;
+* remplir leurs données ;
+* uploader les fichiers ;
+* mapper les colonnes ;
+* vérifier les erreurs ;
+* corriger les anomalies ;
+* importer les données dans les bons modules ;
+* consulter l’historique des imports ;
+* télécharger les rapports d’erreurs.
+
+Objectif final
+
+Faire de l’onboarding client dans Gameasu une expérience professionnelle, guidée, rapide et fiable, avec des templates Excel prêts à l’emploi, un mapping intelligent, une validation automatique et un import sécurisé par module.
