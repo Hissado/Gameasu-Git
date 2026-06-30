@@ -6,18 +6,18 @@ import ExcelJS from "exceljs";
 import type { Response } from "express";
 import { MODULES, type ModuleDef } from "./migration-engine.js";
 
-// ── Palette Gaméasù ──────────────────────────────────────────────────────────
-// Orange principal  #F37021  · Noir profond #1E293B  · Ambre doux  #FFA347
-// Tous les onglets et accents restent dans ces tons — aucune couleur bleue ou verte
-const ORANGE  = "FFF37021";   // accent principal
-const AMBER   = "FFFFA347";   // orange doux (onglet secondaire)
-const DARK    = "FF1E293B";   // quasi-noir (titres, onglets tertiaires)
-const DARK2   = "FF2D3E50";   // quasi-noir légèrement plus clair
-const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE } };
-const DARK_FILL:   ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: DARK } };
-const LIGHT_FILL:  ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF8F4" } };  // ivoire chaud
-const REQ_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF0E6" } };  // orange très pâle
-const OPT_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF8F0" } };  // crème (pas vert)
+// ── Palette Gaméasù — logo officiel ──────────────────────────────────────────
+// Bleu électrique #2563EB (HSL 221 83% 53%) · Marine profond #0E1A39 (HSL 224 60% 14%)
+// Source : index.css → --primary: 221 83% 53% / --sidebar: 224 60% 14%
+const BLUE    = "FF2563EB";   // bleu électrique Gameasu — accent principal
+const BLUE2   = "FF3B82F6";   // bleu moyen — variante douce (Tailwind blue-500)
+const NAVY    = "FF0E1A39";   // marine profond — titres, onglets principaux
+const NAVY2   = "FF1A224D";   // marine accent — onglets secondaires
+const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+const DARK_FILL:   ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
+const LIGHT_FILL:  ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0F5FF" } };  // bleu très pâle
+const REQ_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };  // bleu clair (champ obligatoire)
+const OPT_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFF" } };  // blanc bleuté (champ optionnel)
 
 function thinBorder(): ExcelJS.Border {
   return { style: "thin" as const, color: { argb: "FFE2E8F0" } };
@@ -36,7 +36,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // ── Feuille 1 : Données ─────────────────────────────────────────────────────
   const ws = wb.addWorksheet("Données", { views: [{ state: "frozen", xSplit: 0, ySplit: 3 }] });
-  ws.properties.tabColor = { argb: ORANGE };
+  ws.properties.tabColor = { argb: BLUE };
 
   // Titre en A1
   ws.mergeCells("A1", `${colLetter(mod.fields.length)}1`);
@@ -50,7 +50,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
   // Légende en A2
   ws.mergeCells("A2", `${colLetter(mod.fields.length)}2`);
   const legendCell = ws.getCell("A2");
-  legendCell.value = "🟠 Champs obligatoires (fond orangé)   |   ⬜ Champs optionnels (fond crème)   |   Ligne 3 = exemple, supprimer avant import";
+  legendCell.value = "🔵 Champs obligatoires (fond bleu)   |   ⬜ Champs optionnels (fond blanc)   |   Ligne 3 = exemple, supprimer avant import";
   legendCell.fill = LIGHT_FILL;
   legendCell.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
   legendCell.alignment = { vertical: "middle", horizontal: "center" };
@@ -109,7 +109,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // ── Feuille 2 : Instructions ────────────────────────────────────────────────
   const wi = wb.addWorksheet("Instructions");
-  wi.properties.tabColor = { argb: DARK2 };
+  wi.properties.tabColor = { argb: NAVY2 };
 
   const iTitle = wi.getCell("A1");
   wi.mergeCells("A1", "G1");
@@ -170,7 +170,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // ── Feuille 3 : Procédure ───────────────────────────────────────────────────
   const wp = wb.addWorksheet("Procédure");
-  wp.properties.tabColor = { argb: AMBER };
+  wp.properties.tabColor = { argb: BLUE2 };
   wp.getColumn(1).width = 6;
   wp.getColumn(2).width = 80;
 
@@ -231,7 +231,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
 
   // ── Onglet 1 : Guide d'intégration ──────────────────────────────────────
   const wg = wb.addWorksheet("Guide d'intégration");
-  wg.properties.tabColor = { argb: ORANGE };
+  wg.properties.tabColor = { argb: BLUE };
   wg.getColumn(1).width = 6;
   wg.getColumn(2).width = 36;
   wg.getColumn(3).width = 22;
@@ -293,8 +293,8 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
     cells.forEach((val, ci) => {
       const c = r.getCell(ci + 1);
       c.value = val as string | number;
-      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ci === 0 ? ORANGE : bg } };
-      c.font = { size: 9, bold: ci === 0, color: { argb: ci === 0 ? "FFFFFFFF" : "FF1E293B" } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ci === 0 ? BLUE : bg } };
+      c.font = { size: 9, bold: ci === 0, color: { argb: ci === 0 ? "FFFFFFFF" : "FF0E1A39" } };
       c.border = allBorders();
       c.alignment = { vertical: "middle" };
     });
@@ -312,7 +312,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
   // ── Onglet par module ────────────────────────────────────────────────────
   for (const mod of MODULES) {
     const ws = wb.addWorksheet(mod.label.slice(0, 31)); // Excel tab max 31 chars
-    ws.properties.tabColor = { argb: mod.category === "RH" ? DARK2 : mod.category === "Ventes" ? AMBER : mod.category === "Comptabilité" ? DARK : mod.category === "Admin" ? DARK2 : ORANGE };
+    ws.properties.tabColor = { argb: mod.category === "RH" ? NAVY2 : mod.category === "Ventes" ? BLUE2 : mod.category === "Comptabilité" ? NAVY : mod.category === "Admin" ? NAVY2 : BLUE };
     ws.views = [{ state: "frozen", xSplit: 0, ySplit: 3 }];
 
     // Titre
@@ -326,7 +326,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
     // Légende
     ws.mergeCells("A2", `${colLetter(mod.fields.length)}2`);
     const lc = ws.getCell("A2");
-    lc.value = `🟠 Obligatoire * | ⬜ Optionnel | ${mod.fields.filter(f => f.required).length} champ(s) obligatoire(s) sur ${mod.fields.length}`;
+    lc.value = `🔵 Obligatoire * | ⬜ Optionnel | ${mod.fields.filter(f => f.required).length} champ(s) obligatoire(s) sur ${mod.fields.length}`;
     lc.fill = LIGHT_FILL; lc.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
     lc.alignment = { vertical: "middle", horizontal: "center" };
     ws.getRow(2).height = 18;
