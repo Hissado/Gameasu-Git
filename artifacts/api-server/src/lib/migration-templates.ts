@@ -271,18 +271,24 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
   orderHeader.height = 22;
 
   const ORDER = [
-    [1,  "Départements",       "departments",      "À importer en premier (référencé par collaborateurs)"],
-    [2,  "Utilisateurs",       "users",            "Mot de passe temporaire généré automatiquement"],
-    [3,  "Plan comptable",     "chart_of_accounts","Comptes SYSCOHADA + balances d'ouverture"],
-    [4,  "Clients",            "clients",          "Clients et prospects CRM"],
-    [5,  "Contacts clients",   "contacts",         "Importer après les clients"],
-    [6,  "Fournisseurs",       "suppliers",        "Sous-traitants, prestataires"],
-    [7,  "Produits & Services","services",         "Catalogue facturable"],
-    [8,  "Factures clients",   "invoices",         "Soldes ouverts — importer après clients"],
-    [9,  "Encaissements",      "payments",         "Importer après les factures"],
-    [10, "Collaborateurs",     "collaborators",    "RH — importer après départements"],
-    [11, "Projets",            "projects",         "Portefeuille chantiers"],
-    [12, "Équipements",        "equipment",        "Parc matériel"],
+    [1,  "Départements",        "departments",       "À importer en premier (référencé par collaborateurs)"],
+    [2,  "Utilisateurs",        "users",             "Mot de passe temporaire généré automatiquement"],
+    [3,  "Plan comptable",      "chart_of_accounts", "Comptes SYSCOHADA — base de tous les modules compta"],
+    [4,  "Centres analytiques", "cost_centers",      "Centres de coût / CAGE"],
+    [5,  "Banques & Caisses",   "bank_accounts",     "Compte 521/571 requis dans le plan comptable"],
+    [6,  "Balance d'ouverture", "opening_balance",   "Écritures AN — journal AN et période fiscale requis"],
+    [7,  "Clients",             "clients",           "Clients et prospects CRM"],
+    [8,  "Contacts clients",    "contacts",          "Importer après les clients"],
+    [9,  "Fournisseurs",        "suppliers",         "Sous-traitants, prestataires"],
+    [10, "Produits & Services", "services",          "Catalogue facturable"],
+    [11, "Stock initial",       "stock_initial",     "Entrée de stock initiale — produits requis"],
+    [12, "Factures clients",    "invoices",          "Soldes ouverts — importer après clients"],
+    [13, "Encaissements",       "payments",          "Importer après les factures"],
+    [14, "Collaborateurs",      "collaborators",     "RH — importer après départements"],
+    [15, "Soldes de congés",    "leave_balances",    "Importer après les collaborateurs"],
+    [16, "Projets",             "projects",          "Portefeuille chantiers"],
+    [17, "Équipements",         "equipment",         "Parc matériel"],
+    [18, "Budgets",             "budgets",           "Lignes budgétaires — période fiscale requise"],
   ];
 
   ORDER.forEach(([num, label, sheet, note], idx) => {

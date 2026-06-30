@@ -763,18 +763,24 @@ export default function MigrationPage() {
 }
 
 const IMPORT_ORDER: Array<{ order: number; label: string; moduleId: string; note?: string }> = [
-  { order: 1,  label: "Départements",       moduleId: "departments",       note: "Référencé par collaborateurs" },
-  { order: 2,  label: "Utilisateurs",        moduleId: "users",             note: "Mot de passe temporaire auto" },
-  { order: 3,  label: "Plan comptable",      moduleId: "chart_of_accounts", note: "Comptes SYSCOHADA + balances" },
-  { order: 4,  label: "Clients",             moduleId: "clients" },
-  { order: 5,  label: "Contacts clients",    moduleId: "contacts",          note: "Importer après les clients" },
-  { order: 6,  label: "Fournisseurs",        moduleId: "suppliers" },
-  { order: 7,  label: "Produits & Services", moduleId: "services" },
-  { order: 8,  label: "Factures clients",    moduleId: "invoices",          note: "Importer après clients" },
-  { order: 9,  label: "Encaissements",       moduleId: "payments",          note: "Importer après factures" },
-  { order: 10, label: "Collaborateurs",      moduleId: "collaborators",     note: "Importer après départements" },
-  { order: 11, label: "Projets",             moduleId: "projects" },
-  { order: 12, label: "Équipements",         moduleId: "equipment" },
+  { order: 1,  label: "Départements",        moduleId: "departments",       note: "Référencé par collaborateurs" },
+  { order: 2,  label: "Utilisateurs",         moduleId: "users",             note: "Mot de passe temporaire auto" },
+  { order: 3,  label: "Plan comptable",       moduleId: "chart_of_accounts", note: "Comptes SYSCOHADA" },
+  { order: 4,  label: "Centres analytiques",  moduleId: "cost_centers",      note: "Centres de coût / CAGE" },
+  { order: 5,  label: "Banques & Caisses",    moduleId: "bank_accounts",     note: "Compte 521/571 requis au préalable" },
+  { order: 6,  label: "Balance d'ouverture",  moduleId: "opening_balance",   note: "Après le plan comptable" },
+  { order: 7,  label: "Clients",              moduleId: "clients" },
+  { order: 8,  label: "Contacts clients",     moduleId: "contacts",          note: "Après les clients" },
+  { order: 9,  label: "Fournisseurs",         moduleId: "suppliers" },
+  { order: 10, label: "Produits & Services",  moduleId: "services" },
+  { order: 11, label: "Stock initial",        moduleId: "stock_initial",     note: "Après les produits" },
+  { order: 12, label: "Factures clients",     moduleId: "invoices",          note: "Après clients" },
+  { order: 13, label: "Encaissements",        moduleId: "payments",          note: "Après factures" },
+  { order: 14, label: "Collaborateurs",       moduleId: "collaborators",     note: "Après départements" },
+  { order: 15, label: "Soldes de congés",     moduleId: "leave_balances",    note: "Après collaborateurs" },
+  { order: 16, label: "Projets",              moduleId: "projects" },
+  { order: 17, label: "Équipements",          moduleId: "equipment" },
+  { order: 18, label: "Budgets",              moduleId: "budgets",           note: "Période fiscale requise" },
 ];
 
 const MODULES_LABELS: Record<string, string> = {
@@ -783,4 +789,7 @@ const MODULES_LABELS: Record<string, string> = {
   chart_of_accounts: "Plan comptable", projects: "Projets", equipment: "Équipements",
   suppliers: "Fournisseurs", departments: "Départements",
   services: "Produits & Services", users: "Utilisateurs",
+  cost_centers: "Centres analytiques", bank_accounts: "Banques & Caisses",
+  opening_balance: "Balance d'ouverture", stock_initial: "Stock initial",
+  leave_balances: "Soldes de congés", budgets: "Budgets",
 };

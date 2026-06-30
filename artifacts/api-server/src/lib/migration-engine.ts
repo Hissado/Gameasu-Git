@@ -18,6 +18,17 @@ import {
   departmentsTable,
   servicesTable,
   usersTable,
+  costCentersTable,
+  bankAccountsTable,
+  stockMovementsTable,
+  productsTable,
+  leaveBalancesTable,
+  budgetsTable,
+  budgetLinesTable,
+  fiscalPeriodsTable,
+  journalsTable,
+  journalEntriesTable,
+  journalEntryLinesTable,
 } from "@workspace/db/schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -281,6 +292,93 @@ export const MODULES: ModuleDef[] = [
       { key: "description", label: "Description",      required: false, type: "string", examples: "Pelle sur chenilles", aliases: ["description", "notes", "detail", "caracteristiques"] },
     ],
   },
+  {
+    id: "cost_centers",
+    label: "Centres analytiques",
+    icon: "PieChart",
+    description: "Centres de coût / analytiques CAGE (département, projet, activité…)",
+    category: "Comptabilité",
+    fields: [
+      { key: "code",         label: "Code",              required: true,  type: "string", examples: "CC-TRAV",      aliases: ["code", "ref", "identifiant", "code_centre"] },
+      { key: "name",         label: "Nom",               required: true,  type: "string", examples: "Travaux publics", aliases: ["nom", "name", "libelle", "intitule", "centre"] },
+      { key: "type",         label: "Type",              required: false, type: "enum",   examples: "department",   acceptedValues: ["department","project","activity","service","geographic","product_line"], aliases: ["type", "nature", "categorie"] },
+      { key: "description",  label: "Description",       required: false, type: "string", examples: "Département chantiers",  aliases: ["description", "notes", "detail"] },
+      { key: "budgetAmount", label: "Budget annuel (FCFA)", required: false, type: "number", examples: "50000000", aliases: ["budget", "budget_annuel", "dotation", "budget_amount"] },
+      { key: "color",        label: "Couleur (hex)",     required: false, type: "string", examples: "#2563EB",     aliases: ["couleur", "color", "hex"] },
+    ],
+  },
+  {
+    id: "bank_accounts",
+    label: "Banques & Caisses",
+    icon: "Landmark",
+    description: "Comptes bancaires et caisses physiques (compte rattaché 521 / 571 requis)",
+    category: "Comptabilité",
+    fields: [
+      { key: "name",           label: "Nom",                  required: true,  type: "string", examples: "BICICI Compte courant",  aliases: ["nom", "name", "libelle", "intitule", "banque"] },
+      { key: "type",           label: "Type",                 required: true,  type: "enum",   examples: "bank",                  acceptedValues: ["bank","cash"], aliases: ["type", "nature"] },
+      { key: "accountCode",    label: "Code compte (521/571)", required: true,  type: "string", examples: "521000",               aliases: ["code_compte", "compte", "account_code", "numero_compte_pcg"] },
+      { key: "bankName",       label: "Banque",               required: false, type: "string", examples: "BICICI",                aliases: ["banque", "bank_name", "etablissement"] },
+      { key: "accountNumber",  label: "N° de compte",         required: false, type: "string", examples: "02500123456",           aliases: ["numero_compte", "account_number", "rib", "compte_bancaire"] },
+      { key: "iban",           label: "IBAN",                 required: false, type: "string", examples: "TG53TG00605770000010000046",  aliases: ["iban"] },
+      { key: "openingBalance", label: "Solde d'ouverture (FCFA)", required: false, type: "number", examples: "5000000",          aliases: ["solde_ouverture", "opening_balance", "solde_initial", "solde"] },
+    ],
+  },
+  {
+    id: "opening_balance",
+    label: "Balance d'ouverture",
+    icon: "Scale",
+    description: "Écritures d'à-nouveaux — une ligne par compte (débit ou crédit). Requiert un journal AN et une période fiscale active.",
+    category: "Comptabilité",
+    fields: [
+      { key: "accountCode",  label: "Code compte",           required: true,  type: "string", examples: "411000",   aliases: ["code_compte", "compte", "account_code", "numero_compte"] },
+      { key: "debit",        label: "Débit (FCFA)",          required: false, type: "number", examples: "2500000",  aliases: ["debit", "montant_debit", "solde_debiteur", "d"] },
+      { key: "credit",       label: "Crédit (FCFA)",         required: false, type: "number", examples: "0",        aliases: ["credit", "montant_credit", "solde_crediteur", "c"] },
+      { key: "description",  label: "Description / Libellé", required: false, type: "string", examples: "Clients à recouvrer", aliases: ["description", "libelle", "notes", "commentaire"] },
+    ],
+  },
+  {
+    id: "stock_initial",
+    label: "Stock initial",
+    icon: "Package",
+    description: "Entrée de stock initiale pour les articles existants (créés via Produits & Services ou le module inventaire)",
+    category: "Opérations",
+    fields: [
+      { key: "sku",          label: "Code article (SKU)",     required: true,  type: "string", examples: "CIMENT-50KG",  aliases: ["sku", "code_article", "ref", "code_produit", "reference", "codeProduit"] },
+      { key: "quantity",     label: "Quantité",               required: true,  type: "number", examples: "500",          aliases: ["quantite", "qty", "quantity", "stock", "qte"] },
+      { key: "unitCost",     label: "Coût unitaire (FCFA)",   required: false, type: "number", examples: "7500",         aliases: ["cout_unitaire", "unit_cost", "prix_achat", "pu", "cmp"] },
+      { key: "date",         label: "Date d'inventaire",      required: false, type: "date",   examples: "01/01/2024",   aliases: ["date", "date_inventaire", "date_stock", "date_entree"] },
+      { key: "reason",       label: "Motif",                  required: false, type: "string", examples: "Stock initial 2024", aliases: ["motif", "reason", "raison", "notes", "commentaire"] },
+    ],
+  },
+  {
+    id: "leave_balances",
+    label: "Soldes de congés",
+    icon: "Calendar",
+    description: "Soldes de congés des collaborateurs par type et par année",
+    category: "RH",
+    fields: [
+      { key: "collaboratorEmail", label: "Email collaborateur", required: true,  type: "email",  examples: "m.nguema@org.com", aliases: ["email", "email_collaborateur", "collaborateur", "employe", "salarie"] },
+      { key: "leaveType",         label: "Type de congé",       required: true,  type: "enum",   examples: "congé_payé",       acceptedValues: ["congé_payé","RTT","maladie","maternité","paternité","sans_solde","formation","exceptionnel","autre"], aliases: ["type_conge", "type", "conge", "leave_type"] },
+      { key: "year",              label: "Année",               required: true,  type: "number", examples: "2024",             aliases: ["annee", "year", "exercice", "an"] },
+      { key: "allocated",         label: "Jours alloués",       required: true,  type: "number", examples: "25",               aliases: ["alloues", "allocated", "jours_alloues", "quota", "droit"] },
+      { key: "used",              label: "Jours utilisés",      required: false, type: "number", examples: "10",               aliases: ["utilises", "used", "jours_pris", "pris", "consommes"] },
+      { key: "carried",           label: "Jours reportés",      required: false, type: "number", examples: "5",                aliases: ["reportes", "carried", "report", "carry_over"] },
+    ],
+  },
+  {
+    id: "budgets",
+    label: "Budgets",
+    icon: "TrendingUp",
+    description: "Lignes budgétaires par compte SYSCOHADA et par mois. Chaque fichier crée un budget.",
+    category: "Comptabilité",
+    fields: [
+      { key: "budgetName",  label: "Nom du budget",    required: true,  type: "string", examples: "Budget 2024",  aliases: ["nom_budget", "budget_name", "budget", "nom", "intitule"] },
+      { key: "accountCode", label: "Code compte",      required: true,  type: "string", examples: "622000",       aliases: ["code_compte", "compte", "account_code", "numero_compte"] },
+      { key: "period",      label: "Mois (YYYY-MM)",   required: true,  type: "string", examples: "2024-03",      aliases: ["mois", "periode", "period", "month", "date"] },
+      { key: "amount",      label: "Montant (FCFA)",   required: true,  type: "number", examples: "500000",       aliases: ["montant", "amount", "budget", "prevision", "prevu"] },
+      { key: "notes",       label: "Notes",            required: false, type: "string", examples: "Loyers Q1",    aliases: ["notes", "commentaire", "observation", "detail"] },
+    ],
+  },
 ];
 
 export function getModule(id: string): ModuleDef | undefined {
@@ -444,9 +542,15 @@ export async function executeImport(
     case "projects":     return importProjects(parsedFile, mapping, orgId, db, result);
     case "equipment":    return importEquipment(parsedFile, mapping, orgId, db, result);
     case "suppliers":    return importSuppliers(parsedFile, mapping, orgId, db, result);
-    case "departments":  return importDepartments(parsedFile, mapping, orgId, db, result);
-    case "services":     return importServices(parsedFile, mapping, orgId, db, result);
-    case "users":        return importUsers(parsedFile, mapping, orgId, db, result);
+    case "departments":     return importDepartments(parsedFile, mapping, orgId, db, result);
+    case "services":        return importServices(parsedFile, mapping, orgId, db, result);
+    case "users":           return importUsers(parsedFile, mapping, orgId, db, result);
+    case "cost_centers":    return importCostCenters(parsedFile, mapping, orgId, db, result);
+    case "bank_accounts":   return importBankAccounts(parsedFile, mapping, orgId, db, result);
+    case "opening_balance": return importOpeningBalance(parsedFile, mapping, orgId, db, result);
+    case "stock_initial":   return importStockInitial(parsedFile, mapping, orgId, db, result);
+    case "leave_balances":  return importLeaveBalances(parsedFile, mapping, orgId, db, result);
+    case "budgets":         return importBudgets(parsedFile, mapping, orgId, db, result);
     default: throw new Error(`Exécuteur non implémenté pour : ${parsedFile.module}`);
   }
 }
@@ -848,6 +952,339 @@ async function importEquipment(f: ParsedFile, mapping: Record<string, string>, o
     } catch (e) {
       r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
       r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Cost Centers ──────────────────────────────────────────────────────────────
+
+async function importCostCenters(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  const VALID_TYPES = ["department","project","activity","service","geographic","product_line"];
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.code || !o.name) { r.errors.push({ row: i + 2, message: "Code et nom du centre analytique obligatoires" }); r.skipped++; continue; }
+    try {
+      const [rec] = await db.insert(costCentersTable).values({
+        id: randomUUID(), organizationId: orgId,
+        code: o.code.toUpperCase().trim(),
+        name: o.name.trim(),
+        type: VALID_TYPES.includes(o.type ?? "") ? (o.type as string) : "department",
+        description: o.description || null,
+        budgetAmount: num(o.budgetAmount),
+        color: o.color || null,
+        isActive: true,
+      }).onConflictDoNothing().returning({ id: costCentersTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Code déjà existant : "${o.code}"` }); r.skipped++; }
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Bank Accounts ─────────────────────────────────────────────────────────────
+
+async function importBankAccounts(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Pre-load COA codes → ids for this org
+  const coaRows = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const coaByCode = new Map<string, string>(coaRows.map(c => [c.code.trim(), c.id]));
+
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.name || !o.accountCode) { r.errors.push({ row: i + 2, message: "Nom et code compte (521/571) obligatoires" }); r.skipped++; continue; }
+
+    const accountId = coaByCode.get(o.accountCode.trim());
+    if (!accountId) { r.errors.push({ row: i + 2, message: `Compte introuvable dans le plan comptable : "${o.accountCode}"` }); r.skipped++; continue; }
+
+    const type = o.type === "cash" ? "cash" : "bank";
+    try {
+      const [rec] = await db.insert(bankAccountsTable).values({
+        id: randomUUID(), organizationId: orgId,
+        name: o.name.trim(),
+        type,
+        accountId,
+        bankName: o.bankName || null,
+        accountNumber: o.accountNumber || null,
+        iban: o.iban || null,
+        openingBalance: num(o.openingBalance) ?? "0",
+        currency: "XOF",
+        isActive: true,
+      }).returning({ id: bankAccountsTable.id });
+      r.ids.push(rec.id); r.imported++;
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Opening Balance ───────────────────────────────────────────────────────────
+
+async function importOpeningBalance(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Look up or fail: need a journal of type "misc" or code "AN"
+  const journals = await db.select({ id: journalsTable.id, code: journalsTable.code })
+    .from(journalsTable)
+    .where(and(eq(journalsTable.organizationId, orgId), eq(journalsTable.isActive, true)));
+  const journal = journals.find(j => j.code === "AN") ?? journals.find(j => j.code === "OD") ?? journals[0];
+  if (!journal) {
+    r.errors.push({ row: 0, message: "Aucun journal actif trouvé. Créez au moins un journal dans la comptabilité avant d'importer la balance." });
+    return r;
+  }
+
+  const periods = await db.select({ id: fiscalPeriodsTable.id, status: fiscalPeriodsTable.status })
+    .from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.organizationId, orgId));
+  const period = periods.find(p => p.status === "open") ?? periods.find(p => p.status === "closed") ?? periods[0];
+  if (!period) {
+    r.errors.push({ row: 0, message: "Aucune période fiscale trouvée. Créez d'abord une période fiscale dans la comptabilité." });
+    return r;
+  }
+
+  // COA map
+  const coaRows = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const coaByCode = new Map<string, string>(coaRows.map(c => [c.code.trim(), c.id]));
+
+  // Filter valid rows first
+  const validRows: Array<{ accountId: string; debit: string; credit: string; description: string | null }> = [];
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.accountCode) { r.errors.push({ row: i + 2, message: "Code compte manquant" }); r.skipped++; continue; }
+    const accountId = coaByCode.get(o.accountCode.trim());
+    if (!accountId) { r.errors.push({ row: i + 2, message: `Compte introuvable : "${o.accountCode}"` }); r.skipped++; continue; }
+    validRows.push({ accountId, debit: num(o.debit) ?? "0", credit: num(o.credit) ?? "0", description: o.description || null });
+  }
+  if (validRows.length === 0) return r;
+
+  const totalDebit = validRows.reduce((s, l) => s + parseFloat(l.debit), 0);
+  const totalCredit = validRows.reduce((s, l) => s + parseFloat(l.credit), 0);
+  const entryNumber = `AN-IMP-${Date.now().toString(36).toUpperCase()}`;
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const [entry] = await db.insert(journalEntriesTable).values({
+      id: randomUUID(), organizationId: orgId,
+      journalId: journal.id,
+      fiscalPeriodId: period.id,
+      entryNumber,
+      entryDate: today,
+      description: "Balance d'ouverture importée",
+      status: "posted",
+      totalDebit: String(totalDebit),
+      totalCredit: String(totalCredit),
+      sourceType: "opening",
+    }).returning({ id: journalEntriesTable.id });
+
+    for (let pos = 0; pos < validRows.length; pos++) {
+      const vr = validRows[pos];
+      await db.insert(journalEntryLinesTable).values({
+        id: randomUUID(), organizationId: orgId,
+        entryId: entry.id,
+        accountId: vr.accountId,
+        debit: vr.debit,
+        credit: vr.credit,
+        description: vr.description,
+        position: pos,
+      });
+      r.ids.push(entry.id);
+      r.imported++;
+    }
+  } catch (e) {
+    r.errors.push({ row: 0, message: `Erreur création écriture : ${(e as Error).message}` });
+    r.skipped += validRows.length;
+  }
+  return r;
+}
+
+// ── Stock Initial ─────────────────────────────────────────────────────────────
+
+async function importStockInitial(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Pre-load products by SKU
+  const products = await db.select({ id: productsTable.id, sku: productsTable.sku })
+    .from(productsTable).where(and(eq(productsTable.organizationId, orgId), isNull(productsTable.deletedAt)));
+  const bySku = new Map<string, string>(products.map(p => [p.sku.toLowerCase().trim(), p.id]));
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.sku || !o.quantity) { r.errors.push({ row: i + 2, message: "Code article (SKU) et quantité obligatoires" }); r.skipped++; continue; }
+
+    const productId = bySku.get(o.sku.toLowerCase().trim());
+    if (!productId) { r.errors.push({ row: i + 2, message: `Article introuvable avec le SKU : "${o.sku}". Importez d'abord vos articles.` }); r.skipped++; continue; }
+
+    const qty = parseFloat(o.quantity.replace(",", "."));
+    if (isNaN(qty) || qty <= 0) { r.errors.push({ row: i + 2, message: `Quantité invalide : "${o.quantity}"` }); r.skipped++; continue; }
+
+    const occurredAt = o.date ? new Date(parseDate(o.date) ?? today) : new Date();
+    try {
+      const [rec] = await db.insert(stockMovementsTable).values({
+        id: randomUUID(), organizationId: orgId,
+        productId,
+        kind: "in",
+        quantity: String(qty),
+        unitCostFcfa: num(o.unitCost),
+        referenceType: "initial",
+        referenceLabel: "Stock initial importé",
+        reason: o.reason || "Inventaire initial",
+        occurredAt,
+      }).returning({ id: stockMovementsTable.id });
+      r.ids.push(rec.id); r.imported++;
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Leave Balances ────────────────────────────────────────────────────────────
+
+async function importLeaveBalances(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  const VALID_TYPES = ["congé_payé","RTT","maladie","maternité","paternité","sans_solde","formation","exceptionnel","autre"];
+
+  // Pre-load collaborators — join via user email
+  const collabs = await db.select({ id: collaboratorsTable.id, userId: collaboratorsTable.userId })
+    .from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
+  const userIds = collabs.map(c => c.userId).filter(Boolean) as string[];
+
+  const emailMap = new Map<string, string>(); // email → collaboratorId
+  if (userIds.length > 0) {
+    const users = await db.select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable).where(eq(usersTable.organizationId, orgId));
+    const userById = new Map(users.map(u => [u.id, u.email.toLowerCase()]));
+    for (const c of collabs) {
+      if (c.userId) {
+        const email = userById.get(c.userId);
+        if (email) emailMap.set(email, c.id);
+      }
+    }
+  }
+
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.collaboratorEmail || !o.leaveType || !o.year || !o.allocated) {
+      r.errors.push({ row: i + 2, message: "Email, type, année et jours alloués obligatoires" }); r.skipped++; continue;
+    }
+
+    const collaboratorId = emailMap.get(o.collaboratorEmail.toLowerCase().trim());
+    if (!collaboratorId) { r.errors.push({ row: i + 2, message: `Collaborateur introuvable : "${o.collaboratorEmail}"` }); r.skipped++; continue; }
+
+    const leaveType = VALID_TYPES.includes(o.leaveType) ? o.leaveType : "congé_payé";
+    const year = parseInt(o.year);
+    if (isNaN(year)) { r.errors.push({ row: i + 2, message: `Année invalide : "${o.year}"` }); r.skipped++; continue; }
+
+    try {
+      const [rec] = await db.insert(leaveBalancesTable).values({
+        id: randomUUID(), organizationId: orgId,
+        collaboratorId,
+        year,
+        leaveType,
+        allocated: num(o.allocated) ?? "0",
+        used: num(o.used) ?? "0",
+        carried: num(o.carried) ?? "0",
+      }).onConflictDoNothing().returning({ id: leaveBalancesTable.id });
+      if (rec) { r.ids.push(rec.id); r.imported++; }
+      else { r.errors.push({ row: i + 2, message: `Solde déjà existant pour ${o.collaboratorEmail} / ${leaveType} / ${year}` }); r.skipped++; }
+    } catch (e) {
+      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.skipped++;
+    }
+  }
+  return r;
+}
+
+// ── Budgets ───────────────────────────────────────────────────────────────────
+
+async function importBudgets(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // COA map
+  const coaRows = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const coaByCode = new Map<string, string>(coaRows.map(c => [c.code.trim(), c.id]));
+
+  // Fiscal periods map: year → id (prefer open period)
+  const allPeriods = await db.select({ id: fiscalPeriodsTable.id, startDate: fiscalPeriodsTable.startDate, status: fiscalPeriodsTable.status })
+    .from(fiscalPeriodsTable).where(eq(fiscalPeriodsTable.organizationId, orgId));
+  const periodByYear = new Map<number, string>();
+  for (const p of allPeriods) {
+    const y = parseInt(String(p.startDate).slice(0, 4));
+    if (!periodByYear.has(y) || p.status === "open") periodByYear.set(y, p.id);
+  }
+
+  // Group rows by budget name
+  const budgetGroups = new Map<string, Array<{ accountId: string; period: string; amount: string; notes: string | null; rowIdx: number }>>();
+
+  for (let i = 0; i < f.rows.length; i++) {
+    const row = f.rows[i];
+    if (row.every(c => !c.trim())) continue;
+    const o = applyMapping(row, f.headers, mapping);
+    if (!o.budgetName || !o.accountCode || !o.period || !o.amount) {
+      r.errors.push({ row: i + 2, message: "Nom budget, code compte, période et montant obligatoires" }); r.skipped++; continue;
+    }
+
+    const accountId = coaByCode.get(o.accountCode.trim());
+    if (!accountId) { r.errors.push({ row: i + 2, message: `Compte introuvable : "${o.accountCode}"` }); r.skipped++; continue; }
+
+    // Validate period format YYYY-MM
+    if (!/^\d{4}-\d{2}$/.test(o.period.trim())) {
+      r.errors.push({ row: i + 2, message: `Format période invalide : "${o.period}" (attendu YYYY-MM ex: 2024-03)` }); r.skipped++; continue;
+    }
+
+    const name = o.budgetName.trim();
+    if (!budgetGroups.has(name)) budgetGroups.set(name, []);
+    budgetGroups.get(name)!.push({ accountId, period: o.period.trim(), amount: num(o.amount) ?? "0", notes: o.notes || null, rowIdx: i + 2 });
+  }
+
+  // Create one budget per group
+  for (const [budgetName, lines] of budgetGroups.entries()) {
+    // Derive fiscal year from first line's period
+    const year = parseInt(lines[0].period.slice(0, 4));
+    const fiscalPeriodId = periodByYear.get(year);
+    if (!fiscalPeriodId) {
+      for (const l of lines) r.errors.push({ row: l.rowIdx, message: `Période fiscale introuvable pour l'année ${year}` });
+      r.skipped += lines.length; continue;
+    }
+
+    try {
+      const [budget] = await db.insert(budgetsTable).values({
+        id: randomUUID(), organizationId: orgId,
+        name: budgetName,
+        kind: "budget",
+        fiscalPeriodId,
+        scope: "company",
+        status: "draft",
+        versionNumber: 1,
+      }).returning({ id: budgetsTable.id });
+
+      for (const line of lines) {
+        await db.insert(budgetLinesTable).values({
+          id: randomUUID(), organizationId: orgId,
+          budgetId: budget.id,
+          accountId: line.accountId,
+          period: line.period,
+          amount: line.amount,
+          notes: line.notes,
+        }).onConflictDoNothing();
+        r.ids.push(budget.id);
+        r.imported++;
+      }
+    } catch (e) {
+      for (const l of lines) r.errors.push({ row: l.rowIdx, message: `Erreur budget "${budgetName}" : ${(e as Error).message}` });
+      r.skipped += lines.length;
     }
   }
   return r;
