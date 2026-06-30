@@ -762,26 +762,19 @@ export default function MigrationPage() {
   );
 }
 
-const IMPORT_ORDER: Array<{ order: number; label: string; moduleId: string | null; note?: string }> = [
-  { order: 1,  label: "Départements",        moduleId: "departments",       note: "Référencé par collaborateurs" },
-  { order: 2,  label: "Utilisateurs",         moduleId: "users",             note: "Mot de passe temporaire auto" },
-  { order: 3,  label: "Plan comptable",       moduleId: "chart_of_accounts", note: "Comptes SYSCOHADA + balances" },
-  { order: 4,  label: "Centres analytiques",  moduleId: null },
-  { order: 5,  label: "Banques & caisses",    moduleId: null },
-  { order: 6,  label: "Clients",              moduleId: "clients" },
-  { order: 7,  label: "Contacts clients",     moduleId: "contacts",          note: "Importer après les clients" },
-  { order: 8,  label: "Fournisseurs",         moduleId: "suppliers" },
-  { order: 9,  label: "Produits & Services",  moduleId: "services" },
-  { order: 10, label: "Balance d'ouverture",  moduleId: null },
-  { order: 11, label: "Factures clients",     moduleId: "invoices",          note: "Importer après clients" },
-  { order: 12, label: "Encaissements",        moduleId: "payments",          note: "Importer après factures" },
-  { order: 13, label: "Stock initial",        moduleId: null },
-  { order: 14, label: "Collaborateurs",       moduleId: "collaborators",     note: "Importer après départements" },
-  { order: 15, label: "Projets",              moduleId: "projects" },
-  { order: 16, label: "Équipements",          moduleId: "equipment" },
-  { order: 17, label: "Paie & Congés",        moduleId: null },
-  { order: 18, label: "Budgets",              moduleId: null },
-  { order: 19, label: "Documents",            moduleId: null },
+const IMPORT_ORDER: Array<{ order: number; label: string; moduleId: string; note?: string }> = [
+  { order: 1,  label: "Départements",       moduleId: "departments",       note: "Référencé par collaborateurs" },
+  { order: 2,  label: "Utilisateurs",        moduleId: "users",             note: "Mot de passe temporaire auto" },
+  { order: 3,  label: "Plan comptable",      moduleId: "chart_of_accounts", note: "Comptes SYSCOHADA + balances" },
+  { order: 4,  label: "Clients",             moduleId: "clients" },
+  { order: 5,  label: "Contacts clients",    moduleId: "contacts",          note: "Importer après les clients" },
+  { order: 6,  label: "Fournisseurs",        moduleId: "suppliers" },
+  { order: 7,  label: "Produits & Services", moduleId: "services" },
+  { order: 8,  label: "Factures clients",    moduleId: "invoices",          note: "Importer après clients" },
+  { order: 9,  label: "Encaissements",       moduleId: "payments",          note: "Importer après factures" },
+  { order: 10, label: "Collaborateurs",      moduleId: "collaborators",     note: "Importer après départements" },
+  { order: 11, label: "Projets",             moduleId: "projects" },
+  { order: 12, label: "Équipements",         moduleId: "equipment" },
 ];
 
 const MODULES_LABELS: Record<string, string> = {
