@@ -90,7 +90,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-EMAIL_FROM = "Gaméasù <noreply@gameasu.com>"
+EMAIL_FROM = "Gameasu <noreply@gameasu.com>"
 
 [userenv.production]
 SEED_HISSADO_DEMO = "true"
