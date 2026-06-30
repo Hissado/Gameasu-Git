@@ -6,13 +6,18 @@ import ExcelJS from "exceljs";
 import type { Response } from "express";
 import { MODULES, type ModuleDef } from "./migration-engine.js";
 
-const ORANGE = "FFF37021";
-const DARK   = "FF1E293B";
+// ── Palette Gaméasù ──────────────────────────────────────────────────────────
+// Orange principal  #F37021  · Noir profond #1E293B  · Ambre doux  #FFA347
+// Tous les onglets et accents restent dans ces tons — aucune couleur bleue ou verte
+const ORANGE  = "FFF37021";   // accent principal
+const AMBER   = "FFFFA347";   // orange doux (onglet secondaire)
+const DARK    = "FF1E293B";   // quasi-noir (titres, onglets tertiaires)
+const DARK2   = "FF2D3E50";   // quasi-noir légèrement plus clair
 const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE } };
 const DARK_FILL:   ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: DARK } };
-const LIGHT_FILL:  ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
-const REQ_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
-const OPT_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDF4" } };
+const LIGHT_FILL:  ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF8F4" } };  // ivoire chaud
+const REQ_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF0E6" } };  // orange très pâle
+const OPT_FILL:    ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF8F0" } };  // crème (pas vert)
 
 function thinBorder(): ExcelJS.Border {
   return { style: "thin" as const, color: { argb: "FFE2E8F0" } };
@@ -45,7 +50,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
   // Légende en A2
   ws.mergeCells("A2", `${colLetter(mod.fields.length)}2`);
   const legendCell = ws.getCell("A2");
-  legendCell.value = "🟠 Champs obligatoires (fond orangé)   |   🟢 Champs optionnels (fond vert)   |   Ligne 3 = exemple, supprimer avant import";
+  legendCell.value = "🟠 Champs obligatoires (fond orangé)   |   ⬜ Champs optionnels (fond crème)   |   Ligne 3 = exemple, supprimer avant import";
   legendCell.fill = LIGHT_FILL;
   legendCell.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
   legendCell.alignment = { vertical: "middle", horizontal: "center" };
@@ -104,7 +109,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // ── Feuille 2 : Instructions ────────────────────────────────────────────────
   const wi = wb.addWorksheet("Instructions");
-  wi.properties.tabColor = { argb: "FF3B82F6" };
+  wi.properties.tabColor = { argb: DARK2 };
 
   const iTitle = wi.getCell("A1");
   wi.mergeCells("A1", "G1");
@@ -165,7 +170,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 
   // ── Feuille 3 : Procédure ───────────────────────────────────────────────────
   const wp = wb.addWorksheet("Procédure");
-  wp.properties.tabColor = { argb: "FF10B981" };
+  wp.properties.tabColor = { argb: AMBER };
   wp.getColumn(1).width = 6;
   wp.getColumn(2).width = 80;
 
@@ -307,7 +312,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
   // ── Onglet par module ────────────────────────────────────────────────────
   for (const mod of MODULES) {
     const ws = wb.addWorksheet(mod.label.slice(0, 31)); // Excel tab max 31 chars
-    ws.properties.tabColor = { argb: mod.category === "RH" ? "FF8B5CF6" : mod.category === "Ventes" ? "FF10B981" : mod.category === "Comptabilité" ? "FFF59E0B" : mod.category === "Admin" ? "FF3B82F6" : ORANGE };
+    ws.properties.tabColor = { argb: mod.category === "RH" ? DARK2 : mod.category === "Ventes" ? AMBER : mod.category === "Comptabilité" ? DARK : mod.category === "Admin" ? DARK2 : ORANGE };
     ws.views = [{ state: "frozen", xSplit: 0, ySplit: 3 }];
 
     // Titre
@@ -321,7 +326,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
     // Légende
     ws.mergeCells("A2", `${colLetter(mod.fields.length)}2`);
     const lc = ws.getCell("A2");
-    lc.value = `🟠 Obligatoire * | 🟢 Optionnel | ${mod.fields.filter(f => f.required).length} champ(s) obligatoire(s) sur ${mod.fields.length}`;
+    lc.value = `🟠 Obligatoire * | ⬜ Optionnel | ${mod.fields.filter(f => f.required).length} champ(s) obligatoire(s) sur ${mod.fields.length}`;
     lc.fill = LIGHT_FILL; lc.font = { italic: true, size: 9, color: { argb: "FF64748B" } };
     lc.alignment = { vertical: "middle", horizontal: "center" };
     ws.getRow(2).height = 18;
