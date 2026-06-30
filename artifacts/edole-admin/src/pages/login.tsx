@@ -226,7 +226,7 @@ export default function LoginPage() {
                 className="select-none mx-auto mb-5"
                 style={{ height: "36px", width: "auto" }} />
               <h1 className="text-[20px] font-bold text-[#0E1A39]">
-                Bienvenue sur {BRANDING.appName}
+                Pilotez vos opérations en toute simplicité
               </h1>
             </div>
 
