@@ -2121,7 +2121,7 @@ async function buildAttestation(collaboratorId: string, orgId: string, type: "tr
   // En-tête
   doc.fontSize(10).fillColor("#666666").text("GAMEASU AFRICA", 60, 60);
   doc.fontSize(8).fillColor("#999999").text("Plateforme de gestion RH", 60, 75);
-  doc.moveTo(60, 95).lineTo(535, 95).strokeColor("#F37021").lineWidth(2).stroke();
+  doc.moveTo(60, 95).lineTo(535, 95).strokeColor("#2563EB").lineWidth(2).stroke();
 
   // Titre
   doc.fontSize(16).fillColor("#1a1a1a").font("Helvetica-Bold")

@@ -10,9 +10,10 @@ import type { Response } from "express";
 const C = {
   brandDark:     "FF0F1A3A",  // Gameasu navy #0F1A3A
   brandBlue:     "FF2563EB",  // Gameasu bleu électrique #2563EB (logo "su")
-  brandOrange:   "FF2563EB",  // alias → brandBlue (rétrocompat. interne)
-  orange50:      "FFFFF7ED",
-  orange100:     "FFFFEDD5",
+  blue50:        "FFEFF6FF",
+  blue100:       "FFDBEAFE",
+  orange50:      "FFEFF6FF",  // alias → blue50 (rétrocompat. interne)
+  orange100:     "FFDBEAFE",  // alias → blue100
   slate800:      "FF1E293B",
   slate700:      "FF334155",
   slate600:      "FF475569",

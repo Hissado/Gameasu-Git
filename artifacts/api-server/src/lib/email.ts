@@ -286,12 +286,12 @@ export function buildInvitationEmail(opts: {
     ].join("\n"),
     html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee">
-  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">${org.toUpperCase()}</div><h1 style="margin:0;font-size:22px">Bienvenue dans ${org}</h1></div>
+  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">${org.toUpperCase()}</div><h1 style="margin:0;font-size:22px">Bienvenue dans ${org}</h1></div>
   <div style="padding:24px 28px;line-height:1.6">
     <p>Bonjour <strong>${opts.recipientName}</strong>,</p>
     <p><strong>${opts.inviterName}</strong> vous invite à rejoindre la plateforme.</p>
     <p style="text-align:center;margin:24px 0">
-      <a href="${opts.acceptUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Activer mon compte</a>
+      <a href="${opts.acceptUrl}" style="background:#2563EB;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Activer mon compte</a>
     </p>
     <p style="font-size:13px;color:#555">Lien valable 7 jours. Si le bouton ne fonctionne pas, copiez ce lien :<br><span style="word-break:break-all;color:#0066cc">${opts.acceptUrl}</span></p>
     <div style="background:#f8f8f8;border-radius:8px;padding:14px;margin-top:18px">
@@ -346,7 +346,7 @@ export function buildPasswordResetEmail(opts: {
   <h2 style="margin:0 0 12px">Réinitialisation de mot de passe</h2>
   <p>Bonjour <strong>${opts.recipientName}</strong>,</p>
   <p>Une demande de réinitialisation a été reçue. Le lien ci-dessous est valable 1 heure :</p>
-  <p style="text-align:center;margin:24px 0"><a href="${opts.resetUrl}" style="background:#FF6B00;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">Réinitialiser mon mot de passe</a></p>
+  <p style="text-align:center;margin:24px 0"><a href="${opts.resetUrl}" style="background:#2563EB;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">Réinitialiser mon mot de passe</a></p>
   <p style="font-size:12px;color:#888">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>
 </div></body></html>`,
     category: "password_reset",

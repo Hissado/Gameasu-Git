@@ -61,16 +61,17 @@ export function generatePayslipPdf(
   doc.pipe(output);
 
   const W = 515;
-  const ORANGE = "#F37021";
-  const DARK = "#0F172A";
-  const GRAY = "#64748B";
+  const NAVY  = "#0E1A39";
+  const BLUE  = "#2563EB";
+  const DARK  = "#0F172A";
+  const GRAY  = "#64748B";
   const LIGHT = "#F8FAFC";
-  const RED = "#DC2626";
+  const RED   = "#DC2626";
 
   let y = 40;
 
-  // ── En-tête : bandeau orange ──────────────────────────────────────────────
-  doc.rect(40, y, W, 54).fill(ORANGE);
+  // ── En-tête : bandeau marine Gaméasù ─────────────────────────────────────
+  doc.rect(40, y, W, 54).fill(NAVY);
   doc.fontSize(18).font("Helvetica-Bold").fillColor("white")
     .text(org.name.toUpperCase(), 55, y + 8, { width: 300 });
   doc.fontSize(9).font("Helvetica").fillColor("white")
@@ -169,7 +170,7 @@ export function generatePayslipPdf(
 
   y = tableRow(
     ["SALAIRE BRUT", "", "", fcfa(payslip.grossSalary)],
-    cols4x, cols4w, y, "#FFF7ED", true, ORANGE,
+    cols4x, cols4w, y, "#EFF6FF", true, BLUE,
   );
 
   y += 10;

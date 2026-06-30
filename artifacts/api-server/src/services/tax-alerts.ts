@@ -124,7 +124,7 @@ export async function checkTaxAlertsForOrg(orgId: string): Promise<TaxAlertResul
     const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
-  <div style="background:#0b0b0b;padding:20px 28px"><div style="color:#FF6B00;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px">GAMEASU RH</div><h1 style="margin:0;font-size:18px;color:#fff">Alerte — Déclarations fiscales en attente</h1></div>
+  <div style="background:#0b0b0b;padding:20px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px">GAMÉASÙ RH</div><h1 style="margin:0;font-size:18px;color:#fff">Alerte — Déclarations fiscales en attente</h1></div>
   <div style="padding:24px 28px">
     <p style="margin-top:0">Les déclarations fiscales suivantes n'ont pas encore été soumises et approchent ou ont dépassé leur date d'échéance :</p>
     <ul style="padding-left:20px;line-height:1.7">${overdueList}</ul>

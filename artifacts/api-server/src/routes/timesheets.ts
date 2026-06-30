@@ -383,8 +383,8 @@ router.get("/timesheets/export", requirePermission("attendance.view"), async (re
     const wb = new ExcelJS.Workbook();
     wb.creator = "Gameasu";
 
-    const ORANGE = "FFF37021";
-    const headerFill: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE } };
+    const NAVY = "FF0E1A39";
+    const headerFill: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
     const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
 
     function addSheet(name: string, cols: string[], rows: (string | number)[][]) {
@@ -394,7 +394,7 @@ router.get("/timesheets/export", requirePermission("attendance.view"), async (re
       hRow.eachCell(cell => {
         cell.fill = headerFill;
         cell.font = headerFont;
-        cell.border = { bottom: { style: "thin", color: { argb: "FFD46000" } } };
+        cell.border = { bottom: { style: "thin", color: { argb: "FF1D4ED8" } } };
       });
       hRow.height = 20;
       rows.forEach(r => ws.addRow(r));

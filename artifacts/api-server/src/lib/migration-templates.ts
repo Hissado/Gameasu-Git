@@ -149,7 +149,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
     const row = wi.getRow(5 + idx);
     row.height = 20;
     const bg = idx % 2 === 0 ? "FFFFFFFF" : "FFF8FAFC";
-    const reqBg = field.required ? "FFFFF3E0" : bg;
+    const reqBg = field.required ? "FFDBEAFE" : bg;
     [
       field.label,
       field.required ? "✅ Oui" : "Non",
@@ -447,8 +447,8 @@ export async function generateErrorReport(
 
     const actionCell = r.getCell(3);
     actionCell.value = guessAction(err.message);
-    actionCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
-    actionCell.font = { size: 9, italic: true, color: { argb: "FFF97316" } };
+    actionCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF6FF" } };
+    actionCell.font = { size: 9, italic: true, color: { argb: "FF2563EB" } };
     actionCell.border = allBorders();
     actionCell.alignment = { vertical: "middle", wrapText: true };
   });

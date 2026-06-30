@@ -869,7 +869,7 @@ router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, as
     const titleCell = ws.getCell("A1");
     titleCell.value = `Ordre de virement — ${order.reference}`;
     titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
-    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     ws.getRow(1).height = 30;
 
@@ -886,7 +886,7 @@ router.get("/payroll/transfer-orders/:id/export.xlsx", requireManagerOrAbove, as
     const headerRow = ws.addRow(["Référence ordre", "IBAN / N° compte", "Code banque", "Établissement", "Nom bénéficiaire", "Montant net (XOF)", "Devise", "Motif"]);
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
       cell.alignment = { horizontal: "center" };
       cell.border = { bottom: { style: "thin" } };
     });
@@ -1138,7 +1138,7 @@ router.get("/payroll/transfer-audit-log/export.xlsx", requireManagerOrAbove, asy
     const titleCell = ws.getCell("A1");
     titleCell.value = "Journal d'audit — Ordres de virement";
     titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
-    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     ws.getRow(1).height = 30;
 
@@ -1159,7 +1159,7 @@ router.get("/payroll/transfer-audit-log/export.xlsx", requireManagerOrAbove, asy
     const headerRow = ws.addRow(["Date", "Auteur", "Référence ordre", "Montant (XOF)", "Statut précédent", "Nouveau statut", "Réf. banque", "Message d'erreur"]);
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
       cell.alignment = { horizontal: "center" };
       cell.border = { bottom: { style: "thin" } };
     });

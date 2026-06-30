@@ -687,16 +687,16 @@ router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (re
     const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:580px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
-  <div style="background:#F37021;padding:24px 28px">
+  <div style="background:#0E1A39;padding:24px 28px">
     <div style="color:#fff;font-weight:700;letter-spacing:2px;font-size:13px;margin-bottom:4px">${orgName.toUpperCase()}</div>
-    <div style="color:rgba(255,255,255,0.85);font-size:13px">Bulletin de paie</div>
+    <div style="color:rgba(255,255,255,0.75);font-size:13px">Bulletin de paie</div>
   </div>
   <div style="padding:28px">
     <p style="margin:0 0 12px">Bonjour <strong>${p.collaboratorFirstName ?? p.collaboratorName}</strong>,</p>
     <p style="margin:0 0 20px;color:#444;line-height:1.6">Veuillez trouver ci-joint votre bulletin de paie pour la période de <strong>${periodLabel}</strong>.</p>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:20px">
       <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Net à payer</div>
-      <div style="font-size:28px;font-weight:700;color:#F37021">${netFormatted}</div>
+      <div style="font-size:28px;font-weight:700;color:#2563EB">${netFormatted}</div>
       <div style="font-size:12px;color:#94a3b8;margin-top:4px">${periodLabel}</div>
     </div>
     <p style="margin:0;font-size:13px;color:#64748b">Le bulletin détaillé est joint à cet email en PDF.</p>
@@ -926,16 +926,16 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
         const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:580px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
-  <div style="background:#F37021;padding:24px 28px">
+  <div style="background:#0E1A39;padding:24px 28px">
     <div style="color:#fff;font-weight:700;letter-spacing:2px;font-size:13px;margin-bottom:4px">${orgName.toUpperCase()}</div>
-    <div style="color:rgba(255,255,255,0.85);font-size:13px">Bulletin de paie</div>
+    <div style="color:rgba(255,255,255,0.75);font-size:13px">Bulletin de paie</div>
   </div>
   <div style="padding:28px">
     <p style="margin:0 0 12px">Bonjour <strong>${p.collaboratorFirstName ?? p.collaboratorName}</strong>,</p>
     <p style="margin:0 0 20px;color:#444;line-height:1.6">Veuillez trouver ci-joint votre bulletin de paie pour la période de <strong>${periodLabel}</strong>.</p>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:20px">
       <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Net à payer</div>
-      <div style="font-size:28px;font-weight:700;color:#F37021">${netFormatted}</div>
+      <div style="font-size:28px;font-weight:700;color:#2563EB">${netFormatted}</div>
       <div style="font-size:12px;color:#94a3b8;margin-top:4px">${periodLabel}</div>
     </div>
     <p style="margin:0;font-size:13px;color:#64748b">Le bulletin détaillé est joint à cet email en PDF.</p>

@@ -1353,7 +1353,7 @@ function formatFcfaCell(value: number): string {
 
 function applyHeaderStyle(row: ExcelJS.Row) {
   row.eachCell(cell => {
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     cell.alignment = { vertical: "middle", horizontal: "center" };
     cell.border = {
@@ -1432,7 +1432,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
       ws.mergeCells("A1:I1");
       const titleCell = ws.getCell("A1");
       titleCell.value = `DÉCLARATION CNSS — Période ${run.period}`;
-      titleCell.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      titleCell.font = { bold: true, size: 13, color: { argb: "FF2563EB" } };
       titleCell.alignment = { horizontal: "center", vertical: "middle" };
       ws.getRow(1).height = 28;
 
@@ -1467,7 +1467,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
       totRow.height = 20;
       totRow.eachCell(cell => {
         cell.font = { bold: true };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };
         cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
       });
 
@@ -1591,7 +1591,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
       wsRecap.mergeCells("A1:J1");
       const titleCell = wsRecap.getCell("A1");
       titleCell.value = `ÉTAT IRPP MENSUEL — Période ${run.period}`;
-      titleCell.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      titleCell.font = { bold: true, size: 13, color: { argb: "FF2563EB" } };
       titleCell.alignment = { horizontal: "center", vertical: "middle" };
       wsRecap.getRow(1).height = 28;
 
@@ -1621,7 +1621,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
       totRow.height = 20;
       totRow.eachCell(cell => {
         cell.font = { bold: true };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };
         cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
       });
 
@@ -1854,7 +1854,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       wsCnss.mergeCells("A1:J1");
       const cnssTitle = wsCnss.getCell("A1");
       cnssTitle.value = `RÉCAPITULATIF ANNUEL CNSS — Exercice ${year}`;
-      cnssTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      cnssTitle.font = { bold: true, size: 13, color: { argb: "FF2563EB" } };
       cnssTitle.alignment = { horizontal: "center", vertical: "middle" };
       wsCnss.getRow(1).height = 28;
 
@@ -1882,7 +1882,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       cTot.height = 20;
       cTot.eachCell(cell => {
         cell.font = { bold: true };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };
         cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
       });
 
@@ -1901,7 +1901,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       wsIrpp.mergeCells("A1:M1");
       const irppTitle = wsIrpp.getCell("A1");
       irppTitle.value = `RÉCAPITULATIF ANNUEL IRPP — Exercice ${year}`;
-      irppTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      irppTitle.font = { bold: true, size: 13, color: { argb: "FF2563EB" } };
       irppTitle.alignment = { horizontal: "center", vertical: "middle" };
       wsIrpp.getRow(1).height = 28;
 
@@ -1929,7 +1929,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       iTot.height = 20;
       iTot.eachCell(cell => {
         cell.font = { bold: true };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3E0" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };
         cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
       });
 
@@ -1953,7 +1953,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       wsDecl.mergeCells("A1:E1");
       const declTitle = wsDecl.getCell("A1");
       declTitle.value = `STATUT DES DÉCLARATIONS FISCALES — Exercice ${year}`;
-      declTitle.font = { bold: true, size: 13, color: { argb: "FFF37021" } };
+      declTitle.font = { bold: true, size: 13, color: { argb: "FF2563EB" } };
       declTitle.alignment = { horizontal: "center", vertical: "middle" };
       wsDecl.getRow(1).height = 28;
 

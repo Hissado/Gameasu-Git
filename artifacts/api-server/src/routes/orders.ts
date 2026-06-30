@@ -1055,7 +1055,7 @@ router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next
       </tr>
       <tr style="background:#f8fafc">
         <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600">Reste à payer</td>
-        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:700;color:#F37021">${new Intl.NumberFormat("fr-FR").format(outstanding)} FCFA</td>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:700;color:#2563EB">${new Intl.NumberFormat("fr-FR").format(outstanding)} FCFA</td>
       </tr>
     </table>
     <p style="margin:0 0 24px">Nous vous serions reconnaissants de bien vouloir procéder au règlement dans les meilleurs délais.</p>

@@ -30,16 +30,16 @@ function fmtMinutes(m: number): string {
 
 function excelHeader(ws: ExcelJS.Worksheet, row: ExcelJS.Row) {
   row.eachCell((cell) => {
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0E1A39" } };
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     cell.alignment = { horizontal: "center", vertical: "middle" };
-    cell.border = { bottom: { style: "thin", color: { argb: "FFD04F00" } } };
+    cell.border = { bottom: { style: "thin", color: { argb: "FF1D4ED8" } } };
   });
   row.height = 22;
 }
 
 function addMeta(ws: ExcelJS.Worksheet, title: string, period: string) {
-  ws.addRow([title]).font = { bold: true, size: 14, color: { argb: "FFF37021" } };
+  ws.addRow([title]).font = { bold: true, size: 14, color: { argb: "FF0E1A39" } };
   ws.addRow([`Période : ${period}`]).font = { italic: true, size: 10, color: { argb: "FF555555" } };
   ws.addRow([]);
 }
@@ -587,7 +587,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
     doc.pipe(res);
 
     // Title
-    doc.fillColor("#F37021").fontSize(16).font("Helvetica-Bold").text("Gameasu — Rapport de présences", { align: "center" });
+    doc.fillColor("#0E1A39").fontSize(16).font("Helvetica-Bold").text("Gaméasù — Rapport de présences", { align: "center" });
     doc.moveDown(0.3);
     doc.fillColor("#333333").fontSize(11).font("Helvetica-Bold").text(tableData.title, { align: "center" });
     doc.fillColor("#666666").fontSize(9).font("Helvetica").text(`Période : ${period}`, { align: "center" });
@@ -602,7 +602,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
 
     // Header row
     let x = 36, y = doc.y;
-    doc.rect(x, y, pageW, headerH).fill("#F37021");
+    doc.rect(x, y, pageW, headerH).fill("#0E1A39");
     tableData.headers.forEach((h, i) => {
       doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold")
         .text(h, x + i * colW + 2, y + 5, { width: colW - 4, align: "center", lineBreak: false });

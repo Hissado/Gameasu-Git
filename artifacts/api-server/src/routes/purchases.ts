@@ -2060,7 +2060,7 @@ router.get("/purchases/reports/:type/export.xlsx", requirePermission("purchases.
 
       builder.addDataSheet({
         name: type === "aging" ? "Vieillissement AP" : "Factures Impayées",
-        tabColor: "F37021",
+        tabColor: "0E1A39",
         cols: [
           { header: "Référence", key: "referenceNumber", width: 20, format: "text" },
           { header: "Fournisseur", key: "supplierName", width: 28, format: "text" },
