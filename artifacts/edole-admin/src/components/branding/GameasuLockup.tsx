@@ -2,7 +2,7 @@ import { BRANDING } from "@/config/branding";
 
 /**
  * Verrouillage logotype Gameasu.
- * Le logo officiel (mark « G » + mot « améasù » + filet or + slogan) est livré
+ * Le logo officiel (mark « G » + mot « ameasu » + filet or + slogan) est livré
  * comme une seule image. On le pose directement sur le support, sans cartouche :
  * la version transparente est utilisée partout, avec un voile d'opacité réduit
  * sur fond sombre pour un rendu subtil et premium.

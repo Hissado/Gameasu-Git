@@ -192,7 +192,7 @@ router.post("/clients/:id/emails/send", requirePermission("clients.manage"), asy
     clientId: (req.params.id as string),
     direction: "outbound",
     subject,
-    fromAddress: "noreply@gameasù.com",
+    fromAddress: "noreply@gameasu.com",
     toAddress: toAddress || client.email || "",
     preview: body.slice(0, 200),
     body,
