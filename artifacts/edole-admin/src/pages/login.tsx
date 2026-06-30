@@ -224,7 +224,7 @@ export default function LoginPage() {
             <div className="text-center mb-8">
               <img src={BRANDING.logoFullTransparent} alt={BRANDING.appName} draggable={false}
                 className="select-none mx-auto mb-5"
-                style={{ height: "36px", width: "auto" }} />
+                style={{ height: "52px", width: "auto" }} />
               <h1 className="text-[20px] font-bold text-[#0E1A39]">
                 Pilotez vos opérations en toute simplicité
               </h1>
