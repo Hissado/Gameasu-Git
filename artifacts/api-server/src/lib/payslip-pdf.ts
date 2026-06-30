@@ -70,7 +70,7 @@ export function generatePayslipPdf(
 
   let y = 40;
 
-  // ── En-tête : bandeau marine Gaméasù ─────────────────────────────────────
+  // ── En-tête : bandeau marine Gameasu ─────────────────────────────────────
   doc.rect(40, y, W, 54).fill(NAVY);
   doc.fontSize(18).font("Helvetica-Bold").fillColor("white")
     .text(org.name.toUpperCase(), 55, y + 8, { width: 300 });

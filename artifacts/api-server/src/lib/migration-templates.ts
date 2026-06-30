@@ -6,7 +6,7 @@ import ExcelJS from "exceljs";
 import type { Response } from "express";
 import { MODULES, type ModuleDef } from "./migration-engine.js";
 
-// ── Palette Gaméasù — logo officiel ──────────────────────────────────────────
+// ── Palette Gameasu — logo officiel ──────────────────────────────────────────
 // Bleu électrique #2563EB (HSL 221 83% 53%) · Marine profond #0E1A39 (HSL 224 60% 14%)
 // Source : index.css → --primary: 221 83% 53% / --sidebar: 224 60% 14%
 const BLUE    = "FF2563EB";   // bleu électrique Gameasu — accent principal
@@ -239,7 +239,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
 
   wg.mergeCells("A1", "D1");
   const gtitle = wg.getCell("A1");
-  gtitle.value = "Template complet d'intégration — Gaméasù";
+  gtitle.value = "Template complet d'intégration — Gameasu";
   gtitle.fill = DARK_FILL;
   gtitle.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
   gtitle.alignment = { vertical: "middle", horizontal: "center" };
@@ -324,7 +324,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
     // Titre
     ws.mergeCells("A1", `${colLetter(mod.fields.length)}1`);
     const tc = ws.getCell("A1");
-    tc.value = `${mod.label} — Template d'import Gaméasù`;
+    tc.value = `${mod.label} — Template d'import Gameasu`;
     tc.fill = DARK_FILL; tc.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     tc.alignment = { vertical: "middle", horizontal: "center" };
     ws.getRow(1).height = 28;

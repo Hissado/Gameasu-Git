@@ -587,7 +587,7 @@ router.get("/attendance/reports/:reportType/export", requirePermission("attendan
     doc.pipe(res);
 
     // Title
-    doc.fillColor("#0E1A39").fontSize(16).font("Helvetica-Bold").text("Gaméasù — Rapport de présences", { align: "center" });
+    doc.fillColor("#0E1A39").fontSize(16).font("Helvetica-Bold").text("Gameasu — Rapport de présences", { align: "center" });
     doc.moveDown(0.3);
     doc.fillColor("#333333").fontSize(11).font("Helvetica-Bold").text(tableData.title, { align: "center" });
     doc.fillColor("#666666").fontSize(9).font("Helvetica").text(`Période : ${period}`, { align: "center" });
