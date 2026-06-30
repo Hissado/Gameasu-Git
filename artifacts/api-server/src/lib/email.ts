@@ -41,7 +41,7 @@ export function getPreviewInbox(limit = 50) {
 export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "Gameasu <noreply@gameasu.com>";
+  const from = process.env.EMAIL_FROM || "Gaméasù <noreply@gameasu.com>";
 
   let result: EmailDeliveryResult;
   try {
@@ -175,16 +175,18 @@ function buildLinesTable(lines: DocLine[]): string {
 function buildDocEmail(opts: {
   org: OrgBranding; docTypeLabel: string; refNumber: string; clientName: string;
   totalAmount: number; lines: DocLine[]; notes?: string | null;
-  extraFields?: Array<{ label: string; value: string }>; message?: string; color: string;
+  extraFields?: Array<{ label: string; value: string }>; message?: string;
+  color: string; headerColor?: string;
 }): EmailMessage {
   const { color } = opts;
-  const header = buildDocHeader(opts.org, color);
+  const headerColor = opts.headerColor ?? color;
+  const header = buildDocHeader(opts.org, headerColor);
   const linesHtml = buildLinesTable(opts.lines);
   const extras = (opts.extraFields ?? []).map(f =>
     `<div style="font-size:12px;color:#666;margin-top:2px">${f.label} : <strong>${f.value}</strong></div>`
   ).join("");
   const notesHtml = opts.notes ? `<div style="margin-top:16px;background:#fafafa;border-left:3px solid ${color};border-radius:4px;padding:12px;font-size:13px;color:#555"><strong>Notes :</strong> ${opts.notes}</div>` : "";
-  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#f5f7ff;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
+  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#EFF6FF;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
   const totalBlock = linesHtml ? "" : `<div style="text-align:center;padding:24px 0"><div style="font-size:30px;font-weight:700;color:${color}">${fmt(opts.totalAmount)}</div><div style="font-size:12px;color:#aaa;margin-top:4px">Montant total TTC</div></div>`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
@@ -197,7 +199,7 @@ function buildDocEmail(opts: {
     </div>
     ${msgHtml}${linesHtml}${totalBlock}${notesHtml}
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gameasu</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
 </div></body></html>`;
   const textLines = opts.lines.map(l => `  - ${l.description} × ${l.quantity} = ${fmt(l.totalFcfa)}`).join("\n");
   const text = `${opts.docTypeLabel} ${opts.refNumber}\nClient : ${opts.clientName}\n${textLines ? `\nLignes :\n${textLines}\n` : ""}Total : ${fmt(opts.totalAmount)}${opts.notes ? `\n\nNotes : ${opts.notes}` : ""}`;
@@ -219,7 +221,7 @@ export function buildOrderEmail(opts: {
   org: OrgBranding; refNumber: string; clientName: string; totalAmount: number;
   lines: DocLine[]; notes?: string | null; message?: string;
 }): EmailMessage {
-  return buildDocEmail({ ...opts, docTypeLabel: "BON DE COMMANDE", color: "#7c3aed" });
+  return buildDocEmail({ ...opts, docTypeLabel: "BON DE COMMANDE", color: "#2563EB" });
 }
 
 export function buildInvoiceEmail(opts: {
@@ -228,16 +230,16 @@ export function buildInvoiceEmail(opts: {
 }): EmailMessage {
   const extras: Array<{ label: string; value: string }> = [];
   if (opts.dueDate) extras.push({ label: "Échéance", value: new Date(opts.dueDate).toLocaleDateString("fr-FR") });
-  return buildDocEmail({ ...opts, docTypeLabel: "FACTURE", color: "#059669", extraFields: extras });
+  return buildDocEmail({ ...opts, docTypeLabel: "FACTURE", color: "#2563EB", headerColor: "#0E1A39", extraFields: extras });
 }
 
 export function buildCreditNoteEmail(opts: {
   org: OrgBranding; refNumber: string; originalInvoiceRef: string; clientName: string;
   amount: number; reason: string; notes?: string | null; message?: string;
 }): EmailMessage {
-  const color = "#d97706";
-  const header = buildDocHeader(opts.org, color);
-  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#fefce8;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
+  const color = "#2563EB";
+  const header = buildDocHeader(opts.org, "#0E1A39");
+  const msgHtml = opts.message ? `<div style="margin-bottom:16px;padding:12px;background:#EFF6FF;border-radius:8px;font-size:13px;color:#333;font-style:italic">"${opts.message}"</div>` : "";
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
@@ -248,14 +250,14 @@ export function buildCreditNoteEmail(opts: {
       <div style="text-align:right"><div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Client</div><div style="font-weight:600;font-size:15px">${opts.clientName}</div><div style="font-size:12px;color:#666;margin-top:2px">Facture d'origine : ${opts.originalInvoiceRef}</div></div>
     </div>
     ${msgHtml}
-    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:20px;text-align:center;margin:20px 0">
-      <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Montant de l'avoir</div>
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:20px;text-align:center;margin:20px 0">
+      <div style="font-size:11px;color:#1D4ED8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Montant de l'avoir</div>
       <div style="font-size:32px;font-weight:700;color:${color}">− ${fmt(opts.amount)}</div>
     </div>
     <div style="margin-top:16px;background:#fafafa;border-left:3px solid ${color};padding:12px;font-size:13px;color:#555"><strong>Motif :</strong> ${opts.reason}</div>
     ${opts.notes ? `<div style="margin-top:12px;font-size:13px;color:#666"><strong>Notes :</strong> ${opts.notes}</div>` : ""}
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gameasu</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
 </div></body></html>`;
   const text = `NOTE DE CRÉDIT ${opts.refNumber}\nClient : ${opts.clientName}\nFacture d'origine : ${opts.originalInvoiceRef}\nMontant : −${fmt(opts.amount)}\nMotif : ${opts.reason}`;
   return { to: "", subject: `Note de crédit ${opts.refNumber} — ${opts.org.name}`, html, text, category: "commercial" };
@@ -266,7 +268,7 @@ export function buildInvitationEmail(opts: {
   recipientName: string; inviterName: string; orgName?: string; acceptUrl: string;
   temporaryPassword: string;
 }): EmailMessage {
-  const org = opts.orgName ?? "Gameasu";
+  const org = opts.orgName ?? "Gaméasù";
   return {
     to: "",
     subject: `Invitation à rejoindre ${org}`,
@@ -311,12 +313,12 @@ export function buildTwoFactorEmail(opts: {
 }): EmailMessage {
   return {
     to: "",
-    subject: "Votre code de vérification Gameasu",
+    subject: "Votre code de vérification Gaméasù",
     text: `Bonjour ${opts.recipientName},\n\nVotre code de vérification est :\n\n${opts.code}\n\nCe code expire dans ${opts.expirationMinutes} minutes.\n\nSi vous n'êtes pas à l'origine de cette connexion, ignorez ce message et sécurisez votre compte.`,
     html: `<!doctype html><html><body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#0C1830 100%);padding:24px 28px">
-    <div style="color:#5BA3F0;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px;text-transform:uppercase">Gameasu</div>
+    <div style="color:#5BA3F0;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px;text-transform:uppercase">Gaméasù</div>
     <div style="color:#fff;font-size:18px;font-weight:600">Vérification de connexion</div>
   </div>
   <div style="padding:28px">
@@ -328,7 +330,7 @@ export function buildTwoFactorEmail(opts: {
     </div>
     <p style="margin:0;font-size:12px;color:#aaa">Si vous n'avez pas tenté de vous connecter, ignorez ce message et vérifiez la sécurité de votre compte.</p>
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gameasu Technology — noreply@gameasu.com</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù — noreply@gameasu.com</div>
 </div></body></html>`,
     category: "security",
   };
@@ -339,7 +341,7 @@ export function buildPasswordResetEmail(opts: {
 }): EmailMessage {
   return {
     to: "",
-    subject: "Réinitialisation de votre mot de passe Gameasu",
+    subject: "Réinitialisation de votre mot de passe Gaméasù",
     text: `Bonjour ${opts.recipientName},\n\nUne demande de réinitialisation a été reçue. Cliquez sur le lien ci-dessous (valide 1h) :\n${opts.resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
     html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #eee;padding:24px">
