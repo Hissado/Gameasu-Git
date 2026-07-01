@@ -21,8 +21,12 @@ import {
   ticketCommentsTable,
   incidentsTable,
   cockpitAuditLogsTable,
+  expertFirmsTable,
+  expertFirmMembersTable,
+  expertClientAccessTable,
+  documentRequestsTable,
 } from "@workspace/db";
-import { eq, desc, and, sql, gte } from "drizzle-orm";
+import { eq, desc, and, sql, gte, isNull } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -273,6 +277,146 @@ router.get("/super-admin/health", sa, async (_req, res, next) => {
       auditLast1h: auditLast1h?.c ?? 0,
       checkedAt: new Date().toISOString(),
     });
+  } catch (e) { next(e); }
+});
+
+// ── Expert Firms (cabinets) ───────────────────────────────────────────────────
+
+// GET /super-admin/expert-firms — liste + KPIs globaux
+router.get("/super-admin/expert-firms", sa, async (_req, res, next) => {
+  try {
+    const [totals] = await db
+      .select({
+        totalFirms: sql<number>`count(*)::int`,
+        activeFirms: sql<number>`count(*) filter (where ${expertFirmsTable.isActive})::int`,
+      })
+      .from(expertFirmsTable);
+
+    const [clientTotals] = await db
+      .select({ totalClients: sql<number>`count(*)::int` })
+      .from(expertClientAccessTable)
+      .where(eq(expertClientAccessTable.isActive, true));
+
+    const [docTotals] = await db
+      .select({ pendingDocs: sql<number>`count(*)::int` })
+      .from(documentRequestsTable)
+      .where(eq(documentRequestsTable.status, "en_attente"));
+
+    const firms = await db
+      .select({
+        id: expertFirmsTable.id,
+        name: expertFirmsTable.name,
+        slug: expertFirmsTable.slug,
+        country: expertFirmsTable.country,
+        email: expertFirmsTable.email,
+        plan: expertFirmsTable.plan,
+        isActive: expertFirmsTable.isActive,
+        createdAt: expertFirmsTable.createdAt,
+        memberCount: sql<number>`(select count(*)::int from expert_firm_members efm where efm.firm_id = ${expertFirmsTable.id})`,
+        clientCount: sql<number>`(select count(*)::int from expert_client_access eca where eca.firm_id = ${expertFirmsTable.id} and eca.is_active = true)`,
+        pendingDocCount: sql<number>`(select count(*)::int from document_requests dr where dr.firm_id = ${expertFirmsTable.id} and dr.status = 'en_attente')`,
+      })
+      .from(expertFirmsTable)
+      .orderBy(desc(expertFirmsTable.createdAt));
+
+    return res.json({
+      kpis: {
+        totalFirms: totals?.totalFirms ?? 0,
+        activeFirms: totals?.activeFirms ?? 0,
+        totalClients: clientTotals?.totalClients ?? 0,
+        pendingDocs: docTotals?.pendingDocs ?? 0,
+      },
+      firms,
+    });
+  } catch (e) { next(e); }
+});
+
+// GET /super-admin/expert-firms/:id — détail d'un cabinet
+router.get("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
+  try {
+    const firmId = req.params.id as string;
+
+    const [firm] = await db
+      .select()
+      .from(expertFirmsTable)
+      .where(eq(expertFirmsTable.id, firmId))
+      .limit(1);
+    if (!firm) return res.status(404).json({ error: "Cabinet introuvable" });
+
+    const members = await db
+      .select({
+        id: expertFirmMembersTable.id,
+        userId: expertFirmMembersTable.userId,
+        role: expertFirmMembersTable.role,
+        invitedAt: expertFirmMembersTable.invitedAt,
+        joinedAt: expertFirmMembersTable.joinedAt,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+      })
+      .from(expertFirmMembersTable)
+      .innerJoin(usersTable, eq(usersTable.id, expertFirmMembersTable.userId))
+      .where(eq(expertFirmMembersTable.firmId, firmId));
+
+    const clients = await db
+      .select({
+        id: expertClientAccessTable.id,
+        orgId: expertClientAccessTable.orgId,
+        accessLevel: expertClientAccessTable.accessLevel,
+        isActive: expertClientAccessTable.isActive,
+        grantedAt: expertClientAccessTable.grantedAt,
+        orgName: organizationsTable.name,
+        orgCountry: organizationsTable.country,
+      })
+      .from(expertClientAccessTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, expertClientAccessTable.orgId))
+      .where(eq(expertClientAccessTable.firmId, firmId))
+      .orderBy(desc(expertClientAccessTable.grantedAt));
+
+    const docs = await db
+      .select({
+        id: documentRequestsTable.id,
+        title: documentRequestsTable.title,
+        status: documentRequestsTable.status,
+        dueDate: documentRequestsTable.dueDate,
+        createdAt: documentRequestsTable.createdAt,
+        orgId: documentRequestsTable.orgId,
+        orgName: organizationsTable.name,
+      })
+      .from(documentRequestsTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, documentRequestsTable.orgId))
+      .where(and(eq(documentRequestsTable.firmId, firmId), isNull(documentRequestsTable.respondedAt)))
+      .orderBy(desc(documentRequestsTable.createdAt))
+      .limit(20);
+
+    return res.json({ firm, members, clients, docs });
+  } catch (e) { next(e); }
+});
+
+// PATCH /super-admin/expert-firms/:id — activer / désactiver
+router.patch("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
+  try {
+    const firmId = req.params.id as string;
+    const { isActive } = req.body as { isActive: boolean };
+
+    const [updated] = await db
+      .update(expertFirmsTable)
+      .set({ isActive: Boolean(isActive) })
+      .where(eq(expertFirmsTable.id, firmId))
+      .returning({ id: expertFirmsTable.id, name: expertFirmsTable.name, isActive: expertFirmsTable.isActive });
+
+    if (!updated) return res.status(404).json({ error: "Cabinet introuvable" });
+
+    await recordAudit(
+      req.authUser?.id ?? null,
+      req.authUser?.email ?? null,
+      isActive ? "activate_expert_firm" : "suspend_expert_firm",
+      "expert_firm",
+      firmId,
+      { name: updated.name },
+    );
+
+    return res.json(updated);
   } catch (e) { next(e); }
 });
 

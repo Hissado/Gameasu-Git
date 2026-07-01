@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, ChevronRight,
   BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
-  UserCircle, Settings,
+  UserCircle, Briefcase,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }> };
@@ -24,6 +24,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/tenants",      label: "Organisations",      icon: Building2 },
       { href: "/subscriptions",label: "Abonnements",        icon: CreditCard },
+      { href: "/expert-firms", label: "Cabinets experts",   icon: Briefcase },
       { href: "/tickets",      label: "Tickets support",    icon: Ticket },
     ],
   },
