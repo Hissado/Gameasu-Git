@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { ordersTable, proformasTable, invoicesTable, paymentsTable, clientsTable, auditLogsTable, salesLinesTable, creditNotesTable, organizationsTable, clientEmailLogsTable } from "@workspace/db";
 import { eq, sql, isNull, and, desc, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { requireManagerOrAbove } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
 import { logger } from "../lib/logger";
 import { sendEmail, buildProformaEmail, buildOrderEmail, buildInvoiceEmail, buildCreditNoteEmail } from "../lib/email";
@@ -30,7 +30,7 @@ router.get("/orders", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/orders", requireManagerOrAbove, async (req, res) => {
+router.post("/orders", requirePermission("commercial.manage"), async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
   const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
   const [order] = await db.insert(ordersTable).values({ organizationId: req.authUser!.organizationId, referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).returning();
@@ -68,7 +68,7 @@ router.get("/orders/:id", async (req, res) => {
   return res.json({ ...rows[0].order, clientName: rows[0].clientName, totalAmount: toNum(rows[0].order.totalAmount) });
 });
 
-router.put("/orders/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/orders/:id", requirePermission("commercial.manage"), async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
   const [order] = await db.update(ordersTable).set({ clientId, status, totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, (req.params.id as string)))).returning();
   if (!order) return res.status(404).json({ error: "Not found" });
@@ -96,7 +96,7 @@ router.get("/proformas", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/proformas", requireManagerOrAbove, async (req, res) => {
+router.post("/proformas", requirePermission("commercial.manage"), async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
   const refNum = `PRO-${Date.now().toString(36).toUpperCase()}`;
   const [pro] = await db.insert(proformasTable).values({
@@ -116,7 +116,7 @@ router.get("/proformas/:id", async (req, res) => {
   return res.json({ ...rows[0].pro, clientName: rows[0].clientName, totalAmount: toNum(rows[0].pro.totalAmount) });
 });
 
-router.put("/proformas/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/proformas/:id", requirePermission("commercial.manage"), async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
   const before = (await db.select().from(proformasTable).where(and(eq(proformasTable.organizationId, req.authUser!.organizationId), eq(proformasTable.id, (req.params.id as string)))).limit(1))[0];
   if (!before) return res.status(404).json({ error: "Not found" });
@@ -218,7 +218,7 @@ router.get("/invoices", async (req, res) => {
   return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/invoices", requireManagerOrAbove, async (req, res) => {
+router.post("/invoices", requirePermission("commercial.manage"), async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes, issuedAt } = req.body;
   const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
   const finalStatus = status || "pending";
@@ -252,7 +252,7 @@ router.get("/invoices/:id", async (req, res) => {
   return res.json({ ...rows[0].inv, clientName: rows[0].clientName, totalAmount: toNum(rows[0].inv.totalAmount), paidAmount: toNum(rows[0].inv.paidAmount) });
 });
 
-router.put("/invoices/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/invoices/:id", requirePermission("commercial.manage"), async (req, res) => {
   const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
   const before = (await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).limit(1))[0];
   const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).returning();
@@ -300,7 +300,7 @@ router.get("/payments", async (req, res) => {
   });
 });
 
-router.post("/payments", requireManagerOrAbove, async (req, res) => {
+router.post("/payments", requirePermission("commercial.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { invoiceId, amount, currency, method, reference, paidAt, notes, bankAccountId, payerPhone, transactionStatus } = req.body;
 
@@ -416,7 +416,7 @@ router.get("/clients/:id/commercial", async (req, res, next) => {
 });
 
 // ─── POST /proformas/:id/generate-invoice ─────────────────────────────────────
-router.post("/proformas/:id/generate-order", requireManagerOrAbove, async (req, res, next) => {
+router.post("/proformas/:id/generate-order", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
@@ -453,7 +453,7 @@ router.post("/proformas/:id/generate-order", requireManagerOrAbove, async (req, 
   } catch (e) { next(e); }
 });
 
-router.post("/proformas/:id/generate-invoice", requireManagerOrAbove, async (req, res, next) => {
+router.post("/proformas/:id/generate-invoice", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
@@ -491,7 +491,7 @@ router.post("/proformas/:id/generate-invoice", requireManagerOrAbove, async (req
 });
 
 // ─── POST /orders/:id/generate-invoice ────────────────────────────────────────
-router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, res, next) => {
+router.post("/orders/:id/generate-invoice", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(ordersTable)
@@ -538,7 +538,7 @@ router.post("/orders/:id/generate-invoice", requireManagerOrAbove, async (req, r
 });
 
 // ─── PATCH /orders/:id/edit — Modification avec règles métier ────────────────
-router.patch("/orders/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/orders/:id/edit", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [order] = await db.select().from(ordersTable)
@@ -574,7 +574,7 @@ router.patch("/orders/:id/edit", requireManagerOrAbove, async (req, res, next) =
 });
 
 // ─── POST /orders/:id/cancel — Annulation avec règles métier ────────────────
-router.post("/orders/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+router.post("/orders/:id/cancel", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
@@ -603,7 +603,7 @@ router.post("/orders/:id/cancel", requireManagerOrAbove, async (req, res, next) 
 });
 
 // ─── PATCH /proformas/:id/edit — Modification avec règles métier ─────────────
-router.patch("/proformas/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/proformas/:id/edit", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [pro] = await db.select().from(proformasTable)
@@ -639,7 +639,7 @@ router.patch("/proformas/:id/edit", requireManagerOrAbove, async (req, res, next
 });
 
 // ─── POST /proformas/:id/cancel — Annulation avec règles métier ──────────────
-router.post("/proformas/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+router.post("/proformas/:id/cancel", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
@@ -678,7 +678,7 @@ router.post("/proformas/:id/cancel", requireManagerOrAbove, async (req, res, nex
 });
 
 // ─── PATCH /invoices/:id/edit — Modification avec règles métier ──────────────
-router.patch("/invoices/:id/edit", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/invoices/:id/edit", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [inv] = await db.select().from(invoicesTable)
@@ -724,7 +724,7 @@ router.patch("/invoices/:id/edit", requireManagerOrAbove, async (req, res, next)
 });
 
 // ─── POST /invoices/:id/cancel — Annulation avec règles métier ───────────────
-router.post("/invoices/:id/cancel", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/cancel", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { reason } = req.body;
@@ -843,7 +843,7 @@ router.get("/orders/:id/lines", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put("/orders/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+router.put("/orders/:id/lines", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
@@ -863,7 +863,7 @@ router.get("/proformas/:id/lines", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put("/proformas/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+router.put("/proformas/:id/lines", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
@@ -883,7 +883,7 @@ router.get("/invoices/:id/lines", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put("/invoices/:id/lines", requireManagerOrAbove, async (req, res, next) => {
+router.put("/invoices/:id/lines", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { lines } = req.body as { lines: any[] };
@@ -903,7 +903,7 @@ async function getOrgBranding(orgId: string) {
   return org ?? { name: "Gameasu", logoUrl: null, primaryColor: "#C8A24B" };
 }
 
-router.post("/proformas/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+router.post("/proformas/:id/send-email", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { to, message } = req.body as { to: string; message?: string };
@@ -935,7 +935,7 @@ router.post("/proformas/:id/send-email", requireManagerOrAbove, async (req, res,
   } catch (e) { next(e); }
 });
 
-router.post("/orders/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+router.post("/orders/:id/send-email", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { to, message } = req.body as { to: string; message?: string };
@@ -964,7 +964,7 @@ router.post("/orders/:id/send-email", requireManagerOrAbove, async (req, res, ne
   } catch (e) { next(e); }
 });
 
-router.post("/invoices/:id/send-email", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/send-email", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { to, message } = req.body as { to: string; message?: string };
@@ -996,7 +996,7 @@ router.post("/invoices/:id/send-email", requireManagerOrAbove, async (req, res, 
 
 // ─── RELANCE IMPAYÉS ──────────────────────────────────────────────────────────
 
-router.post("/invoices/:id/remind", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/remind", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { to: toOverride, message } = (req.body ?? {}) as { to?: string; message?: string };
@@ -1101,7 +1101,7 @@ router.get("/credit-notes", async (req, res, next) => {
 });
 
 // ─── RELANCE RECOUVREMENT (avec log + dunning status) ────────────────────────
-router.post("/invoices/:id/relance", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/relance", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { subject, body, promiseDate, promiseAmount } = req.body as {
@@ -1165,7 +1165,7 @@ router.post("/invoices/:id/relance", requireManagerOrAbove, async (req, res, nex
 });
 
 // ─── LIEN PUBLIC FACTURE ──────────────────────────────────────────────────────
-router.post("/invoices/:id/generate-public-link", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/generate-public-link", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [inv] = await db.select().from(invoicesTable)
@@ -1193,7 +1193,7 @@ router.get("/invoices/:id/credit-notes", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post("/invoices/:id/credit-note", requireManagerOrAbove, async (req, res, next) => {
+router.post("/invoices/:id/credit-note", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { amount, reason, notes } = req.body;
@@ -1231,7 +1231,7 @@ router.post("/invoices/:id/credit-note", requireManagerOrAbove, async (req, res,
   } catch (e) { next(e); }
 });
 
-router.post("/credit-notes/:id/apply", requireManagerOrAbove, async (req, res, next) => {
+router.post("/credit-notes/:id/apply", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cn] = await db.select().from(creditNotesTable)

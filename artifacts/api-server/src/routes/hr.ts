@@ -30,7 +30,8 @@ import {
   organizationsTable,
 } from "@workspace/db";
 import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
-import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { requireAuth } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import { conversationsTable, conversationParticipantsTable } from "@workspace/db";
 import { emitToUser } from "../lib/realtime";
 
@@ -55,7 +56,7 @@ router.get("/hr/departments", async (req, res) => {
   return res.json({ data: rows.map(d => ({ ...d, collaboratorsCount: byDept.get(d.id) ?? 0 })) });
 });
 
-router.post("/hr/departments", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/departments", requirePermission("hr.manage"), async (req, res) => {
   const { code, name, description, parentId, headCollaboratorId, color } = req.body;
   if (!code || !name) return res.status(400).json({ error: "code et name requis" });
   try {
@@ -85,7 +86,7 @@ router.post("/hr/departments", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.put("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/hr/departments/:id", requirePermission("hr.manage"), async (req, res) => {
   const { code, name, description, parentId, headCollaboratorId, color } = req.body;
   const [d] = await db.update(departmentsTable)
     .set({ code, name, description, parentId, headCollaboratorId, color })
@@ -94,7 +95,7 @@ router.put("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
   return res.json(d);
 });
 
-router.delete("/hr/departments/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/departments/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(departmentsTable).where(and(eq(departmentsTable.organizationId, req.authUser!.organizationId), eq(departmentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -116,7 +117,7 @@ router.get("/hr/positions", async (req, res) => {
   return res.json({ data: rows.map(r => ({ ...r.pos, departmentName: r.deptName })) });
 });
 
-router.post("/hr/positions", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/positions", requirePermission("hr.manage"), async (req, res) => {
   const { code, title, departmentId, description, level } = req.body;
   if (!code || !title) return res.status(400).json({ error: "code et title requis" });
   try {
@@ -128,7 +129,7 @@ router.post("/hr/positions", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.put("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/hr/positions/:id", requirePermission("hr.manage"), async (req, res) => {
   const { code, title, departmentId, description, level } = req.body;
   const [p] = await db.update(positionsTable)
     .set({ code, title, departmentId, description, level })
@@ -137,7 +138,7 @@ router.put("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
   return res.json(p);
 });
 
-router.delete("/hr/positions/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/positions/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(positionsTable).where(and(eq(positionsTable.organizationId, req.authUser!.organizationId), eq(positionsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -165,7 +166,7 @@ router.get("/hr/contracts", async (req, res) => {
   })) });
 });
 
-router.post("/hr/contracts", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/contracts", requirePermission("hr.manage"), async (req, res) => {
   const { collaboratorId, type, status, startDate, endDate, monthlySalary, currency, jobTitle, workLocation, weeklyHours, terms, signedAt, fileUrl } = req.body;
   if (!collaboratorId || !type || !startDate) return res.status(400).json({ error: "collaboratorId, type, startDate requis" });
   const [c] = await db.insert(contractsTable).values({
@@ -178,7 +179,7 @@ router.post("/hr/contracts", requireManagerOrAbove, async (req, res) => {
   return res.status(201).json(c);
 });
 
-router.put("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/hr/contracts/:id", requirePermission("hr.manage"), async (req, res) => {
   const { type, status, startDate, endDate, monthlySalary, currency, jobTitle, workLocation, weeklyHours, terms, signedAt, fileUrl } = req.body;
   const [c] = await db.update(contractsTable).set({
     type, status, startDate, endDate, monthlySalary: monthlySalary?.toString(), currency,
@@ -189,7 +190,7 @@ router.put("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
   return res.json(c);
 });
 
-router.delete("/hr/contracts/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/contracts/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(contractsTable).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -205,7 +206,7 @@ router.get("/hr/documents", async (req, res) => {
   return res.json({ data: rows });
 });
 
-router.post("/hr/documents", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/documents", requirePermission("hr.manage"), async (req, res) => {
   const { collaboratorId, type, name, fileUrl, expiresAt, notes } = req.body;
   if (!collaboratorId || !type || !name || !fileUrl) return res.status(400).json({ error: "Champs requis manquants" });
   const [d] = await db.insert(hrDocumentsTable).values({
@@ -213,7 +214,7 @@ router.post("/hr/documents", requireManagerOrAbove, async (req, res) => {
   return res.status(201).json(d);
 });
 
-router.delete("/hr/documents/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/documents/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(hrDocumentsTable).where(and(eq(hrDocumentsTable.organizationId, req.authUser!.organizationId), eq(hrDocumentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -246,7 +247,7 @@ router.get("/hr/assignments", async (req, res) => {
   })) });
 });
 
-router.post("/hr/assignments", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/assignments", requirePermission("hr.manage"), async (req, res) => {
   const { collaboratorId, projectId, role, allocationPct, startDate, endDate, status, notes } = req.body;
   if (!collaboratorId || !projectId || !role) return res.status(400).json({ error: "collaboratorId, projectId, role requis" });
   const alloc = allocationPct ?? 100;
@@ -278,7 +279,7 @@ router.post("/hr/assignments", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/hr/assignments/:id", requirePermission("hr.manage"), async (req, res) => {
   const { role, allocationPct, startDate, endDate, status, notes } = req.body;
   if (allocationPct != null && (typeof allocationPct !== "number" || allocationPct < 0 || allocationPct > 100)) {
     return res.status(400).json({ error: "allocationPct doit être un nombre entre 0 et 100" });
@@ -308,7 +309,7 @@ router.put("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/assignments/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(collaboratorAssignmentsTable).where(and(eq(collaboratorAssignmentsTable.organizationId, req.authUser!.organizationId), eq(collaboratorAssignmentsTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -318,7 +319,7 @@ router.delete("/hr/assignments/:id", requireManagerOrAbove, async (req, res) => 
 // seedés en se basant sur l'ancien champ texte `department` ou
 // `position`. Idempotent — n'écrase pas une affectation déjà posée.
 // ════════════════════════════════════════════════════════════════
-router.post("/hr/auto-assign-departments", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/auto-assign-departments", requirePermission("hr.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   try {
     // Mapping mots-clés → code département seedé
@@ -754,7 +755,7 @@ router.post("/hr/leaves", async (req, res) => {
   res.status(201).json(row);
 });
 
-router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) => {
+router.patch("/hr/leaves/:id/status", requirePermission("hr.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { status, rejectionReason } = req.body;
   if (!["approved", "rejected", "cancelled"].includes(status)) {
@@ -789,7 +790,7 @@ router.patch("/hr/leaves/:id/status", requireManagerOrAbove, async (req, res) =>
   res.json(updated);
 });
 
-router.delete("/hr/leaves/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/hr/leaves/:id", requirePermission("hr.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const [row] = await db.select().from(leaveRequestsTable)
     .where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string)))).limit(1);
@@ -852,7 +853,7 @@ router.get("/hr/leave-balances/:collaboratorId", async (req, res) => {
   })) });
 });
 
-router.post("/hr/leave-balances", requireManagerOrAbove, async (req, res) => {
+router.post("/hr/leave-balances", requirePermission("hr.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { collaboratorId, year, leaveType, allocated, carried } = req.body;
   if (!collaboratorId || !leaveType) { res.status(400).json({ error: "collaboratorId et leaveType requis" }); return; }
@@ -890,7 +891,7 @@ router.post("/hr/leave-balances", requireManagerOrAbove, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 // ÉVALUATIONS DE PERFORMANCE
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/evaluations", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { period, status } = req.query as { period?: string; status?: string };
@@ -917,7 +918,7 @@ router.get("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/evaluations", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { collaboratorId, reviewerId, type, period, reviewDate, overallRating, criteria, strengths, areasForImprovement, goals, status, notes } =
@@ -935,7 +936,7 @@ router.post("/hr/evaluations", requireManagerOrAbove, async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
-router.get("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/evaluations/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select({
@@ -967,7 +968,7 @@ router.get("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) 
   } catch (e) { next(e); }
 });
 
-router.patch("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/hr/evaluations/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [ev] = await db.select().from(performanceReviewsTable)
@@ -989,7 +990,7 @@ router.patch("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next
   } catch (e) { next(e); }
 });
 
-router.delete("/hr/evaluations/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/hr/evaluations/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [ev] = await db.select().from(performanceReviewsTable)
@@ -1032,7 +1033,7 @@ router.get("/hr/training", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post("/hr/training", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/training", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { title, type, provider, description, location, startDate, endDate, durationHours, cost, maxParticipants, status, notes } =
@@ -1075,7 +1076,7 @@ router.get("/hr/training/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.patch("/hr/training/:id", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/hr/training/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [s] = await db.select().from(trainingSessionsTable)
@@ -1097,7 +1098,7 @@ router.patch("/hr/training/:id", requireManagerOrAbove, async (req, res, next) =
   } catch (e) { next(e); }
 });
 
-router.post("/hr/training/:id/participants", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/training/:id/participants", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [s] = await db.select().from(trainingSessionsTable)
@@ -1118,7 +1119,7 @@ router.post("/hr/training/:id/participants", requireManagerOrAbove, async (req, 
 // ════════════════════════════════════════════════════════════════
 // MOUVEMENTS DU PERSONNEL
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/movements", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { type } = req.query as { type?: string };
@@ -1148,7 +1149,7 @@ router.get("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/movements", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const {
@@ -1178,7 +1179,7 @@ router.post("/hr/movements", requireManagerOrAbove, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/movements/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(personnelMovementsTable)
@@ -1188,7 +1189,7 @@ router.get("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) =>
   } catch (e) { next(e); }
 });
 
-router.delete("/hr/movements/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/hr/movements/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(personnelMovementsTable)
@@ -1207,7 +1208,7 @@ router.delete("/hr/movements/:id", requireManagerOrAbove, async (req, res, next)
  *  - Tous les champs RH sont modifiables.
  *  - baseSalary est réservé aux rôles admin/super_admin.
  */
-router.put("/hr/collaborators/:id/profile", requireManagerOrAbove, async (req, res, next) => {
+router.put("/hr/collaborators/:id/profile", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const isAdmin = ["admin", "super_admin"].includes(req.authUser!.role);
@@ -1544,7 +1545,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
 });
 
 /** GET /api/payroll/payslips/:id/pdf — export PDF admin (sans restriction collab) */
-router.get("/payroll/payslips/:id/pdf", requireManagerOrAbove, async (req, res, next) => {
+router.get("/payroll/payslips/:id/pdf", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [payslip] = await db.select().from(payslipsTable)
@@ -1978,7 +1979,7 @@ router.get("/hr/orgchart", async (req, res, next) => {
 // ════════════════════════════════════════════════════════════════
 // #1 — POLITIQUES DE CONGÉS
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/leave-policies", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const rows = await db.select().from(leavePoliciesTable)
@@ -1988,7 +1989,7 @@ router.get("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) =
   } catch (e) { next(e); }
 });
 
-router.post("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/leave-policies", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const {
@@ -2012,7 +2013,7 @@ router.post("/hr/leave-policies", requireManagerOrAbove, async (req, res, next) 
   } catch (e) { next(e); }
 });
 
-router.put("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, next) => {
+router.put("/hr/leave-policies/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [existing] = await db.select().from(leavePoliciesTable)
@@ -2035,7 +2036,7 @@ router.put("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, nex
   } catch (e) { next(e); }
 });
 
-router.delete("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/hr/leave-policies/:id", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     await db.delete(leavePoliciesTable)
@@ -2047,7 +2048,7 @@ router.delete("/hr/leave-policies/:id", requireManagerOrAbove, async (req, res, 
 // ════════════════════════════════════════════════════════════════
 // #2 — CALENDRIER DES ABSENCES ÉQUIPE
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/team-calendar", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/team-calendar", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { start, end } = req.query as { start?: string; end?: string };
@@ -2194,7 +2195,7 @@ router.get("/hr/me/attestation/:type", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get("/hr/attestations/:collaboratorId/:type", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/attestations/:collaboratorId/:type", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const type = req.params.type as "travail" | "salaire" | "presence";
@@ -2206,7 +2207,7 @@ router.get("/hr/attestations/:collaboratorId/:type", requireManagerOrAbove, asyn
 // ════════════════════════════════════════════════════════════════
 // #5 — FEUILLES DE TEMPS (approbation manager)
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/timesheets", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/timesheets", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { start, end, departmentId, approvalStatus } = req.query as Record<string, string>;
@@ -2263,7 +2264,7 @@ router.get("/hr/timesheets", requireManagerOrAbove, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.patch("/hr/timesheets/:id/approve", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/hr/timesheets/:id/approve", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { status, note } = req.body as { status: "approved" | "rejected"; note?: string };
@@ -2281,7 +2282,7 @@ router.patch("/hr/timesheets/:id/approve", requireManagerOrAbove, async (req, re
   } catch (e) { next(e); }
 });
 
-router.post("/hr/timesheets/bulk-approve", requireManagerOrAbove, async (req, res, next) => {
+router.post("/hr/timesheets/bulk-approve", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { ids } = req.body as { ids: string[] };
@@ -2302,7 +2303,7 @@ router.post("/hr/timesheets/bulk-approve", requireManagerOrAbove, async (req, re
 // ════════════════════════════════════════════════════════════════
 // #6 — ALERTES RH (contrats + périodes d'essai)
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/alerts/upcoming", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/alerts/upcoming", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const today = new Date();
@@ -2392,7 +2393,7 @@ router.get("/hr/alerts/upcoming", requireManagerOrAbove, async (req, res, next) 
 // ════════════════════════════════════════════════════════════════
 // #7 — INDICATEURS RH
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/indicators", requireManagerOrAbove, async (req, res, next) => {
+router.get("/hr/indicators", requirePermission("hr.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { year } = req.query as { year?: string };

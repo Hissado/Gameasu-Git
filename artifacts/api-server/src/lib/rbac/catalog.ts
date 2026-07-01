@@ -167,7 +167,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
     level: 50,
     isSystem: true,
     permissions: [
-      "users.read", "departments.read", "hr.read",
+      "users.read", "departments.read", "hr.read", "hr.manage",
       "clients.read", "clients.manage",
       "services.read", "services.manage",
       "projects.read", "projects.create", "projects.update",
@@ -268,7 +268,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "services.read",
       "projects.read",
       "tasks.read",
-      "commercial.read",
+      "commercial.read", "commercial.manage",
       "equipment.read",
       "accounting.read", "accounting.manage",
       "fpa.read", "fpa.manage",
