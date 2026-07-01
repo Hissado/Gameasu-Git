@@ -88,6 +88,27 @@ export const documentRequestsTable = pgTable("document_requests", {
   statusIdx: index("document_requests_status_idx").on(t.status),
 }));
 
+/**
+ * Sessions de contexte expert — permettent à un expert de "switcher" vers
+ * une org cliente sans déconnexion. Token court-vécu (8h) stocké côté serveur.
+ * Le frontend inclut ce token dans le header X-Expert-Context lors des appels
+ * qui doivent opérer dans le contexte de l'org cliente.
+ */
+export const expertContextSessionsTable = pgTable("expert_context_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").notNull(),
+  expertUserId: uuid("expert_user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  firmId: uuid("firm_id").notNull().references(() => expertFirmsTable.id, { onDelete: "cascade" }),
+  targetOrgId: uuid("target_org_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tokenUidx: uniqueIndex("expert_context_sessions_token_uidx").on(t.token),
+  userIdx: index("expert_context_sessions_user_idx").on(t.expertUserId),
+  firmIdx: index("expert_context_sessions_firm_idx").on(t.firmId),
+  expiresIdx: index("expert_context_sessions_expires_idx").on(t.expiresAt),
+}));
+
 // ─── Zod schemas & types ──────────────────────────────────────────
 export const insertExpertFirmSchema = createInsertSchema(expertFirmsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertExpertFirmMemberSchema = createInsertSchema(expertFirmMembersTable).omit({ id: true, invitedAt: true });
@@ -98,6 +119,8 @@ export type ExpertFirm = typeof expertFirmsTable.$inferSelect;
 export type ExpertFirmMember = typeof expertFirmMembersTable.$inferSelect;
 export type ExpertClientAccess = typeof expertClientAccessTable.$inferSelect;
 export type DocumentRequest = typeof documentRequestsTable.$inferSelect;
+
+export type ExpertContextSession = typeof expertContextSessionsTable.$inferSelect;
 
 export type InsertExpertFirm = z.infer<typeof insertExpertFirmSchema>;
 export type InsertExpertFirmMember = z.infer<typeof insertExpertFirmMemberSchema>;

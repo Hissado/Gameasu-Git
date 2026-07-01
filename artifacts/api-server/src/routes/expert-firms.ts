@@ -1,23 +1,24 @@
 /**
  * Expert Portal — API routes
  *
- * Toutes les routes sont sous /api/expert et nécessitent une session valide (requireAuth
- * est appliqué globalement dans routes/index.ts avant ce router).
+ * Toutes les routes nécessitent une session valide (requireAuth appliqué globalement).
  *
  * Structure :
- *  GET/POST   /api/expert/firms                        — liste / création de cabinets
- *  GET/PATCH  /api/expert/firms/:firmId                — détail / mise à jour
- *  GET/POST   /api/expert/firms/:firmId/members        — membres du cabinet
- *  DELETE     /api/expert/firms/:firmId/members/:uid   — retrait d'un membre
- *  GET        /api/expert/firms/:firmId/clients        — clients liés au cabinet
- *  POST       /api/expert/firms/:firmId/clients        — lier une org existante
- *  DELETE     /api/expert/firms/:firmId/clients/:orgId — délier un client
- *  POST       /api/expert/firms/:firmId/clients/new-org — créer + lier une nouvelle org
- *  PATCH      /api/expert/firms/:firmId/clients/:orgId/access — changer level d'accès
- *  GET        /api/expert/firms/:firmId/clients/:orgId/document-requests — demandes doc
- *  POST       /api/expert/firms/:firmId/clients/:orgId/document-requests — créer demande
- *  PATCH      /api/expert/document-requests/:id        — màj statut/upload
- *  GET        /api/expert/firms/:firmId/dashboard      — KPIs consolidés
+ *  GET/POST   /api/expert/firms                                          — liste/création cabinets
+ *  GET/PATCH  /api/expert/firms/:firmId                                  — détail/màj cabinet
+ *  GET/POST   /api/expert/firms/:firmId/members                          — membres du cabinet
+ *  PATCH      /api/expert/firms/:firmId/members/:uid                     — changer rôle membre
+ *  DELETE     /api/expert/firms/:firmId/members/:uid                     — retirer membre
+ *  GET        /api/expert/firms/:firmId/clients                          — orgs liées au cabinet
+ *  POST       /api/expert/firms/:firmId/clients                          — lier org existante
+ *  POST       /api/expert/firms/:firmId/clients/new-org                  — créer+lier nouvelle org
+ *  DELETE     /api/expert/firms/:firmId/clients/:orgId                   — délier client
+ *  PATCH      /api/expert/firms/:firmId/clients/:orgId/access            — changer level accès
+ *  POST       /api/expert/firms/:firmId/clients/:orgId/switch            — switcher contexte client
+ *  GET/POST   /api/expert/firms/:firmId/clients/:orgId/document-requests — demandes doc
+ *  PATCH      /api/expert/document-requests/:id                         — màj statut/upload
+ *  GET        /api/expert/firms/:firmId/document-requests/upload-url     — URL upload objet
+ *  GET        /api/expert/firms/:firmId/dashboard                        — KPIs consolidés
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -25,21 +26,26 @@ import {
   expertFirmsTable,
   expertFirmMembersTable,
   expertClientAccessTable,
+  expertContextSessionsTable,
   documentRequestsTable,
   organizationsTable,
   organizationMembersTable,
   usersTable,
   organizationSubscriptionsTable,
   subscriptionPlansTable,
+  invoicesTable,
+  projectsTable,
 } from "@workspace/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
 import { audit } from "../lib/audit";
 import { sendEmail, buildInvitationEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
+import { ObjectStorageService } from "../lib/objectStorage";
 import crypto from "node:crypto";
 
 const router = Router();
+const objectStorageService = new ObjectStorageService();
 
 // ─────────────────────────────────────────────────────────────────
 // HELPER — liste les firmIds auxquels l'utilisateur appartient
@@ -81,7 +87,6 @@ router.post("/expert/firms", async (req, res) => {
     .values({ name, slug, country, email, phone, address, logoUrl, plan, createdById: req.authUser!.id })
     .returning();
 
-  // Le créateur devient owner automatiquement
   await db.insert(expertFirmMembersTable).values({
     firmId: firm.id,
     userId: req.authUser!.id,
@@ -260,7 +265,6 @@ router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req
     .limit(1);
 
   if (existing) {
-    // Réactiver si déjà lié mais inactif
     const [updated] = await db
       .update(expertClientAccessTable)
       .set({ isActive: true, accessLevel, notes, revokedAt: null, grantedById: req.authUser!.id })
@@ -278,48 +282,9 @@ router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req
   return res.status(201).json(access);
 });
 
-// Délier un client
-router.delete("/expert/firms/:firmId/clients/:orgId", requireExpertFirmMember, requireExpertClientAccess, async (req, res) => {
-  const actorRole = (req as any).expertMemberRole as string;
-  if (actorRole !== "owner" && actorRole !== "admin") {
-    return res.status(403).json({ error: "Seuls owner/admin peuvent délier des clients" });
-  }
-  await db
-    .update(expertClientAccessTable)
-    .set({ isActive: false, revokedAt: new Date() })
-    .where(and(
-      eq(expertClientAccessTable.firmId, req.params.firmId as string),
-      eq(expertClientAccessTable.orgId, req.params.orgId as string),
-    ));
-  await audit(req, "client_access_revoke", {
-    entityType: "expert_client_access",
-    payload: { orgId: req.params.orgId },
-  });
-  return res.status(204).end();
-});
-
-// Changer le niveau d'accès à un client
-router.patch("/expert/firms/:firmId/clients/:orgId/access", requireExpertFirmMember, requireExpertClientAccess, async (req, res) => {
-  const actorRole = (req as any).expertMemberRole as string;
-  if (actorRole !== "owner" && actorRole !== "admin") {
-    return res.status(403).json({ error: "Seuls owner/admin peuvent modifier les accès" });
-  }
-  const { accessLevel, notes } = req.body ?? {};
-  if (!accessLevel) return res.status(400).json({ error: "accessLevel requis" });
-
-  const [updated] = await db
-    .update(expertClientAccessTable)
-    .set({ accessLevel, notes })
-    .where(and(
-      eq(expertClientAccessTable.firmId, req.params.firmId as string),
-      eq(expertClientAccessTable.orgId, req.params.orgId as string),
-    ))
-    .returning();
-  return res.json(updated);
-});
-
 // ─────────────────────────────────────────────────────────────────
 // CRÉER + LIER une nouvelle organisation cliente
+// Route placée AVANT /:orgId pour éviter la collision avec :orgId="new-org"
 // ─────────────────────────────────────────────────────────────────
 router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, async (req, res) => {
   const actorRole = (req as any).expertMemberRole as string;
@@ -335,7 +300,6 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
   if (!name || !slug) return res.status(400).json({ error: "name et slug requis" });
   if (!ownerEmail) return res.status(400).json({ error: "ownerEmail requis" });
 
-  // Vérifier que le slug n'est pas pris
   const [slugTaken] = await db
     .select({ id: organizationsTable.id })
     .from(organizationsTable)
@@ -343,13 +307,11 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
     .limit(1);
   if (slugTaken) return res.status(409).json({ error: "Ce slug est déjà utilisé par une organisation" });
 
-  // Créer l'organisation
   const [org] = await db
     .insert(organizationsTable)
     .values({ name, slug, country })
     .returning();
 
-  // Créer l'utilisateur owner (mot de passe temporaire si non fourni)
   const tempPassword = ownerPassword || crypto.randomBytes(6).toString("hex");
   const bcrypt = await import("bcryptjs");
   const hashed = await bcrypt.hash(tempPassword, 10);
@@ -374,13 +336,11 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
     isPrimary: true,
   });
 
-  // Lier au cabinet
   const [access] = await db
     .insert(expertClientAccessTable)
     .values({ firmId: req.params.firmId as string, orgId: org.id, accessLevel, grantedById: req.authUser!.id })
     .returning();
 
-  // Envoyer l'email d'invitation au responsable
   const inviterName = `${req.authUser!.firstName} ${req.authUser!.lastName}`.trim();
   const acceptUrl = `${getPublicBaseUrl()}/accept-invite?email=${encodeURIComponent(ownerEmail)}`;
   const emailMsg = buildInvitationEmail({
@@ -396,6 +356,102 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
   await audit(req, "create", { entityType: "organization", entityId: org.id, payload: { firmId: req.params.firmId, ownerEmail } });
   return res.status(201).json({ org, owner: { ...owner, password: undefined }, access, invitationUrl: acceptUrl });
 });
+
+// Délier un client
+router.delete(
+  "/expert/firms/:firmId/clients/:orgId",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Seuls owner/admin peuvent délier des clients" });
+    }
+    await db
+      .update(expertClientAccessTable)
+      .set({ isActive: false, revokedAt: new Date() })
+      .where(and(
+        eq(expertClientAccessTable.firmId, req.params.firmId as string),
+        eq(expertClientAccessTable.orgId, req.params.orgId as string),
+      ));
+    await audit(req, "client_access_revoke", {
+      entityType: "expert_client_access",
+      payload: { orgId: req.params.orgId },
+    });
+    return res.status(204).end();
+  },
+);
+
+// Changer le niveau d'accès à un client
+router.patch(
+  "/expert/firms/:firmId/clients/:orgId/access",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Seuls owner/admin peuvent modifier les accès" });
+    }
+    const { accessLevel, notes } = req.body ?? {};
+    if (!accessLevel) return res.status(400).json({ error: "accessLevel requis" });
+
+    const [updated] = await db
+      .update(expertClientAccessTable)
+      .set({ accessLevel, notes })
+      .where(and(
+        eq(expertClientAccessTable.firmId, req.params.firmId as string),
+        eq(expertClientAccessTable.orgId, req.params.orgId as string),
+      ))
+      .returning();
+    return res.json(updated);
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────
+// SWITCH — créer une session de contexte expert pour une org cliente
+// ─────────────────────────────────────────────────────────────────
+router.post(
+  "/expert/firms/:firmId/clients/:orgId/switch",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const firmId = req.params.firmId as string;
+    const orgId = req.params.orgId as string;
+
+    // Invalider les tokens existants de cet expert pour ce même client
+    await db.delete(expertContextSessionsTable).where(and(
+      eq(expertContextSessionsTable.expertUserId, req.authUser!.id),
+      eq(expertContextSessionsTable.firmId, firmId),
+      eq(expertContextSessionsTable.targetOrgId, orgId),
+    ));
+
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8h
+
+    const [session] = await db
+      .insert(expertContextSessionsTable)
+      .values({
+        token,
+        expertUserId: req.authUser!.id,
+        firmId,
+        targetOrgId: orgId,
+        expiresAt,
+      })
+      .returning();
+
+    await audit(req, "client_access_grant", {
+      entityType: "expert_context_session",
+      entityId: session.id,
+      payload: { firmId, targetOrgId: orgId, expiresAt },
+    });
+
+    return res.status(201).json({
+      contextToken: token,
+      targetOrgId: orgId,
+      expiresAt,
+    });
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────
 // DOCUMENT REQUESTS
@@ -444,8 +500,26 @@ router.post(
   },
 );
 
-// Mise à jour statut / upload d'un document (accessible à tout membre du cabinet
-// qui a accès au client — pas de :orgId dans la route puisque la demande porte ses propres firmId/orgId)
+// Générer une URL de téléversement (object storage) pour joindre un fichier à une demande doc
+router.get(
+  "/expert/firms/:firmId/document-requests/upload-url",
+  requireExpertFirmMember,
+  async (_req, res) => {
+    try {
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      return res.json({ uploadURL, objectPath });
+    } catch (e: any) {
+      return res.status(503).json({ error: "Object storage non disponible", detail: e?.message });
+    }
+  },
+);
+
+/**
+ * Mise à jour statut + upload d'une demande de document.
+ * Vérifie que l'utilisateur est bien membre du cabinet propriétaire de la demande
+ * ET que la liaison firm→org est toujours active.
+ */
 router.patch("/expert/document-requests/:id", async (req, res) => {
   const reqId = req.params.id as string;
   const [existing] = await db
@@ -455,7 +529,7 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
     .limit(1);
   if (!existing) return res.status(404).json({ error: "Demande introuvable" });
 
-  // Vérifier que l'utilisateur est membre du cabinet concerné
+  // Vérifier membership du cabinet
   const [member] = await db
     .select({ id: expertFirmMembersTable.id })
     .from(expertFirmMembersTable)
@@ -464,7 +538,21 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
       eq(expertFirmMembersTable.userId, req.authUser!.id),
     ))
     .limit(1);
-  if (!member) return res.status(403).json({ error: "Accès refusé" });
+  if (!member) return res.status(403).json({ error: "Accès refusé : vous n'êtes pas membre de ce cabinet" });
+
+  // Vérifier que l'accès firm→org est toujours actif
+  const [activeAccess] = await db
+    .select({ id: expertClientAccessTable.id })
+    .from(expertClientAccessTable)
+    .where(and(
+      eq(expertClientAccessTable.firmId, existing.firmId),
+      eq(expertClientAccessTable.orgId, existing.orgId),
+      eq(expertClientAccessTable.isActive, true),
+    ))
+    .limit(1);
+  if (!activeAccess) {
+    return res.status(403).json({ error: "Accès refusé : ce cabinet n'a plus accès à ce client" });
+  }
 
   const { status, fileUrl, fileName } = req.body ?? {};
   const patch: Record<string, unknown> = {};
@@ -481,6 +569,14 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
     .set(patch)
     .where(eq(documentRequestsTable.id, reqId))
     .returning();
+
+  await audit(req, "update", {
+    entityType: "document_request",
+    entityId: updated.id,
+    organizationId: req.authUser!.organizationId,
+    payload: { status, hasFile: !!fileUrl },
+  });
+
   return res.json(updated);
 });
 
@@ -490,7 +586,6 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
 router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (req, res) => {
   const firmId = req.params.firmId as string;
 
-  // Récupérer les orgs actives liées au cabinet
   const accessRows = await db
     .select({ orgId: expertClientAccessTable.orgId })
     .from(expertClientAccessTable)
@@ -507,13 +602,16 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
       clientCount: 0,
       activeSubscriptions: 0,
       pendingDocumentRequests: 0,
+      totalInvoiced: 0,
+      totalPaid: 0,
+      activeProjects: 0,
       clients: [],
     });
   }
 
   // Abonnements actifs
-  const [{ activeSubscriptions }] = await db
-    .select({ activeSubscriptions: sql<number>`count(*)` })
+  const [subRow] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(organizationSubscriptionsTable)
     .where(and(
       inArray(organizationSubscriptionsTable.organizationId, orgIds),
@@ -521,12 +619,33 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
     ));
 
   // Demandes de documents en attente
-  const [{ pendingDocumentRequests }] = await db
-    .select({ pendingDocumentRequests: sql<number>`count(*)` })
+  const [pendingRow] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(documentRequestsTable)
     .where(and(
       eq(documentRequestsTable.firmId, firmId),
       eq(documentRequestsTable.status, "en_attente"),
+    ));
+
+  // KPIs factures : montant total facturé et montant total payé
+  const [invoiceKpi] = await db
+    .select({
+      totalInvoiced: sql<number>`coalesce(sum(${invoicesTable.totalAmount}::numeric), 0)`,
+      totalPaid: sql<number>`coalesce(sum(${invoicesTable.paidAmount}::numeric), 0)`,
+    })
+    .from(invoicesTable)
+    .where(and(
+      inArray(invoicesTable.organizationId, orgIds),
+      sql`${invoicesTable.status} not in ('draft', 'cancelled')`,
+    ));
+
+  // Projets actifs (en cours / en pause)
+  const [projectRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(projectsTable)
+    .where(and(
+      inArray(projectsTable.organizationId, orgIds),
+      sql`${projectsTable.status} in ('in_progress', 'on_hold', 'active')`,
     ));
 
   // Détail par client (org + abonnement courant)
@@ -575,10 +694,33 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
 
   return res.json({
     clientCount,
-    activeSubscriptions: Number(activeSubscriptions),
-    pendingDocumentRequests: Number(pendingDocumentRequests),
+    activeSubscriptions: Number(subRow.count),
+    pendingDocumentRequests: Number(pendingRow.count),
+    totalInvoiced: Number(invoiceKpi.totalInvoiced),
+    totalPaid: Number(invoiceKpi.totalPaid),
+    activeProjects: Number(projectRow.count),
     clients: clientDetails,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────
+// CONTEXT SESSION VALIDATION — utilitaire pour d'autres routes
+// ─────────────────────────────────────────────────────────────────
+/**
+ * Valide un token de contexte expert et retourne les infos de session.
+ * Utilisé par les routes client-scoped du portail expert.
+ */
+export async function resolveExpertContextToken(token: string) {
+  const now = new Date();
+  const [session] = await db
+    .select()
+    .from(expertContextSessionsTable)
+    .where(and(
+      eq(expertContextSessionsTable.token, token),
+      gt(expertContextSessionsTable.expiresAt, now),
+    ))
+    .limit(1);
+  return session ?? null;
+}
 
 export default router;
