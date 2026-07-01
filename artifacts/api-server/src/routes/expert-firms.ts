@@ -312,6 +312,11 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
     .values({ name, slug, country })
     .returning();
 
+  // Générer un token d'invitation sécurisé (one-time, 7 jours)
+  const inviteToken = crypto.randomBytes(32).toString("hex");
+  const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  // Mot de passe temporaire hashé (le vrai accès passe par le lien tokenisé)
   const tempPassword = ownerPassword || crypto.randomBytes(6).toString("hex");
   const bcrypt = await import("bcryptjs");
   const hashed = await bcrypt.hash(tempPassword, 10);
@@ -326,6 +331,11 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
       lastName: ownerLastName,
       role: "admin",
       mustChangePassword: true,
+      // Token d'invitation sécurisé — activé via POST /api/auth/accept-invitation
+      passwordResetToken: inviteToken,
+      passwordResetTokenExpiresAt: tokenExpiresAt,
+      invitedById: req.authUser!.id,
+      invitedAt: new Date(),
     })
     .returning();
 
@@ -342,7 +352,8 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
     .returning();
 
   const inviterName = `${req.authUser!.firstName} ${req.authUser!.lastName}`.trim();
-  const acceptUrl = `${getPublicBaseUrl()}/accept-invite?email=${encodeURIComponent(ownerEmail)}`;
+  // URL sécurisée utilisant le token one-time — compatible avec POST /api/auth/accept-invitation
+  const acceptUrl = `${getPublicBaseUrl()}/accept-invitation?token=${inviteToken}`;
   const emailMsg = buildInvitationEmail({
     recipientName: `${ownerFirstName} ${ownerLastName}`.trim(),
     inviterName,
