@@ -374,13 +374,13 @@ export default function BtpPointage() {
             <>
               <Button
                 size="sm" variant="outline"
-                onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/pointage.xlsx`, "_blank")}
+                onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/pointage.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}
               >
                 <FileSpreadsheet className="w-4 h-4 mr-1" />Pointage XLS
               </Button>
               <Button
                 size="sm" variant="outline"
-                onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx`, "_blank")}
+                onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}
               >
                 <Download className="w-4 h-4 mr-1" />Salaires XLS
               </Button>

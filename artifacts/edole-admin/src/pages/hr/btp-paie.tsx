@@ -340,7 +340,7 @@ export default function BtpPaie() {
             </Button>
             <Button
               size="sm" variant="outline"
-              onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx`, "_blank")}
+              onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}
             >
               <FileSpreadsheet className="w-4 h-4 mr-1" />Export Excel
             </Button>
