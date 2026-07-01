@@ -346,11 +346,11 @@ export function buildExpertFirmInvitationEmail(opts: {
   };
   return {
     to: "",
-    subject: `Invitation à rejoindre Gaméasù — Cabinet ${opts.firmName}`,
+    subject: `Invitation à rejoindre Gameasu — Cabinet ${opts.firmName}`,
     text: [
       `Bonjour,`,
       ``,
-      `L'équipe Gaméasù vous invite à créer votre espace professionnel pour le cabinet "${opts.firmName}" (plan ${planLabel[opts.plan] ?? opts.plan}).`,
+      `L'équipe Gameasu vous invite à créer votre espace professionnel pour le cabinet "${opts.firmName}" (plan ${planLabel[opts.plan] ?? opts.plan}).`,
       ``,
       `Pour accepter l'invitation et activer votre compte, cliquez sur le lien suivant (valide 72 heures) :`,
       opts.acceptUrl,
@@ -360,21 +360,21 @@ export function buildExpertFirmInvitationEmail(opts: {
       `  • Créer et inviter vos clients (tenants)`,
       `  • Accéder à tous les dossiers de vos clients depuis un seul tableau de bord`,
       ``,
-      `À très bientôt sur Gaméasù,`,
-      `L'équipe Gaméasù`,
+      `À très bientôt sur Gameasu,`,
+      `L'équipe Gameasu`,
     ].join("\n"),
     html: `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:22px;font-weight:700">Invitation Cabinet Expert</div>
     <div style="color:#8fa3c0;font-size:14px;margin-top:6px">Rejoignez la plateforme ERP nouvelle génération</div>
   </div>
   <div style="padding:32px">
     <p style="margin:0 0 16px;font-size:15px;color:#333">Bonjour,</p>
     <p style="margin:0 0 20px;font-size:14px;color:#555">
-      L'équipe <strong>Gaméasù</strong> vous invite à créer votre espace professionnel pour le cabinet :
+      L'équipe <strong>Gameasu</strong> vous invite à créer votre espace professionnel pour le cabinet :
     </p>
     <div style="background:#F8F9FB;border:1.5px solid #E8ECF4;border-radius:10px;padding:18px 20px;margin:0 0 24px">
       <div style="font-size:18px;font-weight:700;color:#080E1C">${opts.firmName}</div>
@@ -394,7 +394,7 @@ export function buildExpertFirmInvitationEmail(opts: {
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`,
     category: "invitation",
@@ -421,7 +421,7 @@ export function buildPlanChangeEmail(opts: {
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:20px;font-weight:700">Changement de formule d'abonnement</div>
     <div style="color:#8fa3c0;font-size:13px;margin-top:6px">${opts.orgName}</div>
   </div>
@@ -442,11 +442,11 @@ export function buildPlanChangeEmail(opts: {
       Modification effectuée par <strong>${opts.changedByUserName}</strong> (${opts.changedByFirmName}) le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
     </div>
     <p style="margin:20px 0 0;font-size:12px;color:#aaa">
-      Si vous estimez que cette modification est erronée, contactez votre cabinet partenaire ou l'équipe Gaméasù.
+      Si vous estimez que cette modification est erronée, contactez votre cabinet partenaire ou l'équipe Gameasu.
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`;
   const text = [
@@ -463,7 +463,7 @@ export function buildPlanChangeEmail(opts: {
   ].join("\n");
   return {
     to: "",
-    subject: `Votre formule Gaméasù a été modifiée → ${opts.newPlanName}`,
+    subject: `Votre formule Gameasu a été modifiée → ${opts.newPlanName}`,
     html,
     text,
     category: "billing",
