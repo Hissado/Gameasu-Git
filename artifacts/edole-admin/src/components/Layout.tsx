@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useExpertFirms } from "@/lib/expert-api";
+import { useExpertFirms, getActiveFirmId, setActiveFirmId } from "@/lib/expert-api";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronRight, Database, CalendarCheck } from "lucide-react";
+import { Menu, X, ChevronRight, Database, CalendarCheck, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, CheckSquare, Briefcase, Wrench, Truck,
@@ -196,6 +196,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
 
+  // Expert Portal — firms list + active firm switcher
+  const { data: expertFirms } = useExpertFirms();
+  const qc = useQueryClient();
+  const [activeFirmId, setActiveFirmIdState] = useState<string | null>(getActiveFirmId);
+  const switchFirm = (id: string) => {
+    setActiveFirmId(id);
+    setActiveFirmIdState(id);
+    qc.invalidateQueries({ queryKey: ["expert"] });
+  };
+  const activeExpertFirm = expertFirms?.find((f) => f.id === activeFirmId);
+
   // Unread notifications count — polled every 60 s + invalidated by socket events
   const { data: unreadData } = useQuery({
     queryKey: ["/api/notifications", "unread-count"],
@@ -298,6 +309,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             const hasActive = isGroupActive(group, location);
             const GroupIcon = group.icon;
             if (!group.items.some((i) => isItemVisible(i))) return null;
+            // Gate Expert group: hide until user has at least one firm (unless already on /expert route)
+            if (group.title === "Portail Expert" && !location.startsWith("/expert") && (!expertFirms || expertFirms.length === 0)) return null;
 
             return (
               <div key={group.title}>
@@ -506,6 +519,26 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
           {/* ── Zone droite : raccourcis rapides + profil ─────────────── */}
           <div className="flex items-center gap-0.5 shrink-0">
+            {/* Cabinet switcher — visible when on /expert/* and user has multiple firms */}
+            {location.startsWith("/expert") && expertFirms && expertFirms.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-[7px] mr-1 rounded-lg border border-border text-[12.5px] font-medium hover:bg-muted/60 transition-colors">
+                    <Network className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="max-w-[130px] truncate">{activeExpertFirm?.name ?? "Cabinet"}</span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 font-sans">
+                  {expertFirms.map((f) => (
+                    <DropdownMenuItem key={f.id} onClick={() => switchFirm(f.id)} className="flex items-center gap-2 cursor-pointer">
+                      <span className="flex-1 truncate">{f.name}</span>
+                      {f.id === activeFirmId && <span className="text-primary text-xs font-bold">✓</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             {/* Bouton "Nouveau" Xero-style */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -78,10 +78,10 @@ export default function DocumentRequestsPage() {
 
   const filtered = (requests ?? []).filter((r) => statusFilter === "all" || r.status === statusFilter);
 
-  const handleAction = async (id: string, status: "validated" | "rejected") => {
+  const handleAction = async (id: string, status: "valide" | "rejete") => {
     try {
       await update.mutateAsync({ id, status });
-      toast({ title: status === "validated" ? "Document validé" : "Document rejeté" });
+      toast({ title: status === "valide" ? "Document validé" : "Document rejeté" });
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.body?.error, variant: "destructive" });
     }
@@ -131,10 +131,10 @@ export default function DocumentRequestsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
-              <SelectItem value="received">Reçu</SelectItem>
-              <SelectItem value="validated">Validé</SelectItem>
-              <SelectItem value="rejected">Rejeté</SelectItem>
+              <SelectItem value="en_attente">En attente</SelectItem>
+              <SelectItem value="recu">Reçu</SelectItem>
+              <SelectItem value="valide">Validé</SelectItem>
+              <SelectItem value="rejete">Rejeté</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -198,13 +198,13 @@ export default function DocumentRequestsPage() {
                         </Button>
                       </a>
                     )}
-                    {r.status === "received" && (
+                    {r.status === "recu" && (
                       <>
                         <Button
                           variant="ghost" size="sm"
                           className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50"
                           title="Valider"
-                          onClick={() => handleAction(r.id, "validated")}
+                          onClick={() => handleAction(r.id, "valide")}
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
                         </Button>
@@ -212,7 +212,7 @@ export default function DocumentRequestsPage() {
                           variant="ghost" size="sm"
                           className="h-8 w-8 p-0 text-destructive/70 hover:bg-destructive/10"
                           title="Rejeter"
-                          onClick={() => handleAction(r.id, "rejected")}
+                          onClick={() => handleAction(r.id, "rejete")}
                         >
                           <XCircle className="w-3.5 h-3.5" />
                         </Button>

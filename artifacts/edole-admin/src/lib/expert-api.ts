@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 
+// ─── Slug utility ─────────────────────────────────────────────────────────────
+
+export function nameToSlug(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) +
+    "-" +
+    Date.now().toString(36)
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ExpertFirm = {
@@ -22,16 +38,31 @@ export type ExpertClientRow = {
   subscription?: { planName: string; status: string; planCode: string; } | null;
 };
 
+export type DocStatus = "en_attente" | "recu" | "valide" | "rejete";
+
 export type DocRequest = {
   id: string; firmId: string; orgId: string; title: string; description?: string;
-  status: "pending" | "received" | "validated" | "rejected";
+  status: DocStatus;
   dueDate?: string; fileUrl?: string; fileName?: string;
   requestedById: string; createdAt: string; updatedAt: string;
 };
 
 export type ExpertDashboard = {
-  clientCount: number; activeSubscriptions: number; pendingDocRequests: number;
-  totalInvoiced: number; totalPaid: number; activeProjects: number;
+  clientCount: number;
+  activeSubscriptions: number;
+  pendingDocumentRequests: number;
+  totalInvoiced: number;
+  totalPaid: number;
+  activeProjects: number;
+};
+
+export type ClientKpi = {
+  orgId: string;
+  totalInvoiced: number;
+  totalPaid: number;
+  activeProjects: number;
+  pendingDocs: number;
+  unpaidInvoices: number;
 };
 
 // ─── Active Firm State (localStorage-backed) ─────────────────────────────────
@@ -109,11 +140,23 @@ export function useDocRequests(firmId: string | null, orgId: string | null) {
   });
 }
 
+export function useExpertClientKpis(firmId: string | null) {
+  return useQuery({
+    queryKey: ["expert/client-kpis", firmId],
+    queryFn: () => apiFetch<ClientKpi[]>(`/api/expert/firms/${firmId}/client-kpis`),
+    enabled: !!firmId,
+    staleTime: 3 * 60_000,
+  });
+}
+
 export function useCreateFirm() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: { name: string; country: string; email?: string; phone?: string }) =>
-      apiFetch<ExpertFirm>("/api/expert/firms", { method: "POST", body }),
+      apiFetch<ExpertFirm>("/api/expert/firms", {
+        method: "POST",
+        body: { ...body, slug: nameToSlug(body.name) },
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["expert/firms"] }),
   });
 }
@@ -152,7 +195,10 @@ export function useAddClientOrg(firmId: string) {
       name: string; country: string; ownerFirstName: string; ownerLastName: string;
       ownerEmail: string; accessLevel: string;
     }) =>
-      apiFetch(`/api/expert/firms/${firmId}/clients/new-org`, { method: "POST", body }),
+      apiFetch(`/api/expert/firms/${firmId}/clients/new-org`, {
+        method: "POST",
+        body: { ...body, slug: nameToSlug(body.name) },
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expert/clients", firmId] });
       qc.invalidateQueries({ queryKey: ["expert/dashboard", firmId] });
@@ -168,6 +214,7 @@ export function useUnlinkClient(firmId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expert/clients", firmId] });
       qc.invalidateQueries({ queryKey: ["expert/dashboard", firmId] });
+      qc.invalidateQueries({ queryKey: ["expert/client-kpis", firmId] });
     },
   });
 }
@@ -194,29 +241,29 @@ export function useUpdateDocRequest() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export const DOC_STATUS_LABEL: Record<string, string> = {
-  pending: "En attente",
-  received: "Reçu",
-  validated: "Validé",
-  rejected: "Rejeté",
+export const DOC_STATUS_LABEL: Record<DocStatus, string> = {
+  en_attente: "En attente",
+  recu:       "Reçu",
+  valide:     "Validé",
+  rejete:     "Rejeté",
 };
 
-export const DOC_STATUS_COLOR: Record<string, string> = {
-  pending:   "bg-amber-50 text-amber-700 border-amber-200",
-  received:  "bg-blue-50 text-blue-700 border-blue-200",
-  validated: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  rejected:  "bg-red-50 text-red-700 border-red-200",
+export const DOC_STATUS_COLOR: Record<DocStatus, string> = {
+  en_attente: "bg-amber-50 text-amber-700 border-amber-200",
+  recu:       "bg-blue-50 text-blue-700 border-blue-200",
+  valide:     "bg-emerald-50 text-emerald-700 border-emerald-200",
+  rejete:     "bg-red-50 text-red-700 border-red-200",
 };
 
 export const ACCESS_LABEL: Record<string, string> = {
-  full: "Accès complet",
-  read: "Lecture seule",
+  full:    "Accès complet",
+  read:    "Lecture seule",
   billing: "Facturation",
 };
 
 export const PLAN_COLOR: Record<string, string> = {
-  STARTER: "bg-slate-100 text-slate-600",
-  GROWTH:  "bg-blue-50 text-blue-700",
+  STARTER:      "bg-slate-100 text-slate-600",
+  GROWTH:       "bg-blue-50 text-blue-700",
   PROFESSIONAL: "bg-purple-50 text-purple-700",
-  ENTERPRISE: "bg-amber-50 text-amber-700",
+  ENTERPRISE:   "bg-amber-50 text-amber-700",
 };

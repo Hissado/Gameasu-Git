@@ -735,6 +735,95 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
 });
 
 // ─────────────────────────────────────────────────────────────────
+// KPIs PAR CLIENT — GET /expert/firms/:firmId/client-kpis
+// ─────────────────────────────────────────────────────────────────
+router.get("/expert/firms/:firmId/client-kpis", async (req, res) => {
+  const { firmId } = req.params as Record<string, string>;
+  const userId = req.authUser!.id;
+
+  const [member] = await db.select().from(expertFirmMembersTable).where(and(
+    eq(expertFirmMembersTable.firmId, firmId),
+    eq(expertFirmMembersTable.userId, userId),
+  ));
+  if (!member) return res.status(403).json({ error: "Accès refusé" });
+
+  const accessRows = await db
+    .select({ orgId: expertClientAccessTable.orgId })
+    .from(expertClientAccessTable)
+    .where(and(
+      eq(expertClientAccessTable.firmId, firmId),
+      eq(expertClientAccessTable.isActive, true),
+    ));
+
+  const orgIds = accessRows.map((r) => r.orgId);
+  if (!orgIds.length) return res.json([]);
+
+  const invoiceKpis = await db
+    .select({
+      orgId: invoicesTable.organizationId,
+      totalInvoiced: sql<number>`coalesce(sum(${invoicesTable.totalAmount}::numeric), 0)`,
+      totalPaid: sql<number>`coalesce(sum(${invoicesTable.paidAmount}::numeric), 0)`,
+    })
+    .from(invoicesTable)
+    .where(and(
+      inArray(invoicesTable.organizationId, orgIds),
+      sql`${invoicesTable.status} not in ('draft', 'cancelled')`,
+    ))
+    .groupBy(invoicesTable.organizationId);
+
+  const projectKpis = await db
+    .select({
+      orgId: projectsTable.organizationId,
+      activeProjects: sql<number>`count(*)`,
+    })
+    .from(projectsTable)
+    .where(and(
+      inArray(projectsTable.organizationId, orgIds),
+      sql`${projectsTable.status} in ('in_progress', 'on_hold', 'active')`,
+    ))
+    .groupBy(projectsTable.organizationId);
+
+  const docKpis = await db
+    .select({
+      orgId: documentRequestsTable.orgId,
+      pendingDocs: sql<number>`count(*)`,
+    })
+    .from(documentRequestsTable)
+    .where(and(
+      eq(documentRequestsTable.firmId, firmId),
+      inArray(documentRequestsTable.orgId, orgIds),
+      eq(documentRequestsTable.status, "en_attente"),
+    ))
+    .groupBy(documentRequestsTable.orgId);
+
+  const unpaidKpis = await db
+    .select({
+      orgId: invoicesTable.organizationId,
+      unpaidInvoices: sql<number>`count(*)`,
+    })
+    .from(invoicesTable)
+    .where(and(
+      inArray(invoicesTable.organizationId, orgIds),
+      sql`${invoicesTable.status} in ('sent', 'overdue', 'partial')`,
+    ))
+    .groupBy(invoicesTable.organizationId);
+
+  const invMap = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
+  const projMap = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
+  const docMap = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
+  const unpaidMap = Object.fromEntries(unpaidKpis.map((r) => [r.orgId, r]));
+
+  return res.json(orgIds.map((orgId) => ({
+    orgId,
+    totalInvoiced:  Number(invMap[orgId]?.totalInvoiced  ?? 0),
+    totalPaid:      Number(invMap[orgId]?.totalPaid      ?? 0),
+    activeProjects: Number(projMap[orgId]?.activeProjects ?? 0),
+    pendingDocs:    Number(docMap[orgId]?.pendingDocs    ?? 0),
+    unpaidInvoices: Number(unpaidMap[orgId]?.unpaidInvoices ?? 0),
+  })));
+});
+
+// ─────────────────────────────────────────────────────────────────
 // CONTEXT SESSION VALIDATION — utilitaire pour d'autres routes
 // ─────────────────────────────────────────────────────────────────
 /**

@@ -117,7 +117,7 @@ export default function ExpertDashboard() {
     );
   }
 
-  const kpis = dashboard ?? { clientCount: 0, activeSubscriptions: 0, pendingDocRequests: 0, totalInvoiced: 0, totalPaid: 0, activeProjects: 0 };
+  const kpis = dashboard ?? { clientCount: 0, activeSubscriptions: 0, pendingDocumentRequests: 0, totalInvoiced: 0, totalPaid: 0, activeProjects: 0 };
 
   return (
     <div className="space-y-6">
@@ -146,7 +146,7 @@ export default function ExpertDashboard() {
           <KpiCard icon={Building2} label="Clients" value={kpis.clientCount} color="blue" />
           <KpiCard icon={TrendingUp} label="Abonnements actifs" value={kpis.activeSubscriptions} color="emerald" />
           <KpiCard icon={FolderKanban} label="Projets actifs" value={kpis.activeProjects} color="purple" />
-          <KpiCard icon={Clock} label="Documents en attente" value={kpis.pendingDocRequests} color="amber" />
+          <KpiCard icon={Clock} label="Documents en attente" value={kpis.pendingDocumentRequests} color="amber" />
           <KpiCard icon={FileText} label="Facturé (cumul)" value={formatFCFA(kpis.totalInvoiced)} color="blue" />
           <KpiCard icon={Wallet} label="Encaissé (cumul)" value={formatFCFA(kpis.totalPaid)} color="emerald" />
         </div>
