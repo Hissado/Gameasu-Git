@@ -941,7 +941,7 @@ router.get(
     const orgIds = clients.map((c) => c.orgId);
 
     // 2. KPIs (mêmes requêtes que client-kpis)
-    const [invoiceKpis, projectKpis, docKpis, unpaidKpis] = await Promise.all([
+    const [invoiceKpis, projectKpis, docKpis, unpaidKpis, expKpis] = await Promise.all([
       orgIds.length
         ? db.select({
             orgId: invoicesTable.organizationId,

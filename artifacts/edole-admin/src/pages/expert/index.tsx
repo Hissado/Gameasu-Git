@@ -102,7 +102,7 @@ function InviteCollaborateurModal({ firmId, open, onClose }: { firmId: string; o
       apiFetch(`/api/expert/firms/${firmId}/invite-member`, { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {
       toast({ title: "Invitation envoyée", description: "Un e-mail d'invitation a été envoyé au collaborateur." });
-      qc.invalidateQueries({ queryKey: ["expert", "members", firmId] });
+      qc.invalidateQueries({ queryKey: ["expert/members", firmId] });
       onClose();
       setForm({ firstName: "", lastName: "", email: "", role: "member" });
     },
