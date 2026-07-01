@@ -63,6 +63,7 @@ export type ClientKpi = {
   activeProjects: number;
   pendingDocs: number;
   unpaidInvoices: number;
+  totalExpenses: number;
 };
 
 export type ExpertContextSession = {
@@ -215,7 +216,7 @@ export function useAddClientOrg(firmId: string) {
   return useMutation({
     mutationFn: (body: {
       name: string; country: string; ownerFirstName: string; ownerLastName: string;
-      ownerEmail: string; accessLevel: string;
+      ownerEmail: string; accessLevel: string; industry?: string;
     }) =>
       apiFetch(`/api/expert/firms/${firmId}/clients/new-org`, {
         method: "POST",

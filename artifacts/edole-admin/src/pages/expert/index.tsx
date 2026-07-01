@@ -11,8 +11,10 @@ import { useState } from "react";
 import { formatFCFA } from "@/lib/format";
 import {
   Building2, Users2, FileText, FolderKanban, AlertCircle,
-  ChevronRight, Plus, Network, TrendingUp, Wallet, Clock,
+  ChevronRight, Plus, Network, TrendingUp, Wallet, Clock, UserPlus,
 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 
 function KpiCard({ icon: Icon, label, value, sub, color = "blue" }: {
   icon: React.ComponentType<{ className?: string }>;
@@ -90,11 +92,79 @@ function CreateFirmModal({ open, onClose }: { open: boolean; onClose: () => void
   );
 }
 
+function InviteCollaborateurModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", role: "member" });
+
+  const invite = useMutation({
+    mutationFn: (body: typeof form) =>
+      apiFetch(`/api/expert/firms/${firmId}/invite-member`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast({ title: "Invitation envoyée", description: "Un e-mail d'invitation a été envoyé au collaborateur." });
+      qc.invalidateQueries({ queryKey: ["expert", "members", firmId] });
+      onClose();
+      setForm({ firstName: "", lastName: "", email: "", role: "member" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erreur", description: err?.body?.error ?? "Erreur lors de l'invitation", variant: "destructive" });
+    },
+  });
+
+  const f = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Inviter un collaborateur</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={(e) => { e.preventDefault(); invite.mutate(form); }} className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Prénom *</Label>
+              <Input value={form.firstName} onChange={(e) => f("firstName", e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nom *</Label>
+              <Input value={form.lastName} onChange={(e) => f("lastName", e.target.value)} required />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>E-mail *</Label>
+            <Input type="email" value={form.email} onChange={(e) => f("email", e.target.value)} placeholder="collaborateur@cabinet.com" required />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Rôle</Label>
+            <select
+              className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              value={form.role}
+              onChange={(e) => f("role", e.target.value)}
+            >
+              <option value="member">Collaborateur</option>
+              <option value="admin">Administrateur</option>
+              <option value="owner">Propriétaire</option>
+            </select>
+          </div>
+          <p className="text-xs text-muted-foreground">Un lien d'invitation sécurisé lui sera envoyé par e-mail.</p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={invite.isPending}>
+              {invite.isPending ? "Envoi…" : "Inviter"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ExpertDashboard() {
   const { firmId, activeFirm, firms } = useActiveFirm();
   const { data: dashboard, isLoading: loadKpi } = useExpertDashboard(firmId);
   const { data: clients, isLoading: loadClients } = useExpertClients(firmId);
   const [createOpen, setCreateOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   if (!firms.length && !firmId) {
     return (
@@ -122,16 +192,23 @@ export default function ExpertDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{activeFirm?.name ?? "Portail Expert"}</h1>
           <p className="text-muted-foreground mt-0.5 text-sm">Vue consolidée de vos clients</p>
         </div>
-        <Link href="/expert/clients">
-          <Button variant="outline" size="sm">
-            Gérer les clients <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {firmId && (
+            <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />Inviter un collaborateur
+            </Button>
+          )}
+          <Link href="/expert/clients">
+            <Button variant="outline" size="sm">
+              Gérer les clients <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -212,6 +289,11 @@ export default function ExpertDashboard() {
           </div>
         )}
       </div>
+
+      <CreateFirmModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      {firmId && (
+        <InviteCollaborateurModal firmId={firmId} open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      )}
     </div>
   );
 }

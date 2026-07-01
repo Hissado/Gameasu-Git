@@ -135,6 +135,7 @@ export default function ExpertReportsPage() {
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Plan</th>
                     <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">CA facturé</th>
                     <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Encaissé</th>
+                    <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Dépenses</th>
                     <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Tréso.</th>
                     <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Projets</th>
                     <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Docs att.</th>
@@ -144,7 +145,7 @@ export default function ExpertReportsPage() {
                 </thead>
                 <tbody>
                   {clients.map((c, i) => {
-                    const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0 };
+                    const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0, totalExpenses: 0 };
                     const treso = kpi.totalPaid;
                     return (
                       <tr key={c.id} className={`border-b last:border-0 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
@@ -162,6 +163,9 @@ export default function ExpertReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-emerald-700">
                           {kpi.totalPaid > 0 ? formatFCFA(kpi.totalPaid) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-red-600">
+                          {kpi.totalExpenses > 0 ? formatFCFA(kpi.totalExpenses) : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">
                           {treso > 0 ? <span className="text-emerald-700">{formatFCFA(treso)}</span>
@@ -196,15 +200,16 @@ export default function ExpertReportsPage() {
                 {/* Totals footer */}
                 {clients.length > 1 && (() => {
                   const tot = clients.reduce((acc, c) => {
-                    const k = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0 };
+                    const k = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0, totalExpenses: 0 };
                     return {
                       inv: acc.inv + k.totalInvoiced,
                       paid: acc.paid + k.totalPaid,
+                      exp: acc.exp + (k.totalExpenses ?? 0),
                       proj: acc.proj + k.activeProjects,
                       docs: acc.docs + k.pendingDocs,
                       unpaid: acc.unpaid + k.unpaidInvoices,
                     };
-                  }, { inv: 0, paid: 0, proj: 0, docs: 0, unpaid: 0 });
+                  }, { inv: 0, paid: 0, exp: 0, proj: 0, docs: 0, unpaid: 0 });
                   return (
                     <tfoot>
                       <tr className="bg-muted/30 border-t-2 font-semibold">
@@ -212,6 +217,7 @@ export default function ExpertReportsPage() {
                         <td />
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">{formatFCFA(tot.inv)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-emerald-700">{formatFCFA(tot.paid)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-red-600">{tot.exp > 0 ? formatFCFA(tot.exp) : "—"}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-emerald-700">{formatFCFA(tot.paid)}</td>
                         <td className="px-4 py-3 text-center text-purple-700">{tot.proj}</td>
                         <td className="px-4 py-3 text-center text-amber-600">{tot.docs || "—"}</td>

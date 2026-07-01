@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useExpertFirms, useExpertClients, getActiveFirmId, setActiveFirmId, getContextOrgId, setContextOrgId, useSwitchClientContext } from "@/lib/expert-api";
+import { useActiveFirm, useExpertClients, getActiveFirmId, setActiveFirmId, getContextOrgId, setContextOrgId, useSwitchClientContext } from "@/lib/expert-api";
 import { Link, useLocation } from "wouter";
 import { Menu, X, ChevronRight, Database, CalendarCheck, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -196,13 +196,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
 
-  // Expert Portal — firms + client context switcher
-  const { data: expertFirms } = useExpertFirms();
+  // Expert Portal — use useActiveFirm as single source of truth (stays in sync across pages)
   const qc = useQueryClient();
-  const [activeFirmId, setActiveFirmIdState] = useState<string | null>(getActiveFirmId);
+  const { firmId: activeFirmId, setFirm: _setActiveFirm, firms: expertFirms } = useActiveFirm();
   const switchFirm = (id: string) => {
-    setActiveFirmId(id);
-    setActiveFirmIdState(id);
+    _setActiveFirm(id);
     qc.invalidateQueries({ queryKey: ["expert"] });
   };
   const { data: expertClients } = useExpertClients(activeFirmId);

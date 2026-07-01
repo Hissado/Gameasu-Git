@@ -36,6 +36,7 @@ import {
   subscriptionPlansTable,
   invoicesTable,
   projectsTable,
+  expenseReportsTable,
 } from "@workspace/db";
 import { and, eq, inArray, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
@@ -313,7 +314,7 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
     return res.status(403).json({ error: "Seuls owner/admin peuvent créer des organisations" });
   }
   const {
-    name, slug, country = "TG",
+    name, slug, country = "TG", industry,
     ownerEmail, ownerFirstName = "Responsable", ownerLastName = "",
     ownerPassword,
     accessLevel = "full",
@@ -330,7 +331,7 @@ router.post("/expert/firms/:firmId/clients/new-org", requireExpertFirmMember, as
 
   const [org] = await db
     .insert(organizationsTable)
-    .values({ name, slug, country })
+    .values({ name, slug, country, ...(industry ? { industry } : {}) })
     .returning();
 
   // Générer un token d'invitation sécurisé (one-time, 7 jours)
@@ -802,10 +803,23 @@ router.get("/expert/firms/:firmId/client-kpis", requireExpertFirmMember, async (
     ))
     .groupBy(invoicesTable.organizationId);
 
-  const invMap = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
-  const projMap = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
-  const docMap = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
+  const expenseKpis = await db
+    .select({
+      orgId: expenseReportsTable.organizationId,
+      totalExpenses: sql<number>`coalesce(sum(${expenseReportsTable.totalAmount}::numeric), 0)`,
+    })
+    .from(expenseReportsTable)
+    .where(and(
+      inArray(expenseReportsTable.organizationId, orgIds),
+      sql`${expenseReportsTable.status} in ('approved', 'paid')`,
+    ))
+    .groupBy(expenseReportsTable.organizationId);
+
+  const invMap    = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
+  const projMap   = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
+  const docMap    = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
   const unpaidMap = Object.fromEntries(unpaidKpis.map((r) => [r.orgId, r]));
+  const expMap    = Object.fromEntries(expenseKpis.map((r) => [r.orgId, r]));
 
   return res.json(orgIds.map((orgId) => ({
     orgId,
@@ -814,6 +828,7 @@ router.get("/expert/firms/:firmId/client-kpis", requireExpertFirmMember, async (
     activeProjects: Number(projMap[orgId]?.activeProjects ?? 0),
     pendingDocs:    Number(docMap[orgId]?.pendingDocs    ?? 0),
     unpaidInvoices: Number(unpaidMap[orgId]?.unpaidInvoices ?? 0),
+    totalExpenses:  Number(expMap[orgId]?.totalExpenses  ?? 0),
   })));
 });
 
@@ -977,12 +992,25 @@ router.get(
           ))
           .groupBy(invoicesTable.organizationId)
         : Promise.resolve([]),
+      orgIds.length
+        ? db.select({
+            orgId: expenseReportsTable.organizationId,
+            totalExpenses: sql<number>`coalesce(sum(${expenseReportsTable.totalAmount}::numeric), 0)`,
+          })
+          .from(expenseReportsTable)
+          .where(and(
+            inArray(expenseReportsTable.organizationId, orgIds),
+            sql`${expenseReportsTable.status} in ('approved', 'paid')`,
+          ))
+          .groupBy(expenseReportsTable.organizationId)
+        : Promise.resolve([]),
     ]);
 
-    const invMap   = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
-    const projMap  = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
-    const docMap   = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
+    const invMap    = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
+    const projMap   = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
+    const docMap    = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
     const unpaidMap = Object.fromEntries(unpaidKpis.map((r) => [r.orgId, r]));
+    const expXlsMap = Object.fromEntries(expKpis.map((r) => [r.orgId, r]));
 
     // 3. Excel workbook
     const wb = new ExcelJS.Workbook();
@@ -999,6 +1027,7 @@ router.get(
       { key: "ca",     width: 22 },
       { key: "enc",    width: 22 },
       { key: "treso",  width: 22 },
+      { key: "dep",    width: 22 },
       { key: "proj",   width: 14 },
       { key: "docs",   width: 14 },
       { key: "fact",   width: 16 },
@@ -1006,7 +1035,7 @@ router.get(
 
     const headerRow = ws.addRow([
       "Organisation", "Pays", "Plan", "Niveau d'accès", "Statut",
-      "CA facturé (FCFA)", "Encaissé (FCFA)", "Trésorerie (FCFA)",
+      "CA facturé (FCFA)", "Encaissé (FCFA)", "Trésorerie (FCFA)", "Dépenses (FCFA)",
       "Projets actifs", "Docs en attente", "Factures impayées",
     ]);
     headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -1014,28 +1043,30 @@ router.get(
     headerRow.alignment = { vertical: "middle" };
     headerRow.height = 18;
 
-    let totInv = 0, totPaid = 0, totProj = 0, totDocs = 0, totUnpaid = 0;
+    let totInv = 0, totPaid = 0, totExp = 0, totProj = 0, totDocs = 0, totUnpaid = 0;
 
     for (const c of clients) {
       const inv    = Number(invMap[c.orgId]?.totalInvoiced ?? 0);
       const paid   = Number(invMap[c.orgId]?.totalPaid ?? 0);
+      const exp    = Number(expXlsMap[c.orgId]?.totalExpenses ?? 0);
       const proj   = Number(projMap[c.orgId]?.count ?? 0);
       const docs   = Number(docMap[c.orgId]?.count ?? 0);
       const unpaid = Number(unpaidMap[c.orgId]?.count ?? 0);
-      totInv += inv; totPaid += paid; totProj += proj; totDocs += docs; totUnpaid += unpaid;
+      totInv += inv; totPaid += paid; totExp += exp; totProj += proj; totDocs += docs; totUnpaid += unpaid;
 
       const row = ws.addRow([
         c.orgName ?? "", c.orgCountry ?? "", c.planName ?? "—", c.accessLevel,
         c.isActive ? "Actif" : "Inactif",
-        inv, paid, paid, proj, docs, unpaid,
+        inv, paid, paid, exp, proj, docs, unpaid,
       ]);
       row.getCell(6).numFmt = '#,##0 "FCFA"';
       row.getCell(7).numFmt = '#,##0 "FCFA"';
       row.getCell(8).numFmt = '#,##0 "FCFA"';
+      row.getCell(9).numFmt = '#,##0 "FCFA"';
     }
 
     const totRow = ws.addRow([
-      "TOTAL", "", "", "", "", totInv, totPaid, totPaid, totProj, totDocs, totUnpaid,
+      "TOTAL", "", "", "", "", totInv, totPaid, totPaid, totExp, totProj, totDocs, totUnpaid,
     ]);
     totRow.font = { bold: true };
     totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEEEEEE" } };
