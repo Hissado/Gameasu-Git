@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useExpertFirms } from "@/lib/expert-api";
 import { Link, useLocation } from "wouter";
 import { Menu, X, ChevronRight, Database, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -124,6 +125,18 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Ressources humaines",  path: "/hr",               icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read" },
       { name: "Présences",            path: "/attendance",        icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view" },
       { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true },
+    ],
+  },
+  {
+    title: "Portail Expert",
+    icon: Network,
+    items: [
+      { name: "Vue d'ensemble",    path: "/expert",                      icon: LayoutDashboard },
+      { name: "Mes clients",       path: "/expert/clients",              icon: Building2 },
+      { name: "Documents",         path: "/expert/document-requests",    icon: FileText },
+      { name: "Rapports",          path: "/expert/reports",              icon: BarChart3 },
+      { name: "Utilisateurs",      path: "/expert/users-permissions",    icon: UsersRound, secondary: true },
+      { name: "Mon cabinet",       path: "/expert/firm-settings",        icon: Settings,   secondary: true },
     ],
   },
   {

@@ -174,6 +174,13 @@ const AchatsPaiements = lazy(() => import("@/pages/achats/paiements"));
 const AchatsDepenses = lazy(() => import("@/pages/achats/depenses"));
 const AchatsApprobations = lazy(() => import("@/pages/achats/approbations"));
 const AchatsRapports = lazy(() => import("@/pages/achats/rapports"));
+const ExpertDashboard = lazy(() => import("@/pages/expert/index"));
+const ExpertClients = lazy(() => import("@/pages/expert/clients"));
+const ExpertClientConfig = lazy(() => import("@/pages/expert/client-config"));
+const ExpertUsersPermissions = lazy(() => import("@/pages/expert/users-permissions"));
+const ExpertDocumentRequests = lazy(() => import("@/pages/expert/document-requests"));
+const ExpertReports = lazy(() => import("@/pages/expert/reports"));
+const ExpertFirmSettings = lazy(() => import("@/pages/expert/firm-settings"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -412,6 +419,14 @@ function AppRouter() {
                 <Route path="/achats/depenses" component={AchatsDepenses} />
                 <Route path="/achats/approbations" component={AchatsApprobations} />
                 <Route path="/achats/rapports" component={AchatsRapports} />
+
+                <Route path="/expert" component={ExpertDashboard} />
+                <Route path="/expert/clients" component={ExpertClients} />
+                <Route path="/expert/client-config" component={ExpertClientConfig} />
+                <Route path="/expert/users-permissions" component={ExpertUsersPermissions} />
+                <Route path="/expert/document-requests" component={ExpertDocumentRequests} />
+                <Route path="/expert/reports" component={ExpertReports} />
+                <Route path="/expert/firm-settings" component={ExpertFirmSettings} />
 
                 <Route component={NotFound} />
               </Switch>
