@@ -9,7 +9,7 @@ import {
 } from "@workspace/db";
 import { clientsTable } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, inArray, isNull } from "drizzle-orm";
-import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
+import { requireAdmin } from "../middlewares/auth";
 import { requirePermission } from "../middlewares/permissions";
 import { ExcelReportBuilder } from "../lib/excel-engine";
 import { organizationsTable } from "@workspace/db";
@@ -113,8 +113,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const isUuid = (v: any) => typeof v === "string" && UUID_RE.test(v);
 
-// Toutes les routes FP&A exposent des données financières sensibles → manager+
-router.use("/fpa", requireManagerOrAbove);
+// FP&A : accès conditionné par la permission fpa.read (lecture) ou fpa.manage (mutations).
+// Les nouvelles rôles financier/auditeur utilisent les permissions, pas le niveau hiérarchique.
+router.use("/fpa", requirePermission("fpa.read"));
 
 // ════════════════════════════════════════════════════════════════════════════
 // BUDGETS — CRUD + versioning
@@ -270,7 +271,7 @@ router.put("/fpa/budgets/:id", requirePermission("fpa.manage"), async (req, res)
   return res.json(b);
 });
 
-router.delete("/fpa/budgets/:id", requireAdmin, async (req, res) => {
+router.delete("/fpa/budgets/:id", requirePermission("fpa.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const [b] = await db.select().from(budgetsTable).where(and(eq(budgetsTable.organizationId, orgId), eq(budgetsTable.id, (req.params.id as string)))).limit(1);
   if (!b) return res.status(404).json({ error: "Introuvable" });
@@ -808,7 +809,7 @@ function accountCategory(code: string): string {
 }
 
 // EXPORT — Budget détail (matrice account × mois)
-router.get("/fpa/export/budget/:id.xlsx", requireManagerOrAbove, async (req, res, next) => {
+router.get("/fpa/export/budget/:id.xlsx", requirePermission("fpa.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const data = await loadBudgetWithLines(orgId, (req.params.id as string));
@@ -882,7 +883,7 @@ router.get("/fpa/export/budget/:id.xlsx", requireManagerOrAbove, async (req, res
 });
 
 // EXPORT — Rapport de variance (actual vs budget)
-router.get("/fpa/export/variance/:budgetId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+router.get("/fpa/export/variance/:budgetId.xlsx", requirePermission("fpa.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const v = await buildVarianceReport(orgId, (req.params.budgetId as string));
@@ -945,7 +946,7 @@ router.get("/fpa/export/variance/:budgetId.xlsx", requireManagerOrAbove, async (
 });
 
 // EXPORT — Forecast vs réalisé
-router.get("/fpa/export/forecast/:forecastId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+router.get("/fpa/export/forecast/:forecastId.xlsx", requirePermission("fpa.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const v = await buildVarianceReport(orgId, (req.params.forecastId as string));
@@ -991,7 +992,7 @@ router.get("/fpa/export/forecast/:forecastId.xlsx", requireManagerOrAbove, async
 });
 
 // EXPORT — Synthèse par projet
-router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", requireManagerOrAbove, async (req, res, next) => {
+router.get("/fpa/export/by-project/:fiscalPeriodId.xlsx", requirePermission("fpa.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const fp = await loadFiscalPeriod(orgId, (req.params.fiscalPeriodId as string));

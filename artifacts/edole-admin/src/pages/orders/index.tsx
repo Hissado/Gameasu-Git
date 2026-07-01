@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -304,6 +305,7 @@ function CancelOrderDialog({ order, onClose, onSuccess }: { order: Order; onClos
 
 export default function OrdersList() {
   const qc = useQueryClient();
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
@@ -349,11 +351,11 @@ export default function OrdersList() {
         title="Bons de commande"
         subtitle={`${allOrders.length} commande${allOrders.length !== 1 ? "s" : ""} au total`}
         icon={ShoppingCart}
-        actions={
+        actions={!perms.isReadOnly ? (
           <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer une commande
           </Button>
-        }
+        ) : undefined}
       />
       <StatusTabs
         tabs={[

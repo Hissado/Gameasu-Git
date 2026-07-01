@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { PageHeader } from "@/components/ui/page-header";
+import { usePermissions } from "@/lib/permissions";
 
 // Progression logique des stades (prev → next)
 const STAGE_NEXT: Record<string, string> = {
@@ -207,6 +208,7 @@ export default function CrmHome() {
   const { data: pipeline, isLoading: isLoadingPipeline } = useGetCrmPipeline();
   const { data: opportunities, isLoading: isLoadingOpps, refetch } = useListOpportunities();
 
+  const perms = usePermissions();
   const [newOppOpen, setNewOppOpen] = useState(false);
   const [convertOpp, setConvertOpp] = useState<Opp | null>(null);
   const [movingOpp, setMovingOpp] = useState<string | null>(null);
@@ -245,11 +247,13 @@ export default function CrmHome() {
                 <Calculator className="w-4 h-4" /> Calculateur
               </Button>
             </Link>
-            <Button onClick={() => setNewOppOpen(true)}
-              className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
-              <Plus className="w-4 h-4" strokeWidth={3} />
-              Nouvelle opportunité
-            </Button>
+            {!perms.isReadOnly && (
+              <Button onClick={() => setNewOppOpen(true)}
+                className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
+                <Plus className="w-4 h-4" strokeWidth={3} />
+                Nouvelle opportunité
+              </Button>
+            )}
           </div>
         }
       />
