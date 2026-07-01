@@ -336,6 +336,71 @@ export function buildTwoFactorEmail(opts: {
   };
 }
 
+export function buildExpertFirmInvitationEmail(opts: {
+  firmName: string;
+  plan: string;
+  acceptUrl: string;
+}): EmailMessage {
+  const planLabel: Record<string, string> = {
+    starter: "Starter", growth: "Growth", professional: "Professional", enterprise: "Enterprise",
+  };
+  return {
+    to: "",
+    subject: `Invitation à rejoindre Gaméasù — Cabinet ${opts.firmName}`,
+    text: [
+      `Bonjour,`,
+      ``,
+      `L'équipe Gaméasù vous invite à créer votre espace professionnel pour le cabinet "${opts.firmName}" (plan ${planLabel[opts.plan] ?? opts.plan}).`,
+      ``,
+      `Pour accepter l'invitation et activer votre compte, cliquez sur le lien suivant (valide 72 heures) :`,
+      opts.acceptUrl,
+      ``,
+      `Une fois votre compte activé, vous pourrez :`,
+      `  • Gérer votre cabinet et vos collaborateurs`,
+      `  • Créer et inviter vos clients (tenants)`,
+      `  • Accéder à tous les dossiers de vos clients depuis un seul tableau de bord`,
+      ``,
+      `À très bientôt sur Gaméasù,`,
+      `L'équipe Gaméasù`,
+    ].join("\n"),
+    html: `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#fff;font-size:22px;font-weight:700">Invitation Cabinet Expert</div>
+    <div style="color:#8fa3c0;font-size:14px;margin-top:6px">Rejoignez la plateforme ERP nouvelle génération</div>
+  </div>
+  <div style="padding:32px">
+    <p style="margin:0 0 16px;font-size:15px;color:#333">Bonjour,</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">
+      L'équipe <strong>Gaméasù</strong> vous invite à créer votre espace professionnel pour le cabinet :
+    </p>
+    <div style="background:#F8F9FB;border:1.5px solid #E8ECF4;border-radius:10px;padding:18px 20px;margin:0 0 24px">
+      <div style="font-size:18px;font-weight:700;color:#080E1C">${opts.firmName}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Plan ${planLabel[opts.plan] ?? opts.plan}</div>
+    </div>
+    <p style="margin:0 0 12px;font-size:14px;color:#555">
+      Une fois activé, vous pourrez <strong>gérer vos collaborateurs, créer vos clients et accéder à tous leurs dossiers</strong> depuis un seul tableau de bord multi-clients.
+    </p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${opts.acceptUrl}" style="background:#F37021;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;letter-spacing:0.3px">
+        Activer mon espace cabinet
+      </a>
+    </p>
+    <p style="font-size:12px;color:#aaa;text-align:center;margin:0">
+      Ce lien est valable <strong>72 heures</strong>. Si le bouton ne fonctionne pas, copiez ce lien :<br>
+      <span style="word-break:break-all;color:#0066cc">${opts.acceptUrl}</span>
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+  </div>
+</div></body></html>`,
+    category: "invitation",
+  };
+}
+
 export function buildPasswordResetEmail(opts: {
   recipientName: string; resetUrl: string;
 }): EmailMessage {

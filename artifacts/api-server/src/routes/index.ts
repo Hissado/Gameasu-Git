@@ -75,6 +75,7 @@ import periodCloseRouter from "./period-close.js";
 import purchasesRouter from "./purchases";
 import customAppRouter, { customAppPublicRouter } from "./customAppRequests";
 import expertFirmsRouter from "./expert-firms";
+import expertInvitationPublicRouter from "./expert-invitation-public";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedHissado as seedHissadoDemo } from "../services/seed-hissado";
@@ -98,6 +99,7 @@ router.use(marketingPublicRouter);
 router.use(pricingPublicRouter);
 router.use(ordersPublicRouter);
 router.use(customAppPublicRouter);
+router.use(expertInvitationPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout

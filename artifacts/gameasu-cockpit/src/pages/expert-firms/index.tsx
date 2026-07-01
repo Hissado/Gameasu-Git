@@ -1,10 +1,12 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Briefcase, Users, Building2, FileText, Search,
   Power, PowerOff, Loader2, AlertTriangle, ChevronRight,
-  Globe, Mail, Calendar,
+  Globe, Mail, Calendar, UserPlus, CheckCircle2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +93,20 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
   );
 }
 
+type InviteForm = {
+  firmName: string;
+  country: string;
+  plan: string;
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+};
+
+const EMPTY_INVITE: InviteForm = {
+  firmName: "", country: "TG", plan: "starter",
+  adminFirstName: "", adminLastName: "", adminEmail: "",
+};
+
 export default function ExpertFirmsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -98,6 +114,11 @@ export default function ExpertFirmsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<ExpertFirm | null>(null);
   const [toggling, setToggling] = useState(false);
+
+  // Invite dialog state
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState<InviteForm>(EMPTY_INVITE);
+  const [inviteSent, setInviteSent] = useState(false);
 
   const { data, isLoading } = useQuery<ListData>({
     queryKey: ["cockpit-expert-firms"],
@@ -125,6 +146,35 @@ export default function ExpertFirmsPage() {
     onError: (e: any) => toast.error(e?.message ?? "Erreur"),
   });
 
+  const inviteMut = useMutation({
+    mutationFn: (form: InviteForm) =>
+      apiFetch("/api/super-admin/expert-firms/invite", {
+        method: "POST",
+        body: JSON.stringify(form),
+      }),
+    onSuccess: () => {
+      setInviteSent(true);
+      qc.invalidateQueries({ queryKey: ["cockpit-expert-firms"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erreur lors de l'invitation"),
+  });
+
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteForm.firmName.trim()) { toast.error("Nom du cabinet requis"); return; }
+    if (!inviteForm.adminEmail.trim()) { toast.error("Email de l'administrateur requis"); return; }
+    if (!inviteForm.adminFirstName.trim() || !inviteForm.adminLastName.trim()) {
+      toast.error("Prénom et nom de l'administrateur requis"); return;
+    }
+    inviteMut.mutate(inviteForm);
+  };
+
+  const handleInviteClose = () => {
+    setInviteOpen(false);
+    setInviteSent(false);
+    setInviteForm(EMPTY_INVITE);
+  };
+
   const rows = (data?.firms ?? []).filter((f) => {
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -150,11 +200,20 @@ export default function ExpertFirmsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Cabinets experts</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Vue globale des cabinets comptables, consultants et agences utilisant le module Expert
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Cabinets experts</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Vue globale des cabinets comptables, consultants et agences utilisant le module Expert
+          </p>
+        </div>
+        <Button
+          onClick={() => { setInviteSent(false); setInviteForm(EMPTY_INVITE); setInviteOpen(true); }}
+          className="shrink-0 gap-1.5"
+        >
+          <UserPlus className="w-4 h-4" />
+          Inviter un cabinet
+        </Button>
       </div>
 
       {/* KPI cards */}
@@ -410,6 +469,130 @@ export default function ExpertFirmsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Invite cabinet dialog */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => !o && handleInviteClose()}>
+        <DialogContent className="sm:max-w-lg">
+          {inviteSent ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">Invitation envoyée !</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Un email a été envoyé à <strong>{inviteForm.adminEmail}</strong>.<br/>
+                  Le cabinet <strong>{inviteForm.firmName}</strong> sera activé une fois l'invitation acceptée.
+                </p>
+              </div>
+              <Button onClick={handleInviteClose} className="mt-2">Fermer</Button>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary" />
+                  Inviter un nouveau cabinet
+                </DialogTitle>
+                <DialogDescription>
+                  Un email d'invitation sera envoyé à l'administrateur du cabinet. Le cabinet sera actif après acceptation.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleInviteSubmit} className="space-y-4 mt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-firm">Nom du cabinet <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="inv-firm"
+                    placeholder="Ex : Cabinet Kofi Expertise"
+                    required
+                    value={inviteForm.firmName}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, firmName: e.target.value }))}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-country">Pays</Label>
+                    <Input
+                      id="inv-country"
+                      placeholder="TG"
+                      value={inviteForm.country}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, country: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-plan">Plan</Label>
+                    <Select
+                      value={inviteForm.plan}
+                      onValueChange={(v) => setInviteForm((f) => ({ ...f, plan: v }))}
+                    >
+                      <SelectTrigger id="inv-plan">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="starter">Starter</SelectItem>
+                        <SelectItem value="growth">Growth</SelectItem>
+                        <SelectItem value="professional">Professional</SelectItem>
+                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="pt-1 border-t">
+                  <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                    Administrateur du cabinet
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inv-fn">Prénom <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="inv-fn"
+                        required
+                        value={inviteForm.adminFirstName}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, adminFirstName: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inv-ln">Nom <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="inv-ln"
+                        required
+                        value={inviteForm.adminLastName}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, adminLastName: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-email">Email <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="inv-email"
+                      type="email"
+                      required
+                      placeholder="admin@cabinet.com"
+                      value={inviteForm.adminEmail}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, adminEmail: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={handleInviteClose}>
+                    Annuler
+                  </Button>
+                  <Button type="submit" disabled={inviteMut.isPending} className="gap-1.5">
+                    {inviteMut.isPending
+                      ? <><Loader2 className="w-4 h-4 animate-spin" />Envoi…</>
+                      : <><Send className="w-4 h-4" />Envoyer l'invitation</>
+                    }
+                  </Button>
+                </DialogFooter>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm toggle dialog */}
       <Dialog open={!!confirming} onOpenChange={(o) => !o && setConfirming(null)}>

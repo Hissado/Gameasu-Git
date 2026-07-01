@@ -25,8 +25,12 @@ import {
   expertFirmMembersTable,
   expertClientAccessTable,
   documentRequestsTable,
+  expertFirmInvitationsTable,
 } from "@workspace/db";
 import { eq, desc, and, sql, gte, isNull } from "drizzle-orm";
+import crypto from "node:crypto";
+import { buildExpertFirmInvitationEmail, sendEmail } from "../lib/email";
+import { getPublicBaseUrl } from "../lib/url";
 
 const router: IRouter = Router();
 
@@ -390,6 +394,117 @@ router.get("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
       .limit(20);
 
     return res.json({ firm, members, clients, docs });
+  } catch (e) { next(e); }
+});
+
+// POST /super-admin/expert-firms/invite — créer un cabinet + envoyer l'invitation
+router.post("/super-admin/expert-firms/invite", sa, async (req, res, next) => {
+  try {
+    const {
+      firmName,
+      country = "TG",
+      plan = "starter",
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+    } = req.body as {
+      firmName?: string;
+      country?: string;
+      plan?: string;
+      adminFirstName?: string;
+      adminLastName?: string;
+      adminEmail?: string;
+    };
+
+    if (!firmName?.trim()) return res.status(400).json({ error: "firmName est requis." });
+    if (!adminEmail?.trim()) return res.status(400).json({ error: "adminEmail est requis." });
+    if (!adminFirstName?.trim() || !adminLastName?.trim()) {
+      return res.status(400).json({ error: "adminFirstName et adminLastName sont requis." });
+    }
+
+    const email = adminEmail.trim().toLowerCase();
+
+    // Vérifier que l'email n'est pas déjà utilisé
+    const [existing] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+    if (existing) {
+      return res.status(409).json({ error: `Un compte existe déjà avec l'adresse ${email}.` });
+    }
+
+    // Générer un slug unique pour le cabinet
+    const baseSlug = firmName.trim()
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48);
+    let slug = baseSlug;
+    let attempt = 0;
+    while (true) {
+      const [dup] = await db
+        .select({ id: expertFirmsTable.id })
+        .from(expertFirmsTable)
+        .where(eq(expertFirmsTable.slug, slug))
+        .limit(1);
+      if (!dup) break;
+      attempt++;
+      slug = `${baseSlug}-${attempt}`;
+    }
+
+    // Créer le cabinet (inactif — activé lors de l'acceptation)
+    const [firm] = await db
+      .insert(expertFirmsTable)
+      .values({
+        name: firmName.trim(),
+        slug,
+        country,
+        plan,
+        email,
+        isActive: false,
+        createdById: req.authUser?.id ?? null,
+      })
+      .returning();
+
+    // Créer l'invitation (72h)
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+    await db.insert(expertFirmInvitationsTable).values({
+      token,
+      firmId: firm.id,
+      email,
+      status: "pending",
+      invitedByAdminId: req.authUser?.id ?? null,
+      expiresAt,
+    });
+
+    // Construire le lien et envoyer l'email
+    const acceptUrl = `${getPublicBaseUrl()}/accept-expert-invitation?token=${token}`;
+    const msg = buildExpertFirmInvitationEmail({ firmName: firm.name, plan: firm.plan, acceptUrl });
+    msg.to = email;
+
+    try {
+      await sendEmail(msg);
+    } catch (emailErr: any) {
+      req.log?.warn({ err: emailErr }, "Expert firm invitation email failed");
+    }
+
+    await recordAudit(
+      req.authUser?.id ?? null,
+      req.authUser?.email ?? null,
+      "invite_expert_firm",
+      "expert_firm",
+      firm.id,
+      { firmName: firm.name, adminEmail: email, plan, country },
+    );
+
+    return res.status(201).json({
+      firm: { id: firm.id, name: firm.name, slug: firm.slug, plan: firm.plan, isActive: firm.isActive },
+      invitation: { email, expiresAt },
+    });
   } catch (e) { next(e); }
 });
 

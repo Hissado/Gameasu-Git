@@ -23,6 +23,8 @@ export const expertFirmsTable = pgTable("expert_firms", {
   // starter | growth | professional (reprise du catalogue plans SaaS)
   plan: text("plan").notNull().default("starter"),
   isActive: boolean("is_active").notNull().default(true),
+  // Organisation tenant propre au cabinet (créée à l'acceptation de l'invitation)
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "set null" }),
   createdById: uuid("created_by_id").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -109,20 +111,45 @@ export const expertContextSessionsTable = pgTable("expert_context_sessions", {
   expiresIdx: index("expert_context_sessions_expires_idx").on(t.expiresAt),
 }));
 
+/**
+ * Invitations cabinet — token sécurisé envoyé par le Cockpit super-admin
+ * pour qu'un expert crée son espace professionnel Gaméasù.
+ * Durée de validité : 72 heures.
+ */
+export const expertFirmInvitationsTable = pgTable("expert_firm_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").notNull(),
+  firmId: uuid("firm_id").notNull().references(() => expertFirmsTable.id, { onDelete: "cascade" }),
+  // Email de l'administrateur invité (celui qui recevra le lien)
+  email: text("email").notNull(),
+  // pending | accepted | expired
+  status: text("status").notNull().default("pending"),
+  invitedByAdminId: uuid("invited_by_admin_id"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  tokenUidx: uniqueIndex("expert_firm_invitations_token_uidx").on(t.token),
+  firmIdx: index("expert_firm_invitations_firm_idx").on(t.firmId),
+  statusIdx: index("expert_firm_invitations_status_idx").on(t.status),
+}));
+
 // ─── Zod schemas & types ──────────────────────────────────────────
 export const insertExpertFirmSchema = createInsertSchema(expertFirmsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertExpertFirmMemberSchema = createInsertSchema(expertFirmMembersTable).omit({ id: true, invitedAt: true });
 export const insertExpertClientAccessSchema = createInsertSchema(expertClientAccessTable).omit({ id: true, grantedAt: true });
 export const insertDocumentRequestSchema = createInsertSchema(documentRequestsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertExpertFirmInvitationSchema = createInsertSchema(expertFirmInvitationsTable).omit({ id: true, createdAt: true });
 
 export type ExpertFirm = typeof expertFirmsTable.$inferSelect;
 export type ExpertFirmMember = typeof expertFirmMembersTable.$inferSelect;
 export type ExpertClientAccess = typeof expertClientAccessTable.$inferSelect;
 export type DocumentRequest = typeof documentRequestsTable.$inferSelect;
-
 export type ExpertContextSession = typeof expertContextSessionsTable.$inferSelect;
+export type ExpertFirmInvitation = typeof expertFirmInvitationsTable.$inferSelect;
 
 export type InsertExpertFirm = z.infer<typeof insertExpertFirmSchema>;
 export type InsertExpertFirmMember = z.infer<typeof insertExpertFirmMemberSchema>;
 export type InsertExpertClientAccess = z.infer<typeof insertExpertClientAccessSchema>;
 export type InsertDocumentRequest = z.infer<typeof insertDocumentRequestSchema>;
+export type InsertExpertFirmInvitation = z.infer<typeof insertExpertFirmInvitationSchema>;
