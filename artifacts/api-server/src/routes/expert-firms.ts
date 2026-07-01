@@ -564,16 +564,19 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
     .limit(1);
   if (!existing) return res.status(404).json({ error: "Demande introuvable" });
 
-  // Vérifier membership du cabinet
-  const [member] = await db
-    .select({ id: expertFirmMembersTable.id })
+  // Vérifier membership ET que le cabinet est actif
+  const memberRows = await db
+    .select({ id: expertFirmMembersTable.id, firmIsActive: expertFirmsTable.isActive })
     .from(expertFirmMembersTable)
+    .innerJoin(expertFirmsTable, eq(expertFirmsTable.id, expertFirmMembersTable.firmId))
     .where(and(
       eq(expertFirmMembersTable.firmId, existing.firmId),
       eq(expertFirmMembersTable.userId, req.authUser!.id),
     ))
     .limit(1);
+  const member = memberRows[0];
   if (!member) return res.status(403).json({ error: "Accès refusé : vous n'êtes pas membre de ce cabinet" });
+  if (!member.firmIsActive) return res.status(403).json({ error: "Accès refusé : ce cabinet est suspendu" });
 
   // Vérifier que l'accès firm→org est toujours actif
   const [activeAccess] = await db
