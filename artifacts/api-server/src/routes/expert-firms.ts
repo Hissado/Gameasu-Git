@@ -20,6 +20,7 @@
  *  GET        /api/expert/firms/:firmId/document-requests/upload-url     — URL upload objet
  *  GET        /api/expert/firms/:firmId/dashboard                        — KPIs consolidés
  */
+import ExcelJS from "exceljs";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
@@ -737,15 +738,8 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
 // ─────────────────────────────────────────────────────────────────
 // KPIs PAR CLIENT — GET /expert/firms/:firmId/client-kpis
 // ─────────────────────────────────────────────────────────────────
-router.get("/expert/firms/:firmId/client-kpis", async (req, res) => {
+router.get("/expert/firms/:firmId/client-kpis", requireExpertFirmMember, async (req, res) => {
   const { firmId } = req.params as Record<string, string>;
-  const userId = req.authUser!.id;
-
-  const [member] = await db.select().from(expertFirmMembersTable).where(and(
-    eq(expertFirmMembersTable.firmId, firmId),
-    eq(expertFirmMembersTable.userId, userId),
-  ));
-  if (!member) return res.status(403).json({ error: "Accès refusé" });
 
   const accessRows = await db
     .select({ orgId: expertClientAccessTable.orgId })
@@ -822,6 +816,239 @@ router.get("/expert/firms/:firmId/client-kpis", async (req, res) => {
     unpaidInvoices: Number(unpaidMap[orgId]?.unpaidInvoices ?? 0),
   })));
 });
+
+// ─────────────────────────────────────────────────────────────────
+// INVITE CLIENT MEMBER — POST /expert/firms/:firmId/clients/:orgId/invite-member
+// ─────────────────────────────────────────────────────────────────
+router.post(
+  "/expert/firms/:firmId/clients/:orgId/invite-member",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { firmId, orgId } = req.params as Record<string, string>;
+    const { firstName, lastName, email, role = "member" } = req.body ?? {};
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: "firstName, lastName et email sont requis" });
+    }
+
+    const [existing] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, email.toLowerCase().trim()))
+      .limit(1);
+    if (existing) return res.status(409).json({ error: "Un compte avec cet email existe déjà" });
+
+    const inviteToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const tempPassword = crypto.randomBytes(6).toString("hex");
+    const bcrypt = await import("bcryptjs");
+    const hashed = await bcrypt.hash(tempPassword, 10);
+
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        organizationId: orgId,
+        email: email.toLowerCase().trim(),
+        password: hashed,
+        firstName,
+        lastName,
+        role,
+        mustChangePassword: true,
+        passwordResetToken: inviteToken,
+        passwordResetTokenExpiresAt: tokenExpiresAt,
+        invitedById: req.authUser!.id,
+        invitedAt: new Date(),
+      })
+      .returning();
+
+    const [org] = await db
+      .select({ name: organizationsTable.name })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+
+    const inviterName = `${req.authUser!.firstName} ${req.authUser!.lastName}`.trim();
+    const acceptUrl = `${getPublicBaseUrl()}/accept-invitation?token=${inviteToken}`;
+    const emailMsg = buildInvitationEmail({
+      recipientName: `${firstName} ${lastName}`.trim(),
+      inviterName,
+      orgName: org?.name ?? "votre organisation",
+      acceptUrl,
+      temporaryPassword: tempPassword,
+    });
+    emailMsg.to = email;
+    await sendEmail(emailMsg);
+
+    await audit(req, "create", {
+      entityType: "user",
+      entityId: user.id,
+      payload: { firmId, orgId, email },
+    });
+
+    return res.status(201).json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────
+// XLSX EXPORT — GET /expert/firms/:firmId/export-report.xlsx
+// ─────────────────────────────────────────────────────────────────
+router.get(
+  "/expert/firms/:firmId/export-report.xlsx",
+  requireExpertFirmMember,
+  async (req, res) => {
+    const { firmId } = req.params as Record<string, string>;
+
+    // 1. Clients avec nom org + plan
+    const clients = await db
+      .select({
+        orgId: expertClientAccessTable.orgId,
+        accessLevel: expertClientAccessTable.accessLevel,
+        isActive: expertClientAccessTable.isActive,
+        orgName: organizationsTable.name,
+        orgCountry: organizationsTable.country,
+        planName: subscriptionPlansTable.name,
+      })
+      .from(expertClientAccessTable)
+      .leftJoin(organizationsTable, eq(organizationsTable.id, expertClientAccessTable.orgId))
+      .leftJoin(
+        organizationSubscriptionsTable,
+        and(
+          eq(organizationSubscriptionsTable.organizationId, expertClientAccessTable.orgId),
+          eq(organizationSubscriptionsTable.isCurrent, true),
+        ),
+      )
+      .leftJoin(subscriptionPlansTable, eq(subscriptionPlansTable.id, organizationSubscriptionsTable.planId))
+      .where(and(
+        eq(expertClientAccessTable.firmId, firmId),
+        eq(expertClientAccessTable.isActive, true),
+      ));
+
+    const orgIds = clients.map((c) => c.orgId);
+
+    // 2. KPIs (mêmes requêtes que client-kpis)
+    const [invoiceKpis, projectKpis, docKpis, unpaidKpis] = await Promise.all([
+      orgIds.length
+        ? db.select({
+            orgId: invoicesTable.organizationId,
+            totalInvoiced: sql<number>`coalesce(sum(${invoicesTable.totalAmount}::numeric), 0)`,
+            totalPaid: sql<number>`coalesce(sum(${invoicesTable.paidAmount}::numeric), 0)`,
+          })
+          .from(invoicesTable)
+          .where(and(
+            inArray(invoicesTable.organizationId, orgIds),
+            sql`${invoicesTable.status} not in ('draft', 'cancelled')`,
+          ))
+          .groupBy(invoicesTable.organizationId)
+        : Promise.resolve([]),
+      orgIds.length
+        ? db.select({
+            orgId: projectsTable.organizationId,
+            count: sql<number>`count(*)`,
+          })
+          .from(projectsTable)
+          .where(and(
+            inArray(projectsTable.organizationId, orgIds),
+            sql`${projectsTable.status} in ('in_progress', 'on_hold', 'active')`,
+          ))
+          .groupBy(projectsTable.organizationId)
+        : Promise.resolve([]),
+      orgIds.length
+        ? db.select({
+            orgId: documentRequestsTable.orgId,
+            count: sql<number>`count(*)`,
+          })
+          .from(documentRequestsTable)
+          .where(and(
+            eq(documentRequestsTable.firmId, firmId),
+            inArray(documentRequestsTable.orgId, orgIds),
+            eq(documentRequestsTable.status, "en_attente"),
+          ))
+          .groupBy(documentRequestsTable.orgId)
+        : Promise.resolve([]),
+      orgIds.length
+        ? db.select({
+            orgId: invoicesTable.organizationId,
+            count: sql<number>`count(*)`,
+          })
+          .from(invoicesTable)
+          .where(and(
+            inArray(invoicesTable.organizationId, orgIds),
+            sql`${invoicesTable.status} in ('sent', 'overdue', 'partial')`,
+          ))
+          .groupBy(invoicesTable.organizationId)
+        : Promise.resolve([]),
+    ]);
+
+    const invMap   = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
+    const projMap  = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
+    const docMap   = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
+    const unpaidMap = Object.fromEntries(unpaidKpis.map((r) => [r.orgId, r]));
+
+    // 3. Excel workbook
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Gaméasù";
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet("Rapport clients");
+    ws.columns = [
+      { key: "org",    width: 30 },
+      { key: "pays",   width: 8  },
+      { key: "plan",   width: 18 },
+      { key: "acces",  width: 16 },
+      { key: "statut", width: 10 },
+      { key: "ca",     width: 22 },
+      { key: "enc",    width: 22 },
+      { key: "treso",  width: 22 },
+      { key: "proj",   width: 14 },
+      { key: "docs",   width: 14 },
+      { key: "fact",   width: 16 },
+    ];
+
+    const headerRow = ws.addRow([
+      "Organisation", "Pays", "Plan", "Niveau d'accès", "Statut",
+      "CA facturé (FCFA)", "Encaissé (FCFA)", "Trésorerie (FCFA)",
+      "Projets actifs", "Docs en attente", "Factures impayées",
+    ]);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    headerRow.alignment = { vertical: "middle" };
+    headerRow.height = 18;
+
+    let totInv = 0, totPaid = 0, totProj = 0, totDocs = 0, totUnpaid = 0;
+
+    for (const c of clients) {
+      const inv    = Number(invMap[c.orgId]?.totalInvoiced ?? 0);
+      const paid   = Number(invMap[c.orgId]?.totalPaid ?? 0);
+      const proj   = Number(projMap[c.orgId]?.count ?? 0);
+      const docs   = Number(docMap[c.orgId]?.count ?? 0);
+      const unpaid = Number(unpaidMap[c.orgId]?.count ?? 0);
+      totInv += inv; totPaid += paid; totProj += proj; totDocs += docs; totUnpaid += unpaid;
+
+      const row = ws.addRow([
+        c.orgName ?? "", c.orgCountry ?? "", c.planName ?? "—", c.accessLevel,
+        c.isActive ? "Actif" : "Inactif",
+        inv, paid, paid, proj, docs, unpaid,
+      ]);
+      row.getCell(6).numFmt = '#,##0 "FCFA"';
+      row.getCell(7).numFmt = '#,##0 "FCFA"';
+      row.getCell(8).numFmt = '#,##0 "FCFA"';
+    }
+
+    const totRow = ws.addRow([
+      "TOTAL", "", "", "", "", totInv, totPaid, totPaid, totProj, totDocs, totUnpaid,
+    ]);
+    totRow.font = { bold: true };
+    totRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEEEEEE" } };
+    totRow.getCell(6).numFmt = '#,##0 "FCFA"';
+    totRow.getCell(7).numFmt = '#,##0 "FCFA"';
+    totRow.getCell(8).numFmt = '#,##0 "FCFA"';
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="rapport-expert-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────
 // CONTEXT SESSION VALIDATION — utilitaire pour d'autres routes

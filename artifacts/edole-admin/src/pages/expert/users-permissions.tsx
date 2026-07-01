@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useActiveFirm, useExpertMembers, useExpertClients, useRemoveMember } from "@/lib/expert-api";
+import { useActiveFirm, useExpertMembers, useExpertClients, useRemoveMember, useInviteClientMember } from "@/lib/expert-api";
 import { apiFetch } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ const MEMBER_ROLE_COLOR: Record<string, string> = {
   member: "bg-slate-50 text-slate-600 border-slate-200",
 };
 
-function InviteMemberModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
+function InviteFirmMemberModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState({ userId: "", role: "member" });
@@ -48,28 +48,18 @@ function InviteMemberModal({ firmId, open, onClose }: { firmId: string; open: bo
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error, variant: "destructive" }),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.userId) return;
-    invite.mutate(form);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Ajouter un collaborateur</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <DialogHeader><DialogTitle>Ajouter un collaborateur au cabinet</DialogTitle></DialogHeader>
+        <form onSubmit={(e) => { e.preventDefault(); if (form.userId) invite.mutate(form); }} className="space-y-4 pt-2">
           <div className="space-y-1.5">
             <Label>Utilisateur</Label>
             <Select value={form.userId} onValueChange={(v) => setForm({ ...form, userId: v })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner…" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
               <SelectContent>
                 {(usersData?.data ?? []).map((u: any) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} ({u.email})
-                  </SelectItem>
+                  <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -96,6 +86,70 @@ function InviteMemberModal({ firmId, open, onClose }: { firmId: string; open: bo
   );
 }
 
+function InviteClientMemberModal({
+  firmId, orgId, orgName, open, onClose,
+}: { firmId: string; orgId: string; orgName: string; open: boolean; onClose: () => void }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", role: "member" });
+  const invite = useInviteClientMember(firmId, orgId);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.firstName || !form.lastName || !form.email) return;
+    invite.mutate(form, {
+      onSuccess: () => {
+        toast({ title: "Invitation envoyée", description: `Un e-mail d'invitation a été envoyé à ${form.email}` });
+        onClose();
+        setForm({ firstName: "", lastName: "", email: "", role: "member" });
+      },
+      onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? "Invitation impossible", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Inviter un membre — {orgName}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Prénom</Label>
+              <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jean" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nom</Label>
+              <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Dupont" required />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Adresse e-mail</Label>
+            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jean.dupont@exemple.com" required />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Rôle</Label>
+            <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Administrateur</SelectItem>
+                <SelectItem value="member">Membre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">Un e-mail d'invitation avec un lien d'activation sera envoyé.</p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={invite.isPending || !form.firstName || !form.lastName || !form.email}>
+              {invite.isPending ? "Envoi…" : "Envoyer l'invitation"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function UsersPermissionsPage() {
   const [location] = useLocation();
   const params = new URLSearchParams(location.includes("?") ? location.split("?")[1] : "");
@@ -108,7 +162,8 @@ export default function UsersPermissionsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteFirmOpen, setInviteFirmOpen] = useState(false);
+  const [inviteClientOpen, setInviteClientOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string } | null>(null);
 
   const { data: orgUsers } = useQuery({
@@ -150,7 +205,7 @@ export default function UsersPermissionsPage() {
           <CardTitle className="text-base flex items-center gap-2">
             <Users2 className="w-4 h-4 text-primary" />Membres du cabinet
           </CardTitle>
-          <Button size="sm" onClick={() => setInviteOpen(true)}>
+          <Button size="sm" onClick={() => setInviteFirmOpen(true)}>
             <UserPlus className="w-4 h-4 mr-1.5" />Ajouter
           </Button>
         </CardHeader>
@@ -185,9 +240,7 @@ export default function UsersPermissionsPage() {
                       onValueChange={(v) => updateRole.mutate({ userId: m.userId, role: v })}
                       disabled={m.role === "owner"}
                     >
-                      <SelectTrigger className="w-36 h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="w-36 h-7 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="owner">Propriétaire</SelectItem>
                         <SelectItem value="admin">Administrateur</SelectItem>
@@ -214,11 +267,16 @@ export default function UsersPermissionsPage() {
       {/* Org members (if a client org is selected) */}
       {orgId && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
               Utilisateurs — {selectedOrg?.org.name ?? orgId}
             </CardTitle>
+            {firmId && orgId && (
+              <Button size="sm" variant="outline" onClick={() => setInviteClientOpen(true)}>
+                <UserPlus className="w-4 h-4 mr-1.5" />Inviter un membre
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="px-5 pb-5">
             {!orgUsers?.data?.length ? (
@@ -240,7 +298,7 @@ export default function UsersPermissionsPage() {
                         <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                       </div>
                       <Badge className={`text-[10px] border ${MEMBER_ROLE_COLOR[u.role] ?? "bg-slate-50 text-slate-600 border-slate-200"}`} variant="outline">
-                        {u.role}
+                        {MEMBER_ROLE_LABEL[u.role] ?? u.role}
                       </Badge>
                       <Badge className={`text-[10px] ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`} variant="outline">
                         {u.isActive ? "Actif" : "Inactif"}
@@ -254,7 +312,16 @@ export default function UsersPermissionsPage() {
         </Card>
       )}
 
-      {firmId && <InviteMemberModal firmId={firmId} open={inviteOpen} onClose={() => setInviteOpen(false)} />}
+      {firmId && <InviteFirmMemberModal firmId={firmId} open={inviteFirmOpen} onClose={() => setInviteFirmOpen(false)} />}
+      {firmId && orgId && (
+        <InviteClientMemberModal
+          firmId={firmId}
+          orgId={orgId}
+          orgName={selectedOrg?.org.name ?? orgId}
+          open={inviteClientOpen}
+          onClose={() => setInviteClientOpen(false)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!confirmRemove}

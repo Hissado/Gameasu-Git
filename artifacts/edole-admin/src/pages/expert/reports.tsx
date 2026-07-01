@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { useActiveFirm, useExpertDashboard, useExpertClients, useExpertClientKpis } from "@/lib/expert-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatFCFA } from "@/lib/format";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Building2, Download, TrendingUp, AlertCircle, FolderKanban } from "lucide-react";
+import { Building2, Download, TrendingUp, AlertCircle, FolderKanban, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatBadge({ value, label, color = "blue" }: { value: string | number; label: string; color?: string }) {
@@ -25,60 +26,35 @@ export default function ExpertReportsPage() {
   const { data: dashboard } = useExpertDashboard(firmId);
   const { data: clientKpis, isLoading: loadKpis } = useExpertClientKpis(firmId);
   const { toast } = useToast();
+  const [exporting, setExporting] = useState(false);
 
   const kpiMap = Object.fromEntries((clientKpis ?? []).map((k) => [k.orgId, k]));
 
-  const handleExport = () => {
-    if (!clients?.length) return;
-
-    const headers = [
-      "Organisation", "Pays", "Plan", "Niveau d'accès", "Statut",
-      "CA Total (FCFA)", "Encaissé (FCFA)", "Trésorerie nette (FCFA)",
-      "Projets actifs", "Docs en attente", "Factures impayées",
-    ];
-
-    const rows = clients.map((c) => {
-      const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0 };
-      return [
-        c.org.name,
-        c.org.country,
-        c.subscription?.planName ?? "—",
-        c.accessLevel,
-        c.isActive ? "Actif" : "Inactif",
-        kpi.totalInvoiced,
-        kpi.totalPaid,
-        kpi.totalPaid - kpi.totalInvoiced + kpi.totalInvoiced, // totalPaid as net cash
-        kpi.activeProjects,
-        kpi.pendingDocs,
-        kpi.unpaidInvoices,
-      ];
-    });
-
-    // Totals row
-    const totals = clients.reduce(
-      (acc, c) => {
-        const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0 };
-        acc.invoiced += kpi.totalInvoiced;
-        acc.paid += kpi.totalPaid;
-        acc.projects += kpi.activeProjects;
-        acc.docs += kpi.pendingDocs;
-        acc.unpaid += kpi.unpaidInvoices;
-        return acc;
-      },
-      { invoiced: 0, paid: 0, projects: 0, docs: 0, unpaid: 0 }
-    );
-
-    rows.push(["TOTAL", "", "", "", "", totals.invoiced, totals.paid, totals.paid, totals.projects, totals.docs, totals.unpaid]);
-
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rapport-expert-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Export CSV téléchargé", description: `${clients.length} client${clients.length > 1 ? "s" : ""} — ouvrable dans Excel` });
+  const handleExport = async () => {
+    if (!firmId || !clients?.length) return;
+    setExporting(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const resp = await fetch(`/api/expert/firms/${firmId}/export-report.xlsx`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok) {
+        toast({ title: "Erreur lors de l'export", description: `Statut ${resp.status}`, variant: "destructive" });
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rapport-expert-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Export Excel téléchargé", description: `${clients.length} client${clients.length > 1 ? "s" : ""}` });
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!firmId) {
@@ -108,8 +84,9 @@ export default function ExpertReportsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Rapports consolidés</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Vue agrégée de tous vos clients</p>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={!clients?.length}>
-          <Download className="w-4 h-4 mr-2" />Exporter CSV
+        <Button variant="outline" onClick={handleExport} disabled={!clients?.length || exporting}>
+          {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+          {exporting ? "Export…" : "Exporter Excel"}
         </Button>
       </div>
 

@@ -3,14 +3,14 @@ import { useActiveFirm, useExpertClients, ACCESS_LABEL, PLAN_COLOR } from "@/lib
 import { apiFetch } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import {
-  Building2, Globe, Mail, Phone, Settings2, ShieldCheck, AlertCircle,
-  Package,
+  Building2, Globe, ShieldCheck, AlertCircle, Package, Info,
 } from "lucide-react";
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -86,90 +86,118 @@ export default function ClientConfigPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Informations */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Globe className="w-4 h-4 text-primary" />Informations
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            <InfoRow label="Nom" value={org?.name} />
-            <InfoRow label="Pays" value={org?.country} />
-            <InfoRow label="Secteur" value={org?.industry} />
-            <InfoRow label="E-mail" value={org?.email} />
-            <InfoRow label="Téléphone" value={org?.phone} />
-            <InfoRow label="Adresse" value={org?.address} />
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="informations">
+        <TabsList className="mb-2">
+          <TabsTrigger value="informations" className="flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5" />Informations
+          </TabsTrigger>
+          <TabsTrigger value="modules" className="flex items-center gap-1.5">
+            <Package className="w-3.5 h-3.5" />Modules &amp; plan
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Accès cabinet */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-primary" />Accès cabinet
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-5 space-y-4">
-            <div className="space-y-1.5">
-              <p className="text-sm text-muted-foreground">Niveau d'accès actuel</p>
-              <Select
-                value={accessLevel}
-                onValueChange={(v) => { setAccessLevel(v); updateAccess.mutate(v); }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="read">Lecture seule</SelectItem>
-                  <SelectItem value="full">Accès complet</SelectItem>
-                  <SelectItem value="billing">Facturation</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">{ACCESS_LABEL[accessLevel]}</p>
-            </div>
+        {/* ── Tab 1 : Informations ─────────────────────────────────── */}
+        <TabsContent value="informations" className="mt-0 space-y-5">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="w-4 h-4 text-primary" />Informations générales
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <InfoRow label="Nom" value={org?.name} />
+              <InfoRow label="Pays" value={org?.country} />
+              <InfoRow label="Secteur" value={org?.industry} />
+              <InfoRow label="E-mail" value={org?.email} />
+              <InfoRow label="Téléphone" value={org?.phone} />
+              <InfoRow label="Adresse" value={org?.address} />
+            </CardContent>
+          </Card>
 
-            {client && (
-              <div className="pt-2 border-t space-y-2">
-                <InfoRow label="Statut" value={client.isActive ? "Actif" : "Inactif"} />
-                <InfoRow label="Lié depuis" value={client.grantedAt ? new Date(client.grantedAt).toLocaleDateString("fr-FR") : undefined} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modules */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Package className="w-4 h-4 text-primary" />Modules activés
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-5 pb-5">
-          {!modules?.data?.length ? (
-            <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Aucune information de module disponible.</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {modules.data.map((m: any) => (
-                <div
-                  key={m.id}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
-                    m.enabled ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-muted border-border text-muted-foreground"
-                  }`}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />Accès cabinet
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-5 pb-5 space-y-4">
+              <div className="space-y-1.5">
+                <p className="text-sm text-muted-foreground">Niveau d'accès actuel</p>
+                <Select
+                  value={accessLevel}
+                  onValueChange={(v) => { setAccessLevel(v); updateAccess.mutate(v); }}
                 >
-                  <Settings2 className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{m.moduleName ?? m.moduleKey}</span>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="read">Lecture seule</SelectItem>
+                    <SelectItem value="full">Accès complet</SelectItem>
+                    <SelectItem value="billing">Facturation</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{ACCESS_LABEL[accessLevel]}</p>
+              </div>
+
+              {client && (
+                <div className="pt-2 border-t space-y-2">
+                  <InfoRow label="Statut" value={client.isActive ? "Actif" : "Inactif"} />
+                  <InfoRow label="Lié depuis" value={client.grantedAt ? new Date(client.grantedAt).toLocaleDateString("fr-FR") : undefined} />
                 </div>
-              ))}
-            </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Tab 2 : Modules & plan ───────────────────────────────── */}
+        <TabsContent value="modules" className="mt-0 space-y-5">
+          {client?.subscription && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="w-4 h-4 text-primary" />Abonnement actif
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                <InfoRow label="Plan" value={client.subscription.planName} />
+                <InfoRow label="Statut" value={client.subscription.status} />
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="w-4 h-4 text-primary" />Modules activés
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              {!modules?.data?.length ? (
+                <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Aucune information de module disponible.</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {modules.data.map((m: any) => (
+                    <div
+                      key={m.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
+                        m.enabled
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : "bg-muted border-border text-muted-foreground"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.enabled ? "bg-emerald-500" : "bg-slate-300"}`} />
+                      <span className="truncate">{m.moduleName ?? m.moduleKey}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -65,15 +65,35 @@ export type ClientKpi = {
   unpaidInvoices: number;
 };
 
+export type ExpertContextSession = {
+  contextToken: string;
+  targetOrgId: string;
+  expiresAt: string;
+};
+
 // ─── Active Firm State (localStorage-backed) ─────────────────────────────────
 
-const FIRM_KEY = "expert_active_firm_id";
+const FIRM_KEY    = "expert_active_firm_id";
+const CTX_ORG_KEY = "expert_context_org_id";
+const CTX_TKN_KEY = "expert_context_token";
 
 export function getActiveFirmId(): string | null {
   try { return localStorage.getItem(FIRM_KEY); } catch { return null; }
 }
 export function setActiveFirmId(id: string | null): void {
   try { id ? localStorage.setItem(FIRM_KEY, id) : localStorage.removeItem(FIRM_KEY); } catch {}
+}
+export function getContextOrgId(): string | null {
+  try { return localStorage.getItem(CTX_ORG_KEY); } catch { return null; }
+}
+export function setContextOrgId(id: string | null): void {
+  try { id ? localStorage.setItem(CTX_ORG_KEY, id) : localStorage.removeItem(CTX_ORG_KEY); } catch {}
+}
+export function getContextToken(): string | null {
+  try { return localStorage.getItem(CTX_TKN_KEY); } catch { return null; }
+}
+export function setContextToken(tok: string | null): void {
+  try { tok ? localStorage.setItem(CTX_TKN_KEY, tok) : localStorage.removeItem(CTX_TKN_KEY); } catch {}
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -148,6 +168,8 @@ export function useExpertClientKpis(firmId: string | null) {
     staleTime: 3 * 60_000,
   });
 }
+
+// ─── Mutations ────────────────────────────────────────────────────────────────
 
 export function useCreateFirm() {
   const qc = useQueryClient();
@@ -236,6 +258,33 @@ export function useUpdateDocRequest() {
     mutationFn: ({ id, ...body }: { id: string; status?: string; fileUrl?: string; fileName?: string }) =>
       apiFetch(`/api/expert/document-requests/${id}`, { method: "PATCH", body }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["expert/doc-requests"] }),
+  });
+}
+
+export function useSwitchClientContext(firmId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orgId: string) =>
+      apiFetch<ExpertContextSession>(
+        `/api/expert/firms/${firmId}/clients/${orgId}/switch`,
+        { method: "POST" }
+      ),
+    onSuccess: (data) => {
+      setContextToken(data.contextToken);
+      setContextOrgId(data.targetOrgId);
+      qc.invalidateQueries({ queryKey: ["expert/context"] });
+    },
+  });
+}
+
+export function useInviteClientMember(firmId: string, orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { firstName: string; lastName: string; email: string; role?: string }) =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${orgId}/invite-member`, {
+        method: "POST", body,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-users", orgId] }),
   });
 }
 
