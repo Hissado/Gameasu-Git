@@ -39,7 +39,7 @@ import {
   expenseReportsTable,
   organizationModulesTable,
 } from "@workspace/db";
-import { and, eq, inArray, sql, gt } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
 import { audit } from "../lib/audit";
 import { sendEmail, buildInvitationEmail } from "../lib/email";
@@ -920,6 +920,35 @@ router.post(
   },
 );
 
+// LIST CLIENT ORG USERS — GET /expert/firms/:firmId/clients/:orgId/users
+// ─────────────────────────────────────────────────────────────────
+router.get(
+  "/expert/firms/:firmId/clients/:orgId/users",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { orgId } = req.params as { firmId: string; orgId: string };
+    const users = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        role: usersTable.role,
+        isActive: usersTable.isActive,
+        avatarUrl: usersTable.avatarUrl,
+      })
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.organizationId, orgId),
+          isNull(usersTable.deletedAt),
+        ),
+      );
+    return res.json(users);
+  },
+);
+
 // INVITE CLIENT MEMBER — POST /expert/firms/:firmId/clients/:orgId/invite-member
 // ─────────────────────────────────────────────────────────────────
 router.post(
@@ -986,6 +1015,13 @@ router.post(
     });
     emailMsg.to = email;
     await sendEmail(emailMsg);
+
+    // Also add to org membership table so role/remove endpoints can manage them
+    await db.insert(organizationMembersTable).values({
+      organizationId: orgId,
+      userId: user.id,
+      role,
+    });
 
     await audit(req, "create", {
       entityType: "user",

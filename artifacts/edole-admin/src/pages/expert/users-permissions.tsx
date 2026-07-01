@@ -171,9 +171,9 @@ export default function UsersPermissionsPage() {
   const [confirmRemoveClient, setConfirmRemoveClient] = useState<{ userId: string; name: string } | null>(null);
 
   const { data: orgUsers } = useQuery({
-    queryKey: ["org-users", orgId],
-    queryFn: () => apiFetch<{ data: any[] }>(`/api/users?orgId=${orgId}&limit=100`),
-    enabled: !!orgId,
+    queryKey: ["expert/org-users", firmId, orgId],
+    queryFn: () => apiFetch<any[]>(`/api/expert/firms/${firmId}/clients/${orgId}/users`),
+    enabled: !!firmId && !!orgId,
   });
 
   const selectedOrg = clients?.find((c) => c.orgId === orgId);
@@ -283,14 +283,14 @@ export default function UsersPermissionsPage() {
             )}
           </CardHeader>
           <CardContent className="px-5 pb-5">
-            {!orgUsers?.data?.length ? (
+            {!orgUsers?.length ? (
               <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>Aucun utilisateur trouvé pour cette organisation.</span>
               </div>
             ) : (
               <div className="space-y-1">
-                {(orgUsers.data ?? []).map((u: any) => {
+                {(orgUsers ?? []).map((u: any) => {
                   const initials = ((u.firstName?.[0] ?? "") + (u.lastName?.[0] ?? "")).toUpperCase() || "?";
                   const fullName = `${u.firstName} ${u.lastName}`.trim();
                   return (

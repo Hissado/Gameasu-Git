@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { db } from "@workspace/db";
-import { usersTable, authSessionsTable } from "@workspace/db";
+import { usersTable, authSessionsTable, expertContextSessionsTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 
 export type AuthUser = {
@@ -77,6 +77,31 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
     return;
   }
   req.authUser = authUser;
+
+  // Expert context switching: if the request carries a valid context token,
+  // scope the request to the target client org instead of the expert's own org.
+  const ctxToken = req.headers["x-expert-context-token"];
+  if (typeof ctxToken === "string" && ctxToken.length > 0) {
+    const now = new Date();
+    const [session] = await db
+      .select({
+        targetOrgId: expertContextSessionsTable.targetOrgId,
+        expertUserId: expertContextSessionsTable.expertUserId,
+      })
+      .from(expertContextSessionsTable)
+      .where(
+        and(
+          eq(expertContextSessionsTable.token, ctxToken),
+          gt(expertContextSessionsTable.expiresAt, now),
+        ),
+      )
+      .limit(1);
+    // Only apply if the session belongs to the authenticated user (security)
+    if (session && session.expertUserId === authUser.id) {
+      req.authUser = { ...authUser, organizationId: session.targetOrgId };
+    }
+  }
+
   next();
 };
 

@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatFCFA } from "@/lib/format";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Building2, Download, TrendingUp, AlertCircle, FolderKanban, Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Building2, Download, TrendingUp, AlertCircle, FolderKanban, Loader2, BarChart2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatBadge({ value, label, color = "blue" }: { value: string | number; label: string; color?: string }) {
@@ -29,6 +29,18 @@ export default function ExpertReportsPage() {
   const [exporting, setExporting] = useState(false);
 
   const kpiMap = Object.fromEntries((clientKpis ?? []).map((k) => [k.orgId, k]));
+
+  const perClientFinancial = (clients ?? []).map((c) => {
+    const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalExpenses: 0, totalPaid: 0 };
+    const label = c.org.name.length > 14 ? c.org.name.slice(0, 13) + "…" : c.org.name;
+    return { name: label, ca: kpi.totalInvoiced, depenses: kpi.totalExpenses ?? 0, encaisse: kpi.totalPaid };
+  });
+
+  const perClientActivity = (clients ?? []).map((c) => {
+    const kpi = kpiMap[c.orgId] ?? { activeProjects: 0, unpaidInvoices: 0, pendingDocs: 0 };
+    const label = c.org.name.length > 14 ? c.org.name.slice(0, 13) + "…" : c.org.name;
+    return { name: label, projets: kpi.activeProjects, impayes: kpi.unpaidInvoices, docs: kpi.pendingDocs };
+  });
 
   const handleExport = async () => {
     if (!firmId || !clients?.length) return;
@@ -233,22 +245,50 @@ export default function ExpertReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Distribution chart */}
-      {planData.length > 0 && (
+      {/* Per-client financial comparison chart */}
+      {perClientFinancial.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <FolderKanban className="w-4 h-4 text-primary" />Répartition clients par plan
+              <TrendingUp className="w-4 h-4 text-primary" />Performance financière par client
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-5">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={planData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={perClientFinancial} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="plan" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={(v) => (v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))} tick={{ fontSize: 10 }} width={55} />
+                <Tooltip formatter={(v) => formatFCFA(v as number)} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="ca" name="CA facturé" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="encaisse" name="Encaissé" fill="#059669" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="depenses" name="Dépenses" fill="#DC2626" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Per-client activity chart */}
+      {perClientActivity.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-primary" />Activité par client
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-5">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={perClientActivity} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="count" name="Clients" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="projets" name="Projets actifs" fill="#7C3AED" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="impayes" name="Factures impayées" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="docs" name="Docs en attente" fill="#64748B" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

@@ -17,6 +17,10 @@ function getToken(): string | null {
   return localStorage.getItem("auth_token");
 }
 
+function getContextToken(): string | null {
+  return localStorage.getItem("expert_context_token");
+}
+
 // `body` élargi pour accepter des objets JSON (sérialisés automatiquement).
 type ApiFetchOptions = Omit<RequestInit, "body"> & { body?: RequestInit["body"] | Record<string, any> | any[] };
 
@@ -25,11 +29,15 @@ export async function apiFetch<T = unknown>(
   options: ApiFetchOptions = {},
 ): Promise<T> {
   const token = getToken();
+  const ctxToken = getContextToken();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
   if (token && !headers["Authorization"]) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (ctxToken && !headers["X-Expert-Context-Token"]) {
+    headers["X-Expert-Context-Token"] = ctxToken;
   }
   if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
