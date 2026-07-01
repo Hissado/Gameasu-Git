@@ -1,0 +1,83 @@
+Je souhaite ajouter à Gameasu une fonctionnalité similaire au modèle QuickBooks Online Accountant, adaptée à notre plateforme ERP multi-sectorielle.
+
+L’objectif est de permettre aux comptables, consultants, experts financiers, cabinets, agences d’accompagnement, ONG, incubateurs ou partenaires institutionnels de gérer plusieurs clients depuis un seul espace professionnel.
+
+Créer un nouveau module appelé Gameasu Expert / Partner Portal avec les fonctionnalités suivantes :
+
+1. Espace Expert / Cabinet
+    * Un expert ou cabinet peut créer son propre compte professionnel.
+    * Il dispose d’un tableau de bord central avec tous ses clients.
+    * Il peut voir les alertes, tâches, documents en attente, rapports, abonnements et statuts de chaque client.
+    * Il peut inviter des collaborateurs internes dans son cabinet avec des rôles spécifiques.
+2. Gestion multi-clients
+    * L’expert peut ajouter un nouveau client.
+    * L’expert peut créer une nouvelle organisation cliente directement depuis son espace.
+    * L’expert peut configurer les informations du client : nom de l’entreprise, secteur d’activité, pays, devise, langue, modules activés, plan d’abonnement et utilisateurs.
+    * L’expert peut passer rapidement d’un client à un autre sans se déconnecter.
+    * Chaque client doit avoir son propre espace de travail séparé.
+3. Invitation et accès client
+    * L’expert peut inviter le dirigeant, les employés ou les responsables du client par email.
+    * Chaque utilisateur invité doit recevoir un lien sécurisé pour créer son compte.
+    * Le système doit gérer les rôles : propriétaire client, admin client, employé, comptable, consultant, auditeur, lecture seule.
+    * Le client peut aussi inviter un expert externe à accéder à son espace.
+4. Permissions et sécurité
+    * Mettre en place un système de permissions avancé par rôle.
+    * Un expert ne doit voir que les clients auxquels il est autorisé.
+    * Les données de chaque client doivent être totalement isolées.
+    * Aucun client ne doit pouvoir voir les données d’un autre client.
+    * Ajouter un audit log pour suivre les actions importantes : création, modification, suppression, connexion, export, changement de permissions.
+5. Configuration par client
+    * L’expert peut configurer les modules disponibles pour chaque client : ventes, dépenses, factures, stocks, projets, trésorerie, RH, documents, rapports, CRM, services, équipements, budget et reporting.
+    * L’expert peut activer ou désactiver des modules selon le plan choisi.
+    * L’expert peut préparer le compte client avant que le client commence à utiliser Gameasu.
+6. Documents et collaboration
+    * Ajouter un espace de demandes de documents.
+    * L’expert peut demander des pièces au client : factures, reçus, contrats, relevés bancaires, rapports, justificatifs.
+    * Le client peut téléverser les documents directement dans son portail.
+    * Ajouter un statut pour chaque demande : en attente, reçu, rejeté, validé.
+    * Ajouter des notifications et rappels automatiques.
+7. Rapports et suivi
+    * L’expert peut générer des rapports pour chaque client.
+    * Ajouter une vue comparative entre clients : chiffre d’affaires, dépenses, trésorerie, factures impayées, projets, stocks, marges et performance.
+    * Prévoir des exports PDF et Excel professionnels.
+    * Ajouter un tableau de bord consolidé pour le cabinet.
+8. Abonnement et modèle économique
+    * Prévoir un système où l’expert peut gérer les abonnements de ses clients.
+    * Permettre plusieurs modèles :
+        * le client paie directement Gameasu ;
+        * le cabinet paie pour plusieurs clients ;
+        * le cabinet revend Gameasu à ses clients ;
+        * Gameasu facture des frais par client, par utilisateur ou par module.
+    * Ajouter une page de gestion des plans, modules, facturation et historique des paiements.
+9. Base de données recommandée
+    * Créer ou adapter les tables suivantes :
+        * expert_firms
+        * expert_firm_members
+        * organizations
+        * organization_members
+        * expert_client_access
+        * roles
+        * permissions
+        * invitations
+        * subscription_plans
+        * organization_subscriptions
+        * organization_modules
+        * document_requests
+        * audit_logs
+        * billing_events
+10. Interface utilisateur
+
+* Ajouter un menu “Mes clients” dans l’espace expert.
+* Ajouter un bouton “Ajouter un client”.
+* Ajouter un sélecteur rapide pour changer de client.
+* Ajouter une page “Configuration client”.
+* Ajouter une page “Utilisateurs & permissions”.
+* Ajouter une page “Documents demandés”.
+* Ajouter une page “Rapports client”.
+* Ajouter une page “Abonnement & facturation”.
+* L’interface doit être moderne, premium, claire, responsive et facile à utiliser.
+
+11. Objectif final
+
+* Gameasu doit permettre à un comptable, consultant ou cabinet de gérer plusieurs entreprises clientes depuis un seul compte, tout en gardant les données séparées, sécurisées et bien organisées.
+* Cette fonctionnalité doit positionner Gameasu comme une plateforme ERP professionnelle pour les PME, coopératives, ONG, consultants, cabinets comptables et structures d’accompagnement.
