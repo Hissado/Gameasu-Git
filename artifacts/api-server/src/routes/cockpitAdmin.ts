@@ -490,6 +490,13 @@ router.post("/super-admin/expert-firms/invite", sa, async (req, res, next) => {
       await sendEmail(msg);
     } catch (emailErr: any) {
       req.log?.warn({ err: emailErr }, "Expert firm invitation email failed");
+      // Rollback: suppress the firm and invitation we just created so the admin
+      // sees a real error and can retry with a valid email address.
+      await db.delete(expertFirmInvitationsTable).where(eq(expertFirmInvitationsTable.firmId, firm.id));
+      await db.delete(expertFirmsTable).where(eq(expertFirmsTable.id, firm.id));
+      return res.status(502).json({
+        error: "L'email d'invitation n'a pas pu être envoyé. Vérifiez l'adresse et réessayez.",
+      });
     }
 
     await recordAudit(

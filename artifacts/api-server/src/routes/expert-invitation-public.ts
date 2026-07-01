@@ -54,11 +54,18 @@ router.get("/expert/invitation/:token", async (req, res, next) => {
       return res.status(410).json({ error: "Cette invitation a déjà été acceptée. Connectez-vous directement." });
     }
     if (inv.expiresAt < now) {
-      // Transition to expired state for operational traceability
+      // Transition to expired state + audit log
       await db
         .update(expertFirmInvitationsTable)
         .set({ status: "expired" })
         .where(eq(expertFirmInvitationsTable.id, inv.id));
+      db.insert(cockpitAuditLogsTable).values({
+        actorEmail: inv.email,
+        action: "expire_expert_firm_invitation",
+        resource: "expert_firm_invitation",
+        resourceId: inv.id,
+        metadata: { firmName: inv.firmName, email: inv.email } as any,
+      }).catch(() => {});
       return res.status(410).json({ error: "Ce lien a expiré (validité 72h). Demandez un nouvel envoi depuis le Cockpit." });
     }
 
@@ -121,6 +128,13 @@ router.post("/expert/invitation/accept", async (req, res, next) => {
           .update(expertFirmInvitationsTable)
           .set({ status: "expired" })
           .where(eq(expertFirmInvitationsTable.id, expiredRows[0].id));
+        db.insert(cockpitAuditLogsTable).values({
+          actorEmail: token,
+          action: "expire_expert_firm_invitation",
+          resource: "expert_firm_invitation",
+          resourceId: expiredRows[0].id,
+          metadata: { reason: "accept_attempt_on_expired" } as any,
+        }).catch(() => {});
       }
       return res.status(410).json({
         error: "Ce lien est invalide, déjà utilisé ou expiré. Contactez votre administrateur Gaméasù.",
