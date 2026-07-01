@@ -397,7 +397,10 @@ router.get("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
 router.patch("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
   try {
     const firmId = req.params.id as string;
-    const { isActive } = req.body as { isActive: boolean };
+    const { isActive } = req.body as { isActive: unknown };
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({ error: "isActive doit être un booléen (true ou false)" });
+    }
 
     const [updated] = await db
       .update(expertFirmsTable)

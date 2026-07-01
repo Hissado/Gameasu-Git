@@ -2,16 +2,17 @@
  * Middlewares de sécurité Expert Portal.
  *
  * requireExpertFirmMember  — vérifie que req.authUser est membre du cabinet :firmId
+ *                            ET que le cabinet est actif (isActive = true)
  * requireExpertClientAccess — vérifie que le cabinet a un accès actif à l'org cible
  */
 import type { RequestHandler } from "express";
 import { db } from "@workspace/db";
-import { expertFirmMembersTable, expertClientAccessTable } from "@workspace/db";
+import { expertFirmMembersTable, expertFirmsTable, expertClientAccessTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 
 /**
  * Vérifie que l'utilisateur connecté est membre du cabinet identifié par
- * `req.params.firmId`. Renvoie 403 sinon.
+ * `req.params.firmId` ET que le cabinet est actif. Renvoie 403 sinon.
  */
 export const requireExpertFirmMember: RequestHandler = async (req, res, next) => {
   if (!req.authUser) {
@@ -23,9 +24,16 @@ export const requireExpertFirmMember: RequestHandler = async (req, res, next) =>
     res.status(400).json({ error: "firmId manquant" });
     return;
   }
-  const [member] = await db
-    .select({ id: expertFirmMembersTable.id, role: expertFirmMembersTable.role })
+
+  // Join the firm to check both membership and active status in one query
+  const rows = await db
+    .select({
+      memberId: expertFirmMembersTable.id,
+      role: expertFirmMembersTable.role,
+      firmIsActive: expertFirmsTable.isActive,
+    })
     .from(expertFirmMembersTable)
+    .innerJoin(expertFirmsTable, eq(expertFirmsTable.id, expertFirmMembersTable.firmId))
     .where(
       and(
         eq(expertFirmMembersTable.firmId, firmId),
@@ -34,12 +42,20 @@ export const requireExpertFirmMember: RequestHandler = async (req, res, next) =>
     )
     .limit(1);
 
-  if (!member) {
+  const row = rows[0];
+
+  if (!row) {
     res.status(403).json({ error: "Accès refusé : vous n'êtes pas membre de ce cabinet" });
     return;
   }
+
+  if (!row.firmIsActive) {
+    res.status(403).json({ error: "Accès refusé : ce cabinet est suspendu" });
+    return;
+  }
+
   // Expose le rôle cabinet pour les gardes owner/admin éventuelles en aval
-  (req as any).expertMemberRole = member.role;
+  (req as any).expertMemberRole = row.role;
   next();
 };
 
