@@ -1,0 +1,93 @@
+Je souhaite mettre en place dans Gameasu une logique de gestion des experts et cabinets similaire au fonctionnement de QuickBooks Accountant.
+
+La logique générale doit être la suivante :
+
+Depuis le **Cockpit administrateur Gameasu**, l’équipe Gameasu doit pouvoir inviter des experts, consultants, comptables, cabinets, partenaires ou structures d’accompagnement à rejoindre l’ERP.
+
+Une fois l’invitation acceptée, l’expert ou le cabinet dispose de son propre espace professionnel dans Gameasu. Depuis cet espace, il peut créer, ajouter et gérer ses propres clients, appelés **tenants** ou **organisations clientes**.
+
+L’expert ou le cabinet doit pouvoir inviter chaque client à rejoindre Gameasu. Lorsqu’un client accepte l’invitation, un espace tenant dédié est créé pour cette entreprise ou organisation. L’administrateur principal du tenant peut ensuite inviter ses propres utilisateurs internes : dirigeants, employés, responsables financiers, commerciaux, gestionnaires de stock, RH, auditeurs ou autres collaborateurs.
+
+La hiérarchie d’accès doit donc fonctionner ainsi :
+
+1. **Gameasu Admin / Cockpit**
+
+   * Invite les experts, cabinets ou partenaires.
+   * Gère les accès experts.
+   * Supervise les abonnements, modules, plans et permissions globales.
+   * Peut voir et administrer l’écosystème global Gameasu.
+
+2. **Expert / Cabinet**
+
+   * Reçoit une invitation depuis le Cockpit Gameasu.
+   * Crée son propre espace professionnel.
+   * Peut ajouter et inviter ses clients.
+   * Peut accéder à tous les tenants clients qu’il a créés ou auxquels il a été autorisé.
+   * Dispose également de son propre compte interne, comme une organisation à part entière.
+   * Peut gérer ses collaborateurs internes avec des rôles et permissions spécifiques.
+
+3. **Tenant / Client**
+
+   * Reçoit une invitation de l’expert ou du cabinet.
+   * Dispose de son propre espace ERP séparé.
+   * Peut gérer ses ventes, dépenses, factures, stocks, projets, clients, fournisseurs, trésorerie, RH, documents et rapports.
+   * L’administrateur du tenant peut inviter ses propres utilisateurs.
+   * Chaque utilisateur du tenant doit avoir des permissions adaptées à son rôle.
+
+4. **Utilisateurs du tenant**
+
+   * Sont invités par l’administrateur du tenant.
+   * Accèdent uniquement aux modules, données et fonctionnalités autorisés.
+   * Ne peuvent pas voir les données des autres tenants.
+
+L’expert doit avoir un **tableau de bord multi-clients** lui permettant de voir tous ses clients depuis un seul espace, avec la possibilité de passer facilement d’un tenant à l’autre sans se déconnecter.
+
+Il doit également pouvoir accéder à son propre compte professionnel, séparé de ses clients, afin de gérer son cabinet, ses collaborateurs, ses propres documents, ses paramètres et ses abonnements.
+
+Le système doit respecter une architecture multi-tenant stricte :
+
+* chaque tenant doit avoir ses propres données isolées ;
+* un expert ne doit accéder qu’aux clients auxquels il est rattaché ;
+* un client ne doit jamais voir les données d’un autre client ;
+* les utilisateurs internes d’un tenant ne doivent voir que les informations autorisées selon leurs rôles ;
+* toutes les invitations, connexions, changements de rôles et accès doivent être traçables dans un audit log.
+
+Fonctionnalités principales à développer :
+
+1. Invitation des experts depuis le Cockpit Gameasu.
+2. Création automatique d’un espace Expert / Cabinet après acceptation de l’invitation.
+3. Possibilité pour l’expert d’ajouter et d’inviter ses clients.
+4. Création automatique d’un tenant client après acceptation de l’invitation.
+5. Possibilité pour l’administrateur tenant d’inviter ses propres utilisateurs.
+6. Gestion des rôles et permissions à chaque niveau : Gameasu Admin, Expert, Cabinet Collaborator, Tenant Admin, Tenant User, Auditeur, Lecture seule.
+7. Tableau de bord multi-clients pour les experts.
+8. Sélecteur rapide de tenant pour passer d’un client à l’autre.
+9. Accès séparé au propre compte professionnel de l’expert.
+10. Isolation stricte des données entre tenants.
+11. Historique complet des accès et actions importantes.
+12. Gestion des abonnements, modules et plans par expert ou par tenant.
+13. Interface claire, moderne, premium, responsive et facile à utiliser.
+
+Structure recommandée de la base de données :
+
+* gameasu_admins
+* expert_firms
+* expert_firm_members
+* organizations
+* organization_members
+* expert_client_access
+* invitations
+* roles
+* permissions
+* role_permissions
+* subscription_plans
+* organization_subscriptions
+* organization_modules
+* audit_logs
+* billing_events
+
+Objectif final :
+
+Gameasu doit permettre à l’équipe administratrice d’inviter des experts et cabinets dans l’écosystème. Ces experts doivent ensuite pouvoir créer et gérer leurs propres clients, comme dans QuickBooks Accountant. Chaque client doit avoir son propre espace ERP sécurisé, avec son administrateur, ses utilisateurs, ses modules et ses données isolées.
+
+L’objectif est de transformer Gameasu en une plateforme ERP SaaS multi-tenant capable de servir à la fois les entreprises, les cabinets comptables, les consultants, les experts financiers, les ONG d’accompagnement, les incubateurs et les partenaires institutionnels.
