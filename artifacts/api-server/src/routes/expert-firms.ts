@@ -94,7 +94,7 @@ router.post("/expert/firms", async (req, res) => {
     joinedAt: new Date(),
   });
 
-  await audit(req, "create", { entityType: "expert_firm", entityId: firm.id });
+  await audit(req, "expert_firm_create", { entityType: "expert_firm", entityId: firm.id });
   return res.status(201).json(firm);
 });
 
@@ -126,12 +126,14 @@ router.patch("/expert/firms/:firmId", requireExpertFirmMember, async (req, res) 
   if (logoUrl !== undefined) patch.logoUrl = logoUrl;
   if (plan !== undefined) patch.plan = plan;
 
-  const [updated] = await db
+  const rows = await db
     .update(expertFirmsTable)
     .set(patch)
     .where(eq(expertFirmsTable.id, req.params.firmId as string))
     .returning();
-  await audit(req, "update", { entityType: "expert_firm", entityId: updated.id });
+  if (!rows.length) return res.status(404).json({ error: "Cabinet introuvable" });
+  const updated = rows[0];
+  await audit(req, "expert_firm_update", { entityType: "expert_firm", entityId: updated.id });
   return res.json(updated);
 });
 
@@ -178,7 +180,7 @@ router.post("/expert/firms/:firmId/members", requireExpertFirmMember, async (req
     .insert(expertFirmMembersTable)
     .values({ firmId: req.params.firmId as string, userId, role })
     .returning();
-  await audit(req, "invite", { entityType: "expert_firm_member", entityId: member.id });
+  await audit(req, "expert_member_invite", { entityType: "expert_firm_member", entityId: member.id });
   return res.status(201).json(member);
 });
 
@@ -243,6 +245,8 @@ router.get("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req,
 });
 
 // Lier une organisation existante au cabinet
+// Sécurité : l'utilisateur DOIT être admin/owner de l'organisation cible pour prouver
+// son autorisation — cela empêche de lier n'importe quelle org par UUID sans consentement.
 router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req, res) => {
   const actorRole = (req as any).expertMemberRole as string;
   if (actorRole !== "owner" && actorRole !== "admin") {
@@ -254,6 +258,22 @@ router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req
   const [org] = await db.select({ id: organizationsTable.id }).from(organizationsTable)
     .where(eq(organizationsTable.id, orgId)).limit(1);
   if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+  // Vérification de consentement : l'acteur doit être membre admin/owner de l'org cible
+  const [orgMembership] = await db
+    .select({ role: organizationMembersTable.role })
+    .from(organizationMembersTable)
+    .where(and(
+      eq(organizationMembersTable.organizationId, orgId),
+      eq(organizationMembersTable.userId, req.authUser!.id),
+    ))
+    .limit(1);
+
+  if (!orgMembership || !["owner", "admin"].includes(orgMembership.role)) {
+    return res.status(403).json({
+      error: "Vous devez être admin ou owner de cette organisation pour l'associer à votre cabinet.",
+    });
+  }
 
   const [existing] = await db
     .select({ id: expertClientAccessTable.id })
@@ -270,7 +290,7 @@ router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req
       .set({ isActive: true, accessLevel, notes, revokedAt: null, grantedById: req.authUser!.id })
       .where(eq(expertClientAccessTable.id, existing.id))
       .returning();
-    await audit(req, "client_access_grant", { entityType: "expert_client_access", entityId: updated.id });
+    await audit(req, "expert_client_link", { entityType: "expert_client_access", entityId: updated.id });
     return res.json(updated);
   }
 
@@ -278,7 +298,7 @@ router.post("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req
     .insert(expertClientAccessTable)
     .values({ firmId: req.params.firmId as string, orgId, accessLevel, notes, grantedById: req.authUser!.id })
     .returning();
-  await audit(req, "client_access_grant", { entityType: "expert_client_access", entityId: access.id });
+  await audit(req, "expert_client_link", { entityType: "expert_client_access", entityId: access.id });
   return res.status(201).json(access);
 });
 
@@ -385,7 +405,7 @@ router.delete(
         eq(expertClientAccessTable.firmId, req.params.firmId as string),
         eq(expertClientAccessTable.orgId, req.params.orgId as string),
       ));
-    await audit(req, "client_access_revoke", {
+    await audit(req, "expert_client_unlink", {
       entityType: "expert_client_access",
       payload: { orgId: req.params.orgId },
     });
@@ -502,7 +522,7 @@ router.post(
         requestedById: req.authUser!.id,
       })
       .returning();
-    await audit(req, "create", {
+    await audit(req, "expert_doc_request_create", {
       entityType: "document_request",
       entityId: request.id,
       organizationId: req.authUser!.organizationId,
@@ -581,7 +601,7 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
     .where(eq(documentRequestsTable.id, reqId))
     .returning();
 
-  await audit(req, "update", {
+  await audit(req, "expert_doc_request_update", {
     entityType: "document_request",
     entityId: updated.id,
     organizationId: req.authUser!.organizationId,
