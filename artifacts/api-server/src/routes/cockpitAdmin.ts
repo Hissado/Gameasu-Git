@@ -26,6 +26,8 @@ import {
   expertClientAccessTable,
   documentRequestsTable,
   expertFirmInvitationsTable,
+  organizationSubscriptionsTable,
+  subscriptionPlansTable,
 } from "@workspace/db";
 import { eq, desc, and, sql, gte, isNull } from "drizzle-orm";
 import crypto from "node:crypto";
@@ -371,9 +373,20 @@ router.get("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
         grantedAt: expertClientAccessTable.grantedAt,
         orgName: organizationsTable.name,
         orgCountry: organizationsTable.country,
+        planCode: subscriptionPlansTable.code,
+        planName: subscriptionPlansTable.name,
+        subStatus: organizationSubscriptionsTable.status,
       })
       .from(expertClientAccessTable)
       .innerJoin(organizationsTable, eq(organizationsTable.id, expertClientAccessTable.orgId))
+      .leftJoin(
+        organizationSubscriptionsTable,
+        and(
+          eq(organizationSubscriptionsTable.organizationId, expertClientAccessTable.orgId),
+          eq(organizationSubscriptionsTable.isCurrent, true),
+        ),
+      )
+      .leftJoin(subscriptionPlansTable, eq(subscriptionPlansTable.id, organizationSubscriptionsTable.planId))
       .where(eq(expertClientAccessTable.firmId, firmId))
       .orderBy(desc(expertClientAccessTable.grantedAt));
 

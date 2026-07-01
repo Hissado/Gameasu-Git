@@ -239,14 +239,31 @@ router.get("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req,
         logoUrl: organizationsTable.logoUrl,
         isActive: organizationsTable.isActive,
       },
+      subscription: {
+        planCode: subscriptionPlansTable.code,
+        planName: subscriptionPlansTable.name,
+        status: organizationSubscriptionsTable.status,
+      },
     })
     .from(expertClientAccessTable)
     .innerJoin(organizationsTable, eq(organizationsTable.id, expertClientAccessTable.orgId))
+    .leftJoin(
+      organizationSubscriptionsTable,
+      and(
+        eq(organizationSubscriptionsTable.organizationId, expertClientAccessTable.orgId),
+        eq(organizationSubscriptionsTable.isCurrent, true),
+      ),
+    )
+    .leftJoin(subscriptionPlansTable, eq(subscriptionPlansTable.id, organizationSubscriptionsTable.planId))
     .where(and(
       eq(expertClientAccessTable.firmId, req.params.firmId as string),
       eq(expertClientAccessTable.isActive, true),
     ));
-  return res.json(rows.map((r) => ({ ...r.access, org: r.org })));
+  return res.json(rows.map((r) => ({
+    ...r.access,
+    org: r.org,
+    subscription: r.subscription.planCode ? r.subscription : null,
+  })));
 });
 
 // Lier une organisation existante au cabinet
@@ -595,18 +612,22 @@ router.patch(
         .limit(1);
 
       if (orgAdmin?.email) {
-        const recipientName = [orgAdmin.firstName, orgAdmin.lastName].filter(Boolean).join(" ") || orgAdmin.email;
-        const emailMsg = buildPlanChangeEmail({
-          orgName: org.name,
-          recipientName,
-          newPlanName: plan.name,
-          newPlanCode: plan.code,
-          includedModules: plan.includedModules ?? [],
-          changedByFirmName: firmName,
-          changedByUserName: changedByName,
-        });
-        emailMsg.to = orgAdmin.email;
-        await sendEmail(emailMsg);
+        try {
+          const recipientName = [orgAdmin.firstName, orgAdmin.lastName].filter(Boolean).join(" ") || orgAdmin.email;
+          const emailMsg = buildPlanChangeEmail({
+            orgName: org.name,
+            recipientName,
+            newPlanName: plan.name,
+            newPlanCode: plan.code,
+            includedModules: plan.includedModules ?? [],
+            changedByFirmName: firmName,
+            changedByUserName: changedByName,
+          });
+          emailMsg.to = orgAdmin.email;
+          await sendEmail(emailMsg);
+        } catch {
+          // Envoi email non-bloquant — le changement de plan reste effectif
+        }
       }
 
       await audit(req, "expert_plan_change", {

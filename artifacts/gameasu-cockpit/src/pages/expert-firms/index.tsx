@@ -40,6 +40,7 @@ type FirmMember = {
 type FirmClient = {
   id: string; orgId: string; orgName: string; orgCountry: string | null;
   accessLevel: string; isActive: boolean; grantedAt: string;
+  planCode?: string | null; planName?: string | null; subStatus?: string | null;
 };
 
 type FirmDoc = {
@@ -486,6 +487,9 @@ export default function ExpertFirmsPage() {
                         <p className="text-xs text-muted-foreground">{c.orgCountry ?? "—"}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        {c.planCode && (
+                          <Badge variant="secondary" className="text-[10px]">{c.planName ?? c.planCode}</Badge>
+                        )}
                         <Badge variant="outline" className="text-[10px]">{ACCESS_LABEL[c.accessLevel] ?? c.accessLevel}</Badge>
                         <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-red-400"}`} />
                       </div>

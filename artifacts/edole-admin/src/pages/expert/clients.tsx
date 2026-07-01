@@ -148,7 +148,7 @@ function ChangePlanModal({
       }),
     onSuccess: () => {
       toast({ title: "Formule mise à jour", description: `${target!.orgName} est maintenant sur le plan ${AVAILABLE_PLANS.find((p) => p.code === planCode)?.label ?? planCode}.` });
-      qc.invalidateQueries({ queryKey: ["expert-clients", firmId] });
+      qc.invalidateQueries({ queryKey: ["expert/clients", firmId] });
       onClose();
     },
     onError: (err: any) => {
