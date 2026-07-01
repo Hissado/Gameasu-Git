@@ -141,7 +141,6 @@ function InviteCollaborateurModal({ firmId, open, onClose }: { firmId: string; o
             >
               <option value="member">Collaborateur</option>
               <option value="admin">Administrateur</option>
-              <option value="owner">Propriétaire</option>
             </select>
           </div>
           <p className="text-xs text-muted-foreground">Un lien d'invitation sécurisé lui sera envoyé par e-mail.</p>

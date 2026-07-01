@@ -1179,10 +1179,14 @@ router.get(
 // ─────────────────────────────────────────────────────────────────
 
 router.patch(
-  "/firms/:firmId/clients/:orgId/org",
+  "/expert/firms/:firmId/clients/:orgId/org",
   requireExpertFirmMember,
   requireExpertClientAccess,
   async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string | undefined;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Réservé aux propriétaires et administrateurs du cabinet." });
+    }
     const { orgId } = req.params as { firmId: string; orgId: string };
     const { name, country, industry, email, phone, address } = req.body;
     const patch: Record<string, string | null> = {};
@@ -1200,10 +1204,14 @@ router.patch(
 );
 
 router.patch(
-  "/firms/:firmId/clients/:orgId/modules/:moduleKey",
+  "/expert/firms/:firmId/clients/:orgId/modules/:moduleKey",
   requireExpertFirmMember,
   requireExpertClientAccess,
   async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string | undefined;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Réservé aux propriétaires et administrateurs du cabinet." });
+    }
     const { orgId, moduleKey } = req.params as { firmId: string; orgId: string; moduleKey: string };
     const enabled = Boolean(req.body.enabled);
     const existing = await db
@@ -1223,10 +1231,14 @@ router.patch(
 );
 
 router.patch(
-  "/firms/:firmId/clients/:orgId/members/:userId",
+  "/expert/firms/:firmId/clients/:orgId/members/:userId",
   requireExpertFirmMember,
   requireExpertClientAccess,
   async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string | undefined;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Réservé aux propriétaires et administrateurs du cabinet." });
+    }
     const { orgId, userId } = req.params as { firmId: string; orgId: string; userId: string };
     const ALLOWED = ["member", "admin"] as const;
     const role = ALLOWED.includes(req.body.role) ? req.body.role : "member";
@@ -1238,10 +1250,14 @@ router.patch(
 );
 
 router.delete(
-  "/firms/:firmId/clients/:orgId/members/:userId",
+  "/expert/firms/:firmId/clients/:orgId/members/:userId",
   requireExpertFirmMember,
   requireExpertClientAccess,
   async (req, res) => {
+    const actorRole = (req as any).expertMemberRole as string | undefined;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      return res.status(403).json({ error: "Réservé aux propriétaires et administrateurs du cabinet." });
+    }
     const { orgId, userId } = req.params as { firmId: string; orgId: string; userId: string };
     await db.delete(organizationMembersTable)
       .where(and(eq(organizationMembersTable.organizationId, orgId), eq(organizationMembersTable.userId, userId)));
