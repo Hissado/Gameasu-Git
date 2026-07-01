@@ -4,7 +4,7 @@ import {
   UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
   Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
   Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench, ClipboardList,
-  FileBarChart2,
+  FileBarChart2, HardHat, FileSpreadsheet,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -54,6 +54,14 @@ const NAV_GROUPS = [
       { name: "Onboarding",   path: "/hr/onboarding",  icon: UserPlus },
       { name: "Évaluations",  path: "/hr/evaluations", icon: Star },
       { name: "Formations",   path: "/hr/training",    icon: BookOpen },
+    ],
+  },
+  {
+    label: "Pointage & Paie BTP",
+    items: [
+      { name: "Grille de pointage",  path: "/hr/btp-pointage", icon: HardHat },
+      { name: "États de salaires",   path: "/hr/btp-paie",     icon: FileSpreadsheet },
+      { name: "Paramètres BTP",      path: "/hr/btp-settings", icon: Settings2 },
     ],
   },
   {

@@ -182,6 +182,9 @@ const ExpertUsersPermissions = lazy(() => import("@/pages/expert/users-permissio
 const ExpertDocumentRequests = lazy(() => import("@/pages/expert/document-requests"));
 const ExpertReports = lazy(() => import("@/pages/expert/reports"));
 const ExpertFirmSettings = lazy(() => import("@/pages/expert/firm-settings"));
+const BtpPointage = lazy(() => import("@/pages/hr/btp-pointage"));
+const BtpPaie = lazy(() => import("@/pages/hr/btp-paie"));
+const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -351,6 +354,9 @@ function AppRouter() {
                 <Route path="/recouvrement" component={RecouvrementPage} />
                 <Route path="/migration" component={MigrationPage} />
                 <Route path="/hr/intelligence" component={HrIntelligence} />
+                <Route path="/hr/btp-pointage" component={BtpPointage} />
+                <Route path="/hr/btp-paie" component={BtpPaie} />
+                <Route path="/hr/btp-settings" component={BtpSettings} />
                 <Route path="/notifications/digest" component={NotificationsDigest} />
                 <Route path="/search" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />
