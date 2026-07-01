@@ -410,8 +410,8 @@ export default function OrdersList() {
                 ) : orders.map(order => {
                   const st = STATUS_MAP[order.status] ?? { label: order.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
                   const isCancelled = order.status === "cancelled";
-                  const canEditDoc = !!EDIT_ALLOWED[order.status];
-                  const canCancelDoc = CANCEL_RULES[order.status]?.allowed === true;
+                  const canEditDoc = !perms.isReadOnly && !!EDIT_ALLOWED[order.status];
+                  const canCancelDoc = !perms.isReadOnly && CANCEL_RULES[order.status]?.allowed === true;
                   const isCancelBlocked = !CANCEL_RULES[order.status]?.allowed && !isCancelled;
 
                   return (
@@ -434,13 +434,13 @@ export default function OrdersList() {
                       <TableCell className="text-right"><span className="font-semibold">{formatFCFA(order.totalAmount ?? 0)}</span></TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
-                          {!isCancelled && (
+                          {!isCancelled && !perms.isReadOnly && (
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5"
                               disabled={generatingId === order.id} onClick={() => generateInvoice(order.id)}>
                               <Receipt className="w-3 h-3" />{generatingId === order.id ? "…" : "Facturer"}
                             </Button>
                           )}
-                          {!isCancelled && (
+                          {!isCancelled && !perms.isReadOnly && (
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
                               onClick={() => setSendEmailTarget(order)}>
                               <Mail className="w-3 h-3" /> Email

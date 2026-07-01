@@ -891,7 +891,7 @@ router.post("/hr/leave-balances", requirePermission("hr.manage"), async (req, re
 // ════════════════════════════════════════════════════════════════
 // ÉVALUATIONS DE PERFORMANCE
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/evaluations", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/evaluations", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { period, status } = req.query as { period?: string; status?: string };
@@ -936,7 +936,7 @@ router.post("/hr/evaluations", requirePermission("hr.manage"), async (req, res, 
   } catch (e) { next(e); }
 });
 
-router.get("/hr/evaluations/:id", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/evaluations/:id", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select({
@@ -1119,7 +1119,7 @@ router.post("/hr/training/:id/participants", requirePermission("hr.manage"), asy
 // ════════════════════════════════════════════════════════════════
 // MOUVEMENTS DU PERSONNEL
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/movements", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/movements", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { type } = req.query as { type?: string };
@@ -1179,7 +1179,7 @@ router.post("/hr/movements", requirePermission("hr.manage"), async (req, res, ne
   } catch (e) { next(e); }
 });
 
-router.get("/hr/movements/:id", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/movements/:id", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [row] = await db.select().from(personnelMovementsTable)
@@ -1545,7 +1545,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
 });
 
 /** GET /api/payroll/payslips/:id/pdf — export PDF admin (sans restriction collab) */
-router.get("/payroll/payslips/:id/pdf", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/payroll/payslips/:id/pdf", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [payslip] = await db.select().from(payslipsTable)
@@ -1979,7 +1979,7 @@ router.get("/hr/orgchart", async (req, res, next) => {
 // ════════════════════════════════════════════════════════════════
 // #1 — POLITIQUES DE CONGÉS
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/leave-policies", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/leave-policies", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const rows = await db.select().from(leavePoliciesTable)
@@ -2048,7 +2048,7 @@ router.delete("/hr/leave-policies/:id", requirePermission("hr.manage"), async (r
 // ════════════════════════════════════════════════════════════════
 // #2 — CALENDRIER DES ABSENCES ÉQUIPE
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/team-calendar", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/team-calendar", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { start, end } = req.query as { start?: string; end?: string };
@@ -2195,7 +2195,7 @@ router.get("/hr/me/attestation/:type", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get("/hr/attestations/:collaboratorId/:type", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/attestations/:collaboratorId/:type", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const type = req.params.type as "travail" | "salaire" | "presence";
@@ -2207,7 +2207,7 @@ router.get("/hr/attestations/:collaboratorId/:type", requirePermission("hr.manag
 // ════════════════════════════════════════════════════════════════
 // #5 — FEUILLES DE TEMPS (approbation manager)
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/timesheets", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/timesheets", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { start, end, departmentId, approvalStatus } = req.query as Record<string, string>;
@@ -2303,7 +2303,7 @@ router.post("/hr/timesheets/bulk-approve", requirePermission("hr.manage"), async
 // ════════════════════════════════════════════════════════════════
 // #6 — ALERTES RH (contrats + périodes d'essai)
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/alerts/upcoming", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/alerts/upcoming", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const today = new Date();
@@ -2393,7 +2393,7 @@ router.get("/hr/alerts/upcoming", requirePermission("hr.manage"), async (req, re
 // ════════════════════════════════════════════════════════════════
 // #7 — INDICATEURS RH
 // ════════════════════════════════════════════════════════════════
-router.get("/hr/indicators", requirePermission("hr.manage"), async (req, res, next) => {
+router.get("/hr/indicators", requirePermission("hr.read"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { year } = req.query as { year?: string };

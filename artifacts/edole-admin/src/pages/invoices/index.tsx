@@ -483,9 +483,9 @@ export default function InvoicesList() {
                   const isCancelled = inv.status === "cancelled";
                   const remaining = (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0);
                   const st = STATUS_MAP[inv.status] ?? { label: inv.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
-                  const canPay = !["paid", "cancelled"].includes(inv.status);
-                  const canEditDoc = !!EDIT_ALLOWED[inv.status];
-                  const canCancelDoc = CANCEL_RULES[inv.status]?.allowed === true;
+                  const canPay = !perms.isReadOnly && !["paid", "cancelled"].includes(inv.status);
+                  const canEditDoc = !perms.isReadOnly && !!EDIT_ALLOWED[inv.status];
+                  const canCancelDoc = !perms.isReadOnly && CANCEL_RULES[inv.status]?.allowed === true;
                   const isCancelBlocked = !CANCEL_RULES[inv.status]?.allowed && !isCancelled;
 
                   return (
@@ -529,10 +529,12 @@ export default function InvoicesList() {
                                 <Wallet className="w-3 h-3" /> Encaisser
                               </Button>
                             )}
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
-                              onClick={() => setSendEmailTarget(inv)}>
-                              <Mail className="w-3 h-3" /> Email
-                            </Button>
+                            {!perms.isReadOnly && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                onClick={() => setSendEmailTarget(inv)}>
+                                <Mail className="w-3 h-3" /> Email
+                              </Button>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-slate-500 border-slate-200">
@@ -545,26 +547,30 @@ export default function InvoicesList() {
                                   onClick={() => window.open(`/documents/invoice/${inv.id}/print`, "_blank")}>
                                   <Printer className="w-3.5 h-3.5 text-slate-500" /> Télécharger PDF
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-xs gap-2 cursor-pointer text-violet-700 focus:text-violet-700"
-                                  disabled={generatingLinkId === inv.id}
-                                  onClick={async () => {
-                                    setGeneratingLinkId(inv.id);
-                                    try {
-                                      const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" }) as { token: string };
-                                      const url = `${window.location.origin}/facture/${r.token}`;
-                                      await navigator.clipboard.writeText(url);
-                                      toast.success("Lien public copié dans le presse-papiers");
-                                    } catch { toast.error("Erreur lors de la génération du lien"); }
-                                    finally { setGeneratingLinkId(null); }
-                                  }}>
-                                  <Link2 className="w-3.5 h-3.5" /> Copier lien public
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-xs gap-2 cursor-pointer text-amber-700 focus:text-amber-700"
-                                  onClick={() => setCreditNoteTarget(inv)}>
-                                  <MinusCircle className="w-3.5 h-3.5" /> Créer un avoir
-                                </DropdownMenuItem>
+                                {!perms.isReadOnly && (
+                                  <DropdownMenuItem
+                                    className="text-xs gap-2 cursor-pointer text-violet-700 focus:text-violet-700"
+                                    disabled={generatingLinkId === inv.id}
+                                    onClick={async () => {
+                                      setGeneratingLinkId(inv.id);
+                                      try {
+                                        const r = await apiFetch(`/api/invoices/${inv.id}/generate-public-link`, { method: "POST" }) as { token: string };
+                                        const url = `${window.location.origin}/facture/${r.token}`;
+                                        await navigator.clipboard.writeText(url);
+                                        toast.success("Lien public copié dans le presse-papiers");
+                                      } catch { toast.error("Erreur lors de la génération du lien"); }
+                                      finally { setGeneratingLinkId(null); }
+                                    }}>
+                                    <Link2 className="w-3.5 h-3.5" /> Copier lien public
+                                  </DropdownMenuItem>
+                                )}
+                                {!perms.isReadOnly && (
+                                  <DropdownMenuItem
+                                    className="text-xs gap-2 cursor-pointer text-amber-700 focus:text-amber-700"
+                                    onClick={() => setCreditNoteTarget(inv)}>
+                                    <MinusCircle className="w-3.5 h-3.5" /> Créer un avoir
+                                  </DropdownMenuItem>
+                                )}
                                 {canEditDoc && (
                                   <>
                                     <DropdownMenuSeparator />

@@ -473,15 +473,19 @@ export default function ProjectsList() {
                               <TrendingUp className="mr-2 h-4 w-4" /> Timeline Gantt
                             </DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem className="cursor-pointer" onClick={() => setEditProject(project)}>
-                            <Edit className="mr-2 h-4 w-4" /> Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer text-destructive focus:text-destructive"
-                            onClick={() => setDeleteProject(project)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                          </DropdownMenuItem>
+                          {!perms.isReadOnly && (
+                            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditProject(project)}>
+                              <Edit className="mr-2 h-4 w-4" /> Modifier
+                            </DropdownMenuItem>
+                          )}
+                          {!perms.isReadOnly && (
+                            <DropdownMenuItem
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                              onClick={() => setDeleteProject(project)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -522,11 +526,13 @@ export default function ProjectsList() {
                         </CardContent>
                       </Card>
                     </Link>
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 bg-white shadow-sm border" onClick={e => { e.preventDefault(); setEditProject(project); }}>
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {!perms.isReadOnly && (
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 bg-white shadow-sm border" onClick={e => { e.preventDefault(); setEditProject(project); }}>
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

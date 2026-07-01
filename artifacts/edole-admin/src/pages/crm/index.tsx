@@ -401,7 +401,7 @@ export default function CrmHome() {
                               </button>
                             </Link>
                           )}
-                          {stage.key !== "won" && stage.key !== "lost" && (
+                          {stage.key !== "won" && stage.key !== "lost" && !perms.isReadOnly && (
                             <button
                               onClick={() => setConvertOpp(opp)}
                               className="text-[10px] font-semibold px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center gap-1 transition-colors">

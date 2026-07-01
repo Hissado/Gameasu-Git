@@ -328,12 +328,16 @@ export default function EquipmentList() {
                             <Link href={`/equipment/${item.id}`}>
                               <DropdownMenuItem className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> Détail</DropdownMenuItem>
                             </Link>
-                            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditItem(item)}>
-                              <Edit className="mr-2 h-4 w-4" /> Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setDeleteItem(item)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
+                            {!perms.isReadOnly && (
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => setEditItem(item)}>
+                                <Edit className="mr-2 h-4 w-4" /> Modifier
+                              </DropdownMenuItem>
+                            )}
+                            {!perms.isReadOnly && (
+                              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setDeleteItem(item)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
