@@ -10,6 +10,7 @@ import {
 import { clientsTable } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, inArray, isNull } from "drizzle-orm";
 import { requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import { ExcelReportBuilder } from "../lib/excel-engine";
 import { organizationsTable } from "@workspace/db";
 
@@ -195,7 +196,7 @@ async function insertBudgetWithVersion(orgId: string, payload: {
   throw new Error("Impossible de créer le budget après plusieurs tentatives concurrentes");
 }
 
-router.post("/fpa/budgets", async (req, res) => {
+router.post("/fpa/budgets", requirePermission("fpa.manage"), async (req, res) => {
   const userId = req.authUser!.id;
   const {
     name, kind = "budget", fiscalPeriodId, scope = "company", scopeId = null,
@@ -247,7 +248,7 @@ router.post("/fpa/budgets", async (req, res) => {
   }
 });
 
-router.put("/fpa/budgets/:id", async (req, res) => {
+router.put("/fpa/budgets/:id", requirePermission("fpa.manage"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const { name, notes, projectIds, status } = req.body || {};
   const upd: any = {};
@@ -278,7 +279,7 @@ router.delete("/fpa/budgets/:id", requireAdmin, async (req, res) => {
   return res.status(204).send();
 });
 
-router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
+router.post("/fpa/budgets/:id/duplicate", requirePermission("fpa.manage"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const userId = req.authUser!.id;
   const orgId = req.authUser!.organizationId;
@@ -312,7 +313,7 @@ router.post("/fpa/budgets/:id/duplicate", async (req, res) => {
  * Activation atomique : archivage de l'ancienne version active + activation
  * dans une seule transaction. Empêche l'état "deux versions actives" en concurrence.
  */
-router.post("/fpa/budgets/:id/activate", async (req, res) => {
+router.post("/fpa/budgets/:id/activate", requirePermission("fpa.manage"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const orgId = req.authUser!.organizationId;
   try {
@@ -339,7 +340,7 @@ router.post("/fpa/budgets/:id/activate", async (req, res) => {
 
 // ─── BUDGET LINES — bulk upsert ─────────────────────────────────────────────
 
-router.put("/fpa/budgets/:id/lines", async (req, res) => {
+router.put("/fpa/budgets/:id/lines", requirePermission("fpa.manage"), async (req, res) => {
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
   const orgId = req.authUser!.organizationId;
   const { lines } = req.body || {};

@@ -157,11 +157,44 @@ const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super administrateur",
   admin: "Administrateur",
   manager: "Responsable",
+  rh: "Gestionnaire RH",
+  financier: "Responsable Financier",
   commercial: "Commercial",
-  collaborator: "Collaborateur",
+  logistique: "Gestionnaire Logistique",
+  auditeur: "Auditeur",
   comptable: "Comptable",
+  collaborator: "Collaborateur",
   client: "Client",
 };
+
+/** Badge rôle affiché en pied de sidebar (desktop + mobile). */
+function SidebarUserFooter() {
+  const { user } = useAuth();
+  const role = user?.role ?? "";
+  const roleLabel = ROLE_LABEL[role] || role;
+  const initials = ((user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")).toUpperCase() || "??";
+  const fullName = user ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() : "—";
+  const isAuditeur = role === "auditeur";
+  return (
+    <div className="shrink-0 px-3 py-3 border-t border-white/[0.07] bg-black/[0.06]">
+      <div className="flex items-center gap-2.5">
+        <Avatar className="w-7 h-7 shrink-0">
+          {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+          <AvatarFallback className="bg-[#0F1A3A] text-[#2563EB] font-bold text-[10px]">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11.5px] font-semibold text-white/80 truncate leading-none">{fullName}</p>
+          <p className="text-[10px] text-[#2563EB]/70 font-medium mt-0.5 truncate">{roleLabel}</p>
+        </div>
+        {isAuditeur && (
+          <span className="shrink-0 text-[8.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-600/60 text-white/50 border border-white/10 whitespace-nowrap">
+            Lecture seule
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function isGroupActive(group: NavGroup, location: string) {
   return group.items.some(
@@ -754,7 +787,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex w-[260px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col shadow-xl z-10 shrink-0 relative">
           <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/[0.08] pointer-events-none" />
-          <div className="relative flex flex-col h-full">{SidebarContent}</div>
+          <div className="relative flex flex-col h-full">
+            {SidebarContent}
+            <SidebarUserFooter />
+          </div>
         </aside>
 
         {/* Mobile overlay */}
@@ -774,6 +810,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           aria-hidden={!mobileOpen}
         >
           {SidebarContent}
+          <SidebarUserFooter />
         </aside>
 
         {/* Main content */}

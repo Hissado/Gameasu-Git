@@ -10,17 +10,35 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Send, MailCheck, RefreshCw, UserPlus, Ban } from "lucide-react";
+import { Send, MailCheck, RefreshCw, UserPlus, Ban, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
+
+const ROLE_OPTIONS = [
+  { value: "admin",       label: "Administrateur" },
+  { value: "manager",     label: "Responsable" },
+  { value: "rh",          label: "Gestionnaire RH" },
+  { value: "financier",   label: "Responsable Financier" },
+  { value: "commercial",  label: "Commercial" },
+  { value: "logistique",  label: "Gestionnaire Logistique" },
+  { value: "comptable",   label: "Comptable" },
+  { value: "auditeur",    label: "Auditeur (lecture seule)" },
+  { value: "collaborator", label: "Collaborateur" },
+] as const;
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super administrateur",
   admin: "Administrateur",
   manager: "Responsable",
+  rh: "Gestionnaire RH",
+  financier: "Responsable Financier",
   commercial: "Commercial",
+  logistique: "Gestionnaire Logistique",
+  auditeur: "Auditeur",
   technicien: "Technicien",
   comptable: "Comptable",
   client: "Client",
@@ -105,6 +123,18 @@ export default function UsersList() {
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
   });
 
+  const { user: currentUser } = useAuth();
+
+  const changeRoleMut = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      apiFetch(`/api/users/${userId}`, { method: "PUT", body: { role } as any }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["listUsers"] });
+      toast({ title: "Rôle mis à jour", description: "Le rôle de l'utilisateur a été modifié." });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
   const handleInviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setInvError(null);
@@ -170,9 +200,37 @@ export default function UsersList() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant="outline" className="font-medium">
-                          {ROLE_LABEL[user.role] || user.role}
-                        </Badge>
+                        {currentUser?.role === "admin" || currentUser?.role === "super_admin" ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="flex items-center gap-1 px-2 py-1 rounded-md border border-border/60 text-xs font-medium hover:bg-muted transition-colors">
+                                {ROLE_LABEL[user.role] || user.role}
+                                <ChevronDown className="w-3 h-3 text-muted-foreground ml-0.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-52">
+                              {ROLE_OPTIONS.map((opt) => (
+                                <DropdownMenuItem
+                                  key={opt.value}
+                                  onClick={() => {
+                                    if (opt.value !== user.role && user.id !== currentUser?.id) {
+                                      changeRoleMut.mutate({ userId: user.id, role: opt.value });
+                                    }
+                                  }}
+                                  disabled={opt.value === user.role || user.id === currentUser?.id}
+                                  className="text-sm"
+                                >
+                                  {opt.label}
+                                  {opt.value === user.role && <span className="ml-auto text-primary text-xs">✓</span>}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <Badge variant="outline" className="font-medium">
+                            {ROLE_LABEL[user.role] || user.role}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {user.isClient ? (
@@ -320,11 +378,13 @@ export default function UsersList() {
                 <SelectContent>
                   <SelectItem value="admin">Administrateur</SelectItem>
                   <SelectItem value="manager">Responsable</SelectItem>
+                  <SelectItem value="rh">Gestionnaire RH</SelectItem>
+                  <SelectItem value="financier">Responsable Financier</SelectItem>
                   <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="technicien">Technicien</SelectItem>
+                  <SelectItem value="logistique">Gestionnaire Logistique</SelectItem>
                   <SelectItem value="comptable">Comptable</SelectItem>
+                  <SelectItem value="auditeur">Auditeur (lecture seule)</SelectItem>
                   <SelectItem value="collaborator">Collaborateur</SelectItem>
-                  <SelectItem value="client">Client</SelectItem>
                 </SelectContent>
               </Select>
             </div>
