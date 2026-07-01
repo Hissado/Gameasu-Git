@@ -14,11 +14,16 @@ import {
   expertFirmMembersTable,
   organizationsTable,
   usersTable,
+  authSessionsTable,
+  cockpitAuditLogsTable,
 } from "@workspace/db";
 import { and, eq, gt } from "drizzle-orm";
-import crypto from "node:crypto";
+import crypto, { randomUUID } from "node:crypto";
 
 const router = Router();
+
+/** Durée d'une session normale après acceptation d'invitation (30 jours). */
+const SESSION_TTL_DAYS = 30;
 
 // ── GET /expert/invitation/:token ────────────────────────────────────────────
 router.get("/expert/invitation/:token", async (req, res, next) => {
@@ -35,7 +40,6 @@ router.get("/expert/invitation/:token", async (req, res, next) => {
         firmName: expertFirmsTable.name,
         firmCountry: expertFirmsTable.country,
         firmPlan: expertFirmsTable.plan,
-        firmIsActive: expertFirmsTable.isActive,
       })
       .from(expertFirmInvitationsTable)
       .innerJoin(expertFirmsTable, eq(expertFirmsTable.id, expertFirmInvitationsTable.firmId))
@@ -50,6 +54,11 @@ router.get("/expert/invitation/:token", async (req, res, next) => {
       return res.status(410).json({ error: "Cette invitation a déjà été acceptée. Connectez-vous directement." });
     }
     if (inv.expiresAt < now) {
+      // Transition to expired state for operational traceability
+      await db
+        .update(expertFirmInvitationsTable)
+        .set({ status: "expired" })
+        .where(eq(expertFirmInvitationsTable.id, inv.id));
       return res.status(410).json({ error: "Ce lien a expiré (validité 72h). Demandez un nouvel envoi depuis le Cockpit." });
     }
 
@@ -86,8 +95,8 @@ router.post("/expert/invitation/accept", async (req, res, next) => {
 
     const now = new Date();
 
-    // Verify invitation
-    const rows = await db
+    // Verify invitation (valid, pending, not expired)
+    const invRows = await db
       .select()
       .from(expertFirmInvitationsTable)
       .where(
@@ -99,8 +108,20 @@ router.post("/expert/invitation/accept", async (req, res, next) => {
       )
       .limit(1);
 
-    const inv = rows[0];
+    const inv = invRows[0];
     if (!inv) {
+      // If we can find the row but it's expired, update its status
+      const expiredRows = await db
+        .select({ id: expertFirmInvitationsTable.id, status: expertFirmInvitationsTable.status })
+        .from(expertFirmInvitationsTable)
+        .where(eq(expertFirmInvitationsTable.token, token))
+        .limit(1);
+      if (expiredRows[0] && expiredRows[0].status === "pending") {
+        await db
+          .update(expertFirmInvitationsTable)
+          .set({ status: "expired" })
+          .where(eq(expertFirmInvitationsTable.id, expiredRows[0].id));
+      }
       return res.status(410).json({
         error: "Ce lien est invalide, déjà utilisé ou expiré. Contactez votre administrateur Gaméasù.",
       });
@@ -132,76 +153,107 @@ router.post("/expert/invitation/accept", async (req, res, next) => {
     const bcrypt = await import("bcryptjs");
     const hashed = await bcrypt.hash(password, 10);
 
-    // Create the org for the firm if it doesn't have one yet
-    let orgId = firm.organizationId;
-    if (!orgId) {
-      const orgSlug = firm.slug + "-cabinet";
-      const [org] = await db
-        .insert(organizationsTable)
+    // ── Atomic transaction: org + user + member + activate firm + consume invitation ──
+    const result = await db.transaction(async (tx) => {
+      let orgId = firm.organizationId;
+
+      if (!orgId) {
+        // Create the organisation for the firm
+        const orgSlug = firm.slug + "-cabinet";
+        const [org] = await tx
+          .insert(organizationsTable)
+          .values({
+            name: firm.name,
+            slug: orgSlug,
+            country: firm.country,
+            contactEmail: firm.email ?? inv.email,
+            isActive: true,
+          })
+          .returning({ id: organizationsTable.id });
+        orgId = org.id;
+
+        // Link firm to the new org and activate it
+        await tx
+          .update(expertFirmsTable)
+          .set({ organizationId: orgId, isActive: true })
+          .where(eq(expertFirmsTable.id, firm.id));
+      } else {
+        // Firm already has an org — activate it
+        await tx
+          .update(expertFirmsTable)
+          .set({ isActive: true })
+          .where(eq(expertFirmsTable.id, firm.id));
+      }
+
+      // Create the admin user for the firm
+      const [user] = await tx
+        .insert(usersTable)
         .values({
-          name: firm.name,
-          slug: orgSlug,
-          country: firm.country,
-          contactEmail: firm.email ?? inv.email,
+          organizationId: orgId,
+          email: inv.email.toLowerCase(),
+          password: hashed,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          role: "admin",
           isActive: true,
+          mustChangePassword: false,
+          acceptedAt: now,
         })
-        .returning({ id: organizationsTable.id });
-      orgId = org.id;
+        .returning();
 
-      // Link firm to org
-      await db
-        .update(expertFirmsTable)
-        .set({ organizationId: orgId, isActive: true })
-        .where(eq(expertFirmsTable.id, firm.id));
-    } else {
-      // Firm already has an org — just activate it
-      await db
-        .update(expertFirmsTable)
-        .set({ isActive: true })
-        .where(eq(expertFirmsTable.id, firm.id));
-    }
+      // Create expert firm member with role owner
+      await tx.insert(expertFirmMembersTable).values({
+        firmId: firm.id,
+        userId: user.id,
+        role: "owner",
+        joinedAt: now,
+      });
 
-    // Create the admin user for the firm
-    const [user] = await db
-      .insert(usersTable)
-      .values({
-        organizationId: orgId,
-        email: inv.email.toLowerCase(),
-        password: hashed,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        role: "admin",
-        isActive: true,
-        mustChangePassword: false,
-        acceptedAt: now,
-      })
-      .returning();
+      // Mark invitation as accepted
+      await tx
+        .update(expertFirmInvitationsTable)
+        .set({ status: "accepted", acceptedAt: now })
+        .where(eq(expertFirmInvitationsTable.id, inv.id));
 
-    // Create expert firm member with role owner
-    await db.insert(expertFirmMembersTable).values({
-      firmId: firm.id,
-      userId: user.id,
-      role: "owner",
-      joinedAt: now,
+      // Create a proper UUID session (same mechanism as /auth/login)
+      const sessionToken = randomUUID();
+      const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+      await tx.insert(authSessionsTable).values({
+        token: sessionToken,
+        userId: user.id,
+        expiresAt,
+      });
+
+      return { user, sessionToken, orgId };
     });
 
-    // Mark invitation as accepted
-    await db
-      .update(expertFirmInvitationsTable)
-      .set({ status: "accepted", acceptedAt: now })
-      .where(eq(expertFirmInvitationsTable.id, inv.id));
-
-    // Generate a session token for immediate login
-    const sessionToken = Buffer.from(`${user.id}:${user.email}`).toString("base64");
+    // ── Audit log (non-fatal, outside transaction) ────────────────────────────
+    try {
+      await db.insert(cockpitAuditLogsTable).values({
+        actorId: undefined,
+        actorEmail: result.user.email,
+        action: "accept_expert_firm_invitation",
+        resource: "expert_firm",
+        resourceId: firm.id,
+        metadata: {
+          firmName: firm.name,
+          adminEmail: result.user.email,
+          adminName: `${result.user.firstName} ${result.user.lastName}`,
+          orgId: result.orgId,
+        } as any,
+      });
+    } catch {
+      // Non-fatal
+    }
 
     return res.status(201).json({
-      token: sessionToken,
+      token: result.sessionToken,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
+        id: result.user.id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+        role: result.user.role,
       },
       firm: {
         id: firm.id,
