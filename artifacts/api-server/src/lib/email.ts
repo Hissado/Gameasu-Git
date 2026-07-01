@@ -401,6 +401,75 @@ export function buildExpertFirmInvitationEmail(opts: {
   };
 }
 
+export function buildPlanChangeEmail(opts: {
+  orgName: string;
+  recipientName: string;
+  newPlanName: string;
+  newPlanCode: string;
+  includedModules: string[];
+  changedByFirmName: string;
+  changedByUserName: string;
+}): EmailMessage {
+  const planColorMap: Record<string, string> = {
+    STARTER: "#64748b", GROWTH: "#7c3aed", PROFESSIONAL: "#6d28d9", ENTERPRISE: "#1d4ed8",
+  };
+  const accent = planColorMap[opts.newPlanCode.toUpperCase()] ?? "#F37021";
+  const moduleList = opts.includedModules.length
+    ? opts.includedModules.map((m) => `<li style="padding:2px 0;font-size:13px;color:#444">${m}</li>`).join("")
+    : `<li style="font-size:13px;color:#888">Aucun module spécifié</li>`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#fff;font-size:20px;font-weight:700">Changement de formule d'abonnement</div>
+    <div style="color:#8fa3c0;font-size:13px;margin-top:6px">${opts.orgName}</div>
+  </div>
+  <div style="padding:28px">
+    <p style="margin:0 0 16px;font-size:14px;color:#444">Bonjour <strong>${opts.recipientName}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">
+      Votre cabinet partenaire <strong>${opts.changedByFirmName}</strong> a modifié la formule d'abonnement de votre espace de travail.
+    </p>
+    <div style="background:#F8F9FB;border:2px solid ${accent};border-radius:10px;padding:20px;text-align:center;margin:0 0 24px">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Nouvelle formule</div>
+      <div style="font-size:28px;font-weight:800;color:${accent}">${opts.newPlanName}</div>
+    </div>
+    <p style="font-size:13px;font-weight:600;color:#333;margin:0 0 8px">Modules inclus dans votre formule :</p>
+    <ul style="margin:0 0 20px;padding-left:18px;list-style:disc">
+      ${moduleList}
+    </ul>
+    <div style="background:#fafafa;border-radius:8px;padding:14px 16px;font-size:12px;color:#777;border:1px solid #eee">
+      Modification effectuée par <strong>${opts.changedByUserName}</strong> (${opts.changedByFirmName}) le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+    </div>
+    <p style="margin:20px 0 0;font-size:12px;color:#aaa">
+      Si vous estimez que cette modification est erronée, contactez votre cabinet partenaire ou l'équipe Gaméasù.
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+  </div>
+</div></body></html>`;
+  const text = [
+    `Bonjour ${opts.recipientName},`,
+    ``,
+    `Le cabinet ${opts.changedByFirmName} a modifié la formule d'abonnement de ${opts.orgName}.`,
+    ``,
+    `Nouvelle formule : ${opts.newPlanName}`,
+    ``,
+    `Modules inclus :`,
+    ...opts.includedModules.map((m) => `  - ${m}`),
+    ``,
+    `Modification effectuée par ${opts.changedByUserName} (${opts.changedByFirmName}).`,
+  ].join("\n");
+  return {
+    to: "",
+    subject: `Votre formule Gaméasù a été modifiée → ${opts.newPlanName}`,
+    html,
+    text,
+    category: "billing",
+  };
+}
+
 export function buildPasswordResetEmail(opts: {
   recipientName: string; resetUrl: string;
 }): EmailMessage {

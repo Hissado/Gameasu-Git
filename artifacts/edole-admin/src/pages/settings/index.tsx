@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2 } from "lucide-react";
+import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2, CreditCard, Package, Briefcase } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // ─── Types pour les settings de pointage ──────────────────────────────────────
@@ -353,6 +353,131 @@ const RIGHTS: Record<string, Record<string, string[]>> = {
   },
 };
 
+type SubPlan = {
+  id: string; code: string; name: string; tagline: string | null;
+  monthlyPricePerSeat: number; includedModules: string[];
+};
+type SubInfo = {
+  subscription: { id: string; status: string; billingCycle: string; seats: number; currentPeriodEnd: string | null } | null;
+  plan: SubPlan | null;
+};
+type BillingEvent = {
+  id: string; kind: string; label: string; occurredAt: string;
+  metadata?: Record<string, unknown> | null;
+};
+
+function SubscriptionTab() {
+  const { data: subData, isLoading: subLoading } = useQuery<SubInfo>({
+    queryKey: ["subscription-current"],
+    queryFn: () => (apiFetch("/api/subscriptions/current").catch(() => ({ subscription: null, plan: null })) as Promise<SubInfo>),
+  });
+
+  const { data: eventsData, isLoading: evLoading } = useQuery<BillingEvent[]>({
+    queryKey: ["billing-events"],
+    queryFn: () => (apiFetch("/api/billing/events").catch(() => []) as Promise<BillingEvent[]>),
+  });
+
+  const lastPlanChange = (eventsData ?? []).find((e) => e.kind === "plan_change");
+  const managedByFirm = lastPlanChange?.metadata?.firmName as string | undefined;
+
+  const plan = subData?.plan;
+  const sub = subData?.subscription;
+
+  const PLAN_COLOR: Record<string, string> = {
+    STARTER: "bg-slate-100 text-slate-700 border-slate-200",
+    GROWTH: "bg-violet-50 text-violet-700 border-violet-200",
+    PROFESSIONAL: "bg-purple-50 text-purple-700 border-purple-200",
+    ENTERPRISE: "bg-blue-50 text-blue-700 border-blue-200",
+  };
+
+  if (subLoading || evLoading) {
+    return <div className="flex items-center gap-2 text-slate-400 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" />
+            Formule active
+          </CardTitle>
+          {managedByFirm && (
+            <CardDescription className="flex items-center gap-1.5 text-violet-700">
+              <Briefcase className="w-3.5 h-3.5" />
+              Géré par le cabinet <strong>{managedByFirm}</strong>
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent>
+          {plan ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${PLAN_COLOR[plan.code] ?? "bg-slate-100 text-slate-700"}`}>
+                  {plan.name}
+                </Badge>
+                {sub && (
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${sub.status === "active" ? "text-emerald-600" : "text-amber-600"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${sub.status === "active" ? "bg-emerald-500" : "bg-amber-400"}`} />
+                    {sub.status === "active" ? "Actif" : sub.status === "trial" ? "Période d'essai" : sub.status}
+                  </span>
+                )}
+                {sub?.currentPeriodEnd && (
+                  <span className="text-xs text-muted-foreground">
+                    Renouvellement : {new Date(sub.currentPeriodEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
+                )}
+              </div>
+              {plan.tagline && <p className="text-sm text-muted-foreground">{plan.tagline}</p>}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun abonnement actif détecté.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {plan && (plan.includedModules?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              Modules inclus
+            </CardTitle>
+            <CardDescription>{plan.includedModules.length} module{plan.includedModules.length !== 1 ? "s" : ""} activés avec votre formule</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {plan.includedModules.map((m) => (
+                <span key={m} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/8 border border-primary/20 text-xs font-medium text-primary">
+                  <Check className="w-3 h-3" />{m}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {lastPlanChange && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dernier changement de formule</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm font-medium">{lastPlanChange.label}</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(lastPlanChange.occurredAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+              {lastPlanChange.metadata?.changedByUserName
+                ? ` · par ${lastPlanChange.metadata.changedByUserName as string}`
+                : ""}
+              {managedByFirm ? ` (${managedByFirm})` : ""}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -391,6 +516,7 @@ export default function Settings() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="profile">Profil</TabsTrigger>
           <TabsTrigger value="security">Sécurité</TabsTrigger>
+          <TabsTrigger value="subscription">Abonnement</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="regional">Régionales</TabsTrigger>
           <TabsTrigger value="attendance">Pointage</TabsTrigger>
@@ -452,6 +578,10 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="mt-6">
+          <SubscriptionTab />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-6">

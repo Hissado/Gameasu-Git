@@ -16,8 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useSwitchClientContext } from "@/lib/expert-api";
 import {
-  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2, ExternalLink,
+  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2, ExternalLink, CreditCard,
 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 const SECTEURS = [
   "BTP / Construction", "Mines & Ressources", "Commerce & Distribution",
@@ -119,6 +122,86 @@ function AddClientModal({ firmId, open, onClose }: { firmId: string; open: boole
   );
 }
 
+const AVAILABLE_PLANS = [
+  { code: "STARTER", label: "Starter" },
+  { code: "GROWTH", label: "Growth" },
+  { code: "PROFESSIONAL", label: "Professional" },
+  { code: "ENTERPRISE", label: "Enterprise" },
+];
+
+function ChangePlanModal({
+  firmId, target, onClose,
+}: {
+  firmId: string;
+  target: { orgId: string; orgName: string; currentPlanCode?: string } | null;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [planCode, setPlanCode] = useState(target?.currentPlanCode?.toUpperCase() ?? "STARTER");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${target!.orgId}/plan`, {
+        method: "PATCH",
+        body: JSON.stringify({ planCode }),
+      }),
+    onSuccess: () => {
+      toast({ title: "Formule mise à jour", description: `${target!.orgName} est maintenant sur le plan ${AVAILABLE_PLANS.find((p) => p.code === planCode)?.label ?? planCode}.` });
+      qc.invalidateQueries({ queryKey: ["expert-clients", firmId] });
+      onClose();
+    },
+    onError: (err: any) => {
+      toast({ title: "Erreur", description: err?.body?.error ?? "Impossible de changer le plan", variant: "destructive" });
+    },
+  });
+
+  if (!target) return null;
+
+  return (
+    <Dialog open={!!target} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-primary" />
+            Changer la formule
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Modifier la formule d'abonnement de <strong>{target.orgName}</strong>. Un email de confirmation sera envoyé à l'administrateur du client.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Nouvelle formule</Label>
+            <Select value={planCode} onValueChange={setPlanCode}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_PLANS.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {planCode === target.currentPlanCode?.toUpperCase() && (
+            <p className="text-xs text-amber-600">Cette formule est déjà active.</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || planCode === target.currentPlanCode?.toUpperCase()}
+          >
+            {mutation.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Enregistrement…</> : "Confirmer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ExpertClientsPage() {
   const { firmId } = useActiveFirm();
   const { data: clients, isLoading } = useExpertClients(firmId);
@@ -133,6 +216,7 @@ export default function ExpertClientsPage() {
   const [statutFilter, setStatutFilter] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
   const [toUnlink, setToUnlink] = useState<{ id: string; name: string } | null>(null);
+  const [planChangeTarget, setPlanChangeTarget] = useState<{ orgId: string; orgName: string; currentPlanCode?: string } | null>(null);
 
   if (!firmId) {
     return (
@@ -340,6 +424,14 @@ export default function ExpertClientsPage() {
                               <Settings className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
+                          <Button
+                            variant="ghost" size="sm"
+                            className="h-8 w-8 p-0 text-violet-500/70 hover:text-violet-600 hover:bg-violet-50"
+                            title="Changer la formule d'abonnement"
+                            onClick={() => setPlanChangeTarget({ orgId: c.orgId, orgName: c.org.name, currentPlanCode: c.subscription?.planCode })}
+                          >
+                            <CreditCard className="w-3.5 h-3.5" />
+                          </Button>
                           <Link href={`/expert/document-requests?orgId=${c.orgId}`}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Documents">
                               <FileText className="w-3.5 h-3.5" />
@@ -370,6 +462,14 @@ export default function ExpertClientsPage() {
       )}
 
       <AddClientModal firmId={firmId} open={addOpen} onClose={() => setAddOpen(false)} />
+
+      {firmId && (
+        <ChangePlanModal
+          firmId={firmId}
+          target={planChangeTarget}
+          onClose={() => setPlanChangeTarget(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!toUnlink}

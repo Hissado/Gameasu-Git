@@ -132,6 +132,9 @@ export default function ExpertFirmsPage() {
     enabled: !!selectedId,
   });
 
+  const [planEditing, setPlanEditing] = useState(false);
+  const [planDraft, setPlanDraft] = useState("");
+
   const toggleMut = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiFetch(`/api/super-admin/expert-firms/${id}`, {
@@ -140,6 +143,21 @@ export default function ExpertFirmsPage() {
       }),
     onSuccess: (_, vars) => {
       toast.success(vars.isActive ? "Cabinet réactivé" : "Cabinet suspendu");
+      qc.invalidateQueries({ queryKey: ["cockpit-expert-firms"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-expert-firm", vars.id] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+  });
+
+  const planMut = useMutation({
+    mutationFn: ({ id, plan }: { id: string; plan: string }) =>
+      apiFetch(`/api/super-admin/expert-firms/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ plan }),
+      }),
+    onSuccess: (_, vars) => {
+      toast.success("Formule cabinet mise à jour");
+      setPlanEditing(false);
       qc.invalidateQueries({ queryKey: ["cockpit-expert-firms"] });
       qc.invalidateQueries({ queryKey: ["cockpit-expert-firm", vars.id] });
     },
@@ -351,9 +369,42 @@ export default function ExpertFirmsPage() {
                     <div>
                       <SheetTitle className="text-base leading-tight">{detail.firm.name}</SheetTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className={`text-[10px] capitalize ${PLAN_COLOR[detail.firm.plan] ?? PLAN_COLOR.starter}`}>
-                          {detail.firm.plan}
-                        </Badge>
+                        {planEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <Select
+                              value={planDraft}
+                              onValueChange={setPlanDraft}
+                            >
+                              <SelectTrigger className="h-6 text-[11px] w-36 px-2">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="starter">Starter</SelectItem>
+                                <SelectItem value="growth">Growth</SelectItem>
+                                <SelectItem value="professional">Professional</SelectItem>
+                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              className="h-6 px-2 text-[11px]"
+                              disabled={planMut.isPending || planDraft === detail.firm.plan}
+                              onClick={() => planMut.mutate({ id: detail.firm.id, plan: planDraft })}
+                            >
+                              {planMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "OK"}
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setPlanEditing(false)}>✕</Button>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] capitalize cursor-pointer ${PLAN_COLOR[detail.firm.plan] ?? PLAN_COLOR.starter}`}
+                            onClick={() => { setPlanDraft(detail.firm.plan); setPlanEditing(true); }}
+                            title="Cliquer pour modifier la formule"
+                          >
+                            {detail.firm.plan} ✎
+                          </Badge>
+                        )}
                         <span className={`inline-flex items-center gap-1 text-xs font-medium ${detail.firm.isActive ? "text-emerald-600" : "text-red-500"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${detail.firm.isActive ? "bg-emerald-500" : "bg-red-400"}`} />
                           {detail.firm.isActive ? "Actif" : "Suspendu"}

@@ -515,31 +515,53 @@ router.post("/super-admin/expert-firms/invite", sa, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// PATCH /super-admin/expert-firms/:id — activer / désactiver
+// PATCH /super-admin/expert-firms/:id — activer/désactiver + changer le plan
 router.patch("/super-admin/expert-firms/:id", sa, async (req, res, next) => {
   try {
     const firmId = req.params.id as string;
-    const { isActive } = req.body as { isActive: unknown };
-    if (typeof isActive !== "boolean") {
-      return res.status(400).json({ error: "isActive doit être un booléen (true ou false)" });
+    const body = req.body as { isActive?: unknown; plan?: unknown };
+
+    const patch: Record<string, unknown> = {};
+    if (typeof body.isActive === "boolean") patch.isActive = body.isActive;
+    if (typeof body.plan === "string" && body.plan.trim()) patch.plan = body.plan.trim().toLowerCase();
+
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: "isActive (boolean) ou plan (string) requis" });
     }
 
     const [updated] = await db
       .update(expertFirmsTable)
-      .set({ isActive: Boolean(isActive) })
+      .set(patch)
       .where(eq(expertFirmsTable.id, firmId))
-      .returning({ id: expertFirmsTable.id, name: expertFirmsTable.name, isActive: expertFirmsTable.isActive });
+      .returning({
+        id: expertFirmsTable.id,
+        name: expertFirmsTable.name,
+        isActive: expertFirmsTable.isActive,
+        plan: expertFirmsTable.plan,
+      });
 
     if (!updated) return res.status(404).json({ error: "Cabinet introuvable" });
 
-    await recordAudit(
-      req.authUser?.id ?? null,
-      req.authUser?.email ?? null,
-      isActive ? "activate_expert_firm" : "suspend_expert_firm",
-      "expert_firm",
-      firmId,
-      { name: updated.name },
-    );
+    if (typeof body.isActive === "boolean") {
+      await recordAudit(
+        req.authUser?.id ?? null,
+        req.authUser?.email ?? null,
+        body.isActive ? "activate_expert_firm" : "suspend_expert_firm",
+        "expert_firm",
+        firmId,
+        { name: updated.name },
+      );
+    }
+    if (typeof body.plan === "string") {
+      await recordAudit(
+        req.authUser?.id ?? null,
+        req.authUser?.email ?? null,
+        "expert_firm_plan_change",
+        "expert_firm",
+        firmId,
+        { name: updated.name, plan: updated.plan },
+      );
+    }
 
     return res.json(updated);
   } catch (e) { next(e); }

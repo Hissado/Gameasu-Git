@@ -38,11 +38,12 @@ import {
   projectsTable,
   expenseReportsTable,
   organizationModulesTable,
+  billingEventsTable,
 } from "@workspace/db";
 import { and, eq, inArray, isNull, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
 import { audit } from "../lib/audit";
-import { sendEmail, buildInvitationEmail } from "../lib/email";
+import { sendEmail, buildInvitationEmail, buildPlanChangeEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { ObjectStorageService } from "../lib/objectStorage";
 import crypto from "node:crypto";
@@ -439,6 +440,187 @@ router.patch(
       ))
       .returning();
     return res.json(updated);
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────
+// PLAN CHANGE — changer le plan d'abonnement d'un client
+// Réservé aux owner/admin du cabinet avec accès billing ou full
+// ─────────────────────────────────────────────────────────────────
+router.patch(
+  "/expert/firms/:firmId/clients/:orgId/plan",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    try {
+      const actorRole = (req as any).expertMemberRole as string;
+      if (actorRole !== "owner" && actorRole !== "admin") {
+        return res.status(403).json({ error: "Seuls owner/admin du cabinet peuvent changer le plan d'un client" });
+      }
+      const firmId = req.params.firmId as string;
+      const orgId = req.params.orgId as string;
+      const { planCode } = req.body ?? {};
+      if (!planCode) return res.status(400).json({ error: "planCode requis" });
+
+      // Vérifier que l'accès est billing ou full
+      const [access] = await db
+        .select({ accessLevel: expertClientAccessTable.accessLevel })
+        .from(expertClientAccessTable)
+        .where(and(
+          eq(expertClientAccessTable.firmId, firmId),
+          eq(expertClientAccessTable.orgId, orgId),
+          eq(expertClientAccessTable.isActive, true),
+        ))
+        .limit(1);
+      if (!access) return res.status(403).json({ error: "Accès cabinet introuvable ou inactif" });
+      if (access.accessLevel === "read") {
+        return res.status(403).json({ error: "Niveau d'accès insuffisant — accès 'billing' ou 'full' requis pour changer le plan" });
+      }
+
+      // Chercher le plan
+      const [plan] = await db.select().from(subscriptionPlansTable)
+        .where(eq(subscriptionPlansTable.code, String(planCode).toUpperCase())).limit(1);
+      if (!plan) return res.status(404).json({ error: "Plan introuvable" });
+
+      // Org info
+      const [org] = await db
+        .select({ name: organizationsTable.name })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.id, orgId))
+        .limit(1);
+      if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+      // Firm info
+      const [firm] = await db
+        .select({ name: expertFirmsTable.name })
+        .from(expertFirmsTable)
+        .where(eq(expertFirmsTable.id, firmId))
+        .limit(1);
+
+      // Current subscription pour conserver le cycle
+      const [currentSub] = await db
+        .select()
+        .from(organizationSubscriptionsTable)
+        .where(and(
+          eq(organizationSubscriptionsTable.organizationId, orgId),
+          eq(organizationSubscriptionsTable.isCurrent, true),
+        ))
+        .limit(1);
+      const cycle = currentSub?.billingCycle ?? "monthly";
+      const unitPrice = cycle === "annual" ? plan.annualPricePerSeat : plan.monthlyPricePerSeat;
+
+      // Désactiver l'ancien abonnement courant
+      await db.update(organizationSubscriptionsTable)
+        .set({ isCurrent: false })
+        .where(and(
+          eq(organizationSubscriptionsTable.organizationId, orgId),
+          eq(organizationSubscriptionsTable.isCurrent, true),
+        ));
+
+      const now = new Date();
+      const end = new Date(now);
+      if (cycle === "annual") end.setFullYear(end.getFullYear() + 1);
+      else end.setMonth(end.getMonth() + 1);
+
+      const [newSub] = await db.insert(organizationSubscriptionsTable).values({
+        organizationId: orgId,
+        planId: plan.id,
+        status: "active",
+        billingCycle: cycle,
+        seats: currentSub?.seats ?? plan.includedSeats,
+        currentPeriodStart: now,
+        currentPeriodEnd: end,
+        unitPrice,
+        setupFee: 0,
+        currency: plan.currency,
+        isCurrent: true,
+      }).returning();
+
+      // Recalcul des modules (source=plan uniquement ; manual laissés intacts)
+      const included = new Set(plan.includedModules ?? []);
+      const orgMods = await db.select().from(organizationModulesTable)
+        .where(eq(organizationModulesTable.organizationId, orgId));
+      for (const mod of orgMods) {
+        if (mod.source !== "manual") {
+          await db.update(organizationModulesTable)
+            .set({ enabled: included.has(mod.moduleKey), source: "plan" })
+            .where(eq(organizationModulesTable.id, mod.id));
+        }
+      }
+      // Insérer les modules du plan qui n'existent pas encore
+      const existingKeys = new Set(orgMods.map((m) => m.moduleKey));
+      for (const key of plan.includedModules ?? []) {
+        if (!existingKeys.has(key)) {
+          await db.insert(organizationModulesTable).values({
+            organizationId: orgId,
+            moduleKey: key,
+            enabled: true,
+            source: "plan",
+          }).onConflictDoNothing();
+        }
+      }
+
+      // Billing event
+      const changedByUser = req.authUser!;
+      const changedByName = [changedByUser.firstName, changedByUser.lastName].filter(Boolean).join(" ") || changedByUser.email;
+      const firmName = firm?.name ?? "Cabinet";
+
+      await db.insert(billingEventsTable).values({
+        organizationId: orgId,
+        subscriptionId: newSub.id,
+        kind: "plan_change",
+        label: `Changement de formule → ${plan.name} (par cabinet ${firmName})`,
+        amount: 0,
+        status: "paid",
+        currency: plan.currency,
+        reference: `EXP-PLAN-${Date.now()}`,
+        metadata: {
+          firmId,
+          firmName,
+          changedByUserId: changedByUser.id,
+          changedByUserName: changedByName,
+          previousPlanId: currentSub?.planId ?? null,
+        },
+      });
+
+      // Email à l'admin de l'org
+      const [orgAdmin] = await db
+        .select({ email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+        .from(organizationMembersTable)
+        .innerJoin(usersTable, eq(usersTable.id, organizationMembersTable.userId))
+        .where(and(
+          eq(organizationMembersTable.organizationId, orgId),
+          eq(organizationMembersTable.role, "owner"),
+        ))
+        .limit(1);
+
+      if (orgAdmin?.email) {
+        const recipientName = [orgAdmin.firstName, orgAdmin.lastName].filter(Boolean).join(" ") || orgAdmin.email;
+        const emailMsg = buildPlanChangeEmail({
+          orgName: org.name,
+          recipientName,
+          newPlanName: plan.name,
+          newPlanCode: plan.code,
+          includedModules: plan.includedModules ?? [],
+          changedByFirmName: firmName,
+          changedByUserName: changedByName,
+        });
+        emailMsg.to = orgAdmin.email;
+        await sendEmail(emailMsg);
+      }
+
+      await audit(req, "expert_plan_change", {
+        entityType: "organization_subscription",
+        entityId: newSub.id,
+        orgId,
+        firmId,
+        planCode: plan.code,
+      });
+
+      return res.json({ subscription: newSub, plan });
+    } catch (e) {
+      return res.status(500).json({ error: "Erreur lors du changement de plan" });
+    }
   },
 );
 
