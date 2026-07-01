@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useActiveFirm, useExpertMembers, useExpertClients, useRemoveMember, useInviteClientMember } from "@/lib/expert-api";
+import { useActiveFirm, useExpertMembers, useExpertClients, useRemoveMember, useInviteClientMember, useUpdateClientMemberRole, useRemoveClientMember } from "@/lib/expert-api";
 import { apiFetch } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,9 +162,13 @@ export default function UsersPermissionsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  const updateClientRole = useUpdateClientMemberRole(firmId, orgId);
+  const removeClientMember = useRemoveClientMember(firmId, orgId);
+
   const [inviteFirmOpen, setInviteFirmOpen] = useState(false);
   const [inviteClientOpen, setInviteClientOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string } | null>(null);
+  const [confirmRemoveClient, setConfirmRemoveClient] = useState<{ userId: string; name: string } | null>(null);
 
   const { data: orgUsers } = useQuery({
     queryKey: ["org-users", orgId],
@@ -288,21 +292,48 @@ export default function UsersPermissionsPage() {
               <div className="space-y-1">
                 {(orgUsers.data ?? []).map((u: any) => {
                   const initials = ((u.firstName?.[0] ?? "") + (u.lastName?.[0] ?? "")).toUpperCase() || "?";
+                  const fullName = `${u.firstName} ${u.lastName}`.trim();
                   return (
                     <div key={u.id} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/40">
                       <Avatar className="w-8 h-8 shrink-0">
                         <AvatarFallback className="text-[11px] bg-slate-100 text-slate-600">{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{u.firstName} {u.lastName}</p>
+                        <p className="text-sm font-medium truncate">{fullName}</p>
                         <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                       </div>
-                      <Badge className={`text-[10px] border ${MEMBER_ROLE_COLOR[u.role] ?? "bg-slate-50 text-slate-600 border-slate-200"}`} variant="outline">
-                        {MEMBER_ROLE_LABEL[u.role] ?? u.role}
-                      </Badge>
                       <Badge className={`text-[10px] ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`} variant="outline">
                         {u.isActive ? "Actif" : "Inactif"}
                       </Badge>
+                      {u.role !== "owner" ? (
+                        <Select
+                          value={u.role ?? "member"}
+                          onValueChange={(v) => updateClientRole.mutate({ userId: u.id, role: v }, {
+                            onSuccess: () => toast({ title: "Rôle mis à jour" }),
+                            onError: (err: any) => toast({ title: "Erreur", description: err?.body?.error, variant: "destructive" }),
+                          })}
+                          disabled={updateClientRole.isPending}
+                        >
+                          <SelectTrigger className="w-34 h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrateur</SelectItem>
+                            <SelectItem value="member">Membre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge className={`text-[10px] border ${MEMBER_ROLE_COLOR["owner"]}`} variant="outline">
+                          Propriétaire
+                        </Badge>
+                      )}
+                      {u.role !== "owner" && (
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-7 w-7 p-0 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setConfirmRemoveClient({ userId: u.id, name: fullName })}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -331,6 +362,25 @@ export default function UsersPermissionsPage() {
         confirmLabel="Retirer"
         destructive
         onConfirm={handleRemove}
+      />
+
+      <ConfirmDialog
+        open={!!confirmRemoveClient}
+        onOpenChange={(o) => { if (!o) setConfirmRemoveClient(null); }}
+        title="Retirer cet utilisateur ?"
+        description={`"${confirmRemoveClient?.name}" sera retiré de l'organisation. Ses données ne seront pas supprimées.`}
+        confirmLabel="Retirer"
+        destructive
+        onConfirm={async () => {
+          if (!confirmRemoveClient) return;
+          try {
+            await removeClientMember.mutateAsync(confirmRemoveClient.userId);
+            toast({ title: "Utilisateur retiré" });
+          } catch (err: any) {
+            toast({ title: "Erreur", description: err?.body?.error, variant: "destructive" });
+          }
+          setConfirmRemoveClient(null);
+        }}
       />
     </div>
   );

@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useSwitchClientContext } from "@/lib/expert-api";
 import {
-  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2,
+  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2, ExternalLink,
 } from "lucide-react";
 
 const SECTEURS = [
@@ -121,6 +123,8 @@ export default function ExpertClientsPage() {
   const { firmId } = useActiveFirm();
   const { data: clients, isLoading } = useExpertClients(firmId);
   const unlink = useUnlinkClient(firmId ?? "");
+  const switchContext = useSwitchClientContext(firmId);
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [accessFilter, setAccessFilter] = useState("all");
@@ -269,6 +273,7 @@ export default function ExpertClientsPage() {
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider hidden md:table-cell">Secteur</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Plan</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider hidden sm:table-cell">Accès</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider hidden lg:table-cell">Dernière activité</th>
                     <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Statut</th>
                     <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Actions</th>
                   </tr>
@@ -302,6 +307,15 @@ export default function ExpertClientsPage() {
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className="text-xs text-muted-foreground">{ACCESS_LABEL[c.accessLevel] ?? c.accessLevel}</span>
                       </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className="text-xs text-muted-foreground">
+                          {(c as any).updatedAt
+                            ? new Date((c as any).updatedAt).toLocaleDateString("fr-FR")
+                            : c.grantedAt
+                            ? new Date(c.grantedAt).toLocaleDateString("fr-FR")
+                            : "—"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 text-xs font-medium ${c.isActive ? "text-emerald-600" : "text-amber-600"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-amber-400"}`} />
@@ -310,6 +324,17 @@ export default function ExpertClientsPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost" size="sm"
+                            className="h-8 w-8 p-0 text-primary/70 hover:text-primary"
+                            title="Ouvrir workspace client"
+                            onClick={() => switchContext.mutate(c.orgId, {
+                              onSuccess: () => navigate("/"),
+                              onError: (err: any) => toast({ title: "Erreur", description: err?.body?.error ?? "Impossible d'ouvrir le workspace", variant: "destructive" }),
+                            })}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
                           <Link href={`/expert/client-config?orgId=${c.orgId}`}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configuration">
                               <Settings className="w-3.5 h-3.5" />

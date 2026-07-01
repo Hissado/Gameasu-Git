@@ -11,7 +11,7 @@ import { useState } from "react";
 import { formatFCFA } from "@/lib/format";
 import {
   Building2, FileText, FolderKanban, AlertCircle,
-  ChevronRight, Plus, Network, TrendingUp, Wallet, Clock, UserPlus,
+  ChevronRight, Plus, Network, TrendingUp, Wallet, Clock, UserPlus, Bell,
 } from "lucide-react";
 
 function KpiCard({ icon: Icon, label, value, sub, color = "blue" }: {
@@ -225,6 +225,68 @@ export default function ExpertDashboard() {
           <KpiCard icon={FileText} label="Facturé (cumul)" value={formatFCFA(kpis.totalInvoiced)} color="blue" />
           <KpiCard icon={Wallet} label="Encaissé (cumul)" value={formatFCFA(kpis.totalPaid)} color="emerald" />
         </div>
+      )}
+
+      {/* Alertes prioritaires */}
+      {!loadKpi && !loadClients && (
+        (() => {
+          const alerts: { key: string; color: string; icon: React.ReactNode; text: string; href?: string }[] = [];
+          if (kpis.pendingDocumentRequests > 0) {
+            alerts.push({
+              key: "docs",
+              color: "amber",
+              icon: <FileText className="w-4 h-4 text-amber-600 shrink-0" />,
+              text: `${kpis.pendingDocumentRequests} demande${kpis.pendingDocumentRequests > 1 ? "s" : ""} de document${kpis.pendingDocumentRequests > 1 ? "s" : ""} en attente`,
+              href: "/expert/document-requests",
+            });
+          }
+          const inactiveCount = (clients ?? []).filter((c) => !c.isActive).length;
+          if (inactiveCount > 0) {
+            alerts.push({
+              key: "inactive",
+              color: "red",
+              icon: <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />,
+              text: `${inactiveCount} client${inactiveCount > 1 ? "s" : ""} avec accès inactif`,
+              href: "/expert/clients",
+            });
+          }
+          const noSubscription = (clients ?? []).filter((c) => !c.subscription).length;
+          if (noSubscription > 0) {
+            alerts.push({
+              key: "nosub",
+              color: "slate",
+              icon: <Clock className="w-4 h-4 text-slate-500 shrink-0" />,
+              text: `${noSubscription} client${noSubscription > 1 ? "s" : ""} sans abonnement actif`,
+              href: "/expert/clients",
+            });
+          }
+          if (!alerts.length) return null;
+          return (
+            <Card className="border-amber-200 bg-amber-50/40">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bell className="w-4 h-4 text-amber-600" />
+                  <p className="text-sm font-semibold text-amber-800">Alertes prioritaires</p>
+                </div>
+                <div className="space-y-2">
+                  {alerts.map((a) => (
+                    <div key={a.key} className="flex items-center gap-2 text-sm">
+                      {a.icon}
+                      <span className="flex-1">{a.text}</span>
+                      {a.href && (
+                        <Link href={a.href}>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary">
+                            Voir <ChevronRight className="w-3 h-3 ml-0.5" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()
       )}
 
       {/* Clients list */}

@@ -1,26 +1,27 @@
 import { useLocation } from "wouter";
-import { useActiveFirm, useExpertClients, ACCESS_LABEL, PLAN_COLOR } from "@/lib/expert-api";
+import { useActiveFirm, useExpertClients, useUpdateClientOrg, useToggleClientModule, ACCESS_LABEL, PLAN_COLOR } from "@/lib/expert-api";
 import { apiFetch } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Building2, Globe, ShieldCheck, AlertCircle, Package, Info,
+  Building2, Globe, ShieldCheck, AlertCircle, Package, Info, Save,
 } from "lucide-react";
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-right">{value ?? <span className="text-muted-foreground/50">—</span>}</span>
-    </div>
-  );
-}
+const SECTEURS = [
+  "BTP / Construction", "Mines & Ressources", "Commerce & Distribution",
+  "Industrie & Fabrication", "Agriculture & Agroalimentaire", "Transport & Logistique",
+  "Services professionnels", "Finance & Assurance", "Santé", "Éducation",
+  "Énergie & Environnement", "Technologie & Télécom", "Autre",
+];
 
 export default function ClientConfigPage() {
   const [location] = useLocation();
@@ -45,7 +46,30 @@ export default function ClientConfigPage() {
 
   const qc = useQueryClient();
   const { toast } = useToast();
+
+  const org = orgData ?? client?.org;
+
+  const [editForm, setEditForm] = useState({
+    name: "", country: "", industry: "", email: "", phone: "", address: "",
+  });
+  const [formDirty, setFormDirty] = useState(false);
   const [accessLevel, setAccessLevel] = useState(client?.accessLevel ?? "read");
+
+  useEffect(() => {
+    if (org) {
+      setEditForm({
+        name: org.name ?? "",
+        country: org.country ?? "",
+        industry: org.industry ?? "",
+        email: org.email ?? "",
+        phone: org.phone ?? "",
+        address: org.address ?? "",
+      });
+      setFormDirty(false);
+    }
+  }, [org?.id ?? org?.name]);
+
+  const updateOrg = useUpdateClientOrg(firmId, orgId);
 
   const updateAccess = useMutation({
     mutationFn: (level: string) =>
@@ -57,6 +81,24 @@ export default function ClientConfigPage() {
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error, variant: "destructive" }),
   });
 
+  const toggleModule = useToggleClientModule(firmId, orgId);
+
+  const setField = (k: keyof typeof editForm, v: string) => {
+    setEditForm((p) => ({ ...p, [k]: v }));
+    setFormDirty(true);
+  };
+
+  const handleSaveOrg = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateOrg.mutate(editForm, {
+      onSuccess: () => {
+        toast({ title: "Organisation mise à jour" });
+        setFormDirty(false);
+      },
+      onError: (err: any) => toast({ title: "Erreur", description: err?.body?.error, variant: "destructive" }),
+    });
+  };
+
   if (!orgId) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -65,8 +107,7 @@ export default function ClientConfigPage() {
     );
   }
 
-  const org = orgData ?? client?.org;
-  const orgName = org?.name ?? "Organisation";
+  const orgName = editForm.name || org?.name || "Organisation";
 
   return (
     <div className="space-y-6">
@@ -105,12 +146,46 @@ export default function ClientConfigPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5">
-              <InfoRow label="Nom" value={org?.name} />
-              <InfoRow label="Pays" value={org?.country} />
-              <InfoRow label="Secteur" value={org?.industry} />
-              <InfoRow label="E-mail" value={org?.email} />
-              <InfoRow label="Téléphone" value={org?.phone} />
-              <InfoRow label="Adresse" value={org?.address} />
+              <form onSubmit={handleSaveOrg} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Nom de l'organisation *</Label>
+                    <Input value={editForm.name} onChange={(e) => setField("name", e.target.value)} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Pays</Label>
+                    <Input value={editForm.country} onChange={(e) => setField("country", e.target.value)} placeholder="TG" maxLength={3} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Secteur d'activité</Label>
+                    <Select value={editForm.industry} onValueChange={(v) => setField("industry", v)}>
+                      <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">— Non précisé —</SelectItem>
+                        {SECTEURS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>E-mail</Label>
+                    <Input type="email" value={editForm.email} onChange={(e) => setField("email", e.target.value)} placeholder="contact@organisation.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Téléphone</Label>
+                    <Input value={editForm.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="+228 90 00 00 00" />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Adresse</Label>
+                    <Input value={editForm.address} onChange={(e) => setField("address", e.target.value)} placeholder="Lomé, Togo" />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <Button type="submit" size="sm" disabled={!formDirty || updateOrg.isPending}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {updateOrg.isPending ? "Enregistrement…" : "Enregistrer"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 
@@ -141,8 +216,14 @@ export default function ClientConfigPage() {
 
               {client && (
                 <div className="pt-2 border-t space-y-2">
-                  <InfoRow label="Statut" value={client.isActive ? "Actif" : "Inactif"} />
-                  <InfoRow label="Lié depuis" value={client.grantedAt ? new Date(client.grantedAt).toLocaleDateString("fr-FR") : undefined} />
+                  <div className="flex items-center justify-between py-1.5 text-sm">
+                    <span className="text-muted-foreground">Statut</span>
+                    <span className="font-medium">{client.isActive ? "Actif" : "Inactif"}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5 text-sm border-t">
+                    <span className="text-muted-foreground">Lié depuis</span>
+                    <span className="font-medium">{client.grantedAt ? new Date(client.grantedAt).toLocaleDateString("fr-FR") : "—"}</span>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -159,8 +240,16 @@ export default function ClientConfigPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-5 pb-5">
-                <InfoRow label="Plan" value={client.subscription.planName} />
-                <InfoRow label="Statut" value={client.subscription.status} />
+                <div className="flex items-center justify-between py-2 text-sm border-b">
+                  <span className="text-muted-foreground">Plan</span>
+                  <Badge className={`border ${PLAN_COLOR[client.subscription.planCode] ?? "bg-slate-100 text-slate-600"}`} variant="outline">
+                    {client.subscription.planName}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-muted-foreground">Statut</span>
+                  <span className="font-medium capitalize">{client.subscription.status}</span>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -178,18 +267,24 @@ export default function ClientConfigPage() {
                   <span>Aucune information de module disponible.</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="divide-y">
                   {modules.data.map((m: any) => (
-                    <div
-                      key={m.id}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
-                        m.enabled
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : "bg-muted border-border text-muted-foreground"
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.enabled ? "bg-emerald-500" : "bg-slate-300"}`} />
-                      <span className="truncate">{m.moduleName ?? m.moduleKey}</span>
+                    <div key={m.id ?? m.moduleKey} className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="text-sm font-medium">{m.moduleName ?? m.moduleKey}</p>
+                        {m.source && (
+                          <p className="text-xs text-muted-foreground capitalize">{m.source}</p>
+                        )}
+                      </div>
+                      <Switch
+                        checked={!!m.enabled}
+                        disabled={toggleModule.isPending}
+                        onCheckedChange={(checked) =>
+                          toggleModule.mutate({ moduleKey: m.moduleKey, enabled: checked }, {
+                            onError: (err: any) => toast({ title: "Erreur", description: err?.body?.error, variant: "destructive" }),
+                          })
+                        }
+                      />
                     </div>
                   ))}
                 </div>

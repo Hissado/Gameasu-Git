@@ -37,6 +37,7 @@ import {
   invoicesTable,
   projectsTable,
   expenseReportsTable,
+  organizationModulesTable,
 } from "@workspace/db";
 import { and, eq, inArray, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
@@ -1170,6 +1171,81 @@ router.get(
     res.setHeader("Content-Disposition", `attachment; filename="rapport-expert-${new Date().toISOString().slice(0, 10)}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────
+// CLIENT ORG MANAGEMENT — édition infos, modules, membres
+// ─────────────────────────────────────────────────────────────────
+
+router.patch(
+  "/firms/:firmId/clients/:orgId/org",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { orgId } = req.params as { firmId: string; orgId: string };
+    const { name, country, industry, email, phone, address } = req.body;
+    const patch: Record<string, string | null> = {};
+    if (name !== undefined) patch.name = name;
+    if (country !== undefined) patch.country = country;
+    if (industry !== undefined) patch.industry = industry;
+    if (email !== undefined) patch.email = email;
+    if (phone !== undefined) patch.phone = phone;
+    if (address !== undefined) patch.address = address;
+    if (Object.keys(patch).length) {
+      await db.update(organizationsTable).set(patch).where(eq(organizationsTable.id, orgId));
+    }
+    return res.json({ ok: true });
+  },
+);
+
+router.patch(
+  "/firms/:firmId/clients/:orgId/modules/:moduleKey",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { orgId, moduleKey } = req.params as { firmId: string; orgId: string; moduleKey: string };
+    const enabled = Boolean(req.body.enabled);
+    const existing = await db
+      .select({ id: organizationModulesTable.id })
+      .from(organizationModulesTable)
+      .where(and(eq(organizationModulesTable.organizationId, orgId), eq(organizationModulesTable.moduleKey, moduleKey)))
+      .limit(1);
+    if (existing.length) {
+      await db.update(organizationModulesTable)
+        .set({ enabled })
+        .where(and(eq(organizationModulesTable.organizationId, orgId), eq(organizationModulesTable.moduleKey, moduleKey)));
+    } else {
+      await db.insert(organizationModulesTable).values({ organizationId: orgId, moduleKey, enabled, source: "manual" });
+    }
+    return res.json({ ok: true });
+  },
+);
+
+router.patch(
+  "/firms/:firmId/clients/:orgId/members/:userId",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { orgId, userId } = req.params as { firmId: string; orgId: string; userId: string };
+    const ALLOWED = ["member", "admin"] as const;
+    const role = ALLOWED.includes(req.body.role) ? req.body.role : "member";
+    await db.update(organizationMembersTable)
+      .set({ role })
+      .where(and(eq(organizationMembersTable.organizationId, orgId), eq(organizationMembersTable.userId, userId)));
+    return res.json({ ok: true });
+  },
+);
+
+router.delete(
+  "/firms/:firmId/clients/:orgId/members/:userId",
+  requireExpertFirmMember,
+  requireExpertClientAccess,
+  async (req, res) => {
+    const { orgId, userId } = req.params as { firmId: string; orgId: string; userId: string };
+    await db.delete(organizationMembersTable)
+      .where(and(eq(organizationMembersTable.organizationId, orgId), eq(organizationMembersTable.userId, userId)));
+    return res.json({ ok: true });
   },
 );
 

@@ -271,6 +271,45 @@ export function useUpdateDocRequest() {
   });
 }
 
+export function useUpdateClientOrg(firmId: string | null, orgId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name?: string; country?: string; industry?: string; email?: string; phone?: string; address?: string }) =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${orgId}/org`, { method: "PATCH", body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["org-detail", orgId] });
+      qc.invalidateQueries({ queryKey: ["expert/clients", firmId] });
+    },
+  });
+}
+
+export function useToggleClientModule(firmId: string | null, orgId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ moduleKey, enabled }: { moduleKey: string; enabled: boolean }) =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${orgId}/modules/${moduleKey}`, { method: "PATCH", body: { enabled } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-modules", orgId] }),
+  });
+}
+
+export function useUpdateClientMemberRole(firmId: string | null, orgId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${orgId}/members/${userId}`, { method: "PATCH", body: { role } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-users", orgId] }),
+  });
+}
+
+export function useRemoveClientMember(firmId: string | null, orgId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      apiFetch(`/api/expert/firms/${firmId}/clients/${orgId}/members/${userId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-users", orgId] }),
+  });
+}
+
 export function useSwitchClientContext(firmId: string | null) {
   const qc = useQueryClient();
   return useMutation({
