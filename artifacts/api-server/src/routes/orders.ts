@@ -75,7 +75,7 @@ router.put("/orders/:id", requirePermission("commercial.manage"), async (req, re
   return res.json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
 
-router.delete("/orders/:id", async (req, res) => {
+router.delete("/orders/:id", requirePermission("commercial.manage"), async (req, res) => {
   await db.update(ordersTable).set({ deletedAt: new Date() }).where(and(eq(ordersTable.organizationId, req.authUser!.organizationId), eq(ordersTable.id, (req.params.id as string))));
   return res.status(204).send();
 });

@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions";
 
 const ROLE_OPTIONS = [
   { value: "admin",       label: "Administrateur" },
@@ -74,6 +75,7 @@ function InvStatusBadge({ status }: { status: InvStatus }) {
 export default function UsersList() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const perms = usePermissions();
   const { data: usersData, isLoading } = useListUsers();
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -151,10 +153,12 @@ export default function UsersList() {
           <h1 className="text-3xl font-bold tracking-tight">Utilisateurs de la plateforme</h1>
           <p className="text-muted-foreground mt-1">Accès · Profils · Rôles internes</p>
         </div>
-        <Button onClick={() => setInviteOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Inviter un utilisateur
-        </Button>
+        {!perms.isReadOnly && (
+          <Button onClick={() => setInviteOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Inviter un utilisateur
+          </Button>
+        )}
       </div>
 
       <Card>
