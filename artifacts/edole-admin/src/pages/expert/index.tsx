@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useActiveFirm, useExpertDashboard, useExpertClients, useCreateFirm, ACCESS_LABEL, PLAN_COLOR } from "@/lib/expert-api";
+import { useActiveFirm, useExpertDashboard, useExpertClients, useCreateFirm, useInviteFirmMember, ACCESS_LABEL, PLAN_COLOR } from "@/lib/expert-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { formatFCFA } from "@/lib/format";
 import {
-  Building2, Users2, FileText, FolderKanban, AlertCircle,
+  Building2, FileText, FolderKanban, AlertCircle,
   ChevronRight, Plus, Network, TrendingUp, Wallet, Clock, UserPlus,
 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
 
 function KpiCard({ icon: Icon, label, value, sub, color = "blue" }: {
   icon: React.ComponentType<{ className?: string }>;
@@ -94,24 +92,24 @@ function CreateFirmModal({ open, onClose }: { open: boolean; onClose: () => void
 
 function InviteCollaborateurModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
   const { toast } = useToast();
-  const qc = useQueryClient();
+  const invite = useInviteFirmMember(firmId);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", role: "member" });
 
-  const invite = useMutation({
-    mutationFn: (body: typeof form) =>
-      apiFetch(`/api/expert/firms/${firmId}/invite-member`, { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      toast({ title: "Invitation envoyée", description: "Un e-mail d'invitation a été envoyé au collaborateur." });
-      qc.invalidateQueries({ queryKey: ["expert/members", firmId] });
-      onClose();
-      setForm({ firstName: "", lastName: "", email: "", role: "member" });
-    },
-    onError: (err: any) => {
-      toast({ title: "Erreur", description: err?.body?.error ?? "Erreur lors de l'invitation", variant: "destructive" });
-    },
-  });
-
   const f = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    invite.mutate(form, {
+      onSuccess: () => {
+        toast({ title: "Invitation envoyée", description: "Un e-mail d'invitation a été envoyé au collaborateur." });
+        onClose();
+        setForm({ firstName: "", lastName: "", email: "", role: "member" });
+      },
+      onError: (err: any) => {
+        toast({ title: "Erreur", description: err?.body?.error ?? "Erreur lors de l'invitation", variant: "destructive" });
+      },
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -119,7 +117,7 @@ function InviteCollaborateurModal({ firmId, open, onClose }: { firmId: string; o
         <DialogHeader>
           <DialogTitle>Inviter un collaborateur</DialogTitle>
         </DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); invite.mutate(form); }} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Prénom *</Label>

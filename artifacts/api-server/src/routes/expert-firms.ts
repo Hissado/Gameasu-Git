@@ -233,6 +233,7 @@ router.get("/expert/firms/:firmId/clients", requireExpertFirmMember, async (req,
         name: organizationsTable.name,
         slug: organizationsTable.slug,
         country: organizationsTable.country,
+        industry: organizationsTable.industry,
         logoUrl: organizationsTable.logoUrl,
         isActive: organizationsTable.isActive,
       },
@@ -689,6 +690,7 @@ router.get("/expert/firms/:firmId/dashboard", requireExpertFirmMember, async (re
         name: organizationsTable.name,
         slug: organizationsTable.slug,
         country: organizationsTable.country,
+        industry: organizationsTable.industry,
         logoUrl: organizationsTable.logoUrl,
         isActive: organizationsTable.isActive,
       },
@@ -833,6 +835,90 @@ router.get("/expert/firms/:firmId/client-kpis", requireExpertFirmMember, async (
 });
 
 // ─────────────────────────────────────────────────────────────────
+// INVITE FIRM COLLABORATEUR — POST /expert/firms/:firmId/invite-member
+// ─────────────────────────────────────────────────────────────────
+router.post(
+  "/expert/firms/:firmId/invite-member",
+  requireExpertFirmMember,
+  async (req, res) => {
+    const { firmId } = req.params as Record<string, string>;
+    const actorRoleFirm = (req as any).expertMemberRole as string;
+    if (actorRoleFirm !== "owner" && actorRoleFirm !== "admin") {
+      return res.status(403).json({ error: "Seuls owner/admin peuvent inviter des collaborateurs" });
+    }
+    const { firstName, lastName, email, role = "member" } = req.body ?? {};
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: "firstName, lastName et email sont requis" });
+    }
+    const ALLOWED_FIRM_ROLES = ["member", "admin"];
+    if (!ALLOWED_FIRM_ROLES.includes(role)) {
+      return res.status(400).json({ error: `Rôle invalide. Valeurs autorisées : ${ALLOWED_FIRM_ROLES.join(", ")}` });
+    }
+
+    const [existingUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, email.toLowerCase().trim()))
+      .limit(1);
+    if (existingUser) return res.status(409).json({ error: "Un compte avec cet email existe déjà" });
+
+    const [firm] = await db
+      .select({ name: expertFirmsTable.name, organizationId: expertFirmsTable.organizationId })
+      .from(expertFirmsTable)
+      .where(eq(expertFirmsTable.id, firmId))
+      .limit(1);
+
+    const inviteToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const tempPassword = crypto.randomBytes(6).toString("hex");
+    const bcrypt = await import("bcryptjs");
+    const hashed = await bcrypt.hash(tempPassword, 10);
+
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        organizationId: firm?.organizationId ?? firmId,
+        email: email.toLowerCase().trim(),
+        password: hashed,
+        firstName,
+        lastName,
+        role: "collaborator",
+        mustChangePassword: true,
+        passwordResetToken: inviteToken,
+        passwordResetTokenExpiresAt: tokenExpiresAt,
+        invitedById: req.authUser!.id,
+        invitedAt: new Date(),
+      })
+      .returning();
+
+    await db.insert(expertFirmMembersTable).values({
+      firmId,
+      userId: user.id,
+      role,
+    });
+
+    const inviterName = `${req.authUser!.firstName} ${req.authUser!.lastName}`.trim();
+    const acceptUrl = `${getPublicBaseUrl()}/accept-invitation?token=${inviteToken}`;
+    const emailMsg = buildInvitationEmail({
+      recipientName: `${firstName} ${lastName}`.trim(),
+      inviterName,
+      orgName: firm?.name ?? "votre cabinet",
+      acceptUrl,
+      temporaryPassword: tempPassword,
+    });
+    emailMsg.to = email;
+    await sendEmail(emailMsg);
+
+    await audit(req, "create", {
+      entityType: "expert_firm_member",
+      entityId: user.id,
+      payload: { firmId, email, role },
+    });
+
+    return res.status(201).json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role });
+  },
+);
+
 // INVITE CLIENT MEMBER — POST /expert/firms/:firmId/clients/:orgId/invite-member
 // ─────────────────────────────────────────────────────────────────
 router.post(
@@ -841,7 +927,13 @@ router.post(
   requireExpertClientAccess,
   async (req, res) => {
     const { firmId, orgId } = req.params as Record<string, string>;
-    const { firstName, lastName, email, role = "member" } = req.body ?? {};
+    const actorRoleClient = (req as any).expertMemberRole as string;
+    if (actorRoleClient !== "owner" && actorRoleClient !== "admin") {
+      return res.status(403).json({ error: "Seuls owner/admin peuvent inviter des membres clients" });
+    }
+    const ALLOWED_CLIENT_ROLES = ["member", "admin"];
+    const { firstName, lastName, email, role: rawRole = "member" } = req.body ?? {};
+    const role = ALLOWED_CLIENT_ROLES.includes(rawRole) ? rawRole : "member";
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: "firstName, lastName et email sont requis" });
     }

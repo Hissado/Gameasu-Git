@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useActiveFirm, useExpertMembers, useUpdateFirm, useRemoveMember } from "@/lib/expert-api";
+import { useActiveFirm, useExpertMembers, useUpdateFirm, useRemoveMember, useInviteFirmMember } from "@/lib/expert-api";
 import { apiFetch } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,74 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users2, Save, Trash2, AlertCircle } from "lucide-react";
+import { Building2, Users2, Save, Trash2, AlertCircle, UserPlus } from "lucide-react";
+
+function InviteModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
+  const { toast } = useToast();
+  const invite = useInviteFirmMember(firmId);
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", role: "member" });
+  const f = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    invite.mutate(form, {
+      onSuccess: () => {
+        toast({ title: "Invitation envoyée", description: "Un e-mail d'invitation a été envoyé." });
+        onClose();
+        setForm({ firstName: "", lastName: "", email: "", role: "member" });
+      },
+      onError: (err: any) => {
+        toast({ title: "Erreur", description: err?.body?.error ?? "Erreur lors de l'invitation", variant: "destructive" });
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Inviter un collaborateur</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Prénom *</Label>
+              <Input value={form.firstName} onChange={(e) => f("firstName", e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nom *</Label>
+              <Input value={form.lastName} onChange={(e) => f("lastName", e.target.value)} required />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>E-mail *</Label>
+            <Input type="email" value={form.email} onChange={(e) => f("email", e.target.value)} placeholder="collaborateur@cabinet.com" required />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Rôle</Label>
+            <Select value={form.role} onValueChange={(v) => f("role", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Collaborateur</SelectItem>
+                <SelectItem value="admin">Administrateur</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">Un lien d'invitation sécurisé lui sera envoyé par e-mail.</p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={invite.isPending}>
+              {invite.isPending ? "Envoi…" : "Inviter"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function FirmSettingsPage() {
   const { firmId, activeFirm } = useActiveFirm();
@@ -23,6 +88,7 @@ export default function FirmSettingsPage() {
 
   const [form, setForm] = useState({ name: "", country: "", email: "", phone: "", address: "" });
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string } | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -132,9 +198,14 @@ export default function FirmSettingsPage() {
       {/* Members */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users2 className="w-4 h-4 text-primary" />Collaborateurs du cabinet
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users2 className="w-4 h-4 text-primary" />Collaborateurs du cabinet
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />Inviter un collaborateur
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="px-5 pb-5">
           {loadMembers ? (
@@ -202,6 +273,10 @@ export default function FirmSettingsPage() {
         destructive
         onConfirm={handleRemove}
       />
+
+      {firmId && (
+        <InviteModal firmId={firmId} open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      )}
     </div>
   );
 }

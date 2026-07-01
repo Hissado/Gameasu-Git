@@ -202,6 +202,15 @@ export function useInviteMember(firmId: string) {
   });
 }
 
+export function useInviteFirmMember(firmId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { firstName: string; lastName: string; email: string; role: string }) =>
+      apiFetch(`/api/expert/firms/${firmId}/invite-member`, { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["expert/members", firmId] }),
+  });
+}
+
 export function useRemoveMember(firmId: string) {
   const qc = useQueryClient();
   return useMutation({
