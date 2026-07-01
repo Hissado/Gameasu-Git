@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListProjects, useCreateProject, useUpdateProject, useDeleteProject,
@@ -258,6 +259,7 @@ type ViewMode = "list" | "cards";
 
 export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [view, setView] = useState<ViewMode>("list");
@@ -325,13 +327,15 @@ export default function ProjectsList() {
                 <span className="hidden sm:inline">Charge équipe</span>
               </Button>
             </Link>
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9"
-            >
-              <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-              Nouveau projet
-            </Button>
+            {!perms.isReadOnly && (
+              <Button
+                onClick={() => setShowCreate(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm h-9"
+              >
+                <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+                Nouveau projet
+              </Button>
+            )}
           </>
         }
       />

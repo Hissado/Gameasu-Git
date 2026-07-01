@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListTasks, useCreateTask, useListProjects, useListUsers } from "@workspace/api-client-react";
+import { usePermissions } from "@/lib/permissions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +173,7 @@ function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: () => voi
 export default function TasksList() {
   const { data, isLoading } = useListTasks();
   const [view, setView] = useState<ViewMode>("list");
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
@@ -212,12 +214,12 @@ export default function TasksList() {
         title="Tâches"
         subtitle={`${allTasks.length} tâche${allTasks.length !== 1 ? "s" : ""} au total`}
         icon={CheckSquare}
-        actions={
+        actions={!perms.isReadOnly ? (
           <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
             <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
             Nouvelle tâche
           </Button>
-        }
+        ) : undefined}
       />
       <StatusTabs
         tabs={[

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -331,6 +332,7 @@ function CancelInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
 
 export default function InvoicesList() {
   const qc = useQueryClient();
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
@@ -384,11 +386,11 @@ export default function InvoicesList() {
             {overdueCount > 0 && <span className="ml-2 text-red-600 font-semibold">· {overdueCount} en retard</span>}
           </>
         }
-        actions={
+        actions={!perms.isReadOnly ? (
           <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer une facture
           </Button>
-        }
+        ) : undefined}
       />
 
       {/* Onglets de filtrage par statut Xero-style */}

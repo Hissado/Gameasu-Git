@@ -115,8 +115,16 @@ router.put("/users/:id", requirePermission("users.update"), async (req, res) => 
     return res.status(e.status || 500).json({ error: e.message });
   }
 
+  const updateFields: Record<string, unknown> = {};
+  if (firstName !== undefined) updateFields.firstName = firstName;
+  if (lastName !== undefined) updateFields.lastName = lastName;
+  if (role !== undefined) updateFields.role = role;
+  if (phone !== undefined) updateFields.phone = phone;
+  if (isActive !== undefined) updateFields.isActive = isActive;
+  if (departmentId !== undefined) updateFields.departmentId = departmentId || null;
+
   const [user] = await db.update(usersTable)
-    .set({ firstName, lastName, role, phone, isActive, departmentId: departmentId || null })
+    .set(updateFields)
     .where(eq(usersTable.id, (req.params.id as string)))
     .returning();
 
