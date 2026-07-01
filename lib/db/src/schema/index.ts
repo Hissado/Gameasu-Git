@@ -35,3 +35,4 @@ export * from "./migration";
 export * from "./closing";
 export * from "./cockpit";
 export * from "./auth";
+export * from "./expert";

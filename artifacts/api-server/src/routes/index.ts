@@ -74,6 +74,7 @@ import migrationRouter from "./migration";
 import periodCloseRouter from "./period-close.js";
 import purchasesRouter from "./purchases";
 import customAppRouter, { customAppPublicRouter } from "./customAppRequests";
+import expertFirmsRouter from "./expert-firms";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedHissado as seedHissadoDemo } from "../services/seed-hissado";
@@ -175,6 +176,7 @@ router.use(pricingRouter);
 router.use(migrationRouter);
 router.use(periodCloseRouter);
 router.use(purchasesRouter);
+router.use(expertFirmsRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()
