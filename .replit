@@ -94,3 +94,6 @@ EMAIL_FROM = "Gameasu <noreply@gameasu.com>"
 
 [userenv.production]
 SEED_HISSADO_DEMO = "true"
+
+[userenv.development]
+SEED_HISSADO_DEMO = "true"

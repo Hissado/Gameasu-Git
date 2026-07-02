@@ -69,11 +69,22 @@ lib/
 
 Simple token-based auth (base64 userId:email). Token stored in localStorage as `auth_token`.
 
-Demo credentials:
+Demo credentials (tenant EDOLE Africa — org démo système) :
 - Super Admin: `admin@edole.africa` / `admin123` (Jacques Mballa)
 - Manager: `manager@edole.africa` / `manager123` (Aissatou Bah)
 - Commercial: `commercial@edole.africa` / `commercial123` (Kofi Asante)
 - Collaborator: `collab@edole.africa` / `collab123` (Marie Nguema)
+
+Hissado Consulting (tenant démo principal — données complètes) :
+- Super Admin: `direction@hissadoconsulting.com` / `hissado123` (Kodjo Hissado)
+- Admin: `admin@hissadoconsulting.com` / `hissado123` (Eglantine Toviho)
+- DAF: `finance@hissadoconsulting.com` / `finance123` (Mawuena Agbeko)
+- Commercial: `commercial@hissadoconsulting.com` / `com123` (Yawo Sossou-Agbessi)
+- DRH: `rh@hissadoconsulting.com` / `rh123` (Adjoa Datsakpo)
+- Opérations: `operations@hissadoconsulting.com` / `ops123` (Komlan Tsigbe)
+- Comptable: `compta@hissadoconsulting.com` / `compta123` (Sylvie Kpossou)
+- Collaborateur: `collab@hissadoconsulting.com` / `collab123` (Eyram Apélété)
+- Audit (lecture seule): `audit@hissadoconsulting.com` / `read123` (Sika Abalo)
 
 ## Vite Proxy
 

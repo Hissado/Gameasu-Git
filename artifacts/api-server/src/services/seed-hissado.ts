@@ -154,15 +154,16 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
   const OLD_DOMAIN = "hissado.tg";
   const oldEmails = allUsers.filter(u => u.email.endsWith(`@${OLD_DOMAIN}`));
   const emailMap: Record<string, string> = {
-    "dg@hissado.tg":         "direction@hissadoconsulting.com",
-    "finance@hissado.tg":    "finance@hissadoconsulting.com",
-    "compta@hissado.tg":     "compta@hissadoconsulting.com",
-    "commercial@hissado.tg": "commercial@hissadoconsulting.com",
-    "sales2@hissado.tg":     "sales2@hissadoconsulting.com",
-    "rh@hissado.tg":         "rh@hissadoconsulting.com",
-    "ops@hissado.tg":        "operations@hissadoconsulting.com",
-    "collab@hissado.tg":     "collab@hissadoconsulting.com",
-    "readonly@hissado.tg":   "audit@hissadoconsulting.com",
+    "dg@hissado.tg":           "direction@hissadoconsulting.com",
+    "admin@hissado.tg":        "admin@hissadoconsulting.com",
+    "finance@hissado.tg":      "finance@hissadoconsulting.com",
+    "compta@hissado.tg":       "compta@hissadoconsulting.com",
+    "commercial@hissado.tg":   "commercial@hissadoconsulting.com",
+    "sales2@hissado.tg":       "sales2@hissadoconsulting.com",
+    "rh@hissado.tg":           "rh@hissadoconsulting.com",
+    "ops@hissado.tg":          "operations@hissadoconsulting.com",
+    "collab@hissado.tg":       "collab@hissadoconsulting.com",
+    "readonly@hissado.tg":     "audit@hissadoconsulting.com",
   };
   let emailFixed = 0;
   for (const u of oldEmails) {

@@ -77,7 +77,7 @@ export async function seedHissado() {
     currency: "XOF",
     timezone: "Africa/Lome",
     locale: "fr-FR",
-    contactEmail: "contact@hissado.tg",
+    contactEmail: "contact@hissadoconsulting.com",
     contactPhone: "+228 22 61 00 10",
     isDefault: false,
     primaryColor: "#1B4FD8",
@@ -147,16 +147,16 @@ export async function seedHissado() {
   // ══════════════════════════════════════════════════════════════════════════
   console.log("  • Utilisateurs (10)…");
   const USERS = [
-    { email: "dg@hissado.tg",          password: "hissado123", firstName: "Kodjo",     lastName: "Hissado",          role: "super_admin",  phone: "+228 90 11 00 01" },
-    { email: "admin@hissado.tg",        password: "hissado123", firstName: "Eglantine", lastName: "Toviho",           role: "admin",        phone: "+228 90 11 00 02" },
-    { email: "finance@hissado.tg",      password: "finance123", firstName: "Mawuena",   lastName: "Agbeko",           role: "manager",      phone: "+228 90 11 00 03" },
-    { email: "compta@hissado.tg",       password: "compta123",  firstName: "Sylvie",    lastName: "Kpossou",          role: "collaborator", phone: "+228 90 11 00 04" },
-    { email: "commercial@hissado.tg",   password: "com123",     firstName: "Yawo",      lastName: "Sossou-Agbessi",   role: "commercial",   phone: "+228 90 11 00 05" },
-    { email: "sales2@hissado.tg",       password: "sales123",   firstName: "Afiwa",     lastName: "Mensah",           role: "commercial",   phone: "+228 90 11 00 06" },
-    { email: "rh@hissado.tg",           password: "rh123",      firstName: "Adjoa",     lastName: "Datsakpo",         role: "manager",      phone: "+228 90 11 00 07" },
-    { email: "ops@hissado.tg",          password: "ops123",     firstName: "Komlan",    lastName: "Tsigbe",           role: "manager",      phone: "+228 90 11 00 08" },
-    { email: "collab@hissado.tg",       password: "collab123",  firstName: "Eyram",     lastName: "Apélété",          role: "collaborator", phone: "+228 90 11 00 09" },
-    { email: "readonly@hissado.tg",     password: "read123",    firstName: "Sika",      lastName: "Abalo",            role: "collaborator", phone: "+228 90 11 00 10" },
+    { email: "direction@hissadoconsulting.com",  password: "hissado123", firstName: "Kodjo",     lastName: "Hissado",          role: "super_admin",  phone: "+228 90 11 00 01" },
+    { email: "admin@hissadoconsulting.com",       password: "hissado123", firstName: "Eglantine", lastName: "Toviho",           role: "admin",        phone: "+228 90 11 00 02" },
+    { email: "finance@hissadoconsulting.com",     password: "finance123", firstName: "Mawuena",   lastName: "Agbeko",           role: "manager",      phone: "+228 90 11 00 03" },
+    { email: "compta@hissadoconsulting.com",      password: "compta123",  firstName: "Sylvie",    lastName: "Kpossou",          role: "collaborator", phone: "+228 90 11 00 04" },
+    { email: "commercial@hissadoconsulting.com",  password: "com123",     firstName: "Yawo",      lastName: "Sossou-Agbessi",   role: "commercial",   phone: "+228 90 11 00 05" },
+    { email: "sales2@hissadoconsulting.com",      password: "sales123",   firstName: "Afiwa",     lastName: "Mensah",           role: "commercial",   phone: "+228 90 11 00 06" },
+    { email: "rh@hissadoconsulting.com",          password: "rh123",      firstName: "Adjoa",     lastName: "Datsakpo",         role: "manager",      phone: "+228 90 11 00 07" },
+    { email: "operations@hissadoconsulting.com",  password: "ops123",     firstName: "Komlan",    lastName: "Tsigbe",           role: "manager",      phone: "+228 90 11 00 08" },
+    { email: "collab@hissadoconsulting.com",      password: "collab123",  firstName: "Eyram",     lastName: "Apélété",          role: "collaborator", phone: "+228 90 11 00 09" },
+    { email: "audit@hissadoconsulting.com",       password: "read123",    firstName: "Sika",      lastName: "Abalo",            role: "collaborator", phone: "+228 90 11 00 10" },
   ];
   const userRecs: Record<string, string> = {};
   for (const u of USERS) {
@@ -170,11 +170,11 @@ export async function seedHissado() {
       isPrimary: true,
     }).onConflictDoNothing();
   }
-  const dgId    = userRecs["dg@hissado.tg"]!;
-  const finId   = userRecs["finance@hissado.tg"]!;
-  const comId   = userRecs["commercial@hissado.tg"]!;
-  const opsId   = userRecs["ops@hissado.tg"]!;
-  const rhId    = userRecs["rh@hissado.tg"]!;
+  const dgId    = userRecs["direction@hissadoconsulting.com"]!;
+  const finId   = userRecs["finance@hissadoconsulting.com"]!;
+  const comId   = userRecs["commercial@hissadoconsulting.com"]!;
+  const opsId   = userRecs["operations@hissadoconsulting.com"]!;
+  const rhId    = userRecs["rh@hissadoconsulting.com"]!;
 
   // ══════════════════════════════════════════════════════════════════════════
   // 4. RH — DÉPARTEMENTS + POSTES + COLLABORATEURS + CONTRATS + CONGÉS
@@ -206,18 +206,18 @@ export async function seedHissado() {
 
   console.log("  • Collaborateurs (12) + kiosk codes…");
   const COLLABS = [
-    { no: "HC-001", fn: "Kodjo",     ln: "Hissado",       email: "dg.collab@hissado.tg",   phone: "+228 90 11 00 01", pos: "Directeur Général",               dept: "Direction",   posId: pDG?.id,       deptId: dDir!.id, salary: "1800000", trans: "120000", hous: "250000", hired: D(2018,3,15), kiosk: "1001", userId: dgId },
-    { no: "HC-002", fn: "Mawuena",   ln: "Agbeko",        email: "finance.c@hissado.tg",    phone: "+228 90 11 00 03", pos: "DAF",                             dept: "Finance",     posId: pDAF?.id,      deptId: dFin!.id, salary: "1200000", trans: "80000",  hous: "150000", hired: D(2019,6,1),  kiosk: "1002", userId: finId },
-    { no: "HC-003", fn: "Yawo",      ln: "Sossou-Agbessi",email: "commercial.c@hissado.tg", phone: "+228 90 11 00 05", pos: "Directeur Commercial",            dept: "Commercial",  posId: pDCom?.id,     deptId: dCom!.id, salary: "1050000", trans: "70000",  hous: "100000", hired: D(2020,1,10), kiosk: "1003", userId: comId },
-    { no: "HC-004", fn: "Adjoa",     ln: "Datsakpo",      email: "rh.collab@hissado.tg",    phone: "+228 90 11 00 07", pos: "DRH",                             dept: "RH",          posId: pDRH?.id,      deptId: dRh!.id,  salary: "900000",  trans: "60000",  hous: "80000",  hired: D(2019,9,1),  kiosk: "1004", userId: rhId },
-    { no: "HC-005", fn: "Komlan",    ln: "Tsigbe",        email: "ops.collab@hissado.tg",   phone: "+228 90 11 00 08", pos: "Consultant Senior",               dept: "Opérations",  posId: pConsSr?.id,   deptId: dOps!.id, salary: "980000",  trans: "65000",  hous: "90000",  hired: D(2020,4,20), kiosk: "1005", userId: opsId },
-    { no: "HC-006", fn: "Sylvie",    ln: "Kpossou",       email: "compta.collab@hissado.tg",phone: "+228 90 11 00 04", pos: "Comptable",                       dept: "Finance",     posId: pCpt?.id,      deptId: dFin!.id, salary: "620000",  trans: "40000",  hous: null,     hired: D(2021,3,1),  kiosk: "1006" },
-    { no: "HC-007", fn: "Afiwa",     ln: "Mensah",        email: "sales2.collab@hissado.tg",phone: "+228 90 11 00 06", pos: "Commercial Terrain",              dept: "Commercial",  posId: pComTer?.id,   deptId: dCom!.id, salary: "580000",  trans: "50000",  hous: null,     hired: D(2021,7,15), kiosk: "1007" },
-    { no: "HC-008", fn: "Eyram",     ln: "Apélété",       email: "collab.c@hissado.tg",     phone: "+228 90 11 00 09", pos: "Consultant Junior",               dept: "Opérations",  posId: pConsJr?.id,   deptId: dOps!.id, salary: "520000",  trans: "35000",  hous: null,     hired: D(2022,2,1),  kiosk: "1008" },
-    { no: "HC-009", fn: "Kafui",     ln: "Ahorlu",        email: "kafui@hissado.tg",        phone: "+228 90 11 00 11", pos: "Chef de Projet Digital",          dept: "Digital",     posId: pChDig?.id,    deptId: dDigital!.id, salary: "820000", trans: "55000", hous: "70000", hired: D(2021,11,1), kiosk: "1009" },
-    { no: "HC-010", fn: "Eglantine", ln: "Toviho",        email: "admin.collab@hissado.tg", phone: "+228 90 11 00 02", pos: "Assistante Administrative",       dept: "Direction",   posId: pAss?.id,      deptId: dDir!.id, salary: "420000",  trans: "30000",  hous: null,     hired: D(2022,9,1),  kiosk: "1010" },
-    { no: "HC-011", fn: "Koami",     ln: "Adzoa",         email: "koami@hissado.tg",        phone: "+228 90 11 00 12", pos: "Analyste Financier",              dept: "Finance",     posId: pAnalyste?.id, deptId: dFin!.id, salary: "680000",  trans: "45000",  hous: null,     hired: D(2023,1,16), kiosk: "1011" },
-    { no: "HC-012", fn: "Victoire",  ln: "Agbénoxevi",    email: "victoire@hissado.tg",     phone: "+228 90 11 00 13", pos: "Stagiaire",                       dept: "Opérations",  posId: pStage?.id,    deptId: dOps!.id, salary: "120000",  trans: "15000",  hous: null,     hired: D(2024,3,1),  kiosk: "1012" },
+    { no: "HC-001", fn: "Kodjo",     ln: "Hissado",       email: "dg@hissadoconsulting.com",         phone: "+228 90 11 00 01", pos: "Directeur Général",               dept: "Direction",   posId: pDG?.id,       deptId: dDir!.id, salary: "1800000", trans: "120000", hous: "250000", hired: D(2018,3,15), kiosk: "1001", userId: dgId },
+    { no: "HC-002", fn: "Mawuena",   ln: "Agbeko",        email: "finance.collab@hissadoconsulting.com",  phone: "+228 90 11 00 03", pos: "DAF",                             dept: "Finance",     posId: pDAF?.id,      deptId: dFin!.id, salary: "1200000", trans: "80000",  hous: "150000", hired: D(2019,6,1),  kiosk: "1002", userId: finId },
+    { no: "HC-003", fn: "Yawo",      ln: "Sossou-Agbessi",email: "commercial.collab@hissadoconsulting.com", phone: "+228 90 11 00 05", pos: "Directeur Commercial",          dept: "Commercial",  posId: pDCom?.id,     deptId: dCom!.id, salary: "1050000", trans: "70000",  hous: "100000", hired: D(2020,1,10), kiosk: "1003", userId: comId },
+    { no: "HC-004", fn: "Adjoa",     ln: "Datsakpo",      email: "rh.collab@hissadoconsulting.com",       phone: "+228 90 11 00 07", pos: "DRH",                             dept: "RH",          posId: pDRH?.id,      deptId: dRh!.id,  salary: "900000",  trans: "60000",  hous: "80000",  hired: D(2019,9,1),  kiosk: "1004", userId: rhId },
+    { no: "HC-005", fn: "Komlan",    ln: "Tsigbe",        email: "ops.collab@hissadoconsulting.com",      phone: "+228 90 11 00 08", pos: "Consultant Senior",               dept: "Opérations",  posId: pConsSr?.id,   deptId: dOps!.id, salary: "980000",  trans: "65000",  hous: "90000",  hired: D(2020,4,20), kiosk: "1005", userId: opsId },
+    { no: "HC-006", fn: "Sylvie",    ln: "Kpossou",       email: "compta.collab@hissadoconsulting.com",   phone: "+228 90 11 00 04", pos: "Comptable",                       dept: "Finance",     posId: pCpt?.id,      deptId: dFin!.id, salary: "620000",  trans: "40000",  hous: null,     hired: D(2021,3,1),  kiosk: "1006" },
+    { no: "HC-007", fn: "Afiwa",     ln: "Mensah",        email: "sales2.collab@hissadoconsulting.com",   phone: "+228 90 11 00 06", pos: "Commercial Terrain",              dept: "Commercial",  posId: pComTer?.id,   deptId: dCom!.id, salary: "580000",  trans: "50000",  hous: null,     hired: D(2021,7,15), kiosk: "1007" },
+    { no: "HC-008", fn: "Eyram",     ln: "Apélété",       email: "collab@hissadoconsulting.com",          phone: "+228 90 11 00 09", pos: "Consultant Junior",               dept: "Opérations",  posId: pConsJr?.id,   deptId: dOps!.id, salary: "520000",  trans: "35000",  hous: null,     hired: D(2022,2,1),  kiosk: "1008" },
+    { no: "HC-009", fn: "Kafui",     ln: "Ahorlu",        email: "kafui@hissadoconsulting.com",           phone: "+228 90 11 00 11", pos: "Chef de Projet Digital",          dept: "Digital",     posId: pChDig?.id,    deptId: dDigital!.id, salary: "820000", trans: "55000", hous: "70000", hired: D(2021,11,1), kiosk: "1009" },
+    { no: "HC-010", fn: "Eglantine", ln: "Toviho",        email: "admin.collab@hissadoconsulting.com",    phone: "+228 90 11 00 02", pos: "Assistante Administrative",       dept: "Direction",   posId: pAss?.id,      deptId: dDir!.id, salary: "420000",  trans: "30000",  hous: null,     hired: D(2022,9,1),  kiosk: "1010" },
+    { no: "HC-011", fn: "Koami",     ln: "Adzoa",         email: "koami@hissadoconsulting.com",           phone: "+228 90 11 00 12", pos: "Analyste Financier",              dept: "Finance",     posId: pAnalyste?.id, deptId: dFin!.id, salary: "680000",  trans: "45000",  hous: null,     hired: D(2023,1,16), kiosk: "1011" },
+    { no: "HC-012", fn: "Victoire",  ln: "Agbénoxevi",    email: "victoire@hissadoconsulting.com",        phone: "+228 90 11 00 13", pos: "Stagiaire",                       dept: "Opérations",  posId: pStage?.id,    deptId: dOps!.id, salary: "120000",  trans: "15000",  hous: null,     hired: D(2024,3,1),  kiosk: "1012" },
   ];
 
   const collabRecs: string[] = [];
@@ -735,12 +735,12 @@ export async function seedHissado() {
   console.log("  ✅ Seed Hissado Consulting terminé avec succès !");
   console.log(`     Org ID : ${orgId}`);
   console.log("     Credentials demo :");
-  console.log("       dg@hissado.tg        / hissado123  (Super Admin — Kodjo Hissado)");
-  console.log("       admin@hissado.tg     / hissado123  (Admin — Eglantine Toviho)");
-  console.log("       finance@hissado.tg   / finance123  (DAF — Mawuena Agbeko)");
-  console.log("       commercial@hissado.tg / com123     (Commercial — Yawo Sossou-Agbessi)");
-  console.log("       rh@hissado.tg        / rh123       (DRH — Adjoa Datsakpo)");
-  console.log("       ops@hissado.tg       / ops123      (Ops — Komlan Tsigbe)");
+  console.log("       direction@hissadoconsulting.com   / hissado123  (Super Admin — Kodjo Hissado)");
+  console.log("       admin@hissadoconsulting.com       / hissado123  (Admin — Eglantine Toviho)");
+  console.log("       finance@hissadoconsulting.com     / finance123  (DAF — Mawuena Agbeko)");
+  console.log("       commercial@hissadoconsulting.com  / com123      (Commercial — Yawo Sossou-Agbessi)");
+  console.log("       rh@hissadoconsulting.com          / rh123       (DRH — Adjoa Datsakpo)");
+  console.log("       operations@hissadoconsulting.com  / ops123      (Ops — Komlan Tsigbe)");
 }
 
 // Pas d'auto-run : ce module est appelé explicitement par le boot de l'API
