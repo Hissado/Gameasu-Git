@@ -367,20 +367,10 @@ export default function ManagementPDFPage() {
         const imgData = canvas.toDataURL("image/jpeg", 0.97);
         if (i > 0) pdf.addPage();
 
-        // Correct aspect ratio: never force-stretch to fill the page.
+        // Place content anchored to top-left with margins.
+        // Preserve aspect ratio — never force-stretch to A4 dimensions.
         const imgH = (canvas.height / canvas.width) * cW;
-
-        if (imgH <= pageH - 2 * MARGIN) {
-          // Content fits in one page — place with margins, centred vertically
-          const yOff = MARGIN + Math.max(0, (pageH - 2 * MARGIN - imgH) / 2);
-          pdf.addImage(imgData, "JPEG", MARGIN, yOff, cW, imgH);
-        } else {
-          // Content taller than content area — scale to fit height instead
-          const fittedH = pageH - 2 * MARGIN;
-          const fittedW = (canvas.width / canvas.height) * fittedH;
-          const xOff = MARGIN + Math.max(0, (cW - fittedW) / 2);
-          pdf.addImage(imgData, "JPEG", xOff, MARGIN, fittedW, fittedH);
-        }
+        pdf.addImage(imgData, "JPEG", MARGIN, MARGIN, cW, imgH);
       }
 
       pdf.save(`rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`);
