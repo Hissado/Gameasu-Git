@@ -1,0 +1,356 @@
+Pouvez-vous revoir complètement la configuration des **rôles et permissions** dans Gameasu afin qu’elle reflète réellement la structure des modules, sous-modules et fonctionnalités de l’ERP ?
+
+### Objectif
+
+Je veux un système de permissions plus réaliste, plus professionnel et plus premium, adapté à une vraie application ERP.
+
+Aujourd’hui, la configuration des permissions semble trop générale. Je veux que les rôles puissent être configurés de manière précise selon :
+
+* les modules principaux ;
+* les sous-sections ;
+* les actions autorisées ;
+* les données visibles ;
+* les rapports accessibles ;
+* les exports autorisés ;
+* les validations possibles ;
+* les informations sensibles visibles ou non.
+
+L’objectif est qu’un administrateur puisse créer un rôle et décider exactement ce que les utilisateurs de ce rôle peuvent voir, créer, modifier, supprimer, approuver ou exporter.
+
+---
+
+## 1. Revoir la structure des permissions par module Gameasu
+
+Organiser les permissions selon les vrais modules de Gameasu.
+
+### Modules principaux à intégrer
+
+* Accueil / Tableau de bord
+* Ventes
+* CRM
+* Clients
+* Devis
+* Commandes
+* Factures
+* Encaissements
+* Achats
+* Fournisseurs
+* Dépenses
+* Bons de commande
+* Paiements fournisseurs
+* Finance
+* Comptabilité
+* Comptabilité analytique
+* Trésorerie
+* Budgets & prévisions
+* Recouvrement
+* Stock & inventaire
+* Équipements
+* Ressources Humaines
+* Équipe / Collaborateurs
+* Congés
+* Présences & Kiosk
+* Paie
+* Projets
+* Opérations
+* Documents
+* Rapports
+* Paramètres
+* Utilisateurs & accès
+* Rôles & permissions
+* Abonnement & facturation
+* Add-ons
+* Notifications
+* Support / Tickets
+* Cockpit si applicable
+
+Chaque module doit avoir ses propres permissions, au lieu d’un système trop générique.
+
+---
+
+## 2. Ajouter une logique Module → Sous-section → Action
+
+Je veux une configuration hiérarchique claire.
+
+### Exemple
+
+#### Finance
+
+L’admin doit pouvoir activer ou désactiver :
+
+* accès au module Finance ;
+* vue d’ensemble Finance ;
+* trésorerie ;
+* comptes bancaires ;
+* budgets ;
+* rapports financiers ;
+* exports PDF / Excel ;
+* données sensibles.
+
+Puis pour chaque sous-section, choisir les actions :
+
+* consulter ;
+* créer ;
+* modifier ;
+* supprimer ;
+* approuver ;
+* exporter ;
+* importer ;
+* valider ;
+* annuler.
+
+### Exemple
+
+Si l’admin décoche complètement **Finance**, l’utilisateur ne doit pas voir :
+
+* le menu Finance ;
+* les sous-sections Finance ;
+* les rapports Finance ;
+* les cartes KPI Finance ;
+* les données Finance dans le dashboard ;
+* les exports liés à Finance.
+
+---
+
+## 3. Pouvoir désactiver un module complet pour un rôle
+
+Ajouter une option claire pour chaque module :
+
+**Activer / Désactiver ce module pour ce rôle**
+
+Exemples :
+
+* si **Équipe / RH** est désactivé, les utilisateurs de ce rôle ne doivent pas voir les collaborateurs, salaires, congés, présences, kiosk ou paie ;
+* si **Finance** est désactivé, ils ne doivent pas voir les chiffres financiers, trésorerie, budgets ou rapports financiers ;
+* si **Achats** est désactivé, ils ne doivent pas voir fournisseurs, dépenses, factures fournisseurs ou paiements ;
+* si **Rapports** est désactivé, ils ne doivent pas générer ni exporter de rapports ;
+* si **Paramètres** est désactivé, ils ne doivent pas accéder aux réglages de l’organisation.
+
+Le menu de navigation doit automatiquement masquer les modules non autorisés.
+
+---
+
+## 4. Ajouter des niveaux d’accès plus réalistes
+
+Pour chaque module et sous-section, prévoir des niveaux d’accès clairs :
+
+* Aucun accès
+* Lecture seule
+* Créer
+* Modifier
+* Supprimer
+* Approuver
+* Exporter
+* Importer
+* Accès complet
+
+### Exemple pour les clients
+
+* Voir les clients
+* Créer un client
+* Modifier un client
+* Supprimer un client
+* Voir tous les clients
+* Voir uniquement les clients assignés
+* Exporter la liste des clients
+* Voir l’historique client
+
+### Exemple pour les collaborateurs
+
+* Voir les collaborateurs
+* Voir uniquement son équipe
+* Voir uniquement son propre profil
+* Créer un collaborateur
+* Modifier un collaborateur
+* Désactiver un collaborateur
+* Voir les documents RH
+* Voir les salaires
+* Voir la paie
+* Exporter les données RH
+
+---
+
+## 5. Ajouter une logique de portée des données
+
+Les permissions ne doivent pas seulement dire “oui / non”.
+Elles doivent aussi contrôler **la portée des données visibles**.
+
+Prévoir des options comme :
+
+* voir uniquement ses propres données ;
+* voir uniquement son équipe ;
+* voir uniquement son département ;
+* voir uniquement son site ;
+* voir uniquement les clients assignés ;
+* voir toutes les données de l’organisation ;
+* accès administrateur complet.
+
+### Exemple
+
+Un manager commercial peut voir :
+
+* ses prospects ;
+* ses clients ;
+* les factures liées à son portefeuille ;
+* les performances de son équipe.
+
+Mais il ne doit pas forcément voir :
+
+* les salaires ;
+* la paie ;
+* les comptes bancaires ;
+* les paramètres globaux ;
+* les données confidentielles d’autres équipes.
+
+---
+
+## 6. Revoir l’interface de configuration des permissions
+
+L’interface actuelle doit être améliorée pour être plus claire et premium.
+
+### Interface attendue
+
+Créer une interface organisée par catégories :
+
+1. Modules principaux
+2. Sous-sections
+3. Actions autorisées
+4. Portée des données
+5. Rapports & exports
+6. Permissions sensibles
+7. Approbations
+8. Résumé du rôle
+
+### Design attendu
+
+L’interface doit être :
+
+* claire ;
+* bien structurée ;
+* facile à comprendre ;
+* moderne ;
+* premium ;
+* sans termes techniques visibles ;
+* entièrement en français ;
+* responsive sur mobile et desktop.
+
+Éviter d’afficher des clés techniques comme :
+
+* `clients.read`
+* `purchases.manage`
+* `admin.access`
+
+Ces clés peuvent rester dans le backend, mais ne doivent pas être visibles comme texte principal pour l’utilisateur.
+
+---
+
+## 7. Ajouter des modèles de rôles prédéfinis
+
+Créer des rôles standards prêts à utiliser :
+
+* Administrateur
+* Direction
+* Responsable Finance
+* Comptable
+* Commercial
+* Responsable Achats
+* Responsable RH
+* Manager
+* Collaborateur
+* Support
+* Lecture seule
+* Consultant externe
+
+Chaque rôle doit avoir des permissions réalistes par défaut, mais l’admin doit pouvoir les modifier.
+
+---
+
+## 8. Ajouter une vue résumé avant enregistrement
+
+Avant d’enregistrer un rôle, afficher un résumé clair :
+
+* modules activés ;
+* modules désactivés ;
+* accès sensibles accordés ;
+* rapports accessibles ;
+* exports autorisés ;
+* approbations autorisées ;
+* portée des données.
+
+Exemple :
+
+**Ce rôle aura accès à : Ventes, Clients, CRM, Devis et Factures.**
+**Ce rôle n’aura pas accès à : Finance, Paie, RH, Paramètres et Comptabilité.**
+
+Cela permet d’éviter les erreurs de configuration.
+
+---
+
+## 9. Sécurité backend obligatoire
+
+Les permissions ne doivent pas être seulement visuelles.
+
+Merci de vérifier que les restrictions sont appliquées :
+
+* côté frontend ;
+* côté backend ;
+* dans les API ;
+* dans les rapports ;
+* dans les exports PDF / Excel ;
+* dans les dashboards ;
+* dans les notifications ;
+* dans les recherches globales.
+
+Un utilisateur ne doit jamais pouvoir accéder à une donnée non autorisée en utilisant une URL directe ou une requête API.
+
+---
+
+## 10. Synchronisation avec toute l’application
+
+Les permissions doivent impacter automatiquement :
+
+* le menu latéral ;
+* le dashboard ;
+* les pages de modules ;
+* les boutons d’action ;
+* les rapports ;
+* les exports ;
+* les formulaires ;
+* les workflows d’approbation ;
+* les notifications ;
+* la recherche ;
+* les documents ;
+* le Cockpit si applicable.
+
+### Exemple
+
+Si un utilisateur n’a pas accès à la paie :
+
+* il ne voit pas le menu Paie ;
+* il ne voit pas les salaires dans les profils collaborateurs ;
+* il ne peut pas exporter de rapport paie ;
+* il ne voit pas les KPI liés à la masse salariale ;
+* il ne reçoit pas les notifications de validation paie.
+
+---
+
+## 11. Résultat attendu
+
+Je veux un système de permissions Gameasu plus complet, plus réaliste et plus professionnel.
+
+Le système doit permettre de :
+
+* gérer les accès par module ;
+* gérer les accès par sous-section ;
+* gérer les actions autorisées ;
+* gérer la portée des données ;
+* protéger les données sensibles ;
+* masquer les modules non autorisés ;
+* contrôler les rapports et exports ;
+* créer des rôles prédéfinis ;
+* personnaliser les rôles selon chaque organisation ;
+* sécuriser les accès côté frontend et backend.
+
+### Objectif final
+
+Faire de la gestion des rôles et permissions de Gameasu un vrai système ERP premium, clair, sécurisé et flexible, permettant à chaque organisation de contrôler précisément qui peut voir, modifier, approuver, exporter ou gérer chaque partie de l’application.
