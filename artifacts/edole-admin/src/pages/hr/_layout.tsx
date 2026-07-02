@@ -4,7 +4,7 @@ import {
   UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
   Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
   Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench, ClipboardList,
-  FileBarChart2, HardHat, FileSpreadsheet,
+  FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -18,7 +18,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Personnes",
+    label: "Employés",
     items: [
       { name: "Collaborateurs",   path: "/collaborators",  icon: UsersRound },
       { name: "Organigramme",     path: "/hr/orgchart",    icon: Share2 },
@@ -31,6 +31,7 @@ const NAV_GROUPS = [
     items: [
       { name: "Calendrier",        path: "/hr/team-calendar",  icon: CalendarRange },
       { name: "Feuilles de temps", path: "/hr/timesheets",     icon: Timer },
+      { name: "Grille de pointage",path: "/hr/btp-pointage",   icon: ClipboardCheck },
       { name: "Absences & Congés", path: "/hr/leaves",         icon: CalendarOff },
       { name: "Politiques congés", path: "/hr/leave-policies", icon: Settings2 },
     ],
@@ -39,6 +40,7 @@ const NAV_GROUPS = [
     label: "Paie",
     items: [
       { name: "Fiches de paie",   path: "/hr/payroll",               icon: Banknote, exact: true },
+      { name: "États de salaires",path: "/hr/btp-paie",              icon: FileSpreadsheet },
       { name: "Calendrier paie",  path: "/hr/payroll/calendar",      icon: CalendarRange },
       { name: "Déclarations",     path: "/hr/payroll/declarations",  icon: ClipboardList },
       { name: "Corrections",      path: "/hr/payroll/corrections",   icon: Wrench },
@@ -57,14 +59,6 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Pointage & Paie BTP",
-    items: [
-      { name: "Grille de pointage",  path: "/hr/btp-pointage", icon: HardHat },
-      { name: "États de salaires",   path: "/hr/btp-paie",     icon: FileSpreadsheet },
-      { name: "Paramètres BTP",      path: "/hr/btp-settings", icon: Settings2 },
-    ],
-  },
-  {
     label: "Administratif",
     items: [
       { name: "Contrats",           path: "/hr/contracts",           icon: FileSignature },
@@ -75,6 +69,12 @@ const NAV_GROUPS = [
       { name: "Registre légal",     path: "/hr/legal-register",      icon: BookOpen },
       { name: "Avantages",          path: "/hr/benefits",            icon: Shield },
       { name: "Documents",          path: "/hr/documents",           icon: FolderArchive },
+    ],
+  },
+  {
+    label: "Paramètres RH",
+    items: [
+      { name: "Paramètres sectoriels", path: "/hr/btp-settings", icon: SlidersHorizontal },
     ],
   },
 ];

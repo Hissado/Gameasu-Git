@@ -367,8 +367,8 @@ export default function BtpPointage() {
 
   return (
     <HrShell
-      title="Pointage BTP"
-      subtitle="Grille de présence journalière — période 26→25"
+      title="Grille de pointage"
+      subtitle="Présences journalières — période 26→25"
       actions={
         <div className="flex items-center gap-2">
           {selectedPeriodId && !locked && dirty && (

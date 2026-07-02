@@ -329,8 +329,8 @@ export default function BtpPaie() {
 
   return (
     <HrShell
-      title="États de Salaires BTP"
-      subtitle="Fiches de paie et résumé mensuel — CNSS / IRPP Togo"
+      title="États de salaires"
+      subtitle="Récapitulatif mensuel — CNSS / IRPP / Net à payer"
       actions={
         selectedPeriodId ? (
           <div className="flex items-center gap-2">

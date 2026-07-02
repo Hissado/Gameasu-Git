@@ -139,7 +139,7 @@ export default function BtpSettings() {
 
   if (isLoading || !form) {
     return (
-      <HrShell title="Paramètres BTP" subtitle="Configuration de la paie BTP">
+      <HrShell title="Paramètres sectoriels" subtitle="Configuration de la paie — règles sectorielles">
         <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" />Chargement…</div>
       </HrShell>
     );
@@ -147,7 +147,7 @@ export default function BtpSettings() {
 
   return (
     <HrShell
-      title="Paramètres Pointage & Paie BTP"
+      title="Paramètres sectoriels"
       subtitle="CNSS / IRPP / Majorations HS / Jours fériés"
       actions={
         <Button size="sm" onClick={() => saveMut.mutate(form)} disabled={saveMut.isPending}>
