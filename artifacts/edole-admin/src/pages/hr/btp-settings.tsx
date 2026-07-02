@@ -354,19 +354,6 @@ export default function BtpSettings() {
               </Table>
             )}
 
-            {/* Jours fériés Togo pré-configurés */}
-            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <div className="text-xs font-semibold text-amber-700 mb-2">Jours fériés légaux Togo (à saisir) :</div>
-              <div className="grid grid-cols-3 gap-1 text-[11px] text-amber-600">
-                {[
-                  "1er janvier — Jour de l'An", "13 janvier — Fête nationale libération",
-                  "27 avril — Fête nationale indépendance", "1er mai — Fête du travail",
-                  "Lundi de Pâques", "Ascension", "Lundi de Pentecôte",
-                  "15 août — Assomption", "1er novembre — Toussaint",
-                  "25 décembre — Noël", "Aïd el-Fitr (variable)", "Aïd el-Adha (variable)",
-                ].map((f) => <div key={f} className="flex items-center gap-1">• {f}</div>)}
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
