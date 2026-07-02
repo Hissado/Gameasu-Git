@@ -21,9 +21,11 @@ import type {
   ActivityFeedItem,
   AuthResponse,
   CallSession,
+  CancelMyLeaveRequest200,
   Client,
   ClientContact,
   ClientDetail,
+  ClosingChecklistItem,
   Collaborator,
   CollaboratorWorkload,
   Conversation,
@@ -38,6 +40,10 @@ import type {
   CreateInspectionBody,
   CreateInvoiceBody,
   CreateLogisticsBody,
+  CreateMyBankRequest201,
+  CreateMyBankRequestBody,
+  CreateMyLeaveRequest201,
+  CreateMyLeaveRequestBody,
   CreateOpportunityBody,
   CreateOrderBody,
   CreatePaymentBody,
@@ -54,6 +60,19 @@ import type {
   EquipmentAvailability,
   EquipmentCategory,
   FinancialSummary,
+  GetMyBankRequest200,
+  GetMyContributions200,
+  GetMyLeaveBalance200,
+  GetMyLeaveRequests200Item,
+  GetMyPayslips200Item,
+  GetMyTransfers200Item,
+  GetPeriodCloseAudit200Item,
+  GetPeriodCloseAuditParams,
+  GetPeriodCloseMonth200,
+  GetPeriodCloseMonths200,
+  GetPeriodCloseMonthsParams,
+  GetPeriodCloseStatus200,
+  GetPeriodCloseYears200Item,
   GetRecentActivityParams,
   HealthStatus,
   Inspection,
@@ -111,6 +130,7 @@ import type {
   PaginatedTasks,
   PaginatedUsers,
   Payment,
+  PeriodMonth,
   Proforma,
   Project,
   ProjectDetail,
@@ -124,6 +144,7 @@ import type {
   TaskComment,
   TaskDetail,
   UpdateCallSessionBody,
+  UpdateChecklistItemBody,
   UpdateMeBody,
   UpdateUserBody,
   User,
@@ -8876,6 +8897,1922 @@ export const useUpdateCollaboratorKioskCode = <
   TContext
 > => {
   return useMutation(getUpdateCollaboratorKioskCodeMutationOptions(options));
+};
+
+/**
+ * @summary Liste des mois de clôture pour une année fiscale
+ */
+export const getGetPeriodCloseMonthsUrl = (
+  params?: GetPeriodCloseMonthsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/period-close/months?${stringifiedParams}`
+    : `/api/period-close/months`;
+};
+
+export const getPeriodCloseMonths = async (
+  params?: GetPeriodCloseMonthsParams,
+  options?: RequestInit,
+): Promise<GetPeriodCloseMonths200> => {
+  return customFetch<GetPeriodCloseMonths200>(
+    getGetPeriodCloseMonthsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPeriodCloseMonthsQueryKey = (
+  params?: GetPeriodCloseMonthsParams,
+) => {
+  return [`/api/period-close/months`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPeriodCloseMonthsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPeriodCloseMonths>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetPeriodCloseMonthsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseMonths>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPeriodCloseMonthsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPeriodCloseMonths>>
+  > = ({ signal }) =>
+    getPeriodCloseMonths(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseMonths>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPeriodCloseMonthsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPeriodCloseMonths>>
+>;
+export type GetPeriodCloseMonthsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Liste des mois de clôture pour une année fiscale
+ */
+
+export function useGetPeriodCloseMonths<
+  TData = Awaited<ReturnType<typeof getPeriodCloseMonths>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetPeriodCloseMonthsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseMonths>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPeriodCloseMonthsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Détail d'un mois — statut, checklist, stats
+ */
+export const getGetPeriodCloseMonthUrl = (month: string) => {
+  return `/api/period-close/months/${month}`;
+};
+
+export const getPeriodCloseMonth = async (
+  month: string,
+  options?: RequestInit,
+): Promise<GetPeriodCloseMonth200> => {
+  return customFetch<GetPeriodCloseMonth200>(getGetPeriodCloseMonthUrl(month), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPeriodCloseMonthQueryKey = (month: string) => {
+  return [`/api/period-close/months/${month}`] as const;
+};
+
+export const getGetPeriodCloseMonthQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPeriodCloseMonth>>,
+  TError = ErrorType<unknown>,
+>(
+  month: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseMonth>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPeriodCloseMonthQueryKey(month);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPeriodCloseMonth>>
+  > = ({ signal }) => getPeriodCloseMonth(month, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!month,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseMonth>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPeriodCloseMonthQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPeriodCloseMonth>>
+>;
+export type GetPeriodCloseMonthQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Détail d'un mois — statut, checklist, stats
+ */
+
+export function useGetPeriodCloseMonth<
+  TData = Awaited<ReturnType<typeof getPeriodCloseMonth>>,
+  TError = ErrorType<unknown>,
+>(
+  month: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseMonth>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPeriodCloseMonthQueryOptions(month, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Passer un mois en mode révision
+ */
+export const getStartPeriodReviewUrl = (month: string) => {
+  return `/api/period-close/months/${month}/start-review`;
+};
+
+export const startPeriodReview = async (
+  month: string,
+  options?: RequestInit,
+): Promise<PeriodMonth> => {
+  return customFetch<PeriodMonth>(getStartPeriodReviewUrl(month), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartPeriodReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startPeriodReview>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startPeriodReview>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  const mutationKey = ["startPeriodReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startPeriodReview>>,
+    { month: string }
+  > = (props) => {
+    const { month } = props ?? {};
+
+    return startPeriodReview(month, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartPeriodReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startPeriodReview>>
+>;
+
+export type StartPeriodReviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Passer un mois en mode révision
+ */
+export const useStartPeriodReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startPeriodReview>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startPeriodReview>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  return useMutation(getStartPeriodReviewMutationOptions(options));
+};
+
+/**
+ * @summary Clôturer un mois comptable
+ */
+export const getClosePeriodMonthUrl = (month: string) => {
+  return `/api/period-close/months/${month}/close`;
+};
+
+export const closePeriodMonth = async (
+  month: string,
+  options?: RequestInit,
+): Promise<PeriodMonth> => {
+  return customFetch<PeriodMonth>(getClosePeriodMonthUrl(month), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getClosePeriodMonthMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof closePeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof closePeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  const mutationKey = ["closePeriodMonth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof closePeriodMonth>>,
+    { month: string }
+  > = (props) => {
+    const { month } = props ?? {};
+
+    return closePeriodMonth(month, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClosePeriodMonthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof closePeriodMonth>>
+>;
+
+export type ClosePeriodMonthMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clôturer un mois comptable
+ */
+export const useClosePeriodMonth = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof closePeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof closePeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  return useMutation(getClosePeriodMonthMutationOptions(options));
+};
+
+/**
+ * @summary Approuver (verrouiller) un mois clôturé
+ */
+export const getApprovePeriodMonthUrl = (month: string) => {
+  return `/api/period-close/months/${month}/approve`;
+};
+
+export const approvePeriodMonth = async (
+  month: string,
+  options?: RequestInit,
+): Promise<PeriodMonth> => {
+  return customFetch<PeriodMonth>(getApprovePeriodMonthUrl(month), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApprovePeriodMonthMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approvePeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  const mutationKey = ["approvePeriodMonth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approvePeriodMonth>>,
+    { month: string }
+  > = (props) => {
+    const { month } = props ?? {};
+
+    return approvePeriodMonth(month, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApprovePeriodMonthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approvePeriodMonth>>
+>;
+
+export type ApprovePeriodMonthMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approuver (verrouiller) un mois clôturé
+ */
+export const useApprovePeriodMonth = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approvePeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  return useMutation(getApprovePeriodMonthMutationOptions(options));
+};
+
+/**
+ * @summary Réouvrir un mois clôturé (admin)
+ */
+export const getReopenPeriodMonthUrl = (month: string) => {
+  return `/api/period-close/months/${month}/reopen`;
+};
+
+export const reopenPeriodMonth = async (
+  month: string,
+  options?: RequestInit,
+): Promise<PeriodMonth> => {
+  return customFetch<PeriodMonth>(getReopenPeriodMonthUrl(month), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getReopenPeriodMonthMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenPeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reopenPeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  const mutationKey = ["reopenPeriodMonth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reopenPeriodMonth>>,
+    { month: string }
+  > = (props) => {
+    const { month } = props ?? {};
+
+    return reopenPeriodMonth(month, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReopenPeriodMonthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reopenPeriodMonth>>
+>;
+
+export type ReopenPeriodMonthMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Réouvrir un mois clôturé (admin)
+ */
+export const useReopenPeriodMonth = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenPeriodMonth>>,
+    TError,
+    { month: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reopenPeriodMonth>>,
+  TError,
+  { month: string },
+  TContext
+> => {
+  return useMutation(getReopenPeriodMonthMutationOptions(options));
+};
+
+/**
+ * @summary Mettre à jour un item de la checklist de clôture
+ */
+export const getUpdateChecklistItemUrl = (id: string) => {
+  return `/api/period-close/checklist/${id}`;
+};
+
+export const updateChecklistItem = async (
+  id: string,
+  updateChecklistItemBody: UpdateChecklistItemBody,
+  options?: RequestInit,
+): Promise<ClosingChecklistItem> => {
+  return customFetch<ClosingChecklistItem>(getUpdateChecklistItemUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateChecklistItemBody),
+  });
+};
+
+export const getUpdateChecklistItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateChecklistItem>>,
+    TError,
+    { id: string; data: BodyType<UpdateChecklistItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateChecklistItem>>,
+  TError,
+  { id: string; data: BodyType<UpdateChecklistItemBody> },
+  TContext
+> => {
+  const mutationKey = ["updateChecklistItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateChecklistItem>>,
+    { id: string; data: BodyType<UpdateChecklistItemBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateChecklistItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateChecklistItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateChecklistItem>>
+>;
+export type UpdateChecklistItemMutationBody = BodyType<UpdateChecklistItemBody>;
+export type UpdateChecklistItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mettre à jour un item de la checklist de clôture
+ */
+export const useUpdateChecklistItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateChecklistItem>>,
+    TError,
+    { id: string; data: BodyType<UpdateChecklistItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateChecklistItem>>,
+  TError,
+  { id: string; data: BodyType<UpdateChecklistItemBody> },
+  TContext
+> => {
+  return useMutation(getUpdateChecklistItemMutationOptions(options));
+};
+
+/**
+ * @summary Créer la checklist par défaut pour un mois
+ */
+export const getCreateDefaultChecklistUrl = (periodMonthId: string) => {
+  return `/api/period-close/checklist/${periodMonthId}/create-all`;
+};
+
+export const createDefaultChecklist = async (
+  periodMonthId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCreateDefaultChecklistUrl(periodMonthId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCreateDefaultChecklistMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDefaultChecklist>>,
+    TError,
+    { periodMonthId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDefaultChecklist>>,
+  TError,
+  { periodMonthId: string },
+  TContext
+> => {
+  const mutationKey = ["createDefaultChecklist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDefaultChecklist>>,
+    { periodMonthId: string }
+  > = (props) => {
+    const { periodMonthId } = props ?? {};
+
+    return createDefaultChecklist(periodMonthId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDefaultChecklistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDefaultChecklist>>
+>;
+
+export type CreateDefaultChecklistMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Créer la checklist par défaut pour un mois
+ */
+export const useCreateDefaultChecklist = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDefaultChecklist>>,
+    TError,
+    { periodMonthId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDefaultChecklist>>,
+  TError,
+  { periodMonthId: string },
+  TContext
+> => {
+  return useMutation(getCreateDefaultChecklistMutationOptions(options));
+};
+
+/**
+ * @summary Liste des années fiscales
+ */
+export const getGetPeriodCloseYearsUrl = () => {
+  return `/api/period-close/years`;
+};
+
+export const getPeriodCloseYears = async (
+  options?: RequestInit,
+): Promise<GetPeriodCloseYears200Item[]> => {
+  return customFetch<GetPeriodCloseYears200Item[]>(
+    getGetPeriodCloseYearsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPeriodCloseYearsQueryKey = () => {
+  return [`/api/period-close/years`] as const;
+};
+
+export const getGetPeriodCloseYearsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPeriodCloseYears>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseYears>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPeriodCloseYearsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPeriodCloseYears>>
+  > = ({ signal }) => getPeriodCloseYears({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseYears>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPeriodCloseYearsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPeriodCloseYears>>
+>;
+export type GetPeriodCloseYearsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Liste des années fiscales
+ */
+
+export function useGetPeriodCloseYears<
+  TData = Awaited<ReturnType<typeof getPeriodCloseYears>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseYears>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPeriodCloseYearsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Clôturer une année fiscale
+ */
+export const getCloseFiscalYearUrl = (id: string) => {
+  return `/api/period-close/years/${id}/close`;
+};
+
+export const closeFiscalYear = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCloseFiscalYearUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCloseFiscalYearMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof closeFiscalYear>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof closeFiscalYear>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["closeFiscalYear"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof closeFiscalYear>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return closeFiscalYear(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CloseFiscalYearMutationResult = NonNullable<
+  Awaited<ReturnType<typeof closeFiscalYear>>
+>;
+
+export type CloseFiscalYearMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clôturer une année fiscale
+ */
+export const useCloseFiscalYear = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof closeFiscalYear>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof closeFiscalYear>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCloseFiscalYearMutationOptions(options));
+};
+
+/**
+ * @summary Réouvrir une année fiscale (admin)
+ */
+export const getReopenFiscalYearUrl = (id: string) => {
+  return `/api/period-close/years/${id}/reopen`;
+};
+
+export const reopenFiscalYear = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getReopenFiscalYearUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getReopenFiscalYearMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenFiscalYear>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reopenFiscalYear>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["reopenFiscalYear"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reopenFiscalYear>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return reopenFiscalYear(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReopenFiscalYearMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reopenFiscalYear>>
+>;
+
+export type ReopenFiscalYearMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Réouvrir une année fiscale (admin)
+ */
+export const useReopenFiscalYear = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenFiscalYear>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reopenFiscalYear>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getReopenFiscalYearMutationOptions(options));
+};
+
+/**
+ * @summary Journal d'audit des clôtures
+ */
+export const getGetPeriodCloseAuditUrl = (
+  params?: GetPeriodCloseAuditParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/period-close/audit?${stringifiedParams}`
+    : `/api/period-close/audit`;
+};
+
+export const getPeriodCloseAudit = async (
+  params?: GetPeriodCloseAuditParams,
+  options?: RequestInit,
+): Promise<GetPeriodCloseAudit200Item[]> => {
+  return customFetch<GetPeriodCloseAudit200Item[]>(
+    getGetPeriodCloseAuditUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPeriodCloseAuditQueryKey = (
+  params?: GetPeriodCloseAuditParams,
+) => {
+  return [`/api/period-close/audit`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPeriodCloseAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPeriodCloseAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetPeriodCloseAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPeriodCloseAuditQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPeriodCloseAudit>>
+  > = ({ signal }) =>
+    getPeriodCloseAudit(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseAudit>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPeriodCloseAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPeriodCloseAudit>>
+>;
+export type GetPeriodCloseAuditQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Journal d'audit des clôtures
+ */
+
+export function useGetPeriodCloseAudit<
+  TData = Awaited<ReturnType<typeof getPeriodCloseAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetPeriodCloseAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPeriodCloseAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPeriodCloseAuditQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Statut global de clôture (mois courant)
+ */
+export const getGetPeriodCloseStatusUrl = () => {
+  return `/api/period-close/status`;
+};
+
+export const getPeriodCloseStatus = async (
+  options?: RequestInit,
+): Promise<GetPeriodCloseStatus200> => {
+  return customFetch<GetPeriodCloseStatus200>(getGetPeriodCloseStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPeriodCloseStatusQueryKey = () => {
+  return [`/api/period-close/status`] as const;
+};
+
+export const getGetPeriodCloseStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPeriodCloseStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPeriodCloseStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPeriodCloseStatus>>
+  > = ({ signal }) => getPeriodCloseStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPeriodCloseStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPeriodCloseStatus>>
+>;
+export type GetPeriodCloseStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Statut global de clôture (mois courant)
+ */
+
+export function useGetPeriodCloseStatus<
+  TData = Awaited<ReturnType<typeof getPeriodCloseStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPeriodCloseStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPeriodCloseStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Solde de congés du collaborateur connecté
+ */
+export const getGetMyLeaveBalanceUrl = () => {
+  return `/api/hr/me/leave-balance`;
+};
+
+export const getMyLeaveBalance = async (
+  options?: RequestInit,
+): Promise<GetMyLeaveBalance200> => {
+  return customFetch<GetMyLeaveBalance200>(getGetMyLeaveBalanceUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyLeaveBalanceQueryKey = () => {
+  return [`/api/hr/me/leave-balance`] as const;
+};
+
+export const getGetMyLeaveBalanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyLeaveBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyLeaveBalanceQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyLeaveBalance>>
+  > = ({ signal }) => getMyLeaveBalance({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveBalance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyLeaveBalanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyLeaveBalance>>
+>;
+export type GetMyLeaveBalanceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Solde de congés du collaborateur connecté
+ */
+
+export function useGetMyLeaveBalance<
+  TData = Awaited<ReturnType<typeof getMyLeaveBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyLeaveBalanceQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Bulletins de paie du collaborateur connecté
+ */
+export const getGetMyPayslipsUrl = () => {
+  return `/api/hr/me/payslips`;
+};
+
+export const getMyPayslips = async (
+  options?: RequestInit,
+): Promise<GetMyPayslips200Item[]> => {
+  return customFetch<GetMyPayslips200Item[]>(getGetMyPayslipsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyPayslipsQueryKey = () => {
+  return [`/api/hr/me/payslips`] as const;
+};
+
+export const getGetMyPayslipsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyPayslips>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPayslips>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyPayslipsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPayslips>>> = ({
+    signal,
+  }) => getMyPayslips({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPayslips>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyPayslipsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyPayslips>>
+>;
+export type GetMyPayslipsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Bulletins de paie du collaborateur connecté
+ */
+
+export function useGetMyPayslips<
+  TData = Awaited<ReturnType<typeof getMyPayslips>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPayslips>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyPayslipsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Télécharger un bulletin de paie en PDF
+ */
+export const getGetMyPayslipPdfUrl = (id: string) => {
+  return `/api/hr/me/payslips/${id}/pdf`;
+};
+
+export const getMyPayslipPdf = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetMyPayslipPdfUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyPayslipPdfQueryKey = (id: string) => {
+  return [`/api/hr/me/payslips/${id}/pdf`] as const;
+};
+
+export const getGetMyPayslipPdfQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyPayslipPdf>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyPayslipPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyPayslipPdfQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPayslipPdf>>> = ({
+    signal,
+  }) => getMyPayslipPdf(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyPayslipPdf>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyPayslipPdfQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyPayslipPdf>>
+>;
+export type GetMyPayslipPdfQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Télécharger un bulletin de paie en PDF
+ */
+
+export function useGetMyPayslipPdf<
+  TData = Awaited<ReturnType<typeof getMyPayslipPdf>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyPayslipPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyPayslipPdfQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Cotisations sociales du collaborateur connecté
+ */
+export const getGetMyContributionsUrl = () => {
+  return `/api/hr/me/contributions`;
+};
+
+export const getMyContributions = async (
+  options?: RequestInit,
+): Promise<GetMyContributions200> => {
+  return customFetch<GetMyContributions200>(getGetMyContributionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyContributionsQueryKey = () => {
+  return [`/api/hr/me/contributions`] as const;
+};
+
+export const getGetMyContributionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyContributions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyContributions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyContributionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyContributions>>
+  > = ({ signal }) => getMyContributions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyContributions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyContributionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyContributions>>
+>;
+export type GetMyContributionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Cotisations sociales du collaborateur connecté
+ */
+
+export function useGetMyContributions<
+  TData = Awaited<ReturnType<typeof getMyContributions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyContributions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyContributionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Virements du collaborateur connecté
+ */
+export const getGetMyTransfersUrl = () => {
+  return `/api/hr/me/transfers`;
+};
+
+export const getMyTransfers = async (
+  options?: RequestInit,
+): Promise<GetMyTransfers200Item[]> => {
+  return customFetch<GetMyTransfers200Item[]>(getGetMyTransfersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyTransfersQueryKey = () => {
+  return [`/api/hr/me/transfers`] as const;
+};
+
+export const getGetMyTransfersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyTransfers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTransfers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyTransfersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyTransfers>>> = ({
+    signal,
+  }) => getMyTransfers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTransfers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyTransfersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyTransfers>>
+>;
+export type GetMyTransfersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Virements du collaborateur connecté
+ */
+
+export function useGetMyTransfers<
+  TData = Awaited<ReturnType<typeof getMyTransfers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyTransfers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyTransfersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Demande de changement RIB en cours
+ */
+export const getGetMyBankRequestUrl = () => {
+  return `/api/hr/me/bank-request`;
+};
+
+export const getMyBankRequest = async (
+  options?: RequestInit,
+): Promise<GetMyBankRequest200> => {
+  return customFetch<GetMyBankRequest200>(getGetMyBankRequestUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyBankRequestQueryKey = () => {
+  return [`/api/hr/me/bank-request`] as const;
+};
+
+export const getGetMyBankRequestQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyBankRequest>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBankRequest>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyBankRequestQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyBankRequest>>
+  > = ({ signal }) => getMyBankRequest({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBankRequest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyBankRequestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyBankRequest>>
+>;
+export type GetMyBankRequestQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Demande de changement RIB en cours
+ */
+
+export function useGetMyBankRequest<
+  TData = Awaited<ReturnType<typeof getMyBankRequest>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBankRequest>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyBankRequestQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Soumettre une demande de changement de RIB
+ */
+export const getCreateMyBankRequestUrl = () => {
+  return `/api/hr/me/bank-request`;
+};
+
+export const createMyBankRequest = async (
+  createMyBankRequestBody: CreateMyBankRequestBody,
+  options?: RequestInit,
+): Promise<CreateMyBankRequest201> => {
+  return customFetch<CreateMyBankRequest201>(getCreateMyBankRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMyBankRequestBody),
+  });
+};
+
+export const getCreateMyBankRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMyBankRequest>>,
+    TError,
+    { data: BodyType<CreateMyBankRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMyBankRequest>>,
+  TError,
+  { data: BodyType<CreateMyBankRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["createMyBankRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMyBankRequest>>,
+    { data: BodyType<CreateMyBankRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMyBankRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMyBankRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMyBankRequest>>
+>;
+export type CreateMyBankRequestMutationBody = BodyType<CreateMyBankRequestBody>;
+export type CreateMyBankRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Soumettre une demande de changement de RIB
+ */
+export const useCreateMyBankRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMyBankRequest>>,
+    TError,
+    { data: BodyType<CreateMyBankRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMyBankRequest>>,
+  TError,
+  { data: BodyType<CreateMyBankRequestBody> },
+  TContext
+> => {
+  return useMutation(getCreateMyBankRequestMutationOptions(options));
+};
+
+/**
+ * @summary Demandes de congés du collaborateur connecté
+ */
+export const getGetMyLeaveRequestsUrl = () => {
+  return `/api/hr/me/leave-requests`;
+};
+
+export const getMyLeaveRequests = async (
+  options?: RequestInit,
+): Promise<GetMyLeaveRequests200Item[]> => {
+  return customFetch<GetMyLeaveRequests200Item[]>(getGetMyLeaveRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyLeaveRequestsQueryKey = () => {
+  return [`/api/hr/me/leave-requests`] as const;
+};
+
+export const getGetMyLeaveRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyLeaveRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyLeaveRequestsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyLeaveRequests>>
+  > = ({ signal }) => getMyLeaveRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyLeaveRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyLeaveRequests>>
+>;
+export type GetMyLeaveRequestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Demandes de congés du collaborateur connecté
+ */
+
+export function useGetMyLeaveRequests<
+  TData = Awaited<ReturnType<typeof getMyLeaveRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaveRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyLeaveRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Créer une demande de congé
+ */
+export const getCreateMyLeaveRequestUrl = () => {
+  return `/api/hr/me/leave-requests`;
+};
+
+export const createMyLeaveRequest = async (
+  createMyLeaveRequestBody: CreateMyLeaveRequestBody,
+  options?: RequestInit,
+): Promise<CreateMyLeaveRequest201> => {
+  return customFetch<CreateMyLeaveRequest201>(getCreateMyLeaveRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMyLeaveRequestBody),
+  });
+};
+
+export const getCreateMyLeaveRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMyLeaveRequest>>,
+    TError,
+    { data: BodyType<CreateMyLeaveRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMyLeaveRequest>>,
+  TError,
+  { data: BodyType<CreateMyLeaveRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["createMyLeaveRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMyLeaveRequest>>,
+    { data: BodyType<CreateMyLeaveRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMyLeaveRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMyLeaveRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMyLeaveRequest>>
+>;
+export type CreateMyLeaveRequestMutationBody =
+  BodyType<CreateMyLeaveRequestBody>;
+export type CreateMyLeaveRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Créer une demande de congé
+ */
+export const useCreateMyLeaveRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMyLeaveRequest>>,
+    TError,
+    { data: BodyType<CreateMyLeaveRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMyLeaveRequest>>,
+  TError,
+  { data: BodyType<CreateMyLeaveRequestBody> },
+  TContext
+> => {
+  return useMutation(getCreateMyLeaveRequestMutationOptions(options));
+};
+
+/**
+ * @summary Annuler une demande de congé
+ */
+export const getCancelMyLeaveRequestUrl = (id: string) => {
+  return `/api/hr/me/leave-requests/${id}/cancel`;
+};
+
+export const cancelMyLeaveRequest = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CancelMyLeaveRequest200> => {
+  return customFetch<CancelMyLeaveRequest200>(getCancelMyLeaveRequestUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getCancelMyLeaveRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelMyLeaveRequest>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelMyLeaveRequest>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["cancelMyLeaveRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelMyLeaveRequest>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return cancelMyLeaveRequest(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelMyLeaveRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelMyLeaveRequest>>
+>;
+
+export type CancelMyLeaveRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Annuler une demande de congé
+ */
+export const useCancelMyLeaveRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelMyLeaveRequest>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelMyLeaveRequest>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCancelMyLeaveRequestMutationOptions(options));
 };
 
 /**

@@ -2368,6 +2368,357 @@ export const UpdateCollaboratorKioskCodeBody = zod.object({
 });
 
 /**
+ * @summary Liste des mois de clôture pour une année fiscale
+ */
+export const GetPeriodCloseMonthsQueryParams = zod.object({
+  year: zod.coerce.string().optional(),
+});
+
+export const GetPeriodCloseMonthsResponse = zod.object({
+  fiscalPeriod: zod.object({}).passthrough().nullish(),
+  months: zod
+    .array(
+      zod.object({
+        id: zod.string().uuid().nullish(),
+        organizationId: zod.string().uuid().optional(),
+        fiscalPeriodId: zod.string().uuid().nullish(),
+        month: zod.string().optional(),
+        status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+        closedAt: zod.coerce.date().nullish(),
+        closedById: zod.string().uuid().nullish(),
+        approvedAt: zod.coerce.date().nullish(),
+        approvedById: zod.string().uuid().nullish(),
+        notes: zod.string().nullish(),
+        createdAt: zod.coerce.date().optional(),
+        updatedAt: zod.coerce.date().optional(),
+      }),
+    )
+    .optional(),
+  summary: zod
+    .object({
+      closed: zod.number().optional(),
+      total: zod.number().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Détail d'un mois — statut, checklist, stats
+ */
+export const GetPeriodCloseMonthParams = zod.object({
+  month: zod.coerce.string(),
+});
+
+export const GetPeriodCloseMonthResponse = zod.object({
+  period: zod
+    .object({
+      id: zod.string().uuid().nullish(),
+      organizationId: zod.string().uuid().optional(),
+      fiscalPeriodId: zod.string().uuid().nullish(),
+      month: zod.string().optional(),
+      status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+      closedAt: zod.coerce.date().nullish(),
+      closedById: zod.string().uuid().nullish(),
+      approvedAt: zod.coerce.date().nullish(),
+      approvedById: zod.string().uuid().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.coerce.date().optional(),
+      updatedAt: zod.coerce.date().optional(),
+    })
+    .optional(),
+  checklist: zod
+    .array(
+      zod.object({
+        id: zod.string().uuid().optional(),
+        periodMonthId: zod.string().uuid().optional(),
+        organizationId: zod.string().uuid().optional(),
+        label: zod.string().optional(),
+        description: zod.string().nullish(),
+        status: zod.enum(["pending", "in_progress", "done", "na"]).optional(),
+        sortOrder: zod.number().optional(),
+        note: zod.string().nullish(),
+        doneAt: zod.coerce.date().nullish(),
+        doneById: zod.string().uuid().nullish(),
+        createdAt: zod.coerce.date().optional(),
+        updatedAt: zod.coerce.date().optional(),
+      }),
+    )
+    .optional(),
+  stats: zod.record(zod.string(), zod.unknown()).optional(),
+  checklistProgress: zod.number().optional(),
+});
+
+/**
+ * @summary Passer un mois en mode révision
+ */
+export const StartPeriodReviewParams = zod.object({
+  month: zod.coerce.string(),
+});
+
+export const StartPeriodReviewResponse = zod.object({
+  id: zod.string().uuid().nullish(),
+  organizationId: zod.string().uuid().optional(),
+  fiscalPeriodId: zod.string().uuid().nullish(),
+  month: zod.string().optional(),
+  status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+  closedAt: zod.coerce.date().nullish(),
+  closedById: zod.string().uuid().nullish(),
+  approvedAt: zod.coerce.date().nullish(),
+  approvedById: zod.string().uuid().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Clôturer un mois comptable
+ */
+export const ClosePeriodMonthParams = zod.object({
+  month: zod.coerce.string(),
+});
+
+export const ClosePeriodMonthResponse = zod.object({
+  id: zod.string().uuid().nullish(),
+  organizationId: zod.string().uuid().optional(),
+  fiscalPeriodId: zod.string().uuid().nullish(),
+  month: zod.string().optional(),
+  status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+  closedAt: zod.coerce.date().nullish(),
+  closedById: zod.string().uuid().nullish(),
+  approvedAt: zod.coerce.date().nullish(),
+  approvedById: zod.string().uuid().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Approuver (verrouiller) un mois clôturé
+ */
+export const ApprovePeriodMonthParams = zod.object({
+  month: zod.coerce.string(),
+});
+
+export const ApprovePeriodMonthResponse = zod.object({
+  id: zod.string().uuid().nullish(),
+  organizationId: zod.string().uuid().optional(),
+  fiscalPeriodId: zod.string().uuid().nullish(),
+  month: zod.string().optional(),
+  status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+  closedAt: zod.coerce.date().nullish(),
+  closedById: zod.string().uuid().nullish(),
+  approvedAt: zod.coerce.date().nullish(),
+  approvedById: zod.string().uuid().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Réouvrir un mois clôturé (admin)
+ */
+export const ReopenPeriodMonthParams = zod.object({
+  month: zod.coerce.string(),
+});
+
+export const ReopenPeriodMonthResponse = zod.object({
+  id: zod.string().uuid().nullish(),
+  organizationId: zod.string().uuid().optional(),
+  fiscalPeriodId: zod.string().uuid().nullish(),
+  month: zod.string().optional(),
+  status: zod.enum(["open", "review", "closed", "locked"]).optional(),
+  closedAt: zod.coerce.date().nullish(),
+  closedById: zod.string().uuid().nullish(),
+  approvedAt: zod.coerce.date().nullish(),
+  approvedById: zod.string().uuid().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Mettre à jour un item de la checklist de clôture
+ */
+export const UpdateChecklistItemParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const UpdateChecklistItemBody = zod.object({
+  status: zod.enum(["pending", "in_progress", "done", "na"]).optional(),
+  note: zod.string().optional(),
+});
+
+export const UpdateChecklistItemResponse = zod.object({
+  id: zod.string().uuid().optional(),
+  periodMonthId: zod.string().uuid().optional(),
+  organizationId: zod.string().uuid().optional(),
+  label: zod.string().optional(),
+  description: zod.string().nullish(),
+  status: zod.enum(["pending", "in_progress", "done", "na"]).optional(),
+  sortOrder: zod.number().optional(),
+  note: zod.string().nullish(),
+  doneAt: zod.coerce.date().nullish(),
+  doneById: zod.string().uuid().nullish(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Créer la checklist par défaut pour un mois
+ */
+export const CreateDefaultChecklistParams = zod.object({
+  periodMonthId: zod.coerce.string().uuid(),
+});
+
+/**
+ * @summary Liste des années fiscales
+ */
+export const GetPeriodCloseYearsResponseItem = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+export const GetPeriodCloseYearsResponse = zod.array(
+  GetPeriodCloseYearsResponseItem,
+);
+
+/**
+ * @summary Clôturer une année fiscale
+ */
+export const CloseFiscalYearParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+/**
+ * @summary Réouvrir une année fiscale (admin)
+ */
+export const ReopenFiscalYearParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+/**
+ * @summary Journal d'audit des clôtures
+ */
+export const GetPeriodCloseAuditQueryParams = zod.object({
+  month: zod.coerce.string().optional(),
+});
+
+export const GetPeriodCloseAuditResponseItem = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+export const GetPeriodCloseAuditResponse = zod.array(
+  GetPeriodCloseAuditResponseItem,
+);
+
+/**
+ * @summary Statut global de clôture (mois courant)
+ */
+export const GetPeriodCloseStatusResponse = zod.object({
+  currentMonth: zod.string().optional(),
+  status: zod.string().optional(),
+  checklistProgress: zod.number().optional(),
+});
+
+/**
+ * @summary Solde de congés du collaborateur connecté
+ */
+export const GetMyLeaveBalanceResponse = zod.object({
+  balances: zod
+    .array(
+      zod.object({
+        leaveTypeId: zod.string().optional(),
+        leaveTypeName: zod.string().optional(),
+        balance: zod.number().optional(),
+        used: zod.number().optional(),
+        pending: zod.number().optional(),
+      }),
+    )
+    .optional(),
+});
+
+/**
+ * @summary Bulletins de paie du collaborateur connecté
+ */
+export const GetMyPayslipsResponseItem = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+export const GetMyPayslipsResponse = zod.array(GetMyPayslipsResponseItem);
+
+/**
+ * @summary Télécharger un bulletin de paie en PDF
+ */
+export const GetMyPayslipPdfParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+/**
+ * @summary Cotisations sociales du collaborateur connecté
+ */
+export const GetMyContributionsResponse = zod.object({
+  contributions: zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+});
+
+/**
+ * @summary Virements du collaborateur connecté
+ */
+export const GetMyTransfersResponseItem = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+export const GetMyTransfersResponse = zod.array(GetMyTransfersResponseItem);
+
+/**
+ * @summary Demande de changement RIB en cours
+ */
+export const GetMyBankRequestResponse = zod
+  .record(zod.string(), zod.unknown())
+  .nullable();
+
+/**
+ * @summary Soumettre une demande de changement de RIB
+ */
+export const CreateMyBankRequestBody = zod.object({
+  bankName: zod.string(),
+  accountNumber: zod.string(),
+  iban: zod.string(),
+  swiftCode: zod.string().optional(),
+});
+
+/**
+ * @summary Demandes de congés du collaborateur connecté
+ */
+export const GetMyLeaveRequestsResponseItem = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+export const GetMyLeaveRequestsResponse = zod.array(
+  GetMyLeaveRequestsResponseItem,
+);
+
+/**
+ * @summary Créer une demande de congé
+ */
+export const CreateMyLeaveRequestBody = zod.object({
+  leaveTypeId: zod.string().uuid(),
+  startDate: zod.coerce.date(),
+  endDate: zod.coerce.date(),
+  reason: zod.string().optional(),
+});
+
+/**
+ * @summary Annuler une demande de congé
+ */
+export const CancelMyLeaveRequestParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const CancelMyLeaveRequestResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+
+/**
  * @summary Obtenir une URL présignée pour l'upload d'un fichier
  */
 export const RequestUploadUrlBody = zod.object({

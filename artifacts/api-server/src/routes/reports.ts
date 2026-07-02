@@ -317,11 +317,15 @@ router.post("/reports/stock-daily/snapshot", requireAuth, requireManagerOrAbove,
   res.status(201).json(snapshot);
 });
 
-router.get("/reports/workload", requireAuth, async (_req, res) => {
+router.get("/reports/workload", requireAuth, async (req, res) => {
   // Agrégation en 2 requêtes agrégées (au lieu de 3N+1) :
   //   1) compteur tâches + tâches actives par assigneeId
   //   2) compteur projets distincts par assigneeId
-  const users = await db.select().from(usersTable).where(eq(usersTable.isActive, true));
+  const orgId = req.authUser!.organizationId;
+  const users = await db.select().from(usersTable).where(and(
+    eq(usersTable.organizationId, orgId),
+    eq(usersTable.isActive, true),
+  ));
 
   const taskAgg = await db
     .select({
@@ -330,7 +334,7 @@ router.get("/reports/workload", requireAuth, async (_req, res) => {
       active: sql<number>`count(*) filter (where ${tasksTable.status} != 'done')`,
     })
     .from(tasksTable)
-    .where(isNull(tasksTable.deletedAt))
+    .where(and(eq(tasksTable.organizationId, orgId), isNull(tasksTable.deletedAt)))
     .groupBy(tasksTable.assigneeId);
 
   const projectAgg = await db
@@ -340,7 +344,12 @@ router.get("/reports/workload", requireAuth, async (_req, res) => {
     })
     .from(tasksTable)
     .innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
-    .where(and(isNull(tasksTable.deletedAt), isNull(projectsTable.deletedAt)))
+    .where(and(
+      eq(tasksTable.organizationId, orgId),
+      eq(projectsTable.organizationId, orgId),
+      isNull(tasksTable.deletedAt),
+      isNull(projectsTable.deletedAt),
+    ))
     .groupBy(tasksTable.assigneeId);
 
   const taskMap = new Map(taskAgg.map((r) => [r.assigneeId, r]));

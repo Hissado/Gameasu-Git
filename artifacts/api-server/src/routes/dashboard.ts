@@ -77,6 +77,15 @@ router.get("/dashboard/kpis", async (req, res, next) => {
       sql`${invoicesTable.dueDate} < ${today}`,
     ));
 
+    const unreadRows = await db.execute(
+      sql`SELECT COALESCE(SUM(cp.unread_count), 0)::int AS total
+          FROM conversation_participants cp
+          JOIN conversations c ON cp.conversation_id = c.id
+          WHERE cp.user_id = ${req.authUser!.id}
+            AND c.organization_id = ${orgId}`,
+    ) as unknown as { total: number }[];
+    const unreadResult = unreadRows[0];
+
     const openOpps = oppRows.filter(o => !["won", "lost"].includes(o.stage));
     const wonOpps  = oppRows.filter(o => o.stage === "won");
     const pipelineValue = openOpps.reduce((s, o) => s + (o.value ? Number(o.value) : 0), 0);
@@ -100,7 +109,7 @@ router.get("/dashboard/kpis", async (req, res, next) => {
       overdueInvoicesCount: overdueStats?.count ?? 0,
       activeRentals:        rentalStats?.active ?? 0,
       equipmentAvailable:   equipStats?.available ?? 0,
-      unreadMessages:       0,
+      unreadMessages:       unreadResult?.total ?? 0,
       totalCollaborators:   collabStats?.total ?? 0,
       pendingLeaves:        leaveStats?.pending ?? 0,
       currency:             "XOF",
@@ -144,7 +153,7 @@ router.get("/dashboard/charts", async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
 
-    const [projectStats, taskStats, revenueStats] = await Promise.all([
+    const [projectStats, taskStats, revenueStats, invoiceStats] = await Promise.all([
       db.select({
         status: projectsTable.status,
         count: sql<number>`cast(count(*) as int)`,
@@ -170,12 +179,24 @@ router.get("/dashboard/charts", async (req, res, next) => {
         ))
         .groupBy(sql`to_char(${paymentsTable.createdAt}, 'Mon')`, sql`extract(month from ${paymentsTable.createdAt})`)
         .orderBy(sql`extract(month from ${paymentsTable.createdAt})`),
+
+      db.select({
+        monthNum: sql<number>`cast(extract(month from ${invoicesTable.issuedAt}) as int)`,
+        invoiced: sql<string>`coalesce(sum(${invoicesTable.totalAmount}), 0)`,
+      }).from(invoicesTable)
+        .where(and(
+          eq(invoicesTable.organizationId, orgId),
+          sql`${invoicesTable.issuedAt} >= date_trunc('year', now())`,
+        ))
+        .groupBy(sql`extract(month from ${invoicesTable.issuedAt})`)
+        .orderBy(sql`extract(month from ${invoicesTable.issuedAt})`),
     ]);
 
     const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
     const revenueByMonth = months.map((month, i) => {
       const found = revenueStats.find(r => r.monthNum === i + 1);
-      return { month, revenue: Number(found?.revenue ?? 0), invoiced: 0 };
+      const inv = invoiceStats.find(r => r.monthNum === i + 1);
+      return { month, revenue: Number(found?.revenue ?? 0), invoiced: Number(inv?.invoiced ?? 0) };
     });
 
     const statusOrder = ["planning", "active", "on_hold", "completed", "cancelled"];

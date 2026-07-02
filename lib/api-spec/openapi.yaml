@@ -2160,6 +2160,418 @@ paths:
         "200":
           description: Code mis à jour
 
+  # ── PERIOD CLOSE ────────────────────────────────────────────────────────────
+  /period-close/months:
+    get:
+      operationId: getPeriodCloseMonths
+      tags: [period-close]
+      summary: Liste des mois de clôture pour une année fiscale
+      parameters:
+        - name: year
+          in: query
+          schema: { type: string, example: "2025" }
+      responses:
+        "200":
+          description: Mois de clôture
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fiscalPeriod: { type: object, nullable: true }
+                  months:
+                    type: array
+                    items: { $ref: "#/components/schemas/PeriodMonth" }
+                  summary:
+                    type: object
+                    properties:
+                      closed: { type: integer }
+                      total: { type: integer }
+
+  /period-close/months/{month}:
+    get:
+      operationId: getPeriodCloseMonth
+      tags: [period-close]
+      summary: Détail d'un mois — statut, checklist, stats
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema: { type: string, example: "2025-03" }
+      responses:
+        "200":
+          description: Détail du mois
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period: { $ref: "#/components/schemas/PeriodMonth" }
+                  checklist:
+                    type: array
+                    items: { $ref: "#/components/schemas/ClosingChecklistItem" }
+                  stats: { type: object, additionalProperties: true }
+                  checklistProgress: { type: integer }
+
+  /period-close/months/{month}/start-review:
+    post:
+      operationId: startPeriodReview
+      tags: [period-close]
+      summary: Passer un mois en mode révision
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Mois mis à jour
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PeriodMonth" }
+
+  /period-close/months/{month}/close:
+    post:
+      operationId: closePeriodMonth
+      tags: [period-close]
+      summary: Clôturer un mois comptable
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Mois clôturé
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PeriodMonth" }
+
+  /period-close/months/{month}/approve:
+    post:
+      operationId: approvePeriodMonth
+      tags: [period-close]
+      summary: Approuver (verrouiller) un mois clôturé
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Mois approuvé
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PeriodMonth" }
+
+  /period-close/months/{month}/reopen:
+    post:
+      operationId: reopenPeriodMonth
+      tags: [period-close]
+      summary: Réouvrir un mois clôturé (admin)
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Mois réouvert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PeriodMonth" }
+
+  /period-close/checklist/{id}:
+    patch:
+      operationId: updateChecklistItem
+      tags: [period-close]
+      summary: Mettre à jour un item de la checklist de clôture
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [pending, in_progress, done, na] }
+                note: { type: string }
+      responses:
+        "200":
+          description: Item mis à jour
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClosingChecklistItem" }
+
+  /period-close/checklist/{periodMonthId}/create-all:
+    post:
+      operationId: createDefaultChecklist
+      tags: [period-close]
+      summary: Créer la checklist par défaut pour un mois
+      parameters:
+        - name: periodMonthId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Checklist créée
+
+  /period-close/years:
+    get:
+      operationId: getPeriodCloseYears
+      tags: [period-close]
+      summary: Liste des années fiscales
+      responses:
+        "200":
+          description: Années fiscales
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /period-close/years/{id}/close:
+    post:
+      operationId: closeFiscalYear
+      tags: [period-close]
+      summary: Clôturer une année fiscale
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Année clôturée
+
+  /period-close/years/{id}/reopen:
+    post:
+      operationId: reopenFiscalYear
+      tags: [period-close]
+      summary: Réouvrir une année fiscale (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Année réouverte
+
+  /period-close/audit:
+    get:
+      operationId: getPeriodCloseAudit
+      tags: [period-close]
+      summary: Journal d'audit des clôtures
+      parameters:
+        - name: month
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Entrées d'audit
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /period-close/status:
+    get:
+      operationId: getPeriodCloseStatus
+      tags: [period-close]
+      summary: Statut global de clôture (mois courant)
+      responses:
+        "200":
+          description: Statut courant
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentMonth: { type: string }
+                  status: { type: string }
+                  checklistProgress: { type: integer }
+
+  # ── HR SELF-SERVICE ──────────────────────────────────────────────────────────
+  /hr/me/leave-balance:
+    get:
+      operationId: getMyLeaveBalance
+      tags: [hr]
+      summary: Solde de congés du collaborateur connecté
+      responses:
+        "200":
+          description: Solde de congés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        leaveTypeId: { type: string }
+                        leaveTypeName: { type: string }
+                        balance: { type: number }
+                        used: { type: number }
+                        pending: { type: number }
+
+  /hr/me/payslips:
+    get:
+      operationId: getMyPayslips
+      tags: [hr]
+      summary: Bulletins de paie du collaborateur connecté
+      responses:
+        "200":
+          description: Liste des bulletins
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /hr/me/payslips/{id}/pdf:
+    get:
+      operationId: getMyPayslipPdf
+      tags: [hr]
+      summary: Télécharger un bulletin de paie en PDF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Fichier PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /hr/me/contributions:
+    get:
+      operationId: getMyContributions
+      tags: [hr]
+      summary: Cotisations sociales du collaborateur connecté
+      responses:
+        "200":
+          description: Cotisations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contributions:
+                    type: array
+                    items: { type: object, additionalProperties: true }
+
+  /hr/me/transfers:
+    get:
+      operationId: getMyTransfers
+      tags: [hr]
+      summary: Virements du collaborateur connecté
+      responses:
+        "200":
+          description: Virements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+
+  /hr/me/bank-request:
+    get:
+      operationId: getMyBankRequest
+      tags: [hr]
+      summary: Demande de changement RIB en cours
+      responses:
+        "200":
+          description: Demande en cours
+          content:
+            application/json:
+              schema: { type: object, nullable: true, additionalProperties: true }
+    post:
+      operationId: createMyBankRequest
+      tags: [hr]
+      summary: Soumettre une demande de changement de RIB
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bankName, accountNumber, iban]
+              properties:
+                bankName: { type: string }
+                accountNumber: { type: string }
+                iban: { type: string }
+                swiftCode: { type: string }
+      responses:
+        "201":
+          description: Demande créée
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+  /hr/me/leave-requests:
+    get:
+      operationId: getMyLeaveRequests
+      tags: [hr]
+      summary: Demandes de congés du collaborateur connecté
+      responses:
+        "200":
+          description: Demandes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+    post:
+      operationId: createMyLeaveRequest
+      tags: [hr]
+      summary: Créer une demande de congé
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [leaveTypeId, startDate, endDate]
+              properties:
+                leaveTypeId: { type: string, format: uuid }
+                startDate: { type: string, format: date }
+                endDate: { type: string, format: date }
+                reason: { type: string }
+      responses:
+        "201":
+          description: Demande créée
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+  /hr/me/leave-requests/{id}/cancel:
+    patch:
+      operationId: cancelMyLeaveRequest
+      tags: [hr]
+      summary: Annuler une demande de congé
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Demande annulée
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
   # ── STORAGE ────────────────────────────────────────────────────────────────
   /storage/uploads/request-url:
     post:
@@ -4282,6 +4694,39 @@ components:
       properties:
         kioskCode:
           type: ["string", "null"]
+
+    # ── PERIOD CLOSE ──────────────────────────────────────────────────────────
+    PeriodMonth:
+      type: object
+      properties:
+        id: { type: string, format: uuid, nullable: true }
+        organizationId: { type: string, format: uuid }
+        fiscalPeriodId: { type: string, format: uuid, nullable: true }
+        month: { type: string, example: "2025-03" }
+        status: { type: string, enum: [open, review, closed, locked] }
+        closedAt: { type: string, format: date-time, nullable: true }
+        closedById: { type: string, format: uuid, nullable: true }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        approvedById: { type: string, format: uuid, nullable: true }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ClosingChecklistItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        periodMonthId: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        label: { type: string }
+        description: { type: string, nullable: true }
+        status: { type: string, enum: [pending, in_progress, done, na] }
+        sortOrder: { type: integer }
+        note: { type: string, nullable: true }
+        doneAt: { type: string, format: date-time, nullable: true }
+        doneById: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     # ── STORAGE ───────────────────────────────────────────────────────────────
     RequestUploadUrlBody:

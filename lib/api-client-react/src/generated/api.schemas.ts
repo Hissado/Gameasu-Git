@@ -1281,6 +1281,56 @@ export interface KioskCodeUpdate {
   kioskCode: string | null;
 }
 
+export type PeriodMonthStatus =
+  (typeof PeriodMonthStatus)[keyof typeof PeriodMonthStatus];
+
+export const PeriodMonthStatus = {
+  open: "open",
+  review: "review",
+  closed: "closed",
+  locked: "locked",
+} as const;
+
+export interface PeriodMonth {
+  id?: string | null;
+  organizationId?: string;
+  fiscalPeriodId?: string | null;
+  month?: string;
+  status?: PeriodMonthStatus;
+  closedAt?: string | null;
+  closedById?: string | null;
+  approvedAt?: string | null;
+  approvedById?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ClosingChecklistItemStatus =
+  (typeof ClosingChecklistItemStatus)[keyof typeof ClosingChecklistItemStatus];
+
+export const ClosingChecklistItemStatus = {
+  pending: "pending",
+  in_progress: "in_progress",
+  done: "done",
+  na: "na",
+} as const;
+
+export interface ClosingChecklistItem {
+  id?: string;
+  periodMonthId?: string;
+  organizationId?: string;
+  label?: string;
+  description?: string | null;
+  status?: ClosingChecklistItemStatus;
+  sortOrder?: number;
+  note?: string | null;
+  doneAt?: string | null;
+  doneById?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface RequestUploadUrlBody {
   name: string;
   size: number;
@@ -1437,3 +1487,106 @@ export type ListNotificationsParams = {
   page?: number;
   limit?: number;
 };
+
+export type GetPeriodCloseMonthsParams = {
+  year?: string;
+};
+
+export type GetPeriodCloseMonths200FiscalPeriod = {
+  [key: string]: unknown;
+} | null;
+
+export type GetPeriodCloseMonths200Summary = {
+  closed?: number;
+  total?: number;
+};
+
+export type GetPeriodCloseMonths200 = {
+  fiscalPeriod?: GetPeriodCloseMonths200FiscalPeriod;
+  months?: PeriodMonth[];
+  summary?: GetPeriodCloseMonths200Summary;
+};
+
+export type GetPeriodCloseMonth200Stats = { [key: string]: unknown };
+
+export type GetPeriodCloseMonth200 = {
+  period?: PeriodMonth;
+  checklist?: ClosingChecklistItem[];
+  stats?: GetPeriodCloseMonth200Stats;
+  checklistProgress?: number;
+};
+
+export type UpdateChecklistItemBodyStatus =
+  (typeof UpdateChecklistItemBodyStatus)[keyof typeof UpdateChecklistItemBodyStatus];
+
+export const UpdateChecklistItemBodyStatus = {
+  pending: "pending",
+  in_progress: "in_progress",
+  done: "done",
+  na: "na",
+} as const;
+
+export type UpdateChecklistItemBody = {
+  status?: UpdateChecklistItemBodyStatus;
+  note?: string;
+};
+
+export type GetPeriodCloseYears200Item = { [key: string]: unknown };
+
+export type GetPeriodCloseAuditParams = {
+  month?: string;
+};
+
+export type GetPeriodCloseAudit200Item = { [key: string]: unknown };
+
+export type GetPeriodCloseStatus200 = {
+  currentMonth?: string;
+  status?: string;
+  checklistProgress?: number;
+};
+
+export type GetMyLeaveBalance200BalancesItem = {
+  leaveTypeId?: string;
+  leaveTypeName?: string;
+  balance?: number;
+  used?: number;
+  pending?: number;
+};
+
+export type GetMyLeaveBalance200 = {
+  balances?: GetMyLeaveBalance200BalancesItem[];
+};
+
+export type GetMyPayslips200Item = { [key: string]: unknown };
+
+export type GetMyContributions200ContributionsItem = { [key: string]: unknown };
+
+export type GetMyContributions200 = {
+  contributions?: GetMyContributions200ContributionsItem[];
+};
+
+export type GetMyTransfers200Item = { [key: string]: unknown };
+
+export type GetMyBankRequest200 = { [key: string]: unknown } | null;
+
+export type CreateMyBankRequestBody = {
+  bankName: string;
+  accountNumber: string;
+  iban: string;
+  swiftCode?: string;
+};
+
+export type CreateMyBankRequest201 = { [key: string]: unknown };
+
+export type GetMyLeaveRequests200Item = { [key: string]: unknown };
+
+export type CreateMyLeaveRequestBody = {
+  leaveTypeId: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+};
+
+export type CreateMyLeaveRequest201 = { [key: string]: unknown };
+
+export type CancelMyLeaveRequest200 = { [key: string]: unknown };
