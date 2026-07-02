@@ -4,7 +4,7 @@ import {
   UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
   Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
   Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench, ClipboardList,
-  FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal, ShieldCheck,
+  FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal, ShieldCheck, Calculator,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -15,6 +15,7 @@ const NAV_GROUPS = [
       { name: "Vue d'ensemble",   path: "/rh",            icon: UsersRound, exact: true },
       { name: "Indicateurs RH",   path: "/rh/indicateurs", icon: BarChart3 },
       { name: "Rapports RH",      path: "/rh/rapports",    icon: FileBarChart2 },
+      { name: "Simulateur de coût", path: "/rh/simulateur", icon: Calculator },
     ],
   },
   {
