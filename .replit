@@ -94,6 +94,7 @@ EMAIL_FROM = "Gameasu <noreply@gameasu.com>"
 
 [userenv.production]
 SEED_HISSADO_DEMO = "true"
+PUBLIC_BASE_URL = "https://erp.gameasu.com"
 
 [userenv.development]
 SEED_HISSADO_DEMO = "true"
