@@ -62,7 +62,7 @@ export default function HrDocumentsPage() {
   const { data } = useQuery<{ data: Doc[] }>({ queryKey: ["hr-documents"], queryFn: () => apiFetch("/api/hr/documents") });
   const { data: collabs } = useQuery<{ data: Collab[] }>({ queryKey: ["collaborators-list"], queryFn: () => apiFetch("/api/collaborators?limit=200") });
 
-  const collabMap = new Map(collabs?.data.map((c) => [c.id, `${c.firstName} ${c.lastName}`]) ?? []);
+  const collabMap = new Map(collabs?.data?.map((c) => [c.id, `${c.firstName} ${c.lastName}`]) ?? []);
 
   const createMut = useMutation({
     mutationFn: () => apiFetch("/api/hr/documents", { method: "POST", body: JSON.stringify({ ...form, expiresAt: form.expiresAt || null }) }),

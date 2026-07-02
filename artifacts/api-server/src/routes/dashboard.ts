@@ -181,15 +181,16 @@ router.get("/dashboard/charts", async (req, res, next) => {
         .orderBy(sql`extract(month from ${paymentsTable.createdAt})`),
 
       db.select({
-        monthNum: sql<number>`cast(extract(month from ${invoicesTable.issuedAt}) as int)`,
+        monthNum: sql<number>`cast(extract(month from ${invoicesTable.issuedAt}::date) as int)`,
         invoiced: sql<string>`coalesce(sum(${invoicesTable.totalAmount}), 0)`,
       }).from(invoicesTable)
         .where(and(
           eq(invoicesTable.organizationId, orgId),
-          sql`${invoicesTable.issuedAt} >= date_trunc('year', now())`,
+          sql`${invoicesTable.issuedAt}::date >= date_trunc('year', now())::date`,
+          sql`${invoicesTable.issuedAt} is not null`,
         ))
-        .groupBy(sql`extract(month from ${invoicesTable.issuedAt})`)
-        .orderBy(sql`extract(month from ${invoicesTable.issuedAt})`),
+        .groupBy(sql`extract(month from ${invoicesTable.issuedAt}::date)`)
+        .orderBy(sql`extract(month from ${invoicesTable.issuedAt}::date)`),
     ]);
 
     const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
