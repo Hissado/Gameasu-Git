@@ -69,17 +69,7 @@ function PctInput({ value, onChange, disabled }: { value: string; onChange: (v: 
   );
 }
 
-// ─── Barème IRPP affiché (informatif) ───────────────────────────────────────
-const IRPP_BRACKETS = [
-  { from: 0, to: 75000, rate: "0 %" },
-  { from: 75001, to: 250000, rate: "3 %" },
-  { from: 250001, to: 500000, rate: "10 %" },
-  { from: 500001, to: 750000, rate: "15 %" },
-  { from: 750001, to: 1000000, rate: "20 %" },
-  { from: 1000001, to: 1250000, rate: "25 %" },
-  { from: 1250001, to: 1666667, rate: "30 %" },
-  { from: 1666668, to: Infinity, rate: "35 %" },
-];
+type IrppBracketRow = { fromAmount: number; toAmount: number | null; rate: number; sortOrder: number };
 
 export default function BtpSettings() {
   const { toast } = useToast();
@@ -97,6 +87,12 @@ export default function BtpSettings() {
     queryKey: ["btp-holidays"],
     queryFn: () => fetchJSON(`${API}/btp/holidays`),
   });
+
+  const { data: irppResp } = useQuery<{ brackets: IrppBracketRow[]; isDefault: boolean }>({
+    queryKey: ["payroll/irpp-brackets"],
+    queryFn: () => fetchJSON(`${API}/payroll/irpp-brackets`),
+  });
+  const irppBrackets = irppResp?.brackets ?? [];
 
   const [holidayForm, setHolidayForm] = useState({ date: "", label: "", isRecurringYearly: true });
   const [holidayOpen, setHolidayOpen] = useState(false);
@@ -250,17 +246,32 @@ export default function BtpSettings() {
             <FieldRow label="Max dépendants pris en compte">
               <Input type="number" min={0} max={10} value={f("irppMaxDependents")} onChange={(e) => set("irppMaxDependents", parseInt(e.target.value))} className="text-right h-8 text-sm" />
             </FieldRow>
-            {/* Barème informatif */}
+            {/* Barème live depuis Fiscalité RH */}
             <div className="mt-4">
-              <div className="text-xs font-semibold text-gray-500 mb-2">Barème progressif mensuel (CGI)</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-gray-500">
+                  Barème progressif mensuel
+                  {irppResp?.isDefault && (
+                    <span className="ml-1 text-amber-500">(par défaut CGI)</span>
+                  )}
+                </div>
+                <a
+                  href="/hr/tax-settings"
+                  className="text-[10px] text-blue-500 hover:underline"
+                >
+                  Modifier dans Fiscalité RH →
+                </a>
+              </div>
               <div className="space-y-0.5">
-                {IRPP_BRACKETS.map((b, i) => (
+                {irppBrackets.map((b, i) => (
                   <div key={i} className="flex justify-between text-[11px] text-gray-500">
                     <span>
-                      {b.from.toLocaleString("fr-FR")} →{" "}
-                      {b.to === Infinity ? "∞" : b.to.toLocaleString("fr-FR")} FCFA
+                      {b.fromAmount.toLocaleString("fr-FR")} →{" "}
+                      {b.toAmount == null ? "∞" : b.toAmount.toLocaleString("fr-FR")} FCFA
                     </span>
-                    <span className="font-semibold text-purple-600">{b.rate}</span>
+                    <span className="font-semibold text-purple-600">
+                      {(b.rate * 100).toFixed(0)} %
+                    </span>
                   </div>
                 ))}
               </div>

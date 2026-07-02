@@ -32,6 +32,7 @@ import {
   contractsTable,
   organizationsTable,
   attendanceSessionsTable,
+  irppBracketsTable,
 } from "@workspace/db";
 import { and, eq, inArray, sql, asc, desc, gte, lte } from "drizzle-orm";
 import ExcelJS from "exceljs";
@@ -113,18 +114,50 @@ function getWeeksInPeriod(start: Date, end: Date): Array<{ weekStart: Date; week
   return weeks;
 }
 
-/** Barème IRPP mensuel Togo (CGI) */
-function computeIrpp(monthlyBase: number): number {
-  if (monthlyBase <= 0) return 0;
-  const b = Math.floor(monthlyBase / 1000) * 1000; // arrondi millier inférieur
-  if (b <= 75000) return 0;
-  if (b <= 250000) return (b - 75000) * 0.03;
-  if (b <= 500000) return (b - 250000) * 0.10 + 5250;
-  if (b <= 750000) return (b - 500000) * 0.15 + 30250;
-  if (b <= 1000000) return (b - 750000) * 0.20 + 67750;
-  if (b <= 1250000) return (b - 1000000) * 0.25 + 117750;
-  if (b <= 1666667) return (b - 1250000) * 0.30 + 180250;
-  return (b - 1666667) * 0.35 + 305250;
+/** Barème IRPP CGI Togo — tranches par défaut (fallback si aucune tranche en DB) */
+const DEFAULT_IRPP_BRACKETS = [
+  { from: 0,       to: 75000,   rate: 0 },
+  { from: 75000,   to: 250000,  rate: 0.03 },
+  { from: 250000,  to: 500000,  rate: 0.10 },
+  { from: 500000,  to: 750000,  rate: 0.15 },
+  { from: 750000,  to: 1000000, rate: 0.20 },
+  { from: 1000000, to: 1250000, rate: 0.25 },
+  { from: 1250000, to: 1666667, rate: 0.30 },
+  { from: 1666667, to: null,    rate: 0.35 },
+];
+
+type IrppBracket = { from: number; to: number | null; rate: number };
+
+/** Calcule l'IRPP progressif mensuel à partir d'un barème dynamique */
+function computeIrppFromBrackets(monthlyBase: number, brackets: IrppBracket[]): number {
+  if (monthlyBase <= 0 || brackets.length === 0) return 0;
+  const b = Math.floor(monthlyBase / 1000) * 1000; // arrondi au millier inférieur
+  let tax = 0;
+  for (const bracket of brackets) {
+    if (b <= bracket.from) break;
+    const upper = bracket.to ?? Infinity;
+    const taxable = Math.min(b, upper) - bracket.from;
+    if (taxable > 0) tax += taxable * bracket.rate;
+  }
+  return Math.round(tax);
+}
+
+/** Charge les tranches IRPP depuis la DB (ou retourne les tranches par défaut) */
+async function loadIrppBrackets(organizationId: string): Promise<IrppBracket[]> {
+  const rows = await db.select({
+    fromAmount: irppBracketsTable.fromAmount,
+    toAmount: irppBracketsTable.toAmount,
+    rate: irppBracketsTable.rate,
+  }).from(irppBracketsTable)
+    .where(and(eq(irppBracketsTable.organizationId, organizationId), eq(irppBracketsTable.isActive, true)))
+    .orderBy(asc(irppBracketsTable.sortOrder));
+
+  if (rows.length === 0) return DEFAULT_IRPP_BRACKETS;
+  return rows.map((r) => ({
+    from: parseFloat(r.fromAmount),
+    to: r.toAmount != null ? parseFloat(r.toAmount) : null,
+    rate: parseFloat(r.rate),
+  }));
 }
 
 /**
@@ -556,6 +589,9 @@ router.post("/btp/periods/:id/calculate", async (req, res) => {
     const contractByCollab = new Map<string, typeof contracts[0]>();
     for (const c of contracts) contractByCollab.set(c.collaboratorId, c);
 
+    // Charger les tranches IRPP depuis la DB (synchro avec Fiscalité RH)
+    const irppBrackets = await loadIrppBrackets(oid);
+
     const totalWorkingDays = period.totalWorkingDays ?? 26;
     const rates = {
       hs20: parseFloat(settings.hs20Rate),
@@ -660,7 +696,7 @@ router.post("/btp/periods/:id/calculate", async (req, res) => {
       const abatement = afterCnss * rates.irppAbatement;
       const dependentsDeduct = Math.min(collab.id ? 0 : 0, rates.maxDep) * rates.chargePerDep; // dependents depuis report si fourni
       const irppBase = afterCnss - abatement - dependentsDeduct;
-      const irppAmount = computeIrpp(irppBase);
+      const irppAmount = computeIrppFromBrackets(irppBase, irppBrackets);
       const totalDeductions = cnssEmployee + irppAmount;
       const netSalary = grossSalary - totalDeductions;
 
