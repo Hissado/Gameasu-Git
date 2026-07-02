@@ -176,7 +176,7 @@ export default function ClientConfigPage() {
                   </div>
                   <div className="col-span-2 space-y-1.5">
                     <Label>Adresse</Label>
-                    <Input value={editForm.address} onChange={(e) => setField("address", e.target.value)} placeholder="Lomé, Togo" />
+                    <Input value={editForm.address} onChange={(e) => setField("address", e.target.value)} placeholder="Adresse de l'organisation" />
                   </div>
                 </div>
                 <div className="flex justify-end pt-1">

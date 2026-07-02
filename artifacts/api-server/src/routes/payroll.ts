@@ -702,7 +702,7 @@ router.post("/payroll/payslips/:id/send-email", requireManagerOrAbove, async (re
     <p style="margin:0;font-size:13px;color:#64748b">Le bulletin détaillé est joint à cet email en PDF.</p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    Bulletin établi conformément à la législation togolaise. À conserver sans limitation de durée.<br>
+    Bulletin établi conformément à la législation applicable. À conserver sans limitation de durée.<br>
     © ${new Date().getFullYear()} ${orgName}
   </div>
 </div>
@@ -941,7 +941,7 @@ router.post("/payroll/runs/:id/send-emails", requireManagerOrAbove, async (req, 
     <p style="margin:0;font-size:13px;color:#64748b">Le bulletin détaillé est joint à cet email en PDF.</p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    Bulletin établi conformément à la législation togolaise. À conserver sans limitation de durée.<br>
+    Bulletin établi conformément à la législation applicable. À conserver sans limitation de durée.<br>
     © ${new Date().getFullYear()} ${orgName}
   </div>
 </div>

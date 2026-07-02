@@ -125,7 +125,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
 
 const EMPTY_FORM = {
   name: "", type: "fournisseur", email: "", phone: "", address: "",
-  country: "Togo", city: "", taxId: "", rccm: "", paymentTerms: "30j",
+  country: "", city: "", taxId: "", rccm: "", paymentTerms: "30j",
   mobileMoney: "", bankName: "", bankAccountNumber: "", notes: "", status: "actif",
 };
 
@@ -150,7 +150,7 @@ function SupplierForm({
         email: supplier.email || "",
         phone: supplier.phone || "",
         address: supplier.address || "",
-        country: supplier.country || "Togo",
+        country: supplier.country || "",
         city: supplier.city || "",
         taxId: supplier.taxId || "",
         rccm: supplier.rccm || "",

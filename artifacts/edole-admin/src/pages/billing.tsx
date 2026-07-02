@@ -146,8 +146,8 @@ const PAYMENT_METHODS = [
       ? "Visa, Mastercard — paiement sécurisé Stripe"
       : "Visa, Mastercard — saisie manuelle de référence",
   },
-  { value: "mixx", label: "Mixx", icon: Smartphone, color: "text-emerald-600", desc: "Mobile Money Togo (Mixx)" },
-  { value: "flooz", label: "Flooz", icon: Smartphone, color: "text-orange-500", desc: "Mobile Money Togo (Flooz)" },
+  { value: "mixx", label: "Mixx", icon: Smartphone, color: "text-emerald-600", desc: "Mobile Money (Mixx)" },
+  { value: "flooz", label: "Flooz", icon: Smartphone, color: "text-orange-500", desc: "Mobile Money (Flooz)" },
 ];
 
 const PURPOSE_LABELS: Record<string, string> = {

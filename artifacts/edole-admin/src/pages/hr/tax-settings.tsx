@@ -408,7 +408,7 @@ export default function TaxSettings() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-base">Barème progressif IRPP annuel (XOF)</CardTitle>
-                {bracketsData?.isDefault && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Info className="w-3 h-3" />Barème par défaut Togo — modifiez pour personnaliser</p>}
+                {bracketsData?.isDefault && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Info className="w-3 h-3" />Barème par défaut — modifiez pour adapter à votre pays</p>}
               </div>
               <div className="flex gap-2">
                 {editBrackets && <Button size="sm" onClick={() => saveBracketsMut.mutate()}><Save className="w-4 h-4 mr-1" />Enregistrer</Button>}

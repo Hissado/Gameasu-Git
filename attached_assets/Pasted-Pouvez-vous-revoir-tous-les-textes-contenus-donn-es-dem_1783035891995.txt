@@ -1,0 +1,112 @@
+Pouvez-vous revoir tous les textes, contenus, données demo, paramètres, rapports et interfaces de l’application Gameasu afin d’éviter de présenter l’ERP comme une solution limitée uniquement au Togo ?
+
+Objectif
+
+Même si le marché de départ peut être le Togo, je ne veux pas que Gameasu soit présenté comme un ERP uniquement destiné au marché togolais.
+
+Gameasu doit avoir un positionnement plus large, plus professionnel et plus ouvert, capable de s’adapter à différentes organisations, secteurs, pays et contextes d’utilisation.
+
+⸻
+
+1. Supprimer ou reformuler les mentions trop restrictives
+
+Merci de rechercher et corriger toutes les mentions visibles comme :
+
+* Togo
+* marché togolais
+* entreprises togolaises
+* contexte togolais
+* PME togolaises
+* institutions togolaises
+* fiscalité togolaise
+* réalités togolaises
+* solution ERP pour le Togo uniquement
+
+Ces termes ne doivent pas dominer le discours produit, ni donner l’impression que Gameasu est limité à un seul pays.
+
+⸻
+
+2. Reformulations recommandées
+
+Remplacer les formulations restrictives par des formulations plus larges :
+
+* entreprises, institutions et organisations
+* organisations de toutes tailles
+* PME, startups, associations, ONG, coopératives et institutions
+* solution ERP flexible et configurable
+* plateforme adaptée à plusieurs secteurs d’activité
+* ERP conçu pour accompagner la gestion moderne des organisations
+* solution adaptable selon les besoins de chaque structure
+* outil de pilotage pour mieux gérer, suivre et décider
+
+⸻
+
+3. Sections à vérifier
+
+Merci de vérifier toutes les parties de l’application et du site :
+
+* site web
+* application principale
+* Cockpit
+* pages d’authentification
+* tableaux de bord
+* modules ERP
+* rapports PDF
+* exports Excel
+* emails système
+* notifications
+* formulaires
+* templates
+* données demo
+* assistant chat Ablavi
+* pages de contact
+* propositions commerciales
+* pages de présentation
+* messages d’erreur ou de succès
+
+⸻
+
+4. Données demo et exemples
+
+Si des données demo utilisent des adresses, entreprises ou exemples liés au Togo, elles peuvent rester uniquement si elles servent d’exemple réaliste, mais elles ne doivent pas être présentées comme une limite géographique du produit.
+
+Éviter les phrases comme :
+
+Gameasu est conçu pour les entreprises togolaises.
+
+Préférer :
+
+Gameasu est conçu pour aider les organisations à centraliser leur gestion, suivre leurs performances et prendre de meilleures décisions.
+
+⸻
+
+5. Paramétrage par pays
+
+Si certaines informations dépendent d’un pays, elles doivent être présentées comme des paramètres configurables, et non comme une limitation.
+
+Exemples :
+
+* pays
+* devise
+* fiscalité
+* taux de taxes
+* formats de documents
+* règles comptables
+* langue
+* formats de téléphone
+* adresses
+* paramètres légaux
+
+Chaque organisation doit pouvoir adapter Gameasu à son propre contexte.
+
+⸻
+
+6. Résultat attendu
+
+Je veux que Gameasu soit présenté comme une plateforme ERP moderne, flexible, professionnelle et adaptable, sans être limité à un pays spécifique.
+
+Le contenu doit rester clair, crédible et accessible, mais avec un positionnement plus universel.
+
+Objectif final
+
+Faire en sorte que Gameasu soit perçu comme un ERP tout-en-un pouvant accompagner différents types d’organisations, dans différents secteurs et contextes, tout en gardant la possibilité de configurer l’application selon les besoins locaux de chaque client.

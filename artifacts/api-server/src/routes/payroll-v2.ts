@@ -1596,7 +1596,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
       wsRecap.getRow(1).height = 28;
 
       wsRecap.mergeCells("A2:J2");
-      wsRecap.getCell("A2").value = `Barème progressif SYSCOHADA Togo | Total employés : ${rows.length}`;
+      wsRecap.getCell("A2").value = `Barème progressif SYSCOHADA | Total employés : ${rows.length}`;
       wsRecap.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
       wsRecap.getCell("A2").alignment = { horizontal: "center" };
       wsRecap.getRow(2).height = 18;
@@ -1906,7 +1906,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       wsIrpp.getRow(1).height = 28;
 
       wsIrpp.mergeCells("A2:M2");
-      wsIrpp.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Barème progressif SYSCOHADA Togo`;
+      wsIrpp.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Barème progressif SYSCOHADA`;
       wsIrpp.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
       wsIrpp.getCell("A2").alignment = { horizontal: "center" };
       wsIrpp.getRow(2).height = 18;

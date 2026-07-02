@@ -1734,8 +1734,8 @@ router.post("/accounting/reconciliation/ignore", requireManagerOrAbove, async (r
 // ─── Taxes — Référentiel fiscal CRUD ────────────────────────────────────────
 
 const DEFAULT_TAXES = [
-  { code: "TVA_18", name: "TVA 18%", description: "Taxe sur la Valeur Ajoutée — taux normal Togo/UEMOA", type: "vat", rate: "18.0000", appliesTo: ["sales", "purchases"], collectAccountCode: "443100", deductAccountCode: "445600", declarationPeriod: "monthly", isActive: true },
-  { code: "IS_28", name: "IS 28%", description: "Impôt sur les Sociétés — taux standard Togo", type: "income_tax", rate: "28.0000", appliesTo: ["other"], collectAccountCode: "444100", deductAccountCode: null, declarationPeriod: "annual", isActive: true },
+  { code: "TVA_18", name: "TVA 18%", description: "Taxe sur la Valeur Ajoutée — taux normal UEMOA (configurable)", type: "vat", rate: "18.0000", appliesTo: ["sales", "purchases"], collectAccountCode: "443100", deductAccountCode: "445600", declarationPeriod: "monthly", isActive: true },
+  { code: "IS_28", name: "IS 28%", description: "Impôt sur les Sociétés — taux configurable selon le pays", type: "income_tax", rate: "28.0000", appliesTo: ["other"], collectAccountCode: "444100", deductAccountCode: null, declarationPeriod: "annual", isActive: true },
   { code: "IRPP", name: "IRPP — Retenue à la source", description: "Impôt sur le Revenu des Personnes Physiques retenu à la source", type: "withholding", rate: null, appliesTo: ["payroll"], collectAccountCode: "447300", deductAccountCode: null, declarationPeriod: "monthly", isActive: true },
   { code: "IPTS", name: "IPTS — Taxe sur salaires", description: "Impôt Patronal sur les Traitements et Salaires", type: "withholding", rate: null, appliesTo: ["payroll"], collectAccountCode: "447100", deductAccountCode: null, declarationPeriod: "monthly", isActive: true },
   { code: "AIB", name: "AIB 1%", description: "Avance sur Impôt Bénéfice — retenue à la source sur achats", type: "withholding", rate: "1.0000", appliesTo: ["purchases"], collectAccountCode: "447200", deductAccountCode: null, declarationPeriod: "quarterly", isActive: true },

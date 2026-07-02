@@ -477,7 +477,7 @@ export default function TaxesPage() {
   return (
     <AccountingShell
       title="Taxes & états fiscaux"
-      subtitle="Référentiel paramétrable · Synthèse temps réel · Échéancier déclaratif — TOGO / UEMOA"
+      subtitle="Référentiel paramétrable · Synthèse temps réel · Échéancier déclaratif — configurez selon votre pays"
     >
       <div className="space-y-4">
         {/* Tab bar */}
@@ -663,7 +663,7 @@ export default function TaxesPage() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm text-muted-foreground">
-                    <strong className="text-foreground">Délais légaux Togo / UEMOA :</strong>{" "}
+                    <strong className="text-foreground">Délais légaux (selon votre pays) :</strong>{" "}
                     TVA — 15 du mois suivant · IRPP/IPTS — 15 du mois suivant · AIB — 15 du trimestre suivant · CNSS — 15 du mois suivant · IS — 30 avril N+1.
                     Pour personnaliser une échéance, éditez la taxe dans l'onglet <strong>Référentiel fiscal</strong>.
                   </div>
@@ -764,7 +764,7 @@ export default function TaxesPage() {
               <div>
                 <h3 className="font-semibold text-base">Impôt sur les sociétés (IS) — Barème progressif</h3>
                 <p className="text-sm text-muted-foreground">
-                  Configurez ici le taux progressif IS applicable à votre organisation (Togo BIC par défaut).
+                  Configurez ici le taux d'IS applicable à votre organisation selon la législation locale.
                   Ce barème est utilisé automatiquement par le <strong>Calculateur tarifaire</strong>.
                 </p>
               </div>
@@ -862,7 +862,7 @@ export default function TaxesPage() {
                   </CardTitle>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={resetBrackets}>
-                      <RotateCcw className="w-3 h-3" /> Togo BIC par défaut
+                      <RotateCcw className="w-3 h-3" /> Barème par défaut
                     </Button>
                   </div>
                 </div>
@@ -936,7 +936,7 @@ export default function TaxesPage() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   <div className="text-sm text-muted-foreground">
-                    <strong className="text-foreground">Barème Togo BIC (référence 2024) :</strong>{" "}
+                    <strong className="text-foreground">Barème IS par défaut (référence 2024) :</strong>{" "}
                     0% jusqu'à 2 000 000 XOF · 15% de 2 à 10 M · 25% de 10 à 50 M · 29% au-delà.
                     Ces paramètres sont utilisés exclusivement dans le <strong>Calculateur tarifaire</strong> pour estimer l'IS incrémental sur un deal.
                     Ils ne remplacent pas une comptabilisation formelle de la charge d'impôt.

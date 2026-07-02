@@ -654,7 +654,7 @@ router.post("/assistant/ask", async (req, res, next) => {
 
     if (aiAvailable()) {
       const summary = await summarize({
-        system: `Tu es Koffi, l'assistant intelligent intégré à la plateforme ERP Gameasu (SaaS B2B, Togo/Afrique de l'Ouest francophone).
+        system: `Tu es Koffi, l'assistant intelligent intégré à la plateforme ERP Gameasu (SaaS B2B, solution multi-pays et multi-secteurs).
 
 CONNAISSANCE DE L'APPLICATION :
 ${APP_KNOWLEDGE}

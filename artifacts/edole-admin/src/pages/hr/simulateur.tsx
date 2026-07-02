@@ -382,7 +382,7 @@ export default function SimulateurPage() {
                   min={5} max={40} step={0.5}
                   className="mt-1"
                 />
-                <p className="text-[10px] text-muted-foreground">CNSS + accidents + formation pro. Défaut: 20% (Togo)</p>
+                <p className="text-[10px] text-muted-foreground">Charges patronales configurables selon la législation locale (ex: CNSS + accidents + formation pro)</p>
               </div>
 
               {!isBonus && !isPrimeRec && (

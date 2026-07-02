@@ -38,7 +38,7 @@ export const BRANDING = {
   logoFullTransparent:  gameasuLogo,
   logoMark:             gameasuLogo,
 
-  marketBaseline: "Conçu pour les organisations du Togo et d'Afrique de l'Ouest francophone",
+  marketBaseline: "La plateforme ERP flexible pour piloter vos opérations, où que vous soyez",
 } as const;
 
 export type Branding = typeof BRANDING;

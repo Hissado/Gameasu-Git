@@ -2558,7 +2558,7 @@ function SyntheseFiscaleSubTab({ periodQuery }: { periodQuery: string }) {
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Synthèse fiscale</h3>
           <p className="text-xs text-muted-foreground">
-            Obligations fiscales temps réel · SYSCOHADA TOGO/UEMOA · {fromDate} – {toDate}
+            Obligations fiscales temps réel · SYSCOHADA/UEMOA · {fromDate} – {toDate}
           </p>
         </div>
         {isTax && (

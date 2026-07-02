@@ -170,7 +170,7 @@ export default function AudiencesPage() {
           <DialogHeader><DialogTitle>{edit ? "Modifier l'audience" : "Nouvelle audience"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs font-medium">Nom *</label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex : Clients VIP Togo" /></div>
+              <div><label className="text-xs font-medium">Nom *</label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex : Clients VIP Secteur BTP" /></div>
               <div><label className="text-xs font-medium">Type</label>
                 <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded h-10 px-3 text-sm">
                   <option value="dynamic">Dynamique (filtres rejoués à l'envoi)</option>

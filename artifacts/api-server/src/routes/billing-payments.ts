@@ -295,11 +295,11 @@ router.get("/admin/payment-gateway", requireAdmin, async (_req, res) => {
   if (configs.length === 0) {
     const defaults = [
       { gateway: "card_manual", displayName: "Carte bancaire (saisie manuelle)", isEnabled: true, isSandbox: false },
-      { gateway: "mixx", displayName: "Mixx (Mobile Money Togo)", isEnabled: true, isSandbox: false },
-      { gateway: "flooz", displayName: "Flooz (Mobile Money Togo)", isEnabled: true, isSandbox: false },
+      { gateway: "mixx", displayName: "Mixx (Mobile Money)", isEnabled: true, isSandbox: false },
+      { gateway: "flooz", displayName: "Flooz (Mobile Money)", isEnabled: true, isSandbox: false },
       { gateway: "stripe", displayName: "Stripe (carte bancaire en ligne)", isEnabled: false, isSandbox: true },
       { gateway: "cinetpay", displayName: "CinetPay (Afrique de l'Ouest)", isEnabled: false, isSandbox: true },
-      { gateway: "paydunya", displayName: "PayDunya (Sénégal / Togo)", isEnabled: false, isSandbox: true },
+      { gateway: "paydunya", displayName: "PayDunya (Mobile Money Afrique de l'Ouest)", isEnabled: false, isSandbox: true },
       { gateway: "flutterwave", displayName: "Flutterwave (Pan-Afrique)", isEnabled: false, isSandbox: true },
     ];
     const inserted = await db.insert(paymentGatewayConfigsTable).values(defaults).returning();

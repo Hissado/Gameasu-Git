@@ -1070,7 +1070,7 @@ export default function PayrollDeclarations() {
 
             <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3 text-sm text-blue-800">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>Ces cotisations sont à verser à la <strong>CNSS Togo</strong> avant le <strong>15 du mois suivant</strong> la période de paie.</span>
+              <span>Ces cotisations sont à verser à l'<strong>organisme de sécurité sociale (CNSS/INSS)</strong> avant le <strong>15 du mois suivant</strong> la période de paie.</span>
             </div>
 
             {cnssLoading ? (
@@ -1174,13 +1174,13 @@ export default function PayrollDeclarations() {
 
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3 text-sm text-amber-800">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>L'IRPP est calculé sur le revenu imposable annualisé (brut – CNSS salarié × 12) puis ramené au mois. À verser à l'<strong>OTR Togo</strong> avant le <strong>15 du mois suivant</strong>.</span>
+              <span>L'IRPP est calculé sur le revenu imposable annualisé (brut – CNSS salarié × 12) puis ramené au mois. À verser à l'<strong>administration fiscale</strong> avant le <strong>15 du mois suivant</strong>.</span>
             </div>
 
             <details className="rounded-lg border bg-muted/20">
               <summary className="px-4 py-3 cursor-pointer text-sm font-medium flex items-center gap-2">
                 <Percent className="w-4 h-4 text-muted-foreground" />
-                Barème progressif IRPP (Togo)
+                Barème progressif de retenue à la source
                 <ChevronRight className="w-4 h-4 ml-auto text-muted-foreground" />
               </summary>
               <div className="px-4 pb-4">

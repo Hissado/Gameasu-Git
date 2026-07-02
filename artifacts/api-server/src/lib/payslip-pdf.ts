@@ -1,6 +1,6 @@
 /**
  * Générateur de bulletin de paie PDF (PDFKit)
- * Format SYSCOHADA — République du Togo
+ * Format SYSCOHADA — Configurable selon le pays de l'organisation
  */
 import PDFDocument from "pdfkit";
 import type { Writable } from "stream";
@@ -258,7 +258,7 @@ export function generatePayslipPdf(
   doc.rect(40, 780, W, 1).fill("#E2E8F0");
   doc.fontSize(7.5).font("Helvetica").fillColor(GRAY)
     .text(
-      "Bulletin de paie établi conformément à la législation togolaise. À conserver sans limitation de durée.",
+      "Bulletin de paie établi conformément à la législation applicable. À conserver sans limitation de durée.",
       40, 784, { width: W, align: "center" },
     );
 

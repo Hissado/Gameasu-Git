@@ -40,7 +40,7 @@ ARTICLE 4 — LIEU DE TRAVAIL
 Le lieu de travail est fixé au siège de l'entreprise.
 
 ARTICLE 5 — DURÉE DU TRAVAIL
-La durée de travail est de 40 heures par semaine, conformément à la législation togolaise.
+La durée de travail est de 40 heures par semaine, conformément à la législation applicable.
 
 Fait en deux exemplaires originaux, le {{date_signature}}.
 

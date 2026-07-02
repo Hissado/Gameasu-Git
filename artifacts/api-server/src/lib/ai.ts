@@ -40,7 +40,7 @@ export async function summarize(opts: {
           role: "system",
           content:
             opts.system ||
-            "Tu es un assistant exécutif francophone pour une plateforme SaaS B2B (Gameasu, marché Togo / Afrique de l'Ouest). Rédige des résumés courts, professionnels, factuels et actionnables. Pas de préambule. Pas d'emoji. Français business clair.",
+            "Tu es un assistant exécutif francophone pour une plateforme ERP SaaS B2B (Gameasu). Rédige des résumés courts, professionnels, factuels et actionnables. Pas de préambule. Pas d'emoji. Français business clair.",
         },
         { role: "user", content: opts.context },
       ],

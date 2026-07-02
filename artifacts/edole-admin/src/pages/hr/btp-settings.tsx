@@ -340,7 +340,7 @@ export default function BtpSettings() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <FieldRow label="Heures / semaine" sub="Durée légale BTP Togo">
+            <FieldRow label="Heures / semaine" sub="Durée légale hebdomadaire (configurable)">
               <Input type="number" value={f("hoursPerWeek")} onChange={(e) => set("hoursPerWeek", e.target.value)} className="text-right h-8 text-sm" />
             </FieldRow>
             <FieldRow label="Heures / jour standard">
@@ -393,7 +393,7 @@ export default function BtpSettings() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-blue-500" />
-              Cotisations CNSS (Togo)
+              Cotisations sociales (CNSS / INSS)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -411,7 +411,7 @@ export default function BtpSettings() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-purple-500" />
-              IRPP (CGI Togo)
+              Retenue à la source (IRPP / IGR)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -462,7 +462,7 @@ export default function BtpSettings() {
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Calendar className="w-4 h-4 text-amber-500" />
-              Jours fériés (Togo)
+              Jours fériés légaux
             </CardTitle>
             <Button size="sm" variant="outline" onClick={() => setHolidayOpen(true)}>
               <Plus className="w-4 h-4 mr-1" />Ajouter
@@ -473,7 +473,7 @@ export default function BtpSettings() {
               <div className="text-sm text-gray-400">Chargement…</div>
             ) : holidays.length === 0 ? (
               <div className="text-sm text-gray-400 py-4 text-center">
-                Aucun jour férié configuré. Ajoutez les fêtes légales togolaises.
+                Aucun jour férié configuré. Ajoutez les fêtes légales applicables à votre organisation.
               </div>
             ) : (
               <Table>

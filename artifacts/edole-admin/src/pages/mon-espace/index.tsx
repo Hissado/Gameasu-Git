@@ -942,7 +942,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
                 id="bankName"
                 value={bankName}
                 onChange={e => setBankName(e.target.value)}
-                placeholder="ex : Ecobank Togo"
+                placeholder="ex : Ecobank, BNP Paribas, UBA"
                 maxLength={100}
               />
             </div>

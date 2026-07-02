@@ -536,7 +536,7 @@ function EditCollaboratorDialog({
                     <Tooltip>
                       <TooltipTrigger asChild><InfoIcon className="w-3.5 h-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs">
-                        Togo : CNSS patronal 16,4% + IPTS 2% = <strong>18,4%</strong>.<br/>
+                        Charges patronales configurables selon le pays (ex : CNSS + accidents + formation pro).<br/>
                         Ajuster selon le type de contrat (prestataire, freelance…).
                       </TooltipContent>
                     </Tooltip>
@@ -556,7 +556,7 @@ function EditCollaboratorDialog({
                       <button key={v} type="button"
                         className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${parseFloat(form.employerChargeRate) === v ? "bg-purple-600 text-white border-purple-600" : "border-slate-200 hover:border-slate-400"}`}
                         onClick={() => set("employerChargeRate", String(v))}>
-                        {v === 18.4 ? "Togo 18,4%" : `${v}%`}
+                        {`${v}%`}
                       </button>
                     ))}
                   </div>
@@ -643,7 +643,7 @@ function EditCollaboratorDialog({
                 id="bankName"
                 value={form.bankName}
                 onChange={e => set("bankName", e.target.value)}
-                placeholder="ex : Ecobank Togo, BTCI, SGBF…"
+                placeholder="ex : Ecobank, BNP Paribas, SGBF…"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -656,7 +656,7 @@ function EditCollaboratorDialog({
                   placeholder="ex : 024"
                   className="font-mono"
                 />
-                <p className="text-xs text-muted-foreground">Code à 3 chiffres attribué par la BCEAO (ex : 024 = Ecobank Togo).</p>
+                <p className="text-xs text-muted-foreground">Code banque à 3 chiffres attribué par la banque centrale (ex : BCEAO, BEAC).</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="bankAccountNumber">Numéro de compte</Label>
