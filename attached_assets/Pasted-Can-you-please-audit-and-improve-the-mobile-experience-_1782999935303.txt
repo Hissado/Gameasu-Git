@@ -1,0 +1,156 @@
+Can you please audit and improve the mobile experience across the entire Gameasu application?
+
+Issue noticed
+
+On mobile, some numbers, amounts, cards, tables, buttons and sections sometimes overflow or are not properly adjusted to the screen size. The design looks good on desktop, but on mobile some elements appear too wide, misaligned, cut off or difficult to read.
+
+Examples of issues to check:
+
+* numbers and amounts overflowing outside cards;
+* FCFA amounts not wrapping or resizing correctly;
+* KPI cards too wide for mobile screens;
+* tables causing horizontal overflow;
+* buttons not aligned properly;
+* text cut off or overlapping;
+* charts not resizing correctly;
+* modals too large on mobile;
+* sidebars or menus not adapting properly;
+* reports or dashboards not fitting mobile screens;
+* forms with fields too wide or badly spaced.
+
+⸻
+
+Objective
+
+I want the mobile experience to be as clean, smooth and professional as the desktop experience.
+
+The app should be fully responsive and easy to use on:
+
+* mobile phones;
+* tablets;
+* desktop screens.
+
+No section should feel broken, crowded or difficult to navigate on mobile.
+
+⸻
+
+What to review
+
+Please review all major sections of the app, including:
+
+* Dashboard
+* Finance
+* Accounting
+* Sales / CRM
+* Invoices
+* Purchases
+* Suppliers
+* Inventory
+* HR / Team
+* Payroll
+* Attendance & Kiosk
+* Projects
+* Operations
+* Documents
+* Reports
+* Settings
+* Subscription & Billing
+* Cockpit if applicable
+
+⸻
+
+Mobile fixes required
+
+Please correct:
+
+* overflowing numbers;
+* long amounts;
+* cards that do not resize;
+* tables that are too wide;
+* columns that should stack on mobile;
+* charts that do not adapt;
+* buttons that are too small or misaligned;
+* text that is too long for cards;
+* modals that exceed screen width;
+* forms that are difficult to complete;
+* horizontal scrolling where it should not exist;
+* inconsistent spacing;
+* poor alignment on small screens.
+
+⸻
+
+Amount and number formatting
+
+Please pay special attention to financial amounts and long numbers.
+
+Examples to test:
+
+* 0 FCFA
+* 47 200 FCFA
+* 320 000 FCFA
+* 1 250 000 FCFA
+* 91 830 000 FCFA
+* 1 612 100 000 FCFA
+* 5 085 508 000 FCFA
+
+These values should remain readable on mobile without overflowing.
+
+If needed, use compact formatting on mobile, for example:
+
+* 91.8 M FCFA
+* 1.6 Md FCFA
+* 5.1 Md FCFA
+
+But the full value should remain accessible through tooltip, detail view or expanded card.
+
+⸻
+
+Responsive behavior expected
+
+On mobile:
+
+* KPI cards should stack properly;
+* tables should become mobile-friendly cards where necessary;
+* long columns should collapse into detail views;
+* charts should resize automatically;
+* filters should become drawers or dropdowns;
+* buttons should be easy to tap;
+* modals should fit the screen;
+* spacing should be comfortable;
+* text should remain readable;
+* no horizontal overflow should appear.
+
+⸻
+
+Testing
+
+Please test the application on multiple screen sizes:
+
+* small mobile
+* standard mobile
+* large mobile
+* tablet
+* desktop
+
+Also test both portrait and landscape mode if possible.
+
+Use browser responsive tools and real-device simulation if available.
+
+⸻
+
+Expected result
+
+At the end, the Gameasu mobile experience should be:
+
+* clean;
+* professional;
+* responsive;
+* stable;
+* easy to navigate;
+* free of overflow issues;
+* visually consistent with the desktop version;
+* ready for real client use.
+
+Final objective
+
+Make the entire Gameasu application fully mobile-friendly, ensuring that numbers, amounts, cards, tables, charts, reports, forms and navigation all adapt perfectly to smaller screens without overflow, misalignment or broken design.

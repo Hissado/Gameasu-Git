@@ -107,7 +107,7 @@ function KpiCard({ label, value, sub, icon: Icon, accent = "default", loading, h
             {loading ? (
               <Skeleton className="h-7 w-24 mt-2" />
             ) : (
-              <p className="text-2xl font-bold text-slate-900 mt-1 leading-none tabular-nums">{value}</p>
+              <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 leading-tight tabular-nums break-words">{value}</p>
             )}
             {sub && !loading && (
               <p className="text-xs text-muted-foreground mt-1.5 truncate">{sub}</p>

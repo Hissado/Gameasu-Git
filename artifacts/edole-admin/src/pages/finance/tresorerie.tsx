@@ -127,7 +127,7 @@ export default function TresoreriePage() {
               <Loader2 className="w-5 h-5 animate-spin mt-2" />
             ) : (
               <>
-                <p className={`text-2xl font-bold mt-1 ${isAboveThreshold ? "" : "text-red-600"}`}>
+                <p className={`text-lg sm:text-2xl font-bold mt-1 leading-tight break-words ${isAboveThreshold ? "" : "text-red-600"}`}>
                   {formatFCFACompact(currentBalance)}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">{banksList.length} compte(s)</p>
@@ -145,7 +145,7 @@ export default function TresoreriePage() {
               <Loader2 className="w-5 h-5 animate-spin mt-2" />
             ) : (
               <>
-                <p className="text-2xl font-bold mt-1 text-emerald-600">{formatFCFACompact(fc?.totalWeighted ?? 0)}</p>
+                <p className="text-lg sm:text-2xl font-bold mt-1 leading-tight break-words text-emerald-600">{formatFCFACompact(fc?.totalWeighted ?? 0)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">Théorique : {formatFCFACompact(fc?.totalExpected ?? 0)}</p>
               </>
             )}
@@ -161,7 +161,7 @@ export default function TresoreriePage() {
               <Loader2 className="w-5 h-5 animate-spin mt-2" />
             ) : (
               <>
-                <p className="text-2xl font-bold mt-1 text-orange-600">{formatFCFACompact(ov?.totalOutstanding ?? 0)}</p>
+                <p className="text-lg sm:text-2xl font-bold mt-1 leading-tight break-words text-orange-600">{formatFCFACompact(ov?.totalOutstanding ?? 0)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">En retard : {formatFCFACompact(ov?.totalOverdue ?? 0)}</p>
               </>
             )}
@@ -176,10 +176,10 @@ export default function TresoreriePage() {
             {forecast.isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin mt-2" />
             ) : cashRunwayDays === null ? (
-              <p className="text-2xl font-bold mt-1 text-muted-foreground">∞</p>
+              <p className="text-lg sm:text-2xl font-bold mt-1 text-muted-foreground">∞</p>
             ) : (
               <>
-                <p className={`text-2xl font-bold mt-1 ${cashRunwayDays < 30 ? "text-red-600" : cashRunwayDays < 60 ? "text-orange-600" : "text-emerald-600"}`}>
+                <p className={`text-lg sm:text-2xl font-bold mt-1 leading-tight ${cashRunwayDays < 30 ? "text-red-600" : cashRunwayDays < 60 ? "text-orange-600" : "text-emerald-600"}`}>
                   {cashRunwayDays} j
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
