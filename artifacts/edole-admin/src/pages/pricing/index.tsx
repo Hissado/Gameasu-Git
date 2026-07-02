@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { PieChart, Pie, Cell, Tooltip as RechartTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { formatFCFA } from "@/lib/format";
 import {
-  Plus, Trash2, Info, FileSignature, ShoppingCart, Download,
+  Plus, Trash2, Info, FileSignature, ShoppingCart, Upload,
   TrendingUp, CheckCircle2, Package, Truck, Users, Wrench, DollarSign,
   Calculator, Lightbulb, Target, Landmark, AlertTriangle, Shield,
   Building2, Megaphone, Banknote, HardHat, Settings2, ChevronDown, ChevronUp,
@@ -2794,7 +2794,7 @@ export default function PricingCalculator() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" variant="outline" onClick={exportPDF} className="gap-1.5 text-xs">
-                  <Download className="w-3.5 h-3.5" />PDF
+                  <Upload className="w-3.5 h-3.5" />PDF
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Exporter en PDF professionnel</TooltipContent>
@@ -4081,7 +4081,7 @@ export default function PricingCalculator() {
               <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50 text-xs text-muted-foreground space-y-1">
                 <div className="font-medium text-slate-700 mb-1">Vous pouvez aussi :</div>
                 <div className="flex items-center gap-2">
-                  <Download className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
+                  <Upload className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
                   <span>Exporter un PDF professionnel et l'envoyer par email</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -4093,7 +4093,7 @@ export default function PricingCalculator() {
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fermer</Button>
               <Button onClick={exportPDF} className="gap-1.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
-                <Download className="w-3.5 h-3.5" />Exporter PDF
+                <Upload className="w-3.5 h-3.5" />Exporter PDF
               </Button>
             </DialogFooter>
           </DialogContent>

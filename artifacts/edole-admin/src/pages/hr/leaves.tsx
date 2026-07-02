@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, Plus, CheckCircle2, XCircle, Clock, Filter, User, Loader2, BarChart3, Pencil, Download } from "lucide-react";
+import { CalendarDays, Plus, CheckCircle2, XCircle, Clock, Filter, User, Loader2, BarChart3, Pencil, Upload } from "lucide-react";
 
 type LeaveRequest = {
   id: string;
@@ -227,7 +227,7 @@ export default function LeavesPage() {
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => window.open(`/api/hr/leaves/export.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}>
-            <Download className="w-4 h-4 mr-1" />Export Excel
+            <Upload className="w-4 h-4 mr-1" />Export Excel
           </Button>
           <Button onClick={() => setOpenCreate(true)} className="bg-primary hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-2" />Nouvelle demande

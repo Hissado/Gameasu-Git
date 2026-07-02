@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, AlertTriangle, TrendingDown, Building2, FileText, Filter } from "lucide-react";
+import { Upload, AlertTriangle, TrendingDown, Building2, FileText, Filter } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -213,7 +213,7 @@ export default function RapportsAchatsPage() {
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => downloadExcel("aging")}>
-              <Download className="h-4 w-4 mr-1" />Export Excel
+              <Upload className="h-4 w-4 mr-1" />Export Excel
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               if (!agingQ.data) return;
@@ -223,7 +223,7 @@ export default function RapportsAchatsPage() {
                 "vieillissement-ap.csv"
               );
             }}>
-              <Download className="h-4 w-4 mr-1" />Export CSV
+              <Upload className="h-4 w-4 mr-1" />Export CSV
             </Button>
           </div>
 
@@ -370,7 +370,7 @@ export default function RapportsAchatsPage() {
               ...(periodProjectId && { projectId: periodProjectId }),
               ...(periodCategory && { category: periodCategory }),
             })}>
-              <Download className="h-4 w-4 mr-1" />Export Excel
+              <Upload className="h-4 w-4 mr-1" />Export Excel
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               if (!periodQ.data) return;
@@ -380,7 +380,7 @@ export default function RapportsAchatsPage() {
                 "depenses-par-periode.csv"
               );
             }}>
-              <Download className="h-4 w-4 mr-1" />Export CSV
+              <Upload className="h-4 w-4 mr-1" />Export CSV
             </Button>
           </div>
 
@@ -433,7 +433,7 @@ export default function RapportsAchatsPage() {
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => downloadExcel("by-supplier")}>
-              <Download className="h-4 w-4 mr-1" />Export Excel
+              <Upload className="h-4 w-4 mr-1" />Export Excel
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               if (!supplierQ.data) return;
@@ -443,7 +443,7 @@ export default function RapportsAchatsPage() {
                 "top-fournisseurs.csv"
               );
             }}>
-              <Download className="h-4 w-4 mr-1" />Export CSV
+              <Upload className="h-4 w-4 mr-1" />Export CSV
             </Button>
           </div>
 
@@ -504,7 +504,7 @@ export default function RapportsAchatsPage() {
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => downloadExcel("unpaid")}>
-              <Download className="h-4 w-4 mr-1" />Export Excel
+              <Upload className="h-4 w-4 mr-1" />Export Excel
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               if (!unpaidQ.data) return;
@@ -514,7 +514,7 @@ export default function RapportsAchatsPage() {
                 "factures-impayees.csv"
               );
             }}>
-              <Download className="h-4 w-4 mr-1" />Export CSV
+              <Upload className="h-4 w-4 mr-1" />Export CSV
             </Button>
           </div>
 

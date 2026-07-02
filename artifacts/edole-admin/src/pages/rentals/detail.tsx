@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, FileText, Calendar, Building, Download, PlaySquare } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building, Upload, PlaySquare } from "lucide-react";
 import { formatFCFA, formatDate } from "@/lib/format";
 
 
@@ -76,7 +76,7 @@ export default function RentalDetail() {
         <div className="flex flex-col items-end gap-2">
           {getStatusBadge(rental.status)}
           <div className="flex gap-2 mt-2">
-            <Button variant="outline" size="sm" disabled={saving} onClick={async () => { if (!contentRef.current) return; setSaving(true); try { const { saveDivAsPdf } = await import("@/lib/pdf"); await saveDivAsPdf(contentRef.current, `location-${id}-${new Date().toISOString().slice(0,10)}.pdf`); } finally { setSaving(false); } }}><Download className="w-4 h-4 mr-2"/> {saving ? "PDF…" : "Enregistrer PDF"}</Button>
+            <Button variant="outline" size="sm" disabled={saving} onClick={async () => { if (!contentRef.current) return; setSaving(true); try { const { saveDivAsPdf } = await import("@/lib/pdf"); await saveDivAsPdf(contentRef.current, `location-${id}-${new Date().toISOString().slice(0,10)}.pdf`); } finally { setSaving(false); } }}><Upload className="w-4 h-4 mr-2"/> {saving ? "PDF…" : "Enregistrer PDF"}</Button>
             {rental.status === 'pending' && <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"><PlaySquare className="w-4 h-4 mr-2"/> Démarrer</Button>}
           </div>
         </div>

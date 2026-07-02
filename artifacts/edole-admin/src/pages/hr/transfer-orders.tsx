@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
 import {
   Plus, Banknote, CheckCircle, XCircle, Send, FileSpreadsheet,
-  FileText, History, User, ChevronLeft, ChevronRight, Download, Filter,
+  FileText, History, User, ChevronLeft, ChevronRight, Upload, Filter,
 } from "lucide-react";
 
 type TransferLine = {
@@ -634,7 +634,7 @@ export default function TransferOrders() {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Download className="w-4 h-4 text-muted-foreground" />
+            <Upload className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Utilisez les boutons CSV/Excel pour exporter</span>
           </div>
         )

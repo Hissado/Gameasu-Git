@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
 } from "recharts";
-import { Mail, MessageSquare, Phone, Download, Sparkles, Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Mail, MessageSquare, Phone, Upload, Sparkles, Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 type Analytics = {
   range: { from: string; to: string };
@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
 
   return (
     <MarketingShell title="Analytique marketing" subtitle="Performance des campagnes sur les 90 derniers jours"
-      actions={<Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" /> Exporter en CSV</Button>}>
+      actions={<Button variant="outline" onClick={exportCsv}><Upload className="w-4 h-4 mr-2" /> Exporter en CSV</Button>}>
       {isLoading ? <div className="text-center py-12 text-muted-foreground">Chargement…</div>
         : !data ? null : (
         <div className="space-y-6">

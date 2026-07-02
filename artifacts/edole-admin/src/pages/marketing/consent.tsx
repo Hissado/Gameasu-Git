@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, MessageSquare, Phone, ShieldCheck, ShieldOff, Download } from "lucide-react";
+import { Mail, MessageSquare, Phone, ShieldCheck, ShieldOff, Upload } from "lucide-react";
 
 type Consent = { id: string; contactType: string; contactId: string; channel: string; optIn: boolean; source?: string; preferredLanguage?: string; updatedAt: string };
 type Contact = { type: string; id: string; name: string; email: string | null; phone: string | null; company: string | null };
@@ -110,7 +110,7 @@ export default function ConsentPage() {
       subtitle="Opt-in / opt-out par contact et par canal — registre RGPD"
       actions={
         <Button variant="outline" onClick={exportCsv} disabled={!contacts?.data?.length}>
-          <Download className="w-4 h-4 mr-2" /> Exporter le registre CSV
+          <Upload className="w-4 h-4 mr-2" /> Exporter le registre CSV
         </Button>
       }
     >

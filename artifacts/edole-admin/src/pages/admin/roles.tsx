@@ -44,7 +44,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "dashboard.view_financial_kpis", label: "Voir les KPI financiers" },
         { code: "dashboard.view_hr_kpis", label: "Voir les KPI RH" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "dashboard.export", label: "Exporter le tableau de bord" },
       ]},
     ],
@@ -93,7 +93,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "sales.record_payment", label: "Enregistrer un encaissement" },
         { code: "sales.manage_credit_notes", label: "Gérer les avoirs" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "sales.export", label: "Exporter les documents commerciaux" },
       ]},
     ],
@@ -111,7 +111,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "purchases.pay", label: "Enregistrer des paiements" },
         { code: "purchases.manage", label: "Accès complet Achats" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "purchases.export", label: "Exporter les données achats" },
       ]},
     ],
@@ -132,7 +132,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "fpa.manage", label: "Créer / modifier des budgets" },
         { code: "fpa.approve", label: "Approuver les budgets" },
       ]},
-      { label: "Imports & Exports", icon: Download, perms: [
+      { label: "Imports & Exports", icon: Upload, perms: [
         { code: "accounting.import", label: "Importer des écritures" },
         { code: "accounting.export", label: "Exporter les documents comptables" },
         { code: "fpa.export", label: "Exporter les budgets FP&A" },
@@ -150,7 +150,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "inventory.adjust", label: "Ajuster le stock manuellement" },
         { code: "inventory.manage_warehouses", label: "Gérer les entrepôts" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "inventory.export", label: "Exporter les données stock" },
       ]},
     ],
@@ -165,7 +165,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "equipment.manage_inspections", label: "Gérer les inspections" },
         { code: "equipment.manage_rentals", label: "Gérer les locations" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "equipment.export", label: "Exporter les données matériel" },
       ]},
     ],
@@ -217,7 +217,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "hr.manage_expenses", label: "Gérer les notes de frais" },
         { code: "hr.approve_expenses", label: "Approuver les notes de frais" },
       ]},
-      { label: "Exports", icon: Download, perms: [
+      { label: "Exports", icon: Upload, perms: [
         { code: "hr.export", label: "Exporter les données RH" },
       ]},
     ],
@@ -905,7 +905,7 @@ function RoleEditor({ role, allPerms, onDuplicate, onDelete, onDeleted }: {
               <CardContent className="px-4 pb-4 space-y-2">
                 {[
                   { label: "Données sensibles (salaires, financier, confidentiel)", active: hasSensitiveAccess, icon: Eye },
-                  { label: "Exports de données (PDF, Excel, CSV)", active: hasExportAccess, icon: Download },
+                  { label: "Exports de données (PDF, Excel, CSV)", active: hasExportAccess, icon: Upload },
                   { label: "Approbations (budgets, devis, dépenses)", active: hasApproveAccess, icon: CheckSquare },
                   { label: "Administration (gestion utilisateurs/rôles/paramètres)", active: hasCode("admin.access"), icon: Shield },
                   { label: "Journal d'audit", active: hasCode("audit.read"), icon: ShieldCheck },

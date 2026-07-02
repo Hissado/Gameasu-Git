@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   CheckCircle2, AlertTriangle, Clock, CalendarOff, Banknote,
-  Users, FileSignature, ArrowRightLeft, Download, RefreshCw,
+  Users, FileSignature, ArrowRightLeft, Upload, RefreshCw,
   FileBarChart2, ChevronDown, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -604,7 +604,7 @@ export default function HrReports() {
                 onClick={() => exportCSV(rows, cols, `rapport-rh-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`)}
                 className="h-9 gap-1.5 bg-primary hover:bg-primary/90"
               >
-                <Download className="h-3.5 w-3.5" />
+                <Upload className="h-3.5 w-3.5" />
                 Exporter CSV
               </Button>
             </div>

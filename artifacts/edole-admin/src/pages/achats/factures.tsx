@@ -19,8 +19,8 @@ import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Plus, Search, AlertTriangle, FileText, Wallet, CheckCircle2, XCircle,
-  ChevronRight, AlertCircle, Download, Link2, Trash2, ChevronLeft,
-  ThumbsDown, Clock, CircleDot, Upload, Repeat, CreditCard, FileDown,
+  ChevronRight, AlertCircle, Download, Upload, Link2, Trash2, ChevronLeft,
+  ThumbsDown, Clock, CircleDot, Repeat, CreditCard, FileDown,
   ChevronDown, X, Paperclip, Image, Printer,
 } from "lucide-react";
 import { StatusBadgePurchases, INV_STATUS_MAP, INV_STATUS_ORDER, PAYMENT_METHODS, VendorSelect, BankAccountSelect, type Supplier } from "./_shared";
@@ -1125,7 +1125,7 @@ export default function AchatsFactures() {
         subtitle={`${total} facture${total !== 1 ? "s" : ""}${overdue ? ` · ${overdue} en retard` : ""}`}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => exportToExcel(qParams)} className="gap-2"><Download className="w-4 h-4" />Exporter</Button>
+            <Button variant="outline" size="sm" onClick={() => exportToExcel(qParams)} className="gap-2"><Upload className="w-4 h-4" />Exporter</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1.5">

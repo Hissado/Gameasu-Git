@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, FileSignature, Download } from "lucide-react";
+import { Plus, Trash2, FileSignature, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Contract = { id: string; collaboratorId: string; collaboratorName: string; type: string; status: string; startDate: string; endDate?: string; monthlySalary?: number; jobTitle?: string };
@@ -56,7 +56,7 @@ export default function ContractsPage() {
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => window.open(`/api/hr/contracts/export.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}>
-            <Download className="w-4 h-4 mr-1" />Export Excel
+            <Upload className="w-4 h-4 mr-1" />Export Excel
           </Button>
           <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau contrat</Button>
         </div>

@@ -14,7 +14,7 @@ import {
   Clock, MapPin, Coffee, LogIn, LogOut, AlertTriangle, CheckCircle2,
   Users, Loader2, Calendar, Camera, MonitorSmartphone, ChevronRight, MessageSquare,
   Plus, ChevronLeft, FileSpreadsheet, Send, ThumbsUp, ThumbsDown, Trash2, Pencil,
-  Download, FilePlus2,
+  Upload, FilePlus2,
 } from "lucide-react";
 import {
   useMyAttendanceToday, useAttendanceDashboard, useAttendanceAnomalies,
@@ -1312,7 +1312,7 @@ function TimesheetsPanel() {
           )}
           {isManager && (
             <Button variant="outline" size="sm" onClick={doExport}>
-              <Download className="w-3.5 h-3.5 mr-1" />Export Excel
+              <Upload className="w-3.5 h-3.5 mr-1" />Export Excel
             </Button>
           )}
           {!isManager && (
@@ -1596,7 +1596,7 @@ function ReportsPanel() {
           </h3>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={isExportingPdf} className="h-7 text-xs gap-1">
-              {isExportingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              {isExportingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
               Export PDF
             </Button>
             <Button size="sm" onClick={handleExportExcel} disabled={isExporting} className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700">

@@ -16,7 +16,7 @@ import {
   type DateRange, type CompareMode,
 } from "@/components/period-filter";
 import {
-  Download,
+  Upload,
   FileText,
   Wrench,
   Users,
@@ -539,7 +539,7 @@ function ReportRow({ report, tab, isFav, onOpen, onToggleFav }: {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => { onOpen(tab, report.name); setTimeout(() => downloadAuthed(`/api/reports/${tab}/export.xlsx`, `${report.name}.xlsx`), 300); }}>
-            <Download className="w-3.5 h-3.5" /> Exporter Excel
+            <Upload className="w-3.5 h-3.5" /> Exporter Excel
           </DropdownMenuItem>
           <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => onOpen(tab, report.name)}>
             <Share2 className="w-3.5 h-3.5" /> Partager
@@ -895,7 +895,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
               <Settings2 className="w-3.5 h-3.5" /> Modifier
             </Button>
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
-              <Download className="w-3.5 h-3.5" /> Excel
+              <Upload className="w-3.5 h-3.5" /> Excel
             </Button>
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={async () => {
               const { saveDivAsPdf } = await import("@/lib/pdf");
@@ -2091,7 +2091,7 @@ function BillingSubTab({ periodQuery }: { periodQuery: string }) {
           ]} />
         </FilterBar>
         <Button onClick={() => downloadAuthed(`/api/reports/finance/export.xlsx?${periodQuery}`, `rapport-finance-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
-          <Download className="w-4 h-4 mr-2" /> Exporter Excel
+          <Upload className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
 
@@ -4001,7 +4001,7 @@ function SalesTab({ periodQuery, period, comparePeriod, compareMode = "none" }: 
             options={Object.entries(PIPELINE_STAGE_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
         </FilterBar>
         <Button onClick={() => downloadAuthed(`/api/reports/sales/export.xlsx?${periodQuery}`, `rapport-ventes-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
-          <Download className="w-4 h-4 mr-2" /> Exporter Excel
+          <Upload className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
       {isLoading || !data ? <Skeleton className="h-96 w-full" /> : (
@@ -4433,7 +4433,7 @@ function ProjectsTab({ periodQuery, period, comparePeriod, compareMode = "none" 
             options={Object.entries(PROJECT_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
         </FilterBar>
         <Button onClick={() => downloadAuthed(`/api/reports/projects/export.xlsx?${periodQuery}`, `rapport-projets-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
-          <Download className="w-4 h-4 mr-2" /> Exporter Excel
+          <Upload className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
       {isLoading || !data ? <Skeleton className="h-96 w-full" /> : (
@@ -4601,7 +4601,7 @@ function HrTab({ periodQuery, period, comparePeriod, compareMode = "none" }: Tab
           )}
         </FilterBar>
         <Button onClick={() => downloadAuthed(`/api/reports/hr/export.xlsx?${periodQuery}`, `rapport-rh-${new Date().toISOString().slice(0, 10)}.xlsx`)} className="bg-primary hover:bg-primary/90 shrink-0">
-          <Download className="w-4 h-4 mr-2" /> Exporter Excel
+          <Upload className="w-4 h-4 mr-2" /> Exporter Excel
         </Button>
       </div>
       {isLoading || !data ? <Skeleton className="h-96 w-full" /> : (

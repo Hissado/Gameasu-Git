@@ -18,7 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Download, Calculator, Users, Banknote, TrendingUp, Receipt,
+  Calculator, Users, Banknote, TrendingUp, Receipt,
   RefreshCw, ChevronDown, ChevronUp, Edit2, CheckCircle,
   FileSpreadsheet, AlertCircle,
 } from "lucide-react";

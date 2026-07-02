@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatFCFA } from "@/lib/format";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Building2, Download, TrendingUp, AlertCircle, FolderKanban, Loader2, BarChart2 } from "lucide-react";
+import { Building2, Upload, TrendingUp, AlertCircle, FolderKanban, Loader2, BarChart2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatBadge({ value, label, color = "blue" }: { value: string | number; label: string; color?: string }) {
@@ -97,7 +97,7 @@ export default function ExpertReportsPage() {
           <p className="text-muted-foreground text-sm mt-0.5">Vue agrégée de tous vos clients</p>
         </div>
         <Button variant="outline" onClick={handleExport} disabled={!clients?.length || exporting}>
-          {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+          {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
           {exporting ? "Export…" : "Exporter Excel"}
         </Button>
       </div>

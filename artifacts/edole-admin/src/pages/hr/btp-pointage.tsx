@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus, Save, Calculator, Download, Lock, Unlock, RefreshCw,
+  Plus, Save, Calculator, Upload, Lock, Unlock, RefreshCw,
   Calendar, Users, ChevronRight, AlertCircle, CheckCircle, FileSpreadsheet, Wifi,
 } from "lucide-react";
 
@@ -430,7 +430,7 @@ export default function BtpPointage() {
                 size="sm" variant="outline"
                 onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}
               >
-                <Download className="w-4 h-4 mr-1" />Salaires XLS
+                <Upload className="w-4 h-4 mr-1" />Salaires XLS
               </Button>
             </>
           )}

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  Download, FileText, Building2, Percent, Users, ArrowLeft,
+  Upload, FileText, Building2, Percent, Users, ArrowLeft,
   CheckCircle, ChevronRight, RefreshCw, Info,
   Send, Clock, ShieldCheck, XCircle, Calendar, BarChart3, AlertTriangle,
 } from "lucide-react";
@@ -409,7 +409,7 @@ function AnnualView({ selectedYear, onYearChange, annualData, isLoading, annualT
           disabled={!annualData || months.length === 0}
           onClick={() => downloadExcel(`${API}/payroll/declarations/annual?year=${selectedYear}&format=excel`, `Recapitulatif_Annuel_CNSS_IRPP_${selectedYear}.xlsx`)}
         >
-          <Download className="w-4 h-4 mr-1" />Export Excel annuel
+          <Upload className="w-4 h-4 mr-1" />Export Excel annuel
         </Button>
       </div>
 
@@ -1064,7 +1064,7 @@ export default function PayrollDeclarations() {
                   `CNSS_${activeRun.period}.xlsx`
                 )}
               >
-                <Download className="w-4 h-4 mr-1" />Exporter Excel
+                <Upload className="w-4 h-4 mr-1" />Exporter Excel
               </Button>
             </div>
 
@@ -1168,7 +1168,7 @@ export default function PayrollDeclarations() {
                   `IRPP_${activeRun.period}.xlsx`
                 )}
               >
-                <Download className="w-4 h-4 mr-1" />Exporter Excel
+                <Upload className="w-4 h-4 mr-1" />Exporter Excel
               </Button>
             </div>
 
