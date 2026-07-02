@@ -53,7 +53,7 @@ const NAV_GROUPS = [
     label: "Talent",
     items: [
       { name: "Recrutement",  path: "/hr/recruitment", icon: Briefcase },
-      { name: "Onboarding",   path: "/hr/onboarding",  icon: UserPlus },
+      { name: "Intégration",  path: "/hr/onboarding",  icon: UserPlus },
       { name: "Évaluations",  path: "/hr/evaluations", icon: Star },
       { name: "Formations",   path: "/hr/training",    icon: BookOpen },
     ],

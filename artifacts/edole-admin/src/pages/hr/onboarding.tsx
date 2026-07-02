@@ -61,9 +61,9 @@ export default function Onboarding() {
 
   return (
     <HrShell
-      title="Onboarding digital"
+      title="Intégration digitale"
       subtitle="Checklists d'intégration et suivi de l'avancement par collaborateur"
-      actions={<Button size="sm" onClick={() => setProcessOpen(true)}><Plus className="w-4 h-4 mr-1" />Démarrer un onboarding</Button>}
+      actions={<Button size="sm" onClick={() => setProcessOpen(true)}><Plus className="w-4 h-4 mr-1" />Démarrer une intégration</Button>}
     >
       <Tabs defaultValue="processes">
         <TabsList className="mb-6">
@@ -74,7 +74,7 @@ export default function Onboarding() {
 
         <TabsContent value="processes">
           {inProgress.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground"><UserPlus className="w-8 h-8 mx-auto mb-2 opacity-30" /><p>Aucun onboarding en cours.</p></div>
+            <div className="text-center py-12 text-muted-foreground"><UserPlus className="w-8 h-8 mx-auto mb-2 opacity-30" /><p>Aucune intégration en cours.</p></div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {inProgress.map(p => (
@@ -107,7 +107,7 @@ export default function Onboarding() {
         </TabsContent>
 
         <TabsContent value="completed">
-          {completed.length === 0 ? <div className="text-sm text-muted-foreground py-6">Aucun onboarding terminé.</div> : (
+          {completed.length === 0 ? <div className="text-sm text-muted-foreground py-6">Aucune intégration terminée.</div> : (
             <div className="space-y-2">
               {completed.map(p => (
                 <div key={p.id} className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/30 cursor-pointer" onClick={() => fetchProcessDetail(p.id)}>
@@ -147,7 +147,7 @@ export default function Onboarding() {
       {/* Dialog nouveau processus */}
       <Dialog open={processOpen} onOpenChange={setProcessOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Démarrer un onboarding</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Démarrer une intégration</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <Label>Collaborateur</Label>
@@ -180,7 +180,7 @@ export default function Onboarding() {
         <Dialog open={!!detailProcess} onOpenChange={() => setDetailProcess(null)}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Onboarding — {detailProcess.firstName} {detailProcess.lastName}</DialogTitle>
+              <DialogTitle>Intégration — {detailProcess.firstName} {detailProcess.lastName}</DialogTitle>
             </DialogHeader>
             <div className="mb-4">
               <div className="flex justify-between text-sm mb-1"><span>{detailProcess.doneItems}/{detailProcess.totalItems} étapes</span><span>{detailProcess.progress}%</span></div>
