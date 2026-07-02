@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
-  Users, Banknote, ArrowRight, Download, RefreshCw, Info,
+  Users, Banknote, ArrowRight, Upload, RefreshCw, Info,
   Briefcase, Star, Gift, RotateCcw, UserMinus, BarChart3,
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
@@ -258,7 +258,7 @@ export default function SimulateurPage() {
       subtitle="Mesurez l'impact financier de vos décisions RH avant de les prendre"
       actions={
         <Button variant="outline" size="sm" onClick={handlePrint}>
-          <Download className="w-4 h-4 mr-2" /> Exporter
+          <Upload className="w-4 h-4 mr-2" /> Exporter
         </Button>
       }
     >
