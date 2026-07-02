@@ -406,7 +406,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       {/* ── Items primaires — filtrés par permission ── */}
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                        const locked = !!(item.moduleKey && modules && !enabledKeys.has(item.moduleKey));
+                        const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
                         const href = item.path;
                         return (
                           <li key={item.path}>
@@ -432,7 +432,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                           <>
                             {isExp && sec.map((item) => {
                               const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                              const locked = !!(item.moduleKey && modules && !enabledKeys.has(item.moduleKey));
+                              const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
                               const href = item.path;
                               return (
                                 <li key={item.path}>

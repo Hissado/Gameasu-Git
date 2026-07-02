@@ -103,15 +103,23 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
   }).returning();
 
   // Recalcule des modules
-  const included = new Set(plan.includedModules ?? []);
+  const included = new Set<string>(plan.includedModules ?? []);
   const orgMods = await db.select().from(organizationModulesTable)
     .where(eq(organizationModulesTable.organizationId, orgId));
+  const existingKeys = new Set(orgMods.map((m) => m.moduleKey));
   for (const mod of orgMods) {
     if (mod.source !== "manual") {
       await db.update(organizationModulesTable)
         .set({ enabled: included.has(mod.moduleKey), source: "plan" })
         .where(eq(organizationModulesTable.id, mod.id));
     }
+  }
+  // Insérer les modules du plan qui n'existent pas encore pour cet org
+  const missing = [...included].filter((k) => !existingKeys.has(k));
+  if (missing.length > 0) {
+    await db.insert(organizationModulesTable).values(
+      missing.map((k) => ({ organizationId: orgId, moduleKey: k, enabled: true, source: "plan" as const })),
+    );
   }
 
   await db.insert(billingEventsTable).values({
