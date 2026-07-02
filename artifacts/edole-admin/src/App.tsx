@@ -419,7 +419,7 @@ function AppRouter() {
                 <Route path="/admin/audit" component={AdminAudit} />
                 <Route path="/change-password" component={ChangePassword} />
 
-                <Route path="/billing" component={BillingPage} />
+                <Route path="/abonnement" component={BillingPage} />
                 <Route path="/workspace-settings" component={WorkspaceSettingsPage} />
                 <Route path="/upgrade-required" component={UpgradeRequiredPage} />
 

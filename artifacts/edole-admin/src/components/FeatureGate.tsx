@@ -35,7 +35,7 @@ export function UpgradeRequired({ moduleKey }: { moduleKey?: string }) {
           Passez à une formule supérieure pour débloquer cette fonctionnalité.
         </p>
         <Link
-          href="/billing"
+          href="/abonnement"
           className="mt-7 inline-flex items-center gap-2 rounded-lg bg-[#0F1A3A] hover:bg-[#1B2A4E] px-5 py-2.5 text-sm font-semibold text-[#2563EB] shadow-lg hover:shadow-xl transition-all border border-[#2563EB]/30"
         >
           Voir les formules <ArrowRight className="w-4 h-4" />

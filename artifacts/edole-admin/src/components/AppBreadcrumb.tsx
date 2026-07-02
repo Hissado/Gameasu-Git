@@ -38,7 +38,7 @@ const TOP_LEVEL: Record<string, string> = {
   "/profile":            "Mon profil",
   "/mon-espace":         "Mon espace",
   "/workspace-settings": "Paramètres de l'espace",
-  "/billing":            "Abonnement & facturation",
+  "/abonnement":         "Abonnement & facturation",
   "/intelligence":       "Intelligence",
   "/automations":        "Automatisations",
   "/attendance":         "Présences",

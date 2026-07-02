@@ -145,7 +145,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",    permissionKey: "admin.access" },
       { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",    permissionKey: "settings.read" },
-      { name: "Abonnement",         path: "/billing",            icon: CreditCard, moduleKey: "billing_subscription",  permissionKey: "admin.access" },
+      { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription",  permissionKey: "admin.access" },
       { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",        permissionKey: "admin.access",    secondary: true },
       { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",        permissionKey: "automation.read", secondary: true },
       { name: "Support",            path: "/tickets",            icon: LifeBuoy,                                                                         secondary: true },
@@ -757,7 +757,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5 px-3 gap-3">
-                    <Link href="/billing">
+                    <Link href="/abonnement">
                       <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="text-sm font-medium">Abonnement & facturation</span>
                     </Link>
