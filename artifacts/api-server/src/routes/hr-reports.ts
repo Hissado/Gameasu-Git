@@ -16,6 +16,15 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireManagerOrAbove);
 
+const MOVEMENT_TYPE_LABELS: Record<string, string> = {
+  promotion: "Promotion",
+  mutation: "Mutation",
+  reclassification: "Reclassification",
+  departure: "Départ",
+  retirement: "Retraite",
+  disciplinary: "Disciplinaire",
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 function parseIds(param: string | string[] | undefined): string[] {
@@ -445,7 +454,7 @@ router.get("/hr/reports/movements", async (req, res, next) => {
         const c = collabMap.get(m.collaboratorId);
         return {
           collaborateur: c ? `${c.firstName} ${c.lastName}` : "Inconnu",
-          type: m.type, dateEffet: m.effectiveDate,
+          type: MOVEMENT_TYPE_LABELS[m.type] ?? m.type, dateEffet: m.effectiveDate,
           departementPrecedent: m.previousDepartmentId ? (deptMap.get(m.previousDepartmentId) ?? "—") : "—",
           departementActuel: m.newDepartmentId ? (deptMap.get(m.newDepartmentId) ?? "—") : "—",
           salairePrecedent: m.previousSalary ? Math.round(Number(m.previousSalary)) : null,

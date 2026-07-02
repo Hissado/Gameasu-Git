@@ -13,6 +13,15 @@ import { Users, TrendingDown, TrendingUp, Clock, UserCheck, UserMinus, Calendar 
 const COLORS = ["#2563EB", "#0F1A3A", "#0ea5e9", "#8b5cf6", "#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 const CURRENT_YEAR = new Date().getFullYear();
 
+const MOVEMENT_TYPE_LABELS: Record<string, string> = {
+  promotion: "Promotion",
+  mutation: "Mutation",
+  reclassification: "Reclassification",
+  departure: "Départ",
+  retirement: "Retraite",
+  disciplinary: "Disciplinaire",
+};
+
 export default function HrIndicatorsPage() {
   const [year, setYear] = useState(String(CURRENT_YEAR));
 
@@ -172,7 +181,7 @@ export default function HrIndicatorsPage() {
                     <span className="font-medium">{m.collaboratorName}</span>
                     <span className="text-muted-foreground ml-2">{new Date(m.effectiveDate).toLocaleDateString("fr-FR")}</span>
                   </div>
-                  <Badge variant="outline" className="text-xs capitalize">{m.type}</Badge>
+                  <Badge variant="outline" className="text-xs">{MOVEMENT_TYPE_LABELS[m.type] ?? m.type}</Badge>
                 </div>
               ))}
             </CardContent>
