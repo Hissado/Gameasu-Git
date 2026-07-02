@@ -4,7 +4,7 @@ import {
   rolesTable, permissionsTable, rolePermissionsTable,
   userProjectAccessTable, auditLogsTable, usersTable,
   departmentsTable, projectsTable, userClientAccessTable, clientsTable,
-  userPermissionOverridesTable,
+  userPermissionOverridesTable, organizationMembersTable,
 } from "@workspace/db";
 import { and, eq, ilike, sql, desc, inArray, gte, lte } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -386,6 +386,11 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
       passwordResetTokenExpiresAt: expiresAt,
       invitedById: req.authUser?.id ?? null,
       invitedAt: new Date(),
+    });
+    await tx.insert(organizationMembersTable).values({
+      organizationId: req.authUser!.organizationId,
+      userId,
+      role: roleRow.code,
     });
     if (cleanProjectIds.length > 0) {
       await tx.insert(userProjectAccessTable).values(cleanProjectIds.map((pid) => ({
