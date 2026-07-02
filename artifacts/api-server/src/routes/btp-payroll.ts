@@ -31,8 +31,9 @@ import {
   positionsTable,
   contractsTable,
   organizationsTable,
+  attendanceSessionsTable,
 } from "@workspace/db";
-import { and, eq, inArray, sql, asc, desc } from "drizzle-orm";
+import { and, eq, inArray, sql, asc, desc, gte, lte } from "drizzle-orm";
 import ExcelJS from "exceljs";
 
 const router = Router();
@@ -420,6 +421,89 @@ router.put("/btp/periods/:id/attendance", async (req, res) => {
 
     return res.json({ ok: true, count: toUpsert.length });
   } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+// ─── PREFILL FROM KIOSK ────────────────────────────────────────────────────────
+/**
+ * POST /api/btp/periods/:id/prefill-from-kiosk
+ * Lit les sessions de pointage Kiosk (attendance_sessions) sur la période
+ * et pré-remplit btp_attendance_lines sans écraser les lignes déjà saisies.
+ * Logique :
+ *  - session.status = "closed" + effectiveMinutes > 0  → P, heures = effectiveMinutes / 60
+ *  - session.status = "abandoned" ou effectiveMinutes = 0 → A (absent)
+ *  - Aucune session ce jour → inchangé (on n'écrase pas)
+ */
+router.post("/btp/periods/:id/prefill-from-kiosk", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    const periodId = req.params.id as string;
+
+    const [period] = await db.select().from(btpPayPeriodsTable)
+      .where(and(eq(btpPayPeriodsTable.id, periodId), eq(btpPayPeriodsTable.organizationId, oid))).limit(1);
+    if (!period) return res.status(404).json({ error: "Période introuvable" });
+    if (period.status === "locked") return res.status(403).json({ error: "Période verrouillée" });
+
+    // Sessions Kiosk sur la plage de dates de la période
+    const sessions = await db.select({
+      collaboratorId: attendanceSessionsTable.collaboratorId,
+      workDate: attendanceSessionsTable.workDate,
+      status: attendanceSessionsTable.status,
+      effectiveMinutes: attendanceSessionsTable.effectiveMinutes,
+    }).from(attendanceSessionsTable)
+      .where(and(
+        eq(attendanceSessionsTable.organizationId, oid),
+        gte(attendanceSessionsTable.workDate, period.startDate),
+        lte(attendanceSessionsTable.workDate, period.endDate),
+      ));
+
+    if (sessions.length === 0) {
+      return res.json({ prefilled: 0, message: "Aucun badgeage Kiosk trouvé sur cette période" });
+    }
+
+    // Lignes déjà saisies manuellement (on ne les écrasera pas)
+    const existingLines = await db.select({
+      collaboratorId: btpAttendanceLinesTable.collaboratorId,
+      recordDate: btpAttendanceLinesTable.recordDate,
+    }).from(btpAttendanceLinesTable)
+      .where(and(
+        eq(btpAttendanceLinesTable.payPeriodId, periodId),
+        eq(btpAttendanceLinesTable.organizationId, oid),
+      ));
+
+    const existingSet = new Set(existingLines.map((l) => `${l.collaboratorId}:${l.recordDate}`));
+
+    // Construire les nouvelles lignes uniquement pour les jours sans saisie
+    const toInsert = sessions
+      .filter((s) => !existingSet.has(`${s.collaboratorId}:${s.workDate}`))
+      .map((s) => {
+        const closed = s.status === "closed" && (s.effectiveMinutes ?? 0) > 0;
+        const hoursWorked = closed ? Math.round(((s.effectiveMinutes ?? 0) / 60) * 100) / 100 : 0;
+        return {
+          organizationId: oid,
+          payPeriodId: periodId,
+          collaboratorId: s.collaboratorId,
+          recordDate: s.workDate,
+          status: closed ? "present" : "absent",
+          hoursWorked: String(hoursWorked),
+          overtimeHours: "0",
+          overtime100Hours: "0",
+          notes: "Import Kiosk",
+        };
+      });
+
+    if (toInsert.length > 0) {
+      await db.insert(btpAttendanceLinesTable).values(toInsert);
+    }
+
+    return res.json({
+      prefilled: toInsert.length,
+      skipped: sessions.length - toInsert.length,
+      message: `${toInsert.length} ligne(s) importées depuis le Kiosk (${sessions.length - toInsert.length} déjà saisies, inchangées)`,
+    });
+  } catch (e) {
+    return res.status(500).json({ error: "Erreur import Kiosk" });
+  }
 });
 
 // ─── CALCULATE ────────────────────────────────────────────────────────────────

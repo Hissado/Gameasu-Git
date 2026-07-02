@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Save, Calculator, Download, Lock, Unlock, RefreshCw,
-  Calendar, Users, ChevronRight, AlertCircle, CheckCircle, FileSpreadsheet,
+  Calendar, Users, ChevronRight, AlertCircle, CheckCircle, FileSpreadsheet, Wifi,
 } from "lucide-react";
 
 const API = "/api";
@@ -290,6 +290,19 @@ export default function BtpPointage() {
     onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
   });
 
+  const prefillKioskMut = useMutation({
+    mutationFn: () =>
+      fetchJSON(`${API}/btp/periods/${selectedPeriodId}/prefill-from-kiosk`, { method: "POST" }),
+    onSuccess: (r: { prefilled: number; skipped: number; message: string }) => {
+      qc.invalidateQueries({ queryKey: ["btp-attendance", selectedPeriodId] });
+      toast({
+        title: `${r.prefilled} ligne(s) importée(s) du Kiosk`,
+        description: r.skipped > 0 ? `${r.skipped} déjà saisie(s), non modifiée(s)` : r.message,
+      });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Erreur import Kiosk", description: e.message }),
+  });
+
   // ── Mise à jour cellule ───────────────────────────────────────────────
   function handleCell(collabId: string, date: string, val: Partial<CellValue>) {
     const key = `${collabId}:${date}` as CellKey;
@@ -362,6 +375,17 @@ export default function BtpPointage() {
             <Button size="sm" onClick={handleSave} disabled={saveMut.isPending}>
               <Save className="w-4 h-4 mr-1" />
               {saveMut.isPending ? "Sauvegarde…" : "Sauvegarder"}
+            </Button>
+          )}
+          {selectedPeriodId && !locked && (
+            <Button
+              size="sm" variant="outline"
+              onClick={() => prefillKioskMut.mutate()}
+              disabled={prefillKioskMut.isPending}
+              title="Importer les badgeages du Kiosk pour pré-remplir la grille (ne remplace pas les saisies existantes)"
+            >
+              <Wifi className="w-4 h-4 mr-1" />
+              {prefillKioskMut.isPending ? "Import…" : "Importer du Kiosk"}
             </Button>
           )}
           {selectedPeriodId && !locked && (
