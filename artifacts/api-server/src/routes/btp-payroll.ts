@@ -304,6 +304,21 @@ router.post("/btp/holidays", async (req, res) => {
   } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
 });
 
+router.put("/btp/holidays/:id", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    const { date, label, isRecurringYearly } = req.body ?? {};
+    if (!date || !label) return res.status(400).json({ error: "date et label requis" });
+    const [row] = await db.update(btpHolidaysTable)
+      .set({ date, label, isRecurringYearly: isRecurringYearly ?? true })
+      .where(and(eq(btpHolidaysTable.id, req.params.id as string), eq(btpHolidaysTable.organizationId, oid)))
+      .returning();
+    if (!row) return res.status(404).json({ error: "Introuvable" });
+    return res.json(row);
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
 router.delete("/btp/holidays/:id", async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;

@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar } from "lucide-react";
+import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar, Pencil } from "lucide-react";
 
 const API = "/api";
 async function fetchJSON(url: string, opts?: RequestInit) {
@@ -96,6 +96,7 @@ export default function BtpSettings() {
 
   const [holidayForm, setHolidayForm] = useState({ date: "", label: "", isRecurringYearly: true });
   const [holidayOpen, setHolidayOpen] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
 
   const saveMut = useMutation({
     mutationFn: (body: any) => fetchJSON(`${API}/btp/settings`, { method: "PUT", body: JSON.stringify(body) }),
@@ -113,6 +114,17 @@ export default function BtpSettings() {
       setHolidayOpen(false);
       setHolidayForm({ date: "", label: "", isRecurringYearly: true });
       toast({ title: "Jour férié ajouté" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const updateHolidayMut = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: any }) =>
+      fetchJSON(`${API}/btp/holidays/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["btp-holidays"] });
+      setEditingHoliday(null);
+      toast({ title: "Jour férié modifié" });
     },
     onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
   });
@@ -318,13 +330,23 @@ export default function BtpSettings() {
                           : <Badge variant="outline" className="text-[10px]">Ponctuel</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm" variant="ghost"
-                          onClick={() => delHolidayMut.mutate(h.id)}
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm" variant="ghost"
+                            onClick={() => setEditingHoliday(h)}
+                            className="text-blue-400 hover:text-blue-600"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm" variant="ghost"
+                            onClick={() => delHolidayMut.mutate(h.id)}
+                            className="text-red-400 hover:text-red-600"
+                            disabled={delHolidayMut.isPending}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -381,6 +403,57 @@ export default function BtpSettings() {
               disabled={!holidayForm.date || !holidayForm.label || addHolidayMut.isPending}
             >
               {addHolidayMut.isPending ? "Ajout…" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog modification jour férié */}
+      <Dialog open={!!editingHoliday} onOpenChange={(o) => { if (!o) setEditingHoliday(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Modifier le jour férié</DialogTitle>
+          </DialogHeader>
+          {editingHoliday && (
+            <div className="grid gap-3">
+              <div>
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  defaultValue={editingHoliday.date}
+                  onChange={(e) => setEditingHoliday((h) => h ? { ...h, date: e.target.value } : h)}
+                />
+              </div>
+              <div>
+                <Label>Libellé</Label>
+                <Input
+                  defaultValue={editingHoliday.label}
+                  onChange={(e) => setEditingHoliday((h) => h ? { ...h, label: e.target.value } : h)}
+                  placeholder="Ex: Fête de l'Indépendance"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-recurring"
+                  defaultChecked={editingHoliday.isRecurringYearly}
+                  onChange={(e) => setEditingHoliday((h) => h ? { ...h, isRecurringYearly: e.target.checked } : h)}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="edit-recurring">Récurrent chaque année (même MM-JJ)</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingHoliday(null)}>Annuler</Button>
+            <Button
+              onClick={() => editingHoliday && updateHolidayMut.mutate({
+                id: editingHoliday.id,
+                body: { date: editingHoliday.date, label: editingHoliday.label, isRecurringYearly: editingHoliday.isRecurringYearly },
+              })}
+              disabled={!editingHoliday?.date || !editingHoliday?.label || updateHolidayMut.isPending}
+            >
+              {updateHolidayMut.isPending ? "Enregistrement…" : "Enregistrer"}
             </Button>
           </DialogFooter>
         </DialogContent>
