@@ -154,10 +154,10 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   border-top: 1px solid #e2e8f0;
 }
-.cover-kpi { padding: 12px 16px 12px 0; border-right: 1px solid #e2e8f0; }
+.cover-kpi { padding: 12px 16px 12px 0; border-right: 1px solid #e2e8f0; min-width: 0; overflow: hidden; }
 .cover-kpi:last-child { border-right: none; }
 .cover-kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700; margin-bottom: 4px; }
-.cover-kpi-value { font-size: 16px; font-weight: 800; }
+.cover-kpi-value { font-size: 14px; font-weight: 800; word-break: break-word; overflow-wrap: anywhere; min-width: 0; line-height: 1.3; }
 .kpi-green { color: #10b981; } .kpi-red { color: #ef4444; } .kpi-blue { color: #3b82f6; }
 
 /* ─── Page header ─── */
@@ -172,10 +172,10 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
 .kpi-grid-3 { grid-template-columns: repeat(3,1fr); }
 .kpi-card {
   padding: 14px 16px; border-radius: 8px; border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  background: #f8fafc; min-width: 0; overflow: hidden;
 }
 .kpi-card-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #94a3b8; margin-bottom: 4px; }
-.kpi-card-val { font-size: 18px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 3px; }
+.kpi-card-val { font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.2; margin-bottom: 3px; word-break: break-word; overflow-wrap: anywhere; min-width: 0; }
 .kpi-card-sub { font-size: 10px; color: #94a3b8; }
 .kpi-accent-green { border-left: 3px solid #10b981; }
 .kpi-accent-red   { border-left: 3px solid #ef4444; }
@@ -279,16 +279,34 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; col
 
 /* ─── Print ─── */
 @media print {
-  body { background: #fff !important; }
+  body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .screen-toolbar { display: none !important; }
-  .report-container { margin-top: 0 !important; max-width: 100% !important; }
+  .report-container {
+    margin-top: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
   .pdf-page {
-    box-shadow: none !important; margin-bottom: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
     border-radius: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
     page-break-after: always; page-break-inside: avoid;
     break-after: page; break-inside: avoid;
   }
   .pdf-page:last-child { page-break-after: auto; break-after: auto; }
+  /* KPI cards: prevent overflow with large FCFA amounts */
+  .kpi-card { page-break-inside: avoid; break-inside: avoid; }
+  .kpi-card-val { font-size: 13px !important; }
+  .cover-kpi-value { font-size: 12px !important; }
+  /* Tables */
+  .pdf-table { table-layout: fixed; width: 100% !important; }
+  .pdf-table td, .pdf-table th { word-break: break-word; overflow-wrap: break-word; }
+  /* Two-col blocks stay side by side on print */
+  .two-col, .three-col { display: grid !important; }
+  .kpi-grid { display: grid !important; }
   @page { margin: 10mm 12mm; size: A4 portrait; }
 }
 `;
@@ -337,11 +355,32 @@ export default function ManagementPDFPage() {
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
 
+      const MARGIN = 8; // mm — uniform page margin
+      const cW = pageW - 2 * MARGIN;
+
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await toCanvas(pages[i], { pixelRatio: 2, backgroundColor: "#ffffff" });
+        const canvas = await toCanvas(pages[i], {
+          pixelRatio: 2,
+          backgroundColor: "#ffffff",
+          skipAutoScale: false,
+        });
         const imgData = canvas.toDataURL("image/jpeg", 0.97);
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH);
+
+        // Correct aspect ratio: never force-stretch to fill the page.
+        const imgH = (canvas.height / canvas.width) * cW;
+
+        if (imgH <= pageH - 2 * MARGIN) {
+          // Content fits in one page — place with margins, centred vertically
+          const yOff = MARGIN + Math.max(0, (pageH - 2 * MARGIN - imgH) / 2);
+          pdf.addImage(imgData, "JPEG", MARGIN, yOff, cW, imgH);
+        } else {
+          // Content taller than content area — scale to fit height instead
+          const fittedH = pageH - 2 * MARGIN;
+          const fittedW = (canvas.width / canvas.height) * fittedH;
+          const xOff = MARGIN + Math.max(0, (cW - fittedW) / 2);
+          pdf.addImage(imgData, "JPEG", xOff, MARGIN, fittedW, fittedH);
+        }
       }
 
       pdf.save(`rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`);

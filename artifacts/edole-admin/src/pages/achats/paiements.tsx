@@ -203,7 +203,7 @@ function NewPaymentDialog({ onClose, onSuccess, allSuppliers }: { onClose: () =>
                     <Checkbox checked={selectedSupplierIds.has(s.id)} onCheckedChange={() => toggleSupplier(s.id)} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{s.name}</p>
-                      {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
+                      {(s as any).email && <p className="text-xs text-muted-foreground">{(s as any).email}</p>}
                     </div>
                   </div>
                 ))}

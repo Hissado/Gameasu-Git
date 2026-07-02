@@ -181,16 +181,40 @@ export default function PrintDocumentPage() {
         }
         @media print {
           .no-print { display: none !important; }
-          body { margin: 0 !important; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { size: A4; margin: 0; }
+          body {
+            margin: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          @page { size: A4 portrait; margin: 12mm 15mm; }
           .print-wrapper {
             margin: 0 !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
           }
-          .print-footer { page-break-inside: avoid; }
+          .print-footer {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          /* Prevent table overflow */
+          table {
+            table-layout: fixed !important;
+            width: 100% !important;
+            word-break: break-word;
+          }
+          td, th {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          /* Prevent cards from breaking across pages */
+          section {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
         }
       `}</style>
 
@@ -392,15 +416,15 @@ export default function PrintDocumentPage() {
         {/* Lignes */}
         {lines.length > 0 ? (
           <section style={{ marginBottom: "8mm" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", tableLayout: "fixed" }}>
               <thead>
                 <tr style={{ backgroundColor: "#1a1a2e", color: "white" }}>
-                  <th style={{ padding: "3mm", textAlign: "left", fontWeight: 600, width: "35%" }}>Description</th>
-                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "8%" }}>Qté</th>
-                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "17%" }}>P.U. HT (FCFA)</th>
-                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "10%" }}>Remise</th>
-                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "10%" }}>TVA</th>
-                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "20%" }}>Total TTC (FCFA)</th>
+                  <th style={{ padding: "3mm", textAlign: "left", fontWeight: 600, width: "34%", wordBreak: "break-word" }}>Description</th>
+                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "7%" }}>Qté</th>
+                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "19%" }}>P.U. HT (FCFA)</th>
+                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "8%" }}>Rem.</th>
+                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "8%" }}>TVA</th>
+                  <th style={{ padding: "3mm", textAlign: "right", fontWeight: 600, width: "24%" }}>Total TTC (FCFA)</th>
                 </tr>
               </thead>
               <tbody>
@@ -412,14 +436,14 @@ export default function PrintDocumentPage() {
                       borderBottom: "1px solid #e5e7eb",
                     }}
                   >
-                    <td style={{ padding: "2.5mm 3mm", fontWeight: 500 }}>{line.description}</td>
+                    <td style={{ padding: "2.5mm 3mm", fontWeight: 500, wordBreak: "break-word", overflowWrap: "anywhere" }}>{line.description}</td>
                     <td style={{ padding: "2.5mm 3mm", textAlign: "right" }}>{line.quantity}</td>
-                    <td style={{ padding: "2.5mm 3mm", textAlign: "right" }}>{formatFCFA(line.unitPriceFcfa)}</td>
+                    <td style={{ padding: "2.5mm 3mm", textAlign: "right", wordBreak: "break-word" }}>{formatFCFA(line.unitPriceFcfa)}</td>
                     <td style={{ padding: "2.5mm 3mm", textAlign: "right", color: line.discountPct > 0 ? "#dc2626" : "#9ca3af" }}>
                       {line.discountPct > 0 ? `${line.discountPct}%` : "—"}
                     </td>
                     <td style={{ padding: "2.5mm 3mm", textAlign: "right" }}>{line.taxRatePct}%</td>
-                    <td style={{ padding: "2.5mm 3mm", textAlign: "right", fontWeight: 700, color: "#1a1a2e" }}>
+                    <td style={{ padding: "2.5mm 3mm", textAlign: "right", fontWeight: 700, color: "#1a1a2e", wordBreak: "break-word" }}>
                       {formatFCFA(line.totalFcfa)}
                     </td>
                   </tr>

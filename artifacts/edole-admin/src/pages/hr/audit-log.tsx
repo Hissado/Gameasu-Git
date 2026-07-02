@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Search, User, Calendar, ArrowRightLeft, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { apiFetch } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 import { useLocation } from "wouter";
 
 type AuditLog = {
@@ -65,7 +65,7 @@ export default function HrAuditLogPage() {
       const q = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
       if (actionFilter && actionFilter !== "all") q.set("action", actionFilter);
       if (entityFilter) q.set("entityId", entityFilter);
-      return apiFetch(`/api/hr/audit-logs?${q}`).then(r => r.json());
+      return apiFetch<{ data: AuditLog[]; total: number }>(`/api/hr/audit-logs?${q}`);
     },
   });
 
