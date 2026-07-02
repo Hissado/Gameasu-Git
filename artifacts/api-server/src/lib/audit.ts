@@ -23,10 +23,12 @@ export type AuditAction =
   | "proforma_edit" | "proforma_cancel" | "proforma_generate_invoice"
   | "invoice_edit" | "invoice_cancel" | "payment_record"
   | "kiosk_token_generate" | "kiosk_token_revoke" | "kiosk_token_access" | "kiosk_create" | "kiosk_delete"
+  | "qr_token_generate" | "qr_token_status_change" | "qr_token_revoke"
   | "expert_firm_create" | "expert_firm_update"
   | "expert_member_invite" | "expert_member_remove"
   | "expert_client_link" | "expert_client_unlink"
-  | "expert_doc_request_create" | "expert_doc_request_update";
+  | "expert_doc_request_create" | "expert_doc_request_update"
+  | "expert_plan_change";
 
 export async function audit(
   req: Pick<Request, "ip" | "headers"> & { authUser?: { id: string; email: string; organizationId?: string } },

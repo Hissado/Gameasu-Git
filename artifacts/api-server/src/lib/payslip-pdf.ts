@@ -61,12 +61,13 @@ export function generatePayslipPdf(
   doc.pipe(output);
 
   const W = 515;
-  const NAVY  = "#0E1A39";
-  const BLUE  = "#2563EB";
-  const DARK  = "#0F172A";
-  const GRAY  = "#64748B";
-  const LIGHT = "#F8FAFC";
-  const RED   = "#DC2626";
+  const NAVY   = "#0E1A39";
+  const BLUE   = "#2563EB";
+  const DARK   = "#0F172A";
+  const GRAY   = "#64748B";
+  const LIGHT  = "#F8FAFC";
+  const RED    = "#DC2626";
+  const ORANGE = "#F37021";
 
   let y = 40;
 

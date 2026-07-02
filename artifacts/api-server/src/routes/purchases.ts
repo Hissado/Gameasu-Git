@@ -1745,7 +1745,7 @@ router.patch("/purchases/expenses/:id/status", requirePermission("purchases.writ
       rejectionReason: z.string().optional(),
     }).parse(req.body);
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const [updated] = await db.update(expenseReportsTable)
       .set({
         status,

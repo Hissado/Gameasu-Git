@@ -366,11 +366,11 @@ router.get("/reports/workload", requireAuth, async (_req, res) => {
 // FINANCE — Facturation, encaissement, créances
 // ════════════════════════════════════════════════════════════════
 
-async function buildFinanceReport(period: { from: Date; to: Date }) {
+async function buildFinanceReport(period: { from: Date; to: Date }, orgId: string) {
   const { from, to } = period;
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const invoices = await db.select().from(invoicesTable);
+  const invoices = await db.select().from(invoicesTable).where(eq(invoicesTable.organizationId, orgId));
   const inPeriod = invoices.filter((inv) => {
     const ref = inv.issuedAt ? new Date(inv.issuedAt) : new Date(inv.createdAt);
     return ref >= from && ref <= to;
@@ -385,7 +385,7 @@ async function buildFinanceReport(period: { from: Date; to: Date }) {
   const overdue = outstandingAll.filter((i) => i.dueDate && i.dueDate < todayStr);
   const overdueAmount = overdue.reduce((s, i) => s + (num(i.totalAmount) - num(i.paidAmount)), 0);
 
-  const payments = await db.select().from(paymentsTable).where(and(gte(paymentsTable.paidAt, from), lte(paymentsTable.paidAt, to)));
+  const payments = await db.select().from(paymentsTable).where(and(eq(paymentsTable.organizationId, orgId), gte(paymentsTable.paidAt, from), lte(paymentsTable.paidAt, to)));
   const collectedAmount = payments.reduce((s, p) => s + num(p.amount), 0);
 
   // Évolution mensuelle sur les 12 derniers mois (relative à `to`)
@@ -398,7 +398,7 @@ async function buildFinanceReport(period: { from: Date; to: Date }) {
     const k = monthKey(inv.issuedAt || inv.createdAt);
     if (k) monthFacture[k] = (monthFacture[k] || 0) + num(inv.totalAmount);
   }
-  const allPayments = await db.select().from(paymentsTable);
+  const allPayments = await db.select().from(paymentsTable).where(eq(paymentsTable.organizationId, orgId));
   for (const p of allPayments) {
     const k = monthKey(p.paidAt || p.createdAt);
     if (k) monthEncaisse[k] = (monthEncaisse[k] || 0) + num(p.amount);
@@ -469,7 +469,7 @@ async function buildFinanceReport(period: { from: Date; to: Date }) {
 router.get("/reports/finance", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const report = await buildFinanceReport(period);
+    const report = await buildFinanceReport(period, req.authUser!.organizationId);
     res.json(report);
   } catch (e) { next(e); }
 });
@@ -478,7 +478,7 @@ router.get("/reports/finance/export.xlsx", requireAuth, requireManagerOrAbove, a
   try {
     const period = parsePeriod(req);
     const [r, orgName] = await Promise.all([
-      buildFinanceReport(period),
+      buildFinanceReport(period, req.authUser!.organizationId),
       getOrgName(req.authUser!.organizationId),
     ]);
 
@@ -562,18 +562,18 @@ router.get("/reports/finance/export.xlsx", requireAuth, requireManagerOrAbove, a
 // VENTES — Commandes, proformas, pipeline opportunités
 // ════════════════════════════════════════════════════════════════
 
-async function buildSalesReport(period: { from: Date; to: Date }) {
+async function buildSalesReport(period: { from: Date; to: Date }, orgId: string) {
   const { from, to } = period;
-  const orders = await db.select().from(ordersTable).where(and(isNull(ordersTable.deletedAt), gte(ordersTable.createdAt, from), lte(ordersTable.createdAt, to)));
-  const proformas = await db.select().from(proformasTable).where(and(gte(proformasTable.createdAt, from), lte(proformasTable.createdAt, to)));
-  const invoicesAll = await db.select().from(invoicesTable);
+  const orders = await db.select().from(ordersTable).where(and(eq(ordersTable.organizationId, orgId), isNull(ordersTable.deletedAt), gte(ordersTable.createdAt, from), lte(ordersTable.createdAt, to)));
+  const proformas = await db.select().from(proformasTable).where(and(eq(proformasTable.organizationId, orgId), gte(proformasTable.createdAt, from), lte(proformasTable.createdAt, to)));
+  const invoicesAll = await db.select().from(invoicesTable).where(eq(invoicesTable.organizationId, orgId));
 
   const ordersAmount = orders.reduce((s, o) => s + num(o.totalAmount), 0);
   const proformasAmount = proformas.reduce((s, p) => s + num(p.totalAmount), 0);
   const convertedProformaIds = new Set(invoicesAll.filter((i) => i.proformaId).map((i) => i.proformaId as string));
   const proformasConverted = proformas.filter((p) => convertedProformaIds.has(p.id)).length;
 
-  const clients = await db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable);
+  const clients = await db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable).where(eq(clientsTable.organizationId, orgId));
   const clientNames = new Map(clients.map((c) => [c.id, c.name]));
 
   const byClient: Record<string, { id: string; name: string; amount: number; count: number }> = {};
@@ -586,7 +586,7 @@ async function buildSalesReport(period: { from: Date; to: Date }) {
   const topClients = Object.values(byClient).sort((a, b) => b.amount - a.amount).slice(0, 5);
 
   // Évolution mensuelle commandes (12 mois)
-  const allOrders = await db.select().from(ordersTable).where(isNull(ordersTable.deletedAt));
+  const allOrders = await db.select().from(ordersTable).where(and(eq(ordersTable.organizationId, orgId), isNull(ordersTable.deletedAt)));
   const monthOrders: Record<string, { count: number; amount: number }> = {};
   for (const o of allOrders) {
     const k = monthKey(o.createdAt);
@@ -607,8 +607,8 @@ async function buildSalesReport(period: { from: Date; to: Date }) {
     });
   }
 
-  // Pipeline opportunités (état actuel — non filtré sur période)
-  const opps = await db.select().from(opportunitiesTable).where(isNull(opportunitiesTable.deletedAt));
+  // Pipeline opportunités (état actuel — filtré par organisation)
+  const opps = await db.select().from(opportunitiesTable).where(and(eq(opportunitiesTable.organizationId, orgId), isNull(opportunitiesTable.deletedAt)));
   const pipeline: Record<string, { count: number; value: number }> = {};
   for (const op of opps) {
     const k = op.stage || "lead";
@@ -637,14 +637,14 @@ async function buildSalesReport(period: { from: Date; to: Date }) {
 }
 
 router.get("/reports/sales", requireAuth, async (req, res, next) => {
-  try { res.json(await buildSalesReport(parsePeriod(req))); } catch (e) { next(e); }
+  try { res.json(await buildSalesReport(parsePeriod(req), req.authUser!.organizationId)); } catch (e) { next(e); }
 });
 
 router.get("/reports/sales/export.xlsx", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
     const [r, orgName] = await Promise.all([
-      buildSalesReport(period),
+      buildSalesReport(period, req.authUser!.organizationId),
       getOrgName(req.authUser!.organizationId),
     ]);
 
@@ -712,9 +712,9 @@ router.get("/reports/sales/export.xlsx", requireAuth, async (req, res, next) => 
 // PROJETS — Portefeuille, retards, marges
 // ════════════════════════════════════════════════════════════════
 
-async function buildProjectsReport(period: { from: Date; to: Date }) {
+async function buildProjectsReport(period: { from: Date; to: Date }, orgId: string) {
   const { from, to } = period;
-  const allProjects = await db.select().from(projectsTable).where(isNull(projectsTable.deletedAt));
+  const allProjects = await db.select().from(projectsTable).where(and(eq(projectsTable.organizationId, orgId), isNull(projectsTable.deletedAt)));
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const totalCount = allProjects.length;
@@ -784,14 +784,14 @@ async function buildProjectsReport(period: { from: Date; to: Date }) {
 }
 
 router.get("/reports/projects", requireAuth, async (req, res, next) => {
-  try { res.json(await buildProjectsReport(parsePeriod(req))); } catch (e) { next(e); }
+  try { res.json(await buildProjectsReport(parsePeriod(req), req.authUser!.organizationId)); } catch (e) { next(e); }
 });
 
 router.get("/reports/projects/export.xlsx", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
     const [r, orgName] = await Promise.all([
-      buildProjectsReport(period),
+      buildProjectsReport(period, req.authUser!.organizationId),
       getOrgName(req.authUser!.organizationId),
     ]);
 
@@ -868,12 +868,12 @@ router.get("/reports/projects/export.xlsx", requireAuth, async (req, res, next) 
 // RH — Effectifs, présence, anomalies
 // ════════════════════════════════════════════════════════════════
 
-async function buildHrReport(period: { from: Date; to: Date }) {
+async function buildHrReport(period: { from: Date; to: Date }, orgId: string) {
   const { from, to } = period;
   const fromDate = from.toISOString().slice(0, 10);
   const toDate = to.toISOString().slice(0, 10);
 
-  const collaborators = await db.select().from(collaboratorsTable).where(isNull(collaboratorsTable.deletedAt));
+  const collaborators = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)));
   const total = collaborators.length;
   const active = collaborators.filter((c) => c.employmentStatus === "active").length;
   const onLeave = collaborators.filter((c) => c.employmentStatus === "on_leave").length;
@@ -955,14 +955,14 @@ async function buildHrReport(period: { from: Date; to: Date }) {
 }
 
 router.get("/reports/hr", requireAuth, requireManagerOrAbove, async (req, res, next) => {
-  try { res.json(await buildHrReport(parsePeriod(req))); } catch (e) { next(e); }
+  try { res.json(await buildHrReport(parsePeriod(req), req.authUser!.organizationId)); } catch (e) { next(e); }
 });
 
 router.get("/reports/hr/export.xlsx", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
     const [r, orgName] = await Promise.all([
-      buildHrReport(period),
+      buildHrReport(period, req.authUser!.organizationId),
       getOrgName(req.authUser!.organizationId),
     ]);
 
@@ -1051,7 +1051,7 @@ function sendCsv(res: import("express").Response, rows: (string | number)[][], f
 router.get("/reports/finance/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildFinanceReport(period);
+    const r = await buildFinanceReport(period, req.authUser!.organizationId);
     const rows: (string | number)[][] = [
       ["GAMEASU — Rapport Finance"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
@@ -1083,7 +1083,7 @@ router.get("/reports/finance/export.csv", requireAuth, requireManagerOrAbove, as
 router.get("/reports/sales/export.csv", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildSalesReport(period);
+    const r = await buildSalesReport(period, req.authUser!.organizationId);
     const rows: (string | number)[][] = [
       ["GAMEASU — Rapport Ventes"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
@@ -1112,7 +1112,7 @@ router.get("/reports/sales/export.csv", requireAuth, async (req, res, next) => {
 router.get("/reports/projects/export.csv", requireAuth, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildProjectsReport(period);
+    const r = await buildProjectsReport(period, req.authUser!.organizationId);
     const rows: (string | number)[][] = [
       ["GAMEASU — Rapport Projets"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
@@ -1142,7 +1142,7 @@ router.get("/reports/projects/export.csv", requireAuth, async (req, res, next) =
 router.get("/reports/hr/export.csv", requireAuth, requireManagerOrAbove, async (req, res, next) => {
   try {
     const period = parsePeriod(req);
-    const r = await buildHrReport(period);
+    const r = await buildHrReport(period, req.authUser!.organizationId);
     const rows: (string | number)[][] = [
       ["GAMEASU — Rapport RH"],
       [`Période : ${period.from.toLocaleDateString("fr-FR")} → ${period.to.toLocaleDateString("fr-FR")}  |  Généré le : ${new Date().toLocaleString("fr-FR")}`],
@@ -1178,10 +1178,10 @@ router.get("/reports/overview/export.xlsx", requireAuth, requireManagerOrAbove, 
   try {
     const period = parsePeriod(req);
     const [finance, sales, projects, hr, orgName] = await Promise.all([
-      buildFinanceReport(period),
-      buildSalesReport(period),
-      buildProjectsReport(period),
-      buildHrReport(period),
+      buildFinanceReport(period, req.authUser!.organizationId),
+      buildSalesReport(period, req.authUser!.organizationId),
+      buildProjectsReport(period, req.authUser!.organizationId),
+      buildHrReport(period, req.authUser!.organizationId),
       getOrgName(req.authUser!.organizationId),
     ]);
 
@@ -1273,10 +1273,10 @@ router.get("/reports/overview/export.csv", requireAuth, requireManagerOrAbove, a
   try {
     const period = parsePeriod(req);
     const [finance, sales, projects, hr] = await Promise.all([
-      buildFinanceReport(period),
-      buildSalesReport(period),
-      buildProjectsReport(period),
-      buildHrReport(period),
+      buildFinanceReport(period, req.authUser!.organizationId),
+      buildSalesReport(period, req.authUser!.organizationId),
+      buildProjectsReport(period, req.authUser!.organizationId),
+      buildHrReport(period, req.authUser!.organizationId),
     ]);
     const rows: (string | number)[][] = [
       ["GAMEASU — Rapport de Synthèse"],
@@ -1310,10 +1310,10 @@ router.get("/reports/overview", requireAuth, requireManagerOrAbove, async (req, 
   try {
     const period = parsePeriod(req);
     const [finance, sales, projects, hr] = await Promise.all([
-      buildFinanceReport(period),
-      buildSalesReport(period),
-      buildProjectsReport(period),
-      buildHrReport(period),
+      buildFinanceReport(period, req.authUser!.organizationId),
+      buildSalesReport(period, req.authUser!.organizationId),
+      buildProjectsReport(period, req.authUser!.organizationId),
+      buildHrReport(period, req.authUser!.organizationId),
     ]);
     res.json({
       period: { from: period.from.toISOString(), to: period.to.toISOString() },

@@ -393,10 +393,10 @@ router.post("/inventory/purchase-orders/:id/receive", requirePermission("invento
       .where(eq(purchaseOrderLinesTable.id, line.id));
     await db.insert(stockMovementsTable).values({
       organizationId: orgId,
-      productId: line.productId,
+      productId: line.productId!,
       kind: "in",
       quantity: String(r.quantity),
-      unitCostFcfa: line.unitPriceFcfa,
+      unitCostFcfa: line.unitPriceFcfa ?? undefined,
       referenceType: "purchase",
       referenceId: po.id,
       referenceLabel: po.reference,

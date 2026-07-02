@@ -1,0 +1,368 @@
+Pouvez-vous effectuer une dernière revue complète, un audit fonctionnel et des tests de bout en bout sur toutes les sections de l’application Gameasu afin de vérifier que tout fonctionne correctement avant utilisation réelle par les clients ?
+
+Objectif
+
+Je veux m’assurer que l’ensemble de l’application est stable, cohérent, bien synchronisé, fiable dans ses calculs, sans bugs majeurs, et prêt pour un déploiement client.
+
+Merci de tester toutes les sections de l’application, tous les scénarios importants, les calculs, les rapports, les synchronisations entre modules, les exports, les permissions, les workflows et l’expérience utilisateur.
+
+⸻
+
+1. Revue complète de toutes les sections
+
+Merci de vérifier toutes les sections de l’application, notamment :
+
+* Tableau de bord
+* Clients
+* Prospects / CRM
+* Ventes
+* Devis
+* Commandes
+* Factures
+* Encaissements
+* Achats
+* Fournisseurs
+* Dépenses
+* Bons de commande
+* Paiements fournisseurs
+* Finance
+* Comptabilité
+* Comptabilité analytique
+* Trésorerie
+* Budgets & prévisions
+* Recouvrement
+* Stock & inventaire
+* Équipements / immobilisations
+* Ressources humaines
+* Collaborateurs
+* Congés
+* Présences & Kiosk
+* Badges QR
+* Paie
+* Projets
+* Opérations
+* Documents
+* Rapports
+* Paramètres
+* Utilisateurs & accès
+* Rôles & permissions
+* Abonnement & facturation
+* Add-ons
+* Cockpit Plateforme
+* Notifications
+* Support / Tickets
+
+Chaque section doit être revue pour vérifier son fonctionnement, sa logique métier, son affichage, ses données, ses actions et sa connexion avec les autres modules.
+
+⸻
+
+2. Tester les scénarios de bout en bout
+
+Merci de tester des scénarios réels comme un utilisateur client le ferait.
+
+Scénarios commerciaux
+
+* créer un prospect ;
+* convertir un prospect en client ;
+* créer un devis ;
+* transformer un devis en facture ;
+* enregistrer un encaissement ;
+* vérifier l’impact sur le tableau de bord, les rapports, la trésorerie et la comptabilité.
+
+Scénarios achats
+
+* créer un fournisseur ;
+* créer une dépense ;
+* uploader une facture fournisseur ;
+* créer un bon de commande ;
+* valider une facture fournisseur ;
+* enregistrer un paiement fournisseur ;
+* vérifier l’impact sur les achats, la trésorerie, les rapports et la comptabilité.
+
+Scénarios RH
+
+* créer un collaborateur ;
+* ajouter son contrat ;
+* générer son numéro kiosk ;
+* générer son badge QR ;
+* enregistrer un pointage ;
+* soumettre une demande de congé ;
+* approuver ou refuser la demande ;
+* vérifier l’impact sur les présences, les congés, la paie et les rapports RH.
+
+Scénarios finance
+
+* créer un compte comptable ;
+* enregistrer une écriture ;
+* vérifier la balance ;
+* vérifier les rapports financiers ;
+* vérifier les budgets ;
+* vérifier les écarts ;
+* vérifier les impacts sur le tableau de bord.
+
+Scénarios stock
+
+* créer un produit ;
+* ajouter un stock initial ;
+* enregistrer une entrée de stock ;
+* enregistrer une sortie de stock ;
+* vérifier les alertes stock faible ;
+* vérifier les impacts sur ventes, achats, rapports et inventaire.
+
+Scénarios projets
+
+* créer un projet ;
+* affecter une équipe ;
+* ajouter des tâches ;
+* lier des dépenses ;
+* suivre l’avancement ;
+* vérifier les rapports projet et l’analytique.
+
+⸻
+
+3. Vérifier les calculs
+
+Merci de vérifier que tous les calculs sont corrects, dynamiques et cohérents.
+
+Contrôler notamment :
+
+* chiffre d’affaires ;
+* encaissements ;
+* créances clients ;
+* dettes fournisseurs ;
+* dépenses ;
+* marges ;
+* bénéfice / résultat net ;
+* trésorerie ;
+* budgets ;
+* écarts budget vs réalisé ;
+* solde de congés ;
+* heures travaillées ;
+* heures supplémentaires ;
+* retards ;
+* absences ;
+* paie ;
+* stock disponible ;
+* valorisation du stock ;
+* coûts par projet ;
+* indicateurs analytiques ;
+* KPI du tableau de bord ;
+* totaux dans les rapports PDF et Excel.
+
+Les calculs doivent rester justes après création, modification, suppression ou validation d’une donnée.
+
+⸻
+
+4. Vérifier les synchronisations entre modules
+
+Merci de vérifier qu’il n’y a aucune incohérence entre les modules.
+
+Exemples de synchronisation attendue :
+
+* facture créée → ventes, client, comptabilité, rapports et tableau de bord ;
+* paiement reçu → encaissements, trésorerie, facture, client et rapports ;
+* facture fournisseur validée → achats, fournisseur, comptabilité, trésorerie et rapports ;
+* paiement fournisseur → dettes fournisseurs, trésorerie et rapports ;
+* collaborateur créé → RH, paie, présences, kiosk et rapports ;
+* pointage validé → présences, feuille de temps, paie et rapports ;
+* congé approuvé → solde de congés, RH, paie et rapports ;
+* stock vendu → stock, ventes, facture et rapports ;
+* dépense projet → projet, finance, analytique et rapports ;
+* budget modifié → tableau de bord, écarts et rapports ;
+* document ajouté → module concerné et Documents.
+
+Aucune donnée ne doit rester isolée ou désynchronisée.
+
+⸻
+
+5. Vérifier les rapports
+
+Merci de vérifier que les rapports sont bien connectés aux bonnes données et que les chiffres affichés correspondent aux modules sources.
+
+Rapports à vérifier :
+
+* rapport de gestion ;
+* rapport financier ;
+* rapport comptable ;
+* rapport analytique ;
+* rapport trésorerie ;
+* rapport ventes ;
+* rapport CRM ;
+* rapport clients ;
+* rapport recouvrement ;
+* rapport achats ;
+* rapport fournisseurs ;
+* rapport dépenses ;
+* rapport stock ;
+* rapport RH ;
+* rapport présences ;
+* rapport kiosk ;
+* rapport paie ;
+* rapport projets ;
+* rapport opérations ;
+* rapport budgets ;
+* rapport Cockpit ;
+* factures PDF ;
+* devis PDF ;
+* reçus PDF ;
+* bons de commande PDF.
+
+À vérifier dans les rapports
+
+* chiffres corrects ;
+* totaux exacts ;
+* données bien synchronisées ;
+* périodes correctes ;
+* filtres fonctionnels ;
+* export PDF propre ;
+* export Excel propre ;
+* aucun débordement ;
+* aucun tableau coupé ;
+* branding Gameasu cohérent ;
+* liens entre rapports et modules sources corrects.
+
+⸻
+
+6. Vérifier les permissions et rôles
+
+Merci de tester les rôles et permissions.
+
+Vérifier que :
+
+* les admins voient tout ;
+* les managers voient uniquement les données autorisées ;
+* les utilisateurs standards ne voient pas les données sensibles ;
+* les données RH, paie et finance sont protégées ;
+* les actions critiques sont bien limitées ;
+* les validations respectent les rôles ;
+* le backend vérifie les permissions, pas seulement le frontend ;
+* les utilisateurs ne peuvent pas accéder aux données d’un autre tenant.
+
+⸻
+
+7. Vérifier les paramètres
+
+Merci de vérifier que les paramètres ont un impact réel dans l’application.
+
+Tester notamment :
+
+* paramètres entreprise ;
+* devise ;
+* fiscalité ;
+* taxes ;
+* numérotation des documents ;
+* conditions de paiement ;
+* rôles et permissions ;
+* workflows d’approbation ;
+* paramètres RH ;
+* paramètres de congés ;
+* paramètres kiosk ;
+* paramètres paie ;
+* paramètres stock ;
+* paramètres rapports ;
+* paramètres notifications ;
+* paramètres abonnement.
+
+Les paramètres ne doivent pas être décoratifs : ils doivent réellement modifier le comportement des modules concernés.
+
+⸻
+
+8. Vérifier les bugs et erreurs
+
+Merci d’identifier et corriger :
+
+* erreurs console ;
+* erreurs de build ;
+* bugs visibles ;
+* boutons non fonctionnels ;
+* liens cassés ;
+* filtres incorrects ;
+* lenteurs ;
+* erreurs 404 / 500 ;
+* doublons ;
+* données incohérentes ;
+* formulaires qui ne sauvegardent pas ;
+* exports qui échouent ;
+* rapports incomplets ;
+* problèmes de navigation ;
+* problèmes responsive ;
+* textes coupés ;
+* montants débordés ;
+* modals mal affichés ;
+* problèmes de synchronisation.
+
+⸻
+
+9. Vérifier l’expérience mobile
+
+Merci de tester l’application sur mobile et tablette.
+
+Vérifier :
+
+* cartes KPI ;
+* tableaux ;
+* montants longs ;
+* menus ;
+* formulaires ;
+* modals ;
+* graphiques ;
+* rapports ;
+* boutons ;
+* filtres ;
+* navigation ;
+* kiosk ;
+* profils collaborateurs.
+
+Aucun élément ne doit déborder ou rendre l’application difficile à utiliser sur mobile.
+
+⸻
+
+10. Vérifier les données demo
+
+Merci de vérifier que les données demo sont cohérentes et réalistes.
+
+Contrôler :
+
+* clients ;
+* fournisseurs ;
+* produits ;
+* factures ;
+* paiements ;
+* collaborateurs ;
+* projets ;
+* stock ;
+* budgets ;
+* rapports ;
+* données analytiques ;
+* emails ;
+* noms ;
+* montants ;
+* statuts.
+
+Les données demo doivent être cohérentes entre modules et ne pas contenir d’anciennes références, de données cassées ou de valeurs incohérentes.
+
+⸻
+
+11. Recommandations finales
+
+À la fin de l’audit, merci de fournir une synthèse avec :
+
+* ce qui fonctionne bien ;
+* les bugs corrigés ;
+* les incohérences détectées ;
+* les synchronisations corrigées ;
+* les calculs corrigés ;
+* les rapports validés ;
+* les modules à améliorer ;
+* les risques restants ;
+* les recommandations avant mise en production.
+
+⸻
+
+Résultat attendu
+
+Je veux une dernière revue complète de Gameasu avec correction des bugs, validation des scénarios, vérification des calculs, contrôle des rapports, synchronisation des modules et recommandations finales.
+
+Objectif final
+
+S’assurer que Gameasu est stable, cohérent, professionnel, bien synchronisé, fiable dans ses calculs, propre sur mobile et desktop, et prêt à être présenté ou utilisé par de vrais clients.

@@ -335,7 +335,8 @@ router.post("/btp/groups", async (req, res) => {
     if (hoursPerWeek !== undefined) vals.hoursPerWeek = String(hoursPerWeek);
     if (hoursPerDayStandard !== undefined) vals.hoursPerDayStandard = String(hoursPerDayStandard);
     if (absenceBaseCalendarDays !== undefined) vals.absenceBaseCalendarDays = absenceBaseCalendarDays;
-    const [row] = await db.insert(btpPayGroupsTable).values(vals).returning();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [row] = await db.insert(btpPayGroupsTable).values(vals as any).returning();
     return res.status(201).json(row);
   } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
 });
@@ -806,7 +807,7 @@ router.post("/btp/periods/:id/calculate", async (req, res) => {
 
       // Report mois précédent (BN) — passé dans req.body par collaborateur si besoin
       const carryoverMap: Record<string, number> = req.body?.carryoverHours ?? {};
-      const carryover = parseFloat(carryoverMap[collab.id] ?? "0") || 0;
+      const carryover = (carryoverMap[collab.id] ?? 0) || 0;
 
       // Calcul hebdomadaire
       let hoursNormalTotal = 0, hoursHs20Total = 0, hoursHs40Total = 0;

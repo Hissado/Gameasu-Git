@@ -633,9 +633,8 @@ router.patch(
       await audit(req, "expert_plan_change", {
         entityType: "organization_subscription",
         entityId: newSub.id,
-        orgId,
-        firmId,
-        planCode: plan.code,
+        organizationId: orgId,
+        payload: { firmId, planCode: plan.code },
       });
 
       return res.json({ subscription: newSub, plan });
@@ -1146,10 +1145,7 @@ router.get(
       })
       .from(usersTable)
       .where(
-        and(
-          eq(usersTable.organizationId, orgId),
-          isNull(usersTable.deletedAt),
-        ),
+        eq(usersTable.organizationId, orgId),
       );
     return res.json(users);
   },
