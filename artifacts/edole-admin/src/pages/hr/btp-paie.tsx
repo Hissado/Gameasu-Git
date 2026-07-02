@@ -308,6 +308,12 @@ export default function BtpPaie() {
     onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
   });
 
+  const comptabiliserMut = useMutation({
+    mutationFn: () => fetchJSON(`${API}/btp/periods/${selectedPeriodId}/post-accounting`, { method: "POST" }),
+    onSuccess: (d: any) => toast({ title: `Écriture comptable créée`, description: `N° ${d.entryNumber}` }),
+    onError: (e: Error) => toast({ variant: "destructive", title: "Comptabilisation impossible", description: e.message }),
+  });
+
   // KPIs agrégés
   const kpis = reports.reduce(
     (acc, r) => ({
@@ -343,6 +349,15 @@ export default function BtpPaie() {
               onClick={() => window.open(`${API}/btp/periods/${selectedPeriodId}/export/salaires.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}
             >
               <FileSpreadsheet className="w-4 h-4 mr-1" />Export Excel
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              className="text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+              onClick={() => { if (confirm("Générer les écritures comptables SYSCOHADA pour cette période ?")) comptabiliserMut.mutate(); }}
+              disabled={comptabiliserMut.isPending}
+            >
+              <Receipt className="w-4 h-4 mr-1" />
+              {comptabiliserMut.isPending ? "En cours…" : "Comptabiliser"}
             </Button>
           </div>
         ) : null

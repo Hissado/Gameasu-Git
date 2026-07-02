@@ -18,7 +18,7 @@ type LeavePolicy = {
   id: string; leaveType: string; isActive: boolean;
   minNoticeDays: number; maxDaysPerYear: string | null; carryOverMax: string | null;
   requiresApproval: boolean; allowHalfDay: boolean; accrualRate: string | null;
-  defaultAllocatedDays: string; description: string | null;
+  defaultAllocatedDays: string; approverRole: string; description: string | null;
 };
 
 const LEAVE_TYPES = [
@@ -31,11 +31,16 @@ const LEAVE_LABELS: Record<string, string> = {
   formation: "Formation", exceptionnel: "Exceptionnel", autre: "Autre",
 };
 
+const APPROVER_LABELS: Record<string, string> = {
+  auto: "Automatique", manager: "Manager direct",
+  hr: "Service RH", manager_then_hr: "Manager → RH",
+};
+
 const EMPTY_FORM = {
   leaveType: "congé_payé", isActive: true,
   minNoticeDays: "0", maxDaysPerYear: "", carryOverMax: "",
   requiresApproval: true, allowHalfDay: false,
-  accrualRate: "", defaultAllocatedDays: "0", description: "",
+  accrualRate: "", defaultAllocatedDays: "0", approverRole: "manager", description: "",
 };
 
 export default function LeavePoliciesPage() {
@@ -84,7 +89,7 @@ export default function LeavePoliciesPage() {
       maxDaysPerYear: p.maxDaysPerYear ?? "", carryOverMax: p.carryOverMax ?? "",
       requiresApproval: p.requiresApproval, allowHalfDay: p.allowHalfDay,
       accrualRate: p.accrualRate ?? "", defaultAllocatedDays: p.defaultAllocatedDays,
-      description: p.description ?? "",
+      approverRole: p.approverRole ?? "manager", description: p.description ?? "",
     });
     setOpen(true);
   };
@@ -157,10 +162,15 @@ export default function LeavePoliciesPage() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-2 pt-1 flex-wrap items-center">
                 <span className={`flex items-center gap-1 ${p.requiresApproval ? "text-amber-700" : "text-slate-400"}`}>
                   <CheckCircle2 className="w-3 h-3" />Approbation {p.requiresApproval ? "requise" : "non requise"}
                 </span>
+                {p.requiresApproval && (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 font-medium">
+                    {APPROVER_LABELS[p.approverRole ?? "manager"] ?? p.approverRole}
+                  </span>
+                )}
                 {p.allowHalfDay && <span className="text-slate-500">½ journée OK</span>}
               </div>
               {p.description && <p className="text-slate-500 italic pt-1">{p.description}</p>}
@@ -225,6 +235,17 @@ export default function LeavePoliciesPage() {
                 <Label className="text-xs font-semibold">Approbation requise</Label>
                 <Switch checked={form.requiresApproval} onCheckedChange={v => setForm(f => ({ ...f, requiresApproval: v }))} />
               </div>
+              {form.requiresApproval && (
+                <div>
+                  <Label className="text-xs font-semibold mb-1 block">Approbateur</Label>
+                  <Select value={form.approverRole} onValueChange={v => setForm(f => ({ ...f, approverRole: v }))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(APPROVER_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold">Demi-journée autorisée</Label>
                 <Switch checked={form.allowHalfDay} onCheckedChange={v => setForm(f => ({ ...f, allowHalfDay: v }))} />

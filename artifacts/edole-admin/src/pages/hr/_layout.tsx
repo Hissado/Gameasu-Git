@@ -4,7 +4,7 @@ import {
   UsersRound, Network, GraduationCap, FileSignature, FolderArchive, GitBranch, CalendarOff,
   Banknote, Briefcase, Star, BookOpen, ArrowRightLeft, Share2, LayoutDashboard, CalendarRange,
   Settings2, Timer, BarChart3, Zap, Percent, FileText, UserPlus, Receipt, Shield, Wrench, ClipboardList,
-  FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal,
+  FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal, ShieldCheck,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -75,6 +75,7 @@ const NAV_GROUPS = [
     label: "Paramètres RH",
     items: [
       { name: "Paramètres sectoriels", path: "/hr/btp-settings", icon: SlidersHorizontal },
+      { name: "Journal d'audit",       path: "/hr/audit-log",    icon: ShieldCheck },
     ],
   },
 ];

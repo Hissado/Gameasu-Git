@@ -164,6 +164,7 @@ const AttendancePage = lazy(() => import("@/pages/attendance/index"));
 const KioskManagement = lazy(() => import("@/pages/kiosk-management/index"));
 const MonEspace = lazy(() => import("@/pages/mon-espace/index"));
 const HrOrgchart = lazy(() => import("@/pages/hr/orgchart"));
+const HrAuditLog = lazy(() => import("@/pages/hr/audit-log"));
 const CashFlowStatement = lazy(() => import("@/pages/accounting/cash-flow"));
 const ManagementPDFPage = lazy(() => import("@/pages/reports/management-pdf"));
 const MigrationPage = lazy(() => import("@/pages/migration/index"));
@@ -394,6 +395,7 @@ function AppRouter() {
                 <Route path="/kiosk-management" component={KioskManagement} />
                 <Route path="/mon-espace" component={MonEspace} />
                 <Route path="/hr/orgchart" component={HrOrgchart} />
+                <Route path="/hr/audit-log" component={HrAuditLog} />
                 <Route path="/hr/payroll/run/:id" component={HrPayrollRun} />
                 <Route path="/hr/payroll/calendar" component={HrPayrollCalendar} />
                 <Route path="/hr/payroll/declarations" component={HrPayrollDeclarations} />

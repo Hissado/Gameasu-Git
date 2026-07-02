@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { collaboratorsTable, tasksTable, contractsTable, usersTable } from "@workspace/db";
+import { collaboratorsTable, tasksTable, contractsTable, usersTable, hrAuditLogsTable } from "@workspace/db";
 import { eq, sql, isNull, isNotNull, inArray, and, desc, ne } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
@@ -188,6 +188,9 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
     otherBenefitsMonthly, weeklyHours,
   } = req.body;
   try {
+    const [before] = await db.select().from(collaboratorsTable)
+      .where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string))))
+      .limit(1);
     const [collab] = await db.update(collaboratorsTable)
       .set({
         firstName, lastName, email, phone, position, department, isAvailable,
@@ -206,6 +209,33 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
       })
       .where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string)))).returning();
     if (!collab) return res.status(404).json({ error: "Not found" });
+    if (before) {
+      const auditFields: Array<{ key: keyof typeof before; action: string }> = [
+        { key: "baseSalary", action: "salary_update" },
+        { key: "departmentId", action: "department_change" },
+        { key: "positionId", action: "position_change" },
+        { key: "employmentStatus", action: "status_change" },
+      ];
+      const entries: any[] = [];
+      for (const f of auditFields) {
+        const oldVal = before[f.key] != null ? String(before[f.key]) : null;
+        const newVal = collab[f.key] != null ? String(collab[f.key]) : null;
+        if (oldVal !== newVal) {
+          entries.push({
+            organizationId: req.authUser!.organizationId,
+            performedById: req.authUser!.id,
+            action: f.action,
+            entityType: "collaborator",
+            entityId: collab.id,
+            entityName: `${collab.firstName} ${collab.lastName}`,
+            fieldChanged: f.key,
+            oldValue: oldVal,
+            newValue: newVal,
+          });
+        }
+      }
+      if (entries.length > 0) await db.insert(hrAuditLogsTable).values(entries).catch(() => {});
+    }
     return res.json(collab);
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
@@ -213,7 +243,27 @@ router.put("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
 });
 
 router.delete("/collaborators/:id", requireManagerOrAbove, async (req, res) => {
-  await db.update(collaboratorsTable).set({ deletedAt: new Date() }).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), eq(collaboratorsTable.id, (req.params.id as string))));
+  const orgId = req.authUser!.organizationId;
+  const collabId = req.params.id as string;
+  const [existing] = await db.select({ firstName: collaboratorsTable.firstName, lastName: collaboratorsTable.lastName })
+    .from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, collabId)))
+    .limit(1);
+  await db.update(collaboratorsTable).set({ deletedAt: new Date() })
+    .where(and(eq(collaboratorsTable.organizationId, orgId), eq(collaboratorsTable.id, collabId)));
+  if (existing) {
+    await db.insert(hrAuditLogsTable).values({
+      organizationId: orgId,
+      performedById: req.authUser!.id,
+      action: "deletion",
+      entityType: "collaborator",
+      entityId: collabId,
+      entityName: `${existing.firstName} ${existing.lastName}`,
+      fieldChanged: "deletedAt",
+      oldValue: null,
+      newValue: new Date().toISOString(),
+    }).catch(() => {});
+  }
   return res.status(204).send();
 });
 

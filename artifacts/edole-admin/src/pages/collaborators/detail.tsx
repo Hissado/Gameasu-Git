@@ -2478,6 +2478,14 @@ export default function CollaboratorDetail() {
                   </div>
                 )}
               </div>
+              <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
+                <a href={`/hr/movements?collaboratorId=${id}`} className="text-xs text-primary hover:underline font-medium">
+                  Voir toutes les mutations →
+                </a>
+                <a href={`/hr/audit-log?entityId=${id}`} className="text-xs text-muted-foreground hover:underline">
+                  Journal d'audit
+                </a>
+              </div>
             </CardContent>
           </Card>
         </div>

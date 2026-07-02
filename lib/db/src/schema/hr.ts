@@ -322,6 +322,8 @@ export const leavePoliciesTable = pgTable("leave_policies", {
   accrualRate: numeric("accrual_rate", { precision: 5, scale: 2 }),
   // Alloué par défaut à l'initialisation des soldes annuels
   defaultAllocatedDays: numeric("default_allocated_days", { precision: 5, scale: 1 }).default("0"),
+  // Niveau d'approbation : auto | manager | hr | manager_then_hr
+  approverRole: text("approver_role").notNull().default("manager"),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -464,3 +466,28 @@ export const bankInfoRequestsTable = pgTable("bank_info_requests", {
 }));
 
 export type BankInfoRequest = typeof bankInfoRequestsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// JOURNAL D'AUDIT RH
+// ─────────────────────────────────────────────────────────
+export const hrAuditLogsTable = pgTable("hr_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  performedById: uuid("performed_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  // salary_update | department_change | position_change | status_change | deletion | contract_update | leave_decision
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: uuid("entity_id").notNull(),
+  entityName: text("entity_name"),
+  fieldChanged: text("field_changed"),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orgIdx: index("hr_audit_logs_org_idx").on(t.organizationId),
+  entityIdx: index("hr_audit_logs_entity_idx").on(t.entityType, t.entityId),
+  actionIdx: index("hr_audit_logs_action_idx").on(t.action),
+  dateIdx: index("hr_audit_logs_date_idx").on(t.createdAt),
+}));
+
+export type HrAuditLog = typeof hrAuditLogsTable.$inferSelect;

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import PDFDocument from "pdfkit";
+import ExcelJS from "exceljs";
 import { db } from "@workspace/db";
 import {
   departmentsTable,
@@ -28,6 +29,7 @@ import {
   usersTable,
   bankTransferOrdersTable,
   organizationsTable,
+  hrAuditLogsTable,
 } from "@workspace/db";
 import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
@@ -193,6 +195,46 @@ router.put("/hr/contracts/:id", requirePermission("hr.manage"), async (req, res)
 router.delete("/hr/contracts/:id", requirePermission("hr.manage"), async (req, res) => {
   await db.delete(contractsTable).where(and(eq(contractsTable.organizationId, req.authUser!.organizationId), eq(contractsTable.id, (req.params.id as string))));
   return res.status(204).send();
+});
+
+router.get("/hr/contracts/export.xlsx", requirePermission("hr.read"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { collaboratorId, status } = req.query as Record<string, string>;
+    const wheres: any[] = [eq(contractsTable.organizationId, orgId)];
+    if (collaboratorId) wheres.push(eq(contractsTable.collaboratorId, collaboratorId));
+    if (status) wheres.push(eq(contractsTable.status, status));
+    const rows = await db.select({ c: contractsTable, fn: collaboratorsTable.firstName, ln: collaboratorsTable.lastName })
+      .from(contractsTable)
+      .leftJoin(collaboratorsTable, eq(contractsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...wheres))
+      .orderBy(desc(contractsTable.startDate));
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Contrats");
+    ws.columns = [
+      { header: "Collaborateur", key: "name", width: 26 },
+      { header: "Type", key: "type", width: 10 },
+      { header: "Intitulé poste", key: "jobTitle", width: 24 },
+      { header: "Statut", key: "status", width: 12 },
+      { header: "Début", key: "startDate", width: 13 },
+      { header: "Fin", key: "endDate", width: 13 },
+      { header: "Salaire mensuel (FCFA)", key: "monthlySalary", width: 22 },
+      { header: "Lieu", key: "workLocation", width: 18 },
+    ];
+    const hdr = ws.getRow(1);
+    hdr.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    hdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    rows.forEach(({ c, fn, ln }) => ws.addRow({
+      name: `${ln ?? ""} ${fn ?? ""}`.trim(),
+      type: c.type, jobTitle: c.jobTitle ?? "", status: c.status,
+      startDate: c.startDate, endDate: c.endDate ?? "",
+      monthlySalary: c.monthlySalary ? Number(c.monthlySalary) : "",
+      workLocation: c.workLocation ?? "",
+    }));
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="contrats.xlsx"`);
+    await wb.xlsx.write(res); res.end();
+  } catch (e) { next(e); }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -797,6 +839,49 @@ router.delete("/hr/leaves/:id", requirePermission("hr.manage"), async (req, res)
   if (!row) { res.status(404).json({ error: "Demande introuvable" }); return; }
   await db.delete(leaveRequestsTable).where(and(eq(leaveRequestsTable.organizationId, orgId), eq(leaveRequestsTable.id, (req.params.id as string))));
   res.status(204).send();
+});
+
+router.get("/hr/leaves/export.xlsx", requirePermission("hr.read"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { collaboratorId, status, year } = req.query as Record<string, string>;
+    const conds: any[] = [eq(leaveRequestsTable.organizationId, orgId)];
+    if (collaboratorId) conds.push(eq(leaveRequestsTable.collaboratorId, collaboratorId));
+    if (status) conds.push(eq(leaveRequestsTable.status, status));
+    if (year) conds.push(sql`EXTRACT(YEAR FROM ${leaveRequestsTable.startDate}::date) = ${parseInt(year)}`);
+    const rows = await db.select({
+      r: leaveRequestsTable,
+      fn: collaboratorsTable.firstName,
+      ln: collaboratorsTable.lastName,
+    }).from(leaveRequestsTable)
+      .leftJoin(collaboratorsTable, eq(leaveRequestsTable.collaboratorId, collaboratorsTable.id))
+      .where(and(...conds))
+      .orderBy(desc(leaveRequestsTable.startDate));
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Congés");
+    ws.columns = [
+      { header: "Collaborateur", key: "name", width: 26 },
+      { header: "Type", key: "type", width: 16 },
+      { header: "Début", key: "startDate", width: 13 },
+      { header: "Fin", key: "endDate", width: 13 },
+      { header: "Jours", key: "days", width: 8 },
+      { header: "Statut", key: "status", width: 12 },
+      { header: "Raison", key: "reason", width: 32 },
+      { header: "Demandé le", key: "createdAt", width: 16 },
+    ];
+    const hdr = ws.getRow(1);
+    hdr.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    hdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF37021" } };
+    rows.forEach(({ r, fn, ln }) => ws.addRow({
+      name: `${ln ?? ""} ${fn ?? ""}`.trim(),
+      type: r.type, startDate: r.startDate, endDate: r.endDate,
+      days: Number(r.days), status: r.status, reason: r.reason ?? "",
+      createdAt: r.createdAt ? new Date(r.createdAt).toLocaleDateString("fr-FR") : "",
+    }));
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="conges.xlsx"`);
+    await wb.xlsx.write(res); res.end();
+  } catch (e) { next(e); }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -2030,6 +2115,7 @@ router.put("/hr/leave-policies/:id", requirePermission("hr.manage"), async (req,
       allowHalfDay: body.allowHalfDay !== undefined ? body.allowHalfDay : existing.allowHalfDay,
       accrualRate: body.accrualRate != null ? String(body.accrualRate) : null,
       defaultAllocatedDays: body.defaultAllocatedDays != null ? String(body.defaultAllocatedDays) : existing.defaultAllocatedDays,
+      approverRole: body.approverRole ?? existing.approverRole,
       description: body.description !== undefined ? body.description : existing.description,
     }).where(eq(leavePoliciesTable.id, (req.params.id as string))).returning();
     res.json(updated);
@@ -2042,6 +2128,39 @@ router.delete("/hr/leave-policies/:id", requirePermission("hr.manage"), async (r
     await db.delete(leavePoliciesTable)
       .where(and(eq(leavePoliciesTable.id, (req.params.id as string)), eq(leavePoliciesTable.organizationId, orgId)));
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// JOURNAL D'AUDIT RH
+// ════════════════════════════════════════════════════════════════
+router.get("/hr/audit-logs", requirePermission("hr.manage"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const { entityType, entityId, action, limit = "100", offset = "0" } = req.query as Record<string, string>;
+    const conds: any[] = [eq(hrAuditLogsTable.organizationId, orgId)];
+    if (entityType) conds.push(eq(hrAuditLogsTable.entityType, entityType));
+    if (entityId) conds.push(eq(hrAuditLogsTable.entityId, entityId));
+    if (action) conds.push(eq(hrAuditLogsTable.action, action));
+    const rows = await db.select({
+      log: hrAuditLogsTable,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+    }).from(hrAuditLogsTable)
+      .leftJoin(usersTable, eq(hrAuditLogsTable.performedById, usersTable.id))
+      .where(and(...conds))
+      .orderBy(desc(hrAuditLogsTable.createdAt))
+      .limit(parseInt(limit))
+      .offset(parseInt(offset));
+    const [{ total }] = await db.select({ total: sql<number>`COUNT(*)` })
+      .from(hrAuditLogsTable).where(and(...conds));
+    res.json({
+      data: rows.map(r => ({
+        ...r.log,
+        performedByName: `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim() || "Système",
+      })),
+      total: Number(total),
+    });
   } catch (e) { next(e); }
 });
 

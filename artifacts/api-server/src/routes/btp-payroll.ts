@@ -35,6 +35,11 @@ import {
   organizationsTable,
   attendanceSessionsTable,
   irppBracketsTable,
+  journalsTable,
+  fiscalPeriodsTable,
+  journalEntriesTable,
+  journalEntryLinesTable,
+  chartOfAccountsTable,
 } from "@workspace/db";
 import { and, eq, inArray, sql, asc, desc, gte, lte } from "drizzle-orm";
 import ExcelJS from "exceljs";
@@ -1382,6 +1387,100 @@ router.get("/btp/periods/:id/export/salaires.xlsx", async (req, res) => {
     await wb.xlsx.write(res);
     res.end();
   } catch (e) { return res.status(500).json({ error: "Erreur génération Excel" }); }
+});
+
+// ─── Comptabilisation SYSCOHADA d'une période BTP ─────────────────────────────
+router.post("/btp/periods/:id/post-accounting", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const oid = orgId(req);
+    const periodId = req.params.id as string;
+
+    const [period] = await db.select().from(btpPayPeriodsTable)
+      .where(and(eq(btpPayPeriodsTable.organizationId, oid), eq(btpPayPeriodsTable.id, periodId)))
+      .limit(1);
+    if (!period) return res.status(404).json({ error: "Période introuvable" });
+
+    const reports = await db.select().from(btpPeriodReportsTable)
+      .where(and(eq(btpPeriodReportsTable.organizationId, oid), eq(btpPeriodReportsTable.payPeriodId, periodId)));
+    if (reports.length === 0) return res.status(409).json({ error: "Aucun rapport calculé. Lancez d'abord le calcul de la période." });
+
+    const totals = reports.reduce((acc, r) => ({
+      grossSalary: acc.grossSalary + Number(r.grossSalary ?? 0),
+      netFinal: acc.netFinal + Number(r.netFinal ?? 0),
+      cnssEmployee: acc.cnssEmployee + Number(r.cnssEmployee ?? 0),
+      cnssEmployer: acc.cnssEmployer + Number(r.cnssEmployer ?? 0),
+      irppAmount: acc.irppAmount + Number(r.irppAmount ?? 0),
+    }), { grossSalary: 0, netFinal: 0, cnssEmployee: 0, cnssEmployer: 0, irppAmount: 0 });
+
+    const [journal] = await db.select().from(journalsTable)
+      .where(and(eq(journalsTable.organizationId, oid), eq(journalsTable.type, "misc"), eq(journalsTable.isActive, true)))
+      .orderBy(journalsTable.createdAt).limit(1);
+    if (!journal) return res.status(409).json({ error: "Aucun journal OD (type misc) configuré. Créez-en un dans le module Comptabilité." });
+
+    const [fiscalPeriod] = await db.select().from(fiscalPeriodsTable)
+      .where(and(
+        eq(fiscalPeriodsTable.organizationId, oid),
+        eq(fiscalPeriodsTable.status, "open"),
+        lte(fiscalPeriodsTable.startDate, (period as any).endDate),
+        gte(fiscalPeriodsTable.endDate, (period as any).startDate),
+      )).limit(1);
+    if (!fiscalPeriod) return res.status(409).json({ error: "Aucun exercice fiscal ouvert couvrant cette période de paie." });
+
+    const accts = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code })
+      .from(chartOfAccountsTable)
+      .where(and(eq(chartOfAccountsTable.organizationId, oid), inArray(chartOfAccountsTable.code, ["6611", "6631", "4221", "4311", "4441", "4321"])));
+    const acctMap = new Map(accts.map(a => [a.code, a.id]));
+    const missing = ["6611", "4221", "4311", "4441"].filter(c => !acctMap.has(c));
+    if (missing.length > 0) return res.status(409).json({ error: `Comptes SYSCOHADA manquants : ${missing.join(", ")}. Configurez-les dans le module Comptabilité.` });
+
+    const [{ n: cnt }] = await db.select({ n: sql<number>`COUNT(*)` }).from(journalEntriesTable)
+      .where(and(eq(journalEntriesTable.organizationId, oid), sql`${journalEntriesTable.sourceType} = 'btp_payroll'`));
+    const entryNum = `PAI-${String((period as any).label).replace(/[^A-Z0-9]/gi, "").toUpperCase()}-${String(Number(cnt) + 1).padStart(4, "0")}`;
+
+    const hasEmpCnss = acctMap.has("6631") && acctMap.has("4321");
+    const totalDebit = totals.grossSalary + (hasEmpCnss ? totals.cnssEmployer : 0);
+    const totalCredit = totals.netFinal + totals.cnssEmployee + totals.irppAmount + (hasEmpCnss ? totals.cnssEmployer : 0);
+
+    const [entry] = await db.insert(journalEntriesTable).values({
+      organizationId: oid,
+      journalId: journal.id,
+      fiscalPeriodId: fiscalPeriod.id,
+      entryNumber: entryNum,
+      entryDate: (period as any).endDate,
+      description: `Paie BTP — ${(period as any).label}`,
+      status: "posted",
+      sourceType: "btp_payroll",
+      sourceId: periodId,
+      createdById: req.authUser?.id ?? null,
+      postedAt: new Date(),
+      totalDebit: String(totalDebit),
+      totalCredit: String(totalCredit),
+    }).returning();
+
+    const lineValues = [
+      { accountId: acctMap.get("6611")!, debit: totals.grossSalary, credit: 0, description: "Salaires bruts BTP" },
+      ...(hasEmpCnss ? [{ accountId: acctMap.get("6631")!, debit: totals.cnssEmployer, credit: 0, description: "Cotisations patronales CNSS BTP" }] : []),
+      { accountId: acctMap.get("4221")!, debit: 0, credit: totals.netFinal, description: "Rémunérations dues au personnel" },
+      { accountId: acctMap.get("4311")!, debit: 0, credit: totals.cnssEmployee, description: "CNSS salarié BTP" },
+      { accountId: acctMap.get("4441")!, debit: 0, credit: totals.irppAmount, description: "IRPP à payer BTP" },
+      ...(hasEmpCnss ? [{ accountId: acctMap.get("4321")!, debit: 0, credit: totals.cnssEmployer, description: "CNSS patronal BTP (part employeur)" }] : []),
+    ].filter(l => l.debit > 0 || l.credit > 0);
+
+    await db.insert(journalEntryLinesTable).values(lineValues.map(l => ({
+      organizationId: oid,
+      entryId: entry.id,
+      accountId: l.accountId,
+      debit: String(l.debit),
+      credit: String(l.credit),
+      description: l.description,
+    })));
+
+    return res.status(201).json({ ok: true, entryId: entry.id, entryNumber: entryNum, totals });
+  } catch (e: any) {
+    if (e.code === "23505") return res.status(409).json({ error: "Cette période a déjà été comptabilisée. Annulez l'écriture existante avant de recommencer." });
+    return res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;
