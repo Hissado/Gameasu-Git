@@ -404,10 +404,11 @@ export default function HrReports() {
     queryKey: ["hr/departments"],
     queryFn: () => apiFetch<{ data: { id: string; name: string }[] }>("/api/hr/departments").then(r => r.data),
   });
-  const { data: collabs } = useQuery<{ id: string; firstName: string; lastName: string }[]>({
+  const { data: collabsResp } = useQuery<{ data: { id: string; firstName: string; lastName: string }[] }>({
     queryKey: ["collaborators-list"],
-    queryFn: () => apiFetch<{ data: { id: string; firstName: string; lastName: string }[] }>("/api/collaborators?limit=200").then(r => r.data),
+    queryFn: () => apiFetch<{ data: { id: string; firstName: string; lastName: string }[] }>("/api/collaborators?limit=200"),
   });
+  const collabs = collabsResp?.data;
 
   // ── Build query params ──
   const params = useMemo(() => {
