@@ -16,7 +16,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar, Pencil } from "lucide-react";
+import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar, Pencil, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const API = "/api";
 async function fetchJSON(url: string, opts?: RequestInit) {
@@ -70,6 +71,44 @@ function PctInput({ value, onChange, disabled }: { value: string; onChange: (v: 
 }
 
 type IrppBracketRow = { fromAmount: number; toAmount: number | null; rate: number; sortOrder: number };
+
+/** Sélecteur de jour du mois (1–31) via popover grille */
+function DayPicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-20 h-8 justify-between text-sm font-mono"
+        >
+          {value}
+          <ChevronDown className="w-3 h-3 text-gray-400" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2" align="end">
+        <div className="grid grid-cols-7 gap-0.5">
+          {days.map((d) => (
+            <button
+              key={d}
+              onClick={() => { onChange(d); setOpen(false); }}
+              className={[
+                "h-7 w-7 rounded text-xs font-mono transition-colors",
+                d === value
+                  ? "bg-orange-500 text-white font-bold"
+                  : "hover:bg-gray-100 text-gray-700",
+              ].join(" ")}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function BtpSettings() {
   const { toast } = useToast();
@@ -184,10 +223,10 @@ export default function BtpSettings() {
               <Input type="number" step="0.01" value={f("hourlyRateDivisor")} onChange={(e) => set("hourlyRateDivisor", e.target.value)} className="text-right h-8 text-sm" />
             </FieldRow>
             <FieldRow label="Début période" sub="Jour du mois">
-              <Input type="number" min={1} max={31} value={f("periodStartDay")} onChange={(e) => set("periodStartDay", parseInt(e.target.value))} className="text-right h-8 text-sm" />
+              <DayPicker value={parseInt(f("periodStartDay")) || 26} onChange={(d) => set("periodStartDay", d)} />
             </FieldRow>
             <FieldRow label="Fin période" sub="Jour du mois">
-              <Input type="number" min={1} max={31} value={f("periodEndDay")} onChange={(e) => set("periodEndDay", parseInt(e.target.value))} className="text-right h-8 text-sm" />
+              <DayPicker value={parseInt(f("periodEndDay")) || 25} onChange={(d) => set("periodEndDay", d)} />
             </FieldRow>
             <FieldRow label="Accrual congés" sub="Jours par mois">
               <Input type="number" step="0.01" value={f("leaveAccrualDaysPerMonth")} onChange={(e) => set("leaveAccrualDaysPerMonth", e.target.value)} className="text-right h-8 text-sm" />
