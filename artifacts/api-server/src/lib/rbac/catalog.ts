@@ -33,7 +33,7 @@ export const PERMISSIONS: PermissionDef[] = [
 
   // ─── Projets ────────────────────────────────────────────────────
   { code: "projects.read", label: "Voir les projets (filtré par accès)", category: "Projets" },
-  { code: "projects.read_all", label: "Voir TOUS les projets (bypass ACL)", category: "Projets" },
+  { code: "projects.read_all", label: "Voir TOUS les projets sans restriction d'accès", category: "Projets" },
   { code: "projects.create", label: "Créer un projet", category: "Projets" },
   { code: "projects.update", label: "Modifier un projet", category: "Projets" },
   { code: "projects.delete", label: "Supprimer / archiver un projet", category: "Projets" },
@@ -44,7 +44,7 @@ export const PERMISSIONS: PermissionDef[] = [
 
   // ─── Clients (workspace racine) ────────────────────────────────
   { code: "clients.read", label: "Voir les clients (filtré par accès)", category: "Clients" },
-  { code: "clients.read_all", label: "Voir TOUS les clients (bypass ACL)", category: "Clients" },
+  { code: "clients.read_all", label: "Voir TOUS les clients sans restriction d'accès", category: "Clients" },
   { code: "clients.manage", label: "Créer / modifier / supprimer des clients", category: "Clients" },
 
   // ─── Services (engagements récurrents) ─────────────────────────

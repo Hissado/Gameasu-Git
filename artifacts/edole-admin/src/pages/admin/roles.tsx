@@ -245,11 +245,10 @@ function EditPermissionsDialog({ roleId, permissions, onClose }: { roleId: strin
                   </div>
                   <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                     {perms.map(p => (
-                      <label key={p.id} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1.5 rounded">
+                      <label key={p.id} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1.5 rounded" title={p.code}>
                         <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggle(p.id)} className="mt-0.5" />
                         <div>
                           <div>{p.label}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{p.code}</div>
                         </div>
                       </label>
                     ))}
