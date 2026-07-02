@@ -58,6 +58,65 @@ export const btpPayrollSettingsTable = pgTable("btp_payroll_settings", {
 }));
 
 // ─────────────────────────────────────────────────────────────────────────
+// GROUPES DE PAIE (catégories salariales avec paramètres propres)
+// Ex : "BTP Terrain" (26→25), "Employés de bureau" (1→30)
+// ─────────────────────────────────────────────────────────────────────────
+export const btpPayGroupsTable = pgTable("btp_pay_groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").notNull().default(false),
+
+  // Durée légale
+  hoursPerWeek: numeric("hours_per_week", { precision: 5, scale: 2 }).notNull().default("40"),
+  hoursPerDayStandard: numeric("hours_per_day_standard", { precision: 4, scale: 2 }).notNull().default("8"),
+  hourlyRateDivisor: numeric("hourly_rate_divisor", { precision: 6, scale: 2 }).notNull().default("173.33"),
+
+  // Période de paie
+  periodStartDay: integer("period_start_day").notNull().default(26),
+  periodEndDay: integer("period_end_day").notNull().default(25),
+
+  // Taux de majoration HS
+  hs20Rate: numeric("hs20_rate", { precision: 4, scale: 2 }).notNull().default("1.20"),
+  hs40Rate: numeric("hs40_rate", { precision: 4, scale: 2 }).notNull().default("1.40"),
+  hsSundayRate: numeric("hs_sunday_rate", { precision: 4, scale: 2 }).notNull().default("1.65"),
+  hsNightRate: numeric("hs_night_rate", { precision: 4, scale: 2 }).notNull().default("1.65"),
+  hsSundayNightRate: numeric("hs_sunday_night_rate", { precision: 4, scale: 2 }).notNull().default("2.00"),
+
+  // CNSS
+  cnssEmployeeRate: numeric("cnss_employee_rate", { precision: 5, scale: 4 }).notNull().default("0.09"),
+  cnssEmployerRate: numeric("cnss_employer_rate", { precision: 5, scale: 4 }).notNull().default("0.225"),
+
+  // IRPP
+  irppAbatementRate: numeric("irpp_abatement_rate", { precision: 5, scale: 4 }).notNull().default("0.28"),
+  irppChargePerDependent: numeric("irpp_charge_per_dependent", { precision: 10, scale: 2 }).notNull().default("10000"),
+  irppMaxDependents: integer("irpp_max_dependents").notNull().default(6),
+
+  // Congés
+  leaveAccrualDaysPerMonth: numeric("leave_accrual_days_per_month", { precision: 4, scale: 2 }).notNull().default("2.5"),
+  absenceBaseCalendarDays: boolean("absence_base_calendar_days").notNull().default(true),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgNameIdx: index("btp_pay_groups_org_idx").on(t.organizationId),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────
+// AFFECTATION COLLABORATEUR → GROUPE DE PAIE
+// ─────────────────────────────────────────────────────────────────────────
+export const btpCollaboratorGroupTable = pgTable("btp_collaborator_groups", {
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  payGroupId: uuid("pay_group_id").notNull().references(() => btpPayGroupsTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  pk: index("btp_collab_group_pk_idx").on(t.collaboratorId),
+  groupIdx: index("btp_collab_group_group_idx").on(t.payGroupId),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────
 // JOURS FÉRIÉS (PAR ORGANISATION)
 // ─────────────────────────────────────────────────────────────────────────
 export const btpHolidaysTable = pgTable("btp_holidays", {
@@ -77,7 +136,9 @@ export const btpHolidaysTable = pgTable("btp_holidays", {
 export const btpPayPeriodsTable = pgTable("btp_pay_periods", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
-  // Ex: "2026-06" (mois de paie affiché — le "mois de janvier" couvre 26/12→25/01)
+  // Groupe de paie (null = paramètres globaux par défaut)
+  payGroupId: uuid("pay_group_id").references(() => btpPayGroupsTable.id, { onDelete: "set null" }),
+  // Ex: "2026-06 (Bureau)" — inclure le groupe si multi-groupe
   label: text("label").notNull(),
   startDate: date("start_date").notNull(), // 26 du mois précédent
   endDate: date("end_date").notNull(),     // 25 du mois courant

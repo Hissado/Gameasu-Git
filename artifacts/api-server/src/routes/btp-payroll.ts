@@ -21,6 +21,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   btpPayrollSettingsTable,
+  btpPayGroupsTable,
+  btpCollaboratorGroupTable,
   btpHolidaysTable,
   btpPayPeriodsTable,
   btpAttendanceLinesTable,
@@ -279,6 +281,146 @@ router.put("/btp/settings", async (req, res) => {
   } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
 });
 
+// ─── GROUPES DE PAIE ──────────────────────────────────────────────────────────
+
+router.get("/btp/groups", async (req, res) => {
+  try {
+    const oid = orgId(req);
+    const rows = await db.select().from(btpPayGroupsTable)
+      .where(eq(btpPayGroupsTable.organizationId, oid))
+      .orderBy(asc(btpPayGroupsTable.name));
+    const assignments = await db.select({
+      payGroupId: btpCollaboratorGroupTable.payGroupId,
+      cnt: sql<number>`count(*)::int`,
+    }).from(btpCollaboratorGroupTable)
+      .where(eq(btpCollaboratorGroupTable.organizationId, oid))
+      .groupBy(btpCollaboratorGroupTable.payGroupId);
+    const countMap = new Map(assignments.map((a) => [a.payGroupId, a.cnt]));
+    return res.json(rows.map((g) => ({ ...g, collaboratorCount: countMap.get(g.id) ?? 0 })));
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+router.post("/btp/groups", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    const { name, description, isDefault = false,
+      periodStartDay, periodEndDay,
+      hs20Rate, hs40Rate, hsSundayRate, hsNightRate, hsSundayNightRate,
+      cnssEmployeeRate, cnssEmployerRate,
+      irppAbatementRate, irppChargePerDependent, irppMaxDependents,
+      leaveAccrualDaysPerMonth, hourlyRateDivisor, hoursPerWeek, hoursPerDayStandard,
+      absenceBaseCalendarDays } = req.body ?? {};
+    if (!name) return res.status(400).json({ error: "name requis" });
+    const vals: Record<string, any> = { organizationId: oid, name, description, isDefault };
+    if (periodStartDay !== undefined) vals.periodStartDay = periodStartDay;
+    if (periodEndDay !== undefined) vals.periodEndDay = periodEndDay;
+    if (hs20Rate !== undefined) vals.hs20Rate = String(hs20Rate);
+    if (hs40Rate !== undefined) vals.hs40Rate = String(hs40Rate);
+    if (hsSundayRate !== undefined) vals.hsSundayRate = String(hsSundayRate);
+    if (hsNightRate !== undefined) vals.hsNightRate = String(hsNightRate);
+    if (hsSundayNightRate !== undefined) vals.hsSundayNightRate = String(hsSundayNightRate);
+    if (cnssEmployeeRate !== undefined) vals.cnssEmployeeRate = String(cnssEmployeeRate);
+    if (cnssEmployerRate !== undefined) vals.cnssEmployerRate = String(cnssEmployerRate);
+    if (irppAbatementRate !== undefined) vals.irppAbatementRate = String(irppAbatementRate);
+    if (irppChargePerDependent !== undefined) vals.irppChargePerDependent = String(irppChargePerDependent);
+    if (irppMaxDependents !== undefined) vals.irppMaxDependents = irppMaxDependents;
+    if (leaveAccrualDaysPerMonth !== undefined) vals.leaveAccrualDaysPerMonth = String(leaveAccrualDaysPerMonth);
+    if (hourlyRateDivisor !== undefined) vals.hourlyRateDivisor = String(hourlyRateDivisor);
+    if (hoursPerWeek !== undefined) vals.hoursPerWeek = String(hoursPerWeek);
+    if (hoursPerDayStandard !== undefined) vals.hoursPerDayStandard = String(hoursPerDayStandard);
+    if (absenceBaseCalendarDays !== undefined) vals.absenceBaseCalendarDays = absenceBaseCalendarDays;
+    const [row] = await db.insert(btpPayGroupsTable).values(vals).returning();
+    return res.status(201).json(row);
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+router.put("/btp/groups/:id", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    const { name, description, isDefault,
+      periodStartDay, periodEndDay,
+      hs20Rate, hs40Rate, hsSundayRate, hsNightRate, hsSundayNightRate,
+      cnssEmployeeRate, cnssEmployerRate,
+      irppAbatementRate, irppChargePerDependent, irppMaxDependents,
+      leaveAccrualDaysPerMonth, hourlyRateDivisor, hoursPerWeek, hoursPerDayStandard,
+      absenceBaseCalendarDays } = req.body ?? {};
+    const vals: Record<string, any> = {};
+    if (name !== undefined) vals.name = name;
+    if (description !== undefined) vals.description = description;
+    if (isDefault !== undefined) vals.isDefault = isDefault;
+    if (periodStartDay !== undefined) vals.periodStartDay = periodStartDay;
+    if (periodEndDay !== undefined) vals.periodEndDay = periodEndDay;
+    if (hs20Rate !== undefined) vals.hs20Rate = String(hs20Rate);
+    if (hs40Rate !== undefined) vals.hs40Rate = String(hs40Rate);
+    if (hsSundayRate !== undefined) vals.hsSundayRate = String(hsSundayRate);
+    if (hsNightRate !== undefined) vals.hsNightRate = String(hsNightRate);
+    if (hsSundayNightRate !== undefined) vals.hsSundayNightRate = String(hsSundayNightRate);
+    if (cnssEmployeeRate !== undefined) vals.cnssEmployeeRate = String(cnssEmployeeRate);
+    if (cnssEmployerRate !== undefined) vals.cnssEmployerRate = String(cnssEmployerRate);
+    if (irppAbatementRate !== undefined) vals.irppAbatementRate = String(irppAbatementRate);
+    if (irppChargePerDependent !== undefined) vals.irppChargePerDependent = String(irppChargePerDependent);
+    if (irppMaxDependents !== undefined) vals.irppMaxDependents = irppMaxDependents;
+    if (leaveAccrualDaysPerMonth !== undefined) vals.leaveAccrualDaysPerMonth = String(leaveAccrualDaysPerMonth);
+    if (hourlyRateDivisor !== undefined) vals.hourlyRateDivisor = String(hourlyRateDivisor);
+    if (hoursPerWeek !== undefined) vals.hoursPerWeek = String(hoursPerWeek);
+    if (hoursPerDayStandard !== undefined) vals.hoursPerDayStandard = String(hoursPerDayStandard);
+    if (absenceBaseCalendarDays !== undefined) vals.absenceBaseCalendarDays = absenceBaseCalendarDays;
+    const [row] = await db.update(btpPayGroupsTable).set(vals)
+      .where(and(eq(btpPayGroupsTable.id, req.params.id as string), eq(btpPayGroupsTable.organizationId, oid)))
+      .returning();
+    if (!row) return res.status(404).json({ error: "Introuvable" });
+    return res.json(row);
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+router.delete("/btp/groups/:id", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    await db.delete(btpPayGroupsTable)
+      .where(and(eq(btpPayGroupsTable.id, req.params.id as string), eq(btpPayGroupsTable.organizationId, oid)));
+    return res.json({ ok: true });
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+// Collaborateurs d'un groupe
+router.get("/btp/groups/:id/collaborators", async (req, res) => {
+  try {
+    const oid = orgId(req);
+    const rows = await db.select({
+      collaboratorId: btpCollaboratorGroupTable.collaboratorId,
+      firstName: collaboratorsTable.firstName,
+      lastName: collaboratorsTable.lastName,
+      employeeNumber: collaboratorsTable.employeeNumber,
+    }).from(btpCollaboratorGroupTable)
+      .innerJoin(collaboratorsTable, eq(btpCollaboratorGroupTable.collaboratorId, collaboratorsTable.id))
+      .where(and(eq(btpCollaboratorGroupTable.payGroupId, req.params.id as string), eq(btpCollaboratorGroupTable.organizationId, oid)));
+    return res.json(rows);
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
+// Assigner des collaborateurs à un groupe (remplace l'affectation existante)
+router.put("/btp/groups/:id/collaborators", async (req, res) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const oid = orgId(req);
+    const gid = req.params.id as string;
+    const { collaboratorIds = [] }: { collaboratorIds: string[] } = req.body ?? {};
+    const [group] = await db.select({ id: btpPayGroupsTable.id }).from(btpPayGroupsTable)
+      .where(and(eq(btpPayGroupsTable.id, gid), eq(btpPayGroupsTable.organizationId, oid))).limit(1);
+    if (!group) return res.status(404).json({ error: "Groupe introuvable" });
+    await db.delete(btpCollaboratorGroupTable).where(eq(btpCollaboratorGroupTable.payGroupId, gid));
+    if (collaboratorIds.length > 0) {
+      await db.insert(btpCollaboratorGroupTable).values(
+        collaboratorIds.map((cid) => ({ collaboratorId: cid, organizationId: oid, payGroupId: gid }))
+      );
+    }
+    return res.json({ ok: true, assigned: collaboratorIds.length });
+  } catch (e) { return res.status(500).json({ error: "Erreur serveur" }); }
+});
+
 // ─── HOLIDAYS ─────────────────────────────────────────────────────────────────
 
 router.get("/btp/holidays", async (req, res) => {
@@ -346,7 +488,7 @@ router.post("/btp/periods", async (req, res) => {
   try {
     if (!requireAdmin(req, res)) return;
     const oid = orgId(req);
-    const { label, startDate, endDate, notes } = req.body ?? {};
+    const { label, startDate, endDate, notes, payGroupId } = req.body ?? {};
     if (!label || !startDate || !endDate) return res.status(400).json({ error: "label, startDate, endDate requis" });
 
     // Calculer les jours ouvrables
@@ -354,7 +496,7 @@ router.post("/btp/periods", async (req, res) => {
     const totalWorkingDays = countWorkingDays(new Date(startDate), new Date(endDate), holidays);
 
     const [row] = await db.insert(btpPayPeriodsTable)
-      .values({ organizationId: oid, label, startDate, endDate, totalWorkingDays, notes, createdById: req.authUser!.id })
+      .values({ organizationId: oid, label, startDate, endDate, totalWorkingDays, notes, payGroupId: payGroupId || null, createdById: req.authUser!.id })
       .returning();
     return res.status(201).json(row);
   } catch (e: any) {
@@ -566,9 +708,19 @@ router.post("/btp/periods/:id/calculate", async (req, res) => {
       .where(and(eq(btpPayPeriodsTable.id, periodId), eq(btpPayPeriodsTable.organizationId, oid))).limit(1);
     if (!period) return res.status(404).json({ error: "Période introuvable" });
 
-    const [settings] = await db.select().from(btpPayrollSettingsTable)
-      .where(eq(btpPayrollSettingsTable.organizationId, oid)).limit(1);
-    if (!settings) return res.status(400).json({ error: "Paramètres de paie non configurés" });
+    // Paramètres : groupe de la période (si défini) sinon paramètres globaux
+    let settings: any;
+    if (period.payGroupId) {
+      const [grp] = await db.select().from(btpPayGroupsTable)
+        .where(and(eq(btpPayGroupsTable.id, period.payGroupId), eq(btpPayGroupsTable.organizationId, oid))).limit(1);
+      if (grp) settings = grp;
+    }
+    if (!settings) {
+      const [glob] = await db.select().from(btpPayrollSettingsTable)
+        .where(eq(btpPayrollSettingsTable.organizationId, oid)).limit(1);
+      settings = glob;
+    }
+    if (!settings) return res.status(400).json({ error: "Paramètres de paie non configurés (aucun groupe ni paramètres globaux)" });
 
     const holidays = await getHolidayDates(oid, new Date(period.startDate).getFullYear());
 

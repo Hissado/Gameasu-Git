@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar, Pencil, ChevronDown } from "lucide-react";
+import { Save, Plus, Trash2, RefreshCw, Settings2, Calendar, Pencil, ChevronDown, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const API = "/api";
@@ -71,6 +71,25 @@ function PctInput({ value, onChange, disabled }: { value: string; onChange: (v: 
 }
 
 type IrppBracketRow = { fromAmount: number; toAmount: number | null; rate: number; sortOrder: number };
+
+type PayGroup = {
+  id: string; name: string; description?: string; isDefault: boolean;
+  periodStartDay: number; periodEndDay: number;
+  hs20Rate: string; hs40Rate: string; hsSundayRate: string; hsSundayNightRate: string;
+  cnssEmployeeRate: string; cnssEmployerRate: string;
+  irppAbatementRate: string; irppMaxDependents: number;
+  leaveAccrualDaysPerMonth: string; hourlyRateDivisor: string;
+  collaboratorCount: number;
+};
+
+const GROUP_DEFAULTS = {
+  name: "", description: "", isDefault: false,
+  periodStartDay: 26, periodEndDay: 25,
+  hs20Rate: "1.20", hs40Rate: "1.40", hsSundayRate: "1.65", hsSundayNightRate: "2.00",
+  cnssEmployeeRate: "0.09", cnssEmployerRate: "0.225",
+  irppAbatementRate: "0.28", irppMaxDependents: 6,
+  leaveAccrualDaysPerMonth: "2.5", hourlyRateDivisor: "173.33",
+};
 
 /** Sélecteur de jour du mois (1–31) via popover grille */
 function DayPicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
@@ -132,6 +151,54 @@ export default function BtpSettings() {
     queryFn: () => fetchJSON(`${API}/payroll/irpp-brackets`),
   });
   const irppBrackets = irppResp?.brackets ?? [];
+
+  // ── Groupes de paie ───────────────────────────────────────────────────
+  const { data: groups = [], isLoading: groupsLoading } = useQuery<PayGroup[]>({
+    queryKey: ["btp-groups"],
+    queryFn: () => fetchJSON(`${API}/btp/groups`),
+  });
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<PayGroup | null>(null);
+  const [groupForm, setGroupForm] = useState<typeof GROUP_DEFAULTS>({ ...GROUP_DEFAULTS });
+
+  function openCreateGroup() {
+    setEditingGroup(null);
+    setGroupForm({ ...GROUP_DEFAULTS });
+    setGroupOpen(true);
+  }
+  function openEditGroup(g: PayGroup) {
+    setEditingGroup(g);
+    setGroupForm({
+      name: g.name, description: g.description ?? "", isDefault: g.isDefault,
+      periodStartDay: g.periodStartDay, periodEndDay: g.periodEndDay,
+      hs20Rate: g.hs20Rate, hs40Rate: g.hs40Rate, hsSundayRate: g.hsSundayRate, hsSundayNightRate: g.hsSundayNightRate,
+      cnssEmployeeRate: g.cnssEmployeeRate, cnssEmployerRate: g.cnssEmployerRate,
+      irppAbatementRate: g.irppAbatementRate, irppMaxDependents: g.irppMaxDependents,
+      leaveAccrualDaysPerMonth: g.leaveAccrualDaysPerMonth, hourlyRateDivisor: g.hourlyRateDivisor,
+    });
+    setGroupOpen(true);
+  }
+
+  const saveGroupMut = useMutation({
+    mutationFn: (body: any) => editingGroup
+      ? fetchJSON(`${API}/btp/groups/${editingGroup.id}`, { method: "PUT", body: JSON.stringify(body) })
+      : fetchJSON(`${API}/btp/groups`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["btp-groups"] });
+      setGroupOpen(false);
+      toast({ title: editingGroup ? "Groupe modifié" : "Groupe créé" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const delGroupMut = useMutation({
+    mutationFn: (id: string) => fetchJSON(`${API}/btp/groups/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["btp-groups"] });
+      toast({ title: "Groupe supprimé" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
 
   const [holidayForm, setHolidayForm] = useState({ date: "", label: "", isRecurringYearly: true });
   const [holidayOpen, setHolidayOpen] = useState(false);
@@ -195,14 +262,74 @@ export default function BtpSettings() {
   return (
     <HrShell
       title="Paramètres sectoriels"
-      subtitle="CNSS / IRPP / Majorations HS / Jours fériés"
+      subtitle="Groupes de paie • CNSS / IRPP / Majorations HS / Jours fériés"
       actions={
         <Button size="sm" onClick={() => saveMut.mutate(form)} disabled={saveMut.isPending}>
           <Save className="w-4 h-4 mr-1" />
-          {saveMut.isPending ? "Sauvegarde…" : "Sauvegarder"}
+          {saveMut.isPending ? "Sauvegarde…" : "Sauvegarder paramètres globaux"}
         </Button>
       }
     >
+      {/* ── Groupes de paie ────────────────────────────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Users className="w-4 h-4 text-orange-500" />
+            Groupes de paie
+            <span className="text-gray-400 font-normal text-xs">(catégories d'employés avec règles spécifiques)</span>
+          </CardTitle>
+          <Button size="sm" variant="outline" className="h-8" onClick={openCreateGroup}>
+            <Plus className="w-3 h-3 mr-1" />Nouveau groupe
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {groupsLoading ? (
+            <div className="text-gray-400 text-sm">Chargement…</div>
+          ) : groups.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-4 text-center text-gray-400 text-sm">
+              Aucun groupe — tous les employés utilisent les paramètres globaux ci-dessous.<br />
+              <button className="text-orange-500 underline mt-1" onClick={openCreateGroup}>Créer le premier groupe</button>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {groups.map((g) => (
+                <div key={g.id} className="flex items-center justify-between py-2.5 gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {g.isDefault && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-700">
+                        Défaut
+                      </span>
+                    )}
+                    <div>
+                      <div className="font-medium text-sm text-gray-900">{g.name}</div>
+                      {g.description && <div className="text-xs text-gray-400">{g.description}</div>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 shrink-0">
+                    <span className="bg-gray-100 rounded px-2 py-0.5">
+                      j{g.periodStartDay} → j{g.periodEndDay}
+                    </span>
+                    <span>CNSS sal. {(parseFloat(g.cnssEmployeeRate) * 100).toFixed(1)} %</span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" />{g.collaboratorCount}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEditGroup(g)}>
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-red-500 hover:text-red-600"
+                        onClick={() => { if (confirm(`Supprimer le groupe "${g.name}" ?`)) delGroupMut.mutate(g.id); }}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 gap-6 pb-8">
         {/* Durée légale & période */}
         <Card>
@@ -480,6 +607,132 @@ export default function BtpSettings() {
               disabled={!editingHoliday?.date || !editingHoliday?.label || updateHolidayMut.isPending}
             >
               {updateHolidayMut.isPending ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog créer / modifier groupe de paie */}
+      <Dialog open={groupOpen} onOpenChange={setGroupOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingGroup ? "Modifier le groupe" : "Nouveau groupe de paie"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Nom du groupe *</Label>
+                <Input value={groupForm.name}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ex: BTP Terrain, Employés de bureau" />
+              </div>
+              <div className="col-span-2">
+                <Label>Description</Label>
+                <Input value={groupForm.description}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Optionnel" />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <input type="checkbox" id="grp-default" checked={groupForm.isDefault}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                  className="w-4 h-4" />
+                <Label htmlFor="grp-default">Groupe par défaut (pour les employés sans affectation)</Label>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Période de paie</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Jour de début</Label>
+                  <Input type="number" min={1} max={31} value={groupForm.periodStartDay}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, periodStartDay: +e.target.value }))} className="h-8 text-sm" />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Ex: 26 → période du 26 mois préc.</p>
+                </div>
+                <div>
+                  <Label>Jour de fin</Label>
+                  <Input type="number" min={1} max={31} value={groupForm.periodEndDay}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, periodEndDay: +e.target.value }))} className="h-8 text-sm" />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Ex: 25 → période au 25 du mois</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Cotisations CNSS</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Part salariale</Label>
+                  <Input type="number" step="0.001" value={groupForm.cnssEmployeeRate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, cnssEmployeeRate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>Part patronale</Label>
+                  <Input type="number" step="0.001" value={groupForm.cnssEmployerRate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, cnssEmployerRate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Majorations heures supplémentaires</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>HS 20 % (×1.20)</Label>
+                  <Input type="number" step="0.01" value={groupForm.hs20Rate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, hs20Rate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>HS 40 % (×1.40)</Label>
+                  <Input type="number" step="0.01" value={groupForm.hs40Rate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, hs40Rate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>HS Dimanche (×1.65)</Label>
+                  <Input type="number" step="0.01" value={groupForm.hsSundayRate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, hsSundayRate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>HS Dim. nuit (×2.00)</Label>
+                  <Input type="number" step="0.01" value={groupForm.hsSundayNightRate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, hsSundayNightRate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">IRPP & Congés</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Abattement IRPP</Label>
+                  <Input type="number" step="0.01" value={groupForm.irppAbatementRate}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, irppAbatementRate: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>Max dépendants</Label>
+                  <Input type="number" min={0} max={10} value={groupForm.irppMaxDependents}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, irppMaxDependents: +e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>Accrual congés / mois</Label>
+                  <Input type="number" step="0.5" value={groupForm.leaveAccrualDaysPerMonth}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, leaveAccrualDaysPerMonth: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label>Diviseur taux horaire</Label>
+                  <Input type="number" step="0.01" value={groupForm.hourlyRateDivisor}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, hourlyRateDivisor: e.target.value }))} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupOpen(false)}>Annuler</Button>
+            <Button
+              onClick={() => saveGroupMut.mutate(groupForm)}
+              disabled={!groupForm.name || saveGroupMut.isPending}
+            >
+              {saveGroupMut.isPending ? "Enregistrement…" : editingGroup ? "Mettre à jour" : "Créer le groupe"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -206,7 +206,13 @@ export default function BtpPointage() {
   const [cells, setCells] = useState<Map<CellKey, CellValue>>(new Map());
   const [dirty, setDirty] = useState(false);
   const [newPeriodOpen, setNewPeriodOpen] = useState(false);
-  const [newForm, setNewForm] = useState({ label: "", startDate: "", endDate: "", notes: "" });
+  const [newForm, setNewForm] = useState({ label: "", startDate: "", endDate: "", notes: "", payGroupId: "" });
+
+  // ── Groupes de paie ───────────────────────────────────────────────────
+  const { data: payGroups = [] } = useQuery<any[]>({
+    queryKey: ["btp-groups"],
+    queryFn: () => fetchJSON(`${API}/btp/groups`),
+  });
 
   // ── Périodes ──────────────────────────────────────────────────────────
   const { data: periods = [], isLoading: periodsLoading } = useQuery<Period[]>({
@@ -215,6 +221,23 @@ export default function BtpPointage() {
   });
 
   const selectedPeriod = periods.find((p) => p.id === selectedPeriodId);
+
+  // Auto-calcul des dates quand on saisit un mois et qu'un groupe est sélectionné
+  function applyGroupDates(month: string, groupId: string) {
+    const grp = payGroups.find((g: any) => g.id === groupId);
+    if (!month || month.length < 7) return;
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return;
+    const startDay = grp?.periodStartDay ?? 26;
+    const endDay = grp?.periodEndDay ?? 25;
+    // Période : startDay du mois précédent → endDay du mois courant
+    const prevMonth = m === 1 ? 12 : m - 1;
+    const prevYear = m === 1 ? y - 1 : y;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const startDate = `${prevYear}-${pad(prevMonth)}-${pad(startDay)}`;
+    const endDate = `${y}-${pad(m)}-${pad(endDay)}`;
+    setNewForm((f) => ({ ...f, startDate, endDate }));
+  }
 
   // ── Données de pointage ───────────────────────────────────────────────
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery<{
@@ -345,12 +368,13 @@ export default function BtpPointage() {
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 26);
     const thisMonth25 = new Date(now.getFullYear(), now.getMonth(), 25);
     const label = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    setNewForm({
+    setNewForm((f) => ({
+      ...f,
       label,
       startDate: prevMonth.toISOString().slice(0, 10),
       endDate: thisMonth25.toISOString().slice(0, 10),
       notes: "",
-    });
+    }));
   }
 
   const locked = selectedPeriod?.status === "locked";
@@ -579,20 +603,57 @@ export default function BtpPointage() {
             <DialogTitle>Nouvelle période de paie BTP</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
+            {/* Groupe de paie */}
+            {payGroups.length > 0 && (
+              <div>
+                <Label>Groupe de paie</Label>
+                <Select
+                  value={newForm.payGroupId}
+                  onValueChange={(v) => {
+                    setNewForm((f) => ({ ...f, payGroupId: v }));
+                    if (newForm.label) applyGroupDates(newForm.label, v);
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Sans groupe (paramètres globaux)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sans groupe (paramètres globaux)</SelectItem>
+                    {payGroups.map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.name}
+                        <span className="text-gray-400 text-xs ml-1">
+                          (j{g.periodStartDay}→j{g.periodEndDay})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {newForm.payGroupId && (
+                  <p className="text-[11px] text-blue-600 mt-1">
+                    Les dates seront auto-calculées selon les jours du groupe.
+                  </p>
+                )}
+              </div>
+            )}
             <div>
-              <Label htmlFor="label">Libellé (ex: 2026-06)</Label>
+              <Label htmlFor="label">Mois de paie (ex: 2026-06)</Label>
               <Input id="label" value={newForm.label}
-                onChange={(e) => setNewForm((f) => ({ ...f, label: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewForm((f) => ({ ...f, label: val }));
+                  applyGroupDates(val, newForm.payGroupId);
+                }}
                 placeholder="YYYY-MM" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="startDate">Début (26 du mois préc.)</Label>
+                <Label htmlFor="startDate">Début</Label>
                 <Input id="startDate" type="date" value={newForm.startDate}
                   onChange={(e) => setNewForm((f) => ({ ...f, startDate: e.target.value }))} />
               </div>
               <div>
-                <Label htmlFor="endDate">Fin (25 du mois)</Label>
+                <Label htmlFor="endDate">Fin</Label>
                 <Input id="endDate" type="date" value={newForm.endDate}
                   onChange={(e) => setNewForm((f) => ({ ...f, endDate: e.target.value }))} />
               </div>
