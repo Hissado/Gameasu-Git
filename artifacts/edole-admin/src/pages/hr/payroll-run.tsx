@@ -286,7 +286,7 @@ export default function PayrollRun() {
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["payroll-dashboard"] });
       toast({ title: "Paie soumise !", description: `${r.employeeCount ?? localItems.length} bulletins générés et validés` });
-      navigate("/hr/payroll");
+      navigate("/rh/paie");
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
@@ -427,7 +427,7 @@ export default function PayrollRun() {
       title={`Cycle de paie ${run?.period ?? "…"}`}
       subtitle={`Étape ${step} sur 2 — ${step === 1 ? "Préparation de la paie" : "Vérification et soumission"}`}
       actions={
-        <Button variant="ghost" size="sm" onClick={() => navigate("/hr/payroll")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/rh/paie")}>
           <ArrowLeft className="w-4 h-4 mr-1" />Retour
         </Button>
       }

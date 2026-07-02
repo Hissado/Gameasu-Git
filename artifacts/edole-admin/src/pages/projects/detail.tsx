@@ -63,7 +63,7 @@ const PHASE_LABEL: Record<string, string> = {
 };
 
 export default function ProjectDetail() {
-  const [, params] = useRoute("/projects/:id");
+  const [, params] = useRoute("/projets/:id");
   const id = params?.id || "";
 
   const { data: project, isLoading } = useGetProject(id, {
@@ -90,7 +90,7 @@ export default function ProjectDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-start gap-6 flex-wrap">
         <div>
-          <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 group">
+          <Link href="/projets" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             Retour aux projets
           </Link>

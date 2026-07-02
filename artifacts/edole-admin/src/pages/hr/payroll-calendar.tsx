@@ -66,7 +66,7 @@ export default function PayrollCalendar() {
       title="Calendrier de paie"
       subtitle={`Vue annuelle ${viewYear} — Cycles de paie planifiés et passés`}
       actions={
-        <Button size="sm" onClick={() => navigate("/hr/payroll")}>
+        <Button size="sm" onClick={() => navigate("/rh/paie")}>
           <Plus className="w-4 h-4 mr-1" />Nouveau cycle
         </Button>
       }

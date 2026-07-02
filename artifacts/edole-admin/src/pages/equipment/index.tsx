@@ -270,7 +270,7 @@ export default function EquipmentList() {
                   className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
                 />
               </div>
-              <Link href="/equipment/categories">
+              <Link href="/equipements/categories">
                 <Button variant="outline" size="sm" className="h-9">
                   <Settings className="w-4 h-4 mr-2" />
                   Catégories

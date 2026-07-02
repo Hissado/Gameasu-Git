@@ -119,7 +119,7 @@ export default function AccountingDashboard() {
                   </tbody>
                 </table>
                 <div className="p-3 border-t text-right">
-                  <Link href="/accounting/customers" className="text-xs text-amber-700 font-semibold hover:underline">Voir balance âgée →</Link>
+                  <Link href="/comptabilite/clients" className="text-xs text-amber-700 font-semibold hover:underline">Voir balance âgée →</Link>
                 </div>
               </CardContent>
             </Card>
@@ -146,7 +146,7 @@ export default function AccountingDashboard() {
                   </tbody>
                 </table>
                 <div className="p-3 border-t text-right">
-                  <Link href="/accounting/suppliers" className="text-xs text-amber-700 font-semibold hover:underline">Voir fournisseurs →</Link>
+                  <Link href="/comptabilite/fournisseurs" className="text-xs text-amber-700 font-semibold hover:underline">Voir fournisseurs →</Link>
                 </div>
               </CardContent>
             </Card>

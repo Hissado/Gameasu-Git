@@ -96,8 +96,8 @@ export default function QuickActions() {
       <div className="grid grid-cols-2 gap-2">
         <Tile to="/briefing" icon={Sun} label="Briefing du jour" accent="bg-amber-100 text-amber-700" />
         <Tile to="/assistant" icon={Sparkles} label="Assistant IA" accent="bg-violet-100 text-violet-700" />
-        <Tile to="/search" icon={Search} label="Recherche" accent="bg-blue-100 text-blue-700" />
-        <Tile to="/notifications/digest" icon={Bell} label="Digest" sub={digest.data?.totalUnread ? `${digest.data.totalUnread} non lus` : undefined} accent="bg-rose-100 text-rose-700" />
+        <Tile to="/recherche" icon={Search} label="Recherche" accent="bg-blue-100 text-blue-700" />
+        <Tile to="/notifications/synthese" icon={Bell} label="Digest" sub={digest.data?.totalUnread ? `${digest.data.totalUnread} non lus` : undefined} accent="bg-rose-100 text-rose-700" />
       </div>
 
       {/* Tâches & opérations */}
@@ -106,7 +106,7 @@ export default function QuickActions() {
         <div className="grid grid-cols-2 gap-2">
           <Tile to="/tasks/focus" icon={Flame} label="Focus tâches" accent="bg-red-100 text-red-700" />
           <Tile to="/tasks" icon={ClipboardList} label="Toutes mes tâches" />
-          <Tile to="/approvals" icon={CheckSquare} label="Approbations" sub={approvals.data?.total ? `${approvals.data.total} à traiter` : undefined} accent="bg-emerald-100 text-emerald-700" />
+          <Tile to="/approbations" icon={CheckSquare} label="Approbations" sub={approvals.data?.total ? `${approvals.data.total} à traiter` : undefined} accent="bg-emerald-100 text-emerald-700" />
           <Tile to="/anomalies" icon={Activity} label="Anomalies" sub={anomalies.data?.total ? `${anomalies.data.total} détectées` : undefined} accent="bg-orange-100 text-orange-700" />
         </div>
       </div>

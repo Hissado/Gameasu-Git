@@ -70,14 +70,14 @@ const TABS = ["overview", "products", "stock", "purchases", "movements", "alerts
 type TabKey = typeof TABS[number];
 
 export default function InventoryHub() {
-  const [, params] = useRoute("/inventory/:tab");
+  const [, params] = useRoute("/stock/:tab");
   const [, setLocation] = useLocation();
   const initialTab = (params?.tab && (TABS as readonly string[]).includes(params.tab) ? params.tab : "overview") as TabKey;
   const [tab, setTab] = useState<TabKey>(initialTab);
 
   const changeTab = (t: string) => {
     setTab(t as TabKey);
-    setLocation(t === "overview" ? "/inventory" : `/inventory/${t}`, { replace: true });
+    setLocation(t === "overview" ? "/stock" : `/stock/${t}`, { replace: true });
   };
 
   return (
@@ -171,7 +171,7 @@ function OverviewTab() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4 text-amber-600" />Top alertes stock</CardTitle>
               {topAlerts.length > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => setLocation("/inventory/alerts")}>Voir tout</Button>
+                <Button size="sm" variant="ghost" onClick={() => setLocation("/stock/alertes")}>Voir tout</Button>
               )}
             </div>
           </CardHeader>
@@ -208,7 +208,7 @@ function OverviewTab() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base"><RefreshCw className="h-4 w-4 text-slate-600" />Derniers mouvements</CardTitle>
-              <Button size="sm" variant="ghost" onClick={() => setLocation("/inventory/movements")}>Voir tout</Button>
+              <Button size="sm" variant="ghost" onClick={() => setLocation("/stock/mouvements")}>Voir tout</Button>
             </div>
           </CardHeader>
           <CardContent className="pt-0">

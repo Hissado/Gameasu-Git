@@ -233,11 +233,11 @@ export default function Dashboard() {
             {/* Raccourcis rapides */}
             <div className="flex flex-wrap gap-2">
               {([
-                { label: "Facture",       href: "/invoices",        icon: FileText },
-                { label: "Devis",         href: "/proformas",       icon: FileSignature },
+                { label: "Facture",       href: "/factures",        icon: FileText },
+                { label: "Devis",         href: "/devis",       icon: FileSignature },
                 { label: "Client",        href: "/clients",         icon: Building2 },
-                { label: "Paiement",      href: "/payments",        icon: Wallet },
-                { label: "Collaborateur", href: "/collaborators",   icon: Users },
+                { label: "Paiement",      href: "/paiements",        icon: Wallet },
+                { label: "Collaborateur", href: "/collaborateurs",   icon: Users },
               ] as { label: string; href: string; icon: React.ComponentType<{className?: string}> }[]).map((a) => (
                 <Button key={a.label} size="sm" variant="secondary" asChild
                   className="bg-white/10 hover:bg-white/20 text-white border-0 text-xs h-8 gap-1.5">
@@ -266,7 +266,7 @@ export default function Dashboard() {
             icon={TrendingUp}
             accent={monthlyRevenue > 0 ? "green" : "default"}
             loading={loadingKpis}
-            href="/payments"
+            href="/paiements"
           />
           <KpiCard
             label="Créances ouvertes"
@@ -275,7 +275,7 @@ export default function Dashboard() {
             icon={Receipt}
             accent={outstanding > 0 ? "amber" : "green"}
             loading={loadingKpis}
-            href="/invoices"
+            href="/factures"
           />
           <KpiCard
             label="Pipeline CRM"
@@ -301,7 +301,7 @@ export default function Dashboard() {
             icon={FolderKanban}
             accent="default"
             loading={loadingKpis}
-            href="/projects"
+            href="/projets"
           />
           <KpiCard
             label="Collaborateurs"
@@ -310,7 +310,7 @@ export default function Dashboard() {
             icon={Users}
             accent="default"
             loading={loadingKpis}
-            href="/collaborators"
+            href="/collaborateurs"
           />
           <KpiCard
             label="Factures en attente"
@@ -319,7 +319,7 @@ export default function Dashboard() {
             icon={FileText}
             accent={overdueInvoices.length > 0 ? "red" : "green"}
             loading={loadingKpis}
-            href="/invoices"
+            href="/factures"
           />
           <KpiCard
             label="Alertes actives"
@@ -344,13 +344,13 @@ export default function Dashboard() {
             sub="Actions financières urgentes"
             action={
               <Button variant="ghost" size="sm" className="text-xs" asChild>
-                <Link href="/invoices">Voir tout <ChevronRight className="w-3.5 h-3.5 ml-0.5" /></Link>
+                <Link href="/factures">Voir tout <ChevronRight className="w-3.5 h-3.5 ml-0.5" /></Link>
               </Button>
             }
           />
           <div className="mt-3 space-y-2">
             {outstanding > 0 && (
-              <Link href="/invoices"
+              <Link href="/factures"
                 className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
                   <Banknote className="w-4 h-4 text-amber-700" />
@@ -548,7 +548,7 @@ export default function Dashboard() {
             sub="Projets en cours par valeur"
             action={
               <Button variant="ghost" size="sm" className="text-xs" asChild>
-                <Link href="/projects">Tous les projets <ChevronRight className="w-3.5 h-3.5 ml-0.5" /></Link>
+                <Link href="/projets">Tous les projets <ChevronRight className="w-3.5 h-3.5 ml-0.5" /></Link>
               </Button>
             }
           />
@@ -618,10 +618,10 @@ export default function Dashboard() {
         <SectionHeader title="Raccourcis" sub="Actions fréquentes" />
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
           {([
-            { label: "Créer une facture",       href: "/invoices",      icon: FileText,      color: "text-primary" },
+            { label: "Créer une facture",       href: "/factures",      icon: FileText,      color: "text-primary" },
             { label: "Ajouter un client",        href: "/clients",       icon: Building2,     color: "text-blue-600" },
-            { label: "Créer un devis",           href: "/proformas",     icon: FileSignature, color: "text-violet-600" },
-            { label: "Enregistrer un paiement",  href: "/payments",      icon: CreditCard,    color: "text-emerald-600" },
+            { label: "Créer un devis",           href: "/devis",     icon: FileSignature, color: "text-violet-600" },
+            { label: "Enregistrer un paiement",  href: "/paiements",      icon: CreditCard,    color: "text-emerald-600" },
             { label: "Voir les relances",        href: "/recouvrement",  icon: Zap,           color: "text-amber-600" },
             { label: "Rapport achats",           href: "/achats/rapports", icon: Briefcase,   color: "text-rose-600" },
           ] as { label: string; href: string; icon: React.ComponentType<{className?: string}>; color: string }[]).map((a) => (

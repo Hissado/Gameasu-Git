@@ -64,7 +64,7 @@ export async function apiFetch<T = unknown>(
     }
     if (res.status === 423) {
       // L'utilisateur doit changer son mot de passe avant toute autre action.
-      if (typeof window !== "undefined" && !window.location.pathname.endsWith("/change-password")) {
+      if (typeof window !== "undefined" && !window.location.pathname.endsWith("/changer-mdp")) {
         window.dispatchEvent(new CustomEvent("auth:password-change-required"));
       }
     }

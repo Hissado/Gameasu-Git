@@ -235,7 +235,7 @@ function AppRouter() {
           <Suspense fallback={<PageFallback />}><PrintDocument /></Suspense>
         </ProtectedRoute>
       </Route>
-      <Route path="/reports/management/pdf">
+      <Route path="/rapports/gestion/pdf">
         <ProtectedRoute>
           <Suspense fallback={<PageFallback />}><ManagementPDFPage /></Suspense>
         </ProtectedRoute>
@@ -256,10 +256,10 @@ function AppRouter() {
                 <Route path="/services" component={ServicesIndex} />
                 <Route path="/services/:id" component={ServiceDetail} />
 
-                <Route path="/projects" component={ProjectsList} />
-                <Route path="/projects/:id" component={ProjectDetail} />
-                <Route path="/portfolio" component={PortfolioPage} />
-                <Route path="/workload" component={WorkloadPage} />
+                <Route path="/projets" component={ProjectsList} />
+                <Route path="/projets/:id" component={ProjectDetail} />
+                <Route path="/portefeuille" component={PortfolioPage} />
+                <Route path="/charge" component={WorkloadPage} />
 
                 <Route path="/tasks/focus" component={TasksHub} />
                 <Route path="/tasks/:id" component={TaskDetail} />
@@ -270,35 +270,35 @@ function AppRouter() {
                 <Route path="/crm/clients/:id" component={ClientDetail} />
                 <Route path="/crm/activities" component={ActivitiesList} />
 
-                <Route path="/equipment" component={EquipmentList} />
-                <Route path="/equipment/categories" component={EquipmentCategories} />
-                <Route path="/equipment/qr" component={EquipmentQRCodes} />
-                <Route path="/reports" component={ReportsPage} />
-                <Route path="/map" component={MapPage} />
-                <Route path="/inspections/compare/:rentalId" component={InspectionCompare} />
+                <Route path="/equipements" component={EquipmentList} />
+                <Route path="/equipements/categories" component={EquipmentCategories} />
+                <Route path="/equipements/qr" component={EquipmentQRCodes} />
+                <Route path="/rapports" component={ReportsPage} />
+                <Route path="/carte" component={MapPage} />
+                <Route path="/inspections/comparer/:rentalId" component={InspectionCompare} />
 
-                <Route path="/collaborators" component={CollaboratorsList} />
-                <Route path="/collaborators/:id/badge" component={CollaboratorBadgePrint} />
-                <Route path="/collaborators/:id" component={CollaboratorDetail} />
+                <Route path="/collaborateurs" component={CollaboratorsList} />
+                <Route path="/collaborateurs/:id/badge" component={CollaboratorBadgePrint} />
+                <Route path="/collaborateurs/:id" component={CollaboratorDetail} />
 
-                <Route path="/rentals" component={RentalsList} />
-                <Route path="/rentals/:id" component={RentalDetail} />
+                <Route path="/locations" component={RentalsList} />
+                <Route path="/locations/:id" component={RentalDetail} />
                 <Route path="/inspections" component={InspectionsList} />
-                <Route path="/logistics" component={LogisticsList} />
+                <Route path="/logistique" component={LogisticsList} />
 
-                <Route path="/pricing" component={PricingCalculator} />
-                <Route path="/orders" component={OrdersList} />
-                <Route path="/proformas" component={ProformasList} />
-                <Route path="/invoices" component={InvoicesList} />
-                <Route path="/payments" component={PaymentsList} />
-                <Route path="/credit-notes" component={CreditNotesList} />
+                <Route path="/tarification" component={PricingCalculator} />
+                <Route path="/commandes" component={OrdersList} />
+                <Route path="/devis" component={ProformasList} />
+                <Route path="/factures" component={InvoicesList} />
+                <Route path="/paiements" component={PaymentsList} />
+                <Route path="/avoirs" component={CreditNotesList} />
 
                 <Route path="/messaging" component={Messaging} />
-                <Route path="/calls" component={CallsList} />
-                <Route path="/users" component={UsersList} />
+                <Route path="/appels" component={CallsList} />
+                <Route path="/utilisateurs" component={UsersList} />
                 <Route path="/notifications" component={NotificationsList} />
-                <Route path="/settings" component={Settings} />
-                <Route path="/profile" component={MyProfile} />
+                <Route path="/parametres" component={Settings} />
+                <Route path="/profil" component={MyProfile} />
 
                 <Route path="/fpa" component={FpaDashboard} />
                 <Route path="/fpa/budgets" component={FpaBudgets} />
@@ -308,43 +308,43 @@ function AppRouter() {
                 <Route path="/fpa/cashflow" component={FpaCashflow} />
                 <Route path="/fpa/reports" component={FpaReports} />
 
-                <Route path="/accounting" component={AccountingDashboard} />
-                <Route path="/accounting/chart-of-accounts" component={AccountingChart} />
-                <Route path="/accounting/entries" component={AccountingEntries} />
-                <Route path="/accounting/ledger" component={AccountingLedger} />
-                <Route path="/accounting/balance" component={AccountingBalance} />
-                <Route path="/accounting/income-statement" component={AccountingIncome} />
-                <Route path="/accounting/balance-sheet" component={AccountingBalanceSheet} />
-                <Route path="/accounting/customers" component={AccountingCustomers} />
-                <Route path="/accounting/suppliers" component={AccountingSuppliers} />
-                <Route path="/accounting/banks" component={AccountingBanks} />
-                <Route path="/accounting/reconciliation" component={AccountingReconciliation} />
-                <Route path="/accounting/fixed-assets" component={AccountingFixedAssets} />
-                <Route path="/accounting/matching" component={AccountingMatching} />
-                <Route path="/accounting/fiscal-periods" component={AccountingFiscalPeriods} />
-                <Route path="/accounting/taxes" component={AccountingTaxes} />
-                <Route path="/accounting/period-close" component={AccountingPeriodClose} />
+                <Route path="/comptabilite" component={AccountingDashboard} />
+                <Route path="/comptabilite/plan-comptable" component={AccountingChart} />
+                <Route path="/comptabilite/ecritures" component={AccountingEntries} />
+                <Route path="/comptabilite/grand-livre" component={AccountingLedger} />
+                <Route path="/comptabilite/balance" component={AccountingBalance} />
+                <Route path="/comptabilite/compte-de-resultat" component={AccountingIncome} />
+                <Route path="/comptabilite/bilan" component={AccountingBalanceSheet} />
+                <Route path="/comptabilite/clients" component={AccountingCustomers} />
+                <Route path="/comptabilite/fournisseurs" component={AccountingSuppliers} />
+                <Route path="/comptabilite/banques" component={AccountingBanks} />
+                <Route path="/comptabilite/rapprochement" component={AccountingReconciliation} />
+                <Route path="/comptabilite/immobilisations" component={AccountingFixedAssets} />
+                <Route path="/comptabilite/lettrage" component={AccountingMatching} />
+                <Route path="/comptabilite/periodes-fiscales" component={AccountingFiscalPeriods} />
+                <Route path="/comptabilite/taxes" component={AccountingTaxes} />
+                <Route path="/comptabilite/cloture" component={AccountingPeriodClose} />
 
-                <Route path="/hr" component={HrDashboard} />
-                <Route path="/hr/departments" component={HrDepartments} />
-                <Route path="/hr/positions" component={HrPositions} />
-                <Route path="/hr/contracts" component={HrContracts} />
-                <Route path="/hr/documents" component={HrDocuments} />
-                <Route path="/hr/assignments" component={HrAssignments} />
-                <Route path="/hr/leaves" component={HrLeaves} />
-                <Route path="/hr/payroll" component={HrPayroll} />
-                <Route path="/hr/recruitment" component={HrRecruitment} />
-                <Route path="/hr/evaluations" component={HrEvaluations} />
-                <Route path="/hr/training" component={HrTraining} />
-                <Route path="/hr/movements" component={HrMovements} />
-                <Route path="/hr/my-space" component={HrMySpace} />
-                <Route path="/hr/leave-policies" component={HrLeavePolicies} />
-                <Route path="/hr/team-calendar" component={HrTeamCalendar} />
-                <Route path="/hr/timesheets" component={HrTimesheets} />
-                <Route path="/hr/indicators" component={HrIndicators} />
-                <Route path="/hr/reports" component={HrReports} />
-                <Route path="/accounting/analytical" component={AccountingAnalytical} />
-                <Route path="/inventory/warehouses" component={InventoryWarehouses} />
+                <Route path="/rh" component={HrDashboard} />
+                <Route path="/rh/departements" component={HrDepartments} />
+                <Route path="/rh/postes" component={HrPositions} />
+                <Route path="/rh/contrats" component={HrContracts} />
+                <Route path="/rh/documents" component={HrDocuments} />
+                <Route path="/rh/affectations" component={HrAssignments} />
+                <Route path="/rh/conges" component={HrLeaves} />
+                <Route path="/rh/paie" component={HrPayroll} />
+                <Route path="/rh/recrutement" component={HrRecruitment} />
+                <Route path="/rh/evaluations" component={HrEvaluations} />
+                <Route path="/rh/formations" component={HrTraining} />
+                <Route path="/rh/mouvements" component={HrMovements} />
+                <Route path="/rh/mon-espace" component={HrMySpace} />
+                <Route path="/rh/politiques-conges" component={HrLeavePolicies} />
+                <Route path="/rh/calendrier-equipe" component={HrTeamCalendar} />
+                <Route path="/rh/feuilles-temps" component={HrTimesheets} />
+                <Route path="/rh/indicateurs" component={HrIndicators} />
+                <Route path="/rh/rapports" component={HrReports} />
+                <Route path="/comptabilite/analytique" component={AccountingAnalytical} />
+                <Route path="/stock/entrepots" component={InventoryWarehouses} />
 
                 <Route path="/commercial/clients" component={CommercialClients} />
                 <Route path="/commercial/services" component={CommercialServices} />
@@ -354,23 +354,23 @@ function AppRouter() {
                 <Route path="/finance/tresorerie" component={TresoreriePage} />
                 <Route path="/recouvrement" component={RecouvrementPage} />
                 <Route path="/migration" component={MigrationPage} />
-                <Route path="/hr/intelligence" component={HrIntelligence} />
-                <Route path="/hr/btp-pointage" component={BtpPointage} />
-                <Route path="/hr/btp-paie" component={BtpPaie} />
-                <Route path="/hr/btp-settings" component={BtpSettings} />
-                <Route path="/notifications/digest" component={NotificationsDigest} />
-                <Route path="/search" component={UniversalSearch} />
+                <Route path="/rh/intelligence" component={HrIntelligence} />
+                <Route path="/rh/btp-pointage" component={BtpPointage} />
+                <Route path="/rh/btp-paie" component={BtpPaie} />
+                <Route path="/rh/btp-parametres" component={BtpSettings} />
+                <Route path="/notifications/synthese" component={NotificationsDigest} />
+                <Route path="/recherche" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />
                 <Route path="/briefing" component={BriefingPage} />
                 <Route path="/pipeline/intelligence" component={CrmHub} />
-                <Route path="/approvals" component={ApprovalsQueue} />
+                <Route path="/approbations" component={ApprovalsQueue} />
                 <Route path="/anomalies" component={AnomalyCenter} />
                 <Route path="/super-admin" component={SuperAdminCockpit} />
                 <Route path="/org-tuner" component={OrgTuner} />
                 <Route path="/quick" component={QuickActions} />
                 <Route path="/operations" component={OperationsCommandCenter} />
-                <Route path="/inventory" component={InventoryHub} />
-                <Route path="/inventory/:tab" component={InventoryHub} />
+                <Route path="/stock" component={InventoryHub} />
+                <Route path="/stock/:tab" component={InventoryHub} />
 
                 <Route path="/marketing" component={MarketingDashboard} />
                 <Route path="/marketing/campaigns" component={MarketingCampaigns} />
@@ -387,28 +387,28 @@ function AppRouter() {
                 <Route path="/marketing/prospects" component={MarketingProspects} />
 
                 <Route path="/documents" component={DocumentsHub} />
-                <Route path="/alerts" component={AlertsPage} />
+                <Route path="/alertes" component={AlertsPage} />
                 <Route path="/tickets" component={TicketsPage} />
                 <Route path="/intelligence" component={IntelligenceCenter} />
                 <Route path="/automations" component={AutomationsPage} />
-                <Route path="/attendance" component={AttendancePage} />
-                <Route path="/kiosk-management" component={KioskManagement} />
+                <Route path="/presences" component={AttendancePage} />
+                <Route path="/kiosques" component={KioskManagement} />
                 <Route path="/mon-espace" component={MonEspace} />
-                <Route path="/hr/orgchart" component={HrOrgchart} />
-                <Route path="/hr/audit-log" component={HrAuditLog} />
-                <Route path="/hr/payroll/run/:id" component={HrPayrollRun} />
-                <Route path="/hr/payroll/calendar" component={HrPayrollCalendar} />
-                <Route path="/hr/payroll/declarations" component={HrPayrollDeclarations} />
-                <Route path="/hr/payroll/corrections" component={HrPayrollCorrections} />
-                <Route path="/hr/payroll/off-cycle" component={HrPayrollOffCycle} />
-                <Route path="/hr/tax-settings" component={HrTaxSettings} />
-                <Route path="/hr/contract-templates" component={HrContractTemplates} />
-                <Route path="/hr/onboarding" component={HrOnboarding} />
-                <Route path="/hr/expenses" component={HrExpenses} />
-                <Route path="/hr/legal-register" component={HrLegalRegister} />
-                <Route path="/hr/benefits" component={HrBenefits} />
-                <Route path="/hr/transfer-orders" component={HrTransferOrders} />
-                <Route path="/accounting/cash-flow" component={CashFlowStatement} />
+                <Route path="/rh/organigramme" component={HrOrgchart} />
+                <Route path="/rh/journal-audit" component={HrAuditLog} />
+                <Route path="/rh/paie/run/:id" component={HrPayrollRun} />
+                <Route path="/rh/paie/calendrier" component={HrPayrollCalendar} />
+                <Route path="/rh/paie/declarations" component={HrPayrollDeclarations} />
+                <Route path="/rh/paie/corrections" component={HrPayrollCorrections} />
+                <Route path="/rh/paie/hors-cycle" component={HrPayrollOffCycle} />
+                <Route path="/rh/fiscalite" component={HrTaxSettings} />
+                <Route path="/rh/modeles-contrats" component={HrContractTemplates} />
+                <Route path="/rh/integration" component={HrOnboarding} />
+                <Route path="/rh/notes-frais" component={HrExpenses} />
+                <Route path="/rh/registre-legal" component={HrLegalRegister} />
+                <Route path="/rh/avantages" component={HrBenefits} />
+                <Route path="/rh/virements" component={HrTransferOrders} />
+                <Route path="/comptabilite/flux-tresorerie" component={CashFlowStatement} />
 
                 <Route path="/admin" component={AdminHub} />
                 <Route path="/admin/roles" component={AdminRoles} />
@@ -417,11 +417,11 @@ function AppRouter() {
                 <Route path="/admin/users" component={AdminUsers} />
                 <Route path="/admin/invitations" component={AdminInvitations} />
                 <Route path="/admin/audit" component={AdminAudit} />
-                <Route path="/change-password" component={ChangePassword} />
+                <Route path="/changer-mdp" component={ChangePassword} />
 
                 <Route path="/abonnement" component={BillingPage} />
                 <Route path="/workspace-settings" component={WorkspaceSettingsPage} />
-                <Route path="/upgrade-required" component={UpgradeRequiredPage} />
+                <Route path="/mise-a-niveau" component={UpgradeRequiredPage} />
 
                 <Route path="/achats" component={AchatsOverview} />
                 <Route path="/achats/fournisseurs" component={AchatsFournisseurs} />

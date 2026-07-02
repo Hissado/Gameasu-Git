@@ -355,7 +355,7 @@ export default function HrOverview() {
                         </span>
                       )}
                     </div>
-                    <Link href="/collaborators">
+                    <Link href="/collaborateurs">
                       <span className="text-xs text-cyan-700 font-semibold hover:underline cursor-pointer">Voir tout</span>
                     </Link>
                   </div>
@@ -463,7 +463,7 @@ export default function HrOverview() {
                     <div className="my-4">
                       <MonthCloseGauge daysLeft={daysLeft} />
                     </div>
-                    <Link href="/hr/payroll" className="w-full">
+                    <Link href="/rh/paie" className="w-full">
                       <Button variant="outline" className="w-full border-cyan-700 text-cyan-700 hover:bg-cyan-50 text-sm font-semibold">
                         Clôturer votre paie
                       </Button>

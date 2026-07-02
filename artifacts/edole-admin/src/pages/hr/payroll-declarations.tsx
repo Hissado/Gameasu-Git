@@ -847,7 +847,7 @@ export default function PayrollDeclarations() {
           <p className="text-sm text-muted-foreground max-w-sm">
             Les déclarations CNSS et IRPP sont disponibles uniquement pour les cycles de paie validés ou payés.
           </p>
-          <Button variant="outline" onClick={() => navigate("/hr/payroll")}>
+          <Button variant="outline" onClick={() => navigate("/rh/paie")}>
             <ArrowLeft className="w-4 h-4 mr-1" />Retour à la paie
           </Button>
         </div>

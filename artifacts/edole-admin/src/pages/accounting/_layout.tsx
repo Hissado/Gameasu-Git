@@ -9,43 +9,43 @@ import { ModuleShell, NavGroup } from "@/components/ui/module-nav";
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Tableau de bord",
-    items: [{ name: "Tableau de bord", path: "/accounting", icon: LayoutDashboard, exact: true }],
+    items: [{ name: "Tableau de bord", path: "/comptabilite", icon: LayoutDashboard, exact: true }],
   },
   {
     label: "Référentiel",
     items: [
-      { name: "Plan comptable", path: "/accounting/chart-of-accounts", icon: BookOpen },
-      { name: "Exercices", path: "/accounting/fiscal-periods", icon: Calendar },
+      { name: "Plan comptable", path: "/comptabilite/plan-comptable", icon: BookOpen },
+      { name: "Exercices", path: "/comptabilite/periodes-fiscales", icon: Calendar },
     ],
   },
   {
     label: "Saisie & Journaux",
     items: [
-      { name: "Écritures", path: "/accounting/entries", icon: FileText },
-      { name: "Lettrage", path: "/accounting/matching", icon: GitMerge },
-      { name: "Grand livre", path: "/accounting/ledger", icon: BookMarked },
+      { name: "Écritures", path: "/comptabilite/ecritures", icon: FileText },
+      { name: "Lettrage", path: "/comptabilite/lettrage", icon: GitMerge },
+      { name: "Grand livre", path: "/comptabilite/grand-livre", icon: BookMarked },
     ],
   },
   {
     label: "Tiers",
     items: [
-      { name: "Clients", path: "/accounting/customers", icon: Users },
-      { name: "Fournisseurs", path: "/accounting/suppliers", icon: Building2 },
+      { name: "Clients", path: "/comptabilite/clients", icon: Users },
+      { name: "Fournisseurs", path: "/comptabilite/fournisseurs", icon: Building2 },
     ],
   },
   {
     label: "Trésorerie",
     items: [
-      { name: "Banques", path: "/accounting/banks", icon: Landmark },
-      { name: "Rapprochement", path: "/accounting/reconciliation", icon: CheckCircle2 },
+      { name: "Banques", path: "/comptabilite/banques", icon: Landmark },
+      { name: "Rapprochement", path: "/comptabilite/rapprochement", icon: CheckCircle2 },
     ],
   },
   {
     label: "Gestion",
     items: [
-      { name: "Immobilisations", path: "/accounting/fixed-assets", icon: HardDrive },
-      { name: "Analytique", path: "/accounting/analytical", icon: BarChart2 },
-      { name: "Fiscal", path: "/accounting/taxes", icon: Percent },
+      { name: "Immobilisations", path: "/comptabilite/immobilisations", icon: HardDrive },
+      { name: "Analytique", path: "/comptabilite/analytique", icon: BarChart2 },
+      { name: "Fiscal", path: "/comptabilite/taxes", icon: Percent },
     ],
   },
 ];

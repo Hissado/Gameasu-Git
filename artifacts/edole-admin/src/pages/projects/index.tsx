@@ -315,13 +315,13 @@ export default function ProjectsList() {
         subtitle="Gestion et suivi de vos projets"
         actions={
           <>
-            <Link href="/portfolio">
+            <Link href="/portefeuille">
               <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
                 <TrendingUp className="w-4 h-4" />
                 <span className="hidden sm:inline">Portefeuille</span>
               </Button>
             </Link>
-            <Link href="/workload">
+            <Link href="/charge">
               <Button variant="outline" size="sm" className="h-9 font-medium gap-1.5">
                 <LayoutGrid className="w-4 h-4" />
                 <span className="hidden sm:inline">Charge équipe</span>

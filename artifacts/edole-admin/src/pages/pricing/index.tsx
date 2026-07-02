@@ -1417,7 +1417,7 @@ function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
               <HardHat className="w-8 h-8 mx-auto text-slate-300" />
               <p className="text-sm font-medium text-slate-600">Aucun équipement dans le catalogue</p>
               <p className="text-xs text-muted-foreground">Ajoutez d'abord vos équipements dans le module <strong>Équipements</strong>, puis revenez ici pour les importer.</p>
-              <a href="/equipment" target="_blank" rel="noopener noreferrer"
+              <a href="/equipements" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-lime-700 font-medium hover:underline mt-1">
                 <ArrowRight className="w-3.5 h-3.5" />Aller au module Équipements
               </a>
@@ -3521,7 +3521,7 @@ export default function PricingCalculator() {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${fiscalConfig.enabled ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}>
                         {fiscalConfig.enabled ? "Activé" : "Désactivé"}
                       </span>}
-                    <a href="/accounting/taxes" className="text-xs text-orange-600 underline hover:text-orange-800">Configurer →</a>
+                    <a href="/comptabilite/taxes" className="text-xs text-orange-600 underline hover:text-orange-800">Configurer →</a>
                   </div>
                 </div>
               </CardHeader>

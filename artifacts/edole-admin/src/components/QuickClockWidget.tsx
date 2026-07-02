@@ -139,7 +139,7 @@ export function QuickClockWidget() {
           <span className="text-sm font-semibold">Pointage du jour</span>
         </div>
         <Link
-          href="/attendance"
+          href="/presences"
           className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Voir tout <ChevronRight className="w-3 h-3" />
@@ -174,7 +174,7 @@ export function QuickClockWidget() {
               <UserX className="w-4 h-4 text-muted-foreground shrink-0" />
               <p className="text-xs text-muted-foreground flex-1">
                 Le pointage nécessite un profil collaborateur.{" "}
-                <Link href="/attendance" className="text-primary hover:underline">
+                <Link href="/presences" className="text-primary hover:underline">
                   Accéder à Présence &amp; Pointage →
                 </Link>
               </p>
@@ -245,7 +245,7 @@ export function QuickClockWidget() {
           {!isLoading && isClosed && (
             <p className="text-xs text-muted-foreground text-center w-full py-1">
               Journée enregistrée ✓ ·{" "}
-              <Link href="/attendance" className="text-primary hover:underline">
+              <Link href="/presences" className="text-primary hover:underline">
                 Consulter le détail
               </Link>
             </p>

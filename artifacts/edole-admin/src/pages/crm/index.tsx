@@ -242,7 +242,7 @@ export default function CrmHome() {
                 <Building className="w-4 h-4" /> Clients
               </Button>
             </Link>
-            <Link href="/pricing">
+            <Link href="/tarification">
               <Button variant="outline" size="sm" className="gap-1.5">
                 <Calculator className="w-4 h-4" /> Calculateur
               </Button>
@@ -395,7 +395,7 @@ export default function CrmHome() {
                             </Link>
                           )}
                           {opp.clientId && stage.key !== "lead" && (
-                            <Link href="/proformas">
+                            <Link href="/devis">
                               <button className="text-[10px] font-semibold px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center gap-1 transition-colors">
                                 <FileText className="w-3 h-3" /> Devis
                               </button>

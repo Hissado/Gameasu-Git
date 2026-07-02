@@ -11,7 +11,7 @@ import { formatFCFA, formatDate } from "@/lib/format";
 
 
 export default function RentalDetail() {
-  const [, params] = useRoute("/rentals/:id");
+  const [, params] = useRoute("/locations/:id");
   const id = params?.id || "";
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,7 +49,7 @@ export default function RentalDetail() {
       <div className="text-center py-12">
         <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-2xl font-bold">Contrat introuvable</h2>
-        <Link href="/rentals"><Button className="mt-4"><ArrowLeft className="w-4 h-4 mr-2" /> Retour aux locations</Button></Link>
+        <Link href="/locations"><Button className="mt-4"><ArrowLeft className="w-4 h-4 mr-2" /> Retour aux locations</Button></Link>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default function RentalDetail() {
     <div ref={contentRef} className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-           <Link href="/rentals">
+           <Link href="/locations">
             <Button variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
               <ArrowLeft className="w-4 h-4" />
               Locations

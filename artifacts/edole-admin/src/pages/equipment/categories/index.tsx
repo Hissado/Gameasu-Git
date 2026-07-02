@@ -14,7 +14,7 @@ export default function EquipmentCategories() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/equipment">
+          <Link href="/equipements">
             <Button variant="outline" size="sm" className="h-8 gap-1.5">
               <ArrowLeft className="w-4 h-4" />
               Équipements

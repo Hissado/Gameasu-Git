@@ -45,14 +45,14 @@ const KIND_CONFIG: Record<string, {
   proforma_draft: {
     label: "Devis brouillon",
     action: "Finaliser",
-    href: () => "/proformas",
+    href: () => "/devis",
     icon: FileText,
     badgeCls: "bg-blue-50 text-blue-700 border-blue-200",
   },
   invoice_draft: {
     label: "Facture à émettre",
     action: "Émettre",
-    href: () => "/invoices",
+    href: () => "/factures",
     icon: FileText,
     badgeCls: "bg-violet-50 text-violet-700 border-violet-200",
   },
@@ -66,7 +66,7 @@ const KIND_CONFIG: Record<string, {
   contract_expiring: {
     label: "Contrat expirant",
     action: "Gérer",
-    href: () => "/hr/contracts",
+    href: () => "/rh/contrats",
     icon: FolderArchive,
     badgeCls: "bg-orange-50 text-orange-700 border-orange-200",
   },

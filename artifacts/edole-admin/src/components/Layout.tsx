@@ -47,9 +47,9 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard" },
       { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard" },
       { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use" },
-      { name: "Appels",           path: "/calls",        icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use" },
+      { name: "Appels",           path: "/appels",        icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use" },
       { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true },
-      { name: "Approbations",     path: "/approvals",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
+      { name: "Approbations",     path: "/approbations",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
     ],
   },
   {
@@ -59,22 +59,22 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read" },
       { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read" },
       { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients",    permissionKey: "clients.read" },
-      { name: "Tarification",  path: "/pricing",      icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Devis",         path: "/proformas",    icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Commandes",     path: "/orders",       icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Factures",      path: "/invoices",     icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Encaissements", path: "/payments",     icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Avoirs",        path: "/credit-notes", icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true },
+      { name: "Tarification",  path: "/tarification",      icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Devis",         path: "/devis",    icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Commandes",     path: "/commandes",       icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Factures",      path: "/factures",     icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Encaissements", path: "/paiements",     icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read" },
+      { name: "Avoirs",        path: "/avoirs", icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true },
     ],
   },
   {
     title: "Projets",
     icon: FolderKanban,
     items: [
-      { name: "Projets",       path: "/projects",   icon: FolderKanban,  moduleKey: "projects",   permissionKey: "projects.read" },
+      { name: "Projets",       path: "/projets",   icon: FolderKanban,  moduleKey: "projects",   permissionKey: "projects.read" },
       { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks",      permissionKey: "tasks.read" },
-      { name: "Portefeuille",  path: "/portfolio",  icon: LayoutGrid,    moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
-      { name: "Charge équipe", path: "/workload",   icon: Activity,      moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
+      { name: "Portefeuille",  path: "/portefeuille",  icon: LayoutGrid,    moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
+      { name: "Charge équipe", path: "/charge",   icon: Activity,      moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
       { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",  permissionKey: "documents.read",  secondary: true },
     ],
   },
@@ -84,9 +84,9 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services",            permissionKey: "services.read" },
       { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations",          permissionKey: "operations.view" },
-      { name: "Stock",       path: "/inventory",  icon: Package,        moduleKey: "inventory_products",  permissionKey: "inventory.read" },
-      { name: "Équipements", path: "/equipment",  icon: Wrench,         moduleKey: "inventory_assets",    permissionKey: "equipment.read" },
-      { name: "Locations",   path: "/rentals",    icon: ClipboardCheck, moduleKey: "rentals",             permissionKey: "equipment.read" },
+      { name: "Stock",       path: "/stock",  icon: Package,        moduleKey: "inventory_products",  permissionKey: "inventory.read" },
+      { name: "Équipements", path: "/equipements",  icon: Wrench,         moduleKey: "inventory_assets",    permissionKey: "equipment.read" },
+      { name: "Locations",   path: "/locations",    icon: ClipboardCheck, moduleKey: "rentals",             permissionKey: "equipment.read" },
     ],
   },
   {
@@ -109,22 +109,22 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Landmark,
     items: [
       { name: "Intelligence",          path: "/finance/intelligence",    icon: Brain,         moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Comptabilité",         path: "/accounting",              icon: Calculator,    moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Immobilisations",      path: "/accounting/fixed-assets", icon: Landmark,      moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Comptabilité",         path: "/comptabilite",              icon: Calculator,    moduleKey: "accounting",          permissionKey: "accounting.read" },
+      { name: "Immobilisations",      path: "/comptabilite/immobilisations", icon: Landmark,      moduleKey: "accounting",          permissionKey: "accounting.read" },
       { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,      moduleKey: "accounting",          permissionKey: "accounting.read" },
       { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,         moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Clôture des périodes", path: "/accounting/period-close", icon: CalendarCheck, moduleKey: "accounting",          permissionKey: "accounting.manage" },
+      { name: "Clôture des périodes", path: "/comptabilite/cloture", icon: CalendarCheck, moduleKey: "accounting",          permissionKey: "accounting.manage" },
       { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp,    moduleKey: "financial_planning",  permissionKey: "fpa.read" },
-      { name: "Rapports",             path: "/reports",                 icon: BarChart3,     moduleKey: "reports",             permissionKey: "accounting.read" },
+      { name: "Rapports",             path: "/rapports",                 icon: BarChart3,     moduleKey: "reports",             permissionKey: "accounting.read" },
     ],
   },
   {
     title: "Équipe",
     icon: Users2,
     items: [
-      { name: "Ressources humaines",  path: "/hr",               icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read" },
-      { name: "Présences",            path: "/attendance",        icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view" },
-      { name: "Kiosques de pointage", path: "/kiosk-management", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true },
+      { name: "Ressources humaines",  path: "/rh",               icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read" },
+      { name: "Présences",            path: "/presences",        icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view" },
+      { name: "Kiosques de pointage", path: "/kiosques", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true },
     ],
   },
   {
@@ -609,7 +609,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 font-sans">
                 <DropdownMenuItem asChild>
-                  <Link href="/invoices" className="flex items-center gap-2.5 cursor-pointer">
+                  <Link href="/factures" className="flex items-center gap-2.5 cursor-pointer">
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" />Facture
                   </Link>
                 </DropdownMenuItem>
@@ -624,12 +624,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/projects" className="flex items-center gap-2.5 cursor-pointer">
+                  <Link href="/projets" className="flex items-center gap-2.5 cursor-pointer">
                     <FolderKanban className="w-4 h-4 text-muted-foreground shrink-0" />Projet
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/proformas" className="flex items-center gap-2.5 cursor-pointer">
+                  <Link href="/devis" className="flex items-center gap-2.5 cursor-pointer">
                     <FileSignature className="w-4 h-4 text-muted-foreground shrink-0" />Devis
                   </Link>
                 </DropdownMenuItem>
@@ -723,7 +723,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                   </div>
                   <Link
-                    href="/profile"
+                    href="/profil"
                     className="mt-3 flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white/80 transition-colors"
                   >
                     <UserCircle className="w-3 h-3" />

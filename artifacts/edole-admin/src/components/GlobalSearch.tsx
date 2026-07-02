@@ -232,11 +232,11 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
               <div className="grid grid-cols-2 gap-1.5">
                 {[
                   { label: "Clients", url: "/clients", icon: Building2, color: "text-blue-500 bg-blue-50" },
-                  { label: "Projets", url: "/projects", icon: FolderKanban, color: "text-amber-500 bg-amber-50" },
-                  { label: "Factures", url: "/invoices", icon: FileText, color: "text-orange-500 bg-orange-50" },
+                  { label: "Projets", url: "/projets", icon: FolderKanban, color: "text-amber-500 bg-amber-50" },
+                  { label: "Factures", url: "/factures", icon: FileText, color: "text-orange-500 bg-orange-50" },
                   { label: "Tâches", url: "/tasks", icon: CheckSquare, color: "text-violet-500 bg-violet-50" },
-                  { label: "Équipements", url: "/equipment", icon: Wrench, color: "text-slate-500 bg-slate-100" },
-                  { label: "Collaborateurs", url: "/collaborators", icon: Users, color: "text-indigo-500 bg-indigo-50" },
+                  { label: "Équipements", url: "/equipements", icon: Wrench, color: "text-slate-500 bg-slate-100" },
+                  { label: "Collaborateurs", url: "/collaborateurs", icon: Users, color: "text-indigo-500 bg-indigo-50" },
                 ].map((item) => (
                   <button
                     key={item.url}

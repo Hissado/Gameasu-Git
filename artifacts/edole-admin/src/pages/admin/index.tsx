@@ -12,7 +12,7 @@ const TILES = [
   { perm: "roles.read", to: "/admin/permissions", icon: KeySquare, title: "Catalogue de permissions", desc: "Référentiel des droits disponibles" },
   { perm: "departments.read", to: "/admin/departments", icon: Building2, title: "Départements", desc: "Pôles, hiérarchie, responsables" },
   { perm: "audit.read", to: "/admin/audit", icon: ClipboardList, title: "Journal d'audit", desc: "Traces des actions sensibles" },
-  { perm: "settings.read", to: "/settings", icon: SettingsIcon, title: "Paramètres", desc: "Configuration globale" },
+  { perm: "settings.read", to: "/parametres", icon: SettingsIcon, title: "Paramètres", desc: "Configuration globale" },
 ] as const;
 
 export default function AdminHub() {

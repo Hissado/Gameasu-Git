@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
 
 export default function CollaboratorBadgePrint() {
-  const [, params] = useRoute("/collaborators/:id/badge");
+  const [, params] = useRoute("/collaborateurs/:id/badge");
   const collaboratorId = params?.id ?? "";
   const badgeRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);

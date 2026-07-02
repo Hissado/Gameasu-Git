@@ -88,7 +88,7 @@ function InspectionPanel({ title, data, color }: { title: string; data: Inspecti
 }
 
 export default function InspectionCompare() {
-  const [, params] = useRoute("/inspections/compare/:rentalId");
+  const [, params] = useRoute("/inspections/comparer/:rentalId");
   const rentalId = params?.rentalId || "";
   const { data, isLoading } = useQuery<CompareData>({
     queryKey: ["compare-inspections", rentalId],

@@ -1020,7 +1020,7 @@ function getCollabStatus(c: any): { label: string; className: string } | null {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CollaboratorDetail() {
-  const [, params] = useRoute("/collaborators/:id");
+  const [, params] = useRoute("/collaborateurs/:id");
   const id = params?.id || "";
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -1720,7 +1720,7 @@ export default function CollaboratorDetail() {
             <PanelLeftOpen className="w-3.5 h-3.5" />
             Collaborateurs
           </Button>
-          <Link href="/hr">
+          <Link href="/rh">
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground">
               <ArrowLeft className="w-3.5 h-3.5" />
               Équipe & RH
@@ -2231,7 +2231,7 @@ export default function CollaboratorDetail() {
             </CardHeader>
             <CardContent className="pt-4">
               {overviewLoading ? <Skeleton className="h-16" /> : (overview?.assignments.length ?? 0) === 0 ? (
-                <p className="text-sm text-muted-foreground py-5 text-center">Aucune affectation active.<br /><Link href="/hr/assignments" className="text-primary hover:underline text-xs">Créer une affectation</Link></p>
+                <p className="text-sm text-muted-foreground py-5 text-center">Aucune affectation active.<br /><Link href="/rh/affectations" className="text-primary hover:underline text-xs">Créer une affectation</Link></p>
               ) : (
                 <div className="space-y-1">
                   {overview!.assignments.map((a) => (

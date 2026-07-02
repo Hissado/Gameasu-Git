@@ -71,7 +71,7 @@ export default function CreditNotesList() {
         subtitle="Notes de crédit et corrections sur factures émises"
         icon={MinusCircle}
         actions={
-          <Link href="/invoices">
+          <Link href="/factures">
             <button className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2563EB] border border-[#2563EB]/40 rounded-lg px-3 py-1.5 hover:bg-[#2563EB]/10 transition-colors">
               <Link2 className="w-3.5 h-3.5" />Créer un avoir depuis les Factures
             </button>
@@ -106,7 +106,7 @@ export default function CreditNotesList() {
             <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Émettez un avoir</div>
             <div className="text-xs text-muted-foreground mt-1">
               Via le bouton <strong>Avoir</strong> dans la page{" "}
-              <Link href="/invoices"><span className="text-[#2563EB] hover:underline cursor-pointer">Factures</span></Link>
+              <Link href="/factures"><span className="text-[#2563EB] hover:underline cursor-pointer">Factures</span></Link>
             </div>
           </CardContent>
         </Card>
@@ -162,7 +162,7 @@ export default function CreditNotesList() {
                       </TableCell>
                       <TableCell>
                         {cn.invoiceRef ? (
-                          <Link href="/invoices">
+                          <Link href="/factures">
                             <span className="font-mono text-xs text-blue-600 hover:underline cursor-pointer flex items-center gap-1">
                               <FileText className="w-3 h-3" />{cn.invoiceRef}
                             </span>

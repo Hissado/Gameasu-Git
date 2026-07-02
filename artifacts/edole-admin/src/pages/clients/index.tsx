@@ -96,7 +96,7 @@ export default function ClientsWorkspace() {
               </Link>
               {/* CTA rapide — visible au survol */}
               <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Link href="/proformas">
+                <Link href="/devis">
                   <button
                     title="Créer un devis pour ce client"
                     className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md transition-colors">

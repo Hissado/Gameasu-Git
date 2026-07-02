@@ -434,7 +434,7 @@ export default function BtpSettings() {
                   )}
                 </div>
                 <a
-                  href="/hr/tax-settings"
+                  href="/rh/fiscalite"
                   className="text-[10px] text-blue-500 hover:underline"
                 >
                   Modifier dans Fiscalité RH →

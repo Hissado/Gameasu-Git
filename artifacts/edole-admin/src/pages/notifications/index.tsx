@@ -43,11 +43,11 @@ function getActionLink(n: any): string | null {
   const type = classifyNotif(n);
   if (n.link) return n.link;
   if (type === "task") return n.taskId ? `/tasks/${n.taskId}` : "/tasks";
-  if (type === "project") return n.projectId ? `/projects/${n.projectId}` : "/projects";
-  if (type === "approval") return "/approvals";
-  if (type === "payment") return "/payments";
+  if (type === "project") return n.projectId ? `/projects/${n.projectId}` : "/projets";
+  if (type === "approval") return "/approbations";
+  if (type === "payment") return "/paiements";
   if (type === "message") return "/messaging";
-  if (type === "hr") return "/hr";
+  if (type === "hr") return "/rh";
   return null;
 }
 
@@ -133,7 +133,7 @@ function NotificationItem({
         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
           {type === "approval" && (
             <>
-              <Link href="/approvals">
+              <Link href="/approbations">
                 <Button size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90 font-semibold">
                   <CheckCircle2 className="w-3 h-3 mr-1" />
                   Examiner
@@ -158,7 +158,7 @@ function NotificationItem({
             </Link>
           )}
           {type === "project" && (
-            <Link href={actionLink || "/projects"}>
+            <Link href={actionLink || "/projets"}>
               <Button size="sm" variant="outline" className="h-7 text-xs font-medium">
                 <FolderKanban className="w-3 h-3 mr-1" />
                 Voir le projet
@@ -166,7 +166,7 @@ function NotificationItem({
             </Link>
           )}
           {type === "payment" && (
-            <Link href="/payments">
+            <Link href="/paiements">
               <Button size="sm" variant="outline" className="h-7 text-xs font-medium">
                 <CreditCard className="w-3 h-3 mr-1" />
                 Voir paiement
@@ -174,7 +174,7 @@ function NotificationItem({
             </Link>
           )}
           {type === "hr" && (
-            <Link href="/hr/leaves">
+            <Link href="/rh/conges">
               <Button size="sm" variant="outline" className="h-7 text-xs font-medium">
                 <UserCheck className="w-3 h-3 mr-1" />
                 Voir RH

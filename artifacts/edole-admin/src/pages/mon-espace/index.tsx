@@ -734,7 +734,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             <FolderKanban className="w-4 h-4 text-[#2563EB]" /> Projets actifs
           </h3>
-          <Link href="/projects">
+          <Link href="/projets">
             <a className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
               Voir tous <ChevronRight className="w-3 h-3" />
             </a>
