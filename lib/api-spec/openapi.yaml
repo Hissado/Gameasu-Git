@@ -4010,6 +4010,10 @@ components:
       properties:
         activeProjects:
           type: integer
+        totalProjects:
+          type: integer
+        totalCollaborators:
+          type: integer
         totalClients:
           type: integer
         tasksTodo:

@@ -1862,11 +1862,11 @@ export default function CollaboratorDetail() {
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-tight">disponibles</p>
                 </div>
               </div>
-              {(leaveBalancesData?.balances ?? []).length === 0 ? (
+              {(leaveBalancesData?.data ?? []).length === 0 ? (
                 <p className="text-xs text-muted-foreground">Non configuré pour cette année.</p>
               ) : (
                 <div className="space-y-2.5 border-t border-border/50 pt-3">
-                  {leaveBalancesData!.balances.map(b => {
+                  {(leaveBalancesData?.data ?? []).map(b => {
                     const avail = Math.max(0, (b.allocated ?? 0) + (b.carried ?? 0) - (b.used ?? 0));
                     return (
                       <div key={b.leaveType} className="flex items-center justify-between text-sm">
@@ -1878,9 +1878,9 @@ export default function CollaboratorDetail() {
                       </div>
                     );
                   })}
-                  {leaveBalancesData!.balances.some(b => (b.carried ?? 0) > 0) && (
+                  {(leaveBalancesData?.data ?? []).some(b => (b.carried ?? 0) > 0) && (
                     <p className="text-[10px] text-muted-foreground pt-2 border-t border-border/50">
-                      Dont {leaveBalancesData!.balances.reduce((s, b) => s + (b.carried ?? 0), 0)} j reporté(s)
+                      Dont {(leaveBalancesData?.data ?? []).reduce((s, b) => s + (b.carried ?? 0), 0)} j reporté(s)
                     </p>
                   )}
                 </div>
