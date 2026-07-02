@@ -336,9 +336,11 @@ export default function ManagementPDFPage() {
   });
 
   const generatedAt = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const [showFmtMenu, setShowFmtMenu] = useState(false);
 
-  async function savePdf() {
+  async function savePdf(orientation: "portrait" | "landscape" = "portrait") {
     if (!containerRef.current || saving) return;
+    setShowFmtMenu(false);
     setSaving(true);
     try {
       const [{ toCanvas }, { default: jsPDF }] = await Promise.all([
@@ -351,11 +353,12 @@ export default function ManagementPDFPage() {
         containerRef.current.querySelectorAll<HTMLElement>(".pdf-page")
       );
 
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation } as any);
+      const pageW = pdf.internal.pageSize.getWidth();   // portrait: 210, landscape: 297
+      const pageH = pdf.internal.pageSize.getHeight();  // portrait: 297, landscape: 210
 
-      const MARGIN = 8; // mm — uniform page margin
+      const MARGIN = 8; // mm
       const cW = pageW - 2 * MARGIN;
 
       for (let i = 0; i < pages.length; i++) {
@@ -367,13 +370,22 @@ export default function ManagementPDFPage() {
         const imgData = canvas.toDataURL("image/jpeg", 0.97);
         if (i > 0) pdf.addPage();
 
-        // Place content anchored to top-left with margins.
-        // Preserve aspect ratio — never force-stretch to A4 dimensions.
+        // Preserve aspect ratio, anchor top-left.
         const imgH = (canvas.height / canvas.width) * cW;
-        pdf.addImage(imgData, "JPEG", MARGIN, MARGIN, cW, imgH);
+
+        if (imgH > pageH - 2 * MARGIN) {
+          // Rare: content taller than one page — scale to fit height
+          const fH = pageH - 2 * MARGIN;
+          const fW = (canvas.width / canvas.height) * fH;
+          const xOff = MARGIN + (cW - fW) / 2;
+          pdf.addImage(imgData, "JPEG", xOff, MARGIN, fW, fH);
+        } else {
+          pdf.addImage(imgData, "JPEG", MARGIN, MARGIN, cW, imgH);
+        }
       }
 
-      pdf.save(`rapport-gestion-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const orient = orientation === "landscape" ? "-paysage" : "";
+      pdf.save(`rapport-gestion${orient}-${new Date().toISOString().slice(0, 10)}.pdf`);
     } finally {
       setSaving(false);
     }
@@ -444,10 +456,112 @@ export default function ManagementPDFPage() {
       <div className="screen-toolbar">
         <h1>Rapport de Gestion — Aperçu PDF</h1>
         <span>{periodLabel}</span>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="toolbar-btn btn-print" onClick={savePdf} disabled={saving}>
-            {saving ? "⏳ Génération…" : "⬇ Enregistrer PDF"}
-          </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+          {/* ── Format picker ─────────────────────────────────────────────── */}
+          <div style={{ position: "relative" }}>
+            <button
+              className="toolbar-btn btn-print"
+              disabled={saving}
+              onClick={() => setShowFmtMenu(v => !v)}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              {saving ? "⏳ Génération…" : "⬇ Enregistrer PDF"}
+              {!saving && (
+                <span style={{
+                  borderLeft: "1px solid rgba(255,255,255,.4)",
+                  paddingLeft: 6,
+                  fontSize: 11,
+                  opacity: 0.9,
+                }}>▾</span>
+              )}
+            </button>
+
+            {showFmtMenu && !saving && (
+              <>
+                {/* Overlay to close on outside click */}
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 998 }}
+                  onClick={() => setShowFmtMenu(false)}
+                />
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  right: 0,
+                  zIndex: 999,
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  boxShadow: "0 8px 24px rgba(0,0,0,.14)",
+                  overflow: "hidden",
+                  minWidth: 200,
+                }}>
+                  {/* Title */}
+                  <div style={{
+                    padding: "8px 14px 6px",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    color: "#94a3b8",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}>
+                    Format de page
+                  </div>
+
+                  {/* Portrait */}
+                  <button
+                    onClick={() => savePdf("portrait")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 14px",
+                      background: "none", border: "none",
+                      cursor: "pointer", textAlign: "left",
+                      borderBottom: "1px solid #f8fafc",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 24, height: 32, border: "1.5px solid #cbd5e1",
+                      borderRadius: 3, background: "#f8fafc", flexShrink: 0,
+                      fontSize: 8, color: "#64748b", fontWeight: 700,
+                    }}>A4</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Portrait</div>
+                      <div style={{ fontSize: 10, color: "#94a3b8" }}>210 × 297 mm</div>
+                    </div>
+                  </button>
+
+                  {/* Landscape */}
+                  <button
+                    onClick={() => savePdf("landscape")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 14px",
+                      background: "none", border: "none",
+                      cursor: "pointer", textAlign: "left",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 32, height: 24, border: "1.5px solid #cbd5e1",
+                      borderRadius: 3, background: "#f8fafc", flexShrink: 0,
+                      fontSize: 8, color: "#64748b", fontWeight: 700,
+                    }}>A4</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Paysage</div>
+                      <div style={{ fontSize: 10, color: "#94a3b8" }}>297 × 210 mm</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button className="toolbar-btn btn-close" onClick={() => window.close()}>
             ✕ Fermer
           </button>
