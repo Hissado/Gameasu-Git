@@ -53,13 +53,13 @@ function buildProspectEmail(data: z.infer<typeof createAccessRequestSchema>): st
 <body style="margin:0;padding:0;background:#F3F4F6;font-family:system-ui,-apple-system,sans-serif;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
     <div style="background:#1e3a5f;padding:28px 32px;">
-      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Gaméasù ERP</h1>
+      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Gameasu ERP</h1>
       <p style="margin:4px 0 0;color:rgba(255,255,255,0.65);font-size:13px;">Votre demande d'accès a bien été reçue</p>
     </div>
     <div style="padding:32px;">
       <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${data.contactName}</strong>,</p>
       <p style="margin:0 0 16px;font-size:14px;color:#6B7280;line-height:1.6;">
-        Merci pour votre intérêt pour <strong>Gaméasù</strong>. Nous avons bien reçu votre demande d'accès pour
+        Merci pour votre intérêt pour <strong>Gameasu</strong>. Nous avons bien reçu votre demande d'accès pour
         <strong>${data.orgName}</strong>. Notre équipe va étudier vos informations et vous recontacter dans les plus
         brefs délais afin de mieux comprendre vos besoins et vous accompagner dans les prochaines étapes.
       </p>
@@ -73,10 +73,10 @@ function buildProspectEmail(data: z.infer<typeof createAccessRequestSchema>): st
           <tr><td style="padding:5px 0;color:#6B7280;">Contact</td><td style="padding:5px 0;">${data.contactEmail}${data.contactPhone ? ` · ${data.contactPhone}` : ""}</td></tr>
         </table>
       </div>
-      <p style="margin:0;font-size:14px;color:#6B7280;">À très bientôt,<br><strong style="color:#374151;">L'équipe Gaméasù</strong></p>
+      <p style="margin:0;font-size:14px;color:#6B7280;">À très bientôt,<br><strong style="color:#374151;">L'équipe Gameasu</strong></p>
     </div>
     <div style="background:#F9FAFB;border-top:1px solid #E5E7EB;padding:16px 32px;text-align:center;">
-      <p style="margin:0;font-size:11px;color:#9CA3AF;">© Gaméasù Technology · Tous droits réservés</p>
+      <p style="margin:0;font-size:11px;color:#9CA3AF;">© Gameasu Technology · Tous droits réservés</p>
     </div>
   </div>
 </body>
@@ -94,7 +94,7 @@ function buildTeamEmail(data: z.infer<typeof createAccessRequestSchema>): string
 <body style="margin:0;padding:0;background:#F3F4F6;font-family:system-ui,-apple-system,sans-serif;">
   <div style="max-width:640px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
     <div style="background:#F37021;padding:20px 32px;">
-      <h1 style="margin:0;color:#fff;font-size:18px;font-weight:700;">🎯 Nouvelle demande d'accès Gaméasù</h1>
+      <h1 style="margin:0;color:#fff;font-size:18px;font-weight:700;">🎯 Nouvelle demande d'accès Gameasu</h1>
       <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">${data.orgName}</p>
     </div>
     <div style="padding:24px 32px;">
@@ -199,14 +199,14 @@ accessRequestPublicRouter.post("/access-requests", async (req, res) => {
     const [prospectResult, teamResult] = await Promise.allSettled([
       sendEmail({
         to: data.contactEmail,
-        subject: "Votre demande d'accès à Gaméasù a bien été reçue",
+        subject: "Votre demande d'accès à Gameasu a bien été reçue",
         html: buildProspectEmail(data),
-        text: `Bonjour ${data.contactName},\n\nMerci pour votre intérêt pour Gaméasù. Nous avons bien reçu votre demande d'accès pour ${data.orgName}.\n\nL'équipe Gaméasù`,
+        text: `Bonjour ${data.contactName},\n\nMerci pour votre intérêt pour Gameasu. Nous avons bien reçu votre demande d'accès pour ${data.orgName}.\n\nL'équipe Gameasu`,
         category: "access_request_confirmation",
       }),
       sendEmail({
         to: process.env.GAMEASU_NOTIFY_EMAIL ?? "info@gameasu.com",
-        subject: `Nouvelle demande d'accès Gaméasù — ${data.orgName}`,
+        subject: `Nouvelle demande d'accès Gameasu — ${data.orgName}`,
         html: buildTeamEmail(data),
         text: `Nouvelle demande d'accès de ${data.contactName} (${data.orgName}) — ${data.contactEmail}`,
         category: "access_request_notification",
