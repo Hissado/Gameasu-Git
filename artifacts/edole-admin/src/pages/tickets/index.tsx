@@ -37,11 +37,15 @@ const PRIORITIES = [
   { v: "urgent", l: "Urgente", c: "bg-red-100 text-red-800" },
 ];
 const CATEGORIES = [
-  { v: "bug", l: "Bug" },
+  { v: "bug", l: "Anomalie" },
   { v: "request", l: "Demande" },
   { v: "incident", l: "Incident" },
   { v: "question", l: "Question" },
   { v: "other", l: "Autre" },
+  { v: "access", l: "Accès" },
+  { v: "sync", l: "Synchronisation" },
+  { v: "user_management", l: "Gestion utilisateurs" },
+  { v: "technical", l: "Technique" },
 ];
 
 const findStatus = (v: string) => STATUSES.find((s) => s.v === v) || { v, l: v, c: "bg-muted" };

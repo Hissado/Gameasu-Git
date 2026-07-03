@@ -19,6 +19,27 @@ const STATUS_COLOR: Record<string, string> = {
   converted: "bg-emerald-100 text-emerald-700",
   lost: "bg-slate-200 text-slate-600",
 };
+const STATUS_LABEL: Record<string, string> = {
+  new: "Nouveau",
+  contacted: "Contacté",
+  qualified: "Qualifié",
+  converted: "Converti",
+  lost: "Perdu",
+};
+const SOURCE_LABEL: Record<string, string> = {
+  linkedin: "LinkedIn",
+  website: "Site web",
+  cold_call: "Appel sortant",
+  conference: "Conférence",
+  referral: "Recommandation",
+  email: "E-mail",
+  social_media: "Réseaux sociaux",
+  organic: "Organique",
+  paid_ad: "Publicité",
+  partner: "Partenaire",
+  event: "Événement",
+  interne: "Interne",
+};
 
 export default function ProspectsPage() {
   const { toast } = useToast();
@@ -101,8 +122,8 @@ export default function ProspectsPage() {
                       <div className="text-xs text-muted-foreground">{p.email || p.phone || "—"}</div>
                     </td>
                     <td className="p-3">{p.company || "—"}</td>
-                    <td className="p-3 text-muted-foreground text-xs">{p.source || "—"}</td>
-                    <td className="p-3 text-center"><Badge className={`${STATUS_COLOR[p.status] || "bg-muted"} border-0 capitalize`}>{p.status}</Badge></td>
+                    <td className="p-3 text-muted-foreground text-xs">{p.source ? (SOURCE_LABEL[p.source] ?? p.source) : "—"}</td>
+                    <td className="p-3 text-center"><Badge className={`${STATUS_COLOR[p.status] || "bg-muted"} border-0`}>{STATUS_LABEL[p.status] ?? p.status}</Badge></td>
                     <td className="p-3 text-xs">{(p.tags || []).map((t) => <Badge key={t} variant="outline" className="mr-1 text-[10px]">{t}</Badge>)}</td>
                     <td className="p-3 text-right">
                       {p.status !== "converted" && p.status !== "lost" && (

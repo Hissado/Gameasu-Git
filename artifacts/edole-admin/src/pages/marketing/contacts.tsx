@@ -19,6 +19,42 @@ const TYPE_COLOR: Record<string, string> = {
   collaborator: "bg-violet-100 text-violet-700",
   user: "bg-amber-100 text-amber-700",
 };
+const TYPE_LABEL: Record<string, string> = {
+  client: "Client",
+  prospect: "Prospect",
+  collaborator: "Collaborateur",
+  user: "Utilisateur",
+};
+const SOURCE_LABEL: Record<string, string> = {
+  linkedin: "LinkedIn",
+  website: "Site web",
+  cold_call: "Appel sortant",
+  conference: "Conférence",
+  referral: "Recommandation",
+  email: "E-mail",
+  social_media: "Réseaux sociaux",
+  organic: "Organique",
+  paid_ad: "Publicité",
+  partner: "Partenaire",
+  event: "Événement",
+  interne: "Interne",
+};
+const CONTACT_STATUS_LABEL: Record<string, string> = {
+  New: "Nouveau",
+  new: "Nouveau",
+  Qualified: "Qualifié",
+  qualified: "Qualifié",
+  Contacted: "Contacté",
+  contacted: "Contacté",
+  Proposal_sent: "Proposition envoyée",
+  proposal_sent: "Proposition envoyée",
+  Won: "Gagné",
+  won: "Gagné",
+  Lost: "Perdu",
+  lost: "Perdu",
+  active: "Actif",
+  inactive: "Inactif",
+};
 
 export default function ContactsPage() {
   const [search, setSearch] = useState("");
@@ -96,12 +132,12 @@ export default function ContactsPage() {
                 : data!.data.map((c) => (
                   <tr key={`${c.type}:${c.id}`} className="border-b hover:bg-muted/20">
                     <td className="p-3"><div className="font-medium flex items-center gap-2"><UserSquare2 className="w-4 h-4 text-muted-foreground" /> {c.name}</div></td>
-                    <td className="p-3"><Badge className={`${TYPE_COLOR[c.type]} border-0 capitalize`}>{c.type}</Badge></td>
+                    <td className="p-3"><Badge className={`${TYPE_COLOR[c.type]} border-0`}>{TYPE_LABEL[c.type] ?? c.type}</Badge></td>
                     <td className="p-3 text-xs">{c.company || "—"}</td>
                     <td className="p-3 text-xs">{c.email || "—"}</td>
                     <td className="p-3 text-xs">{c.phone || "—"}</td>
-                    <td className="p-3 text-xs text-muted-foreground">{c.source || "—"}</td>
-                    <td className="p-3 text-xs"><Badge variant="outline" className="capitalize">{c.status}</Badge></td>
+                    <td className="p-3 text-xs text-muted-foreground">{c.source ? (SOURCE_LABEL[c.source] ?? c.source) : "—"}</td>
+                    <td className="p-3 text-xs"><Badge variant="outline">{CONTACT_STATUS_LABEL[c.status] ?? c.status}</Badge></td>
                   </tr>
                 ))}
             </tbody>

@@ -29,6 +29,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   draft:     { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
   confirmed: { label: "Confirmée", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   delivered: { label: "Livrée",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  completed: { label: "Terminée",  cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   cancelled: { label: "Annulée",   cls: "bg-red-50 text-red-400 border-red-200" },
 };
 

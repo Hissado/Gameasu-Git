@@ -255,7 +255,7 @@ export default function AudiencesPage() {
                 <ul className="text-xs space-y-1 max-h-80 overflow-y-auto">
                   {detail.sample.map((c: any) => (
                     <li key={`${c.type}:${c.id}`} className="flex justify-between border-b pb-1">
-                      <span>{c.name} <Badge variant="outline" className="ml-1 text-[9px]">{c.type}</Badge></span>
+                      <span>{c.name} <Badge variant="outline" className="ml-1 text-[9px]">{{ client: "Client", prospect: "Prospect", collaborator: "Collaborateur", user: "Utilisateur" }[c.type as string] ?? c.type}</Badge></span>
                       <span className="text-muted-foreground">{c.email || c.phone || "—"}</span>
                     </li>
                   ))}
