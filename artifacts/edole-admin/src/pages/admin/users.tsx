@@ -537,10 +537,7 @@ function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }
                             return (
                               <div key={p.code} className={`flex items-start gap-1.5 text-xs p-1.5 rounded ${isDenied ? "opacity-40 line-through" : "hover:bg-muted/30"}`}>
                                 <span className={`mt-0.5 ${isGranted ? "text-blue-500" : "text-emerald-500"}`}>{isDenied ? "✗" : isGranted ? "⊕" : "✓"}</span>
-                                <div>
-                                  <div className="font-medium">{p.label}</div>
-                                  <div className="text-muted-foreground font-mono">{p.code}</div>
-                                </div>
+                                <div className="font-medium">{p.label}</div>
                               </div>
                             );
                           })}
@@ -556,7 +553,7 @@ function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }
                         {grantOverrides.filter((o) => !data.permissionDetails.some((p) => p.code === o.permissionCode)).map((o) => (
                           <div key={o.id} className="flex items-start gap-1.5 text-xs p-1.5 rounded hover:bg-muted/30">
                             <span className="text-blue-500 mt-0.5">⊕</span>
-                            <div><div className="font-medium font-mono">{o.permissionCode}</div>{o.reason && <div className="text-muted-foreground">{o.reason}</div>}</div>
+                            <div><div className="font-medium">{o.permissionCode}</div>{o.reason && <div className="text-muted-foreground">{o.reason}</div>}</div>
                           </div>
                         ))}
                       </div>
@@ -603,7 +600,7 @@ function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }
                       <div key={o.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30">
                         <span className="text-emerald-500 text-lg leading-none">⊕</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-mono font-medium">{o.permissionCode}</div>
+                          <div className="text-sm font-medium">{o.permissionCode}</div>
                           {o.reason && <div className="text-xs text-muted-foreground truncate">{o.reason}</div>}
                           {o.expiresAt && <div className="text-xs text-amber-600">Expire le {new Date(o.expiresAt).toLocaleDateString("fr-FR")}</div>}
                         </div>
@@ -630,7 +627,7 @@ function UserAccessDialog({ user, onClose }: { user: User; onClose: () => void }
                       <div key={o.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30">
                         <span className="text-red-500 text-lg leading-none">⊘</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-mono font-medium line-through text-muted-foreground">{o.permissionCode}</div>
+                          <div className="text-sm font-medium line-through text-muted-foreground">{o.permissionCode}</div>
                           {o.reason && <div className="text-xs text-muted-foreground truncate">{o.reason}</div>}
                           {o.expiresAt && <div className="text-xs text-amber-600">Expire le {new Date(o.expiresAt).toLocaleDateString("fr-FR")}</div>}
                         </div>
