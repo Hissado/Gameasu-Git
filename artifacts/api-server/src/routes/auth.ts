@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable, organizationsTable } from "@workspace/db";
+import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable, organizationsTable, organizationMembersTable } from "@workspace/db";
 import { eq, and, gt, lt } from "drizzle-orm";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -35,13 +35,18 @@ function isBcrypt(stored: string): boolean {
 }
 
 /** Crée une session dans auth_sessions et retourne le token UUID. */
-async function createSession(userId: string, req: { ip?: string; headers?: Record<string, unknown> }): Promise<string> {
+async function createSession(
+  userId: string,
+  req: { ip?: string; headers?: Record<string, unknown> },
+  orgId?: string | null,
+): Promise<string> {
   const token = randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   await db.insert(authSessionsTable).values({
     token,
     userId,
     expiresAt,
+    activeOrgId: orgId ?? null,
     userAgent: (req.headers?.["user-agent"] as string) ?? null,
     ipAddress: (req.ip ?? null) as any,
   });
@@ -49,21 +54,66 @@ async function createSession(userId: string, req: { ip?: string; headers?: Recor
 }
 
 /**
- * Résout un Bearer token UUID vers un userId en DB.
- * Lève une erreur 401 via callback si le token est invalide/expiré.
- * Retourne null si auth header absent (laisser l'appelant décider).
+ * Retourne la liste des organisations auxquelles l'utilisateur appartient,
+ * avec repli sur son organisation primaire si organization_members est vide.
  */
-async function resolveSessionToken(authHeader: string | undefined): Promise<string | null> {
+async function getUserOrgs(userId: string, fallbackOrgId?: string | null) {
+  const rows = await db
+    .select({
+      orgId: organizationMembersTable.organizationId,
+      role: organizationMembersTable.role,
+      isPrimary: organizationMembersTable.isPrimary,
+      name: organizationsTable.name,
+      legalName: organizationsTable.legalName,
+      logoUrl: organizationsTable.logoUrl,
+      slug: organizationsTable.slug,
+    })
+    .from(organizationMembersTable)
+    .innerJoin(organizationsTable, eq(organizationMembersTable.organizationId, organizationsTable.id))
+    .where(and(eq(organizationMembersTable.userId, userId), eq(organizationsTable.isActive, true)));
+
+  if (rows.length > 0) {
+    return rows.map((r) => ({
+      id: r.orgId,
+      name: r.name,
+      legalName: r.legalName,
+      logoUrl: r.logoUrl,
+      slug: r.slug,
+      role: r.role,
+      isPrimary: r.isPrimary,
+    }));
+  }
+
+  // Repli : utilisateur sans entrée dans organization_members → org primaire du compte
+  if (fallbackOrgId) {
+    const [org] = await db
+      .select({ name: organizationsTable.name, legalName: organizationsTable.legalName, logoUrl: organizationsTable.logoUrl, slug: organizationsTable.slug })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, fallbackOrgId))
+      .limit(1);
+    if (org) {
+      return [{ id: fallbackOrgId, name: org.name, legalName: org.legalName, logoUrl: org.logoUrl, slug: org.slug, role: "owner", isPrimary: true }];
+    }
+  }
+  return [];
+}
+
+/**
+ * Résout un Bearer token UUID vers un userId + activeOrgId en DB.
+ * Retourne null si auth header absent, token invalide ou expiré.
+ */
+async function resolveSessionToken(authHeader: string | undefined): Promise<{ userId: string; activeOrgId: string | null; token: string } | null> {
   if (!authHeader) return null;
   const raw = authHeader.replace("Bearer ", "");
   if (!UUID_REGEX.test(raw)) return null;
   const now = new Date();
   const [session] = await db
-    .select({ userId: authSessionsTable.userId })
+    .select({ userId: authSessionsTable.userId, activeOrgId: authSessionsTable.activeOrgId })
     .from(authSessionsTable)
     .where(and(eq(authSessionsTable.token, raw), gt(authSessionsTable.expiresAt, now)))
     .limit(1);
-  return session?.userId ?? null;
+  if (!session) return null;
+  return { userId: session.userId, activeOrgId: session.activeOrgId, token: raw };
 }
 
 /** Purge les sessions expirées d'un utilisateur (best-effort, non bloquant). */
@@ -130,7 +180,9 @@ router.post("/auth/login", async (req, res) => {
 
     for (const device of devices) {
       if (!device.revokedAt && await bcrypt.compare(deviceToken, device.deviceTokenHash)) {
-        const token = await createSession(user.id, req);
+        const userOrgs = await getUserOrgs(user.id, user.organizationId);
+        const primaryOrgId = userOrgs.length === 1 ? userOrgs[0].id : null;
+        const token = await createSession(user.id, req, primaryOrgId);
         await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
         await audit(
           { ip: req.ip, headers: req.headers, authUser: { id: user.id, email: user.email, organizationId: user.organizationId } } as any,
@@ -140,6 +192,7 @@ router.post("/auth/login", async (req, res) => {
         const perms = await userPermissions(user.id);
         return res.json({
           token,
+          orgs: userOrgs,
           user: {
             id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
             role: user.role, avatarUrl: user.avatarUrl, isClient: user.isClient,
@@ -245,7 +298,9 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
     return res.status(403).json({ error: "Compte introuvable ou désactivé." });
   }
 
-  const token = await createSession(user.id, req);
+  const userOrgs2fa = await getUserOrgs(user.id, user.organizationId);
+  const primaryOrgId2fa = userOrgs2fa.length === 1 ? userOrgs2fa[0].id : null;
+  const token = await createSession(user.id, req, primaryOrgId2fa);
   await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
   let newDeviceToken: string | undefined;
@@ -276,6 +331,7 @@ router.post("/auth/login/verify-2fa", async (req, res) => {
   const perms = await userPermissions(user.id);
   return res.json({
     token,
+    orgs: userOrgs2fa,
     ...(newDeviceToken ? { deviceToken: newDeviceToken } : {}),
     user: {
       id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
@@ -299,43 +355,49 @@ router.post("/auth/logout", async (req, res) => {
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res) => {
-  const userId = await resolveSessionToken((req.headers.authorization as string));
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Unauthorized" });
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, sess.userId)).limit(1);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const perms = await userPermissions(user.id);
 
-  // Fetch org details for branding (name, logo)
+  // Org active = session.activeOrgId (multi-org) ou org primaire du compte
+  const activeOrgId = sess.activeOrgId ?? user.organizationId;
+
   let orgName: string | null = null;
   let orgLegalName: string | null = null;
   let orgLogoUrl: string | null = null;
-  if (user.organizationId) {
+  if (activeOrgId) {
     const [org] = await db
       .select({ name: organizationsTable.name, legalName: organizationsTable.legalName, logoUrl: organizationsTable.logoUrl })
       .from(organizationsTable)
-      .where(eq(organizationsTable.id, user.organizationId))
+      .where(eq(organizationsTable.id, activeOrgId))
       .limit(1);
     if (org) { orgName = org.name; orgLegalName = org.legalName; orgLogoUrl = org.logoUrl; }
   }
+
+  const orgs = await getUserOrgs(user.id, user.organizationId);
 
   return res.json({
     id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
     role: user.role, avatarUrl: user.avatarUrl, phone: user.phone ?? null,
     isClient: user.isClient, mustChangePassword: user.mustChangePassword,
     departmentId: user.departmentId, permissions: perms,
-    organizationId: user.organizationId,
+    organizationId: activeOrgId,
     organizationName: orgName,
     organizationLegalName: orgLegalName,
     organizationLogoUrl: orgLogoUrl,
+    orgs,
   });
 });
 
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
 router.patch("/auth/me", async (req, res) => {
-  const userId = await resolveSessionToken((req.headers.authorization as string));
-  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Authentification requise" });
+  const userId = sess.userId;
 
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!u) return res.status(401).json({ error: "Utilisateur introuvable" });
@@ -364,8 +426,9 @@ router.patch("/auth/me", async (req, res) => {
 
 // ─── PUT /api/auth/password ───────────────────────────────────────────────────
 router.put("/auth/password", async (req, res) => {
-  const userId = await resolveSessionToken((req.headers.authorization as string));
-  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Authentification requise" });
+  const userId = sess.userId;
 
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "Mot de passe actuel et nouveau requis" });
@@ -385,8 +448,9 @@ router.put("/auth/password", async (req, res) => {
 
 // ─── POST /api/auth/change-password ──────────────────────────────────────────
 router.post("/auth/change-password", async (req, res) => {
-  const userId = await resolveSessionToken((req.headers.authorization as string));
-  if (!userId) return res.status(401).json({ error: "Authentification requise" });
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Authentification requise" });
+  const userId = sess.userId;
 
   const { currentPassword, newPassword } = req.body || {};
   if (typeof newPassword !== "string" || newPassword.length < 8) return res.status(400).json({ error: "Le nouveau mot de passe doit comporter au moins 8 caractères" });
@@ -536,6 +600,53 @@ router.post("/auth/reset-password", async (req, res) => {
     { entityType: "user", entityId: user.id },
   );
   return res.json({ success: true });
+});
+
+// ─── GET /api/auth/my-orgs ─────────────────────────────────────────────────────
+// Retourne toutes les organisations accessibles à l'utilisateur connecté.
+router.get("/auth/my-orgs", async (req, res) => {
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Authentification requise" });
+  const [user] = await db
+    .select({ id: usersTable.id, organizationId: usersTable.organizationId })
+    .from(usersTable)
+    .where(eq(usersTable.id, sess.userId))
+    .limit(1);
+  if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
+  const orgs = await getUserOrgs(user.id, user.organizationId);
+  return res.json({ orgs });
+});
+
+// ─── POST /api/auth/switch-org ─────────────────────────────────────────────────
+// Change l'organisation active de la session courante.
+router.post("/auth/switch-org", async (req, res) => {
+  const sess = await resolveSessionToken(req.headers.authorization as string);
+  if (!sess) return res.status(401).json({ error: "Authentification requise" });
+
+  const { orgId } = req.body || {};
+  if (typeof orgId !== "string" || !orgId) return res.status(400).json({ error: "orgId requis" });
+
+  const [user] = await db
+    .select({ id: usersTable.id, organizationId: usersTable.organizationId })
+    .from(usersTable)
+    .where(eq(usersTable.id, sess.userId))
+    .limit(1);
+  if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
+
+  // Vérifier que l'utilisateur est membre de cette organisation
+  const orgs = await getUserOrgs(user.id, user.organizationId);
+  const targetOrg = orgs.find((o) => o.id === orgId);
+  if (!targetOrg) {
+    return res.status(403).json({ error: "Vous n'êtes pas membre de cette organisation." });
+  }
+
+  // Mettre à jour l'organisation active de la session
+  await db
+    .update(authSessionsTable)
+    .set({ activeOrgId: orgId })
+    .where(eq(authSessionsTable.token, sess.token));
+
+  return res.json({ success: true, org: targetOrg });
 });
 
 export default router;

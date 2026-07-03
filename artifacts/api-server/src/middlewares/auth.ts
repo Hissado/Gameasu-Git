@@ -9,7 +9,7 @@ export type AuthUser = {
   role: string;
   firstName: string;
   lastName: string;
-  /** Organisation tenant de l'utilisateur. Toujours définie (partitionnement strict). */
+  /** Organisation active pour cette session. Toujours définie (partitionnement strict). */
   organizationId: string;
 };
 
@@ -26,7 +26,8 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 /**
  * Résout un token UUID vers un utilisateur via un lookup en base de données.
  * Seuls les tokens UUID v4 stockés dans auth_sessions sont acceptés.
- * Les anciens tokens Base64 (userId:email) ne sont PLUS acceptés — forgables, non révocables.
+ * L'organisation active est lue depuis session.activeOrgId (multi-org),
+ * avec repli sur users.organizationId si non définie.
  */
 async function resolveToken(rawToken: string): Promise<AuthUser | null> {
   if (!UUID_REGEX.test(rawToken)) {
@@ -35,7 +36,7 @@ async function resolveToken(rawToken: string): Promise<AuthUser | null> {
 
   const now = new Date();
   const sessions = await db
-    .select({ userId: authSessionsTable.userId })
+    .select({ userId: authSessionsTable.userId, activeOrgId: authSessionsTable.activeOrgId })
     .from(authSessionsTable)
     .where(and(eq(authSessionsTable.token, rawToken), gt(authSessionsTable.expiresAt, now)))
     .limit(1);
@@ -51,13 +52,16 @@ async function resolveToken(rawToken: string): Promise<AuthUser | null> {
   const user = users[0];
   if (!user || !user.isActive || !user.organizationId) return null;
 
+  // Priorité : org active de la session ; repli sur org primaire de l'utilisateur
+  const organizationId = sessions[0].activeOrgId ?? user.organizationId;
+
   return {
     id: user.id,
     email: user.email,
     role: user.role,
     firstName: user.firstName,
     lastName: user.lastName,
-    organizationId: user.organizationId,
+    organizationId,
   };
 }
 

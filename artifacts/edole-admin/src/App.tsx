@@ -12,6 +12,7 @@ import { GlobalNotifications } from "@/components/GlobalNotifications";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import DemanderAcces from "@/pages/demander-acces";
+import ChoisirOrganisationPage from "@/pages/choisir-organisation";
 import Dashboard from "@/pages/dashboard";
 
 // ── Lazy-loaded pages (un chunk par route → premier paint quasi-instantané) ──
@@ -218,6 +219,7 @@ function AppRouter() {
     <Switch>
       <Route path="/login" component={LoginPage} />
       <Route path="/demander-acces" component={DemanderAcces} />
+      <Route path="/choisir-organisation" component={ChoisirOrganisationPage} />
       <Route path="/facture/:token">
         <Suspense fallback={<PageFallback />}><PublicInvoicePage /></Suspense>
       </Route>

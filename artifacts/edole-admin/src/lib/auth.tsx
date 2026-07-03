@@ -1,10 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
 const INACTIVITY_FLAG_KEY = "gameasu_session_expired";
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "click"] as const;
+
+export interface OrgEntry {
+  id: string;
+  name: string;
+  legalName: string | null;
+  logoUrl: string | null;
+  slug: string;
+  role: string;
+  isPrimary: boolean;
+}
 
 interface AuthUser {
   id?: string;
@@ -14,6 +25,11 @@ interface AuthUser {
   role?: string;
   avatarUrl?: string;
   phone?: string | null;
+  organizationId?: string;
+  organizationName?: string;
+  organizationLegalName?: string;
+  organizationLogoUrl?: string;
+  orgs?: OrgEntry[];
 }
 
 interface AuthContextType {
@@ -22,6 +38,7 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  switchOrg: (orgId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
   const [_, setLocation] = useLocation();
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: user } = useGetMe({
     query: {
@@ -66,6 +84,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLocation("/login");
   }, [setLocation]);
 
+  const switchOrg = useCallback(async (orgId: string) => {
+    const t = localStorage.getItem("auth_token");
+    if (!t) throw new Error("Non authentifié");
+    const res = await fetch("/api/auth/switch-org", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ orgId }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({})) as any;
+      throw new Error(j.error ?? "Erreur lors du changement d'organisation");
+    }
+    // Invalider toutes les données — elles sont toutes liées à l'org active
+    await queryClient.invalidateQueries();
+  }, [queryClient]);
+
   // Déconnexion automatique si l'API renvoie 401.
   useEffect(() => {
     const handler = () => {
@@ -76,7 +110,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [logout]);
 
   // ── Timer d'inactivité ────────────────────────────────────────────────────
-  // Actif uniquement quand l'utilisateur est connecté.
   useEffect(() => {
     if (!token) return;
 
@@ -87,10 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }, INACTIVITY_TIMEOUT_MS);
     };
 
-    // Démarrer le timer immédiatement
     resetTimer();
 
-    // Réinitialiser à chaque événement d'activité (options passive pour perf)
     const opts: AddEventListenerOptions = { passive: true };
     ACTIVITY_EVENTS.forEach((ev) => window.addEventListener(ev, resetTimer, opts));
 
@@ -101,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [token, logout]);
 
   return (
-    <AuthContext.Provider value={{ token, user: user as AuthUser | undefined, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ token, user: user as AuthUser | undefined, login, logout, isAuthenticated: !!token, switchOrg }}>
       {children}
     </AuthContext.Provider>
   );

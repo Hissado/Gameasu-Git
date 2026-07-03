@@ -13,7 +13,7 @@ import {
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
-  Banknote, Flame,
+  Banknote, Flame, ArrowLeftRight, CheckCircle2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -204,7 +204,7 @@ function isGroupActive(group: NavGroup, location: string) {
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
-  const { logout, user } = useAuth();
+  const { logout, user, switchOrg } = useAuth();
   const { data: org } = useCurrentOrganization();
   const { data: subData } = useCurrentSubscription();
   const { data: modules } = useOrganizationModules();
@@ -746,6 +746,39 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
 
                 <div className="h-px bg-border/60 mx-3" />
+
+                {/* ── Changer d'organisation (multi-org) ── */}
+                {user?.orgs && (user.orgs as any[]).length > 1 && (
+                  <>
+                    <div className="py-1.5 px-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 pt-1 pb-1.5">Changer d'organisation</p>
+                      {(user.orgs as any[]).map((org: any) => {
+                        const isActive = org.id === user.organizationId;
+                        return (
+                          <DropdownMenuItem
+                            key={org.id}
+                            onClick={async () => {
+                              if (!isActive) {
+                                try { await switchOrg(org.id); } catch { /* silencieux */ }
+                              }
+                            }}
+                            className={`cursor-pointer rounded-lg py-2.5 px-3 gap-3 ${isActive ? "bg-primary/5" : ""}`}
+                          >
+                            <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-medium truncate ${isActive ? "text-primary" : ""}`}>{org.name}</p>
+                              {org.legalName && org.legalName !== org.name && (
+                                <p className="text-[11px] text-muted-foreground truncate">{org.legalName}</p>
+                              )}
+                            </div>
+                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                    <div className="h-px bg-border/60 mx-3" />
+                  </>
+                )}
 
                 {/* ── Organisation ── */}
                 <div className="py-1.5 px-1">

@@ -1,5 +1,6 @@
 import { pgTable, text, boolean, timestamp, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { organizationsTable } from "./saas";
 
 // ─────────────────────────────────────────────────────────────────
 // AUTH SESSIONS — sessions serveur (remplacent le token Base64)
@@ -9,6 +10,8 @@ export const authSessionsTable = pgTable("auth_sessions", {
   // Token opaque (crypto.randomUUID()), stocké tel quel pour lookup direct
   token: text("token").notNull(),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  // Organisation active pour cette session (multi-org). NULL = org primaire de l'utilisateur.
+  activeOrgId: uuid("active_org_id").references(() => organizationsTable.id, { onDelete: "set null" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   userAgent: text("user_agent"),
   ipAddress: text("ip_address"),

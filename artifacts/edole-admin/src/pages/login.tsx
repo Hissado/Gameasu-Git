@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 const DEVICE_TOKEN_KEY = "gameasu_device_token";
+const PENDING_ORGS_KEY = "gameasu_pending_orgs";
+const PENDING_TOKEN_KEY = "gameasu_pending_token";
 
 const loginSchema = z.object({
   email: z.string().email("Adresse e-mail invalide"),
@@ -147,6 +149,13 @@ export default function LoginPage() {
   const finishLogin = (json: any) => {
     if (json.deviceToken) {
       localStorage.setItem(DEVICE_TOKEN_KEY, json.deviceToken);
+    }
+    // Multi-org : si l'utilisateur appartient à plusieurs organisations, afficher le sélecteur
+    if (Array.isArray(json.orgs) && json.orgs.length > 1) {
+      localStorage.setItem(PENDING_ORGS_KEY, JSON.stringify(json.orgs));
+      localStorage.setItem(PENDING_TOKEN_KEY, json.token);
+      setLocation("/choisir-organisation");
+      return;
     }
     login(json.token);
     setLocation("/");
