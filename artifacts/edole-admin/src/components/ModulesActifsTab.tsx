@@ -26,7 +26,7 @@ type ModuleGroupDef = {
 
 const MODULE_GROUPS: ModuleGroupDef[] = [
   {
-    id: "essentials", label: "Modules essentiels", description: "Fondamentaux au fonctionnement de Gaméasù — toujours actifs.",
+    id: "essentials", label: "Modules essentiels", description: "Fondamentaux au fonctionnement de Gameasu — toujours actifs.",
     colorCls: "text-slate-700", bgCls: "bg-slate-50", borderCls: "border-slate-200", dotCls: "bg-slate-500",
     icon: <Shield className="w-4 h-4" />,
     modules: [
