@@ -43,9 +43,18 @@ const updateAccessRequestSchema = z.object({
   contactedAt: z.string().datetime().nullable().optional(),
 });
 
+// ── Salutation contextuelle (heure Afrique de l'Ouest = UTC) ─────────────────
+function getGreeting(): string {
+  const h = new Date().getUTCHours();
+  if (h >= 5 && h < 18) return "Bonjour";
+  if (h >= 18 && h < 21) return "Bonsoir";
+  return "Bonne nuit";
+}
+
 // ── Email prospect (confirmation) ─────────────────────────────────────────────
 function buildProspectEmail(data: z.infer<typeof createAccessRequestSchema>): string {
   const modules = data.desiredModules.length > 0 ? data.desiredModules.join(", ") : "Non précisé";
+  const greeting = getGreeting();
   return `
 <!DOCTYPE html>
 <html lang="fr">
@@ -57,7 +66,7 @@ function buildProspectEmail(data: z.infer<typeof createAccessRequestSchema>): st
       <p style="margin:4px 0 0;color:rgba(255,255,255,0.65);font-size:13px;">Votre demande d'accès a bien été reçue</p>
     </div>
     <div style="padding:32px;">
-      <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${data.contactName}</strong>,</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#374151;">${greeting} <strong>${data.contactName}</strong>,</p>
       <p style="margin:0 0 12px;font-size:14px;color:#6B7280;line-height:1.6;">
         Merci pour votre intérêt pour <strong>Gameasu</strong>.
       </p>
@@ -211,7 +220,7 @@ accessRequestPublicRouter.post("/access-requests", async (req, res) => {
         to: data.contactEmail,
         subject: "Votre demande d'accès à Gameasu a bien été reçue",
         html: buildProspectEmail(data),
-        text: `Bonjour ${data.contactName},\n\nMerci pour votre intérêt pour Gameasu.\n\nVotre demande d'accès pour ${data.orgName} a bien été reçue. Notre équipe va analyser vos informations afin de mieux comprendre vos besoins, vos priorités et les spécificités de votre organisation.\n\nNous vous recontacterons très prochainement pour vous accompagner dans les prochaines étapes et vous présenter la solution Gameasu la plus adaptée à votre activité.\n\nAvec Gameasu, vous êtes sur le point de simplifier votre gestion, centraliser vos opérations et piloter votre entreprise avec plus de clarté.\n\nL'équipe Gameasu`,
+        text: `${getGreeting()} ${data.contactName},\n\nMerci pour votre intérêt pour Gameasu.\n\nVotre demande d'accès pour ${data.orgName} a bien été reçue. Notre équipe va analyser vos informations afin de mieux comprendre vos besoins, vos priorités et les spécificités de votre organisation.\n\nNous vous recontacterons très prochainement pour vous accompagner dans les prochaines étapes et vous présenter la solution Gameasu la plus adaptée à votre activité.\n\nAvec Gameasu, vous êtes sur le point de simplifier votre gestion, centraliser vos opérations et piloter votre entreprise avec plus de clarté.\n\nL'équipe Gameasu`,
         category: "access_request_confirmation",
       }),
       sendEmail({
