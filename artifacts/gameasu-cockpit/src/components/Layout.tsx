@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, ChevronRight,
@@ -8,49 +10,60 @@ import {
   UserCircle, Briefcase, ClipboardList,
 } from "lucide-react";
 
-type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }> };
+type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }>; badge?: number };
 type NavSection = { label: string; items: NavItem[] };
 
-const NAV_SECTIONS: NavSection[] = [
-  {
-    label: "Vue d'ensemble",
-    items: [
-      { href: "/",             label: "Tableau de bord",    icon: LayoutDashboard },
-      { href: "/reports",      label: "Rapports",           icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Gestion SaaS",
-    items: [
-      { href: "/tenants",          label: "Organisations",      icon: Building2 },
-      { href: "/subscriptions",    label: "Abonnements",        icon: CreditCard },
-      { href: "/access-requests",  label: "Demandes d'accès",   icon: ClipboardList },
-      { href: "/expert-firms",     label: "Cabinets experts",   icon: Briefcase },
-      { href: "/tickets",          label: "Tickets support",    icon: Ticket },
-    ],
-  },
-  {
-    label: "Opérations",
-    items: [
-      { href: "/incidents",    label: "Incidents",          icon: AlertTriangle },
-      { href: "/monitoring",   label: "Monitoring",         icon: Activity },
-      { href: "/emails",       label: "Emails envoyés",     icon: Mail },
-      { href: "/custom-apps",  label: "Apps sur mesure",    icon: Sparkles },
-    ],
-  },
-  {
-    label: "Équipe & Sécurité",
-    items: [
-      { href: "/users",        label: "Équipe Cockpit",     icon: Users },
-      { href: "/audit",        label: "Journal d'audit",    icon: ScrollText },
-    ],
-  },
-];
+function useNewAccessRequestsCount() {
+  const { data } = useQuery<{ byStatus: Record<string, number> }>({
+    queryKey: ["cockpit/access-requests/stats/badge"],
+    queryFn: () => apiFetch("/api/cockpit/access-requests/stats"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  return data?.byStatus?.["new"] ?? 0;
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const newCount = useNewAccessRequestsCount();
+
+  const NAV_SECTIONS: NavSection[] = [
+    {
+      label: "Vue d'ensemble",
+      items: [
+        { href: "/",             label: "Tableau de bord",    icon: LayoutDashboard },
+        { href: "/reports",      label: "Rapports",           icon: BarChart3 },
+      ],
+    },
+    {
+      label: "Gestion SaaS",
+      items: [
+        { href: "/tenants",          label: "Organisations",      icon: Building2 },
+        { href: "/subscriptions",    label: "Abonnements",        icon: CreditCard },
+        { href: "/access-requests",  label: "Demandes d'accès",   icon: ClipboardList, badge: newCount },
+        { href: "/expert-firms",     label: "Cabinets experts",   icon: Briefcase },
+        { href: "/tickets",          label: "Tickets support",    icon: Ticket },
+      ],
+    },
+    {
+      label: "Opérations",
+      items: [
+        { href: "/incidents",    label: "Incidents",          icon: AlertTriangle },
+        { href: "/monitoring",   label: "Monitoring",         icon: Activity },
+        { href: "/emails",       label: "Emails envoyés",     icon: Mail },
+        { href: "/custom-apps",  label: "Apps sur mesure",    icon: Sparkles },
+      ],
+    },
+    {
+      label: "Équipe & Sécurité",
+      items: [
+        { href: "/users",        label: "Équipe Cockpit",     icon: Users },
+        { href: "/audit",        label: "Journal d'audit",    icon: ScrollText },
+      ],
+    },
+  ];
 
   const isActive = (href: string) =>
     href === "/" ? location === "/" : location.startsWith(href);
@@ -64,7 +77,6 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-3">
           <div>
@@ -74,7 +86,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-4">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
@@ -94,7 +105,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                     }`}>
                       <Icon className={`w-4 h-4 shrink-0 ${active ? "text-sidebar-primary" : "opacity-60"}`} />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {active && <ChevronRight className="w-3 h-3 text-sidebar-primary opacity-60 shrink-0" />}
+                      {item.badge != null && item.badge > 0 && (
+                        <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                          {item.badge > 99 ? "99+" : item.badge}
+                        </span>
+                      )}
+                      {active && !item.badge && <ChevronRight className="w-3 h-3 text-sidebar-primary opacity-60 shrink-0" />}
                     </div>
                   </Link>
                 );
@@ -104,7 +120,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         ))}
       </nav>
 
-      {/* User section */}
       <div className="px-2 py-3 border-t border-sidebar-border shrink-0 space-y-1">
         <Link href="/profile" onClick={() => setMobileOpen(false)}>
           <div className={`flex items-center gap-2.5 px-3 py-2 rounded-md cursor-pointer transition-colors ${
@@ -133,12 +148,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex w-56 shrink-0 flex-col bg-sidebar border-r border-sidebar-border">
         <SidebarContent />
       </aside>
 
-      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
@@ -148,9 +161,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background border-b">
           <button
             onClick={() => setMobileOpen(true)}

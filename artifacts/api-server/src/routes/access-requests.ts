@@ -37,7 +37,7 @@ const createAccessRequestSchema = z.object({
 });
 
 const updateAccessRequestSchema = z.object({
-  status:      z.enum(["new", "to_contact", "contacted", "demo_planned", "qualifying", "offer_sent", "converted", "rejected"]).optional(),
+  status:      z.enum(["new", "to_contact", "contacted", "demo_planned", "qualifying", "offer_sent", "converted", "non_qualified", "archived", "rejected"]).optional(),
   notes:       z.string().optional(),
   assignedTo:  z.string().uuid().nullable().optional(),
   contactedAt: z.string().datetime().nullable().optional(),
@@ -265,6 +265,41 @@ accessRequestCockpitRouter.get("/cockpit/access-requests", requireSuperAdmin, as
 
   const rows = await query.orderBy(desc(accessRequestsTable.createdAt));
   return res.json(rows);
+});
+
+// ── Stats globales pour le badge et les KPIs ──────────────────────────────────
+accessRequestCockpitRouter.get("/cockpit/access-requests/stats", requireSuperAdmin, async (req, res) => {
+  const rows = await db.select({
+    status: accessRequestsTable.status,
+    desiredModules: accessRequestsTable.desiredModules,
+    orgSector: accessRequestsTable.orgSector,
+  }).from(accessRequestsTable);
+
+  const byStatus: Record<string, number> = {};
+  const moduleCount: Record<string, number> = {};
+  const sectorCount: Record<string, number> = {};
+
+  for (const r of rows) {
+    byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+    for (const m of (r.desiredModules ?? [])) {
+      moduleCount[m] = (moduleCount[m] ?? 0) + 1;
+    }
+    if (r.orgSector) sectorCount[r.orgSector] = (sectorCount[r.orgSector] ?? 0) + 1;
+  }
+
+  const total = rows.length;
+  const converted = byStatus["converted"] ?? 0;
+  const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+
+  const topModules = Object.entries(moduleCount)
+    .sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .map(([name, count]) => ({ name, count }));
+
+  const topSectors = Object.entries(sectorCount)
+    .sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  return res.json({ byStatus, total, converted, conversionRate, topModules, topSectors });
 });
 
 accessRequestCockpitRouter.get("/cockpit/access-requests/:id", requireSuperAdmin, async (req, res) => {

@@ -1,0 +1,187 @@
+Pouvez-vous vérifier et améliorer la gestion des demandes d’accès à Gameasu afin qu’elles soient bien notifiées, enregistrées et suivies dans le Cockpit Plateforme ?
+
+Objectif
+
+Je veux m’assurer que lorsqu’un prospect ou une organisation soumet une demande d’accès depuis la page login ou le formulaire d’inscription, cette demande ne soit pas seulement envoyée par email, mais qu’elle soit également visible et traçable dans le Cockpit Gameasu.
+
+⸻
+
+1. Vérifier si les demandes d’accès arrivent dans le Cockpit
+
+Merci de vérifier si les demandes d’accès sont actuellement :
+
+* enregistrées dans la base de données ;
+* visibles dans le Cockpit ;
+* notifiées à l’équipe Gameasu ;
+* rattachées à une organisation potentielle ;
+* disponibles dans une section dédiée ;
+* liées au CRM ou aux prospects entrants.
+
+Si ce n’est pas encore le cas, merci de créer cette logique.
+
+⸻
+
+2. Créer une section “Demandes d’accès” dans le Cockpit
+
+Ajouter dans le Cockpit une section dédiée :
+
+Demandes d’accès
+
+ou
+
+Prospects entrants
+
+Cette section doit permettre à l’équipe Gameasu de voir toutes les demandes soumises par les prospects.
+
+Informations à afficher
+
+Pour chaque demande :
+
+* nom du contact ;
+* email ;
+* téléphone ;
+* fonction ;
+* nom de l’organisation ;
+* secteur d’activité ;
+* taille de l’organisation ;
+* nombre estimé d’utilisateurs ;
+* modules souhaités ;
+* besoin principal ;
+* message du prospect ;
+* date de soumission ;
+* source de la demande ;
+* statut ;
+* responsable assigné ;
+* notes internes.
+
+⸻
+
+3. Ajouter des notifications dans le Cockpit
+
+Quand une nouvelle demande d’accès est soumise, le Cockpit doit afficher une notification.
+
+Notifications attendues
+
+* notification in-app dans le Cockpit ;
+* badge de compteur sur le menu Demandes d’accès ;
+* notification email à l’équipe Gameasu ;
+* possibilité de marquer la demande comme lue ;
+* historique des notifications.
+
+Exemple :
+
+Nouvelle demande d’accès — ABC SARL souhaite utiliser Gameasu
+
+⸻
+
+4. Statuts de suivi
+
+Chaque demande doit avoir un statut clair :
+
+* Nouveau ;
+* À contacter ;
+* Contacté ;
+* Démo planifiée ;
+* En qualification ;
+* Offre envoyée ;
+* Converti en client ;
+* Non qualifié ;
+* Archivé.
+
+L’équipe Gameasu doit pouvoir changer le statut directement depuis le Cockpit.
+
+⸻
+
+5. Actions disponibles depuis le Cockpit
+
+Ajouter des actions rapides :
+
+* voir les détails de la demande ;
+* assigner un responsable ;
+* ajouter une note interne ;
+* envoyer un email ;
+* planifier une démo ;
+* créer un prospect CRM ;
+* créer une opportunité ;
+* convertir en organisation / tenant ;
+* archiver la demande.
+
+⸻
+
+6. Connexion avec le CRM
+
+Si possible, connecter les demandes d’accès au CRM Gameasu.
+
+Lorsqu’une demande est soumise :
+
+* créer automatiquement un prospect ;
+* créer une opportunité commerciale ;
+* rattacher les modules souhaités ;
+* ajouter une tâche de suivi ;
+* assigner un responsable commercial ;
+* conserver l’historique des échanges.
+
+⸻
+
+7. Email et confirmation
+
+Le système doit continuer à envoyer :
+
+Au prospect
+
+Un email de confirmation indiquant que sa demande a bien été reçue.
+
+À l’équipe Gameasu
+
+Un email de notification avec les détails de la demande.
+
+Mais en plus de l’email, la demande doit être visible dans le Cockpit pour assurer le suivi interne.
+
+⸻
+
+8. Tableau de bord Cockpit
+
+Ajouter si possible des KPI dans le Cockpit :
+
+* nouvelles demandes ;
+* demandes à contacter ;
+* démos planifiées ;
+* demandes converties ;
+* taux de conversion ;
+* demandes par secteur ;
+* demandes par taille d’organisation ;
+* modules les plus demandés.
+
+⸻
+
+9. Sécurité et accès
+
+Seuls les utilisateurs autorisés dans le Cockpit doivent pouvoir accéder aux demandes d’accès.
+
+Prévoir des permissions comme :
+
+* voir les demandes d’accès ;
+* modifier le statut ;
+* assigner une demande ;
+* ajouter des notes ;
+* convertir en prospect ;
+* convertir en client ;
+* archiver une demande.
+
+⸻
+
+10. Résultat attendu
+
+Je veux que chaque demande d’accès à Gameasu soit :
+
+* enregistrée dans le système ;
+* visible dans le Cockpit ;
+* notifiée à l’équipe Gameasu ;
+* suivie avec un statut ;
+* assignable à un responsable ;
+* connectée au CRM si possible ;
+* convertible en prospect, opportunité ou client.
+
+Objectif final
+
+Faire du Cockpit Gameasu un vrai centre de suivi des demandes d’accès, afin que l’équipe puisse rapidement identifier les nouveaux prospects, les contacter, suivre leur progression commerciale et les convertir en clients.
