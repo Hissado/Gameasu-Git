@@ -46,9 +46,8 @@ const updateAccessRequestSchema = z.object({
 // ── Salutation contextuelle (heure Afrique de l'Ouest = UTC) ─────────────────
 function getGreeting(): string {
   const h = new Date().getUTCHours();
-  if (h >= 5 && h < 18) return "Bonjour";
-  if (h >= 18 && h < 21) return "Bonsoir";
-  return "Bonne nuit";
+  if (h < 12) return "Bonjour";
+  return "Bonsoir";
 }
 
 // ── Email prospect (confirmation) ─────────────────────────────────────────────
