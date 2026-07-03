@@ -291,6 +291,16 @@ export default function LoginPage() {
               </form>
             </Form>
 
+            {/* Séparateur "Pas encore client ?" */}
+            <div className="mt-5 border-t border-gray-100 pt-4 text-center space-y-2">
+              <p className="text-[12px] text-gray-400">Vous n'avez pas encore de compte ?</p>
+              <button type="button"
+                onClick={() => setLocation("/demander-acces")}
+                className="w-full h-10 rounded-lg text-[13.5px] font-semibold border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">
+                Demander un accès Gaméasù
+              </button>
+            </div>
+
             {/* Comptes de démonstration — masqués en production */}
             {import.meta.env.DEV && (
               <div className="mt-5 border-t border-gray-100 pt-4">

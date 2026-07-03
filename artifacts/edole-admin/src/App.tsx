@@ -11,6 +11,7 @@ import { CallCenterProvider } from "@/components/CallCenter";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
+import DemanderAcces from "@/pages/demander-acces";
 import Dashboard from "@/pages/dashboard";
 
 // ── Lazy-loaded pages (un chunk par route → premier paint quasi-instantané) ──
@@ -216,6 +217,7 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/demander-acces" component={DemanderAcces} />
       <Route path="/facture/:token">
         <Suspense fallback={<PageFallback />}><PublicInvoicePage /></Suspense>
       </Route>

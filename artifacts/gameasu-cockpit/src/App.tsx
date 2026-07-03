@@ -24,6 +24,7 @@ const UsersPage        = lazy(() => import("@/pages/users"));
 const ProfilePage      = lazy(() => import("@/pages/profile"));
 const EmailsPage       = lazy(() => import("@/pages/emails"));
 const ExpertFirmsPage  = lazy(() => import("@/pages/expert-firms"));
+const AccessRequestsPage = lazy(() => import("@/pages/access-requests"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,9 @@ function AppRouter() {
         </Route>
         <Route path="/expert-firms">
           <ProtectedRoute><ExpertFirmsPage /></ProtectedRoute>
+        </Route>
+        <Route path="/access-requests">
+          <ProtectedRoute><AccessRequestsPage /></ProtectedRoute>
         </Route>
         <Route path="/audit">
           <ProtectedRoute><AuditPage /></ProtectedRoute>

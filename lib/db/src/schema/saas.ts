@@ -330,6 +330,49 @@ export const orgAddonsTable = pgTable("org_addons", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
+// Demandes d'accès (prospects entrants depuis la page login)
+// ─────────────────────────────────────────────────────────────────
+export const accessRequestsTable = pgTable("access_requests", {
+  id:                uuid("id").primaryKey().defaultRandom(),
+  // Contact
+  contactName:       text("contact_name").notNull(),
+  contactFunction:   text("contact_function"),
+  contactEmail:      text("contact_email").notNull(),
+  contactPhone:      text("contact_phone"),
+  contactPreference: text("contact_preference").notNull().default("email"), // email | phone | whatsapp
+  // Organisation
+  orgName:           text("org_name").notNull(),
+  orgSector:         text("org_sector"),
+  orgDomain:         text("org_domain"),
+  orgSize:           text("org_size"),                    // 1-5 | 6-20 | 21-50 | 51-100 | 100+
+  estimatedUsers:    text("estimated_users"),
+  country:           text("country"),
+  city:              text("city"),
+  // Besoin
+  desiredModules:    jsonb("desired_modules").$type<string[]>().notNull().default([]),
+  mainNeed:          text("main_need"),
+  message:           text("message"),
+  consentGiven:      boolean("consent_given").notNull().default(false),
+  // Suivi commercial
+  status:            text("status").notNull().default("new"),
+  // new | to_contact | contacted | demo_planned | qualifying | offer_sent | converted | rejected
+  assignedTo:        uuid("assigned_to").references(() => usersTable.id, { onDelete: "set null" }),
+  notes:             text("notes"),
+  source:            text("source").notNull().default("login_page"),
+  // Emails
+  confirmationSent:  boolean("confirmation_sent").notNull().default(false),
+  notificationSent:  boolean("notification_sent").notNull().default(false),
+  // Timestamps
+  createdAt:         timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  contactedAt:       timestamp("contacted_at", { withTimezone: true }),
+}, (t) => ({
+  statusIdx: index("access_requests_status_idx").on(t.status),
+  emailIdx:  index("access_requests_email_idx").on(t.contactEmail),
+  createdIdx: index("access_requests_created_idx").on(t.createdAt),
+}));
+
+// ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
 // ─────────────────────────────────────────────────────────────────
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
@@ -367,3 +410,7 @@ export type InsertPaymentTransaction = z.infer<typeof insertPaymentTransactionSc
 export type AddonCatalog = typeof addonCatalogTable.$inferSelect;
 export type OrgAddon    = typeof orgAddonsTable.$inferSelect;
 export type InsertPaymentGatewayConfig = z.infer<typeof insertPaymentGatewayConfigSchema>;
+
+export const insertAccessRequestSchema = createInsertSchema(accessRequestsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type AccessRequest = typeof accessRequestsTable.$inferSelect;
+export type InsertAccessRequest = z.infer<typeof insertAccessRequestSchema>;

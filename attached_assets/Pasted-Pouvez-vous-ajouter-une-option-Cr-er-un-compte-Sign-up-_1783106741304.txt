@@ -1,0 +1,293 @@
+Pouvez-vous ajouter une option Créer un compte / Sign up au niveau de la page de connexion de l’application Gameasu, afin que les prospects ou organisations non encore clientes puissent soumettre leurs informations et manifester leur intérêt pour utiliser l’ERP ?
+
+Objectif
+
+Je veux que les visiteurs qui ne sont pas encore clients puissent, depuis la page de login, cliquer sur une option Créer un compte ou Demander un accès, puis remplir un formulaire avec les informations de leur organisation.
+
+Une fois le formulaire soumis :
+
+1. le prospect reçoit automatiquement un email de confirmation ;
+2. l’équipe Gameasu reçoit automatiquement une notification par email ;
+3. les informations du prospect sont enregistrées dans le système ;
+4. l’équipe Gameasu peut rapidement recontacter le prospect pour organiser une démo, qualifier le besoin ou préparer une offre.
+
+⸻
+
+1. Ajouter une option sur la page login
+
+Sur la page de connexion, ajouter sous ou à côté du formulaire :
+
+Vous n’avez pas encore de compte ?
+
+Bouton ou lien :
+
+Créer un compte
+
+ou
+
+Demander un accès Gameasu
+
+ou
+
+S’inscrire comme nouvelle organisation
+
+Le bouton doit ouvrir une page ou modal de demande d’accès.
+
+⸻
+
+2. Formulaire de demande d’accès
+
+Créer un formulaire clair et professionnel permettant au prospect de renseigner ses informations.
+
+Informations à collecter
+
+* Nom complet du contact
+* Fonction / poste
+* Email professionnel
+* Téléphone
+* Nom de l’entreprise ou organisation
+* Secteur d’activité
+* Domaine / type d’activité
+* Taille de l’organisation
+* Nombre estimé d’utilisateurs
+* Pays
+* Ville
+* Modules souhaités
+* Besoin principal
+* Message ou commentaire
+* Préférence de contact : email, téléphone, WhatsApp
+* Consentement à être contacté par l’équipe Gameasu
+
+Exemple de tailles d’organisation
+
+* 1 à 5 personnes
+* 6 à 20 personnes
+* 21 à 50 personnes
+* 51 à 100 personnes
+* Plus de 100 personnes
+
+Modules souhaités
+
+Permettre au prospect de sélectionner plusieurs modules :
+
+* Finance
+* Comptabilité
+* Ventes & CRM
+* Achats
+* Stock
+* Ressources Humaines
+* Paie
+* Présences & Kiosk
+* Projets & Opérations
+* Rapports
+* Tous les modules
+* Besoin personnalisé
+
+⸻
+
+3. Email automatique au prospect
+
+Après soumission du formulaire, envoyer automatiquement un email de confirmation au prospect.
+
+Email prospect
+
+Expéditeur recommandé :
+
+noreply@gameasu.com
+
+Objet recommandé :
+
+Votre demande d’accès à Gameasu a bien été reçue
+
+Contenu recommandé :
+
+Bonjour [Nom],
+
+Merci pour votre intérêt pour Gameasu.
+
+Nous avons bien reçu votre demande d’accès pour [Nom de l’organisation].
+Notre équipe va étudier vos informations et vous recontacter dans les plus brefs délais afin de mieux comprendre vos besoins et vous accompagner dans les prochaines étapes.
+
+Récapitulatif de votre demande :
+
+* Organisation : [Nom de l’organisation]
+* Secteur : [Secteur]
+* Taille : [Taille]
+* Modules souhaités : [Modules]
+* Contact : [Email / Téléphone]
+
+À très bientôt,
+L’équipe Gameasu
+
+⸻
+
+4. Email automatique à l’équipe Gameasu
+
+Au même moment, envoyer un email de notification à l’équipe Gameasu.
+
+Email interne Gameasu
+
+Destinataire recommandé :
+
+info@gameasu.com
+
+ou une adresse configurable dans les paramètres admin.
+
+Objet recommandé :
+
+Nouvelle demande d’accès Gameasu — [Nom de l’organisation]
+
+Contenu recommandé :
+
+Une nouvelle organisation vient de soumettre une demande d’accès à Gameasu.
+
+Informations du prospect :
+
+* Nom du contact :
+* Fonction :
+* Email :
+* Téléphone :
+* Organisation :
+* Secteur :
+* Domaine d’activité :
+* Taille :
+* Nombre estimé d’utilisateurs :
+* Pays :
+* Ville :
+* Modules souhaités :
+* Besoin principal :
+* Message :
+* Préférence de contact :
+
+Action recommandée :
+
+Contacter le prospect dans les plus brefs délais pour qualifier le besoin, proposer une démo et préparer l’accompagnement.
+
+⸻
+
+5. Enregistrement dans Gameasu
+
+Chaque demande d’accès doit être enregistrée dans le système.
+
+Créer une section dans le Cockpit ou Admin :
+
+Demandes d’accès
+
+ou
+
+Prospects entrants
+
+Chaque demande doit contenir :
+
+* informations du contact ;
+* informations de l’organisation ;
+* modules souhaités ;
+* date de soumission ;
+* source : page login ;
+* statut ;
+* responsable assigné ;
+* historique des actions ;
+* notes internes.
+
+Statuts recommandés
+
+* Nouveau
+* À contacter
+* Contacté
+* Démo planifiée
+* En qualification
+* Offre envoyée
+* Converti en client
+* Rejeté / non qualifié
+
+⸻
+
+6. Connexion avec CRM
+
+Si possible, connecter automatiquement ces demandes au CRM Gameasu.
+
+Quand une demande est soumise :
+
+* créer un prospect ;
+* créer une organisation potentielle ;
+* créer une opportunité commerciale ;
+* assigner un responsable commercial ;
+* créer une tâche de suivi ;
+* déclencher une notification interne.
+
+Cela permettra à l’équipe Gameasu de suivre les prospects directement dans l’ERP.
+
+⸻
+
+7. Sécurité et validation
+
+Ajouter les validations nécessaires :
+
+* email obligatoire et valide ;
+* téléphone obligatoire ou optionnel selon configuration ;
+* nom d’organisation obligatoire ;
+* taille d’organisation obligatoire ;
+* consentement obligatoire avant soumission ;
+* protection anti-spam ;
+* limitation des soumissions répétées ;
+* message d’erreur clair en cas de problème ;
+* message de succès après envoi.
+
+⸻
+
+8. Expérience utilisateur
+
+Le parcours doit être simple et professionnel.
+
+Workflow attendu
+
+1. Le visiteur arrive sur la page login.
+2. Il clique sur Créer un compte ou Demander un accès.
+3. Il remplit le formulaire.
+4. Il soumet la demande.
+5. Il voit un message de confirmation à l’écran.
+6. Il reçoit un email de confirmation.
+7. L’équipe Gameasu reçoit un email de notification.
+8. La demande est enregistrée dans le Cockpit / CRM.
+9. L’équipe Gameasu contacte le prospect.
+
+Message de confirmation à l’écran
+
+Votre demande a bien été envoyée. L’équipe Gameasu vous contactera dans les plus brefs délais.
+
+⸻
+
+9. Design attendu
+
+Le formulaire doit être :
+
+* propre ;
+* moderne ;
+* professionnel ;
+* rassurant ;
+* cohérent avec le branding Gameasu ;
+* responsive mobile ;
+* facile à remplir ;
+* sans surcharge visuelle.
+
+La page login doit rester simple, avec une séparation claire entre :
+
+* connexion des clients existants ;
+* demande d’accès pour les nouveaux prospects.
+
+⸻
+
+10. Résultat attendu
+
+Je veux que la page login de Gameasu permette maintenant :
+
+* aux clients existants de se connecter ;
+* aux nouveaux prospects de demander un accès ;
+* au prospect de recevoir un email de confirmation ;
+* à l’équipe Gameasu de recevoir une notification ;
+* à Gameasu d’enregistrer la demande dans le Cockpit ou CRM ;
+* à l’équipe commerciale de recontacter rapidement le prospect.
+
+Objectif final
+
+Transformer la page login Gameasu en un point d’entrée commercial intelligent, capable de capter les prospects, automatiser la confirmation, notifier l’équipe Gameasu et faciliter le suivi commercial jusqu’à la conversion en client.

@@ -76,6 +76,7 @@ import purchasesRouter from "./purchases";
 import customAppRouter, { customAppPublicRouter } from "./customAppRequests";
 import expertFirmsRouter from "./expert-firms";
 import expertInvitationPublicRouter from "./expert-invitation-public";
+import { accessRequestPublicRouter, accessRequestCockpitRouter } from "./access-requests";
 import btpPayrollRouter from "./btp-payroll";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
@@ -101,6 +102,7 @@ router.use(pricingPublicRouter);
 router.use(ordersPublicRouter);
 router.use(customAppPublicRouter);
 router.use(expertInvitationPublicRouter);
+router.use(accessRequestPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -120,6 +122,7 @@ router.use(pipelineIntelligenceRouter);
 router.use(approvalsQueueRouter);
 router.use(anomalyDetectionRouter);
 router.use(superAdminCockpitRouter);
+router.use(accessRequestCockpitRouter);
 router.use(customAppRouter);
 router.use(cockpitAdminRouter);
 router.use(cockpitTeamRouter);
