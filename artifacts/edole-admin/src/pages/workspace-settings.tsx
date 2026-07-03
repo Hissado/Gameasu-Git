@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useWorkspaceSettings, useUpdateWorkspaceSettings, useToggleModule, type Organization } from "@/lib/saas";
+import { useWorkspaceSettings, useUpdateWorkspaceSettings, type Organization } from "@/lib/saas";
+import { ModulesActifsTab } from "@/components/ModulesActifsTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,8 +131,6 @@ export default function WorkspaceSettingsPage() {
   const updateGeneral = useUpdateWorkspaceSettings("general");
   const updateBranding = useUpdateWorkspaceSettings("branding");
   const updatePrefs = useUpdateWorkspaceSettings("preferences");
-  const toggle = useToggleModule();
-
   const [general, setGeneral] = useState<Partial<Organization>>({});
   const [branding, setBranding] = useState<Partial<Organization>>({});
   const [prefs, setPrefs] = useState<Partial<Organization>>({});
@@ -344,36 +343,7 @@ export default function WorkspaceSettingsPage() {
       </Card>
 
       {/* Modules */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Layers className="w-4 h-4 text-amber-700" /> Modules actifs</CardTitle>
-          <CardDescription>Activez ou désactivez les modules disponibles dans votre formule.</CardDescription>
-        </CardHeader>
-        <CardContent className="divide-y divide-border/60">
-          {modules.map((m) => {
-            const included = plan?.includedModules.includes(m.moduleKey);
-            return (
-              <div key={m.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium">{LABELS[m.moduleKey] ?? m.moduleKey}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {included ? "Inclus dans votre formule" : "Non inclus — passer à un plan supérieur pour activer"}
-                  </p>
-                </div>
-                <Switch
-                  checked={m.enabled}
-                  disabled={!included || toggle.isPending}
-                  onCheckedChange={(enabled) => {
-                    toggle.mutate({ moduleKey: m.moduleKey, enabled }, {
-                      onError: (e) => toast({ variant: "destructive", title: "Échec", description: e.message }),
-                    });
-                  }}
-                />
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+      <ModulesActifsTab />
 
       {/* Sécurité */}
       <Card>
