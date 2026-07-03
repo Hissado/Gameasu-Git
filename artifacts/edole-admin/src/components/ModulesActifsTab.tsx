@@ -5,9 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  Lock, ShieldCheck, AlertTriangle, Shield, Target, TrendingUp,
+  Lock, AlertTriangle, Shield, Target, TrendingUp,
   UsersRound, Truck, Megaphone, BarChart3, ChevronDown, ChevronRight,
-  Layers, ArrowRight, Loader2, X,
+  Layers, Loader2, X,
 } from "lucide-react";
 import { useOrganizationModules, useToggleModule } from "@/lib/saas";
 import { useToast } from "@/hooks/use-toast";
@@ -155,15 +155,6 @@ export function ModulesActifsTab() {
             {enabledCount} / {totalCount} modules actifs
           </Badge>
         )}
-      </div>
-
-      {/* Info permissions */}
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
-        <ShieldCheck className="w-4 h-4 shrink-0 text-blue-600" />
-        <span>Les permissions d'accès par rôle se configurent séparément dans les paramètres.</span>
-        <span className="ml-auto inline-flex items-center gap-1 font-medium text-blue-700">
-          Rôles & permissions <ArrowRight className="w-3 h-3" />
-        </span>
       </div>
 
       {isLoading ? (
