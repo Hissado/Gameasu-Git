@@ -51,6 +51,9 @@ export type Subscription = {
 export type OrganizationModule = {
   id: string; organizationId: string; moduleKey: string;
   enabled: boolean; source: "plan" | "addon" | "manual";
+  name?: string; description?: string | null;
+  category?: string; icon?: string | null;
+  isCore?: boolean; sortOrder?: number;
 };
 
 export type BillingEvent = {

@@ -1,11 +1,17 @@
 import { ReactNode } from "react";
-import { useCurrentSubscription } from "@/lib/saas";
+import { useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { GameasuMark } from "@/components/branding/GameasuMark";
 
-export function useModuleEnabled(_moduleKey: string | null | undefined) {
-  return { enabled: true, loading: false };
+export function useModuleEnabled(moduleKey: string | null | undefined) {
+  const { data: modules, isLoading } = useOrganizationModules();
+  if (!moduleKey) return { enabled: true, loading: false };
+  if (isLoading) return { enabled: true, loading: true };
+  const mod = modules?.find((m) => m.moduleKey === moduleKey);
+  // If the module is not in the catalog yet (no row), default to enabled
+  if (!mod) return { enabled: true, loading: false };
+  return { enabled: mod.enabled || (mod.isCore ?? false), loading: false };
 }
 
 export function FeatureGate({ moduleKey, children }: { moduleKey: string; children: ReactNode }) {

@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   subscriptionPlansTable, subscriptionPlanFeaturesTable,
   organizationSubscriptionsTable, organizationModulesTable, billingEventsTable,
-  organizationMembersTable, organizationsTable,
+  organizationMembersTable, organizationsTable, moduleCatalogTable,
 } from "@workspace/db";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getCurrentOrganizationId, getCurrentSubscription } from "../lib/tenant";
@@ -170,9 +170,33 @@ router.post("/subscriptions/change-billing-cycle", requireAdmin, async (req, res
 router.get("/organization-modules", async (req, res) => {
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   if (!orgId) return res.json([]);
-  const rows = await db.select().from(organizationModulesTable)
-    .where(eq(organizationModulesTable.organizationId, orgId));
-  res.json(rows);
+
+  const [orgMods, catalog] = await Promise.all([
+    db.select().from(organizationModulesTable)
+      .where(eq(organizationModulesTable.organizationId, orgId)),
+    db.select().from(moduleCatalogTable).orderBy(moduleCatalogTable.sortOrder),
+  ]);
+
+  const orgModMap = new Map(orgMods.map((m) => [m.moduleKey, m]));
+
+  const result = catalog.map((cat) => {
+    const orgMod = orgModMap.get(cat.key);
+    return {
+      id: orgMod?.id ?? cat.id,
+      organizationId: orgId,
+      moduleKey: cat.key,
+      enabled: orgMod?.enabled ?? false,
+      source: (orgMod?.source ?? "plan") as "plan" | "addon" | "manual",
+      name: cat.name,
+      description: cat.description ?? null,
+      category: cat.category,
+      icon: cat.icon ?? null,
+      isCore: cat.isCore,
+      sortOrder: cat.sortOrder,
+    };
+  });
+
+  res.json(result);
 });
 
 router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req, res) => {
