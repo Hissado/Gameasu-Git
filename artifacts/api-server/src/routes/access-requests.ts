@@ -58,10 +58,20 @@ function buildProspectEmail(data: z.infer<typeof createAccessRequestSchema>): st
     </div>
     <div style="padding:32px;">
       <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${data.contactName}</strong>,</p>
+      <p style="margin:0 0 12px;font-size:14px;color:#6B7280;line-height:1.6;">
+        Merci pour votre intérêt pour <strong>Gameasu</strong>.
+      </p>
+      <p style="margin:0 0 12px;font-size:14px;color:#6B7280;line-height:1.6;">
+        Votre demande d'accès pour <strong>${data.orgName}</strong> a bien été reçue. Notre équipe va analyser
+        vos informations afin de mieux comprendre vos besoins, vos priorités et les spécificités de votre organisation.
+      </p>
       <p style="margin:0 0 16px;font-size:14px;color:#6B7280;line-height:1.6;">
-        Merci pour votre intérêt pour <strong>Gameasu</strong>. Nous avons bien reçu votre demande d'accès pour
-        <strong>${data.orgName}</strong>. Notre équipe va étudier vos informations et vous recontacter dans les plus
-        brefs délais afin de mieux comprendre vos besoins et vous accompagner dans les prochaines étapes.
+        Nous vous recontacterons très prochainement pour vous accompagner dans les prochaines étapes et vous présenter
+        la solution Gameasu la plus adaptée à votre activité.
+      </p>
+      <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.6;">
+        Avec Gameasu, vous êtes sur le point de simplifier votre gestion, centraliser vos opérations et piloter votre
+        entreprise avec plus de clarté.
       </p>
       <div style="background:#F9FAFB;border-radius:8px;padding:20px;margin:24px 0;border:1px solid #E5E7EB;">
         <p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9CA3AF;">Récapitulatif de votre demande</p>
@@ -201,7 +211,7 @@ accessRequestPublicRouter.post("/access-requests", async (req, res) => {
         to: data.contactEmail,
         subject: "Votre demande d'accès à Gameasu a bien été reçue",
         html: buildProspectEmail(data),
-        text: `Bonjour ${data.contactName},\n\nMerci pour votre intérêt pour Gameasu. Nous avons bien reçu votre demande d'accès pour ${data.orgName}.\n\nL'équipe Gameasu`,
+        text: `Bonjour ${data.contactName},\n\nMerci pour votre intérêt pour Gameasu.\n\nVotre demande d'accès pour ${data.orgName} a bien été reçue. Notre équipe va analyser vos informations afin de mieux comprendre vos besoins, vos priorités et les spécificités de votre organisation.\n\nNous vous recontacterons très prochainement pour vous accompagner dans les prochaines étapes et vous présenter la solution Gameasu la plus adaptée à votre activité.\n\nAvec Gameasu, vous êtes sur le point de simplifier votre gestion, centraliser vos opérations et piloter votre entreprise avec plus de clarté.\n\nL'équipe Gameasu`,
         category: "access_request_confirmation",
       }),
       sendEmail({
