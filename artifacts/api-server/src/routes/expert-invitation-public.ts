@@ -137,7 +137,7 @@ router.post("/expert/invitation/accept", async (req, res, next) => {
         }).catch(() => {});
       }
       return res.status(410).json({
-        error: "Ce lien est invalide, déjà utilisé ou expiré. Contactez votre administrateur Gaméasù.",
+        error: "Ce lien est invalide, déjà utilisé ou expiré. Contactez votre administrateur Gameasu.",
       });
     }
 

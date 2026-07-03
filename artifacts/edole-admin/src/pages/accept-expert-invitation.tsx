@@ -124,7 +124,7 @@ export default function AcceptExpertInvitationPage() {
                 <AlertDescription>
                   {tokenError}
                   <p className="mt-1 text-xs opacity-80">
-                    Si le problème persiste, contactez l'équipe Gaméasù.
+                    Si le problème persiste, contactez l'équipe Gameasu.
                   </p>
                 </AlertDescription>
               </Alert>
@@ -247,7 +247,7 @@ export default function AcceptExpertInvitationPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-500" />
                 <div className="font-semibold text-lg">Compte activé !</div>
                 <div className="text-sm text-muted-foreground">
-                  Bienvenue dans Gaméasù. Redirection vers votre espace cabinet…
+                  Bienvenue dans Gameasu. Redirection vers votre espace cabinet…
                 </div>
               </div>
             )}

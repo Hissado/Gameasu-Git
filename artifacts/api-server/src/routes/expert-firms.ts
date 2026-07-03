@@ -1345,7 +1345,7 @@ router.get(
 
     // 3. Excel workbook
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Gaméasù";
+    wb.creator = "Gameasu";
     wb.created = new Date();
 
     const ws = wb.addWorksheet("Rapport clients");

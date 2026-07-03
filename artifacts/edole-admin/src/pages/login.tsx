@@ -297,7 +297,7 @@ export default function LoginPage() {
               <button type="button"
                 onClick={() => setLocation("/demander-acces")}
                 className="w-full h-10 rounded-lg text-[13.5px] font-semibold border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">
-                Demander un accès Gaméasù
+                Demander un accès Gameasu
               </button>
             </div>
 

@@ -162,7 +162,7 @@ export default function DemanderAccesPage() {
             </div>
             <h1 className="text-[22px] font-bold text-[#0E1A39] mb-3">Demande envoyée !</h1>
             <p className="text-[14px] text-gray-500 leading-relaxed mb-6">
-              Votre demande a bien été envoyée. L'équipe Gaméasù vous contactera dans les plus brefs délais.
+              Votre demande a bien été envoyée. L'équipe Gameasu vous contactera dans les plus brefs délais.
               <br /><br />
               Un email de confirmation vous a été envoyé à <strong className="text-gray-700">{form.contactEmail}</strong>.
             </p>
@@ -197,7 +197,7 @@ export default function DemanderAccesPage() {
           </div>
           <h1 className="text-[24px] font-bold text-[#0E1A39]">Demander un accès</h1>
           <p className="text-[14px] text-gray-500 mt-1">
-            Vous n'êtes pas encore client Gaméasù ? Remplissez ce formulaire — notre équipe vous contacte rapidement.
+            Vous n'êtes pas encore client Gameasu ? Remplissez ce formulaire — notre équipe vous contacte rapidement.
           </p>
         </div>
 
@@ -347,7 +347,7 @@ export default function DemanderAccesPage() {
               <input type="checkbox" checked={form.consentGiven} onChange={(e) => set("consentGiven", e.target.checked)}
                 className="w-4 h-4 mt-0.5 accent-blue-600 cursor-pointer flex-shrink-0" />
               <span className="text-[13px] text-gray-600 leading-relaxed">
-                J'accepte d'être contacté(e) par l'équipe Gaméasù pour faire suite à cette demande d'accès.
+                J'accepte d'être contacté(e) par l'équipe Gameasu pour faire suite à cette demande d'accès.
                 Les informations saisies seront utilisées uniquement dans le cadre de cet accompagnement.
                 <span className="text-red-500 ml-0.5">*</span>
               </span>

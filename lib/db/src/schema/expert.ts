@@ -113,7 +113,7 @@ export const expertContextSessionsTable = pgTable("expert_context_sessions", {
 
 /**
  * Invitations cabinet — token sécurisé envoyé par le Cockpit super-admin
- * pour qu'un expert crée son espace professionnel Gaméasù.
+ * pour qu'un expert crée son espace professionnel Gameasu.
  * Durée de validité : 72 heures.
  */
 export const expertFirmInvitationsTable = pgTable("expert_firm_invitations", {
