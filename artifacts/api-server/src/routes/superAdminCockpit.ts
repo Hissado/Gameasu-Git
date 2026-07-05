@@ -31,6 +31,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
+import { calcPlanPricing, getPlan } from "../lib/pricing";
 
 const router: IRouter = Router();
 
@@ -49,13 +50,11 @@ const sa: RequestHandler = (req, res, next) => {
 
 // ─── Politique tarifaire Gameasu ─────────────────────────────────────────────
 //
-//  1er utilisateur       : 10 000 FCFA HT
-//  Utilisateurs 2 à 5    :  5 000 FCFA HT / utilisateur
-//  Utilisateurs 6 à 10   :  2 000 FCFA HT / utilisateur
-//  Utilisateurs 11 à 50  :  1 000 FCFA HT / utilisateur
-//  > 50 utilisateurs     : tarification personnalisée (prix négocié stocké dans unitPrice)
-//
-//  TVA : 18 %
+//  Tarification plan-based (TTC / util / mois, TVA 18% incluse) :
+//    Starter       → 4 000 FCFA TTC
+//    Business      → 7 000 FCFA TTC  ★ Populaire
+//    Premium       → 10 000 FCFA TTC ✦ Complet
+//    Personnalisée → Sur devis (prix négocié HT stocké dans unitPrice)
 //
 //  Seuls les utilisateurs actifs (isActive = true) sont facturables.
 
@@ -70,62 +69,58 @@ interface PricingLine {
 
 export interface PriceResult {
   activeUsers: number;
-  ht: number | null;   // null = > 50 utilisateurs sans prix négocié défini
+  ht: number | null;
   tva: number | null;
   ttc: number | null;
-  isCustom: boolean;   // true si > 50 utilisateurs
-  mrr: number;         // ht ?? 0 — pour les agrégats (ne jamais afficher directement)
+  isCustom: boolean;
+  mrr: number;
   breakdown: PricingLine[];
 }
 
 /**
- * Calcule le prix mensuel HT pour une organisation selon la politique tarifaire
- * officielle de Gameasu.
+ * Calcule le prix mensuel HT/TVA/TTC pour une organisation selon le plan actif.
  *
  * @param activeUsers   Nombre d'utilisateurs actifs facturables.
- * @param negotiatedHt  Prix mensuel HT négocié (utilisé uniquement si activeUsers > 50).
+ * @param planCode      Code du plan souscrit (STARTER / BUSINESS / PREMIUM / ENTERPRISE).
+ * @param negotiatedHt  Prix HT négocié — utilisé uniquement pour ENTERPRISE.
  */
-function calcOrgPrice(activeUsers: number, negotiatedHt?: number | null): PriceResult {
-  if (activeUsers > 50) {
-    const ht = negotiatedHt != null && negotiatedHt > 0 ? negotiatedHt : null;
+function calcOrgPrice(activeUsers: number, planCode?: string | null, negotiatedHt?: number | null): PriceResult {
+  // Personnalisée (Enterprise) ou plan inconnu → prix négocié
+  if (!planCode || planCode === "ENTERPRISE") {
+    const ht  = negotiatedHt != null && negotiatedHt > 0 ? negotiatedHt : null;
     const tva = ht != null ? Math.round(ht * TVA_RATE) : null;
     return {
       activeUsers, ht, tva, ttc: ht != null && tva != null ? ht + tva : null,
       isCustom: true, mrr: ht ?? 0,
       breakdown: ht != null
-        ? [{ label: "Prix négocié (> 50 utilisateurs)", qty: activeUsers, unitPrice: 0, total: ht }]
+        ? [{ label: "Prix négocié (Personnalisée)", qty: activeUsers, unitPrice: 0, total: ht }]
         : [],
     };
   }
 
-  let ht = 0;
-  const breakdown: PricingLine[] = [];
-
-  if (activeUsers >= 1) {
-    breakdown.push({ label: "1er utilisateur", qty: 1, unitPrice: 10_000, total: 10_000 });
-    ht += 10_000;
-  }
-  if (activeUsers >= 2) {
-    const qty = Math.min(activeUsers, 5) - 1;
-    const total = qty * 5_000;
-    breakdown.push({ label: "Utilisateurs 2 à 5", qty, unitPrice: 5_000, total });
-    ht += total;
-  }
-  if (activeUsers >= 6) {
-    const qty = Math.min(activeUsers, 10) - 5;
-    const total = qty * 2_000;
-    breakdown.push({ label: "Utilisateurs 6 à 10", qty, unitPrice: 2_000, total });
-    ht += total;
-  }
-  if (activeUsers >= 11) {
-    const qty = Math.min(activeUsers, 50) - 10;
-    const total = qty * 1_000;
-    breakdown.push({ label: "Utilisateurs 11 à 50", qty, unitPrice: 1_000, total });
-    ht += total;
+  // Plan standard → prix catalogue TTC → décomposer en HT + TVA
+  const result = calcPlanPricing({ planCode, seats: Math.max(activeUsers, 1) });
+  if (!result) {
+    return { activeUsers, ht: null, tva: null, ttc: null, isCustom: true, mrr: 0, breakdown: [] };
   }
 
-  const tva = Math.round(ht * TVA_RATE);
-  return { activeUsers, ht, tva, ttc: ht + tva, isCustom: false, mrr: ht, breakdown };
+  const plan = getPlan(planCode);
+  const planLabel = plan?.name ?? planCode;
+
+  return {
+    activeUsers,
+    ht:  result.totalHT,
+    tva: result.tva,
+    ttc: result.totalTTC,
+    isCustom: false,
+    mrr: result.totalHT,
+    breakdown: [{
+      label:     `${planLabel} — ${Math.max(activeUsers, 1)} utilisateur${activeUsers > 1 ? "s" : ""}`,
+      qty:       Math.max(activeUsers, 1),
+      unitPrice: result.priceHTPerSeat,
+      total:     result.totalHT,
+    }],
+  };
 }
 
 /** Retourne le nombre d'utilisateurs actifs facturables par organisation. */
@@ -176,7 +171,7 @@ router.get("/super-admin/overview", sa, async (_req, res, next) => {
     const byPlan: Record<string, { count: number; seats: number; mrr: number }> = {};
     for (const s of subs) {
       const actUsers = activeUsersMap.get(s.orgId) ?? 0;
-      const pricing = calcOrgPrice(actUsers, s.unitPrice);
+      const pricing = calcOrgPrice(actUsers, s.planCode, s.unitPrice);
       mrrFcfa += pricing.mrr;
       const k = s.planCode ?? "UNKNOWN";
       byPlan[k] = byPlan[k] ?? { count: 0, seats: 0, mrr: 0 };
@@ -293,7 +288,7 @@ router.get("/super-admin/organizations", sa, async (_req, res, next) => {
       const sub = subByOrg.get(o.id);
       const activeUsers = activeUsersMap.get(o.id) ?? 0;
       const memberCount = memMap.get(o.id) ?? 0;
-      const pricing = calcOrgPrice(activeUsers, sub?.unitPrice);
+      const pricing = calcOrgPrice(activeUsers, sub?.planCode, sub?.unitPrice);
       const failedCount = failedMap.get(o.id) ?? 0;
       const openTicketCount = ticketMap.get(o.id) ?? 0;
 
@@ -378,7 +373,7 @@ router.get("/super-admin/organizations/:id", sa, async (req, res, next) => {
       .from(billingEventsTable).where(and(eq(billingEventsTable.organizationId, id), eq(billingEventsTable.status, "failed")));
 
     const activeUsers = activeUserCount?.c ?? 0;
-    const pricing = calcOrgPrice(activeUsers, sub?.unitPrice);
+    const pricing = calcOrgPrice(activeUsers, sub?.planCode, sub?.unitPrice);
 
     return res.json({
       org,
@@ -696,7 +691,7 @@ router.get("/super-admin/revenue", sa, async (_req, res, next) => {
 
     const byOrg = subs.map((s) => {
       const actUsers = activeUsersMap.get(s.orgId) ?? 0;
-      const pricing = calcOrgPrice(actUsers, s.unitPrice);
+      const pricing = calcOrgPrice(actUsers, s.planCode, s.unitPrice);
       return {
         orgId: s.orgId, orgName: s.orgName ?? "—",
         planCode: s.planCode ?? "—",
