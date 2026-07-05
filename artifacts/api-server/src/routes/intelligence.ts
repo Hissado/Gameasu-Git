@@ -19,7 +19,7 @@ const router: IRouter = Router();
 // INSIGHTS
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/insights", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const scope = (req.query["scope"] as string) || undefined;
   const kind = (req.query["kind"] as string) || undefined;
@@ -34,7 +34,7 @@ router.get("/intelligence/insights", async (req, res) => {
 });
 
 router.post("/intelligence/insights", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     kind: z.string(),
@@ -58,7 +58,7 @@ router.post("/intelligence/insights", async (req, res) => {
 });
 
 router.patch("/intelligence/insights/:id", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     isRead: z.boolean().optional(),
@@ -76,7 +76,7 @@ router.patch("/intelligence/insights/:id", async (req, res) => {
 // RECOMMENDATIONS
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/recommendations", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const entityType = req.query["entityType"] as string | undefined;
   const entityId = req.query["entityId"] as string | undefined;
@@ -93,7 +93,7 @@ router.get("/intelligence/recommendations", async (req, res) => {
 });
 
 router.post("/intelligence/recommendations", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     entityType: z.string(),
@@ -112,7 +112,7 @@ router.post("/intelligence/recommendations", async (req, res) => {
 });
 
 router.patch("/intelligence/recommendations/:id/apply", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const userId = req.authUser!.id;
   const [row] = await db.update(recommendationsTable).set({ isApplied: true, appliedAt: new Date(), appliedById: userId })
@@ -123,7 +123,7 @@ router.patch("/intelligence/recommendations/:id/apply", async (req, res) => {
 });
 
 router.patch("/intelligence/recommendations/:id/dismiss", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const [row] = await db.update(recommendationsTable).set({ isDismissed: true, dismissedAt: new Date() })
     .where(and(eq(recommendationsTable.id, req.params["id"]!), eq(recommendationsTable.organizationId, orgId)))
@@ -136,7 +136,7 @@ router.patch("/intelligence/recommendations/:id/dismiss", async (req, res) => {
 // RISK FLAGS
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/risks", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const entityType = req.query["entityType"] as string | undefined;
   const entityId = req.query["entityId"] as string | undefined;
@@ -150,7 +150,7 @@ router.get("/intelligence/risks", async (req, res) => {
 });
 
 router.post("/intelligence/risks", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     entityType: z.string(),
@@ -166,7 +166,7 @@ router.post("/intelligence/risks", async (req, res) => {
 });
 
 router.patch("/intelligence/risks/:id/resolve", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const userId = req.authUser!.id;
   const note = (req.body?.["resolutionNote"] as string) || null;
@@ -181,7 +181,7 @@ router.patch("/intelligence/risks/:id/resolve", async (req, res) => {
 // SMART SCORES
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/scores", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const entityType = req.query["entityType"] as string | undefined;
   const entityId = req.query["entityId"] as string | undefined;
@@ -195,7 +195,7 @@ router.get("/intelligence/scores", async (req, res) => {
 });
 
 router.post("/intelligence/scores", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     entityType: z.string(),
@@ -214,7 +214,7 @@ router.post("/intelligence/scores", async (req, res) => {
 // ASSISTANT SUMMARIES
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/summaries", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const scope = req.query["scope"] as string | undefined;
   const scopeId = req.query["scopeId"] as string | undefined;
@@ -226,7 +226,7 @@ router.get("/intelligence/summaries", async (req, res) => {
 });
 
 router.post("/intelligence/summaries/generate", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     scope: z.string(),
@@ -263,7 +263,7 @@ router.post("/intelligence/summaries/generate", async (req, res) => {
 // OVERVIEW (cockpit dashboard)
 // ─────────────────────────────────────────────────────────────────
 router.get("/intelligence/overview", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const [insightsOpen] = await db.select({ n: sql<number>`count(*)::int` }).from(insightsTable).where(and(eq(insightsTable.organizationId, orgId), eq(insightsTable.isDismissed, false)));

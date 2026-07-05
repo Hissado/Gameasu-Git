@@ -1,0 +1,266 @@
+Pouvez-vous revoir en profondeur la logique multi-organisation, abonnement, modules actifs et permissions dans Gameasu ?
+
+Problème constaté
+
+Lorsqu’un utilisateur utilise le même email pour accéder à plusieurs organisations, il peut bien choisir l’organisation sur laquelle il veut travailler. Mais après sélection, l’interface affiche encore les données de l’ancienne organisation ou de la première organisation à laquelle l’utilisateur appartenait.
+
+En plus, même lorsque l’organisation sélectionnée est bien sur le pack Premium, certains modules restent inaccessibles, et il y a encore des icônes cadenas 🔐 à côté de certaines sections.
+
+Cela crée une incohérence importante entre :
+
+* l’organisation sélectionnée ;
+* les données affichées ;
+* le pack actif ;
+* les modules disponibles ;
+* les permissions du rôle ;
+* les modules verrouillés ou déverrouillés.
+
+⸻
+
+1. Corriger le problème de sélection d’organisation
+
+Quand un utilisateur choisit une organisation après connexion, toute l’application doit basculer complètement vers cette organisation.
+
+À vérifier
+
+* organization_id actif ;
+* tenant_id actif si utilisé ;
+* session utilisateur ;
+* token JWT ;
+* localStorage / sessionStorage ;
+* cache frontend ;
+* contexte global React / Zustand / Redux / Query Client ;
+* appels API ;
+* filtres backend ;
+* permissions chargées ;
+* modules actifs ;
+* abonnement actif ;
+* données du dashboard ;
+* menu latéral ;
+* rapports ;
+* notifications.
+
+Comportement attendu
+
+Si l’utilisateur choisit Organisation B, l’application doit afficher uniquement :
+
+* les clients de l’Organisation B ;
+* les factures de l’Organisation B ;
+* les collaborateurs de l’Organisation B ;
+* les projets de l’Organisation B ;
+* les rapports de l’Organisation B ;
+* les paramètres de l’Organisation B ;
+* l’abonnement de l’Organisation B ;
+* les modules actifs de l’Organisation B.
+
+Aucune donnée de l’Organisation A ou de la première organisation ne doit rester visible.
+
+⸻
+
+2. Forcer le rechargement du contexte après changement d’organisation
+
+Après sélection ou changement d’organisation, le système doit recharger proprement :
+
+* l’organisation active ;
+* le rôle de l’utilisateur dans cette organisation ;
+* les permissions propres à cette organisation ;
+* le plan d’abonnement actif ;
+* les modules inclus dans le plan ;
+* les modules activés dans les paramètres ;
+* les données du dashboard ;
+* les menus visibles ;
+* les rapports disponibles.
+
+Il faut vider ou invalider les caches liés à l’ancienne organisation avant d’afficher les nouvelles données.
+
+⸻
+
+3. Vérifier les appels API
+
+Tous les appels API doivent toujours être filtrés par l’organisation active.
+
+Chaque requête doit utiliser le bon :
+
+* organization_id ;
+* tenant_id si applicable ;
+* user_id ;
+* rôle actif ;
+* permissions actives.
+
+Il ne faut jamais que l’API retourne par défaut les données de la première organisation de l’utilisateur.
+
+À éviter
+
+* prendre automatiquement la première organisation de l’utilisateur ;
+* utiliser un organization_id stocké trop anciennement ;
+* utiliser un cache non réinitialisé ;
+* charger les permissions d’une autre organisation ;
+* afficher les données avant que le contexte actif soit complètement chargé.
+
+⸻
+
+4. Corriger le problème du pack Premium
+
+Si une organisation est sur le pack Premium, les modules inclus dans Premium doivent être automatiquement disponibles selon la configuration du pack.
+
+À vérifier
+
+* plan actif de l’organisation ;
+* modules inclus dans Premium ;
+* modules actifs dans les paramètres ;
+* permissions disponibles pour les rôles ;
+* menu latéral ;
+* accès aux pages ;
+* rapports ;
+* exports ;
+* dashboard ;
+* icônes cadenas.
+
+Si le pack Premium inclut certains modules, ils ne doivent pas rester verrouillés par erreur.
+
+⸻
+
+5. Clarifier la logique entre abonnement, modules actifs et permissions
+
+Merci de bien distinguer les 3 niveaux :
+
+Niveau 1 — Abonnement
+
+Le pack choisi définit les modules disponibles pour l’organisation.
+
+Exemple :
+
+* Starter : modules essentiels ;
+* Business : modules intermédiaires ;
+* Premium : modules complets ;
+* Offre personnalisée : modules configurés sur mesure.
+
+Niveau 2 — Modules actifs
+
+L’organisation peut activer ou désactiver certains modules disponibles dans son pack.
+
+Niveau 3 — Rôles & Permissions
+
+Les rôles définissent quels utilisateurs peuvent accéder aux modules actifs.
+
+Règle attendue
+
+Un module doit être accessible uniquement si :
+
+1. il est inclus dans le pack de l’organisation ;
+2. il est activé dans les modules actifs ;
+3. le rôle de l’utilisateur a la permission d’y accéder.
+
+Si ces trois conditions sont remplies, il ne doit pas y avoir de cadenas.
+
+⸻
+
+6. Revoir les icônes cadenas 🔐
+
+Les icônes cadenas ne doivent apparaître que dans des cas précis.
+
+Afficher le cadenas uniquement si :
+
+* le module n’est pas inclus dans le pack actuel ;
+* le module est réservé à une formule supérieure ;
+* le module est désactivé par l’administrateur ;
+* l’utilisateur n’a pas les permissions nécessaires.
+
+Ne pas afficher le cadenas si :
+
+* l’organisation est en Premium ;
+* le module est inclus dans Premium ;
+* le module est activé ;
+* le rôle de l’utilisateur a accès au module.
+
+Dans ce cas, le module doit être accessible normalement.
+
+⸻
+
+7. Ajouter un message explicatif quand un module est verrouillé
+
+Si un module reste verrouillé, il faut afficher une raison claire.
+
+Exemples :
+
+* Module non inclus dans votre formule actuelle
+* Module désactivé par l’administrateur
+* Votre rôle ne vous donne pas accès à ce module
+* Module disponible uniquement avec l’offre Premium
+* Module non activé pour cette organisation
+
+Cela permettra de comprendre si le blocage vient du pack, des modules actifs ou des permissions.
+
+⸻
+
+8. Corriger les permissions par organisation
+
+Un même utilisateur peut avoir des permissions différentes selon chaque organisation.
+
+Exemple
+
+Le même email peut être :
+
+* Admin dans Organisation A ;
+* Responsable Finance dans Organisation B ;
+* Lecture seule dans Organisation C.
+
+Quand il sélectionne une organisation, les permissions doivent être recalculées uniquement pour cette organisation.
+
+Il ne faut jamais utiliser les permissions d’une autre organisation.
+
+⸻
+
+9. Scénarios de test obligatoires
+
+Merci de tester les cas suivants :
+
+Scénario 1 — Même email, plusieurs organisations
+
+* utilisateur avec le même email ;
+* accès à 2 ou 3 organisations ;
+* sélection de l’Organisation B ;
+* vérifier que seules les données de B s’affichent.
+
+Scénario 2 — Changement d’organisation
+
+* utilisateur travaille dans Organisation A ;
+* il bascule vers Organisation B ;
+* toutes les données, menus, permissions et modules doivent changer immédiatement.
+
+Scénario 3 — Organisation Premium
+
+* organisation avec pack Premium ;
+* vérifier que tous les modules Premium sont disponibles ;
+* vérifier qu’aucun module Premium n’est verrouillé par erreur.
+
+Scénario 4 — Permissions différentes
+
+* même utilisateur Admin dans une organisation ;
+* même utilisateur Lecture seule dans une autre ;
+* vérifier que les menus et actions changent correctement.
+
+Scénario 5 — Modules verrouillés
+
+* vérifier chaque cadenas ;
+* identifier pourquoi il apparaît ;
+* retirer les cadenas incorrects ;
+* ajouter un message explicatif pour les vrais blocages.
+
+⸻
+
+10. Résultat attendu
+
+Je veux que la logique soit totalement cohérente :
+
+* le choix d’organisation doit vraiment changer le contexte actif ;
+* les données affichées doivent appartenir uniquement à l’organisation sélectionnée ;
+* le pack Premium doit débloquer les modules inclus ;
+* les cadenas doivent disparaître lorsqu’ils ne sont pas justifiés ;
+* les permissions doivent être recalculées par organisation ;
+* les modules actifs doivent être synchronisés avec le pack ;
+* l’interface doit être claire, réaliste et premium.
+
+Objectif final
+
+Corriger la logique multi-organisation et abonnement afin que Gameasu fonctionne comme un vrai ERP SaaS premium : un même utilisateur peut accéder à plusieurs organisations, choisir celle sur laquelle il travaille, voir uniquement les données de cette organisation, et bénéficier correctement des modules inclus dans son pack.

@@ -32,7 +32,7 @@ export type Organization = {
 };
 
 export type SubscriptionPlan = {
-  id: string; code: "STARTER" | "GROWTH" | "PROFESSIONAL" | "ENTERPRISE";
+  id: string; code: "STARTER" | "BUSINESS" | "PREMIUM" | "ENTERPRISE";
   name: string; tagline?: string; description?: string;
   monthlyPricePerSeat: number; annualPricePerSeat: number;
   setupFee: number; minimumSeats: number; includedSeats: number; maxSeats: number | null;

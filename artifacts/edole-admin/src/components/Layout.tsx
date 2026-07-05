@@ -211,7 +211,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const enabledKeys = useMemo(() => {
     const set = new Set<string>();
-    (modules ?? []).forEach((m) => { if (m.enabled) set.add(m.moduleKey); });
+    (modules ?? []).forEach((m) => { if (m.enabled || m.isCore) set.add(m.moduleKey); });
     return set;
   }, [modules]);
 
@@ -407,11 +407,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
                         const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                         const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
+                        const lockedMod = locked ? modules?.find(m => m.moduleKey === item.moduleKey) : null;
+                        const lockReason = locked
+                          ? lockedMod?.source === "manual"
+                            ? "Module désactivé par l'administrateur"
+                            : "Module non inclus dans votre formule actuelle"
+                          : undefined;
                         const href = item.path;
                         return (
                           <li key={item.path}>
                             <Link
                               href={href}
+                              title={lockReason}
                               className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
                                 active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
                               }`}
@@ -433,11 +440,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                             {isExp && sec.map((item) => {
                               const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                               const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
+                              const lockedMod = locked ? modules?.find(m => m.moduleKey === item.moduleKey) : null;
+                              const lockReason = locked
+                                ? lockedMod?.source === "manual"
+                                  ? "Module désactivé par l'administrateur"
+                                  : "Module non inclus dans votre formule actuelle"
+                                : undefined;
                               const href = item.path;
                               return (
                                 <li key={item.path}>
                                   <Link
                                     href={href}
+                                    title={lockReason}
                                     className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
                                       active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
                                     }`}

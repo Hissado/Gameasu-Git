@@ -20,14 +20,14 @@ router.get("/automation/catalog", async (_req, res) => {
 // Rules CRUD
 // ─────────────────────────────────────────────────────────────────
 router.get("/automation/rules", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const rows = await db.select().from(automationRulesTable).where(eq(automationRulesTable.organizationId, orgId)).orderBy(desc(automationRulesTable.createdAt));
   res.json(rows);
 });
 
 router.post("/automation/rules", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const userId = req.authUser?.id;
   const body = z.object({
@@ -44,7 +44,7 @@ router.post("/automation/rules", requireAdmin, async (req, res) => {
 });
 
 router.patch("/automation/rules/:id", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     name: z.string().min(1).optional(),
@@ -63,7 +63,7 @@ router.patch("/automation/rules/:id", requireAdmin, async (req, res) => {
 });
 
 router.delete("/automation/rules/:id", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const result = await db.delete(automationRulesTable)
     .where(and(eq(automationRulesTable.id, String(req.params["id"])), eq(automationRulesTable.organizationId, orgId)))
@@ -73,7 +73,7 @@ router.delete("/automation/rules/:id", requireAdmin, async (req, res) => {
 });
 
 router.post("/automation/rules/:id/run", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(403).json({ error: "Aucune organisation rattachée" });
   const [rule] = await db.select().from(automationRulesTable)
     .where(and(eq(automationRulesTable.id, String(req.params["id"])), eq(automationRulesTable.organizationId, orgId)));
@@ -86,7 +86,7 @@ router.post("/automation/rules/:id/run", requireAdmin, async (req, res) => {
 // Émission manuelle d'un événement (test ou intégration externe)
 // ─────────────────────────────────────────────────────────────────
 router.post("/automation/trigger", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const body = z.object({
     triggerType: z.string().min(1),
@@ -100,7 +100,7 @@ router.post("/automation/trigger", requireAdmin, async (req, res) => {
 // Logs
 // ─────────────────────────────────────────────────────────────────
 router.get("/automation/logs", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) { res.status(403).json({ error: "Aucune organisation rattachée" }); return; }
   const ruleId = req.query["ruleId"] as string | undefined;
   const conditions = [eq(automationLogsTable.organizationId, orgId)];

@@ -20,7 +20,13 @@ import { and, eq } from "drizzle-orm";
  * (Le seed SaaS rattache déjà tous les utilisateurs seedés à
  * l'organisation `gameasu-demo`.)
  */
-export async function getCurrentOrganizationId(userId: string): Promise<string | null> {
+/**
+ * Résout l'organisation courante dans l'ordre de priorité suivant :
+ *  1. activeOrgId fourni par le middleware requireAuth (session.activeOrgId) — source of truth multi-org
+ *  2. Première membership en DB (fallback hors-contexte request)
+ */
+export async function getCurrentOrganizationId(userId: string, activeOrgId?: string | null): Promise<string | null> {
+  if (activeOrgId) return activeOrgId;
   const member = await db.select({ orgId: organizationMembersTable.organizationId })
     .from(organizationMembersTable)
     .where(eq(organizationMembersTable.userId, userId))

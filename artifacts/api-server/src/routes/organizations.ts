@@ -8,14 +8,14 @@ import { requireAdmin } from "../middlewares/auth";
 const router: IRouter = Router();
 
 router.get("/organizations/current", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
   res.json(org);
 });
 
 router.patch("/organizations/current", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const patch = req.body ?? {};
   const allowed: Record<string, unknown> = {};
@@ -53,7 +53,7 @@ router.post("/organizations", requireAdmin, async (req, res) => {
 
 // Membres
 router.get("/organization-members", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.json([]);
   const rows = await db.select({
     member: organizationMembersTable,
@@ -77,7 +77,7 @@ router.get("/organization-members", async (req, res) => {
 });
 
 router.patch("/organization-members/:id", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   const { role } = req.body ?? {};
   if (!role) return res.status(400).json({ error: "role requis" });
   const [m] = await db.update(organizationMembersTable)
@@ -89,7 +89,7 @@ router.patch("/organization-members/:id", requireAdmin, async (req, res) => {
 });
 
 router.delete("/organization-members/:id", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   await db.delete(organizationMembersTable)
     .where(and(eq(organizationMembersTable.id, (req.params.id as string)), eq(organizationMembersTable.organizationId, orgId!)));
   res.status(204).end();

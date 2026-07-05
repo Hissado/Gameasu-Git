@@ -1221,11 +1221,11 @@ export default function BillingPage() {
         body: JSON.stringify({ planCode: code }),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["subscriptions-current"] });
-      qc.invalidateQueries({ queryKey: ["billing-summary"] });
-      qc.invalidateQueries({ queryKey: ["billing-usage"] });
-      qc.invalidateQueries({ queryKey: ["organization-modules"] });
-      qc.invalidateQueries({ queryKey: ["plan-change-preview"] });
+      // Clés exactes issues de saas.ts
+      qc.invalidateQueries({ queryKey: ["subscription"] });
+      qc.invalidateQueries({ queryKey: ["billing"] });
+      qc.invalidateQueries({ queryKey: ["org-modules"] });
+      qc.invalidateQueries({ queryKey: ["workspace-settings"] });
       setPlanChangeTarget(null);
       sonnerToast.success("Formule mise à jour avec succès !");
     },

@@ -49,7 +49,7 @@ router.get("/subscription-plans/:code", async (req, res) => {
 
 // ── Abonnement courant
 router.get("/subscriptions/current", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const current = await getCurrentSubscription(orgId);
   if (!current) return res.status(404).json({ error: "Aucun abonnement actif" });
@@ -60,7 +60,7 @@ router.get("/subscriptions/current", async (req, res) => {
 });
 
 router.patch("/subscriptions/current", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const patch = req.body ?? {};
   const allowed: Record<string, unknown> = {};
@@ -79,7 +79,7 @@ router.patch("/subscriptions/current", requireAdmin, async (req, res) => {
 
 // ── Prévisualisation d'un changement de plan (sans effet)
 router.get("/subscriptions/change-plan/preview", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
 
   const targetCode = String((req.query as Record<string, string>).to ?? "").toUpperCase();
@@ -138,7 +138,7 @@ router.get("/subscriptions/change-plan/preview", requireAdmin, async (req, res) 
 });
 
 router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const { planCode } = req.body ?? {};
   if (!planCode) return res.status(400).json({ error: "planCode requis" });
@@ -267,7 +267,7 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
 });
 
 router.post("/subscriptions/change-billing-cycle", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const { cycle } = req.body ?? {};
   if (cycle !== "monthly" && cycle !== "annual") {
@@ -298,24 +298,38 @@ router.post("/subscriptions/change-billing-cycle", requireAdmin, async (req, res
 
 // ── Modules
 router.get("/organization-modules", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.json([]);
 
-  const [orgMods, catalog] = await Promise.all([
+  const [orgMods, catalog, currentSub] = await Promise.all([
     db.select().from(organizationModulesTable)
       .where(eq(organizationModulesTable.organizationId, orgId)),
     db.select().from(moduleCatalogTable).orderBy(moduleCatalogTable.sortOrder),
+    getCurrentSubscription(orgId),
   ]);
+
+  // ── Auto-sync : si le plan actif inclut des modules pas encore en DB, les insérer
+  const planIncluded = new Set<string>(currentSub?.plan.includedModules ?? []);
+  const existingKeys = new Set(orgMods.map((m) => m.moduleKey));
+  const toInsert = [...planIncluded].filter((k) => !existingKeys.has(k));
+  if (toInsert.length > 0) {
+    const inserted = await db.insert(organizationModulesTable).values(
+      toInsert.map((k) => ({ organizationId: orgId, moduleKey: k, enabled: true, source: "plan" as const })),
+    ).returning();
+    orgMods.push(...inserted);
+  }
 
   const orgModMap = new Map(orgMods.map((m) => [m.moduleKey, m]));
 
   const result = catalog.map((cat) => {
     const orgMod = orgModMap.get(cat.key);
+    // Un module inclus dans le plan actif est activé par défaut si aucune ligne DB ne le désactive manuellement
+    const enabledByPlan = planIncluded.has(cat.key);
     return {
       id: orgMod?.id ?? cat.id,
       organizationId: orgId,
       moduleKey: cat.key,
-      enabled: orgMod?.enabled ?? false,
+      enabled: orgMod?.enabled ?? enabledByPlan,
       source: (orgMod?.source ?? "plan") as "plan" | "addon" | "manual",
       name: cat.name,
       description: cat.description ?? null,
@@ -330,7 +344,7 @@ router.get("/organization-modules", async (req, res) => {
 });
 
 router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const { enabled } = req.body ?? {};
   const moduleKey = (req.params.moduleKey as string);
@@ -353,7 +367,7 @@ router.patch("/organization-modules/:moduleKey/toggle", requireAdmin, async (req
 
 // ── Billing
 router.get("/billing/summary", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const current = await getCurrentSubscription(orgId);
   const events = await db.select().from(billingEventsTable)
@@ -387,7 +401,7 @@ router.get("/billing/summary", async (req, res) => {
 });
 
 router.get("/billing/events", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.json([]);
   const rows = await db.select().from(billingEventsTable)
     .where(eq(billingEventsTable.organizationId, orgId))
@@ -396,7 +410,7 @@ router.get("/billing/events", async (req, res) => {
 });
 
 router.get("/billing/usage", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const current = await getCurrentSubscription(orgId);
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
@@ -421,7 +435,7 @@ router.get("/billing/usage", async (req, res) => {
 
 // ── Workspace settings (alias dédié)
 router.get("/workspace-settings", async (req, res) => {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const [org] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
   const sub = await getCurrentSubscription(orgId);
@@ -437,7 +451,7 @@ const SETTINGS_FIELDS: Record<"general" | "branding" | "preferences", string[]> 
 };
 
 async function patchSettings(req: import("express").Request, res: import("express").Response, group: "general" | "branding" | "preferences") {
-  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
   const patch = req.body ?? {};
   const allowed: Record<string, unknown> = {};
