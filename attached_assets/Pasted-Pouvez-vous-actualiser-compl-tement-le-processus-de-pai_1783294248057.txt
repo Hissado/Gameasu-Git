@@ -1,0 +1,511 @@
+Pouvez-vous actualiser complètement le processus de paiement des packs Gameasu afin qu’il fonctionne comme un lien de paiement / parcours de checkout synchronisé entre le site web, l’ERP, le Cockpit et le prestataire de paiement tiers que nous utiliserons au besoin ?
+
+Objectif principal
+
+Quand un prospect ou client clique sur un bouton du site web, par exemple :
+
+* Commencer avec Starter
+* Choisir Business
+* Passer à Premium
+* Demander une offre personnalisée
+
+il doit être redirigé vers un parcours de paiement cohérent, sécurisé et synchronisé avec tout l’écosystème Gameasu.
+
+Tout doit être synchronisé entre :
+
+* le site web Gameasu ;
+* le simulateur de prix ;
+* l’ERP Gameasu ;
+* le module Abonnement & Facturation ;
+* le Cockpit Gameasu ;
+* le prestataire de paiement tiers si utilisé ;
+* les emails de confirmation ;
+* les notifications ;
+* l’historique des paiements ;
+* l’activation du pack.
+
+Le lien ou parcours de paiement doit automatiquement récupérer :
+
+* le pack choisi ;
+* le nombre d’utilisateurs ;
+* la périodicité ;
+* le montant calculé ;
+* la devise ;
+* le mode TTC / HT ;
+* la TVA ;
+* le code promo ou code partenaire si applicable ;
+* l’organisation concernée ;
+* la source du client.
+
+⸻
+
+1. Parcours depuis le site web
+
+Lorsqu’un client clique sur une offre depuis le site web :
+
+Exemple
+
+Commencer avec Starter
+
+Le système doit ouvrir un parcours de paiement prérempli avec :
+
+* Pack : Starter
+* Prix par utilisateur
+* Nombre d’utilisateurs sélectionnés
+* Périodicité choisie
+* Montant total
+* Devise
+* TVA
+* Réduction éventuelle
+* Code promo / partenaire si renseigné
+* Bouton de paiement ou déclaration
+
+Le client ne doit pas recommencer tout le processus à zéro.
+
+⸻
+
+2. Étape 1 — Choix du pack
+
+Le client choisit ou confirme son pack :
+
+* Starter
+* Business
+* Premium
+* Offre personnalisée
+
+Le système calcule automatiquement :
+
+* prix par utilisateur ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* remise éventuelle ;
+* TVA ;
+* total HT ;
+* total TTC ;
+* montant final à payer.
+
+⸻
+
+3. Étape 2 — Code promo ou code partenaire
+
+Ajouter un champ :
+
+Code promo / Code partenaire
+
+Ce champ doit permettre d’identifier l’origine du client.
+
+Exemples :
+
+* ministère ;
+* partenaire commercial ;
+* cabinet partenaire ;
+* campagne marketing ;
+* programme spécial ;
+* client référent ;
+* consultant ;
+* formateur ;
+* intégrateur.
+
+Le code doit être vérifié côté backend pour éviter toute manipulation.
+
+Si le code est valide :
+
+* appliquer la réduction si applicable ;
+* associer le client au partenaire ou programme ;
+* enregistrer l’utilisation du code ;
+* synchroniser l’information dans l’ERP et le Cockpit.
+
+Si le code est invalide :
+
+Code invalide ou expiré. Vous pouvez continuer sans code ou vérifier auprès de votre partenaire.
+
+⸻
+
+4. Étape 3 — Choix du moyen de paiement
+
+Ajouter les moyens de paiement suivants :
+
+Moyens de paiement à intégrer
+
+* Carte bancaire
+* Mobile Money
+* Virement bancaire
+* Chèque
+* Dépôt en espèces sur le compte bancaire
+* Dépôt en espèces chez nous au bureau
+
+⸻
+
+5. Paiement par carte bancaire
+
+Pour le paiement par carte :
+
+* rediriger vers le prestataire de paiement sécurisé ;
+* ne jamais stocker les informations de carte dans Gameasu ;
+* recevoir la confirmation via webhook sécurisé ;
+* activer automatiquement le pack si le paiement est validé ;
+* générer un reçu ;
+* notifier le client ;
+* notifier le Cockpit.
+
+Statut recommandé :
+
+Validé automatiquement
+
+⸻
+
+6. Paiement par Mobile Money
+
+Pour Mobile Money, prévoir :
+
+* Mix
+* Flooz
+* autres opérateurs configurables si nécessaire
+
+Remplacer toute mention de T-Money par Mix.
+
+Processus attendu :
+
+1. Le client choisit Mix ou Flooz.
+2. Il saisit son numéro de téléphone.
+3. Il confirme le paiement via l’opérateur ou le prestataire de paiement.
+4. Le système reçoit la confirmation.
+5. Le pack est activé automatiquement.
+6. Le reçu est généré.
+7. Le client reçoit une confirmation.
+
+Statut recommandé :
+
+Validé automatiquement
+
+⸻
+
+7. Paiement par virement bancaire
+
+Si le client choisit virement bancaire, afficher les coordonnées bancaires de Gameasu :
+
+* nom de la banque ;
+* nom du titulaire du compte ;
+* numéro de compte ;
+* IBAN si applicable ;
+* BIC / SWIFT si applicable ;
+* référence de paiement à indiquer ;
+* bouton Copier les coordonnées bancaires.
+
+Le client devra ensuite déclarer le paiement dans la plateforme.
+
+⸻
+
+8. Dépôt en espèces sur le compte bancaire
+
+Si le client choisit dépôt en espèces sur le compte bancaire, afficher :
+
+* les coordonnées bancaires ;
+* la référence à indiquer ;
+* les instructions de dépôt ;
+* le montant exact à déposer ;
+* la nécessité de conserver le bordereau.
+
+Le client devra ensuite soumettre le justificatif dans Gameasu.
+
+⸻
+
+9. Dépôt en espèces chez nous au bureau
+
+Ajouter une option :
+
+Dépôt en espèces au bureau Gameasu
+
+Dans ce cas, afficher :
+
+* adresse du bureau ;
+* horaires disponibles ;
+* montant à régler ;
+* référence client ;
+* instruction de demander un reçu ;
+* message indiquant que l’abonnement sera activé après validation interne.
+
+Ce paiement doit être validé manuellement dans le Cockpit par un utilisateur autorisé.
+
+⸻
+
+10. Paiement par chèque
+
+Ajouter une option :
+
+Paiement par chèque
+
+Afficher :
+
+* ordre du chèque ;
+* montant exact ;
+* référence client à mentionner ;
+* adresse de dépôt ou d’envoi ;
+* délai de vérification ;
+* statut en attente jusqu’à confirmation.
+
+Le pack ne doit être activé qu’après validation du chèque dans le Cockpit.
+
+⸻
+
+11. Déclaration de paiement manuel
+
+Pour les paiements non automatiques :
+
+* virement bancaire ;
+* dépôt en espèces sur compte ;
+* dépôt en espèces au bureau ;
+* chèque ;
+
+créer un formulaire :
+
+Déclarer un paiement
+
+Champs à prévoir :
+
+* raison sociale du client ;
+* pack souscrit ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* montant attendu ;
+* montant réglé ;
+* moyen de paiement ;
+* référence du paiement ;
+* date du paiement ;
+* période couverte ;
+* code promo ou partenaire utilisé ;
+* justificatif de paiement ;
+* commentaire éventuel.
+
+Formats acceptés :
+
+* PDF ;
+* JPG ;
+* PNG.
+
+Le justificatif doit être obligatoire pour les virements, dépôts bancaires et chèques.
+
+⸻
+
+12. Vérification et activation dans le Cockpit
+
+Toutes les déclarations de paiement manuel doivent apparaître dans le Cockpit.
+
+Statuts à prévoir
+
+* En attente de vérification
+* Confirmé
+* Rejeté
+* Validé automatiquement
+* Annulé
+* Expiré
+
+Actions Cockpit
+
+L’équipe Gameasu doit pouvoir :
+
+* consulter le paiement ;
+* vérifier le justificatif ;
+* confirmer le paiement ;
+* rejeter le paiement ;
+* ajouter un motif de rejet ;
+* télécharger le justificatif ;
+* voir le code partenaire utilisé ;
+* associer le paiement à un partenaire ;
+* activer l’abonnement ;
+* suspendre l’abonnement ;
+* générer un reçu ;
+* notifier le client.
+
+⸻
+
+13. Synchronisation avec l’ERP
+
+Dans l’ERP, le module Abonnement & Facturation doit afficher :
+
+* pack actif ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* montant payé ;
+* moyen de paiement ;
+* statut du paiement ;
+* code promo ou partenaire utilisé ;
+* source du client ;
+* historique des paiements ;
+* reçus téléchargeables ;
+* prochaine date de renouvellement ;
+* factures générées ;
+* statut d’activation du pack.
+
+⸻
+
+14. Synchronisation avec le site web et le simulateur
+
+Les prix affichés sur le site web doivent être identiques à ceux utilisés dans :
+
+* le checkout ;
+* l’ERP ;
+* le Cockpit ;
+* les factures ;
+* les reçus ;
+* les emails ;
+* les rapports.
+
+Aucun prix ne doit être hardcodé séparément sur le site.
+
+Les offres, prix, remises, devises, TVA, modules inclus et CTA doivent venir d’une source centralisée ou d’une configuration synchronisée.
+
+⸻
+
+15. Synchronisation avec le prestataire de paiement tiers
+
+Si un prestataire de paiement tiers est utilisé, prévoir :
+
+* création sécurisée de la session de paiement ;
+* redirection ou iframe sécurisé ;
+* webhook de confirmation ;
+* vérification backend du montant ;
+* vérification du pack ;
+* vérification de la devise ;
+* vérification de la référence client ;
+* activation automatique uniquement après confirmation officielle ;
+* journalisation de tous les événements.
+
+Ne jamais activer un abonnement uniquement sur la base d’un retour frontend.
+
+⸻
+
+16. Option “Devenir partenaire Gameasu”
+
+Ajouter une option pour les clients existants :
+
+Devenir partenaire Gameasu
+
+Cette option peut être disponible dans :
+
+* Abonnement & Facturation ;
+* Profil organisation ;
+* menu utilisateur ;
+* Cockpit client ;
+* site web ;
+* footer ;
+* section Partenariat.
+
+Objectif
+
+Permettre aux clients, consultants, cabinets, formateurs, intégrateurs ou organisations partenaires de recommander Gameasu et d’obtenir un code partenaire.
+
+Formulaire à prévoir
+
+* nom de l’organisation ;
+* nom du contact ;
+* email ;
+* téléphone ;
+* type de partenariat souhaité ;
+* pays / ville ;
+* secteur d’activité ;
+* nombre estimé de clients à recommander ;
+* motivation ;
+* site web ou réseau social ;
+* acceptation des conditions partenaires.
+
+⸻
+
+17. Validation sécurisée des partenaires
+
+La création d’un partenaire ne doit pas être automatique.
+
+Workflow recommandé
+
+1. Le client soumet une demande pour devenir partenaire.
+2. La demande apparaît dans le Cockpit.
+3. L’équipe Gameasu analyse la demande.
+4. L’équipe approuve ou rejette la demande.
+5. Si approuvé, un code partenaire unique est généré.
+6. Le partenaire reçoit son code par email.
+7. Les clients générés par ce code sont suivis dans le Cockpit.
+
+Statuts partenaire
+
+* Demande reçue
+* En analyse
+* Approuvé
+* Rejeté
+* Suspendu
+* Actif
+
+⸻
+
+18. Sécurité obligatoire
+
+Comme il s’agit de paiement, la sécurité doit être prioritaire.
+
+Règles importantes
+
+* ne jamais appliquer une réduction uniquement côté frontend ;
+* vérifier les codes promo côté backend ;
+* vérifier les montants côté backend ;
+* empêcher les montants modifiés manuellement ;
+* protéger les justificatifs téléchargés ;
+* limiter les formats de fichiers acceptés ;
+* journaliser chaque tentative de paiement ;
+* journaliser chaque utilisation de code ;
+* vérifier les webhooks du prestataire de paiement ;
+* empêcher les doublons de paiement ;
+* empêcher l’activation sans paiement confirmé ;
+* protéger les informations bancaires ;
+* ajouter des permissions pour la validation des paiements ;
+* garder un audit trail complet.
+
+⸻
+
+19. Notifications et emails
+
+Prévoir des notifications automatiques.
+
+Au client
+
+* paiement par carte confirmé ;
+* paiement Mobile Money confirmé ;
+* déclaration bancaire soumise ;
+* paiement confirmé ;
+* paiement rejeté avec motif ;
+* abonnement activé ;
+* reçu disponible ;
+* code promo appliqué ;
+* demande de partenariat reçue ;
+* demande de partenariat approuvée ou rejetée.
+
+À l’équipe Gameasu
+
+* nouveau paiement par carte ;
+* nouveau paiement Mobile Money ;
+* nouvelle déclaration bancaire ;
+* nouveau dépôt en espèces déclaré ;
+* nouveau chèque déclaré ;
+* nouveau code partenaire utilisé ;
+* nouveau client via ministère ou partenaire ;
+* nouvelle demande de partenariat ;
+* paiement à vérifier ;
+* abonnement activé.
+
+⸻
+
+20. Résultat attendu
+
+Je veux un système de paiement Gameasu complet, sécurisé et synchronisé, permettant :
+
+* de partir du site web vers un lien/parcours de paiement ;
+* de conserver le pack choisi depuis le site ;
+* de gérer carte bancaire, Mobile Money, virement, chèque, dépôt bancaire et dépôt au bureau ;
+* d’utiliser Mix au lieu de T-Money ;
+* d’appliquer un code promo ou partenaire ;
+* de suivre les clients venant du ministère ou d’un partenaire ;
+* de synchroniser le site web, l’ERP, le Cockpit et le prestataire de paiement ;
+* d’activer automatiquement ou manuellement les abonnements selon le mode de paiement ;
+* de créer une option “Devenir partenaire Gameasu” ;
+* de sécuriser toute la logique de paiement.
+
+Objectif final
+
+Créer une expérience de paiement Gameasu premium, fiable, traçable et sécurisée, connectée au site web, à l’ERP, au Cockpit et au prestataire de paiement, afin que chaque abonnement, paiement, code partenaire et activation de pack soit parfaitement synchronisé.
