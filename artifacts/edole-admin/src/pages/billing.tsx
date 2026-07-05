@@ -1274,7 +1274,6 @@ export default function BillingPage() {
     <div className="space-y-8">
       {/* Header */}
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">{BRANDING.appName}</p>
         <h1 className="text-3xl font-bold tracking-tight">Abonnement & facturation</h1>
         <p className="text-muted-foreground mt-1">
           Gérez votre formule, vos paiements et consultez l'historique de votre espace de travail.
