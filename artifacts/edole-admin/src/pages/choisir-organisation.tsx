@@ -139,11 +139,6 @@ export default function ChoisirOrganisationPage() {
                     <span className="inline-block mt-0.5 text-[10.5px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">
                       {roleLabel(org.role)}
                     </span>
-                    {org.isPrimary && (
-                      <span className="ml-1.5 inline-block mt-0.5 text-[10.5px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                        Principal
-                      </span>
-                    )}
                   </div>
 
                   <div className="shrink-0">
