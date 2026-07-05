@@ -187,10 +187,11 @@ function InviteDialog({ roles, departments, onClose, onDone }: { roles: Role[]; 
       projectIds: Array.from(projectIds),
     } as any }),
     onSuccess: (r) => {
-      setResult(r);
       onDone();
       const isExisting = (r as any).method === "existing_user_added_to_org";
       toast({ title: isExisting ? "Utilisateur ajouté à l'organisation" : "Invitation envoyée" });
+      if (isExisting) { onClose(); return; }
+      setResult(r);
     },
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error, variant: "destructive" }),
   });
