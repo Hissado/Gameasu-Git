@@ -360,8 +360,12 @@ export const ACCESS_LABEL: Record<string, string> = {
 };
 
 export const PLAN_COLOR: Record<string, string> = {
-  STARTER:      "bg-slate-100 text-slate-600",
+  // Plans actuels
+  STARTER:    "bg-slate-100 text-slate-600",
+  BUSINESS:   "bg-blue-50 text-blue-700",
+  PREMIUM:    "bg-purple-50 text-purple-700",
+  ENTERPRISE: "bg-amber-50 text-amber-700",
+  // Alias anciens codes (rétrocompatibilité)
   GROWTH:       "bg-blue-50 text-blue-700",
   PROFESSIONAL: "bg-purple-50 text-purple-700",
-  ENTERPRISE:   "bg-amber-50 text-amber-700",
 };

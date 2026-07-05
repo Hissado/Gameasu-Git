@@ -342,7 +342,9 @@ export function buildExpertFirmInvitationEmail(opts: {
   acceptUrl: string;
 }): EmailMessage {
   const planLabel: Record<string, string> = {
-    starter: "Starter", growth: "Growth", professional: "Professional", enterprise: "Enterprise",
+    starter: "Starter", business: "Business", premium: "Premium", enterprise: "Personnalisée",
+    // Alias anciens codes
+    growth: "Business", professional: "Premium",
   };
   return {
     to: "",
@@ -411,7 +413,9 @@ export function buildPlanChangeEmail(opts: {
   changedByUserName: string;
 }): EmailMessage {
   const planColorMap: Record<string, string> = {
-    STARTER: "#64748b", GROWTH: "#7c3aed", PROFESSIONAL: "#6d28d9", ENTERPRISE: "#1d4ed8",
+    STARTER: "#64748b", BUSINESS: "#0369a1", PREMIUM: "#7c3aed", ENTERPRISE: "#1d4ed8",
+    // Alias anciens codes
+    GROWTH: "#0369a1", PROFESSIONAL: "#7c3aed",
   };
   const accent = planColorMap[opts.newPlanCode.toUpperCase()] ?? "#F37021";
   const moduleList = opts.includedModules.length

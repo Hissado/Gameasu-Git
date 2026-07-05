@@ -166,7 +166,7 @@ La navigation se fait via la barre latérale gauche, organisée en groupes :
 ## ADMINISTRATION
 - **Console admin** (/admin) : Gestion des utilisateurs, rôles, permissions
 - **Automatisations** (/automations) : Règles d'automatisation — déclencheurs, conditions, actions
-- **Abonnement & facturation** (/billing) : Plans (Starter/Growth/Professional/Enterprise), modules activés, historique de facturation
+- **Abonnement & facturation** (/billing) : Plans (Starter 4 000 FCFA/Business 7 000 FCFA/Premium 10 000 FCFA TTC/util/mois — Personnalisée sur devis), remises périodicité (−10 %/−15 %/−20 %), modules activés, historique de facturation
 - **Paramètres de l'espace** (/workspace-settings) : Configuration de l'organisation, logo, devise, fuseau horaire
 - **Support** (/tickets) : Tickets de support et demandes d'aide
 

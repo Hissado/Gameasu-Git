@@ -29,10 +29,14 @@ const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ 
 };
 
 const PLAN_COLORS: Record<string, string> = {
-  starter:      "bg-gray-100 text-gray-700",
+  // Plans actuels
+  starter:    "bg-gray-100 text-gray-700",
+  business:   "bg-blue-100 text-blue-700",
+  premium:    "bg-purple-100 text-purple-700",
+  enterprise: "bg-amber-100 text-amber-700",
+  // Alias anciens codes (rétrocompatibilité)
   growth:       "bg-blue-100 text-blue-700",
   professional: "bg-purple-100 text-purple-700",
-  enterprise:   "bg-amber-100 text-amber-700",
 };
 
 function fmtFCFA(n: number) {

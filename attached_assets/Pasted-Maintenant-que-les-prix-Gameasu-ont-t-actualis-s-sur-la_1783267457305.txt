@@ -1,0 +1,242 @@
+Maintenant que les prix Gameasu ont été actualisés sur la page Tarifs, pouvez-vous mettre à jour et synchroniser ces mêmes prix dans toute l’application, notamment dans le module Abonnement de l’ERP et dans le Cockpit Plateforme ?
+
+Objectif
+
+Je veux que les nouveaux tarifs soient cohérents partout : site web, ERP, Cockpit, abonnement, facturation, simulateur de prix, offres, plans, paiements et affichages internes.
+
+Il ne doit plus y avoir d’anciens prix ou d’anciennes formules affichés dans une partie de l’application.
+
+⸻
+
+1. Mettre à jour les prix dans le module Abonnement de l’ERP
+
+Dans l’ERP, section Abonnement, merci de mettre à jour les offres avec les nouveaux tarifs :
+
+* Starter
+* Business
+* Premium
+* Offre personnalisée
+
+Les informations doivent être cohérentes avec la page Tarifs du site web.
+
+À vérifier :
+
+* prix par utilisateur / collaborateur ;
+* prix mensuel ;
+* prix trimestriel ;
+* prix semestriel ;
+* prix annuel ;
+* remises appliquées ;
+* devise ;
+* affichage TTC / HT ;
+* TVA ;
+* modules inclus ;
+* limites éventuelles ;
+* CTA ;
+* changement de formule ;
+* upgrade / downgrade ;
+* prorata en cas de changement d’offre.
+
+⸻
+
+2. Mettre à jour les prix dans le Cockpit Plateforme
+
+Dans le Cockpit Gameasu, mettre à jour toutes les données liées aux abonnements :
+
+* plans disponibles ;
+* prix des formules ;
+* modules inclus par formule ;
+* remises par périodicité ;
+* TVA ;
+* devise ;
+* statut des abonnements ;
+* gestion des clients abonnés ;
+* facturation ;
+* historique des paiements ;
+* renouvellements ;
+* offres personnalisées ;
+* configuration des plans.
+
+Le Cockpit doit devenir la source de pilotage centralisée des offres et abonnements.
+
+⸻
+
+3. Synchroniser les prix partout
+
+Les nouveaux prix doivent être synchronisés dans toutes les sections concernées :
+
+* site web Gameasu ;
+* page Tarifs ;
+* simulateur de prix ;
+* application ERP ;
+* module Abonnement ;
+* Cockpit Plateforme ;
+* factures d’abonnement ;
+* emails de confirmation ;
+* emails de renouvellement ;
+* devis commerciaux ;
+* reçus de paiement ;
+* tableaux de bord d’abonnement ;
+* rapports financiers ;
+* exports PDF / Excel ;
+* données seedées ;
+* données demo ;
+* base de données.
+
+⸻
+
+4. Centraliser la configuration des tarifs
+
+Merci d’éviter d’avoir les prix hardcodés dans plusieurs fichiers différents.
+
+Créer ou utiliser une configuration centralisée pour les offres :
+
+* nom de l’offre ;
+* description ;
+* prix par utilisateur ;
+* devise ;
+* TVA ;
+* prix HT ;
+* prix TTC ;
+* périodicités ;
+* remises ;
+* modules inclus ;
+* limites ;
+* statut actif / inactif ;
+* ordre d’affichage ;
+* CTA ;
+* options personnalisées.
+
+Objectif : si un prix change plus tard, il doit pouvoir être mis à jour à un seul endroit et se répercuter partout.
+
+⸻
+
+5. Vérifier les calculs
+
+Tous les calculs doivent être cohérents entre le site, l’ERP et le Cockpit.
+
+À vérifier :
+
+* calcul mensuel ;
+* calcul trimestriel ;
+* calcul semestriel ;
+* calcul annuel ;
+* réduction appliquée ;
+* montant HT ;
+* montant TVA ;
+* montant TTC ;
+* nombre d’utilisateurs ;
+* total à payer ;
+* prorata en cas de changement de formule ;
+* affichage dans les factures ;
+* affichage dans les rapports.
+
+Aucun écart ne doit exister entre le simulateur de prix public et le module Abonnement interne.
+
+⸻
+
+6. Mettre à jour les modules inclus
+
+Vérifier que les modules inclus par formule soient également synchronisés :
+
+Starter
+
+Afficher les modules réellement inclus dans l’offre Starter.
+
+Business
+
+Afficher les modules Business, incluant tous les modules Starter.
+
+Premium
+
+Afficher les modules Premium, incluant tous les modules Business.
+
+Offre personnalisée
+
+Afficher “Sur devis” avec les options sur mesure.
+
+Les modules visibles dans les cartes tarifaires doivent être cohérents avec :
+
+* le site web ;
+* le simulateur ;
+* l’ERP ;
+* le module Abonnement ;
+* les permissions ;
+* les modules actifs ;
+* le Cockpit.
+
+⸻
+
+7. Mettre à jour les emails et documents
+
+Vérifier aussi les emails et documents générés automatiquement :
+
+* email de confirmation d’abonnement ;
+* email de changement de formule ;
+* email de renouvellement ;
+* email de paiement réussi ;
+* facture d’abonnement ;
+* reçu de paiement ;
+* devis ;
+* PDF d’offre ;
+* export Excel ;
+* notification interne Cockpit.
+
+Tous doivent afficher les nouveaux prix.
+
+⸻
+
+8. Migration des anciennes données
+
+S’il existe déjà d’anciens plans ou anciens prix dans la base de données, prévoir une migration propre.
+
+À faire :
+
+* identifier les anciens tarifs ;
+* mettre à jour les plans existants ;
+* éviter les doublons ;
+* conserver l’historique des anciens abonnements si nécessaire ;
+* ne pas casser les abonnements actifs ;
+* appliquer les nouveaux prix uniquement selon la logique prévue ;
+* documenter les changements.
+
+⸻
+
+9. Tests à effectuer
+
+Merci de tester les scénarios suivants :
+
+* un nouveau client choisit Starter ;
+* un nouveau client choisit Business ;
+* un nouveau client choisit Premium ;
+* un client demande une offre personnalisée ;
+* un client change de Starter à Business ;
+* un client change de Business à Premium ;
+* un client change de périodicité ;
+* un client ajoute des utilisateurs ;
+* un client réduit le nombre d’utilisateurs ;
+* une facture est générée ;
+* un paiement est enregistré ;
+* le Cockpit affiche les bons montants ;
+* l’ERP affiche les bons montants ;
+* le site affiche les bons montants.
+
+⸻
+
+10. Résultat attendu
+
+Je veux que les nouveaux prix Gameasu soient parfaitement synchronisés partout :
+
+* page Tarifs ;
+* simulateur de prix ;
+* ERP ;
+* module Abonnement ;
+* Cockpit ;
+* facturation ;
+* emails ;
+* rapports ;
+* base de données.
+
+Objectif final
+
+Avoir une seule logique tarifaire fiable, centralisée et cohérente dans tout l’écosystème Gameasu, afin que les prix affichés au client, les prix utilisés dans l’abonnement et les prix gérés dans le Cockpit soient toujours identiques.

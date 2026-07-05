@@ -2,10 +2,18 @@
  * Seed SaaS Gameasu — crée/maintient :
  *  - organisation par défaut (où vivent les données métier existantes)
  *  - catalogue des modules
- *  - 4 plans (Starter / Growth / Professional / Enterprise) + features
- *  - abonnement courant (Professional, mensuel) pour l'organisation par défaut
+ *  - 4 plans (Starter / Business / Premium / Personnalisée) + features
+ *  - abonnement courant (Premium, mensuel) pour l'organisation par défaut
  *  - modules activés selon le plan
  *  - quelques évènements de facturation de démo
+ *
+ * TARIFICATION (TTC, TVA 18 % incluse) :
+ *   Starter      → 4 000 FCFA / util / mois  (7 modules)
+ *   Business     → 7 000 FCFA / util / mois  (15 modules)  ★ Populaire
+ *   Premium      → 10 000 FCFA / util / mois (24 modules)  ✦ Complet
+ *   Personnalisée (Enterprise) → Sur devis
+ *
+ * Remises périodicité : Trimestriel −10 %, Semestriel −15 %, Annuel −20 %.
  *
  * Idempotent : peut être ré-exécuté sans dupliquer.
  */
@@ -25,133 +33,140 @@ import {
 
 type ModuleSeed = { key: string; name: string; category: string; sortOrder: number; isCore?: boolean; icon: string };
 const MODULES: ModuleSeed[] = [
-  { key: "dashboard", name: "Tableau de bord", category: "core", sortOrder: 10, isCore: true, icon: "LayoutDashboard" },
-  { key: "clients", name: "Clients", category: "core", sortOrder: 20, isCore: true, icon: "Building2" },
-  { key: "services", name: "Services", category: "core", sortOrder: 30, isCore: true, icon: "Briefcase" },
-  { key: "projects", name: "Projets", category: "core", sortOrder: 40, isCore: true, icon: "FolderKanban" },
-  { key: "tasks", name: "Tâches", category: "core", sortOrder: 50, isCore: true, icon: "CheckSquare" },
-  { key: "sales_crm", name: "Ventes & Relation client", category: "business", sortOrder: 60, icon: "Target" },
-  { key: "accounting", name: "Comptabilité", category: "business", sortOrder: 70, icon: "Calculator" },
-  { key: "purchases", name: "Achats & Fournisseurs", category: "business", sortOrder: 75, icon: "ShoppingCart" },
-  { key: "financial_planning", name: "Planification financière", category: "business", sortOrder: 80, icon: "TrendingUp" },
-  { key: "operations", name: "Opérations", category: "business", sortOrder: 90, icon: "Truck" },
-  { key: "inventory_assets", name: "Parc & équipements", category: "business", sortOrder: 100, icon: "Wrench" },
-  { key: "inventory_products", name: "Produits & Stock", category: "business", sortOrder: 105, icon: "Package" },
-  { key: "rentals", name: "Locations", category: "business", sortOrder: 110, icon: "Truck" },
-  { key: "documents", name: "Documents", category: "core", sortOrder: 120, isCore: true, icon: "FolderOpen" },
-  { key: "team_hr", name: "Équipe & RH", category: "business", sortOrder: 130, icon: "UsersRound" },
-  { key: "communications", name: "Communications", category: "business", sortOrder: 140, icon: "MessageSquare" },
-  { key: "reports", name: "Rapports", category: "business", sortOrder: 150, icon: "BarChart3" },
-  { key: "client_portal", name: "Portail client", category: "business", sortOrder: 160, icon: "ExternalLink" },
-  { key: "marketing", name: "Marketing", category: "business", sortOrder: 170, icon: "Megaphone" },
-  { key: "administration", name: "Administration", category: "admin", sortOrder: 200, isCore: true, icon: "Shield" },
-  { key: "billing_subscription", name: "Abonnement & facturation", category: "admin", sortOrder: 210, isCore: true, icon: "CreditCard" },
-  { key: "workspace_settings", name: "Paramètres de l'espace de travail", category: "admin", sortOrder: 220, isCore: true, icon: "Settings" },
+  { key: "dashboard",            name: "Tableau de bord",                   category: "core",     sortOrder: 10,  isCore: true, icon: "LayoutDashboard" },
+  { key: "clients",              name: "Clients",                            category: "core",     sortOrder: 20,  isCore: true, icon: "Building2" },
+  { key: "services",             name: "Services",                           category: "core",     sortOrder: 30,  isCore: true, icon: "Briefcase" },
+  { key: "projects",             name: "Projets",                            category: "core",     sortOrder: 40,  isCore: true, icon: "FolderKanban" },
+  { key: "tasks",                name: "Tâches",                             category: "core",     sortOrder: 50,  isCore: true, icon: "CheckSquare" },
+  { key: "sales_crm",            name: "Ventes & Relation client",           category: "business", sortOrder: 60,  icon: "Target" },
+  { key: "accounting",           name: "Comptabilité",                       category: "business", sortOrder: 70,  icon: "Calculator" },
+  { key: "purchases",            name: "Achats & Fournisseurs",              category: "business", sortOrder: 75,  icon: "ShoppingCart" },
+  { key: "financial_planning",   name: "Planification financière",           category: "business", sortOrder: 80,  icon: "TrendingUp" },
+  { key: "operations",           name: "Opérations",                         category: "business", sortOrder: 90,  icon: "Truck" },
+  { key: "inventory_assets",     name: "Parc & équipements",                 category: "business", sortOrder: 100, icon: "Wrench" },
+  { key: "inventory_products",   name: "Produits & Stock",                   category: "business", sortOrder: 105, icon: "Package" },
+  { key: "rentals",              name: "Locations",                          category: "business", sortOrder: 110, icon: "Truck" },
+  { key: "documents",            name: "Documents",                          category: "core",     sortOrder: 120, isCore: true, icon: "FolderOpen" },
+  { key: "team_hr",              name: "Équipe & RH",                        category: "business", sortOrder: 130, icon: "UsersRound" },
+  { key: "communications",       name: "Communications",                     category: "business", sortOrder: 140, icon: "MessageSquare" },
+  { key: "reports",              name: "Rapports",                           category: "business", sortOrder: 150, icon: "BarChart3" },
+  { key: "client_portal",        name: "Portail client",                     category: "business", sortOrder: 160, icon: "ExternalLink" },
+  { key: "marketing",            name: "Marketing",                          category: "business", sortOrder: 170, icon: "Megaphone" },
+  { key: "administration",       name: "Administration",                     category: "admin",    sortOrder: 200, isCore: true, icon: "Shield" },
+  { key: "billing_subscription", name: "Abonnement & facturation",           category: "admin",    sortOrder: 210, isCore: true, icon: "CreditCard" },
+  { key: "workspace_settings",   name: "Paramètres de l'espace de travail",  category: "admin",    sortOrder: 220, isCore: true, icon: "Settings" },
 ] as const;
 
+// Modules admin toujours inclus dans tous les plans
+const ADMIN_MODULES = ["administration", "billing_subscription", "workspace_settings"] as const;
+
+/**
+ * Nouveaux plans Gameasu — tarifs TTC (TVA 18 % incluse).
+ * monthlyPricePerSeat = prix TTC / utilisateur / mois
+ * annualPricePerSeat  = prix TTC / utilisateur / mois si facturation annuelle (remise −20 %)
+ */
 const PLANS = [
   {
     code: "STARTER",
     name: "Starter",
     tagline: "Démarrer simplement",
     description: "Pour les petites équipes qui structurent leur activité.",
-    monthlyPricePerSeat: 8_000,
-    annualPricePerSeat: 80_000,
+    monthlyPricePerSeat: 4_000,
+    annualPricePerSeat:  3_200,   // 4 000 × (1 − 20 %) = 3 200 / mois si annuel
     setupFee: 0,
     minimumSeats: 1,
     includedSeats: 3,
-    maxSeats: 10,
+    maxSeats: null,
     includedModules: [
+      // 7 modules fonctionnels
       "dashboard", "clients", "services", "projects", "tasks",
-      "documents", "communications", "reports",
-      "administration", "billing_subscription", "workspace_settings",
+      "documents", "reports",
+      // admin toujours inclus
+      ...ADMIN_MODULES,
     ],
     isFeatured: false,
     sortOrder: 10,
     features: [
-      "Jusqu'à 10 utilisateurs",
-      "Clients, services, projets, tâches",
-      "Documents centralisés",
-      "Messagerie d'équipe",
+      "Tableau de bord & KPI",
+      "Clients, services & projets",
+      "Tâches & gestion documentaire",
+      "Rapports essentiels",
       "Support standard",
     ],
   },
   {
-    code: "GROWTH",
-    name: "Growth",
+    code: "BUSINESS",
+    name: "Business",
     tagline: "Accélérer la croissance",
     description: "Pour les organisations en expansion qui veulent vendre et facturer.",
-    monthlyPricePerSeat: 18_000,
-    annualPricePerSeat: 180_000,
-    setupFee: 250_000,
-    minimumSeats: 3,
+    monthlyPricePerSeat: 7_000,
+    annualPricePerSeat:  5_600,   // 7 000 × 0,80
+    setupFee: 0,
+    minimumSeats: 1,
     includedSeats: 10,
-    maxSeats: 30,
+    maxSeats: null,
     includedModules: [
+      // Tout Starter (7) + 8 modules supplémentaires = 15 modules
       "dashboard", "clients", "services", "projects", "tasks",
-      "sales_crm", "accounting", "purchases", "documents", "team_hr",
-      "communications", "reports",
-      "administration", "billing_subscription", "workspace_settings",
+      "documents", "reports",
+      "sales_crm", "accounting", "purchases",
+      "team_hr", "communications", "inventory_assets",
+      "client_portal", "marketing",
+      // admin toujours inclus
+      ...ADMIN_MODULES,
     ],
-    isFeatured: false,
+    isFeatured: true,
     sortOrder: 20,
     features: [
-      "Jusqu'à 30 utilisateurs",
-      "CRM & pipeline commercial",
+      "Tout Starter inclus",
+      "Ventes, CRM & pipeline commercial",
       "Comptabilité SYSCOHADA",
-      "Équipe & RH",
-      "Onboarding & formation incluse",
+      "Équipe & RH complet",
+      "Support prioritaire",
     ],
   },
   {
-    code: "PROFESSIONAL",
-    name: "Professional",
-    tagline: "Le standard premium",
+    code: "PREMIUM",
+    name: "Premium",
+    tagline: "Le standard complet",
     description: "Pour les structures multi-services qui pilotent finance et opérations.",
-    monthlyPricePerSeat: 35_000,
-    annualPricePerSeat: 350_000,
-    setupFee: 750_000,
-    minimumSeats: 5,
+    monthlyPricePerSeat: 10_000,
+    annualPricePerSeat:  8_000,   // 10 000 × 0,80
+    setupFee: 0,
+    minimumSeats: 1,
     includedSeats: 25,
-    maxSeats: 100,
-    includedModules: [
-      "dashboard", "clients", "services", "projects", "tasks",
-      "sales_crm", "accounting", "purchases", "financial_planning",
-      "operations", "inventory_assets", "inventory_products", "rentals",
-      "documents", "team_hr", "communications", "reports",
-      "client_portal", "marketing",
-      "administration", "billing_subscription", "workspace_settings",
-    ],
-    isFeatured: true,
+    maxSeats: null,
+    includedModules: MODULES.map((m) => m.key),  // tous les modules
+    isFeatured: false,
     sortOrder: 30,
     features: [
-      "Jusqu'à 100 utilisateurs",
-      "Planification financière & forecast",
-      "Parc, locations, opérations",
+      "Tout Business inclus",
+      "FP&A & planification financière",
+      "Opérations, parc & locations",
       "Portail client & marketing",
       "Account manager dédié",
     ],
   },
   {
     code: "ENTERPRISE",
-    name: "Enterprise",
-    tagline: "Sur-mesure et souverain",
+    name: "Personnalisée",
+    tagline: "Sur-mesure & souverain",
     description: "Pour les groupes et grandes organisations à exigences avancées.",
-    monthlyPricePerSeat: 60_000,
-    annualPricePerSeat: 600_000,
-    setupFee: 2_500_000,
-    minimumSeats: 10,
+    monthlyPricePerSeat: 0,
+    annualPricePerSeat:  0,
+    setupFee: 0,
+    minimumSeats: 1,
     includedSeats: 100,
     maxSeats: null,
     includedModules: MODULES.map((m) => m.key),
     isFeatured: false,
     sortOrder: 40,
     features: [
-      "Utilisateurs illimités",
       "Tous les modules activés",
-      "SSO, audit avancé, SLA",
+      "Utilisateurs illimités",
+      "SSO, audit avancé & SLA",
       "Hébergement souverain disponible",
-      "Customisations & intégrations sur-mesure",
+      "Intégrations & customisations sur-mesure",
     ],
   },
 ] as const;
@@ -189,7 +204,7 @@ async function upsertPlans() {
       planId = existing[0].id;
       await db.update(subscriptionPlansTable).set(payload).where(eq(subscriptionPlansTable.id, planId));
     }
-    // Refresh features
+    // Rafraîchit les features
     await db.delete(subscriptionPlanFeaturesTable).where(eq(subscriptionPlanFeaturesTable.planId, planId));
     for (let i = 0; i < p.features.length; i++) {
       await db.insert(subscriptionPlanFeaturesTable).values({
@@ -198,6 +213,24 @@ async function upsertPlans() {
     }
     result[p.code] = planId;
   }
+
+  // Migration : suppression des anciens plans obsolètes (GROWTH, PROFESSIONAL)
+  // s'ils existent encore en base et n'ont pas d'abonnement actif.
+  for (const oldCode of ["GROWTH", "PROFESSIONAL"]) {
+    const old = await db.select().from(subscriptionPlansTable)
+      .where(eq(subscriptionPlansTable.code, oldCode)).limit(1);
+    if (old.length > 0) {
+      const subs = await db.select().from(organizationSubscriptionsTable)
+        .where(eq(organizationSubscriptionsTable.planId, old[0].id)).limit(1);
+      if (subs.length === 0) {
+        await db.delete(subscriptionPlanFeaturesTable)
+          .where(eq(subscriptionPlanFeaturesTable.planId, old[0].id));
+        await db.delete(subscriptionPlansTable)
+          .where(eq(subscriptionPlansTable.id, old[0].id));
+      }
+    }
+  }
+
   return result;
 }
 
@@ -245,7 +278,7 @@ async function ensureSubscription(orgId: string, planIds: Record<string, string>
     )).limit(1);
   if (existing.length > 0) return existing[0].id;
 
-  const plan = PLANS.find((p) => p.code === "PROFESSIONAL")!;
+  const plan = PLANS.find((p) => p.code === "PREMIUM")!;
   const now = new Date();
   const periodEnd = new Date(now); periodEnd.setMonth(periodEnd.getMonth() + 1);
 
@@ -299,35 +332,24 @@ async function ensureBillingDemo(orgId: string, subId: string) {
   const existing = await db.select().from(billingEventsTable)
     .where(eq(billingEventsTable.organizationId, orgId)).limit(1);
   if (existing.length > 0) return;
-  // Best-effort : si deux boots seedent en parallèle, l'unicité de `reference`
-  // (cf. schéma) rejette les doublons silencieusement.
   const now = new Date();
   const months = 3;
+  const premiumSeats = 25;
+  const premiumPriceTTC = 10_000;  // TTC/util/mois
   for (let i = months; i >= 1; i--) {
     const d = new Date(now); d.setMonth(d.getMonth() - i);
     await db.insert(billingEventsTable).values({
       organizationId: orgId,
       subscriptionId: subId,
       kind: "invoice",
-      label: `Abonnement Professional — ${d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`,
-      amount: 35_000 * 25,
+      label: `Abonnement Premium — ${d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`,
+      amount: premiumPriceTTC * premiumSeats,
       status: "paid",
       currency: "XOF",
       reference: `NX-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-001`,
       occurredAt: d,
     });
   }
-  await db.insert(billingEventsTable).values({
-    organizationId: orgId,
-    subscriptionId: subId,
-    kind: "setup_fee",
-    label: "Frais d'installation & onboarding",
-    amount: 750_000,
-    status: "paid",
-    currency: "XOF",
-    reference: "NX-SETUP-001",
-    occurredAt: new Date(now.getFullYear(), now.getMonth() - months - 1, 1),
-  });
 }
 
 /**
@@ -343,7 +365,7 @@ async function ensureBillingDemo(orgId: string, subId: string) {
 export async function seedSaas(opts: { includeDemoData?: boolean } = {}) {
   console.log("• Catalogue modules…");
   await upsertModuleCatalog();
-  console.log("• Plans Gameasu…");
+  console.log("• Plans Gameasu (Starter / Business / Premium / Personnalisée)…");
   const planIds = await upsertPlans();
 
   if (!opts.includeDemoData) {
@@ -355,7 +377,7 @@ export async function seedSaas(opts: { includeDemoData?: boolean } = {}) {
   const orgId = await ensureDefaultOrganization();
   console.log("• Membres workspace…");
   await ensureMembership(orgId);
-  console.log("• Abonnement courant…");
+  console.log("• Abonnement courant (Premium)…");
   const subId = await ensureSubscription(orgId, planIds);
   console.log("• Modules activés…");
   await ensureOrgModules(orgId);
@@ -366,4 +388,3 @@ export async function seedSaas(opts: { includeDemoData?: boolean } = {}) {
 
 // Pas d'auto-run : ce module est appelé explicitement par le boot de l'API
 // (artifacts/api-server/src/routes/index.ts) ou via le script `pnpm exec tsx`.
-// L'auto-run via `import.meta.url === argv[1]` est ambigu une fois bundlé.

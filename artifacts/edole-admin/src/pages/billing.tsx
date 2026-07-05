@@ -29,39 +29,11 @@ import { BRANDING } from "@/config/branding";
 import { toast as sonnerToast } from "sonner";
 
 // ─── Moteur de tarification (côté frontend) ────────────────────────
-const TVA_RATE = 0.18;
-const MAX_AUTO_USERS = 50;
-
-function calcAmountHT(userCount: number): number | null {
-  if (userCount > MAX_AUTO_USERS) return null;
-  if (userCount < 1) return 0;
-  let total = 10_000;
-  const u2to5 = Math.max(0, Math.min(userCount - 1, 4));
-  total += u2to5 * 5_000;
-  const u6to10 = Math.max(0, Math.min(userCount - 5, 5));
-  total += u6to10 * 2_000;
-  const u11to50 = Math.max(0, userCount - 10);
-  total += u11to50 * 1_000;
-  return total;
-}
-
-type PricingCalc = { amountHT: number; tva: number; ttc: number; isEnterprise: false }
-                 | { amountHT: null; tva: null; ttc: null; isEnterprise: true };
-
-function calcPricingFront(userCount: number): PricingCalc {
-  const amountHT = calcAmountHT(userCount);
-  if (amountHT === null) return { amountHT: null, tva: null, ttc: null, isEnterprise: true };
-  const tva = Math.round(amountHT * TVA_RATE);
-  return { amountHT, tva, ttc: amountHT + tva, isEnterprise: false };
-}
-
-const PRICING_TIERS = [
-  { range: "1",      label: "1er utilisateur",         unitPrice: 10_000 },
-  { range: "2–5",    label: "2e – 5e utilisateur",     unitPrice: 5_000  },
-  { range: "6–10",   label: "6e – 10e utilisateur",    unitPrice: 2_000  },
-  { range: "11–50",  label: "11e – 50e utilisateur",   unitPrice: 1_000  },
-  { range: "50+",    label: "Plus de 50 utilisateurs", unitPrice: null   },
-] as const;
+// Importé depuis la config centralisée — prix TTC, TVA 18 % incluse
+import {
+  PLAN_CATALOG, PERIODICITY_OPTIONS, calcPlanPricing, getPlan,
+  type Periodicity,
+} from "@/lib/pricing-config";
 
 const ALL_MODULES: [string, string][] = [
   ["dashboard",          "Tableau de bord & KPI"],
@@ -1017,13 +989,18 @@ export default function BillingPage() {
 
   const [showPayModal, setShowPayModal] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
+  const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
 
   const transactions = txData?.data ?? [];
   const pendingCount = transactions.filter((t) => t.status === "pending").length;
 
-  // Nouvelle tarification par nombre d'utilisateurs
-  const userCount = (usage as any)?.userCount ?? (usage as any)?.seatsUsed ?? 0;
-  const pricing = useMemo(() => calcPricingFront(userCount), [userCount]);
+  // Tarification plan-based : prix TTC par utilisateur selon le plan actif
+  const userCount = (usage as any)?.seatsUsed ?? (usage as any)?.userCount ?? 0;
+  const planCode  = (current as any)?.plan?.code ?? "STARTER";
+  const pricing = useMemo(
+    () => calcPlanPricing({ planCode, seats: Math.max(1, userCount), periodicity }),
+    [planCode, userCount, periodicity],
+  );
   const { amountHT, tva, ttc, isEnterprise } = pricing;
 
   const confirmMutation = useMutation({
@@ -1094,33 +1071,67 @@ export default function BillingPage() {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-            {/* Abonnement actif — nouvelle tarification */}
+            {/* Abonnement actif — tarification plan-based */}
             <Card className="lg:col-span-2 border-amber-200/60 bg-gradient-to-br from-amber-50/50 to-white">
               <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/80 mb-1">Abonnement actif</p>
                   <div className="flex items-center gap-3">
-                    <CardTitle className="text-2xl">{BRANDING.appName}</CardTitle>
-                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold">
-                      Accès complet
-                    </Badge>
+                    <CardTitle className="text-2xl">
+                      {getPlan(planCode)?.name ?? BRANDING.appName}
+                    </CardTitle>
+                    {!isEnterprise && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold">
+                        {formatFCFA(getPlan(planCode)?.monthlyPriceTTC ?? 0)} TTC / util / mois
+                      </Badge>
+                    )}
+                    {isEnterprise && (
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold">
+                        Sur devis
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Tous les modules inclus · {userCount} utilisateur{userCount !== 1 ? "s" : ""} actif{userCount !== 1 ? "s" : ""}
+                    {userCount} utilisateur{userCount !== 1 ? "s" : ""} · TVA 18 % incluse
                   </p>
                 </div>
                 <Package className="w-8 h-8 text-amber-500/80 shrink-0" />
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Sélecteur de périodicité */}
+                {!isEnterprise && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {PERIODICITY_OPTIONS.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setPeriodicity(p.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          periodicity === p.value
+                            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-amber-300"
+                        }`}
+                      >
+                        {p.label}
+                        {p.discount > 0 && (
+                          <span className={`ml-1 ${periodicity === p.value ? "text-amber-200" : "text-emerald-600"}`}>
+                            −{Math.round(p.discount * 100)} %
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {isEnterprise ? (
-                  /* Tarification Enterprise (>50 users) */
+                  /* Tarification personnalisée */
                   <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
                     <div className="flex items-center gap-2 text-amber-800">
                       <Crown className="w-5 h-5" />
-                      <span className="font-semibold">Tarification personnalisée</span>
+                      <span className="font-semibold">Offre personnalisée</span>
                     </div>
                     <p className="text-sm text-amber-700">
-                      Votre organisation dépasse 50 utilisateurs. Contactez notre équipe commerciale pour un devis sur-mesure adapté à votre volume.
+                      Contactez notre équipe commerciale pour obtenir un devis sur-mesure adapté à votre organisation.
                     </p>
                     <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <a href={`mailto:sales@gameasutech.africa?subject=Devis%20Gam%C3%A9as%C3%B9%20%2B%20${userCount}%20utilisateurs`}>
@@ -1132,15 +1143,28 @@ export default function BillingPage() {
                   /* Grille HT / TVA / TTC */
                   <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                     <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-sm text-muted-foreground">Sous-total HT ({userCount} utilisateur{userCount !== 1 ? "s" : ""})</span>
-                      <span className="font-semibold tabular-nums">{amountHT !== null ? formatFCFA(amountHT) : "—"}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {userCount} utilisateur{userCount !== 1 ? "s" : ""} × {formatFCFA(pricing.priceTTCPerSeat ?? 0)} TTC / util
+                        {(pricing.discount ?? 0) > 0 && (
+                          <span className="ml-1.5 text-xs text-emerald-600 font-semibold">
+                            (−{Math.round((pricing.discount ?? 0) * 100)} %)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-semibold tabular-nums">{ttc !== null ? formatFCFA(ttc) : "—"} TTC</span>
                     </div>
                     <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-sm text-muted-foreground">TVA 18 %</span>
+                      <span className="text-sm text-muted-foreground">Dont TVA 18 %</span>
                       <span className="tabular-nums text-sm">{tva !== null ? formatFCFA(tva) : "—"}</span>
                     </div>
+                    <div className="flex items-center justify-between px-4 py-3 text-muted-foreground">
+                      <span className="text-sm">Montant HT</span>
+                      <span className="tabular-nums text-sm">{amountHT !== null ? formatFCFA(amountHT) : "—"}</span>
+                    </div>
                     <div className="flex items-center justify-between px-4 py-3 bg-amber-50/60 rounded-b-lg">
-                      <span className="font-bold text-amber-900">Total TTC / mois</span>
+                      <span className="font-bold text-amber-900">
+                        Total TTC / {PERIODICITY_OPTIONS.find(p => p.value === periodicity)?.label.toLowerCase() ?? "mois"}
+                      </span>
                       <span className="text-2xl font-bold text-amber-800 tabular-nums">{ttc !== null ? formatFCFA(ttc) : "—"}</span>
                     </div>
                   </div>
@@ -1214,55 +1238,101 @@ export default function BillingPage() {
             </Card>
           </div>
 
-          {/* Grille tarifaire dégressive */}
+          {/* Comparaison des formules Gameasu */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-amber-600" /> Grille tarifaire Gameasu
+                <Receipt className="w-4 h-4 text-amber-600" /> Formules Gameasu
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Tranche</th>
-                      <th className="px-4 py-3 text-left">Utilisateurs</th>
-                      <th className="px-4 py-3 text-right">Prix unitaire HT / mois</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {PRICING_TIERS.map((tier) => {
-                      const isActive = !isEnterprise && amountHT !== null && (() => {
-                        if (tier.range === "1") return userCount >= 1;
-                        if (tier.range === "2–5") return userCount >= 2;
-                        if (tier.range === "6–10") return userCount >= 6;
-                        if (tier.range === "11–50") return userCount >= 11;
-                        return false;
-                      })();
-                      const isEnterpriseTier = tier.range === "50+";
-                      return (
-                        <tr key={tier.range} className={isActive ? "bg-amber-50/60" : ""}>
-                          <td className="px-4 py-3 font-medium text-slate-700">{tier.range}</td>
-                          <td className="px-4 py-3 text-slate-600">{tier.label}</td>
-                          <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                            {isEnterpriseTier ? (
-                              <span className="text-slate-400 italic">Sur devis</span>
-                            ) : (
-                              <span className={isActive ? "text-amber-700" : ""}>
-                                {formatFCFA(tier.unitPrice as number)}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                {PLAN_CATALOG.map((plan) => {
+                  const isCurrent = plan.code === planCode.toUpperCase();
+                  return (
+                    <div
+                      key={plan.code}
+                      className={`relative rounded-xl border p-4 flex flex-col gap-3 transition-all ${
+                        isCurrent
+                          ? "border-amber-400 bg-amber-50/60 shadow-sm ring-1 ring-amber-400/40"
+                          : plan.isFeatured
+                          ? "border-blue-200 bg-blue-50/30"
+                          : "border-slate-200 bg-white"
+                      }`}
+                    >
+                      {/* Badge */}
+                      {plan.badge && (
+                        <span className={`absolute -top-2 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          plan.code === "BUSINESS" ? "bg-blue-600 text-white" : "bg-amber-600 text-white"
+                        }`}>
+                          {plan.badge}
+                        </span>
+                      )}
+                      {isCurrent && (
+                        <span className="absolute -top-2 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
+                          Actuel
+                        </span>
+                      )}
+
+                      {/* Nom et modules */}
+                      <div>
+                        <p className="font-bold text-slate-900">{plan.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {plan.moduleCount ? `${plan.moduleCount} modules` : "Tous les modules"}
+                        </p>
+                      </div>
+
+                      {/* Prix */}
+                      <div>
+                        {plan.isEnterprise ? (
+                          <p className="text-lg font-bold text-slate-700 italic">Sur devis</p>
+                        ) : (
+                          <>
+                            <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                              {formatFCFA(plan.monthlyPriceTTC)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">TTC / util / mois</p>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Features */}
+                      <ul className="space-y-1 flex-1">
+                        {plan.features.map((f) => (
+                          <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* CTA */}
+                      {!isCurrent && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={plan.isEnterprise ? "outline" : "default"}
+                          className={`w-full text-xs mt-1 ${!plan.isEnterprise ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
+                        >
+                          <a href="mailto:sales@gameasutech.africa">
+                            {plan.isEnterprise ? "Demander un devis" : `Passer en ${plan.name}`}
+                          </a>
+                        </Button>
+                      )}
+                      {isCurrent && (
+                        <p className="text-[11px] text-center text-amber-700 font-semibold">✓ Formule active</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Tous les prix sont <strong>hors taxes (HT)</strong>. La TVA de 18 % est appliquée uniquement au moment du paiement.
-                La tarification est dégressive et mensuelle par défaut.
+              <p className="mt-4 text-xs text-muted-foreground">
+                Prix <strong>TTC, TVA 18 % incluse</strong> par utilisateur et par mois.
+                Remises disponibles : Trimestriel −10 %, Semestriel −15 %, Annuel −20 %.
+                Calculez votre tarif personnalisé sur{" "}
+                <a href="https://gameasu.com/tarifs" target="_blank" rel="noreferrer" className="text-primary underline">
+                  gameasu.com/tarifs
+                </a>.
               </p>
             </CardContent>
           </Card>
