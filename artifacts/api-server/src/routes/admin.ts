@@ -4,7 +4,7 @@ import {
   rolesTable, permissionsTable, rolePermissionsTable,
   userProjectAccessTable, auditLogsTable, usersTable,
   departmentsTable, projectsTable, userClientAccessTable, clientsTable,
-  userPermissionOverridesTable, organizationMembersTable,
+  userPermissionOverridesTable, organizationMembersTable, organizationsTable,
 } from "@workspace/db";
 import { and, eq, ilike, sql, desc, inArray, gte, lte } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -362,10 +362,64 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
   if (!roleRow) return res.status(400).json({ error: "Rôle inconnu" });
   if (departmentId && !isUuid(departmentId)) return res.status(400).json({ error: "departmentId invalide" });
   const cleanProjectIds = Array.isArray(projectIds) ? projectIds.filter(isUuid) : [];
-  // Vérifier non-collision email.
-  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
-  if (existing) return res.status(409).json({ error: "Un compte existe déjà avec cet email" });
+  const orgId = req.authUser!.organizationId;
+  const inviterName = req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "Un administrateur";
+  const baseUrl = getPublicBaseUrl();
 
+  // ── Cas multi-org : l'email existe déjà dans un autre compte ──────────────
+  const [existing] = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email, isActive: usersTable.isActive })
+    .from(usersTable)
+    .where(eq(usersTable.email, email.toLowerCase()))
+    .limit(1);
+
+  if (existing) {
+    // Vérifier si l'utilisateur est déjà membre de CETTE organisation
+    const [alreadyMember] = await db
+      .select({ userId: organizationMembersTable.userId })
+      .from(organizationMembersTable)
+      .where(and(eq(organizationMembersTable.userId, existing.id), eq(organizationMembersTable.organizationId, orgId)))
+      .limit(1);
+
+    if (alreadyMember) {
+      return res.status(409).json({ error: "Cet utilisateur est déjà membre de cette organisation." });
+    }
+
+    // Récupérer le nom de l'organisation pour l'email de notification
+    const [orgRow] = await db.select({ name: organizationsTable.name }).from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+    const orgName = orgRow?.name ?? "un nouvel espace de travail";
+
+    // Ajouter au nouvel espace + accès projets — pas de nouveau compte créé
+    await db.transaction(async (tx) => {
+      await tx.insert(organizationMembersTable).values({ organizationId: orgId, userId: existing.id, role: roleRow.code });
+      if (cleanProjectIds.length > 0) {
+        await tx.insert(userProjectAccessTable).values(
+          cleanProjectIds.map((pid) => ({ userId: existing.id, projectId: pid, accessLevel: "viewer", grantedById: req.authUser?.id ?? null })),
+        );
+      }
+    });
+
+    // Notifier l'utilisateur qu'il a été ajouté à un nouvel espace
+    const loginUrl = `${baseUrl}/login`;
+    const notifHtml = `<p>Bonjour ${existing.firstName},</p>
+<p><strong>${inviterName}</strong> vous a ajouté à l'espace de travail <strong>${orgName}</strong> sur Gaméasù.</p>
+<p>Connectez-vous avec vos identifiants habituels — lors du prochain accès, vous pourrez choisir l'espace à ouvrir.</p>
+<p><a href="${loginUrl}" style="background:#F37021;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:bold;">Accéder à Gaméasù</a></p>`;
+    const notifText = `Bonjour ${existing.firstName},\n\n${inviterName} vous a ajouté à l'espace "${orgName}" sur Gaméasù.\n\nConnectez-vous sur ${loginUrl} avec vos identifiants habituels.`;
+    const delivery = await sendEmail({ to: existing.email, subject: `Vous avez été ajouté à ${orgName}`, html: notifHtml, text: notifText });
+
+    void permissionsHint;
+    await audit(req, "invite", { entityType: "user", entityId: existing.id, payload: { email: existing.email, role: roleRow.code, projectIds: cleanProjectIds, method: "existing_user_added_to_org", delivery } });
+
+    return res.status(200).json({
+      userId: existing.id,
+      email: existing.email,
+      method: "existing_user_added_to_org",
+      message: `${existing.firstName} ${existing.lastName} a été ajouté à l'organisation avec succès.`,
+    });
+  }
+
+  // ── Cas standard : nouvel utilisateur à créer ─────────────────────────────
   const tempPassword = genTempPassword();
   const token = genToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -374,7 +428,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
   await db.transaction(async (tx) => {
     await tx.insert(usersTable).values({
       id: userId,
-      organizationId: req.authUser!.organizationId,
+      organizationId: orgId,
       email: email.toLowerCase(),
       password: tempPassword,
       firstName, lastName,
@@ -387,11 +441,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
       invitedById: req.authUser?.id ?? null,
       invitedAt: new Date(),
     });
-    await tx.insert(organizationMembersTable).values({
-      organizationId: req.authUser!.organizationId,
-      userId,
-      role: roleRow.code,
-    });
+    await tx.insert(organizationMembersTable).values({ organizationId: orgId, userId, role: roleRow.code });
     if (cleanProjectIds.length > 0) {
       await tx.insert(userProjectAccessTable).values(cleanProjectIds.map((pid) => ({
         userId, projectId: pid, accessLevel: "viewer", grantedById: req.authUser?.id ?? null,
@@ -399,9 +449,7 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
     }
   });
 
-  const baseUrl = getPublicBaseUrl();
   const acceptUrl = `${baseUrl}/accept-invitation?token=${token}`;
-  const inviterName = req.authUser ? `${req.authUser.firstName} ${req.authUser.lastName}` : "Un administrateur";
   const tpl = buildInvitationEmail({
     recipientName: `${firstName} ${lastName}`,
     inviterName, acceptUrl, temporaryPassword: tempPassword,

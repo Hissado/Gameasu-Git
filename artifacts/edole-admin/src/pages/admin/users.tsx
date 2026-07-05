@@ -186,35 +186,54 @@ function InviteDialog({ roles, departments, onClose, onDone }: { roles: Role[]; 
       departmentId: departmentId || undefined,
       projectIds: Array.from(projectIds),
     } as any }),
-    onSuccess: (r) => { setResult(r); onDone(); toast({ title: "Invitation envoyée" }); },
+    onSuccess: (r) => {
+      setResult(r);
+      onDone();
+      const isExisting = (r as any).method === "existing_user_added_to_org";
+      toast({ title: isExisting ? "Utilisateur ajouté à l'organisation" : "Invitation envoyée" });
+    },
     onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error, variant: "destructive" }),
   });
 
   if (result) {
+    const isExistingUser = (result as any).method === "existing_user_added_to_org";
     return (
       <Dialog open onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Mail className="w-5 h-5 text-emerald-600" />Invitation créée</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-emerald-600" />
+              {isExistingUser ? "Utilisateur ajouté" : "Invitation créée"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="rounded-md border bg-muted/30 p-3">
               <div className="text-xs text-muted-foreground">Email</div>
               <div className="font-medium">{result.email}</div>
             </div>
-            <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">Lien d'activation (valable 7 jours)</div>
-              <div className="font-mono text-xs break-all">{result.acceptUrl}</div>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => { navigator.clipboard.writeText(result.acceptUrl); toast({ title: "Lien copié" }); }}>
-                <Copy className="w-3 h-3 mr-1" />Copier le lien
-              </Button>
-            </div>
-            <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">Mot de passe temporaire</div>
-              <div className="font-mono text-base">{result.temporaryPassword}</div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Statut envoi :{" "}
-              {result.delivery?.delivered ? "✓ envoyé" : "Échec d'envoi — copiez le lien manuellement"}
-            </div>
+            {isExistingUser ? (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-800 text-sm">
+                Cet utilisateur possède déjà un compte Gaméasù. Il a été ajouté à votre organisation et recevra une notification par email. Lors de sa prochaine connexion, il pourra choisir l'espace de travail à ouvrir.
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">Lien d'activation (valable 30 jours)</div>
+                  <div className="font-mono text-xs break-all">{result.acceptUrl}</div>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => { navigator.clipboard.writeText(result.acceptUrl!); toast({ title: "Lien copié" }); }}>
+                    <Copy className="w-3 h-3 mr-1" />Copier le lien
+                  </Button>
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">Mot de passe temporaire</div>
+                  <div className="font-mono text-base">{result.temporaryPassword}</div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Statut envoi :{" "}
+                  {(result as any).delivery?.delivered ? "✓ envoyé" : "Échec d'envoi — copiez le lien manuellement"}
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter><Button onClick={onClose}>Fermer</Button></DialogFooter>
         </DialogContent>
