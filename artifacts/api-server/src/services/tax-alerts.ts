@@ -130,7 +130,7 @@ export async function checkTaxAlertsForOrg(orgId: string): Promise<TaxAlertResul
     <ul style="padding-left:20px;line-height:1.7">${overdueList}</ul>
     <p style="margin-bottom:0;font-size:13px;color:#555">Connectez-vous à la plateforme pour soumettre ces déclarations dès que possible et éviter des pénalités de retard.</p>
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gameasu — Ne pas répondre à cet email automatique</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù — Ne pas répondre à cet email automatique</div>
 </div></body></html>`;
 
     const text = `Alerte déclarations fiscales\n\nLes déclarations suivantes sont en attente :\n${overdue.map(d => `- ${TYPE_LABELS[d.type] ?? d.type} ${d.period} — échéance : ${d.dueDate ?? "—"}`).join("\n")}\n\nConnectez-vous pour soumettre ces déclarations.`;
@@ -139,7 +139,7 @@ export async function checkTaxAlertsForOrg(orgId: string): Promise<TaxAlertResul
       if (!manager.email) continue;
       await sendEmail({
         to: manager.email,
-        subject: `⚠️ ${overdue.length} déclaration${overdue.length > 1 ? "s" : ""} fiscale${overdue.length > 1 ? "s" : ""} en attente — Gameasu`,
+        subject: `⚠️ ${overdue.length} déclaration${overdue.length > 1 ? "s" : ""} fiscale${overdue.length > 1 ? "s" : ""} en attente — Gaméasù`,
         html,
         text,
         category: "tax_alert",
