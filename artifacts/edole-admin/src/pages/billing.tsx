@@ -21,7 +21,7 @@ import {
   Settings, Shield, Zap, Phone, FileText, ToggleLeft, ToggleRight, ExternalLink,
   Repeat, Trash2, PenLine, Star, Bell, Info, Mail, Package,
   MessageSquare, MailOpen, HeadphonesIcon, HardDrive, ChevronRight, BarChart3,
-  Sparkles,
+  Sparkles, TrendingUp, TrendingDown, AlertTriangle, ArrowRight, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -150,6 +150,228 @@ const MODULE_LABELS: Record<string, string> = {
   administration: "Administration", billing_subscription: "Abonnement & facturation",
   workspace_settings: "Paramètres de l'espace de travail",
 };
+
+// ─── Logique upgrade / downgrade ──────────────────────────────────
+
+const PLAN_ORDER_FRONT: Record<string, number> = { STARTER: 1, BUSINESS: 2, PREMIUM: 3, ENTERPRISE: 99 };
+
+type PlanChangeKind = "current" | "upgrade" | "downgrade" | "enterprise";
+
+function getPlanChangeKind(fromCode: string, toCode: string): PlanChangeKind {
+  const from = fromCode.toUpperCase();
+  const to   = toCode.toUpperCase();
+  if (from === to) return "current";
+  if (to === "ENTERPRISE" || from === "ENTERPRISE") return "enterprise";
+  const fromOrder = PLAN_ORDER_FRONT[from] ?? 0;
+  const toOrder   = PLAN_ORDER_FRONT[to]   ?? 0;
+  return toOrder > fromOrder ? "upgrade" : "downgrade";
+}
+
+type PlanPreview = {
+  from: { code: string; name: string; unitPriceTTC: number; monthlyTTC: number; seats: number };
+  to:   { code: string; name: string; unitPriceTTC: number; monthlyTTC: number };
+  changeType: "upgrade" | "downgrade" | "enterprise" | "current";
+  diffMonthly: number;
+  remainingDays: number;
+  totalDays: number;
+  prorataRatio: number;
+  prorataAmount: number;
+  effectiveDate: string;
+  nextBillingDate: string;
+  modulesGained: string[];
+  modulesLost: string[];
+};
+
+// ─── PlanChangeModal ───────────────────────────────────────────────
+
+function PlanChangeModal({
+  targetCode,
+  currentCode,
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  targetCode: string;
+  currentCode: string;
+  onClose: () => void;
+  onConfirm: (planCode: string) => void;
+  loading: boolean;
+}) {
+  const { data: preview, isLoading: previewLoading } = useQuery<PlanPreview>({
+    queryKey: ["plan-change-preview", targetCode],
+    queryFn: () => apiFetch(`/api/subscriptions/change-plan/preview?to=${targetCode}`),
+    enabled: !!targetCode,
+    staleTime: 0,
+  });
+
+  const [acknowledged, setAcknowledged] = useState(false);
+  const kind = getPlanChangeKind(currentCode, targetCode);
+  const isUpgrade = kind === "upgrade";
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {isUpgrade
+              ? <TrendingUp className="w-5 h-5 text-emerald-600" />
+              : <TrendingDown className="w-5 h-5 text-orange-500" />}
+            {isUpgrade
+              ? `Passer à la formule ${preview?.to.name ?? targetCode}`
+              : `Réduire vers la formule ${preview?.to.name ?? targetCode}`}
+          </DialogTitle>
+          <DialogDescription>
+            {isUpgrade
+              ? "Vérifiez les détails de votre upgrade avant de confirmer."
+              : "Vérifiez l'impact de ce changement avant de confirmer."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {previewLoading ? (
+          <div className="space-y-3 py-4">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : preview ? (
+          <div className="space-y-4">
+            {/* De → Vers */}
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+              <div className="text-center flex-1">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Actuelle</p>
+                <p className="font-bold text-slate-800">{preview.from.name}</p>
+                <p className="text-xs text-slate-600">{formatFCFA(preview.from.unitPriceTTC)} TTC / util</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              <div className={cn("text-center flex-1 rounded-xl px-2 py-1.5 border", isUpgrade
+                ? "bg-emerald-50 border-emerald-200"
+                : "bg-orange-50 border-orange-200")}>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Nouvelle</p>
+                <p className={cn("font-bold", isUpgrade ? "text-emerald-800" : "text-orange-800")}>{preview.to.name}</p>
+                <p className={cn("text-xs", isUpgrade ? "text-emerald-700" : "text-orange-700")}>
+                  {formatFCFA(preview.to.unitPriceTTC)} TTC / util
+                </p>
+              </div>
+            </div>
+
+            {/* Récap financier */}
+            <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm overflow-hidden">
+              <div className="flex justify-between items-center px-4 py-2.5">
+                <span className="text-muted-foreground">Montant mensuel actuel ({preview.from.seats} util.)</span>
+                <span className="font-semibold tabular-nums">{formatFCFA(preview.from.monthlyTTC)} TTC</span>
+              </div>
+              <div className="flex justify-between items-center px-4 py-2.5">
+                <span className="text-muted-foreground">Nouveau montant mensuel</span>
+                <span className={cn("font-semibold tabular-nums", isUpgrade ? "text-emerald-700" : "text-orange-700")}>
+                  {formatFCFA(preview.to.monthlyTTC)} TTC
+                </span>
+              </div>
+              <div className="flex justify-between items-center px-4 py-2.5">
+                <span className="text-muted-foreground">Différence</span>
+                <span className={cn("font-semibold tabular-nums", isUpgrade ? "text-emerald-700" : "text-orange-700")}>
+                  {preview.diffMonthly > 0 ? "+" : ""}{formatFCFA(preview.diffMonthly)} / mois
+                </span>
+              </div>
+              {isUpgrade && preview.prorataAmount > 0 && (
+                <>
+                  <div className="flex justify-between items-center px-4 py-2.5 text-muted-foreground text-xs">
+                    <span>Période restante ({preview.remainingDays} j / {preview.totalDays} j — {preview.prorataRatio} %)</span>
+                    <span className="font-medium">Prorata</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5 bg-emerald-50">
+                    <span className="font-semibold text-emerald-900">À payer aujourd'hui (prorata)</span>
+                    <span className="font-bold tabular-nums text-emerald-800">{formatFCFA(preview.prorataAmount)} TTC</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between items-center px-4 py-2.5 text-muted-foreground">
+                <span>Date d'effet</span>
+                <span>{new Date(preview.effectiveDate).toLocaleDateString("fr-FR")}</span>
+              </div>
+              <div className="flex justify-between items-center px-4 py-2.5 text-muted-foreground">
+                <span>Prochaine facturation</span>
+                <span>{new Date(preview.nextBillingDate).toLocaleDateString("fr-FR")}</span>
+              </div>
+            </div>
+
+            {/* Modules gagnés */}
+            {isUpgrade && preview.modulesGained.length > 0 && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 space-y-2">
+                <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" /> {preview.modulesGained.length} module{preview.modulesGained.length > 1 ? "s" : ""} débloqué{preview.modulesGained.length > 1 ? "s" : ""}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {preview.modulesGained.map((m) => (
+                    <span key={m} className="text-[11px] bg-emerald-100 text-emerald-700 rounded-full px-2.5 py-0.5 font-medium">
+                      {MODULE_LABELS[m] ?? m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modules perdus */}
+            {!isUpgrade && preview.modulesLost.length > 0 && (
+              <div className="rounded-xl bg-orange-50 border border-orange-200 p-3 space-y-2">
+                <p className="text-xs font-semibold text-orange-800 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" /> {preview.modulesLost.length} module{preview.modulesLost.length > 1 ? "s" : ""} désactivé{preview.modulesLost.length > 1 ? "s" : ""}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {preview.modulesLost.map((m) => (
+                    <span key={m} className="text-[11px] bg-orange-100 text-orange-700 rounded-full px-2.5 py-0.5 font-medium">
+                      {MODULE_LABELS[m] ?? m}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-orange-700">
+                  Vos données sont conservées. Ils seront à nouveau accessibles en passant à une formule supérieure.
+                </p>
+              </div>
+            )}
+
+            {/* Checkbox downgrade */}
+            {!isUpgrade && (
+              <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-orange-200 bg-orange-50/60 p-3">
+                <input
+                  type="checkbox"
+                  checked={acknowledged}
+                  onChange={(e) => setAcknowledged(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-orange-500 shrink-0"
+                />
+                <span className="text-xs text-orange-900 font-medium leading-snug">
+                  Je comprends que certains modules seront désactivés et que les données seront conservées.
+                </span>
+              </label>
+            )}
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Impossible de charger les détails du changement.</p>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>Annuler</Button>
+          <Button
+            size="sm"
+            disabled={loading || previewLoading || (!isUpgrade && !acknowledged)}
+            className={cn(
+              "font-semibold",
+              isUpgrade
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : "bg-orange-500 hover:bg-orange-600 text-white",
+            )}
+            onClick={() => onConfirm(targetCode)}
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+            {isUpgrade ? "Confirmer l'upgrade" : "Confirmer la réduction"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ─── PaymentModal ─────────────────────────────────────────────────
 // Gère 3 cas :
@@ -990,6 +1212,25 @@ export default function BillingPage() {
   const [showPayModal, setShowPayModal] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
   const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
+  const [planChangeTarget, setPlanChangeTarget] = useState<string | null>(null);
+
+  const changePlanMutation = useMutation({
+    mutationFn: (code: string) =>
+      apiFetch("/api/subscriptions/change-plan", {
+        method: "POST",
+        body: JSON.stringify({ planCode: code }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subscriptions-current"] });
+      qc.invalidateQueries({ queryKey: ["billing-summary"] });
+      qc.invalidateQueries({ queryKey: ["billing-usage"] });
+      qc.invalidateQueries({ queryKey: ["organization-modules"] });
+      qc.invalidateQueries({ queryKey: ["plan-change-preview"] });
+      setPlanChangeTarget(null);
+      sonnerToast.success("Formule mise à jour avec succès !");
+    },
+    onError: (e: any) => sonnerToast.error(e?.message ?? "Erreur lors du changement de formule"),
+  });
 
   const transactions = txData?.data ?? [];
   const pendingCount = transactions.filter((t) => t.status === "pending").length;
@@ -1248,34 +1489,58 @@ export default function BillingPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 {PLAN_CATALOG.map((plan) => {
-                  const isCurrent = plan.code === planCode.toUpperCase();
+                  const kind = getPlanChangeKind(planCode, plan.code);
+                  const isCurrent = kind === "current";
+
+                  // ── Badge de statut
+                  const statusBadge = isCurrent
+                    ? { label: "Formule actuelle", cls: "bg-amber-500 text-white" }
+                    : kind === "upgrade"
+                    ? { label: "Upgrade ↑",        cls: "bg-emerald-500 text-white" }
+                    : kind === "downgrade"
+                    ? { label: "Downgrade ↓",      cls: "bg-orange-400 text-white" }
+                    : { label: "Sur devis",         cls: "bg-slate-400 text-white" };
+
+                  // ── Style de la carte
+                  const cardCls = isCurrent
+                    ? "border-amber-400 bg-amber-50/60 shadow-sm ring-1 ring-amber-400/40"
+                    : kind === "upgrade"
+                    ? "border-emerald-200 bg-emerald-50/30 hover:border-emerald-400 transition-all"
+                    : kind === "downgrade"
+                    ? "border-orange-200 bg-white hover:border-orange-300 transition-all"
+                    : plan.isFeatured
+                    ? "border-blue-200 bg-blue-50/30"
+                    : "border-slate-200 bg-white";
+
+                  // ── Libellé et style du bouton
+                  type BtnCfg = { label: string; cls: string; disabled: boolean; href?: string };
+                  const btnCfg: BtnCfg = isCurrent
+                    ? { label: "Abonnement actif", cls: "bg-amber-100 text-amber-700 border border-amber-300 cursor-default", disabled: true }
+                    : kind === "upgrade"
+                    ? { label: `Passer à ${plan.name}`, cls: "bg-emerald-600 hover:bg-emerald-700 text-white", disabled: false }
+                    : kind === "downgrade"
+                    ? { label: `Réduire vers ${plan.name}`, cls: "bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300", disabled: false }
+                    : plan.isEnterprise
+                    ? { label: "Demander un devis", cls: "border border-slate-300 text-slate-700 hover:bg-slate-50", disabled: false, href: "mailto:sales@gameasutech.africa" }
+                    : { label: "Contacter l'équipe", cls: "border border-slate-300 text-slate-700 hover:bg-slate-50", disabled: false, href: "mailto:sales@gameasutech.africa" };
+
                   return (
-                    <div
-                      key={plan.code}
-                      className={`relative rounded-xl border p-4 flex flex-col gap-3 transition-all ${
-                        isCurrent
-                          ? "border-amber-400 bg-amber-50/60 shadow-sm ring-1 ring-amber-400/40"
-                          : plan.isFeatured
-                          ? "border-blue-200 bg-blue-50/30"
-                          : "border-slate-200 bg-white"
-                      }`}
-                    >
-                      {/* Badge */}
-                      {plan.badge && (
-                        <span className={`absolute -top-2 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    <div key={plan.code} className={`relative rounded-xl border p-4 flex flex-col gap-3 ${cardCls}`}>
+                      {/* Badge de statut */}
+                      <span className={`absolute -top-2.5 left-3 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${statusBadge.cls}`}>
+                        {statusBadge.label}
+                      </span>
+                      {/* Badge populaire */}
+                      {plan.badge && !isCurrent && (
+                        <span className={`absolute -top-2.5 right-3 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                           plan.code === "BUSINESS" ? "bg-blue-600 text-white" : "bg-amber-600 text-white"
                         }`}>
                           {plan.badge}
                         </span>
                       )}
-                      {isCurrent && (
-                        <span className="absolute -top-2 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
-                          Actuel
-                        </span>
-                      )}
 
                       {/* Nom et modules */}
-                      <div>
+                      <div className="mt-1">
                         <p className="font-bold text-slate-900">{plan.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {plan.moduleCount ? `${plan.moduleCount} modules` : "Tous les modules"}
@@ -1285,7 +1550,7 @@ export default function BillingPage() {
                       {/* Prix */}
                       <div>
                         {plan.isEnterprise ? (
-                          <p className="text-lg font-bold text-slate-700 italic">Sur devis</p>
+                          <p className="text-lg font-bold text-slate-600 italic">Sur devis</p>
                         ) : (
                           <>
                             <p className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -1300,27 +1565,37 @@ export default function BillingPage() {
                       <ul className="space-y-1 flex-1">
                         {plan.features.map((f) => (
                           <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isCurrent ? "text-amber-500" : kind === "upgrade" ? "text-emerald-500" : "text-slate-400"}`} />
                             {f}
                           </li>
                         ))}
                       </ul>
 
                       {/* CTA */}
-                      {!isCurrent && (
-                        <Button
-                          asChild
-                          size="sm"
-                          variant={plan.isEnterprise ? "outline" : "default"}
-                          className={`w-full text-xs mt-1 ${!plan.isEnterprise ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
+                      {btnCfg.href ? (
+                        <a
+                          href={btnCfg.href}
+                          className={`inline-flex items-center justify-center w-full px-3 py-1.5 rounded-md text-xs font-semibold mt-1 ${btnCfg.cls}`}
                         >
-                          <a href="mailto:sales@gameasutech.africa">
-                            {plan.isEnterprise ? "Demander un devis" : `Passer en ${plan.name}`}
-                          </a>
-                        </Button>
-                      )}
-                      {isCurrent && (
-                        <p className="text-[11px] text-center text-amber-700 font-semibold">✓ Formule active</p>
+                          {btnCfg.label}
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={btnCfg.disabled || changePlanMutation.isPending}
+                          onClick={() => !btnCfg.disabled && setPlanChangeTarget(plan.code)}
+                          className={`inline-flex items-center justify-center w-full px-3 py-1.5 rounded-md text-xs font-semibold mt-1 disabled:opacity-60 disabled:cursor-default ${btnCfg.cls}`}
+                        >
+                          {isCurrent ? (
+                            <><Check className="w-3.5 h-3.5 mr-1.5" /> {btnCfg.label}</>
+                          ) : kind === "upgrade" ? (
+                            <><TrendingUp className="w-3.5 h-3.5 mr-1.5" /> {btnCfg.label}</>
+                          ) : kind === "downgrade" ? (
+                            <><TrendingDown className="w-3.5 h-3.5 mr-1.5" /> {btnCfg.label}</>
+                          ) : (
+                            btnCfg.label
+                          )}
+                        </button>
                       )}
                     </div>
                   );
@@ -1632,6 +1907,15 @@ export default function BillingPage() {
       )}
       {receiptTxId && (
         <ReceiptModal txId={receiptTxId} onClose={() => setReceiptTxId(null)} />
+      )}
+      {planChangeTarget && (
+        <PlanChangeModal
+          targetCode={planChangeTarget}
+          currentCode={planCode}
+          onClose={() => setPlanChangeTarget(null)}
+          onConfirm={(code) => changePlanMutation.mutate(code)}
+          loading={changePlanMutation.isPending}
+        />
       )}
     </div>
   );

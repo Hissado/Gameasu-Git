@@ -1,0 +1,335 @@
+Pouvez-vous revoir toute la logique de changement d’abonnement dans le module Abonnement & Facturation de Gameasu afin qu’elle soit plus réaliste, plus professionnelle et plus cohérente avec un vrai SaaS premium ?
+
+Problème constaté
+
+Actuellement, les boutons affichent simplement :
+
+* Passer en Starter
+* Passer en Business
+* Passer en Premium
+
+Mais cette logique n’est pas assez précise.
+
+Le texte du bouton doit dépendre du pack actuel du tenant et du pack sélectionné.
+
+⸻
+
+1. Détecter le pack actuel du tenant
+
+Le système doit toujours connaître le pack actuel de l’organisation :
+
+* Starter
+* Business
+* Premium
+* Offre personnalisée
+
+Sur la page Abonnement & Facturation, le pack actuel doit être clairement identifié avec un badge :
+
+Formule actuelle
+
+Exemple :
+
+Business — Formule actuelle
+
+Le bouton de la formule actuelle ne doit pas dire “Passer en Business”.
+Il doit plutôt afficher :
+
+Formule actuelle
+
+ou
+
+Abonnement actif
+
+et être désactivé.
+
+⸻
+
+2. Logique Upgrade / Downgrade
+
+Les boutons doivent changer selon la hiérarchie des offres.
+
+Si le tenant est en Starter
+
+* Starter : Formule actuelle
+* Business : Passer à Business
+* Premium : Passer à Premium
+
+Il s’agit d’un upgrade.
+
+Afficher aussi une mention :
+
+Upgrade — accès à plus de modules
+
+⸻
+
+Si le tenant est en Business
+
+* Starter : Réduire vers Starter
+* Business : Formule actuelle
+* Premium : Passer à Premium
+
+Starter devient un downgrade.
+Premium devient un upgrade.
+
+⸻
+
+Si le tenant est en Premium
+
+* Starter : Réduire vers Starter
+* Business : Réduire vers Business
+* Premium : Formule actuelle
+
+Starter et Business deviennent des downgrades.
+
+⸻
+
+Si le tenant est en Offre personnalisée
+
+Afficher une logique spécifique :
+
+* Starter : Contacter l’équipe pour modifier l’offre
+* Business : Contacter l’équipe pour modifier l’offre
+* Premium : Contacter l’équipe pour modifier l’offre
+* Offre personnalisée : Offre personnalisée active
+
+⸻
+
+3. Remplacer les textes trop simples
+
+Éviter d’utiliser partout le même texte :
+
+Passer en [pack]
+
+Utiliser des libellés plus intelligents selon le contexte :
+
+Pour un upgrade
+
+* Passer à Business
+* Passer à Premium
+* Améliorer mon abonnement
+* Débloquer les modules Business
+* Accéder aux fonctionnalités Premium
+
+Pour un downgrade
+
+* Réduire vers Starter
+* Réduire vers Business
+* Changer vers une formule inférieure
+
+Pour la formule actuelle
+
+* Formule actuelle
+* Abonnement actif
+* Votre formule actuelle
+
+Pour une offre personnalisée
+
+* Contacter l’équipe Gameasu
+* Modifier mon offre personnalisée
+* Demander un ajustement de l’offre
+
+⸻
+
+4. Ajouter une confirmation avant changement
+
+Quand l’utilisateur clique sur un changement de formule, afficher une fenêtre de confirmation.
+
+Pour un upgrade
+
+Afficher :
+
+Vous êtes sur le point de passer de Starter à Business.
+
+Résumé à afficher :
+
+* nouvelle formule ;
+* nouveaux modules disponibles ;
+* nouveau prix ;
+* différence de prix ;
+* date d’effet ;
+* prorata si applicable ;
+* prochaine facture estimée.
+
+Boutons :
+
+* Annuler
+* Confirmer l’upgrade
+
+⸻
+
+Pour un downgrade
+
+Afficher un message plus prudent :
+
+Vous êtes sur le point de réduire votre abonnement de Premium vers Business.
+
+Afficher clairement les impacts :
+
+* modules qui seront désactivés ;
+* fonctionnalités qui ne seront plus accessibles ;
+* rapports ou automatisations potentiellement indisponibles ;
+* utilisateurs ou données concernés ;
+* date d’effet du changement ;
+* impact sur la prochaine facture.
+
+Boutons :
+
+* Annuler
+* Confirmer le downgrade
+
+Important : un downgrade ne doit jamais supprimer les données.
+Il doit seulement désactiver ou masquer les modules qui ne sont plus inclus.
+
+⸻
+
+5. Gestion du prorata
+
+Pour un upgrade en cours de période, prévoir une logique de prorata.
+
+Exemple :
+
+* formule actuelle : Starter ;
+* nouvelle formule : Business ;
+* période restante : 18 jours ;
+* différence à payer : calculée au prorata.
+
+Afficher :
+
+* montant actuel ;
+* nouveau montant ;
+* différence ;
+* prorata ;
+* montant à payer aujourd’hui ;
+* prochaine facture.
+
+Pour un downgrade, prévoir une règle claire :
+
+* application immédiate ;
+* ou application à la fin de la période en cours ;
+* ou crédit sur la prochaine facture.
+
+La règle doit être indiquée clairement à l’utilisateur.
+
+⸻
+
+6. Interface plus premium
+
+Améliorer l’affichage des cartes d’abonnement.
+
+Chaque carte doit afficher :
+
+* nom de la formule ;
+* badge : Actuelle, Upgrade, Downgrade, Recommandée ;
+* prix par utilisateur ;
+* nombre de modules ;
+* modules clés inclus ;
+* différence avec la formule actuelle ;
+* bouton adapté au contexte.
+
+Exemple
+
+Si le client est actuellement en Business :
+
+Carte Starter :
+
+* badge : Downgrade
+* bouton : Réduire vers Starter
+
+Carte Business :
+
+* badge : Formule actuelle
+* bouton désactivé : Abonnement actif
+
+Carte Premium :
+
+* badge : Upgrade
+* bouton : Passer à Premium
+
+⸻
+
+7. Sécurité et permissions
+
+Seuls les utilisateurs autorisés doivent pouvoir changer l’abonnement.
+
+Ajouter des permissions comme :
+
+* voir l’abonnement ;
+* changer de formule ;
+* confirmer un upgrade ;
+* demander un downgrade ;
+* gérer la facturation ;
+* voir les montants ;
+* télécharger les factures.
+
+Un utilisateur sans permission doit voir les informations, mais ne doit pas pouvoir modifier l’abonnement.
+
+⸻
+
+8. Synchronisation avec les modules actifs
+
+Après un changement de formule, les modules disponibles doivent être synchronisés automatiquement.
+
+Après upgrade
+
+* activer les nouveaux modules inclus ;
+* mettre à jour les permissions disponibles ;
+* afficher les nouveaux menus ;
+* mettre à jour les limites du pack ;
+* notifier les administrateurs.
+
+Après downgrade
+
+* désactiver les modules non inclus ;
+* masquer les menus concernés ;
+* conserver les données ;
+* empêcher l’accès aux fonctionnalités non incluses ;
+* afficher un message indiquant que certaines fonctionnalités ne sont plus disponibles dans la formule actuelle.
+
+⸻
+
+9. Notifications et emails
+
+Après un changement de formule, envoyer :
+
+Au client
+
+Un email de confirmation avec :
+
+* ancienne formule ;
+* nouvelle formule ;
+* date d’effet ;
+* nouveau montant ;
+* prochaine facture ;
+* modules ajoutés ou retirés.
+
+Au Cockpit Gameasu
+
+Une notification interne indiquant :
+
+* organisation concernée ;
+* utilisateur ayant effectué le changement ;
+* ancienne formule ;
+* nouvelle formule ;
+* impact financier ;
+* date et heure du changement.
+
+⸻
+
+10. Résultat attendu
+
+Je veux une logique d’abonnement plus réaliste et plus premium, avec :
+
+* détection du pack actuel ;
+* bouton désactivé sur la formule actuelle ;
+* logique upgrade si passage vers une formule supérieure ;
+* logique downgrade si passage vers une formule inférieure ;
+* confirmation avant changement ;
+* calcul du prorata ;
+* impact clair sur les modules ;
+* synchronisation avec les permissions ;
+* notifications et emails ;
+* protection par permissions.
+
+Objectif final
+
+Transformer la section Abonnement & Facturation en une vraie expérience SaaS professionnelle, où le changement de formule est clair, sécurisé, cohérent et compréhensible pour le client.

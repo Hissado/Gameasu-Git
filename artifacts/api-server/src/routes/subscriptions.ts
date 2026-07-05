@@ -4,11 +4,26 @@ import {
   subscriptionPlansTable, subscriptionPlanFeaturesTable,
   organizationSubscriptionsTable, organizationModulesTable, billingEventsTable,
   organizationMembersTable, organizationsTable, moduleCatalogTable,
+  usersTable,
 } from "@workspace/db";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getCurrentOrganizationId, getCurrentSubscription } from "../lib/tenant";
 import { requireAdmin } from "../middlewares/auth";
 import { calcPricing } from "../lib/pricing";
+import { sendEmail } from "../lib/email";
+
+// ── Hiérarchie des plans (plus le nombre est élevé, plus le plan est supérieur)
+const PLAN_ORDER: Record<string, number> = { STARTER: 1, BUSINESS: 2, PREMIUM: 3, ENTERPRISE: 99 };
+
+function getPlanChangeType(fromCode: string, toCode: string): "upgrade" | "downgrade" | "current" | "enterprise" {
+  const from = fromCode.toUpperCase();
+  const to   = toCode.toUpperCase();
+  if (from === to) return "current";
+  if (to === "ENTERPRISE" || from === "ENTERPRISE") return "enterprise";
+  const fromOrder = PLAN_ORDER[from] ?? 0;
+  const toOrder   = PLAN_ORDER[to]   ?? 0;
+  return toOrder > fromOrder ? "upgrade" : "downgrade";
+}
 
 const router: IRouter = Router();
 
@@ -62,6 +77,66 @@ router.patch("/subscriptions/current", requireAdmin, async (req, res) => {
   res.json(updated);
 });
 
+// ── Prévisualisation d'un changement de plan (sans effet)
+router.get("/subscriptions/change-plan/preview", requireAdmin, async (req, res) => {
+  const orgId = await getCurrentOrganizationId(req.authUser!.id);
+  if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
+
+  const targetCode = String((req.query as Record<string, string>).to ?? "").toUpperCase();
+  if (!targetCode) return res.status(400).json({ error: "Paramètre 'to' requis" });
+
+  const [targetPlan] = await db.select().from(subscriptionPlansTable)
+    .where(eq(subscriptionPlansTable.code, targetCode)).limit(1);
+  if (!targetPlan) return res.status(404).json({ error: "Plan introuvable" });
+
+  const current = await getCurrentSubscription(orgId);
+  if (!current) return res.status(404).json({ error: "Aucun abonnement actif" });
+
+  const { sub, plan: fromPlan } = current;
+  const changeType = getPlanChangeType(fromPlan.code, targetCode);
+  const cycle = sub.billingCycle ?? "monthly";
+  const seats = sub.seats ?? 1;
+
+  const fromUnitTTC = cycle === "annual" ? fromPlan.annualPricePerSeat : fromPlan.monthlyPricePerSeat;
+  const toUnitTTC   = cycle === "annual" ? targetPlan.annualPricePerSeat : targetPlan.monthlyPricePerSeat;
+
+  const fromMonthlyTTC = fromUnitTTC * seats;
+  const toMonthlyTTC   = toUnitTTC   * seats;
+  const diffMonthly    = toMonthlyTTC - fromMonthlyTTC;
+
+  // Prorata (upgrade seulement : facturer la différence pour la période restante)
+  const now  = new Date();
+  const pEnd = sub.currentPeriodEnd  ? new Date(sub.currentPeriodEnd)  : new Date();
+  const pStart = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : new Date();
+  const totalMs     = Math.max(1, pEnd.getTime() - pStart.getTime());
+  const remainingMs = Math.max(0, pEnd.getTime() - now.getTime());
+  const totalDays     = Math.round(totalMs     / 86_400_000);
+  const remainingDays = Math.round(remainingMs / 86_400_000);
+  const ratio = remainingMs / totalMs;
+  const prorataAmount = changeType === "upgrade" ? Math.round(diffMonthly * ratio) : 0;
+
+  // Modules gagnés / perdus
+  const fromMods = new Set<string>(fromPlan.includedModules ?? []);
+  const toMods   = new Set<string>(targetPlan.includedModules ?? []);
+  const modulesGained = [...toMods  ].filter(m => !fromMods.has(m));
+  const modulesLost   = [...fromMods].filter(m => !toMods.has(m));
+
+  res.json({
+    from: { code: fromPlan.code, name: fromPlan.name, unitPriceTTC: fromUnitTTC, monthlyTTC: fromMonthlyTTC, seats },
+    to:   { code: targetPlan.code, name: targetPlan.name, unitPriceTTC: toUnitTTC, monthlyTTC: toMonthlyTTC },
+    changeType,
+    diffMonthly,
+    remainingDays,
+    totalDays,
+    prorataRatio: Math.round(ratio * 100),
+    prorataAmount,
+    effectiveDate:    now.toISOString().split("T")[0],
+    nextBillingDate:  pEnd.toISOString().split("T")[0],
+    modulesGained,
+    modulesLost,
+  });
+});
+
 router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
   const orgId = await getCurrentOrganizationId(req.authUser!.id);
   if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
@@ -72,6 +147,8 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
   if (!plan) return res.status(404).json({ error: "Plan introuvable" });
 
   const current = await getCurrentSubscription(orgId);
+  const oldPlanName = current?.plan.name ?? "—";
+  const changeType  = current ? getPlanChangeType(current.plan.code, plan.code) : "upgrade";
   const cycle = current?.sub.billingCycle ?? "monthly";
   const unitPrice = cycle === "annual" ? plan.annualPricePerSeat : plan.monthlyPricePerSeat;
 
@@ -114,7 +191,6 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
         .where(eq(organizationModulesTable.id, mod.id));
     }
   }
-  // Insérer les modules du plan qui n'existent pas encore pour cet org
   const missing = [...included].filter((k) => !existingKeys.has(k));
   if (missing.length > 0) {
     await db.insert(organizationModulesTable).values(
@@ -122,18 +198,72 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
     );
   }
 
+  const changeLabel = changeType === "upgrade"
+    ? `Upgrade ${oldPlanName} → ${plan.name}`
+    : `Réduction ${oldPlanName} → ${plan.name}`;
+
   await db.insert(billingEventsTable).values({
     organizationId: orgId,
     subscriptionId: newSub.id,
     kind: "plan_change",
-    label: `Changement de formule → ${plan.name}`,
+    label: changeLabel,
     amount: 0,
     status: "paid",
     currency: plan.currency,
     reference: `NX-PLAN-${Date.now()}`,
   });
 
-  res.json({ subscription: newSub, plan });
+  // Email de confirmation à l'utilisateur
+  try {
+    const [user] = await db.select({ email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+      .from(usersTable).where(eq(usersTable.id, req.authUser!.id)).limit(1);
+    if (user?.email) {
+      const typeLabel  = changeType === "upgrade" ? "upgrade" : "downgrade";
+      const actionWord = changeType === "upgrade" ? "Upgrade" : "Réduction";
+      const seats      = newSub.seats ?? 1;
+      const ttc        = unitPrice * seats;
+      await sendEmail({
+        to:      user.email,
+        subject: `${actionWord} de votre abonnement Gaméasù — Formule ${plan.name}`,
+        html: `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
+  <div style="text-align:center;margin-bottom:24px">
+    <img src="https://gameasu.com/assets/logo.png" alt="Gaméasù" width="120" style="margin-bottom:8px" />
+    <h2 style="color:#111827;font-size:20px;margin:0">Confirmation de changement de formule</h2>
+  </div>
+  <p style="color:#374151;font-size:15px">Bonjour ${user.firstName ?? ""},</p>
+  <p style="color:#374151;font-size:15px">
+    Votre abonnement Gaméasù a été modifié avec succès.
+  </p>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0">
+    <table style="width:100%;font-size:14px;color:#374151">
+      <tr><td style="padding:4px 0;color:#6b7280">Ancienne formule</td><td style="text-align:right;font-weight:600">${oldPlanName}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Nouvelle formule</td><td style="text-align:right;font-weight:700;color:#f37021">${plan.name}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Type de changement</td><td style="text-align:right">${actionWord}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Utilisateurs</td><td style="text-align:right">${seats}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Montant mensuel TTC</td><td style="text-align:right;font-weight:600">${ttc.toLocaleString("fr-FR")} FCFA</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Date d'effet</td><td style="text-align:right">${now.toLocaleDateString("fr-FR")}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Prochaine facturation</td><td style="text-align:right">${end.toLocaleDateString("fr-FR")}</td></tr>
+    </table>
+  </div>
+  ${changeType === "downgrade" ? `
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin:16px 0;font-size:13px;color:#92400e">
+    <strong>⚠️ Modules désactivés</strong><br />
+    Certains modules de votre ancienne formule ne sont plus accessibles.
+    Vos données sont conservées et resteront disponibles si vous repassez à une formule supérieure.
+  </div>` : ""}
+  <p style="color:#6b7280;font-size:13px;margin-top:24px">
+    Pour toute question, contactez notre équipe à <a href="mailto:support@gameasutech.africa" style="color:#f37021">support@gameasutech.africa</a>.
+  </p>
+  <p style="color:#9ca3af;font-size:12px;border-top:1px solid #f3f4f6;padding-top:16px;margin-top:24px;text-align:center">
+    © ${now.getFullYear()} Gaméasù · Pilotage d'entreprise nouvelle génération
+  </p>
+</div>`,
+      });
+    }
+  } catch { /* email non-bloquant */ }
+
+  res.json({ subscription: newSub, plan, changeType });
 });
 
 router.post("/subscriptions/change-billing-cycle", requireAdmin, async (req, res) => {
