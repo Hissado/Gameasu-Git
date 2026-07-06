@@ -1338,14 +1338,22 @@ export default function BillingPage() {
   const [showDeclareModal, setShowDeclareModal] = useState(false);
   const [showPartnerDialog, setShowPartnerDialog] = useState(false);
 
-  // Auto-ouvrir le dialog partenaire si query param openPartner=1 (ex: depuis Settings)
+  // Auto-ouvrir depuis un lien externe (site vitrine, email, etc.)
+  // ?plan=starter&openPay=1  → sélectionne le plan et ouvre le modal de souscription
+  // ?openPartner=1           → ouvre le dialog candidature partenaire
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const planParam = params.get("plan");
+    if (planParam) {
+      // Normalise en majuscules pour correspondre aux codes plan (STARTER, GROWTH…)
+      setPlanChangeTarget(planParam.toUpperCase());
+    }
     if (params.get("openPartner") === "1") {
       setShowPartnerDialog(true);
-      // Nettoyer l'URL sans rechargement
-      const newUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState(null, "", newUrl);
+    }
+    // Nettoyer l'URL sans rechargement si un param a été traité
+    if (planParam || params.has("openPartner") || params.has("openPay")) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.hash);
     }
   }, []);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
