@@ -1438,7 +1438,7 @@ export default function BillingPage() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <div className="overflow-x-auto pb-1">
-        <TabsList className="grid w-full grid-cols-6 max-w-2xl min-w-[420px]">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl min-w-[420px]">
           <TabsTrigger value="overview">Formule</TabsTrigger>
           <TabsTrigger value="addons" className="flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
@@ -1450,12 +1450,6 @@ export default function BillingPage() {
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
                 {pendingCount}
               </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="autopay" className="relative">
-            Autopay
-            {autopayEnabled && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="history">Historique</TabsTrigger>
@@ -2020,19 +2014,6 @@ export default function BillingPage() {
           </Card>
         </TabsContent>
 
-        {/* ── Onglet Autopay ── */}
-        <TabsContent value="autopay" className="space-y-4">
-          <div>
-            <h2 className="text-lg font-bold">Paiement automatique</h2>
-            <p className="text-sm text-muted-foreground">
-              Sauvegardez une carte bancaire pour un renouvellement automatique sécurisé via Stripe.
-            </p>
-          </div>
-          <AutopayPanel
-            stripeStatus={stripeStatus}
-            onRefresh={() => { refetchStripe(); refetchTx(); }}
-          />
-        </TabsContent>
 
         {/* ── Onglet Historique ── */}
         <TabsContent value="history">
