@@ -2,6 +2,9 @@
  * POST /api/public/register
  * Inscription libre SaaS — crée org + user + abonnement en pending_payment.
  * Route publique (avant requireAuth).
+ *
+ * Multi-org : si l'email existe déjà, on vérifie le mot de passe existant
+ * et on rattache une nouvelle organisation au compte existant sans créer de doublon.
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
@@ -36,6 +39,7 @@ const RegisterSchema = z.object({
   firstName:   z.string().min(1).max(50),
   lastName:    z.string().min(1).max(50),
   phone:       z.string().optional(),
+  city:        z.string().optional(),
   planCode:    z.string().default("STARTER"),
   seats:       z.coerce.number().int().min(1).max(500).default(1),
   periodicity: z.enum(["monthly", "quarterly", "semiannual", "annual"]).default("monthly"),
@@ -67,15 +71,25 @@ router.post("/public/register", async (req, res, next) => {
     }
     const data = parsed.data;
 
-    // 1. Vérifier que l'email n'est pas déjà utilisé
-    const [existing] = await db
-      .select({ id: usersTable.id })
+    // 1. Vérifier si l'email est déjà utilisé (multi-org vs doublon)
+    const [existingUser] = await db
+      .select({ id: usersTable.id, password: usersTable.password, firstName: usersTable.firstName, organizationId: usersTable.organizationId })
       .from(usersTable)
       .where(eq(usersTable.email, data.email.toLowerCase()))
       .limit(1);
-    if (existing) {
-      res.status(409).json({ error: "Un compte avec cet email existe déjà. Connectez-vous ou réinitialisez votre mot de passe." });
-      return;
+
+    // Si l'email existe déjà : vérifier le mot de passe pour autoriser la création d'une nouvelle org
+    if (existingUser) {
+      const passwordMatch = await bcrypt.compare(data.password, existingUser.password ?? "");
+      if (!passwordMatch) {
+        res.status(401).json({
+          error: "Cet email est déjà associé à un compte Gaméasù. Le mot de passe saisi est incorrect. Utilisez votre mot de passe existant pour créer une nouvelle organisation.",
+          code: "EMAIL_EXISTS_WRONG_PASSWORD",
+        });
+        return;
+      }
+      // Mot de passe correct → créer nouvelle org pour cet utilisateur existant
+      return await createOrgForExistingUser({ req, res, data, existingUserId: existingUser.id, firstName: existingUser.firstName });
     }
 
     // 2. Valider le plan (pas Enterprise pour self-service)
@@ -104,43 +118,32 @@ router.post("/public/register", async (req, res, next) => {
     }
 
     // 5. Slug unique pour l'organisation
-    const baseSlug = slugify(data.orgName);
-    let slug = baseSlug;
-    for (let i = 1; i < 100; i++) {
-      const [taken] = await db
-        .select({ id: organizationsTable.id })
-        .from(organizationsTable)
-        .where(eq(organizationsTable.slug, slug))
-        .limit(1);
-      if (!taken) break;
-      slug = `${baseSlug}-${i}`;
-    }
+    const orgId  = randomUUID();
+    const userId = randomUUID();
+    const slug   = await uniqueSlug(slugify(data.orgName));
 
     // 6. Tout créer atomiquement en transaction DB
     const hashedPassword = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
-    const userId = randomUUID();
-    const orgId  = randomUUID();
-    let   txId   = "";
-    let   subId  = "";
-
     const months = MONTHS_MAP[data.periodicity] ?? 1;
     const periodStart = new Date();
     const periodEnd   = new Date(periodStart);
     periodEnd.setMonth(periodEnd.getMonth() + months);
     const unitPrice = Math.round(plan.monthlyPriceTTC * (1 - pricing.discount));
 
+    let txId = "";
+    let subId = "";
+
     await db.transaction(async (dbTx) => {
-      // Organisation
       await dbTx.insert(organizationsTable).values({
         id: orgId, slug, name: data.orgName,
         country: data.country ?? "TG",
         industry: data.industry ?? null,
+        city: data.city ?? null,
         currency: "XOF", isActive: true,
         contactEmail: data.email.toLowerCase(),
         contactPhone: data.phone ?? null,
       });
 
-      // Utilisateur (super_admin de son propre espace)
       await dbTx.insert(usersTable).values({
         id: userId,
         organizationId: orgId,
@@ -154,13 +157,11 @@ router.post("/public/register", async (req, res, next) => {
         mustChangePassword: false,
       });
 
-      // Membership owner
       await dbTx.insert(organizationMembersTable).values({
         organizationId: orgId, userId,
         role: "owner", isPrimary: true,
       });
 
-      // Abonnement en attente de paiement
       const [subRow] = await dbTx
         .insert(organizationSubscriptionsTable)
         .values({
@@ -177,7 +178,6 @@ router.post("/public/register", async (req, res, next) => {
         .returning({ id: organizationSubscriptionsTable.id });
       subId = subRow.id;
 
-      // Événement de facturation (en attente)
       const [evRow] = await dbTx
         .insert(billingEventsTable)
         .values({
@@ -191,7 +191,6 @@ router.post("/public/register", async (req, res, next) => {
         })
         .returning({ id: billingEventsTable.id });
 
-      // Transaction de paiement (méthode inconnue jusqu'au passage en caisse)
       const [payRow] = await dbTx
         .insert(paymentTransactionsTable)
         .values({
@@ -211,7 +210,7 @@ router.post("/public/register", async (req, res, next) => {
       txId = payRow.id;
     });
 
-    // 7. Créer une session (l'utilisateur est connecté immédiatement)
+    // 7. Session
     const token = randomUUID();
     const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
     await db.insert(authSessionsTable).values({
@@ -243,15 +242,172 @@ router.post("/public/register", async (req, res, next) => {
       orgId,
       pendingTxId: txId,
       subscriptionStatus: "pending_payment",
-      message: "Compte créé avec succès. Finalisez le paiement pour activer votre espace Gaméasù.",
     });
   } catch (err) {
     next(err);
   }
 });
 
+// ── Crée une nouvelle organisation pour un utilisateur existant ─────────────
+async function createOrgForExistingUser(opts: {
+  req: any; res: any;
+  data: z.infer<typeof RegisterSchema>;
+  existingUserId: string;
+  firstName: string | null;
+}) {
+  const { req, res, data, existingUserId, firstName } = opts;
+
+  const plan = getPlan(data.planCode);
+  if (!plan || plan.isEnterprise) {
+    res.status(400).json({ error: "Ce plan n'est pas disponible à l'inscription libre." });
+    return;
+  }
+
+  const pricing = calcPlanPricing({ planCode: plan.code, seats: data.seats, periodicity: data.periodicity });
+  if (!pricing) {
+    res.status(400).json({ error: "Impossible de calculer le tarif pour ce plan." });
+    return;
+  }
+
+  const [planRow] = await db
+    .select({ id: subscriptionPlansTable.id })
+    .from(subscriptionPlansTable)
+    .where(eq(subscriptionPlansTable.code, plan.code))
+    .limit(1);
+  if (!planRow) {
+    res.status(500).json({ error: "Plan introuvable en base." });
+    return;
+  }
+
+  const orgId = randomUUID();
+  const slug  = await uniqueSlug(slugify(data.orgName));
+  const months = MONTHS_MAP[data.periodicity] ?? 1;
+  const periodStart = new Date();
+  const periodEnd   = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + months);
+  const unitPrice = Math.round(plan.monthlyPriceTTC * (1 - pricing.discount));
+  let subId = "";
+  let txId  = "";
+
+  await db.transaction(async (dbTx) => {
+    await dbTx.insert(organizationsTable).values({
+      id: orgId, slug, name: data.orgName,
+      country: data.country ?? "TG",
+      industry: data.industry ?? null,
+      city: data.city ?? null,
+      currency: "XOF", isActive: true,
+      contactEmail: data.email.toLowerCase(),
+      contactPhone: data.phone ?? null,
+    });
+
+    // Rattacher l'utilisateur existant à la nouvelle org en tant qu'owner
+    await dbTx.insert(organizationMembersTable).values({
+      organizationId: orgId,
+      userId: existingUserId,
+      role: "owner",
+      isPrimary: false,
+    });
+
+    const [subRow] = await dbTx
+      .insert(organizationSubscriptionsTable)
+      .values({
+        organizationId: orgId,
+        planId: planRow.id,
+        status: "pending_payment",
+        billingCycle: data.periodicity,
+        seats: data.seats,
+        currentPeriodStart: periodStart,
+        currentPeriodEnd: periodEnd,
+        unitPrice,
+        isCurrent: true,
+      })
+      .returning({ id: organizationSubscriptionsTable.id });
+    subId = subRow.id;
+
+    const [evRow] = await dbTx
+      .insert(billingEventsTable)
+      .values({
+        organizationId: orgId,
+        subscriptionId: subId,
+        kind: "setup",
+        label: `Souscription ${plan.name} — ${data.seats} siège${data.seats > 1 ? "s" : ""} × ${months} mois`,
+        amount: pricing.totalTTC,
+        currency: "XOF",
+        status: "pending",
+      })
+      .returning({ id: billingEventsTable.id });
+
+    const [payRow] = await dbTx
+      .insert(paymentTransactionsTable)
+      .values({
+        organizationId: orgId,
+        subscriptionId: subId,
+        billingEventId: evRow.id,
+        amount: pricing.totalTTC,
+        currency: "XOF",
+        method: "pending",
+        status: "pending",
+        purpose: "setup_fee",
+        planCode: plan.code,
+        seats: data.seats,
+        periodicity: data.periodicity,
+      })
+      .returning({ id: paymentTransactionsTable.id });
+    txId = payRow.id;
+  });
+
+  // Session active sur la nouvelle org
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+  await db.insert(authSessionsTable).values({
+    token, userId: existingUserId, expiresAt,
+    activeOrgId: orgId,
+    userAgent: (req.headers["user-agent"] as string) ?? null,
+    ip: req.ip ?? null,
+  });
+
+  // Email de bienvenue (non-bloquant)
+  try {
+    const baseUrl = getPublicBaseUrl(req);
+    const emailMsg = buildRegistrationEmail({
+      firstName: firstName ?? data.firstName,
+      orgName: data.orgName,
+      planName: plan.name,
+      seats: data.seats,
+      totalTTC: pricing.totalTTC,
+      billingUrl: `${baseUrl}/facturation`,
+    });
+    await sendEmail({ ...emailMsg, to: data.email });
+  } catch (emailErr) {
+    logger.warn({ err: emailErr }, "[register] email bienvenue (multi-org) non envoyé");
+  }
+
+  res.status(201).json({
+    token,
+    userId: existingUserId,
+    orgId,
+    pendingTxId: txId,
+    subscriptionStatus: "pending_payment",
+    isMultiOrg: true,
+  });
+}
+
+// ── Génère un slug unique ──────────────────────────────────────────────────
+async function uniqueSlug(base: string): Promise<string> {
+  let slug = base;
+  for (let i = 1; i < 100; i++) {
+    const [taken] = await db
+      .select({ id: organizationsTable.id })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.slug, slug))
+      .limit(1);
+    if (!taken) return slug;
+    slug = `${base}-${i}`;
+  }
+  return `${base}-${Date.now()}`;
+}
+
 // ── GET /api/public/check-email ───────────────────────────────────────────
-// Vérifie en temps réel si un email est déjà enregistré
 router.get("/public/check-email", async (req, res, next) => {
   try {
     const email = String(req.query["email"] ?? "").toLowerCase().trim();

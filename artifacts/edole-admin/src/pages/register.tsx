@@ -2,30 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { BRANDING } from "@/config/branding";
 import { cn } from "@/lib/utils";
-import { Check, Loader2, Eye, EyeOff, Building2, User, Mail, Lock, Phone, Globe } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, ExternalLink } from "lucide-react";
 import { PLAN_CATALOG, PERIODICITY_OPTIONS, calcPlanPricing } from "@/lib/pricing-config";
 import { formatFCFA } from "@/lib/format";
 
-const PLAN_ORDER = ["STARTER", "BUSINESS", "PREMIUM"];
-
 const INDUSTRY_OPTIONS = [
-  { value: "consulting", label: "Conseil & Services" },
-  { value: "btp", label: "BTP & Construction" },
-  { value: "commerce", label: "Commerce & Distribution" },
-  { value: "industrie", label: "Industrie & Production" },
-  { value: "sante", label: "Santé & Médical" },
-  { value: "education", label: "Éducation & Formation" },
-  { value: "transport", label: "Transport & Logistique" },
-  { value: "finance", label: "Finance & Assurance" },
-  { value: "technologie", label: "Technologie & IT" },
-  { value: "autre", label: "Autre" },
+  { value: "consulting",   label: "Conseil & Services" },
+  { value: "btp",          label: "BTP & Construction" },
+  { value: "commerce",     label: "Commerce & Distribution" },
+  { value: "industrie",    label: "Industrie & Production" },
+  { value: "sante",        label: "Santé & Médical" },
+  { value: "education",    label: "Éducation & Formation" },
+  { value: "transport",    label: "Transport & Logistique" },
+  { value: "finance",      label: "Finance & Assurance" },
+  { value: "technologie",  label: "Technologie & IT" },
+  { value: "autre",        label: "Autre" },
 ];
 
 const COUNTRY_OPTIONS = [
@@ -41,10 +35,17 @@ const COUNTRY_OPTIONS = [
   { value: "CD", label: "RD Congo" },
 ];
 
-const PLAN_COLORS: Record<string, { border: string; badge: string; button: string }> = {
-  STARTER:  { border: "border-slate-300",  badge: "bg-slate-100 text-slate-700",   button: "bg-slate-700 hover:bg-slate-800" },
-  BUSINESS: { border: "border-blue-400",   badge: "bg-blue-100 text-blue-700",     button: "bg-blue-600 hover:bg-blue-700" },
-  PREMIUM:  { border: "border-purple-400", badge: "bg-purple-100 text-purple-700", button: "bg-purple-700 hover:bg-purple-800" },
+const PERIOD_LABELS: Record<string, string> = {
+  monthly:    "Mensuel",
+  quarterly:  "Trimestriel",
+  semiannual: "Semestriel",
+  annual:     "Annuel",
+};
+
+const PLAN_BADGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  STARTER:  { bg: "#F8FAFC", text: "#475569", border: "#CBD5E1" },
+  BUSINESS: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
+  PREMIUM:  { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE" },
 };
 
 export default function RegisterPage() {
@@ -52,103 +53,94 @@ export default function RegisterPage() {
   const { toast } = useToast();
 
   const params = new URLSearchParams(window.location.search);
-  const paramPlan = (params.get("plan") ?? "BUSINESS").toUpperCase();
-  const paramSeats = parseInt(params.get("seats") ?? "1") || 1;
-  const paramPeriodicity = params.get("periodicity") ?? "monthly";
+  const rawPlan = (params.get("plan") ?? "BUSINESS").toUpperCase();
+  const rawSeats = parseInt(params.get("seats") ?? "1") || 1;
+  const rawPeriodicity = params.get("periodicity") ?? "monthly";
 
-  const [step, setStep] = useState<1 | 2>(1);
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const planCode = ["STARTER", "BUSINESS", "PREMIUM"].includes(rawPlan) ? rawPlan : "BUSINESS";
+  const seats = Math.min(500, Math.max(1, rawSeats));
+  const periodicity = ["monthly", "quarterly", "semiannual", "annual"].includes(rawPeriodicity) ? rawPeriodicity : "monthly";
+
+  const plan = PLAN_CATALOG.find(p => p.code === planCode);
+  const pricing = plan && !plan.isEnterprise ? calcPlanPricing({ planCode, seats, periodicity: periodicity as any }) : null;
+  const pricingData = pricing && !pricing.isEnterprise ? pricing : null;
+  const planBadge = PLAN_BADGE_COLORS[planCode] ?? PLAN_BADGE_COLORS.BUSINESS;
 
   const [form, setForm] = useState({
-    orgName: "",
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    phone: "",
-    industry: "",
-    country: "TG",
-    planCode: PLAN_ORDER.includes(paramPlan) ? paramPlan : "BUSINESS",
-    seats: paramSeats,
-    periodicity: ["monthly","quarterly","semiannual","annual"].includes(paramPeriodicity) ? paramPeriodicity : "monthly",
+    orgName:         "",
+    firstName:       "",
+    lastName:        "",
+    email:           "",
+    password:        "",
+    confirmPassword: "",
+    phone:           "",
+    city:            "",
+    industry:        "",
+    country:         "TG",
+    terms:           false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [emailChecked, setEmailChecked] = useState(false);
-  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
-  const [emailCheckTimer, setEmailCheckTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-
-  const plan = PLAN_CATALOG.find(p => p.code === form.planCode);
-  const pricing = plan && !plan.isEnterprise
-    ? calcPlanPricing({ planCode: plan.code, seats: form.seats, periodicity: form.periodicity as any })
-    : null;
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Vérification email temps réel
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "exists">("idle");
   useEffect(() => {
-    if (emailCheckTimer) clearTimeout(emailCheckTimer);
-    if (!form.email || !form.email.includes("@")) {
-      setEmailAvailable(null);
-      setEmailChecked(false);
-      return;
-    }
-    setEmailChecked(false);
-    const timer = setTimeout(async () => {
+    if (!form.email.includes("@")) { setEmailStatus("idle"); return; }
+    setEmailStatus("checking");
+    const t = setTimeout(async () => {
       try {
-        const res = await apiFetch(`/api/public/check-email?email=${encodeURIComponent(form.email)}`) as { available: boolean };
-        setEmailAvailable(res.available);
-        setEmailChecked(true);
-      } catch {
-        setEmailAvailable(null);
-      }
+        const res = await apiFetch<{ available: boolean }>(`/api/public/check-email?email=${encodeURIComponent(form.email)}`);
+        setEmailStatus(res.available ? "available" : "exists");
+      } catch { setEmailStatus("idle"); }
     }, 500);
-    setEmailCheckTimer(timer);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [form.email]);
 
-  function set(field: string, value: string | number) {
+  function set(field: string, value: string | boolean) {
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => { const n = { ...e }; delete n[field]; return n; });
   }
 
-  function validateStep1() {
+  function validate() {
     const e: Record<string, string> = {};
     if (!form.orgName.trim()) e.orgName = "Nom de l'organisation requis";
     if (!form.firstName.trim()) e.firstName = "Prénom requis";
     if (!form.lastName.trim()) e.lastName = "Nom requis";
-    if (!form.email.includes("@")) e.email = "Email invalide";
-    if (emailAvailable === false) e.email = "Cet email est déjà utilisé";
+    if (!form.email.includes("@")) e.email = "Adresse e-mail invalide";
     if (form.password.length < 8) e.password = "Minimum 8 caractères";
+    if (form.password !== form.confirmPassword) e.confirmPassword = "Les mots de passe ne correspondent pas";
+    if (!form.terms) e.terms = "Vous devez accepter les conditions";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function goToStep2() {
-    if (validateStep1()) setStep(2);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     try {
-      const res = await apiFetch("/api/public/register", {
+      const res = await apiFetch<{ token: string }>("/api/public/register", {
         method: "POST",
         body: JSON.stringify({
-          orgName: form.orgName,
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          password: form.password,
-          phone: form.phone || undefined,
-          country: form.country,
-          industry: form.industry || undefined,
-          planCode: form.planCode,
-          seats: form.seats,
-          periodicity: form.periodicity,
+          orgName:     form.orgName,
+          firstName:   form.firstName,
+          lastName:    form.lastName,
+          email:       form.email,
+          password:    form.password,
+          phone:       form.phone || undefined,
+          city:        form.city || undefined,
+          country:     form.country,
+          industry:    form.industry || undefined,
+          planCode,
+          seats,
+          periodicity,
         }),
-      }) as { token: string };
+      });
       localStorage.setItem("auth_token", res.token);
-      toast({ title: "Compte créé !", description: "Finalisez votre paiement pour activer votre espace." });
+      toast({ title: "Compte créé !", description: "Finalisez le paiement pour activer votre espace." });
       setLocation("/facturation");
       window.location.reload();
     } catch (err: any) {
@@ -158,340 +150,359 @@ export default function RegisterPage() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#080E1C] via-[#0C1830] to-[#142040] flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <div className="text-[#F37021] font-extrabold tracking-widest text-sm mb-3 uppercase">Gaméasù</div>
-        <h1 className="text-white text-3xl font-bold mb-2">Créer votre espace de travail</h1>
-        <p className="text-slate-400 text-sm">Démarrez gratuitement, aucune carte bancaire requise pour s'inscrire.</p>
-      </div>
+  const year = new Date().getFullYear();
 
-      <div className="w-full max-w-4xl">
-        {/* Stepper */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          {[
-            { n: 1, label: "Vos informations" },
-            { n: 2, label: "Votre formule" },
-          ].map(({ n, label }) => (
-            <React.Fragment key={n}>
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
-                  step > n ? "bg-emerald-500 text-white" : step === n ? "bg-[#F37021] text-white" : "bg-slate-700 text-slate-400",
-                )}>
-                  {step > n ? <Check className="w-4 h-4" /> : n}
-                </div>
-                <span className={cn("text-sm font-medium hidden sm:block", step >= n ? "text-white" : "text-slate-500")}>
-                  {label}
-                </span>
-              </div>
-              {n < 2 && <div className="h-px w-12 bg-slate-600" />}
-            </React.Fragment>
-          ))}
+  return (
+    <div
+      className="min-h-screen w-full flex flex-col items-center justify-between px-4 py-10"
+      style={{ background: "#F3F4F6", fontFamily: "var(--app-font-display, system-ui)" }}
+    >
+      <div /> {/* spacer */}
+
+      <div className="w-full max-w-[900px]">
+        {/* Logo centré */}
+        <div className="text-center mb-8">
+          <img
+            src={BRANDING.logoFullTransparent}
+            alt={BRANDING.appName}
+            draggable={false}
+            className="select-none mx-auto"
+            style={{ height: "48px", width: "auto" }}
+          />
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {step === 1 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Colonne gauche : infos org */}
-              <Card className="bg-[#0f1a2e] border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-[#F37021]" />
-                    Votre organisation
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Ces informations identifient votre espace de travail.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-slate-300 mb-1.5 block">Nom de l'organisation <span className="text-red-400">*</span></Label>
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 items-start">
+
+          {/* ══ COLONNE GAUCHE : Récapitulatif abonnement ══════════════════ */}
+          <div className="space-y-4">
+
+            {/* Carte récapitulatif */}
+            <div
+              className="rounded-2xl bg-white px-7 py-7"
+              style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}
+            >
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-4">Votre sélection</p>
+
+              {/* Badge plan */}
+              <div className="flex items-center gap-2 mb-4">
+                <span
+                  className="px-2.5 py-0.5 rounded-md text-[12px] font-bold"
+                  style={{ background: planBadge.bg, color: planBadge.text, border: `1px solid ${planBadge.border}` }}
+                >
+                  {plan?.name ?? planCode}
+                </span>
+                {plan?.badge && (
+                  <span className="text-[11px] font-medium" style={{ color: "#F37021" }}>⭐ {plan.badge}</span>
+                )}
+              </div>
+
+              <div className="space-y-2.5 text-[13px] mb-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Utilisateurs</span>
+                  <span className="font-semibold text-[#0E1A39]">{seats} siège{seats > 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Périodicité</span>
+                  <span className="font-semibold text-[#0E1A39]">{PERIOD_LABELS[periodicity] ?? periodicity}</span>
+                </div>
+                {pricingData && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Prix / utilisateur / mois</span>
+                      <span className="font-semibold text-[#0E1A39]">
+                        {formatFCFA(Math.round(pricingData.ttc / seats / pricingData.months))}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-gray-400">
+                        <span>Montant HT</span>
+                        <span>{formatFCFA(pricingData.amountHT)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-gray-400">
+                        <span>TVA 18 %</span>
+                        <span>{formatFCFA(pricingData.tva)}</span>
+                      </div>
+                    </div>
+                    <div
+                      className="flex items-center justify-between rounded-xl px-4 py-3"
+                      style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
+                    >
+                      <span className="text-[13px] font-semibold text-[#1D4ED8]">Total TTC</span>
+                      <span className="text-[18px] font-extrabold text-[#1D4ED8]">{formatFCFA(pricingData.ttc)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Modifier la sélection */}
+              <a
+                href="https://gameasu.com/tarifs"
+                className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Modifier ma sélection
+              </a>
+            </div>
+
+            {/* Bandeau sécurité paiement */}
+            <div
+              className="rounded-xl px-5 py-4"
+              style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+            >
+              <p className="text-[12px] font-semibold text-[#92400E] mb-1">Prochaine étape : Paiement</p>
+              <p className="text-[11.5px] text-[#78350F] leading-relaxed">
+                Votre espace sera activé après validation du paiement. Plusieurs moyens acceptés&nbsp;: carte bancaire, Mobile Money, virement ou dépôt en agence.
+              </p>
+            </div>
+          </div>
+
+          {/* ══ COLONNE DROITE : Formulaire ════════════════════════════════ */}
+          <div
+            className="rounded-2xl bg-white px-8 py-8"
+            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}
+          >
+            <h1 className="text-[20px] font-bold text-[#0E1A39] mb-1">Créer votre espace de travail</h1>
+            <p className="text-[12.5px] text-gray-500 mb-6">
+              Renseignez vos informations pour créer votre organisation sur Gaméasù.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+
+              {/* ── Organisation ───────────────────────────────────────── */}
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Organisation</p>
+                <div className="space-y-3">
+                  <Field label="Nom de l'organisation" required error={errors.orgName}>
                     <Input
                       value={form.orgName}
                       onChange={e => set("orgName", e.target.value)}
                       placeholder="Ex. : Hissado Consulting"
-                      className={cn("bg-[#162035] border-slate-600 text-white placeholder:text-slate-500", errors.orgName && "border-red-500")}
+                      className={fieldCls(!!errors.orgName)}
                     />
-                    {errors.orgName && <p className="text-red-400 text-xs mt-1">{errors.orgName}</p>}
-                  </div>
+                  </Field>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Secteur</Label>
-                      <Select value={form.industry} onValueChange={v => set("industry", v)}>
-                        <SelectTrigger className="bg-[#162035] border-slate-600 text-slate-300">
-                          <SelectValue placeholder="Secteur…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INDUSTRY_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Pays</Label>
-                      <Select value={form.country} onValueChange={v => set("country", v)}>
-                        <SelectTrigger className="bg-[#162035] border-slate-600 text-slate-300">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COUNTRY_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Field label="Secteur d'activité">
+                      <select
+                        value={form.industry}
+                        onChange={e => set("industry", e.target.value)}
+                        className={fieldCls(false) + " cursor-pointer"}
+                        style={{ height: "44px", paddingLeft: "12px", paddingRight: "12px", fontSize: "13.5px", borderRadius: "8px", border: "1px solid #D1D5DB", outline: "none", color: form.industry ? "#0E1A39" : "#9CA3AF" }}
+                      >
+                        <option value="">Secteur…</option>
+                        {INDUSTRY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Pays">
+                      <select
+                        value={form.country}
+                        onChange={e => set("country", e.target.value)}
+                        className={fieldCls(false)}
+                        style={{ height: "44px", paddingLeft: "12px", paddingRight: "12px", fontSize: "13.5px", borderRadius: "8px", border: "1px solid #D1D5DB", outline: "none", color: "#0E1A39" }}
+                      >
+                        {COUNTRY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </Field>
                   </div>
-                </CardContent>
-              </Card>
+                  <Field label="Ville">
+                    <Input
+                      value={form.city}
+                      onChange={e => set("city", e.target.value)}
+                      placeholder="Lomé, Abidjan…"
+                      className={fieldCls(false)}
+                    />
+                  </Field>
+                </div>
+              </div>
 
-              {/* Colonne droite : infos compte */}
-              <Card className="bg-[#0f1a2e] border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#F37021]" />
-                    Votre compte administrateur
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Ce compte aura tous les droits sur votre espace.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              {/* ── Compte administrateur ──────────────────────────────── */}
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Compte administrateur</p>
+                <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Prénom <span className="text-red-400">*</span></Label>
+                    <Field label="Prénom" required error={errors.firstName}>
                       <Input
                         value={form.firstName}
                         onChange={e => set("firstName", e.target.value)}
                         placeholder="Kodjo"
-                        className={cn("bg-[#162035] border-slate-600 text-white placeholder:text-slate-500", errors.firstName && "border-red-500")}
+                        className={fieldCls(!!errors.firstName)}
                       />
-                      {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName}</p>}
-                    </div>
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Nom <span className="text-red-400">*</span></Label>
+                    </Field>
+                    <Field label="Nom" required error={errors.lastName}>
                       <Input
                         value={form.lastName}
                         onChange={e => set("lastName", e.target.value)}
                         placeholder="Hissado"
-                        className={cn("bg-[#162035] border-slate-600 text-white placeholder:text-slate-500", errors.lastName && "border-red-500")}
+                        className={fieldCls(!!errors.lastName)}
                       />
-                      {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName}</p>}
-                    </div>
+                    </Field>
                   </div>
-                  <div>
-                    <Label className="text-slate-300 mb-1.5 block flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5" /> Email <span className="text-red-400">*</span>
-                    </Label>
+
+                  <Field label="Adresse e-mail professionnelle" required error={errors.email}>
                     <div className="relative">
                       <Input
                         type="email"
                         value={form.email}
                         onChange={e => set("email", e.target.value)}
-                        placeholder="vous@exemple.com"
-                        className={cn("bg-[#162035] border-slate-600 text-white placeholder:text-slate-500 pr-10",
-                          errors.email && "border-red-500",
-                          emailChecked && emailAvailable && "border-emerald-500",
+                        placeholder="vous@entreprise.com"
+                        autoComplete="email"
+                        className={cn(
+                          fieldCls(!!errors.email),
+                          "pr-9",
+                          emailStatus === "available" && "border-emerald-400 focus-visible:ring-emerald-400",
                         )}
                       />
-                      {emailChecked && (
-                        <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center",
-                          emailAvailable ? "text-emerald-400" : "text-red-400")}>
-                          {emailAvailable ? <Check className="w-3.5 h-3.5" /> : "✗"}
-                        </div>
+                      {emailStatus === "checking" && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-gray-400" />
+                      )}
+                      {emailStatus === "available" && (
+                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500" />
                       )}
                     </div>
-                    {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-                    {emailChecked && emailAvailable && <p className="text-emerald-400 text-xs mt-1">Email disponible ✓</p>}
-                  </div>
-                  <div>
-                    <Label className="text-slate-300 mb-1.5 block flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5" /> Mot de passe <span className="text-red-400">*</span>
-                    </Label>
+                    {emailStatus === "exists" && !errors.email && (
+                      <p className="text-[11px] text-amber-600 mt-1">
+                        Cet email existe déjà. Si c'est le vôtre, entrez votre mot de passe Gaméasù pour créer une nouvelle organisation.
+                      </p>
+                    )}
+                  </Field>
+
+                  <Field label="Téléphone">
+                    <Input
+                      type="tel"
+                      value={form.phone}
+                      onChange={e => set("phone", e.target.value)}
+                      placeholder="+228 90 00 00 00"
+                      className={fieldCls(false)}
+                    />
+                  </Field>
+
+                  <Field label="Mot de passe" required error={errors.password}>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
                         value={form.password}
                         onChange={e => set("password", e.target.value)}
                         placeholder="8 caractères minimum"
-                        className={cn("bg-[#162035] border-slate-600 text-white placeholder:text-slate-500 pr-10", errors.password && "border-red-500")}
+                        autoComplete="new-password"
+                        className={cn(fieldCls(!!errors.password), "pr-10")}
                       />
-                      <button type="button" onClick={() => setShowPassword(s => !s)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        tabIndex={-1}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
-                    {form.password.length > 0 && form.password.length < 8 && (
-                      <p className="text-amber-400 text-xs mt-1">{8 - form.password.length} caractères manquants</p>
+                    {form.password.length > 0 && form.password.length < 8 && !errors.password && (
+                      <p className="text-[11px] text-amber-500 mt-1">{8 - form.password.length} caractère{8 - form.password.length > 1 ? "s" : ""} manquant{8 - form.password.length > 1 ? "s" : ""}</p>
                     )}
-                  </div>
-                  <div>
-                    <Label className="text-slate-300 mb-1.5 block flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" /> Téléphone
-                    </Label>
-                    <Input
-                      type="tel"
-                      value={form.phone}
-                      onChange={e => set("phone", e.target.value)}
-                      placeholder="+228 90 00 00 00"
-                      className="bg-[#162035] border-slate-600 text-white placeholder:text-slate-500"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                  </Field>
 
-              <div className="lg:col-span-2 flex justify-between items-center">
-                <a href="/login" className="text-slate-400 hover:text-slate-200 text-sm">
-                  Déjà un compte ? Se connecter →
+                  <Field label="Confirmer le mot de passe" required error={errors.confirmPassword}>
+                    <div className="relative">
+                      <Input
+                        type={showConfirm ? "text" : "password"}
+                        value={form.confirmPassword}
+                        onChange={e => set("confirmPassword", e.target.value)}
+                        placeholder="Retapez votre mot de passe"
+                        autoComplete="new-password"
+                        className={cn(
+                          fieldCls(!!errors.confirmPassword),
+                          "pr-10",
+                          form.confirmPassword && form.confirmPassword === form.password && "border-emerald-400",
+                        )}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(v => !v)}
+                        tabIndex={-1}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+              </div>
+
+              {/* ── Conditions d'utilisation ────────────────────────────── */}
+              <div>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.terms}
+                    onChange={e => set("terms", e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded cursor-pointer"
+                    style={{ accentColor: "#2563EB" }}
+                  />
+                  <span className="text-[12.5px] text-gray-600 leading-relaxed">
+                    J'accepte les{" "}
+                    <a href="#" className="text-blue-600 hover:underline">Conditions d'utilisation</a>
+                    {" "}et la{" "}
+                    <a href="#" className="text-blue-600 hover:underline">Politique de confidentialité</a>
+                    {" "}de Gaméasù.
+                  </span>
+                </label>
+                {errors.terms && <p className="text-[11px] text-red-500 mt-1 ml-6">{errors.terms}</p>}
+              </div>
+
+              {/* ── CTA ─────────────────────────────────────────────────── */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-lg text-[14px] font-semibold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.985] disabled:opacity-60"
+                style={{ background: "#2563EB" }}
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Création en cours…</>
+                  : "Continuer vers le paiement →"}
+              </button>
+
+              {/* Lien connexion */}
+              <p className="text-center text-[12.5px] text-gray-500 pt-1">
+                Déjà un compte ?{" "}
+                <a href="/login" className="text-blue-600 hover:underline font-medium">
+                  Se connecter
                 </a>
-                <Button
-                  type="button"
-                  onClick={goToStep2}
-                  className="bg-[#F37021] hover:bg-[#d96318] text-white font-semibold px-8 py-2.5 rounded-lg"
-                >
-                  Suivant : choisir ma formule
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6">
-              {/* Sélecteur de plan */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {PLAN_CATALOG.filter(p => !p.isEnterprise && PLAN_ORDER.includes(p.code)).map(p => {
-                  const pricingP = calcPlanPricing({ planCode: p.code, seats: form.seats, periodicity: form.periodicity as any });
-                  const colors = PLAN_COLORS[p.code] ?? PLAN_COLORS.BUSINESS;
-                  const isSelected = form.planCode === p.code;
-                  return (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => set("planCode", p.code)}
-                      className={cn(
-                        "text-left rounded-xl border-2 p-5 transition-all bg-[#0f1a2e] hover:border-opacity-80",
-                        isSelected ? `${colors.border} ring-2 ring-offset-0 ring-offset-transparent` : "border-slate-700",
-                      )}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", colors.badge)}>{p.name}</span>
-                          {p.badge && <span className="ml-2 text-xs text-[#F37021] font-semibold">⭐ {p.badge}</span>}
-                        </div>
-                        {isSelected && <div className="w-5 h-5 rounded-full bg-[#F37021] flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
-                      </div>
-                      <div className="text-2xl font-bold text-white mb-0.5">
-                        {formatFCFA(p.monthlyPriceTTC)}
-                        <span className="text-sm font-normal text-slate-400"> /util/mois</span>
-                      </div>
-                      <p className="text-slate-400 text-xs mb-3">{p.tagline}</p>
-                      <ul className="space-y-1">
-                        {(p.features as readonly string[]).map((f: string) => (
-                          <li key={f} className="text-slate-300 text-xs flex items-start gap-1.5">
-                            <Check className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />{f}
-                          </li>
-                        ))}
-                      </ul>
-                      {pricingP && !pricingP.isEnterprise && isSelected && (
-                        <div className="mt-4 pt-3 border-t border-slate-700">
-                          <div className="text-[#F37021] font-bold">{formatFCFA(pricingP.ttc)} TTC</div>
-                          <div className="text-slate-400 text-xs">pour {form.seats} siège{form.seats > 1 ? "s" : ""} × {pricingP.months} mois</div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Sièges + Périodicité */}
-              <Card className="bg-[#0f1a2e] border-slate-700">
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Nombre de sièges (utilisateurs)</Label>
-                      <div className="flex items-center gap-3">
-                        <Button type="button" variant="outline" size="sm"
-                          className="border-slate-600 text-slate-300 hover:bg-slate-700 w-8 h-8 p-0"
-                          onClick={() => set("seats", Math.max(1, form.seats - 1))}>−</Button>
-                        <span className="text-white text-xl font-bold w-12 text-center">{form.seats}</span>
-                        <Button type="button" variant="outline" size="sm"
-                          className="border-slate-600 text-slate-300 hover:bg-slate-700 w-8 h-8 p-0"
-                          onClick={() => set("seats", Math.min(500, form.seats + 1))}>+</Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-slate-300 mb-1.5 block">Périodicité</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {PERIODICITY_OPTIONS.map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => set("periodicity", opt.value)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
-                              form.periodicity === opt.value
-                                ? "bg-[#F37021] border-[#F37021] text-white"
-                                : "border-slate-600 text-slate-400 hover:border-slate-400",
-                            )}
-                          >
-                            {opt.label}
-                            {opt.discount > 0 && (
-                              <span className="ml-1.5 text-xs opacity-75">−{opt.discount * 100}%</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Récapitulatif */}
-              {pricing && !pricing.isEnterprise && plan && (
-                <Card className="bg-gradient-to-br from-[#F37021]/10 to-transparent border-[#F37021]/30">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                      <div>
-                        <p className="text-slate-400 text-sm mb-1">Récapitulatif de votre abonnement</p>
-                        <p className="text-white font-semibold">
-                          {plan.name} — {form.seats} siège{form.seats > 1 ? "s" : ""} — {PERIODICITY_OPTIONS.find(o => o.value === form.periodicity)?.label}
-                        </p>
-                        <p className="text-slate-400 text-xs mt-0.5">
-                          HT : {formatFCFA(pricing.amountHT)} · TVA 18% : {formatFCFA(pricing.tva)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-[#F37021]">{formatFCFA(pricing.ttc)}</div>
-                        <div className="text-slate-400 text-xs">TTC — paiement après inscription</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(1)}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                  ← Retour
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-[#F37021] hover:bg-[#d96318] text-white font-bold px-8 py-2.5 text-base rounded-lg"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Créer mon espace et passer au paiement →
-                </Button>
-              </div>
-            </div>
-          )}
-        </form>
-
-        <p className="text-center text-slate-500 text-xs mt-8">
-          En créant votre espace, vous acceptez les{" "}
-          <a href="#" className="text-slate-400 underline">Conditions d'utilisation</a> et la{" "}
-          <a href="#" className="text-slate-400 underline">Politique de confidentialité</a> de Gaméasù.
-        </p>
+              </p>
+            </form>
+          </div>
+        </div>
       </div>
+
+      {/* Pied de page */}
+      <p className="text-center text-[11px] pb-2 text-gray-400 mt-8">
+        © {year} {BRANDING.legalName} · Connexion chiffrée TLS 1.3
+      </p>
+    </div>
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function fieldCls(hasError: boolean) {
+  return cn(
+    "h-11 rounded-lg text-[13.5px] border-gray-300 focus-visible:ring-blue-600 w-full",
+    hasError && "border-red-400 focus-visible:ring-red-400",
+  );
+}
+
+function Field({
+  label, required, error, children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[13px] font-medium text-gray-700">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
     </div>
   );
 }
