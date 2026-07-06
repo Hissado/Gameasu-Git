@@ -26,6 +26,7 @@ const EmailsPage       = lazy(() => import("@/pages/emails"));
 const ExpertFirmsPage  = lazy(() => import("@/pages/expert-firms"));
 const AccessRequestsPage = lazy(() => import("@/pages/access-requests"));
 const PaymentDeclarationsPage = lazy(() => import("@/pages/payment-declarations"));
+const PartnersPage            = lazy(() => import("@/pages/partners"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -108,6 +109,9 @@ function AppRouter() {
         </Route>
         <Route path="/payment-declarations">
           <ProtectedRoute><PaymentDeclarationsPage /></ProtectedRoute>
+        </Route>
+        <Route path="/partners">
+          <ProtectedRoute><PartnersPage /></ProtectedRoute>
         </Route>
         <Route path="/audit">
           <ProtectedRoute><AuditPage /></ProtectedRoute>

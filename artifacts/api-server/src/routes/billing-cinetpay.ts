@@ -17,7 +17,10 @@ import {
   organizationSubscriptionsTable,
   organizationsTable,
   subscriptionPlansTable,
+  promoCodeUsesTable,
+  promoCodesTable,
 } from "@workspace/db";
+import { resolvePromoCode } from "./billing-promo";
 import { randomUUID } from "crypto";
 import { and, eq, sql, inArray, desc } from "drizzle-orm";
 import { type RequestHandler } from "express";
@@ -155,6 +158,24 @@ async function confirmAndActivate(opts: {
       .where(eq(billingEventsTable.id, found.tx.billingEventId));
   }
 
+  // 5b. Enregistrer l'usage du code promo (si présent dans les metadata de la transaction)
+  const txMeta = (found.tx.metadata ?? {}) as Record<string, unknown>;
+  const promoCodeId = typeof txMeta["promoCodeId"] === "string" ? txMeta["promoCodeId"] : null;
+  const discountApplied = typeof txMeta["discountApplied"] === "number" ? txMeta["discountApplied"] : 0;
+  if (promoCodeId && discountApplied > 0) {
+    await db.insert(promoCodeUsesTable).values({
+      promoCodeId,
+      organizationId: found.tx.organizationId,
+      transactionId:  txId,
+      discountApplied,
+    }).onConflictDoNothing().catch(() => {});
+    // Incrémenter le compteur d'utilisations
+    await db.update(promoCodesTable)
+      .set({ usedCount: sql`${promoCodesTable.usedCount} + 1` })
+      .where(eq(promoCodesTable.id, promoCodeId))
+      .catch(() => {});
+  }
+
   // 6. Activer / renouveler l'abonnement avec les paramètres exacts de la transaction
   let periodEnd: Date | null = null;
   if (found.tx.subscriptionId) {
@@ -280,7 +301,23 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       return;
     }
 
-    const amount = pricing.totalTTC;
+    // Résolution code promo (optionnel — jamais bloquant)
+    const promoCode = (req.body as Record<string, string>).promoCode as string | undefined;
+    let baseAmount  = pricing.totalTTC;
+    let discountAmount = 0;
+    let resolvedPromoCodeId: string | null = null;
+
+    if (promoCode && promoCode.trim().length > 0) {
+      const promoResult = await resolvePromoCode(promoCode.trim(), baseAmount);
+      if (promoResult.valid && promoResult.promoCode) {
+        discountAmount      = promoResult.discountAmount;
+        baseAmount          = promoResult.finalAmount;
+        resolvedPromoCodeId = promoResult.promoCode.id;
+      }
+      // Si invalide : on ignore silencieusement (le frontend a déjà validé)
+    }
+
+    const amount = Math.max(baseAmount, 0);
     const now = new Date();
     const year = now.getFullYear();
 
@@ -329,7 +366,12 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       planCode: resolvedPlanCode,
       seats: resolvedSeats,
       periodicity: resolvedPeriodicity,
-      metadata: { gateway: "cinetpay", initiated: now.toISOString(), cinetpayTxId },
+      metadata: {
+        gateway: "cinetpay",
+        initiated: now.toISOString(),
+        cinetpayTxId,
+        ...(resolvedPromoCodeId ? { promoCodeId: resolvedPromoCodeId, discountApplied: discountAmount } : {}),
+      },
     }).returning();
 
     // Construire les URLs

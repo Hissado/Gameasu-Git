@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, ChevronRight,
   BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
-  UserCircle, Briefcase, ClipboardList, FileCheck,
+  UserCircle, Briefcase, ClipboardList, FileCheck, Handshake,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }>; badge?: number };
@@ -56,6 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         { href: "/access-requests",      label: "Demandes d'accès",     icon: ClipboardList, badge: newCount },
         { href: "/payment-declarations", label: "Paiements à vérifier", icon: FileCheck, badge: pendingDecl },
         { href: "/expert-firms",         label: "Cabinets experts",     icon: Briefcase },
+        { href: "/partners",             label: "Partenaires & Promos", icon: Handshake },
         { href: "/tickets",              label: "Tickets support",      icon: Ticket },
       ],
     },

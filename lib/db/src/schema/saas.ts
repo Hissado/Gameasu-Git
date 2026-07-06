@@ -385,8 +385,94 @@ export const accessRequestsTable = pgTable("access_requests", {
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// Schémas Zod & types
+// PROGRAMME PARTENAIRE — demandes + profils partenaires validés
 // ─────────────────────────────────────────────────────────────────
+export const partnerProgramsTable = pgTable("partner_programs", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  // Contact principal
+  contactName:      text("contact_name").notNull(),
+  contactEmail:     text("contact_email").notNull(),
+  contactPhone:     text("contact_phone"),
+  // Organisation partenaire
+  orgName:          text("org_name").notNull(),
+  orgId:            uuid("org_id").references(() => organizationsTable.id, { onDelete: "set null" }),
+  website:          text("website"),
+  country:          text("country"),
+  sector:           text("sector"),
+  estimatedClients: integer("estimated_clients"),
+  motivation:       text("motivation"),
+  // Type : commercial | cabinet | trainer | integrator | ministry
+  type:             text("type").notNull().default("commercial"),
+  // Statut : pending | reviewing | approved | rejected | suspended
+  status:           text("status").notNull().default("pending"),
+  // Code unique généré à l'approbation
+  code:             text("code"),
+  notes:            text("notes"),
+  // Approbation
+  approvedAt:       timestamp("approved_at",  { withTimezone: true }),
+  approvedById:     uuid("approved_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  rejectedAt:       timestamp("rejected_at",  { withTimezone: true }),
+  rejectedById:     uuid("rejected_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  rejectionReason:  text("rejection_reason"),
+  // Stats (calculées à la volée, dénormalisées ici pour l'affichage rapide)
+  totalReferrals:   integer("total_referrals").notNull().default(0),
+  totalMrrFcfa:     integer("total_mrr_fcfa").notNull().default(0),
+  createdAt:        timestamp("created_at",   { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at",   { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  statusIdx:  index("partner_programs_status_idx").on(t.status),
+  emailIdx:   index("partner_programs_email_idx").on(t.contactEmail),
+  codeUidx:   uniqueIndex("partner_programs_code_uidx").on(t.code),
+}));
+
+// ─────────────────────────────────────────────────────────────────
+// CODES PROMO — remises fixes ou % (promo / partenaire / ministère…)
+// ─────────────────────────────────────────────────────────────────
+export const promoCodesTable = pgTable("promo_codes", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  code:          text("code").notNull(),
+  label:         text("label").notNull(),
+  // Type : promo | partner | ministry | cabinet | trainer | integrator
+  type:          text("type").notNull().default("promo"),
+  // discountType : percent | fixed
+  discountType:  text("discount_type").notNull().default("percent"),
+  // percent → 0-100, fixed → montant FCFA
+  discountValue: integer("discount_value").notNull(),
+  maxUses:       integer("max_uses"),  // null = illimité
+  usedCount:     integer("used_count").notNull().default(0),
+  expiresAt:     timestamp("expires_at", { withTimezone: true }),
+  isActive:      boolean("is_active").notNull().default(true),
+  // Si lié à un partenaire
+  partnerId:     uuid("partner_id").references(() => partnerProgramsTable.id, { onDelete: "set null" }),
+  createdById:   uuid("created_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  codeUidx:   uniqueIndex("promo_codes_code_uidx").on(t.code),
+  activeIdx:  index("promo_codes_active_idx").on(t.isActive),
+  partnerIdx: index("promo_codes_partner_idx").on(t.partnerId),
+}));
+
+// ─────────────────────────────────────────────────────────────────
+// UTILISATIONS CODES PROMO — piste d'audit complète
+// ─────────────────────────────────────────────────────────────────
+export const promoCodeUsesTable = pgTable("promo_code_uses", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  promoCodeId:    uuid("promo_code_id").notNull().references(() => promoCodesTable.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  transactionId:  uuid("transaction_id").references(() => paymentTransactionsTable.id, { onDelete: "set null" }),
+  discountApplied:integer("discount_applied").notNull(), // FCFA remisé
+  usedAt:         timestamp("used_at", { withTimezone: true }).notNull().defaultNow(),
+  metadata:       jsonb("metadata"),
+}, (t) => ({
+  promoIdx: index("promo_code_uses_promo_idx").on(t.promoCodeId),
+  orgIdx:   index("promo_code_uses_org_idx").on(t.organizationId),
+}));
+
+export type PartnerProgram   = typeof partnerProgramsTable.$inferSelect;
+export type PromoCode        = typeof promoCodesTable.$inferSelect;
+export type PromoCodeUse     = typeof promoCodeUsesTable.$inferSelect;
+
 // ─────────────────────────────────────────────────────────────────
 // PARAMÈTRES PLATEFORME — clé/valeur jsonb pour la config système
 // ─────────────────────────────────────────────────────────────────

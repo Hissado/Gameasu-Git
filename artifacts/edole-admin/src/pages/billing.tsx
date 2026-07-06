@@ -22,6 +22,7 @@ import {
   Repeat, Trash2, PenLine, Star, Bell, Info, Mail, Package,
   MessageSquare, MailOpen, HeadphonesIcon, HardDrive, ChevronRight, BarChart3,
   Sparkles, TrendingUp, TrendingDown, AlertTriangle, ArrowRight, Loader2,
+  Tag, Handshake, Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -408,8 +409,24 @@ function PaymentModal({
   const [stripeSucceeded, setStripeSucceeded] = useState(false);
   const [cinetpayLoading, setCinetpayLoading] = useState(false);
 
-  // Le montant facturé = TTC (TVA incluse)
-  const total = ttc ?? 0;
+  // Code promo
+  const [promoInput, setPromoInput] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{
+    valid: boolean;
+    code?: string;
+    label?: string;
+    discountType?: string;
+    discountValue?: number;
+    discountAmount?: number;
+    finalAmount?: number;
+    error?: string;
+  } | null>(null);
+
+  const baseTotal = ttc ?? 0;
+  const discountAmount = promoResult?.valid ? (promoResult.discountAmount ?? 0) : 0;
+  // Le montant facturé = TTC (TVA incluse), ajusté par le code promo
+  const total = Math.max(0, baseTotal - discountAmount);
 
   const isMobileMoney = MOBILE_MONEY_METHODS.includes(method);
   // CinetPay gère toutes les méthodes (carte, Mixx, Flooz) dans ce modal.
@@ -422,7 +439,23 @@ function PaymentModal({
     setStripeSucceeded(false);
   };
 
-  const handleClose = () => { resetStripe(); setSaving(false); onClose(); };
+  const handleClose = () => { resetStripe(); setSaving(false); setPromoResult(null); setPromoInput(""); onClose(); };
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    try {
+      const res = await apiFetch("/api/billing/validate-promo-code", {
+        method: "POST",
+        body: JSON.stringify({ code: promoInput.trim(), amountTTC: baseTotal }),
+      }) as typeof promoResult;
+      setPromoResult(res);
+    } catch {
+      setPromoResult({ valid: false, error: "Impossible de valider le code." });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   // Flux Stripe : demande un PaymentIntent au backend
   const handleInitStripe = async () => {
@@ -489,6 +522,8 @@ function PaymentModal({
           planCode: propPlanCode,
           seats: propSeats,
           periodicity: propPeriodicity,
+          // Code promo validé côté frontend (re-validé côté serveur)
+          promoCode: promoResult?.valid ? promoResult.code : undefined,
         }),
       }) as { paymentUrl?: string; txRef: string };
 
@@ -560,6 +595,57 @@ function PaymentModal({
               <p className="font-semibold text-lg">Paiement soumis !</p>
               <p className="text-sm text-muted-foreground">Confirmation automatique par webhook Stripe en cours.</p>
               <Button onClick={handleClose}>Fermer</Button>
+            </div>
+          )}
+
+          {/* Code promo */}
+          {!stripeClientSecret && !stripeSucceeded && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-emerald-600" /> Code promo <span className="font-normal text-muted-foreground">(optionnel)</span>
+              </Label>
+              {promoResult?.valid ? (
+                <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">{promoResult.label ?? promoResult.code}</p>
+                      <p className="text-xs text-emerald-700">
+                        Réduction de {formatFCFA(promoResult.discountAmount ?? 0)} appliquée
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setPromoResult(null); setPromoInput(""); }}
+                    className="text-xs text-emerald-700 hover:text-emerald-900 underline"
+                  >Retirer</button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="PROMO2025"
+                    value={promoInput}
+                    onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoResult(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                    className="flex-1 uppercase"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={promoLoading || !promoInput.trim()}
+                    onClick={handleApplyPromo}
+                  >
+                    {promoLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Appliquer"}
+                  </Button>
+                </div>
+              )}
+              {promoResult && !promoResult.valid && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {promoResult.error ?? "Code promo invalide."}
+                </p>
+              )}
             </div>
           )}
 
@@ -1250,6 +1336,7 @@ export default function BillingPage() {
 
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDeclareModal, setShowDeclareModal] = useState(false);
+  const [showPartnerDialog, setShowPartnerDialog] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
   const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
   const [planChangeTarget, setPlanChangeTarget] = useState<string | null>(null);
@@ -1523,6 +1610,17 @@ export default function BillingPage() {
                   <a href={`mailto:sales@gameasutech.africa`}>
                     Contacter le commercial <ArrowUpRight className="w-4 h-4" />
                   </a>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  onClick={() => setShowPartnerDialog(true)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Handshake className="w-4 h-4 text-emerald-600" /> Devenir partenaire Gaméasù
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
                 </Button>
               </CardContent>
             </Card>
@@ -2012,6 +2110,9 @@ export default function BillingPage() {
           loading={changePlanMutation.isPending}
         />
       )}
+      {showPartnerDialog && (
+        <PartnerApplicationDialog onClose={() => setShowPartnerDialog(false)} />
+      )}
     </div>
   );
 }
@@ -2419,5 +2520,157 @@ function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ classN
       </div>
       <p className="mt-1 text-base font-semibold">{value}</p>
     </div>
+  );
+}
+
+// ─── Dialog : Devenir partenaire ──────────────────────────────────
+
+function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [form, setForm] = useState({
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+    orgName: "",
+    website: "",
+    country: "Togo",
+    sector: "",
+    estimatedClients: "",
+    motivation: "",
+    partnerType: "reseller",
+  });
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.contactName || !form.contactEmail || !form.orgName || !form.motivation) {
+      toast({ title: "Champs requis", description: "Veuillez remplir au moins : nom, email, organisation et motivation.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      await apiFetch("/api/partner-program/apply", {
+        method: "POST",
+        body: JSON.stringify({
+          ...form,
+          estimatedClients: form.estimatedClients ? parseInt(form.estimatedClients) : undefined,
+          type: form.partnerType,
+        }),
+      });
+      setSuccess(true);
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? "Une erreur est survenue.";
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Handshake className="w-5 h-5 text-emerald-600" /> Devenir partenaire Gaméasù
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Rejoignez notre réseau de revendeurs et d'intégrateurs certifiés. Nous vous répondrons sous 48 h.
+          </DialogDescription>
+        </DialogHeader>
+
+        {success ? (
+          <div className="py-10 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900 text-lg">Candidature envoyée !</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Notre équipe partenaires étudiera votre dossier et vous contactera à l'adresse <strong>{form.contactEmail}</strong>.
+              </p>
+            </div>
+            <Button onClick={onClose}>Fermer</Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Nom complet *</Label>
+                <Input placeholder="Kodjo Hissado" value={form.contactName} onChange={set("contactName")} required />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Email *</Label>
+                <Input type="email" placeholder="contact@exemple.com" value={form.contactEmail} onChange={set("contactEmail")} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Téléphone</Label>
+                <Input placeholder="+228 90 00 00 00" value={form.contactPhone} onChange={set("contactPhone")} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Organisation *</Label>
+                <Input placeholder="Nom de votre entreprise" value={form.orgName} onChange={set("orgName")} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Site web</Label>
+                <Input placeholder="https://monentreprise.com" value={form.website} onChange={set("website")} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Pays</Label>
+                <Input placeholder="Togo" value={form.country} onChange={set("country")} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Secteur d'activité</Label>
+                <Input placeholder="BTP, Finance, Formation…" value={form.sector} onChange={set("sector")} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Clients estimés / an</Label>
+                <Input type="number" min={1} placeholder="10" value={form.estimatedClients} onChange={set("estimatedClients")} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Type de partenariat</Label>
+              <select
+                value={form.partnerType}
+                onChange={set("partnerType")}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="reseller">Revendeur</option>
+                <option value="integrator">Intégrateur</option>
+                <option value="referral">Apporteur d'affaires</option>
+                <option value="other">Autre</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Motivation *</Label>
+              <textarea
+                placeholder="Décrivez votre contexte, vos clients cibles, et pourquoi vous souhaitez devenir partenaire Gaméasù…"
+                value={form.motivation}
+                onChange={set("motivation")}
+                required
+                rows={4}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Annuler</Button>
+              <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : <><Handshake className="w-4 h-4 mr-2" /> Envoyer ma candidature</>}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
