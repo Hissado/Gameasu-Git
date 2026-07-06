@@ -381,11 +381,15 @@ function PlanChangeModal({
 //   • mixx / flooz → numéro de téléphone + référence
 
 function PaymentModal({
-  open, onClose, userCount, amountHT, tva, ttc, isEnterprise, onSuccess,
+  open, onClose, userCount, planCode: propPlanCode, seats: propSeats, periodicity: propPeriodicity,
+  amountHT, tva, ttc, isEnterprise, onSuccess,
 }: {
   open: boolean;
   onClose: () => void;
   userCount: number;
+  planCode: string;
+  seats: number;
+  periodicity: string;
   amountHT: number | null;
   tva: number | null;
   ttc: number | null;
@@ -481,6 +485,10 @@ function PaymentModal({
           method,
           payerPhone: payerPhone || undefined,
           purpose: "renewal",
+          // Inputs server-autoritatifs : plan, sièges et périodicité sélectionnés dans l'UI
+          planCode: propPlanCode,
+          seats: propSeats,
+          periodicity: propPeriodicity,
         }),
       }) as { paymentUrl?: string; txRef: string };
 
@@ -1964,6 +1972,9 @@ export default function BillingPage() {
           open={showPayModal}
           onClose={() => setShowPayModal(false)}
           userCount={userCount}
+          planCode={planCode}
+          seats={Math.max(1, userCount)}
+          periodicity={periodicity}
           amountHT={amountHT}
           tva={tva}
           ttc={ttc}

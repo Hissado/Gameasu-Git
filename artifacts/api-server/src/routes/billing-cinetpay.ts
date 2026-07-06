@@ -253,14 +253,29 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       .where(eq(organizationsTable.id, orgId))
       .limit(1);
 
-    // Calcul du montant (planCode du body en priorité, sinon plan courant de l'abonnement)
-    const resolvedPlanCode = planCode ?? sub?.planCode ?? "STARTER";
-    const resolvedSeats = Math.max(1, parseInt(seats as string, 10) || sub?.seats || 1);
-    const resolvedPeriodicity = (periodicity ?? sub?.billingCycle ?? "monthly") as Periodicity;
+    // Validation stricte des inputs tarifaires (pas de fallback silencieux sur l'abonnement courant)
+    const VALID_PERIODICITIES = ["monthly", "quarterly", "semiannual", "annual"];
+    if (!planCode) {
+      res.status(400).json({ error: "planCode requis pour initialiser un paiement CinetPay" });
+      return;
+    }
+    const parsedSeats = parseInt(seats as string, 10);
+    if (!Number.isFinite(parsedSeats) || parsedSeats < 1) {
+      res.status(400).json({ error: "seats requis et doit être un entier ≥ 1" });
+      return;
+    }
+    if (!VALID_PERIODICITIES.includes(periodicity as string)) {
+      res.status(400).json({ error: `periodicity invalide (attendu : ${VALID_PERIODICITIES.join(", ")})` });
+      return;
+    }
+
+    const resolvedPlanCode = planCode as string;
+    const resolvedSeats = parsedSeats;
+    const resolvedPeriodicity = periodicity as Periodicity;
 
     const pricing = calcPlanPricing({ planCode: resolvedPlanCode, seats: resolvedSeats, periodicity: resolvedPeriodicity });
     if (!pricing) {
-      res.status(400).json({ error: "Plan ou tarification invalide" });
+      res.status(400).json({ error: "Plan ou tarification invalide pour les paramètres fournis" });
       return;
     }
 
