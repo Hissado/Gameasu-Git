@@ -2490,8 +2490,8 @@ function AddonsPanel() {
             <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Secrétaire virtuelle & Intelligence Artificielle</h3>
             <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Sur devis · selon la complexité</Badge>
           </div>
-          <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50/60 to-indigo-50/40 p-4 mb-1">
-            <p className="text-xs text-violet-700/80 leading-relaxed">
+          <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 mb-1">
+            <p className="text-xs text-orange-800/80 leading-relaxed">
               Ajoutez une secrétaire virtuelle IA à votre organisation : disponible 24h/24, elle gère l'accueil client, les rendez-vous, la qualification de prospects et le support de premier niveau.
               Le tarif est établi sur devis selon la complexité, le volume d'interactions et les intégrations souhaitées.
             </p>
