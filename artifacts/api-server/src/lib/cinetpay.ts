@@ -135,19 +135,26 @@ export async function checkCinetPayPayment(transactionId: string): Promise<Cinet
 
 // ── Webhook Signature Verification ────────────────────────────────
 // CinetPay envoie une signature HMAC-SHA256 dans le header x-cinetpay-signature
-// ou dans le champ `cpm_secret_key_hash`.
-// Si CINETPAY_SECRET_KEY n'est pas défini, on accepte mais on vérifie via /check.
+// ou dans le champ `cpm_secret_key_hash` du corps.
+// Utiliser impérativement le raw body (Buffer) pour éviter les erreurs de sérialisation.
+//
+// Retourne : { valid: boolean; checked: boolean }
+//   checked=false  → CINETPAY_SECRET_KEY absent ; on doit s'appuyer uniquement sur /check
+//   checked=true   → vérification HMAC effectuée ; si valid=false, rejeter la requête
 
-export function verifyCinetPaySignature(payload: string | Record<string, unknown>, signature: string): boolean {
+export function verifyCinetPaySignature(
+  rawBody: Buffer | string,
+  signature: string,
+): { valid: boolean; checked: boolean } {
   const secretKey = process.env.CINETPAY_SECRET_KEY;
   if (!secretKey) {
-    // Sans clé secrète → on ne peut pas vérifier la signature HMAC ;
-    // la double validation via /check reste obligatoire.
-    return true;
+    // Pas de clé secrète configurée — impossible de vérifier le HMAC.
+    // La double validation via /check reste la seule garantie.
+    return { valid: false, checked: false };
   }
-  const body = typeof payload === "string" ? payload : JSON.stringify(payload);
+  const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, "utf8");
   const expected = createHmac("sha256", secretKey).update(body).digest("hex");
-  return expected === signature;
+  return { valid: expected === signature, checked: true };
 }
 
 // ── Status Mapping ─────────────────────────────────────────────────

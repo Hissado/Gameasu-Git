@@ -52,9 +52,10 @@ app.use(
 );
 app.use(cors());
 
-// Le webhook Stripe nécessite le corps brut (Buffer) pour la vérification de signature.
-// Cette route doit être AVANT express.json().
+// Les webhooks de passerelles de paiement nécessitent le corps brut (Buffer)
+// pour la vérification de signature HMAC. Ces routes doivent être AVANT express.json().
 app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
+app.use("/api/webhooks/cinetpay", express.raw({ type: "*/*" }));
 
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));

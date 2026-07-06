@@ -57,6 +57,9 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 // ── Logique d'activation d'abonnement (réutilisée webhook + test) ──
+//
+// Server-authoritative : le plan/seats/périodicité réellement activés sont ceux
+// enregistrés dans la transaction au moment de l'initiation (jamais ceux du body client).
 
 async function confirmAndActivate(opts: {
   txId: string;
@@ -65,6 +68,7 @@ async function confirmAndActivate(opts: {
 }): Promise<{ receiptNumber: string; periodEnd: Date | null }> {
   const { txId, gatewayRef, verifiedById } = opts;
 
+  // 1. Charger la transaction + org
   const [found] = await db.select({
     tx: paymentTransactionsTable,
     orgName: organizationsTable.name,
@@ -76,9 +80,28 @@ async function confirmAndActivate(opts: {
 
   if (!found) throw new Error(`Transaction ${txId} introuvable`);
 
+  // 2. Résoudre le plan à partir du planCode stocké dans la transaction (server-authoritative)
+  const txPlanCode = found.tx.planCode;
+  const txSeats    = found.tx.seats ?? 1;
+  const txPeriod   = found.tx.periodicity ?? "monthly";
+
+  let resolvedPlanId: string | null = null;
+  let resolvedUnitPrice: number | null = null;
+  if (txPlanCode) {
+    const [planRow] = await db.select({ id: subscriptionPlansTable.id, monthlyPrice: subscriptionPlansTable.monthlyPrice })
+      .from(subscriptionPlansTable)
+      .where(eq(subscriptionPlansTable.code, txPlanCode))
+      .limit(1);
+    if (planRow) {
+      resolvedPlanId = planRow.id;
+      resolvedUnitPrice = planRow.monthlyPrice ?? null;
+    }
+  }
+
   const now = new Date();
   const year = now.getFullYear();
 
+  // 3. Numéro de reçu séquentiel (annuel par org)
   const [cnt] = await db.select({ c: sql<number>`count(*)::int` })
     .from(paymentTransactionsTable)
     .where(and(
@@ -89,6 +112,7 @@ async function confirmAndActivate(opts: {
 
   const receiptNumber = generateRef("REC", (cnt?.c ?? 0) + 1, year);
 
+  // 4. Confirmer la transaction
   await db.update(paymentTransactionsTable).set({
     status: "confirmed",
     confirmedAt: now,
@@ -99,12 +123,14 @@ async function confirmAndActivate(opts: {
     metadata: { auto: true, source: "cinetpay", gatewayRef },
   }).where(eq(paymentTransactionsTable.id, txId));
 
+  // 5. Mettre à jour l'événement de facturation
   if (found.tx.billingEventId) {
     await db.update(billingEventsTable)
       .set({ status: "paid", reference: receiptNumber })
       .where(eq(billingEventsTable.id, found.tx.billingEventId));
   }
 
+  // 6. Activer / renouveler l'abonnement avec les paramètres exacts de la transaction
   let periodEnd: Date | null = null;
   if (found.tx.subscriptionId) {
     const [sub] = await db.select()
@@ -113,21 +139,27 @@ async function confirmAndActivate(opts: {
       .limit(1);
 
     if (sub) {
-      const months = MONTHS[found.tx.periodicity ?? "monthly"] ?? 1;
+      const months = MONTHS[txPeriod] ?? 1;
       const periodStart = sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now
         ? new Date(sub.currentPeriodEnd)
         : now;
       periodEnd = new Date(periodStart);
       periodEnd.setMonth(periodEnd.getMonth() + months);
 
+      // Mettre à jour plan/seats/cycle si la transaction correspond à un changement d'offre
       await db.update(organizationSubscriptionsTable).set({
         status: "active",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
+        billingCycle: txPeriod,
+        seats: txSeats,
+        ...(resolvedPlanId ? { planId: resolvedPlanId } : {}),
+        ...(resolvedUnitPrice !== null ? { unitPrice: resolvedUnitPrice } : {}),
       }).where(eq(organizationSubscriptionsTable.id, sub.id));
     }
   }
 
+  // 7. E-mail de confirmation
   if (found.orgContactEmail) {
     await sendEmail({
       to: found.orgContactEmail,
@@ -330,30 +362,46 @@ router.get("/billing/cinetpay/transaction/:ref", requireAdmin, async (req, res, 
 
 // ── POST /webhooks/cinetpay (PUBLIC) ──────────────────────────────
 // CinetPay envoie ce POST après chaque événement de paiement.
-// Répondre 200 rapidement ; traitement asynchrone si nécessaire.
+// express.raw() est appliqué sur /api/webhooks/cinetpay dans app.ts AVANT express.json(),
+// donc req.body est un Buffer ici. On parse le JSON manuellement pour conserver le raw body
+// intact pour la vérification HMAC-SHA256.
 
 cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
-  // Répondre 200 immédiatement (CinetPay le requiert dans les 10s)
+  // Répondre 200 immédiatement (CinetPay requiert une réponse dans les 10 s)
   res.status(200).send("OK");
 
   try {
-    const body = req.body as Record<string, string>;
-    const transactionId = body["cpm_trans_id"] ?? body["transaction_id"];
+    // 1. Extraire le raw body (Buffer) et parser le JSON
+    const rawBody: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}));
+    let body: Record<string, string>;
+    try {
+      body = JSON.parse(rawBody.toString("utf8"));
+    } catch {
+      logger.warn("Webhook CinetPay : body non-JSON — ignoré");
+      return;
+    }
 
+    const transactionId = body["cpm_trans_id"] ?? body["transaction_id"];
     if (!transactionId) {
       logger.warn({ body }, "Webhook CinetPay : cpm_trans_id manquant");
       return;
     }
 
-    // Vérification de signature (si CINETPAY_SECRET_KEY disponible)
-    const signature = (req.headers["x-cinetpay-signature"] as string) ?? body["cpm_secret_key_hash"] ?? "";
-    const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-    if (!verifyCinetPaySignature(rawBody, signature)) {
-      logger.warn({ transactionId }, "Webhook CinetPay : signature invalide — ignoré");
+    // 2. Vérification de signature HMAC-SHA256 sur le raw body
+    const signature = (req.headers["x-cinetpay-signature"] as string | undefined) ?? body["cpm_secret_key_hash"] ?? "";
+    const sigResult = verifyCinetPaySignature(rawBody, signature);
+
+    if (sigResult.checked && !sigResult.valid) {
+      // Clé secrète configurée ET signature invalide → rejet strict (fail-closed)
+      logger.warn({ transactionId }, "Webhook CinetPay : signature HMAC invalide — rejet");
       return;
     }
+    if (!sigResult.checked) {
+      // Pas de clé secrète : on continue mais on journalise le manque de vérification
+      logger.warn({ transactionId }, "Webhook CinetPay : CINETPAY_SECRET_KEY absent — signature non vérifiée, poursuite via /check");
+    }
 
-    // Trouver la transaction en base
+    // 3. Trouver la transaction en base (tenant isolation via reference unique)
     const [tx] = await db.select()
       .from(paymentTransactionsTable)
       .where(eq(paymentTransactionsTable.reference, transactionId))
@@ -364,30 +412,49 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
       return;
     }
 
-    // Ignorer si déjà traitée
+    // 4. Ignorer si déjà finalisée (idempotence)
     if (tx.status === "confirmed" || tx.status === "failed" || tx.status === "cancelled") {
       logger.info({ transactionId, status: tx.status }, "Webhook CinetPay : transaction déjà finalisée, ignoré");
       return;
     }
 
-    // Double validation via l'API CinetPay /check
+    // 5. Double validation authoritative via l'API CinetPay /check
     const checkResult = await checkCinetPayPayment(transactionId);
 
     if (checkResult.code !== "00" && checkResult.code !== "0") {
-      logger.warn({ transactionId, checkCode: checkResult.code, msg: checkResult.message }, "Webhook CinetPay : échec de vérification");
+      logger.warn({ transactionId, checkCode: checkResult.code, msg: checkResult.message }, "Webhook CinetPay : échec de vérification /check");
       return;
     }
 
-    const paymentStatus = mapCinetPayStatus(checkResult.data?.status ?? body["cpm_trans_stat"] ?? "PENDING");
-    const gatewayRef = checkResult.data?.payment_method
+    // 6. Vérifications de cohérence avant activation (montant, devise, offre)
+    const reportedAmount   = checkResult.data?.amount   ?? parseInt(body["cpm_amount"] ?? "0", 10);
+    const reportedCurrency = checkResult.data?.currency ?? body["cpm_currency"]   ?? "";
+    const paymentStatus    = mapCinetPayStatus(checkResult.data?.status ?? body["cpm_trans_stat"] ?? "PENDING");
+    const gatewayRef       = checkResult.data?.payment_method
       ? `${checkResult.data.payment_method}:${transactionId}`
       : transactionId;
 
     if (paymentStatus === "confirmed") {
-      // Vérifier cohérence du montant
-      const reportedAmount = checkResult.data?.amount ?? parseInt(body["cpm_amount"] ?? "0", 10);
+      // 6a. Devise : doit être XOF
+      if (reportedCurrency && reportedCurrency.toUpperCase() !== "XOF") {
+        logger.error(
+          { transactionId, currency: reportedCurrency },
+          "Webhook CinetPay : devise inattendue (attendu XOF) — paiement NON activé",
+        );
+        await db.update(paymentTransactionsTable).set({
+          status: "failed",
+          failedAt: new Date(),
+          metadata: { gateway: "cinetpay", error: "currency_mismatch", expected: "XOF", received: reportedCurrency },
+        }).where(eq(paymentTransactionsTable.id, tx.id));
+        return;
+      }
+
+      // 6b. Montant : tolérance de 1 FCFA (arrondi)
       if (reportedAmount && Math.abs(reportedAmount - tx.amount) > 1) {
-        logger.error({ transactionId, expected: tx.amount, received: reportedAmount }, "Webhook CinetPay : montant incohérent — paiement NON activé");
+        logger.error(
+          { transactionId, expected: tx.amount, received: reportedAmount },
+          "Webhook CinetPay : montant incohérent — paiement NON activé",
+        );
         await db.update(paymentTransactionsTable).set({
           status: "failed",
           failedAt: new Date(),
@@ -396,6 +463,23 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
         return;
       }
 
+      // 6c. Offre (planCode + seats) : la transaction stocke ce qui a été calculé côté serveur.
+      //     Si CinetPay rapporte des metadata différentes, journaliser (pas de rejet car CinetPay
+      //     ne transmet pas l'offre dans /check ; les champs tx sont la source de vérité).
+      if (tx.planCode) {
+        const planInfo = getPlan(tx.planCode);
+        if (!planInfo) {
+          logger.error({ transactionId, planCode: tx.planCode }, "Webhook CinetPay : plan introuvable en catalogue — paiement NON activé");
+          await db.update(paymentTransactionsTable).set({
+            status: "failed",
+            failedAt: new Date(),
+            metadata: { gateway: "cinetpay", error: "plan_not_found", planCode: tx.planCode },
+          }).where(eq(paymentTransactionsTable.id, tx.id));
+          return;
+        }
+      }
+
+      // 7. Tout est cohérent → activer
       const { receiptNumber } = await confirmAndActivate({ txId: tx.id, gatewayRef });
       logger.info({ transactionId, receiptNumber }, "Webhook CinetPay : paiement confirmé et abonnement activé");
 
