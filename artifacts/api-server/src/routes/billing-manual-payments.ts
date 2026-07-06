@@ -303,6 +303,10 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
           ...(effectivePlanId !== sub.planId ? { planId: effectivePlanId } : {}),
         }).where(eq(organizationSubscriptionsTable.id, sub.id));
 
+        // Activer l'organisation (créée isActive=false jusqu'au premier paiement)
+        await db.update(organizationsTable).set({ isActive: true })
+          .where(eq(organizationsTable.id, found.tx.organizationId));
+
         // Activer les modules inclus dans le plan (idempotent)
         if (effectivePlanId) {
           const [planData] = await db

@@ -40,8 +40,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  * avec repli sur users.organizationId si non définie.
  *
  * Enrichit aussi orgRole depuis organization_members pour permettre à un
- * owner/admin d'org d'accéder aux endpoints billing même si son role global
- * est un rôle métier (commercial, manager, etc.).
+ * owner/admin d'org d'accéder aux endpoints billing sans élever leur rôle global.
  */
 async function resolveToken(rawToken: string): Promise<AuthUser | null> {
   if (!UUID_REGEX.test(rawToken)) {
@@ -137,26 +136,19 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 };
 
 /**
- * Un utilisateur est considéré admin si :
- *  - son rôle global (users.role) est 'super_admin' ou 'admin' — héritage historique
- *  - OU son rôle dans l'org active (organization_members.role) est 'owner' ou 'admin'
- *    → permet aux fondateurs d'org multi-tenant d'accéder à la facturation
- *    sans élever leur rôle global
+ * Vérifie qu'un utilisateur a l'un des rôles GLOBAUX listés.
+ * Cette vérification est stricte et ne tient pas compte du rôle d'appartenance
+ * à l'organisation (orgRole) — utiliser `requireAdmin` pour les endpoints
+ * de facturation qui doivent être accessibles aux owners d'organisation.
  */
-function isEffectiveAdmin(authUser: AuthUser): boolean {
-  if (authUser.role === "super_admin" || authUser.role === "admin") return true;
-  if (authUser.orgRole === "owner" || authUser.orgRole === "admin") return true;
-  return false;
-}
-
 export const requireRole = (...roles: string[]): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.authUser) {
       res.status(401).json({ error: "Authentification requise" });
       return;
     }
-    // Super-admin et org-owner/admin passent toujours
-    if (isEffectiveAdmin(req.authUser)) {
+    // super_admin passe toujours (rôle plateforme)
+    if (req.authUser.role === "super_admin") {
       next();
       return;
     }
@@ -171,5 +163,34 @@ export const requireRole = (...roles: string[]): RequestHandler => {
   };
 };
 
-export const requireAdmin = requireRole("admin", "super_admin");
+/**
+ * Contrôle d'accès pour les endpoints d'administration tenant (facturation, users, settings…).
+ * Un utilisateur est autorisé si :
+ *  - son rôle global (users.role) est 'super_admin' ou 'admin'
+ *  - OU son rôle dans l'org active (organization_members.role) est 'owner' ou 'admin'
+ *    → permet aux fondateurs d'org multi-tenant d'accéder à la facturation
+ *    sans élever leur rôle global.
+ *
+ * Ne pas utiliser pour les routes super-admin plateforme (cockpit) —
+ * utiliser requireRole("super_admin") pour celles-ci.
+ */
+export const requireAdmin: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.authUser) {
+    res.status(401).json({ error: "Authentification requise" });
+    return;
+  }
+  const { role, orgRole } = req.authUser;
+  if (
+    role === "super_admin" || role === "admin" ||
+    orgRole === "owner" || orgRole === "admin"
+  ) {
+    next();
+    return;
+  }
+  res.status(403).json({
+    error: "Accès refusé",
+    detail: "Cette action requiert un rôle admin ou propriétaire de l'organisation.",
+  });
+};
+
 export const requireManagerOrAbove = requireRole("manager", "admin", "super_admin");

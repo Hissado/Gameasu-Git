@@ -235,6 +235,10 @@ async function confirmAndActivate(opts: {
         ...(resolvedUnitPrice !== null ? { unitPrice: resolvedUnitPrice } : {}),
       }).where(eq(organizationSubscriptionsTable.id, sub.id));
 
+      // Activer l'organisation (créée isActive=false jusqu'au premier paiement)
+      await db.update(organizationsTable).set({ isActive: true })
+        .where(eq(organizationsTable.id, found.tx.organizationId));
+
       // 6b. Activer les modules inclus dans le plan (idempotent via upsert)
       const effectivePlanId = resolvedPlanId ?? sub.planId;
       if (effectivePlanId) {
