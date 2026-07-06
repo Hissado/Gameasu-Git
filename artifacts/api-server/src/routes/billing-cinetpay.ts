@@ -18,7 +18,8 @@ import {
   organizationsTable,
   subscriptionPlansTable,
 } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, inArray, desc } from "drizzle-orm";
+import { type RequestHandler } from "express";
 import { requireAdmin } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 import { calcPlanPricing, getPlan, type Periodicity } from "../lib/pricing";
@@ -38,6 +39,13 @@ import {
 
 const router: IRouter = Router();          // routes authentifiées
 export const cinetpayPublicRouter: IRouter = Router();  // webhook public
+
+// ── Middleware super-admin ─────────────────────────────────────────
+const sa: RequestHandler = (req, res, next) => {
+  if (!req.authUser) { res.status(401).json({ error: "Authentification requise" }); return; }
+  if (req.authUser.role !== "super_admin") { res.status(403).json({ error: "Accès réservé aux super-administrateurs" }); return; }
+  next();
+};
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -88,13 +96,19 @@ async function confirmAndActivate(opts: {
   let resolvedPlanId: string | null = null;
   let resolvedUnitPrice: number | null = null;
   if (txPlanCode) {
-    const [planRow] = await db.select({ id: subscriptionPlansTable.id, monthlyPrice: subscriptionPlansTable.monthlyPrice })
-      .from(subscriptionPlansTable)
+    const [planRow] = await db.select({
+      id: subscriptionPlansTable.id,
+      monthlyPricePerSeat: subscriptionPlansTable.monthlyPricePerSeat,
+      annualPricePerSeat: subscriptionPlansTable.annualPricePerSeat,
+    }).from(subscriptionPlansTable)
       .where(eq(subscriptionPlansTable.code, txPlanCode))
       .limit(1);
     if (planRow) {
       resolvedPlanId = planRow.id;
-      resolvedUnitPrice = planRow.monthlyPrice ?? null;
+      // Prix unitaire selon la périodicité enregistrée dans la transaction (server-authoritative)
+      resolvedUnitPrice = txPeriod === "annual"
+        ? (planRow.annualPricePerSeat ?? planRow.monthlyPricePerSeat ?? null)
+        : (planRow.monthlyPricePerSeat ?? null);
     }
   }
 
@@ -371,14 +385,33 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
   res.status(200).send("OK");
 
   try {
-    // 1. Extraire le raw body (Buffer) et parser le JSON
+    // 1. Extraire le raw body (Buffer) — express.raw() le fournit directement.
+    //    CinetPay peut envoyer application/json OU application/x-www-form-urlencoded
+    //    (champs cpm_*), on supporte les deux formats.
     const rawBody: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}));
+    const rawStr = rawBody.toString("utf8");
     let body: Record<string, string>;
-    try {
-      body = JSON.parse(rawBody.toString("utf8"));
-    } catch {
-      logger.warn("Webhook CinetPay : body non-JSON — ignoré");
-      return;
+
+    const ct = (req.headers["content-type"] ?? "").toLowerCase();
+    if (ct.includes("application/x-www-form-urlencoded") || ct.includes("text/plain")) {
+      // Parsing URL-encoded (champs cpm_*)
+      const params = new URLSearchParams(rawStr);
+      body = Object.fromEntries(params.entries()) as Record<string, string>;
+    } else {
+      // Parsing JSON (format default)
+      try {
+        body = JSON.parse(rawStr);
+      } catch {
+        // Tentative URL-encoded si JSON échoue (Content-Type absent ou incorrect)
+        try {
+          const params = new URLSearchParams(rawStr);
+          body = Object.fromEntries(params.entries()) as Record<string, string>;
+          if (Object.keys(body).length === 0) throw new Error("empty");
+        } catch {
+          logger.warn({ rawStr: rawStr.slice(0, 200) }, "Webhook CinetPay : body illisible (ni JSON ni form-urlencoded) — ignoré");
+          return;
+        }
+      }
     }
 
     const transactionId = body["cpm_trans_id"] ?? body["transaction_id"];
@@ -501,6 +534,42 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
   } catch (err: any) {
     logger.error({ err: err?.message }, "Webhook CinetPay : erreur de traitement");
   }
+});
+
+// ── GET /super-admin/cinetpay-transactions ────────────────────────
+// Liste les transactions CinetPay (carte + Mobile Money) pour le Cockpit.
+// Accessible uniquement aux super-admins.
+
+router.get("/super-admin/cinetpay-transactions", sa, async (req, res, next) => {
+  try {
+    const { status, orgId } = req.query as Record<string, string>;
+    const CINETPAY_METHODS = ["card", "mixx", "flooz", "mobile_money"];
+
+    const conditions = [inArray(paymentTransactionsTable.method, CINETPAY_METHODS) as unknown as ReturnType<typeof eq>];
+    if (status) conditions.push(eq(paymentTransactionsTable.status, status));
+    if (orgId) conditions.push(eq(paymentTransactionsTable.organizationId, orgId));
+
+    const rows = await db.select({
+      tx: paymentTransactionsTable,
+      orgName: organizationsTable.name,
+      orgSlug: organizationsTable.slug,
+      orgContactEmail: organizationsTable.contactEmail,
+    }).from(paymentTransactionsTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, paymentTransactionsTable.organizationId))
+      .where(and(...conditions))
+      .orderBy(desc(paymentTransactionsTable.createdAt))
+      .limit(300);
+
+    const data = rows.map((r) => ({
+      ...r.tx,
+      orgName: r.orgName,
+      orgSlug: r.orgSlug,
+      orgContactEmail: r.orgContactEmail,
+      isAutoConfirmed: (r.tx.metadata as Record<string, unknown> | null)?.["auto"] === true,
+      gateway: "cinetpay",
+    }));
+    res.json({ data, count: data.length });
+  } catch (e) { next(e); }
 });
 
 // ─── Email templates ──────────────────────────────────────────────

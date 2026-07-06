@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Loader2, CheckCircle2, XCircle, Clock, AlertTriangle, Eye, Search,
   CreditCard, Building2, FileText, Download, RefreshCw, Settings,
+  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,25 @@ type Declaration = {
   verifiedAt: string | null;
   payerPhone: string | null;
   createdAt: string;
+};
+
+type CinetpayTx = {
+  id: string;
+  orgName: string;
+  orgSlug: string;
+  reference: string | null;
+  method: string;
+  amount: number;
+  currency: string;
+  status: string;
+  planCode: string | null;
+  seats: number | null;
+  periodicity: string | null;
+  payerPhone: string | null;
+  receiptNumber: string | null;
+  isAutoConfirmed: boolean;
+  createdAt: string;
+  confirmedAt: string | null;
 };
 
 type BankCoords = {
@@ -141,6 +161,14 @@ export default function PaymentDeclarationsPage() {
     },
     onError: (e: Error) => toast.error(e.message ?? "Erreur"),
   });
+
+  const cinetpayQuery = useQuery<{ data: CinetpayTx[]; count: number }>({
+    queryKey: ["cockpit-cinetpay-transactions"],
+    queryFn: () => apiFetch("/api/super-admin/cinetpay-transactions"),
+    refetchInterval: 30_000,
+  });
+  const cinetpayRows = cinetpayQuery.data?.data ?? [];
+  const cinetpayAutoCount = cinetpayRows.filter((r) => r.isAutoConfirmed).length;
 
   const rows = query.data?.data ?? [];
   const filtered = rows.filter((r) => {
@@ -248,6 +276,104 @@ export default function PaymentDeclarationsPage() {
                         <Button variant="ghost" size="sm" onClick={() => setSelected(d)} className="h-7 px-2">
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Section CinetPay automatique ───────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-[#F37021]" />
+            Transactions CinetPay automatiques
+            {cinetpayAutoCount > 0 && (
+              <Badge className="bg-[#F37021] text-white text-xs ml-1">
+                {cinetpayAutoCount} validé{cinetpayAutoCount > 1 ? "s" : ""} automatiquement
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {cinetpayQuery.isLoading ? (
+            <div className="flex items-center justify-center h-28">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : cinetpayRows.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              Aucune transaction CinetPay enregistrée
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Organisation</TableHead>
+                  <TableHead>Référence</TableHead>
+                  <TableHead>Méthode</TableHead>
+                  <TableHead className="text-right">Montant</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Validation</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cinetpayRows.map((tx) => {
+                  const StatusIcon = tx.status === "confirmed" ? CheckCircle2
+                    : tx.status === "failed" ? XCircle
+                    : Clock;
+                  const statusCls = tx.status === "confirmed"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : tx.status === "failed"
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200";
+                  const statusLabel = tx.status === "confirmed" ? "Confirmé"
+                    : tx.status === "failed" ? "Échoué" : "En attente";
+                  const MethodIcon = tx.method === "card" ? CreditCard : Smartphone;
+                  const methodLabel = tx.method === "card" ? "Carte" : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : tx.method;
+                  return (
+                    <TableRow key={tx.id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{tx.orgName}</div>
+                        <div className="text-xs text-muted-foreground">{tx.orgSlug}</div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-mono text-xs font-semibold">{tx.reference ?? "—"}</p>
+                        {tx.receiptNumber && (
+                          <p className="text-[10px] text-muted-foreground">{tx.receiptNumber}</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                          <MethodIcon className="w-3.5 h-3.5 text-[#F37021]" />
+                          {methodLabel}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums text-sm">
+                        {fmtFCFA(tx.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`${statusCls} text-xs gap-1`}>
+                          <StatusIcon className="w-3 h-3" />{statusLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {tx.isAutoConfirmed ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-[#F37021] font-medium">
+                            <CheckCircle2 className="w-3 h-3" /> Validé automatiquement
+                          </span>
+                        ) : tx.status === "pending" ? (
+                          <span className="text-[11px] text-amber-600 italic">En attente webhook…</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {fmtDate(tx.createdAt)}
                       </TableCell>
                     </TableRow>
                   );
