@@ -17,3 +17,9 @@ id = "Z4pdDqhGSR5mw56oeNTPm"
 uri = "file://.local/outputs/Agis-Like-CTO.pdf"
 type = "pdf"
 title = "Agis Like CTO.pdf"
+
+[[outputs]]
+id = "8Q6GCYt3QIfGRcNhKMPC6"
+uri = "file://Gameasu_Partenariat_MDBESS_2026.docx"
+type = "word_document"
+title = "Proposition Gameasu × MDBESS — Juillet 2026"
