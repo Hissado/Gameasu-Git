@@ -229,7 +229,7 @@ router.post("/public/register", async (req, res, next) => {
         planName: plan.name,
         seats: data.seats,
         totalTTC: pricing.totalTTC,
-        billingUrl: `${baseUrl}/facturation`,
+        billingUrl: `${baseUrl}/abonnement`,
       });
       await sendEmail({ ...email, to: data.email });
     } catch (emailErr) {
@@ -375,7 +375,7 @@ async function createOrgForExistingUser(opts: {
       planName: plan.name,
       seats: data.seats,
       totalTTC: pricing.totalTTC,
-      billingUrl: `${baseUrl}/facturation`,
+      billingUrl: `${baseUrl}/abonnement`,
     });
     await sendEmail({ ...emailMsg, to: data.email });
   } catch (emailErr) {

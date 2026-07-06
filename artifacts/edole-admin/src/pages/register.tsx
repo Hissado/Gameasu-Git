@@ -146,7 +146,7 @@ export default function RegisterPage() {
       localStorage.setItem("auth_token", res.token);
       toast({ title: "Compte créé !", description: "Finalisez le paiement pour activer votre espace." });
       // openPay=1 déclenche l'ouverture automatique du modal de paiement sur /facturation
-      setLocation("/facturation?openPay=1");
+      setLocation("/abonnement?openPay=1");
       window.location.reload();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erreur", description: err?.message ?? "Impossible de créer le compte." });

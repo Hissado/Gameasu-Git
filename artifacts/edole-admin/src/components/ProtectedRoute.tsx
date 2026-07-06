@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 
-const PAYMENT_WALL_ALLOWED_PATHS = ["/facturation", "/billing/paiement-retour", "/profil"];
+const PAYMENT_WALL_ALLOWED_PATHS = ["/abonnement", "/billing/paiement-retour", "/profil"];
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -35,7 +35,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!isAuthenticated || !subStatus) return;
     if (subStatus === "pending_payment" && !PAYMENT_WALL_ALLOWED_PATHS.some(p => location.startsWith(p))) {
-      setLocation("/facturation");
+      setLocation("/abonnement");
     }
   }, [isAuthenticated, subStatus, location, setLocation]);
 
