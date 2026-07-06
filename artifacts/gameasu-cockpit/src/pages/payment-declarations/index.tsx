@@ -315,7 +315,7 @@ export default function PaymentDeclarationsPage() {
                     <p className="text-xs text-muted-foreground truncate">{selected.justificationUrl}</p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <a href={`/api${selected.justificationUrl}`} target="_blank" rel="noreferrer">
+                    <a href={`/api/storage${selected.justificationUrl}`} target="_blank" rel="noreferrer">
                       <Download className="w-3.5 h-3.5 mr-1" />Ouvrir
                     </a>
                   </Button>

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, CheckCircle2, Building2, ArrowRight, FileText, Phone, Upload, Info,
+  Loader2, CheckCircle2, Building2, ArrowRight, FileText, Phone, Upload, Info, Copy, Check as CheckIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,6 +52,14 @@ export function DeclarePaiementDialog({ open, onClose, planCode, seats, periodic
   const [uploading, setUploading] = useState(false);
   const [notes, setNotes] = useState("");
   const [payerPhone, setPayerPhone] = useState("");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  function copyText(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    });
+  }
 
   const bankQuery = useQuery<{ data: BankCoords }>({
     queryKey: ["bank-coordinates"],
@@ -197,31 +205,70 @@ export function DeclarePaiementDialog({ open, onClose, planCode, seats, periodic
                   {method === "depot_bureau" ? "Adresse du bureau" : method === "cheque" ? "Ordre du chèque" : "Coordonnées bancaires"}
                 </div>
                 {method === "depot_bureau" ? (
-                  <div className="px-4 py-3 space-y-1">
-                    <div className="font-medium">{coords.officeAddress}</div>
-                    <div className="text-muted-foreground text-xs">{coords.officeHours}</div>
+                  <div className="px-4 py-3 space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-muted-foreground text-xs shrink-0">Adresse</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-right text-sm">{coords.officeAddress}</span>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyText(coords.officeAddress, "address")}>
+                          {copiedKey === "address" ? <CheckIcon className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        </Button>
+                      </div>
+                    </div>
+                    {coords.officeHours && <div className="text-muted-foreground text-xs">{coords.officeHours}</div>}
                     {coords.officePhone && <div className="text-muted-foreground text-xs">{coords.officePhone}</div>}
+                    <div className="border-t pt-2 mt-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Montant exact à remettre</span>
+                        <span className="font-bold text-primary">{formatFCFA(amountTTC)}</span>
+                      </div>
+                    </div>
                   </div>
                 ) : method === "cheque" ? (
-                  <div className="px-4 py-3">
-                    <span className="text-muted-foreground">À l'ordre de : </span>
-                    <span className="font-semibold">{coords.checkOrder}</span>
-                    <div className="text-xs text-muted-foreground mt-1">{coords.officeAddress}</div>
+                  <div className="px-4 py-3 space-y-2">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-muted-foreground text-xs shrink-0">À l'ordre de</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold">{coords.checkOrder}</span>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyText(coords.checkOrder, "checkOrder")}>
+                          {copiedKey === "checkOrder" ? <CheckIcon className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{coords.officeAddress}</div>
+                    <div className="border-t pt-2 flex justify-between text-xs">
+                      <span className="text-muted-foreground">Montant du chèque</span>
+                      <span className="font-bold text-primary">{formatFCFA(amountTTC)}</span>
+                    </div>
+                    <div className="text-xs text-amber-700">Libellé : indiquez votre organisation en dos de chèque</div>
                   </div>
                 ) : (
                   <div className="px-4 py-3 space-y-1.5">
                     {[
-                      { label: "Banque",     value: coords.bankName },
-                      { label: "Titulaire",  value: coords.accountHolder },
-                      { label: "Compte",     value: coords.accountNumber },
-                      { label: "IBAN",       value: coords.iban },
-                      { label: "BIC/SWIFT",  value: coords.bic },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="flex justify-between gap-2">
-                        <span className="text-muted-foreground shrink-0">{label}</span>
-                        <span className="font-mono text-xs font-medium text-right break-all">{value}</span>
+                      { label: "Banque",    value: coords.bankName,       key: "bank",    copy: false },
+                      { label: "Titulaire", value: coords.accountHolder,  key: "holder",  copy: true },
+                      { label: "Compte",    value: coords.accountNumber,  key: "account", copy: true },
+                      { label: "IBAN",      value: coords.iban,           key: "iban",    copy: true },
+                      { label: "BIC/SWIFT", value: coords.bic,            key: "bic",     copy: true },
+                    ].map(({ label, value, key, copy }) => (
+                      <div key={label} className="flex justify-between items-center gap-2">
+                        <span className="text-muted-foreground shrink-0 text-xs">{label}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-xs font-medium text-right break-all">{value}</span>
+                          {copy && (
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0" onClick={() => copyText(value, key)}>
+                              {copiedKey === key ? <CheckIcon className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
+                    <div className="border-t pt-2 flex justify-between text-xs mt-1">
+                      <span className="text-muted-foreground">Montant exact à virer</span>
+                      <Button variant="ghost" size="sm" className="h-5 px-1 text-xs font-bold text-primary" onClick={() => copyText(String(amountTTC), "amount")}>
+                        {formatFCFA(amountTTC)} {copiedKey === "amount" ? <CheckIcon className="w-3 h-3 ml-1 text-emerald-500" /> : <Copy className="w-3 h-3 ml-1" />}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
