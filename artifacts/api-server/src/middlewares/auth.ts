@@ -1,12 +1,22 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { db } from "@workspace/db";
-import { usersTable, authSessionsTable, expertContextSessionsTable } from "@workspace/db";
+import {
+  usersTable, authSessionsTable, expertContextSessionsTable,
+  organizationMembersTable,
+} from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 
 export type AuthUser = {
   id: string;
   email: string;
+  /** Rôle global de l'utilisateur dans la table users. */
   role: string;
+  /**
+   * Rôle de l'utilisateur dans l'organisation active (organization_members.role).
+   * Présent uniquement si une ligne existe ; null sinon.
+   * Valeurs possibles : 'owner' | 'admin' | 'manager' | 'member' | …
+   */
+  orgRole: string | null;
   firstName: string;
   lastName: string;
   /** Organisation active pour cette session. Toujours définie (partitionnement strict). */
@@ -28,6 +38,10 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  * Seuls les tokens UUID v4 stockés dans auth_sessions sont acceptés.
  * L'organisation active est lue depuis session.activeOrgId (multi-org),
  * avec repli sur users.organizationId si non définie.
+ *
+ * Enrichit aussi orgRole depuis organization_members pour permettre à un
+ * owner/admin d'org d'accéder aux endpoints billing même si son role global
+ * est un rôle métier (commercial, manager, etc.).
  */
 async function resolveToken(rawToken: string): Promise<AuthUser | null> {
   if (!UUID_REGEX.test(rawToken)) {
@@ -55,10 +69,23 @@ async function resolveToken(rawToken: string): Promise<AuthUser | null> {
   // Priorité : org active de la session ; repli sur org primaire de l'utilisateur
   const organizationId = sessions[0].activeOrgId ?? user.organizationId;
 
+  // Récupérer le rôle d'appartenance dans l'org active
+  const [membership] = await db
+    .select({ role: organizationMembersTable.role })
+    .from(organizationMembersTable)
+    .where(
+      and(
+        eq(organizationMembersTable.userId, user.id),
+        eq(organizationMembersTable.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+
   return {
     id: user.id,
     email: user.email,
     role: user.role,
+    orgRole: membership?.role ?? null,
     firstName: user.firstName,
     lastName: user.lastName,
     organizationId,
@@ -109,13 +136,27 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   next();
 };
 
+/**
+ * Un utilisateur est considéré admin si :
+ *  - son rôle global (users.role) est 'super_admin' ou 'admin' — héritage historique
+ *  - OU son rôle dans l'org active (organization_members.role) est 'owner' ou 'admin'
+ *    → permet aux fondateurs d'org multi-tenant d'accéder à la facturation
+ *    sans élever leur rôle global
+ */
+function isEffectiveAdmin(authUser: AuthUser): boolean {
+  if (authUser.role === "super_admin" || authUser.role === "admin") return true;
+  if (authUser.orgRole === "owner" || authUser.orgRole === "admin") return true;
+  return false;
+}
+
 export const requireRole = (...roles: string[]): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.authUser) {
       res.status(401).json({ error: "Authentification requise" });
       return;
     }
-    if (req.authUser.role === "super_admin" || req.authUser.role === "admin") {
+    // Super-admin et org-owner/admin passent toujours
+    if (isEffectiveAdmin(req.authUser)) {
       next();
       return;
     }
