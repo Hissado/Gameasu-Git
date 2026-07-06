@@ -115,6 +115,7 @@ const HrIntelligence = lazy(() => import("@/pages/hr/intelligence"));
 const NotificationsDigest = lazy(() => import("@/pages/notifications/digest"));
 const UniversalSearch = lazy(() => import("@/pages/search/index"));
 const AssistantPage = lazy(() => import("@/pages/assistant/index"));
+const AssistantIaPage = lazy(() => import("@/pages/assistant-ia/index"));
 const BriefingPage = lazy(() => import("@/pages/briefing/index"));
 const ApprovalsQueue = lazy(() => import("@/pages/approvals/index"));
 const AnomalyCenter = lazy(() => import("@/pages/anomalies/index"));
@@ -377,6 +378,7 @@ function AppRouter() {
                 <Route path="/notifications/synthese" component={NotificationsDigest} />
                 <Route path="/recherche" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />
+                <Route path="/assistant-ia" component={AssistantIaPage} />
                 <Route path="/briefing" component={BriefingPage} />
                 <Route path="/pipeline/intelligence" component={CrmHub} />
                 <Route path="/approbations" component={ApprovalsQueue} />

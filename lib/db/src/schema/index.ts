@@ -37,3 +37,4 @@ export * from "./cockpit";
 export * from "./auth";
 export * from "./expert";
 export * from "./btp";
+export * from "./ai-assistant";

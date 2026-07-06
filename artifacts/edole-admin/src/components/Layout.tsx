@@ -13,7 +13,7 @@ import {
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
-  Banknote, Flame, ArrowLeftRight, CheckCircle2,
+  Banknote, Flame, ArrowLeftRight, CheckCircle2, Bot,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,6 +49,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use" },
       { name: "Appels",           path: "/appels",        icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use" },
       { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true },
+      { name: "Assistant IA",     path: "/assistant-ia", icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights" },
       { name: "Approbations",     path: "/approbations",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
     ],
   },

@@ -78,6 +78,7 @@ import expertFirmsRouter from "./expert-firms";
 import expertInvitationPublicRouter from "./expert-invitation-public";
 import { accessRequestPublicRouter, accessRequestCockpitRouter } from "./access-requests";
 import btpPayrollRouter from "./btp-payroll";
+import assistantIaRouter from "./assistant-ia";
 import billingManualPaymentsRouter from "./billing-manual-payments";
 import billingCinetpayRouter, { cinetpayPublicRouter } from "./billing-cinetpay";
 import billingPromoRouter from "./billing-promo";
@@ -125,6 +126,7 @@ router.use(hrIntelligenceRouter);
 router.use(notificationsIntelligenceRouter); // monté avant /notifications
 router.use(universalSearchRouter);
 router.use(assistantRouter);
+router.use(assistantIaRouter);
 router.use(dailyBriefingRouter);
 router.use(pipelineIntelligenceRouter);
 router.use(approvalsQueueRouter);

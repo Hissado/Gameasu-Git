@@ -213,6 +213,7 @@ export const ROUTE_MODULE_MAP: Array<{ test: (path: string) => boolean; moduleKe
   { test: (p) => p.startsWith("/documents"), moduleKey: "documents" },
   { test: (p) => p.startsWith("/rh") || p.startsWith("/collaborateurs"), moduleKey: "team_hr" },
   { test: (p) => p.startsWith("/messaging") || p.startsWith("/appels"), moduleKey: "communications" },
+  { test: (p) => p.startsWith("/assistant-ia"), moduleKey: "ai_assistant" },
   { test: (p) => p.startsWith("/rapports") || p.startsWith("/carte"), moduleKey: "reports" },
   { test: (p) => p.startsWith("/achats"), moduleKey: "purchases" },
   { test: (p) => p.startsWith("/marketing"), moduleKey: "marketing" },

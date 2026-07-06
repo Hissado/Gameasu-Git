@@ -49,6 +49,7 @@ const MODULES: ModuleSeed[] = [
   { key: "documents",            name: "Documents",                          category: "core",     sortOrder: 120, isCore: true, icon: "FolderOpen" },
   { key: "team_hr",              name: "Équipe & RH",                        category: "business", sortOrder: 130, icon: "UsersRound" },
   { key: "communications",       name: "Communications",                     category: "business", sortOrder: 140, icon: "MessageSquare" },
+  { key: "ai_assistant",         name: "Assistant IA",                       category: "ai",       sortOrder: 145, icon: "Bot" },
   { key: "reports",              name: "Rapports",                           category: "business", sortOrder: 150, icon: "BarChart3" },
   { key: "client_portal",        name: "Portail client",                     category: "business", sortOrder: 160, icon: "ExternalLink" },
   { key: "marketing",            name: "Marketing",                          category: "business", sortOrder: 170, icon: "Megaphone" },
