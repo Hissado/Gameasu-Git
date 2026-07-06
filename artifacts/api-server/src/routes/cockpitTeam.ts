@@ -234,6 +234,9 @@ router.get("/super-admin/subscriptions", sa, async (_req, res, next) => {
         trialEndsAt: organizationSubscriptionsTable.trialEndsAt,
         autopayEnabled: organizationSubscriptionsTable.autopayEnabled,
         createdAt: organizationSubscriptionsTable.createdAt,
+        orgContactEmail: organizationsTable.contactEmail,
+        // Timestamp d'activation (début de la première période active)
+        activatedAt: organizationSubscriptionsTable.currentPeriodStart,
       })
       .from(organizationSubscriptionsTable)
       .leftJoin(organizationsTable, eq(organizationsTable.id, organizationSubscriptionsTable.organizationId))

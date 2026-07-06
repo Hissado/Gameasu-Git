@@ -21,6 +21,7 @@ import {
   promoCodeUsesTable,
   promoCodesTable,
   partnerProgramsTable,
+  usersTable,
 } from "@workspace/db";
 import { resolvePromoCode } from "./billing-promo";
 import { randomUUID } from "crypto";
@@ -93,6 +94,17 @@ async function confirmAndActivate(opts: {
     .limit(1);
 
   if (!found) throw new Error(`Transaction ${txId} introuvable`);
+
+  // Récupérer le prénom du premier admin de l'organisation pour les emails de bienvenue
+  const [adminUser] = await db
+    .select({ firstName: usersTable.firstName })
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.organizationId, found.tx.organizationId),
+      eq(usersTable.isActive, true),
+    ))
+    .limit(1);
+  const adminFirstName = adminUser?.firstName ?? null;
 
   // 2. Résoudre le plan à partir du planCode stocké dans la transaction (server-authoritative)
   const txPlanCode = found.tx.planCode;
@@ -272,7 +284,7 @@ async function confirmAndActivate(opts: {
       const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gaméasù";
       const baseUrl = getPublicBaseUrl({ headers: {} } as any);
       const activationEmail = buildActivationEmail({
-        firstName: found.orgName,
+        firstName: adminFirstName ?? found.orgName,
         orgName: found.orgName,
         planName,
         periodEnd,

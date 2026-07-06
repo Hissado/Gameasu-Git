@@ -24,6 +24,7 @@ import {
   organizationsTable,
   subscriptionPlansTable,
   platformSettingsTable,
+  usersTable,
 } from "@workspace/db";
 import { and, eq, desc, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
@@ -254,6 +255,17 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
       res.status(400).json({ error: `Impossible de confirmer une déclaration au statut "${found.tx.status}"` }); return;
     }
 
+    // Récupérer le prénom du premier admin de l'organisation pour l'email de bienvenue
+    const [adminUser] = await db
+      .select({ firstName: usersTable.firstName })
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.organizationId, found.tx.organizationId),
+        eq(usersTable.isActive, true),
+      ))
+      .limit(1);
+    const adminFirstName = adminUser?.firstName ?? null;
+
     const year = new Date().getFullYear();
     const [cnt] = await db.select({ c: sql<number>`count(*)::int` }).from(paymentTransactionsTable)
       .where(and(eq(paymentTransactionsTable.organizationId, found.tx.organizationId), eq(paymentTransactionsTable.status, "confirmed"), sql`EXTRACT(year FROM created_at) = ${year}`));
@@ -339,7 +351,7 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
         const loginUrl = process.env.PUBLIC_BASE_URL ?? `https://${(process.env.REPLIT_DOMAINS ?? "").split(",")[0] ?? "gameasu.com"}`;
         const { buildActivationEmail } = await import("../lib/email");
         const activationEmail = buildActivationEmail({
-          firstName: found.orgName,
+          firstName: adminFirstName ?? found.orgName,
           orgName: found.orgName,
           planName,
           periodEnd,

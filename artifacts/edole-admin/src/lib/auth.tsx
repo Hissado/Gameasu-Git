@@ -58,6 +58,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       gcTime: 30 * 60 * 1000,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
+      // Relance automatique toutes les 5 s quand le paiement est en attente,
+      // pour que le blocage se lève dès que l'abonnement passe à "active"
+      refetchInterval: (query: any) =>
+        query.state.data?.subscriptionStatus === "pending_payment" ? 5000 : false,
       queryKey: ["auth-me"] as const,
     },
   });

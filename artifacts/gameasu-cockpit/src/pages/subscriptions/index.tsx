@@ -9,7 +9,7 @@ import { Link } from "wouter";
 import {
   CreditCard, Loader2, Search, X, TrendingUp, Users,
   CheckCircle2, Clock, AlertTriangle, XCircle, RefreshCw,
-  Zap, CalendarClock, MessageSquare,
+  Zap, CalendarClock, Sparkles, Mail,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,8 @@ type Sub = {
   isCurrent: boolean;
   currentPeriodStart: string | null; currentPeriodEnd: string | null;
   trialEndsAt: string | null; autopayEnabled: boolean; createdAt: string;
+  orgContactEmail: string | null;
+  activatedAt: string | null;
 };
 
 const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
@@ -105,6 +107,13 @@ export default function SubscriptionsPage() {
   const pastDue        = (data?.rows ?? []).filter(r => r.status === "past_due" && r.isCurrent);
   const pendingPayment = (data?.rows ?? []).filter(r => r.status === "pending_payment" && r.isCurrent);
 
+  // Conversions récentes : actifs depuis moins de 7 jours (created → paid)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentlyActivated = (data?.rows ?? []).filter(r =>
+    r.status === "active" && r.isCurrent && r.activatedAt &&
+    new Date(r.activatedAt) > sevenDaysAgo
+  );
+
   const subToActivate = pendingPayment.find(s => s.id === activatingId);
 
   return (
@@ -119,6 +128,69 @@ export default function SubscriptionsPage() {
           Actualiser
         </Button>
       </div>
+
+      {/* ── Section Conversions récentes (créé → payé) ──────────────────── */}
+      {recentlyActivated.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <h2 className="text-[15px] font-semibold text-foreground">Conversions récentes</h2>
+            <span className="text-[11px] text-muted-foreground">— Ces comptes ont finalisé leur paiement dans les 7 derniers jours.</span>
+            <span className="ml-auto text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              +{recentlyActivated.length} cette semaine
+            </span>
+          </div>
+          <div className="grid gap-2">
+            {recentlyActivated.map(sub => {
+              const planKey = (sub.planCode ?? "").toLowerCase();
+              return (
+                <Card key={sub.id} className="border-emerald-200 bg-emerald-50/30">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="font-semibold text-[13px] text-foreground truncate">
+                            {sub.orgName ?? sub.orgSlug ?? sub.orgId}
+                          </span>
+                          <Badge className={`text-xs shrink-0 ${PLAN_COLORS[planKey] ?? "bg-gray-100 text-gray-700"}`}>
+                            {sub.planName ?? sub.planCode ?? "—"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" /> {sub.seats} siège{sub.seats > 1 ? "s" : ""}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CalendarClock className="w-3 h-3" /> {PERIOD_LABELS[sub.billingCycle] ?? sub.billingCycle}
+                          </span>
+                          {sub.activatedAt && (
+                            <span className="flex items-center gap-1 text-emerald-700">
+                              <Sparkles className="w-3 h-3" /> Activé {fmtRelative(sub.activatedAt)}
+                            </span>
+                          )}
+                          {sub.orgContactEmail && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" /> {sub.orgContactEmail}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[16px] font-extrabold text-emerald-700 tabular-nums">{fmtFCFA(sub.unitPrice * sub.seats)}</p>
+                        <p className="text-[10px] text-muted-foreground">TTC / cycle</p>
+                      </div>
+                      <Link href={`/tenants/${sub.orgId}`}>
+                        <Button variant="outline" size="sm" className="text-xs h-7">Voir</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Section Prospects en attente de paiement ─────────────────────── */}
       {pendingPayment.length > 0 && (
