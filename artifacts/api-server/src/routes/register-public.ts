@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import { calcPlanPricing, getPlan } from "../lib/pricing";
 import { sendEmail, buildRegistrationEmail } from "../lib/email";
