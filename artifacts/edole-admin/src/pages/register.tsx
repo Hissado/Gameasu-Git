@@ -268,7 +268,7 @@ export default function RegisterPage() {
           >
             <h1 className="text-[20px] font-bold text-[#0E1A39] mb-1">Créer votre espace de travail</h1>
             <p className="text-[12.5px] text-gray-500 mb-6">
-              Renseignez vos informations pour créer votre organisation sur Gaméasù.
+              Renseignez vos informations pour créer votre organisation sur Gameasu.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -365,7 +365,7 @@ export default function RegisterPage() {
                     </div>
                     {emailStatus === "exists" && !errors.email && (
                       <p className="text-[11px] text-amber-600 mt-1">
-                        Cet email existe déjà. Si c'est le vôtre, entrez votre mot de passe Gaméasù pour créer une nouvelle organisation.
+                        Cet email existe déjà. Si c'est le vôtre, entrez votre mot de passe Gameasu pour créer une nouvelle organisation.
                       </p>
                     )}
                   </Field>
@@ -457,7 +457,7 @@ export default function RegisterPage() {
                     <a href="#" className="text-blue-600 hover:underline">Conditions d'utilisation</a>
                     {" "}et la{" "}
                     <a href="#" className="text-blue-600 hover:underline">Politique de confidentialité</a>
-                    {" "}de Gaméasù.
+                    {" "}de Gameasu.
                   </span>
                 </label>
                 {errors.terms && <p className="text-[11px] text-red-500 mt-1 ml-6">{errors.terms}</p>}

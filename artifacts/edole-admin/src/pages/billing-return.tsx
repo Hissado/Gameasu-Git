@@ -78,7 +78,7 @@ export default function BillingReturnPage() {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
           {/* Header */}
           <div className="bg-[#0b0f1c] px-6 py-5">
-            <div className="text-[#F37021] font-extrabold tracking-widest text-xs uppercase mb-1">Gaméasù</div>
+            <div className="text-[#F37021] font-extrabold tracking-widest text-xs uppercase mb-1">Gameasu</div>
             <div className="text-white text-lg font-semibold">Résultat du paiement</div>
           </div>
 
@@ -221,7 +221,7 @@ export default function BillingReturnPage() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-4">
-          Paiement sécurisé via CinetPay · Gaméasù SaaS
+          Paiement sécurisé via CinetPay · Gameasu SaaS
         </p>
       </div>
     </div>

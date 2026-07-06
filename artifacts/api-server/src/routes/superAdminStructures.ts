@@ -345,7 +345,7 @@ router.post("/super-admin/structures/invite-link", sa, async (req, res, next) =>
         ].join("\n"),
         html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee">
-  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Activez votre espace</h1></div>
+  <div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMEASU</div><h1 style="margin:0;font-size:22px">Activez votre espace</h1></div>
   <div style="padding:24px 28px;line-height:1.6">
     <p>Bonjour ${contactName || ""},</p>
     <p>Vous êtes invité(e) à créer votre organisation sur Gameasu — pilotage d'entreprise nouvelle génération.</p>
@@ -646,7 +646,7 @@ router.post("/super-admin/organizations/:id/structure-invitations/generate", sa,
         to: String(contactEmail),
         subject: `Lien d'accès Gameasu — ${org.name}`,
         text: `Bonjour ${contactName || ""},\n\nVoici votre lien d'accès à la plateforme Gameasu :\n${onboardUrl}\n\nLien valable ${INVITE_TTL_DAYS} jours.\n\nL'équipe Gameasu`,
-        html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMÉASÙ</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gameasu pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#2563EB;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
+        html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f7f7;padding:24px;color:#111"><div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee"><div style="background:#0b0b0b;color:#fff;padding:24px 28px"><div style="color:#3B82F6;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:6px">GAMEASU</div><h1 style="margin:0;font-size:22px">Accès à votre espace</h1></div><div style="padding:24px 28px;line-height:1.6"><p>Bonjour ${contactName || ""},</p><p>Voici votre lien d'accès à la plateforme Gameasu pour l'organisation <strong>${org.name}</strong>.</p><p style="text-align:center;margin:24px 0"><a href="${onboardUrl}" style="background:#2563EB;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accéder à la plateforme</a></p><p style="font-size:13px;color:#555">Lien valable ${INVITE_TTL_DAYS} jours.</p></div></div></body></html>`,
       }).catch((e: unknown) => ({ error: (e as Error)?.message }));
     }
 

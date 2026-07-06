@@ -712,7 +712,7 @@ function PaymentModal({
                     />
                   </div>
                   <p className="text-[11px] text-amber-700">
-                    Vous serez redirigé(e) vers la page de paiement CinetPay. Confirmez le paiement sur votre téléphone, puis revenez sur Gaméasù.
+                    Vous serez redirigé(e) vers la page de paiement CinetPay. Confirmez le paiement sur votre téléphone, puis revenez sur Gameasu.
                   </p>
                 </div>
               )}
@@ -1345,25 +1345,29 @@ export default function BillingPage() {
     const params = new URLSearchParams(window.location.search);
     const planParam = params.get("plan");
     if (planParam) {
-      // Normalise en majuscules pour correspondre aux codes plan (STARTER, GROWTH…)
       setPlanChangeTarget(planParam.toUpperCase());
     }
     if (params.get("openPartner") === "1") {
       setShowPartnerDialog(true);
     }
-    // openPay=1 → ouvre directement le modal de déclaration de paiement
-    // (cas typique : l'utilisateur vient d'inscrire son organisation et est
-    //  redirigé ici après register avec openPay=1)
+    // openPay=1 → ouvre le modal CinetPay (cas typique : redirection post-register)
     if (params.get("openPay") === "1") {
-      setShowDeclareModal(true);
+      setShowPayModal(true);
     }
-    // Nettoyer l'URL sans rechargement si un param a été traité
     if (planParam || params.has("openPartner") || params.has("openPay")) {
       window.history.replaceState(null, "", window.location.pathname + window.location.hash);
     }
   }, []);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
   const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
+
+  // Synchroniser la périodicité avec celle de l'abonnement actif
+  useEffect(() => {
+    const cycle = (current as any)?.billingCycle ?? (current as any)?.billing_cycle;
+    if (cycle && ["monthly", "quarterly", "semiannual", "annual"].includes(cycle)) {
+      setPeriodicity(cycle as Periodicity);
+    }
+  }, [current]);
   const [planChangeTarget, setPlanChangeTarget] = useState<string | null>(null);
 
   const changePlanMutation = useMutation({
@@ -1643,7 +1647,7 @@ export default function BillingPage() {
                   onClick={() => setShowPartnerDialog(true)}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Handshake className="w-4 h-4 text-emerald-600" /> Devenir partenaire Gaméasù
+                    <Handshake className="w-4 h-4 text-emerald-600" /> Devenir partenaire Gameasu
                   </span>
                   <ArrowUpRight className="w-4 h-4" />
                 </Button>
@@ -2606,7 +2610,7 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Handshake className="w-5 h-5 text-emerald-600" /> Devenir partenaire Gaméasù
+            <Handshake className="w-5 h-5 text-emerald-600" /> Devenir partenaire Gameasu
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Rejoignez notre réseau de revendeurs et d'intégrateurs certifiés. Nous vous répondrons sous 48 h.
@@ -2684,7 +2688,7 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
             <div className="space-y-1">
               <Label className="text-xs font-medium">Motivation *</Label>
               <textarea
-                placeholder="Décrivez votre contexte, vos clients cibles, et pourquoi vous souhaitez devenir partenaire Gaméasù…"
+                placeholder="Décrivez votre contexte, vos clients cibles, et pourquoi vous souhaitez devenir partenaire Gameasu…"
                 value={form.motivation}
                 onChange={set("motivation")}
                 required
@@ -2704,7 +2708,7 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
               <span className="text-xs text-slate-700">
                 J'accepte les{" "}
                 <a href="https://gameasu.com/conditions-partenaires" target="_blank" rel="noreferrer" className="text-emerald-700 underline">
-                  conditions du programme partenaire Gaméasù
+                  conditions du programme partenaire Gameasu
                 </a>{" "}
                 et je m'engage à respecter la charte éthique des revendeurs certifiés. *
               </span>

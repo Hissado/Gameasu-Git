@@ -32,7 +32,7 @@ const METHOD_OPTS = [
   { value: "virement",      label: "Virement bancaire",  desc: "Virement SEPA ou interbancaire depuis votre banque" },
   { value: "depot_bancaire", label: "Dépôt bancaire",    desc: "Dépôt d'espèces ou chèque en agence bancaire" },
   { value: "depot_bureau",   label: "Dépôt au bureau",   desc: "Dépôt d'espèces directement à nos bureaux" },
-  { value: "cheque",         label: "Chèque",             desc: "Chèque établi à l'ordre de Gaméasù SARL" },
+  { value: "cheque",         label: "Chèque",             desc: "Chèque établi à l'ordre de Gameasu SARL" },
 ];
 
 interface Props {

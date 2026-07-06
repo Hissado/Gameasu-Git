@@ -1,5 +1,5 @@
 /**
- * Programme partenaire Gaméasù
+ * Programme partenaire Gameasu
  *
  * Routes publiques / authentifiées :
  *   POST  /partner-program/apply               Soumettre une demande partenaire
@@ -95,11 +95,11 @@ partnerPublicRouter.post("/partner-program/apply", async (req, res) => {
     // Email de confirmation au demandeur
     await sendEmail({
       to: created.contactEmail,
-      subject: "Votre demande partenaire Gaméasù est bien reçue",
+      subject: "Votre demande partenaire Gameasu est bien reçue",
       html: `<p>Bonjour ${created.contactName},</p>
 <p>Nous avons bien reçu votre demande de partenariat pour <strong>${created.orgName}</strong>. Notre équipe va l'examiner et vous contacter sous 2-3 jours ouvrés.</p>
-<p>Cordialement,<br>L'équipe Gaméasù</p>`,
-      text: `Bonjour ${created.contactName},\n\nVotre demande de partenariat pour ${created.orgName} est bien reçue. Nous vous contacterons sous 2-3 jours ouvrés.\n\nL'équipe Gaméasù`,
+<p>Cordialement,<br>L'équipe Gameasu</p>`,
+      text: `Bonjour ${created.contactName},\n\nVotre demande de partenariat pour ${created.orgName} est bien reçue. Nous vous contacterons sous 2-3 jours ouvrés.\n\nL'équipe Gameasu`,
       category: "partner_application",
     }).catch((e) => logger.warn(e, "partner apply confirmation email failed"));
 
@@ -215,14 +215,14 @@ router.post("/super-admin/partner-programs/:id/approve", sa, async (req, res) =>
     // Email d'approbation avec le code
     await sendEmail({
       to: partner.contactEmail,
-      subject: "🎉 Votre partenariat Gaméasù est approuvé !",
+      subject: "🎉 Votre partenariat Gameasu est approuvé !",
       html: `<p>Bonjour ${partner.contactName},</p>
-<p>Nous avons le plaisir de vous confirmer que votre partenariat avec Gaméasù est <strong>officiellement approuvé</strong>.</p>
+<p>Nous avons le plaisir de vous confirmer que votre partenariat avec Gameasu est <strong>officiellement approuvé</strong>.</p>
 <p>Votre code partenaire unique est : <strong style="font-size:1.4em;letter-spacing:2px">${promoCode.code}</strong></p>
-${discountPercent > 0 ? `<p>Ce code offre une réduction de <strong>${discountPercent}%</strong> sur les abonnements Gaméasù à vos clients.</p>` : ""}
-<p>Partagez-le avec vos clients lors de leur souscription sur la plateforme Gaméasù.</p>
-<p>Merci de votre confiance,<br>L'équipe Gaméasù</p>`,
-      text: `Bonjour ${partner.contactName},\n\nVotre partenariat Gaméasù est approuvé !\n\nVotre code partenaire : ${promoCode.code}${discountPercent > 0 ? `\nRéduction : ${discountPercent}%` : ""}\n\nL'équipe Gaméasù`,
+${discountPercent > 0 ? `<p>Ce code offre une réduction de <strong>${discountPercent}%</strong> sur les abonnements Gameasu à vos clients.</p>` : ""}
+<p>Partagez-le avec vos clients lors de leur souscription sur la plateforme Gameasu.</p>
+<p>Merci de votre confiance,<br>L'équipe Gameasu</p>`,
+      text: `Bonjour ${partner.contactName},\n\nVotre partenariat Gameasu est approuvé !\n\nVotre code partenaire : ${promoCode.code}${discountPercent > 0 ? `\nRéduction : ${discountPercent}%` : ""}\n\nL'équipe Gameasu`,
       category: "partner_approved",
     }).catch((e) => logger.warn(e, "partner approval email failed"));
 
@@ -263,13 +263,13 @@ router.post("/super-admin/partner-programs/:id/reject", sa, async (req, res) => 
 
     await sendEmail({
       to: partner.contactEmail,
-      subject: "Suite à votre demande de partenariat Gaméasù",
+      subject: "Suite à votre demande de partenariat Gameasu",
       html: `<p>Bonjour ${partner.contactName},</p>
 <p>Après examen de votre demande de partenariat, nous ne sommes pas en mesure de la valider à ce stade.</p>
 ${reason ? `<p>Motif : ${reason}</p>` : ""}
 <p>N'hésitez pas à nous recontacter si votre situation évolue.</p>
-<p>Cordialement,<br>L'équipe Gaméasù</p>`,
-      text: `Bonjour ${partner.contactName},\n\nNous ne pouvons pas valider votre demande à ce stade.${reason ? `\nMotif : ${reason}` : ""}\n\nL'équipe Gaméasù`,
+<p>Cordialement,<br>L'équipe Gameasu</p>`,
+      text: `Bonjour ${partner.contactName},\n\nNous ne pouvons pas valider votre demande à ce stade.${reason ? `\nMotif : ${reason}` : ""}\n\nL'équipe Gameasu`,
       category: "partner_rejected",
     }).catch((e) => logger.warn(e, "partner rejection email failed"));
 

@@ -281,7 +281,7 @@ async function confirmAndActivate(opts: {
   if (found.orgContactEmail) {
     if (wasNewAccount) {
       // Nouveau compte : envoyer l'email d'activation
-      const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gaméasù";
+      const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gameasu";
       const baseUrl = getPublicBaseUrl({ headers: {} } as any);
       const activationEmail = buildActivationEmail({
         firstName: adminFirstName ?? found.orgName,
@@ -294,7 +294,7 @@ async function confirmAndActivate(opts: {
     } else {
       await sendEmail({
         to: found.orgContactEmail,
-        subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
+        subject: `[Gameasu] Paiement confirmé — ${receiptNumber}`,
         html: emailPaymentConfirmed({
           orgName: found.orgName,
           receiptNumber,
@@ -302,7 +302,7 @@ async function confirmAndActivate(opts: {
           method: METHOD_LABELS[found.tx.method] ?? found.tx.method,
           periodEnd,
         }),
-        text: `Votre paiement ${receiptNumber} a été confirmé automatiquement. Votre abonnement Gaméasù est actif.`,
+        text: `Votre paiement ${receiptNumber} a été confirmé automatiquement. Votre abonnement Gameasu est actif.`,
       });
     }
   }
@@ -315,7 +315,7 @@ async function confirmAndActivate(opts: {
 router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) => {
   try {
     if (!isCinetPayConfigured()) {
-      res.status(503).json({ error: "CinetPay non configuré sur cette instance. Contactez le support Gaméasù." });
+      res.status(503).json({ error: "CinetPay non configuré sur cette instance. Contactez le support Gameasu." });
       return;
     }
 
@@ -470,7 +470,7 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       transactionId: cinetpayTxId,
       amount,
       currency: "XOF",
-      description: `Abonnement Gaméasù — ${planName} × ${resolvedSeats} util.`,
+      description: `Abonnement Gameasu — ${planName} × ${resolvedSeats} util.`,
       notifyUrl,
       returnUrl,
       channels: methodToChannels(method as CinetPayMethod),
@@ -751,7 +751,7 @@ function emailPaymentConfirmed({ orgName, receiptNumber, amount, method, periodE
   const periodStr = periodEnd ? new Date(periodEnd).toLocaleDateString("fr-FR") : "—";
   return `<!DOCTYPE html><html lang="fr"><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:24px">
 <div style="max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-  <div style="background:#F37021;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Gaméasù</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Paiement confirmé — Merci !</p></div>
+  <div style="background:#F37021;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Gameasu</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Paiement confirmé — Merci !</p></div>
   <div style="padding:24px">
     <p style="color:#374151">Bonjour,</p>
     <p style="color:#374151">Votre paiement pour <strong>${orgName}</strong> a été traité avec succès via <strong>${method}</strong>.</p>
@@ -763,11 +763,11 @@ function emailPaymentConfirmed({ orgName, receiptNumber, amount, method, periodE
         <tr><td style="color:#6b7280;padding:4px 0">Abonnement valide jusqu'au</td><td style="font-weight:600;text-align:right">${periodStr}</td></tr>
       </table>
     </div>
-    <p style="color:#374151">Votre abonnement Gaméasù est désormais actif et renouvelé. L'accès à toutes vos fonctionnalités est maintenu sans interruption.</p>
+    <p style="color:#374151">Votre abonnement Gameasu est désormais actif et renouvelé. L'accès à toutes vos fonctionnalités est maintenu sans interruption.</p>
     <p style="color:#6b7280;font-size:12px">En cas de question, contactez notre support à <a href="mailto:support@gameasu.com" style="color:#F37021">support@gameasu.com</a>.</p>
   </div>
   <div style="background:#fafafa;padding:14px 24px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — Paiement sécurisé via CinetPay
+    © ${new Date().getFullYear()} Gameasu — Paiement sécurisé via CinetPay
   </div>
 </div></body></html>`;
 }

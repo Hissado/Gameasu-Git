@@ -402,10 +402,10 @@ router.post("/admin/users/invite", requirePermission("users.invite"), async (req
     // Notifier l'utilisateur qu'il a été ajouté à un nouvel espace
     const loginUrl = `${baseUrl}/login`;
     const notifHtml = `<p>Bonjour ${existing.firstName},</p>
-<p><strong>${inviterName}</strong> vous a ajouté à l'espace de travail <strong>${orgName}</strong> sur Gaméasù.</p>
+<p><strong>${inviterName}</strong> vous a ajouté à l'espace de travail <strong>${orgName}</strong> sur Gameasu.</p>
 <p>Connectez-vous avec vos identifiants habituels — lors du prochain accès, vous pourrez choisir l'espace à ouvrir.</p>
-<p><a href="${loginUrl}" style="background:#F37021;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:bold;">Accéder à Gaméasù</a></p>`;
-    const notifText = `Bonjour ${existing.firstName},\n\n${inviterName} vous a ajouté à l'espace "${orgName}" sur Gaméasù.\n\nConnectez-vous sur ${loginUrl} avec vos identifiants habituels.`;
+<p><a href="${loginUrl}" style="background:#F37021;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:bold;">Accéder à Gameasu</a></p>`;
+    const notifText = `Bonjour ${existing.firstName},\n\n${inviterName} vous a ajouté à l'espace "${orgName}" sur Gameasu.\n\nConnectez-vous sur ${loginUrl} avec vos identifiants habituels.`;
     const delivery = await sendEmail({ to: existing.email, subject: `Vous avez été ajouté à ${orgName}`, html: notifHtml, text: notifText });
 
     void permissionsHint;

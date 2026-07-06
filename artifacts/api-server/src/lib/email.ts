@@ -41,7 +41,7 @@ export function getPreviewInbox(limit = 50) {
 export async function sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "Gaméasù <noreply@gameasu.com>";
+  const from = process.env.EMAIL_FROM || "Gameasu <noreply@gameasu.com>";
 
   let result: EmailDeliveryResult;
   try {
@@ -199,7 +199,7 @@ function buildDocEmail(opts: {
     </div>
     ${msgHtml}${linesHtml}${totalBlock}${notesHtml}
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gameasu</div>
 </div></body></html>`;
   const textLines = opts.lines.map(l => `  - ${l.description} × ${l.quantity} = ${fmt(l.totalFcfa)}`).join("\n");
   const text = `${opts.docTypeLabel} ${opts.refNumber}\nClient : ${opts.clientName}\n${textLines ? `\nLignes :\n${textLines}\n` : ""}Total : ${fmt(opts.totalAmount)}${opts.notes ? `\n\nNotes : ${opts.notes}` : ""}`;
@@ -257,7 +257,7 @@ export function buildCreditNoteEmail(opts: {
     <div style="margin-top:16px;background:#fafafa;border-left:3px solid ${color};padding:12px;font-size:13px;color:#555"><strong>Motif :</strong> ${opts.reason}</div>
     ${opts.notes ? `<div style="margin-top:12px;font-size:13px;color:#666"><strong>Notes :</strong> ${opts.notes}</div>` : ""}
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gaméasù</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} ${opts.org.name} — Gameasu</div>
 </div></body></html>`;
   const text = `NOTE DE CRÉDIT ${opts.refNumber}\nClient : ${opts.clientName}\nFacture d'origine : ${opts.originalInvoiceRef}\nMontant : −${fmt(opts.amount)}\nMotif : ${opts.reason}`;
   return { to: "", subject: `Note de crédit ${opts.refNumber} — ${opts.org.name}`, html, text, category: "commercial" };
@@ -268,7 +268,7 @@ export function buildInvitationEmail(opts: {
   recipientName: string; inviterName: string; orgName?: string; acceptUrl: string;
   temporaryPassword: string;
 }): EmailMessage {
-  const org = opts.orgName ?? "Gaméasù";
+  const org = opts.orgName ?? "Gameasu";
   return {
     to: "",
     subject: `Invitation à rejoindre ${org}`,
@@ -313,12 +313,12 @@ export function buildTwoFactorEmail(opts: {
 }): EmailMessage {
   return {
     to: "",
-    subject: "Votre code de vérification Gaméasù",
+    subject: "Votre code de vérification Gameasu",
     text: `Bonjour ${opts.recipientName},\n\nVotre code de vérification est :\n\n${opts.code}\n\nCe code expire dans ${opts.expirationMinutes} minutes.\n\nSi vous n'êtes pas à l'origine de cette connexion, ignorez ce message et sécurisez votre compte.`,
     html: `<!doctype html><html><body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#0C1830 100%);padding:24px 28px">
-    <div style="color:#5BA3F0;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#5BA3F0;font-weight:700;letter-spacing:2px;font-size:11px;margin-bottom:4px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:18px;font-weight:600">Vérification de connexion</div>
   </div>
   <div style="padding:28px">
@@ -330,7 +330,7 @@ export function buildTwoFactorEmail(opts: {
     </div>
     <p style="margin:0;font-size:12px;color:#aaa">Si vous n'avez pas tenté de vous connecter, ignorez ce message et vérifiez la sécurité de votre compte.</p>
   </div>
-  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gaméasù — noreply@gameasu.com</div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">© ${new Date().getFullYear()} Gameasu — noreply@gameasu.com</div>
 </div></body></html>`,
     category: "security",
   };
@@ -348,11 +348,11 @@ export function buildExpertFirmInvitationEmail(opts: {
   };
   return {
     to: "",
-    subject: `Invitation à rejoindre Gaméasù — Cabinet ${opts.firmName}`,
+    subject: `Invitation à rejoindre Gameasu — Cabinet ${opts.firmName}`,
     text: [
       `Bonjour,`,
       ``,
-      `L'équipe Gaméasù vous invite à créer votre espace professionnel pour le cabinet "${opts.firmName}" (plan ${planLabel[opts.plan] ?? opts.plan}).`,
+      `L'équipe Gameasu vous invite à créer votre espace professionnel pour le cabinet "${opts.firmName}" (plan ${planLabel[opts.plan] ?? opts.plan}).`,
       ``,
       `Pour accepter l'invitation et activer votre compte, cliquez sur le lien suivant (valide 72 heures) :`,
       opts.acceptUrl,
@@ -362,21 +362,21 @@ export function buildExpertFirmInvitationEmail(opts: {
       `  • Créer et inviter vos clients (tenants)`,
       `  • Accéder à tous les dossiers de vos clients depuis un seul tableau de bord`,
       ``,
-      `À très bientôt sur Gaméasù,`,
-      `L'équipe Gaméasù`,
+      `À très bientôt sur Gameasu,`,
+      `L'équipe Gameasu`,
     ].join("\n"),
     html: `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:22px;font-weight:700">Invitation Cabinet Expert</div>
     <div style="color:#8fa3c0;font-size:14px;margin-top:6px">Rejoignez la plateforme ERP nouvelle génération</div>
   </div>
   <div style="padding:32px">
     <p style="margin:0 0 16px;font-size:15px;color:#333">Bonjour,</p>
     <p style="margin:0 0 20px;font-size:14px;color:#555">
-      L'équipe <strong>Gaméasù</strong> vous invite à créer votre espace professionnel pour le cabinet :
+      L'équipe <strong>Gameasu</strong> vous invite à créer votre espace professionnel pour le cabinet :
     </p>
     <div style="background:#F8F9FB;border:1.5px solid #E8ECF4;border-radius:10px;padding:18px 20px;margin:0 0 24px">
       <div style="font-size:18px;font-weight:700;color:#080E1C">${opts.firmName}</div>
@@ -396,7 +396,7 @@ export function buildExpertFirmInvitationEmail(opts: {
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`,
     category: "invitation",
@@ -425,7 +425,7 @@ export function buildPlanChangeEmail(opts: {
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:20px;font-weight:700">Changement de formule d'abonnement</div>
     <div style="color:#8fa3c0;font-size:13px;margin-top:6px">${opts.orgName}</div>
   </div>
@@ -446,11 +446,11 @@ export function buildPlanChangeEmail(opts: {
       Modification effectuée par <strong>${opts.changedByUserName}</strong> (${opts.changedByFirmName}) le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
     </div>
     <p style="margin:20px 0 0;font-size:12px;color:#aaa">
-      Si vous estimez que cette modification est erronée, contactez votre cabinet partenaire ou l'équipe Gaméasù.
+      Si vous estimez que cette modification est erronée, contactez votre cabinet partenaire ou l'équipe Gameasu.
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — Votre ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`;
   const text = [
@@ -467,7 +467,7 @@ export function buildPlanChangeEmail(opts: {
   ].join("\n");
   return {
     to: "",
-    subject: `Votre formule Gaméasù a été modifiée → ${opts.newPlanName}`,
+    subject: `Votre formule Gameasu a été modifiée → ${opts.newPlanName}`,
     html,
     text,
     category: "billing",
@@ -489,13 +489,13 @@ export function buildRegistrationEmail(opts: {
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px 32px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:22px;font-weight:700">Bienvenue, ${opts.firstName} ! 🎉</div>
     <div style="color:#8fa3c0;font-size:14px;margin-top:6px">Votre espace <strong style="color:#e2e8f0">${opts.orgName}</strong> est créé</div>
   </div>
   <div style="padding:32px">
     <p style="margin:0 0 16px;font-size:15px;color:#333">
-      Votre espace de travail <strong>${opts.orgName}</strong> a bien été créé sur Gaméasù.<br>
+      Votre espace de travail <strong>${opts.orgName}</strong> a bien été créé sur Gameasu.<br>
       Il ne reste qu'une étape : <strong>effectuer le paiement</strong> pour l'activer.
     </p>
     <div style="background:#FFF7ED;border:2px solid #FB923C;border-radius:12px;padding:20px 24px;margin:0 0 24px">
@@ -509,16 +509,16 @@ export function buildRegistrationEmail(opts: {
       </a>
     </p>
     <p style="font-size:12px;color:#aaa;text-align:center;margin:0">
-      Ce lien vous connecte directement à votre espace Gaméasù.<br>
+      Ce lien vous connecte directement à votre espace Gameasu.<br>
       <span style="word-break:break-all;color:#0066cc">${opts.billingUrl}</span>
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`;
   const text = [
-    `Bienvenue sur Gaméasù, ${opts.firstName} !`,
+    `Bienvenue sur Gameasu, ${opts.firstName} !`,
     ``,
     `Votre espace "${opts.orgName}" a bien été créé.`,
     ``,
@@ -527,11 +527,11 @@ export function buildRegistrationEmail(opts: {
     `Pour activer votre espace, finalisez le paiement :`,
     opts.billingUrl,
     ``,
-    `L'équipe Gaméasù`,
+    `L'équipe Gameasu`,
   ].join("\n");
   return {
     to: "",
-    subject: `Bienvenue sur Gaméasù — finalisez l'activation de ${opts.orgName}`,
+    subject: `Bienvenue sur Gameasu — finalisez l'activation de ${opts.orgName}`,
     html, text, category: "onboarding",
   };
 }
@@ -550,7 +550,7 @@ export function buildActivationEmail(opts: {
 <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
   <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px 32px">
-    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gameasu</div>
     <div style="color:#fff;font-size:22px;font-weight:700">✅ Votre espace est activé !</div>
     <div style="color:#8fa3c0;font-size:14px;margin-top:6px">${opts.orgName}</div>
   </div>
@@ -573,7 +573,7 @@ export function buildActivationEmail(opts: {
     </p>
   </div>
   <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
-    © ${new Date().getFullYear()} Gaméasù — ERP SaaS nouvelle génération en Afrique de l'Ouest
+    © ${new Date().getFullYear()} Gameasu — ERP SaaS nouvelle génération en Afrique de l'Ouest
   </div>
 </div></body></html>`;
   const text = [
@@ -585,11 +585,11 @@ export function buildActivationEmail(opts: {
     ``,
     `Accédez à votre espace : ${opts.loginUrl}`,
     ``,
-    `L'équipe Gaméasù`,
+    `L'équipe Gameasu`,
   ].join("\n");
   return {
     to: "",
-    subject: `✅ Votre espace ${opts.orgName} est activé sur Gaméasù`,
+    subject: `✅ Votre espace ${opts.orgName} est activé sur Gameasu`,
     html, text, category: "onboarding",
   };
 }
@@ -599,7 +599,7 @@ export function buildPasswordResetEmail(opts: {
 }): EmailMessage {
   return {
     to: "",
-    subject: "Réinitialisation de votre mot de passe Gaméasù",
+    subject: "Réinitialisation de votre mot de passe Gameasu",
     text: `Bonjour ${opts.recipientName},\n\nUne demande de réinitialisation a été reçue. Cliquez sur le lien ci-dessous (valide 1h) :\n${opts.resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
     html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:24px;color:#111">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #eee;padding:24px">

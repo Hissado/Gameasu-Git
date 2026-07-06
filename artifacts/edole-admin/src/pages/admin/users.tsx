@@ -214,7 +214,7 @@ function InviteDialog({ roles, departments, onClose, onDone }: { roles: Role[]; 
             </div>
             {isExistingUser ? (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-800 text-sm">
-                Cet utilisateur possède déjà un compte Gaméasù. Il a été ajouté à votre organisation et recevra une notification par email. Lors de sa prochaine connexion, il pourra choisir l'espace de travail à ouvrir.
+                Cet utilisateur possède déjà un compte Gameasu. Il a été ajouté à votre organisation et recevra une notification par email. Lors de sa prochaine connexion, il pourra choisir l'espace de travail à ouvrir.
               </div>
             ) : (
               <>

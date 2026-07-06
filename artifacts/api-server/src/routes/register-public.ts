@@ -83,7 +83,7 @@ router.post("/public/register", async (req, res, next) => {
       const passwordMatch = await bcrypt.compare(data.password, existingUser.password ?? "");
       if (!passwordMatch) {
         res.status(401).json({
-          error: "Cet email est déjà associé à un compte Gaméasù. Le mot de passe saisi est incorrect. Utilisez votre mot de passe existant pour créer une nouvelle organisation.",
+          error: "Cet email est déjà associé à un compte Gameasu. Le mot de passe saisi est incorrect. Utilisez votre mot de passe existant pour créer une nouvelle organisation.",
           code: "EMAIL_EXISTS_WRONG_PASSWORD",
         });
         return;
@@ -113,7 +113,7 @@ router.post("/public/register", async (req, res, next) => {
       .where(eq(subscriptionPlansTable.code, plan.code))
       .limit(1);
     if (!planRow) {
-      res.status(500).json({ error: "Plan introuvable en base. Contactez le support Gaméasù." });
+      res.status(500).json({ error: "Plan introuvable en base. Contactez le support Gameasu." });
       return;
     }
 

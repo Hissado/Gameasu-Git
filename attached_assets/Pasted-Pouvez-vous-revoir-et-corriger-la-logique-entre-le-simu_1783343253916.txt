@@ -1,0 +1,239 @@
+Pouvez-vous revoir et corriger la logique entre le **simulateur de prix du site web**, la **page d’inscription ERP**, la **page de paiement**, ainsi que le design de la page login du **Cockpit Gameasu** ?
+
+### Problèmes constatés
+
+1. Une fois arrivé au niveau du paiement, les informations affichées ne reflètent pas correctement ce qui a été choisi dans le calculateur du site web :
+
+   * pack choisi ;
+   * nombre d’utilisateurs ;
+   * périodicité ;
+   * montant calculé ;
+   * devise ;
+   * TVA ;
+   * réduction éventuelle ;
+   * code promo ou partenaire.
+
+2. La page login du Cockpit n’a pas le même design que la page login de l’ERP.
+
+3. Il y a encore des accents sur le nom **Gameasu** dans certaines parties de l’application. Le nom doit être écrit partout sans accent : **Gameasu**.
+
+---
+
+## 1. Corriger la synchronisation entre calculateur, inscription et paiement
+
+Quand un client choisit son abonnement depuis le calculateur du site web, les informations doivent être conservées jusqu’au paiement.
+
+### Exemple attendu
+
+Si le client choisit :
+
+* Pack : Business
+* Nombre d’utilisateurs : 10
+* Périodicité : mensuelle
+* Devise : FCFA
+* Montant : 70 000 FCFA TTC
+
+Alors la page d’inscription ERP et la page de paiement doivent afficher exactement ces mêmes informations.
+
+Le client ne doit pas voir un autre pack, un autre nombre d’utilisateurs, une autre périodicité ou un autre montant.
+
+---
+
+## 2. Vérifier les paramètres transmis dans l’URL
+
+Merci de vérifier que les boutons du site web transmettent correctement les paramètres vers l’ERP.
+
+### Exemple d’URL attendue
+
+`/erp/billing?plan=business&users=10&period=monthly&currency=XOF`
+
+La page ERP doit lire ces paramètres et préremplir automatiquement :
+
+* formule choisie ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* devise ;
+* prix par utilisateur ;
+* total HT ;
+* TVA ;
+* total TTC ;
+* réduction éventuelle ;
+* code promo ou partenaire si présent.
+
+---
+
+## 3. Ne pas recalculer avec des valeurs par défaut incorrectes
+
+La page de paiement ne doit pas revenir automatiquement à :
+
+* Starter ;
+* 1 utilisateur ;
+* mensuel ;
+* ancien prix ;
+* ancienne périodicité ;
+* ancienne devise.
+
+Elle doit toujours utiliser la sélection réelle du client.
+
+Si une information manque, afficher une alerte claire ou rediriger vers le calculateur, mais ne pas utiliser une valeur par défaut qui fausse le paiement.
+
+---
+
+## 4. Recalcul sécurisé côté ERP
+
+Même si les informations viennent du site web, l’ERP doit recalculer le montant côté backend à partir de sa propre configuration tarifaire.
+
+### Règle importante
+
+Le site web transmet uniquement les choix du client :
+
+* pack ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* devise ;
+* code promo.
+
+Mais l’ERP doit recalculer lui-même :
+
+* prix par utilisateur ;
+* remise ;
+* TVA ;
+* total HT ;
+* total TTC ;
+* montant final.
+
+Cela évite toute manipulation du prix depuis le frontend.
+
+---
+
+## 5. Afficher un résumé clair avant paiement
+
+Sur la page de paiement, afficher une carte récapitulative :
+
+**Votre abonnement Gameasu**
+
+* Formule : Business
+* Nombre d’utilisateurs : 10
+* Périodicité : Mensuelle
+* Prix par utilisateur : 7 000 FCFA TTC
+* Total à payer : 70 000 FCFA TTC
+* Moyen de paiement sélectionné
+* Code promo / partenaire si applicable
+
+Le client doit pouvoir vérifier sa sélection avant de payer.
+
+---
+
+## 6. Corriger la redirection après inscription
+
+Après l’inscription, la redirection vers le paiement doit conserver les informations initiales.
+
+À vérifier :
+
+* paramètres URL ;
+* state frontend ;
+* session temporaire ;
+* localStorage / sessionStorage si utilisé ;
+* création de l’organisation ;
+* création de l’abonnement en attente ;
+* référence de paiement ;
+* pack choisi ;
+* nombre d’utilisateurs ;
+* périodicité.
+
+Le paiement doit être lié à l’organisation nouvellement créée et non à une valeur générique.
+
+---
+
+## 7. Synchronisation avec le Cockpit
+
+Le Cockpit doit recevoir les mêmes informations que la page de paiement :
+
+* organisation créée ;
+* super administrateur ;
+* pack choisi ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* montant attendu ;
+* mode de paiement ;
+* statut du paiement ;
+* code promo ou partenaire ;
+* source : site web / calculateur.
+
+Il ne doit pas y avoir de différence entre ce que le client voit et ce que l’équipe Gameasu voit dans le Cockpit.
+
+---
+
+## 8. Revoir le design de la page login du Cockpit
+
+Merci de revoir la page login du Cockpit afin qu’elle reflète le même design que la page login de l’ERP.
+
+La page login du Cockpit doit utiliser :
+
+* le même logo Gameasu ;
+* les mêmes couleurs ;
+* la même typographie ;
+* le même style de fond ;
+* le même style de carte de connexion ;
+* les mêmes boutons ;
+* le même niveau de finition premium ;
+* une cohérence parfaite avec l’identité visuelle de Gameasu.
+
+L’objectif est que l’ERP et le Cockpit semblent appartenir au même écosystème visuel.
+
+---
+
+## 9. Supprimer tous les accents sur Gameasu
+
+Merci de rechercher dans toute la codebase et dans toutes les données affichées les anciennes écritures avec accents ou variantes.
+
+### À remplacer partout
+
+* Gaméasù
+* Gameasù
+* Gaméasu
+* GAMEASÙ
+* GAMEASU avec accent
+* toute autre variante accentuée
+
+### Par la version officielle
+
+**Gameasu**
+
+Cette correction doit être appliquée dans :
+
+* site web ;
+* ERP ;
+* Cockpit ;
+* page login ;
+* page inscription ;
+* page paiement ;
+* emails ;
+* notifications ;
+* rapports PDF ;
+* exports Excel ;
+* factures ;
+* reçus ;
+* données demo ;
+* paramètres ;
+* titres ;
+* descriptions ;
+* métadonnées ;
+* favicon / alt text si applicable.
+
+---
+
+## 10. Résultat attendu
+
+Je veux que :
+
+* le paiement reflète exactement le pack, le nombre d’utilisateurs et la périodicité choisis dans le calculateur ;
+* la page d’inscription conserve correctement les informations jusqu’au paiement ;
+* l’ERP recalcule les montants de manière sécurisée côté backend ;
+* le Cockpit affiche les mêmes informations que le paiement ;
+* la page login du Cockpit utilise le même design que la page login ERP ;
+* le nom officiel **Gameasu** soit utilisé partout sans accent.
+
+### Objectif final
+
+Créer un parcours cohérent, sécurisé et premium entre le site web, l’inscription ERP, le paiement et le Cockpit, avec une identité visuelle unifiée et une seule orthographe officielle : **Gameasu**.

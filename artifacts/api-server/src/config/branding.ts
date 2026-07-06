@@ -4,11 +4,11 @@
  * (emails, notifications, headers) doit passer par ce fichier.
  */
 export const BRANDING = {
-  appName:            process.env.APP_NAME          ?? "Gaméasù",
-  appShortName:       "Gaméasù",
-  brandName:          "Gaméasù",
-  companyName:        "Gaméasù",
-  legalName:          "Gaméasù Technology",
+  appName:            process.env.APP_NAME          ?? "Gameasu",
+  appShortName:       "Gameasu",
+  brandName:          "Gameasu",
+  companyName:        "Gameasu",
+  legalName:          "Gameasu Technology",
   appTaglineFr:       process.env.APP_TAGLINE_FR    ?? "Gérer aujourd'hui. Construire demain.",
   appTaglineEn:       process.env.APP_TAGLINE_EN    ?? "Manage today. Build tomorrow.",
 

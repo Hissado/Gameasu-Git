@@ -516,7 +516,7 @@ export default function PaymentDeclarationsPage() {
       <Dialog open={bankOpen} onOpenChange={(o) => { if (!o) setBankOpen(false); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Coordonnées bancaires Gaméasù</DialogTitle>
+            <DialogTitle>Coordonnées bancaires Gameasu</DialogTitle>
             <DialogDescription>Ces informations sont affichées aux clients lors d'une déclaration de paiement.</DialogDescription>
           </DialogHeader>
           {bankQuery.isLoading ? (

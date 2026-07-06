@@ -224,16 +224,16 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
       const ttc        = unitPrice * seats;
       await sendEmail({
         to:      user.email,
-        subject: `${actionWord} de votre abonnement Gaméasù — Formule ${plan.name}`,
+        subject: `${actionWord} de votre abonnement Gameasu — Formule ${plan.name}`,
         html: `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
   <div style="text-align:center;margin-bottom:24px">
-    <img src="https://gameasu.com/assets/logo.png" alt="Gaméasù" width="120" style="margin-bottom:8px" />
+    <img src="https://gameasu.com/assets/logo.png" alt="Gameasu" width="120" style="margin-bottom:8px" />
     <h2 style="color:#111827;font-size:20px;margin:0">Confirmation de changement de formule</h2>
   </div>
   <p style="color:#374151;font-size:15px">Bonjour ${user.firstName ?? ""},</p>
   <p style="color:#374151;font-size:15px">
-    Votre abonnement Gaméasù a été modifié avec succès.
+    Votre abonnement Gameasu a été modifié avec succès.
   </p>
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0">
     <table style="width:100%;font-size:14px;color:#374151">
@@ -256,7 +256,7 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
     Pour toute question, contactez notre équipe à <a href="mailto:support@gameasutech.africa" style="color:#f37021">support@gameasutech.africa</a>.
   </p>
   <p style="color:#9ca3af;font-size:12px;border-top:1px solid #f3f4f6;padding-top:16px;margin-top:24px;text-align:center">
-    © ${now.getFullYear()} Gaméasù · Pilotage d'entreprise nouvelle génération
+    © ${now.getFullYear()} Gameasu · Pilotage d'entreprise nouvelle génération
   </p>
 </div>`,
       });

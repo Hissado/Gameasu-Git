@@ -4,7 +4,7 @@
  * Tenant :
  *   POST  /billing/declare-payment            Déclare un paiement (virement/dépôt/chèque)
  *   GET   /billing/payment-declarations       Historique des déclarations
- *   GET   /billing/bank-coordinates           Coordonnées bancaires Gaméasù
+ *   GET   /billing/bank-coordinates           Coordonnées bancaires Gameasu
  *
  * Cockpit :
  *   GET   /super-admin/payment-declarations                    Liste toutes les déclarations
@@ -58,13 +58,13 @@ const MANUAL_METHODS = ["virement", "depot_bancaire", "depot_bureau", "cheque"];
 // ── Coordonnées bancaires par défaut (modifiables via Cockpit) ─────
 const DEFAULT_BANK_COORDS = {
   bankName: "Ecobank Togo",
-  accountHolder: "Gaméasù SARL",
+  accountHolder: "Gameasu SARL",
   accountNumber: "10001-00000-12345678901-00",
   iban: "TG53TG0090604310346500400045",
   bic: "ECOCTGLO",
   officeAddress: "Boulevard du 13 Janvier, Lomé, Togo",
   officeHours: "Lun–Ven 8h00–17h30",
-  checkOrder: "Gaméasù SARL",
+  checkOrder: "Gameasu SARL",
   officePhone: "+228 91 00 00 00",
 };
 
@@ -159,7 +159,7 @@ router.post("/billing/declare-payment", requireAdmin, async (req, res, next) => 
     const clientEmail = req.authUser!.email;
     await sendEmail({
       to: clientEmail,
-      subject: `[Gaméasù] Déclaration de paiement reçue — ${txRef}`,
+      subject: `[Gameasu] Déclaration de paiement reçue — ${txRef}`,
       html: emailDeclarationAck({ orgName: org?.name ?? "", txRef, amount, method: methodLabel, planName, seats: seatsN }),
       text: `Votre déclaration de paiement ${txRef} a été reçue. Notre équipe la vérifiera sous 24 à 48h ouvrables.`,
     });
@@ -347,7 +347,7 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
       if (wasNewAccount) {
         const planName = found.tx.planCode
           ? (found.tx.planCode.charAt(0) + found.tx.planCode.slice(1).toLowerCase())
-          : "Gaméasù";
+          : "Gameasu";
         const loginUrl = process.env.PUBLIC_BASE_URL ?? `https://${(process.env.REPLIT_DOMAINS ?? "").split(",")[0] ?? "gameasu.com"}`;
         const { buildActivationEmail } = await import("../lib/email");
         const activationEmail = buildActivationEmail({
@@ -361,7 +361,7 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
       } else {
         await sendEmail({
           to: clientEmail,
-          subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
+          subject: `[Gameasu] Paiement confirmé — ${receiptNumber}`,
           html: emailPaymentConfirmed({ orgName: found.orgName, receiptNumber, amount: found.tx.amount, method: METHOD_LABELS[found.tx.method] ?? found.tx.method, periodEnd }),
           text: `Votre paiement ${receiptNumber} a été confirmé. Votre abonnement est actif.`,
         });
@@ -409,7 +409,7 @@ router.post("/super-admin/payment-declarations/:id/reject", sa, async (req, res,
     if (clientEmail) {
       await sendEmail({
         to: clientEmail,
-        subject: `[Gaméasù] Déclaration de paiement non validée — ${found.tx.reference}`,
+        subject: `[Gameasu] Déclaration de paiement non validée — ${found.tx.reference}`,
         html: emailPaymentRejected({ orgName: found.orgName, reference: found.tx.reference ?? "—", reason: reason.trim(), amount: found.tx.amount, method: METHOD_LABELS[found.tx.method] ?? found.tx.method }),
         text: `Votre déclaration ${found.tx.reference} a été rejetée. Motif : ${reason.trim()}.`,
       });
@@ -456,7 +456,7 @@ function fmt(n: number) { return new Intl.NumberFormat("fr-FR").format(n) + " FC
 function emailDeclarationAck({ orgName, txRef, amount, method, planName, seats }: { orgName: string; txRef: string; amount: number; method: string; planName: string; seats: number }) {
   return `<!DOCTYPE html><html lang="fr"><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:24px">
 <div style="max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-  <div style="background:#F37021;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Gaméasù</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Déclaration de paiement reçue</p></div>
+  <div style="background:#F37021;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Gameasu</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Déclaration de paiement reçue</p></div>
   <div style="padding:24px">
     <p style="color:#374151">Bonjour,</p>
     <p style="color:#374151">Nous avons bien reçu votre déclaration de paiement pour <strong>${orgName}</strong>.</p>
@@ -469,7 +469,7 @@ function emailDeclarationAck({ orgName, txRef, amount, method, planName, seats }
       </table>
     </div>
     <p style="color:#374151">Notre équipe vérifiera votre justificatif dans un délai de <strong>24 à 48 heures ouvrables</strong>. Vous recevrez un email de confirmation ou de retour.</p>
-    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gaméasù — La plateforme de pilotage d'entreprise</p>
+    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gameasu — La plateforme de pilotage d'entreprise</p>
   </div>
 </div></body></html>`;
 }
@@ -477,7 +477,7 @@ function emailDeclarationAck({ orgName, txRef, amount, method, planName, seats }
 function emailTeamNotif({ orgName, txRef, amount, method, planName, seats, cockpitUrl }: { orgName: string; txRef: string; amount: number; method: string; planName: string; seats: number; cockpitUrl: string }) {
   return `<!DOCTYPE html><html lang="fr"><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:24px">
 <div style="max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-  <div style="background:#0F172A;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Cockpit Gaméasù</h1><p style="color:rgba(255,255,255,.7);margin:4px 0 0;font-size:13px">Nouvelle déclaration de paiement</p></div>
+  <div style="background:#0F172A;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Cockpit Gameasu</h1><p style="color:rgba(255,255,255,.7);margin:4px 0 0;font-size:13px">Nouvelle déclaration de paiement</p></div>
   <div style="padding:24px">
     <p style="color:#374151"><strong>Organisation :</strong> ${orgName}</p>
     <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin:16px 0">
@@ -497,7 +497,7 @@ function emailPaymentConfirmed({ orgName, receiptNumber, amount, method, periodE
   const fmtDate = (d: Date | null) => d ? d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—";
   return `<!DOCTYPE html><html lang="fr"><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:24px">
 <div style="max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-  <div style="background:#059669;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">✓ Paiement confirmé</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Gaméasù — Votre abonnement est actif</p></div>
+  <div style="background:#059669;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">✓ Paiement confirmé</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Gameasu — Votre abonnement est actif</p></div>
   <div style="padding:24px">
     <p style="color:#374151">Bonjour,</p>
     <p style="color:#374151">Le paiement de <strong>${orgName}</strong> a été confirmé. Votre abonnement est maintenant actif.</p>
@@ -510,7 +510,7 @@ function emailPaymentConfirmed({ orgName, receiptNumber, amount, method, periodE
       </table>
     </div>
     <p style="color:#374151">Merci pour votre confiance. N'hésitez pas à nous contacter pour toute question.</p>
-    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gaméasù — La plateforme de pilotage d'entreprise</p>
+    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gameasu — La plateforme de pilotage d'entreprise</p>
   </div>
 </div></body></html>`;
 }
@@ -518,7 +518,7 @@ function emailPaymentConfirmed({ orgName, receiptNumber, amount, method, periodE
 function emailPaymentRejected({ orgName, reference, reason, amount, method }: { orgName: string; reference: string; reason: string; amount: number; method: string }) {
   return `<!DOCTYPE html><html lang="fr"><body style="font-family:Arial,sans-serif;background:#f9f9f9;padding:24px">
 <div style="max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-  <div style="background:#dc2626;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Déclaration non validée</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Gaméasù — Action requise</p></div>
+  <div style="background:#dc2626;padding:20px 24px"><h1 style="color:#fff;margin:0;font-size:20px">Déclaration non validée</h1><p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px">Gameasu — Action requise</p></div>
   <div style="padding:24px">
     <p style="color:#374151">Bonjour,</p>
     <p style="color:#374151">Nous n'avons pas pu valider la déclaration de paiement de <strong>${orgName}</strong>.</p>
@@ -528,7 +528,7 @@ function emailPaymentRejected({ orgName, reference, reason, amount, method }: { 
       <p style="margin:0;font-size:13px;color:#991b1b"><strong>Motif du rejet :</strong> ${reason}</p>
     </div>
     <p style="color:#374151">Veuillez soumettre une nouvelle déclaration avec les informations corrigées, ou contacter notre équipe pour tout éclaircissement.</p>
-    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gaméasù — La plateforme de pilotage d'entreprise</p>
+    <p style="color:#6b7280;font-size:13px;margin-top:24px">Gameasu — La plateforme de pilotage d'entreprise</p>
   </div>
 </div></body></html>`;
 }
