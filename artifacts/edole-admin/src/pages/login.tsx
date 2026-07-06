@@ -120,10 +120,7 @@ export default function LoginPage() {
   // ─── Étape 2 : valider le code OTP ───────────────────────────────────────
   const onVerify2FA = async (overrideDigits?: string[]) => {
     const code = (overrideDigits ?? otp).join("").trim();
-    if (code.length !== 6) {
-      toast({ variant: "destructive", title: "Code incomplet", description: "Saisissez les 6 chiffres." });
-      return;
-    }
+    if (code.length !== 6) return;
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/login/verify-2fa", {
