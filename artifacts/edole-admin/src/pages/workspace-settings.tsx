@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlanBadge } from "@/components/PlanBadge";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Building2, Palette, Globe2, ShieldCheck, Layers, CreditCard, Upload, Loader2, X } from "lucide-react";
+import { Save, Building2, Palette, Globe2, ShieldCheck, Layers, CreditCard, Upload, Loader2, X, Handshake } from "lucide-react";
 import { Link } from "wouter";
 import { BRANDING } from "@/config/branding";
 import { apiFetch } from "@/lib/api";
@@ -174,6 +174,11 @@ export default function WorkspaceSettingsPage() {
           <PlanBadge code={plan?.code} name={plan?.name} light />
           <Button asChild variant="outline" size="sm">
             <Link href="/billing"><CreditCard className="w-4 h-4 mr-1.5" />Abonnement</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+            <Link href="/billing?tab=overview">
+              <Handshake className="w-4 h-4 mr-1.5 text-emerald-600" />Devenir partenaire
+            </Link>
           </Button>
         </div>
       </header>

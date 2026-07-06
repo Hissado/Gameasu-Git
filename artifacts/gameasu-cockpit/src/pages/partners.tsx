@@ -521,28 +521,55 @@ export default function PartnersPage() {
       </div>
 
       {/* KPI row */}
-      {activeTab === "promo" && (
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Codes actifs",    value: stats?.totalCodes ?? 0,    icon: Tag },
-            { label: "Total utilisations", value: stats?.totalUses ?? 0,  icon: Users },
-            {
-              label: "Remises accordées",
-              value: `${new Intl.NumberFormat("fr-FR").format(stats?.totalDiscount ?? 0)} FCFA`,
-              icon: TrendingUp,
-            },
-          ].map(({ label, value, icon: Icon }) => (
-            <Card key={label} className="border-border">
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                  <Icon className="w-3.5 h-3.5" /> {label}
-                </div>
-                <p className="text-xl font-bold">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {activeTab === "partners" ? (
+          <>
+            {[
+              { label: "En attente",   value: partners.filter(p => p.status === "pending").length,  icon: Clock,        cls: "text-amber-600" },
+              { label: "Approuvés",    value: partners.filter(p => p.status === "approved").length, icon: CheckCircle2, cls: "text-emerald-600" },
+              { label: "Clients générés", value: partners.reduce((s, p) => s + (p.totalReferrals ?? 0), 0), icon: Users, cls: "text-blue-600" },
+              {
+                label: "MRR généré",
+                value: `${new Intl.NumberFormat("fr-FR").format(partners.reduce((s, p) => s + (p.totalMrrFcfa ?? 0), 0))} FCFA`,
+                icon: TrendingUp,
+                cls: "text-violet-600",
+              },
+            ].map(({ label, value, icon: Icon, cls }) => (
+              <Card key={label} className="border-border">
+                <CardContent className="pt-4 pb-3">
+                  <div className={`flex items-center gap-2 text-xs mb-1 ${cls}`}>
+                    <Icon className="w-3.5 h-3.5" /> {label}
+                  </div>
+                  <p className="text-xl font-bold">{value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            {[
+              { label: "Codes actifs",       value: stats?.totalCodes ?? 0,    icon: Tag,       cls: "text-muted-foreground" },
+              { label: "Total utilisations", value: stats?.totalUses ?? 0,     icon: Users,     cls: "text-muted-foreground" },
+              {
+                label: "Remises accordées",
+                value: `${new Intl.NumberFormat("fr-FR").format(stats?.totalDiscount ?? 0)} FCFA`,
+                icon: TrendingUp,
+                cls: "text-muted-foreground",
+              },
+              { label: "Codes expirés / inactifs", value: promoCodes.filter(c => !c.isActive).length, icon: AlertCircle, cls: "text-muted-foreground" },
+            ].map(({ label, value, icon: Icon, cls }) => (
+              <Card key={label} className="border-border">
+                <CardContent className="pt-4 pb-3">
+                  <div className={`flex items-center gap-2 text-xs mb-1 ${cls}`}>
+                    <Icon className="w-3.5 h-3.5" /> {label}
+                  </div>
+                  <p className="text-xl font-bold">{value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+      </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "partners" | "promo")}>
         <div className="flex items-center justify-between gap-3">

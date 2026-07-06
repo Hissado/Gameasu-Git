@@ -2529,6 +2529,7 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [form, setForm] = useState({
     contactName: "",
     contactEmail: "",
@@ -2551,12 +2552,17 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
       toast({ title: "Champs requis", description: "Veuillez remplir au moins : nom, email, organisation et motivation.", variant: "destructive" });
       return;
     }
+    if (!acceptedTerms) {
+      toast({ title: "Conditions requises", description: "Veuillez accepter les conditions du programme partenaire.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       await apiFetch("/api/partner-program/apply", {
         method: "POST",
         body: JSON.stringify({
           ...form,
+          acceptedTerms: true,
           estimatedClients: form.estimatedClients ? parseInt(form.estimatedClients) : undefined,
           type: form.partnerType,
         }),
@@ -2662,9 +2668,26 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
               />
             </div>
 
+            {/* Acceptation des CGU */}
+            <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 accent-emerald-600 w-4 h-4 shrink-0"
+              />
+              <span className="text-xs text-slate-700">
+                J'accepte les{" "}
+                <a href="https://gameasu.com/conditions-partenaires" target="_blank" rel="noreferrer" className="text-emerald-700 underline">
+                  conditions du programme partenaire Gaméasù
+                </a>{" "}
+                et je m'engage à respecter la charte éthique des revendeurs certifiés. *
+              </span>
+            </label>
+
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Annuler</Button>
-              <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button type="submit" disabled={loading || !acceptedTerms} className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60">
                 {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : <><Handshake className="w-4 h-4 mr-2" /> Envoyer ma candidature</>}
               </Button>
             </DialogFooter>

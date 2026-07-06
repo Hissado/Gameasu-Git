@@ -162,7 +162,9 @@ async function confirmAndActivate(opts: {
   const txMeta = (found.tx.metadata ?? {}) as Record<string, unknown>;
   const promoCodeId = typeof txMeta["promoCodeId"] === "string" ? txMeta["promoCodeId"] : null;
   const discountApplied = typeof txMeta["discountApplied"] === "number" ? txMeta["discountApplied"] : 0;
-  if (promoCodeId && discountApplied > 0) {
+  // Enregistrer l'usage dès qu'un promoCodeId est présent, même si discountApplied = 0
+  // (codes partenaires de tracking pur — 0 % de remise mais suivi des parrainages requis)
+  if (promoCodeId) {
     await db.insert(promoCodeUsesTable).values({
       promoCodeId,
       organizationId: found.tx.organizationId,
@@ -408,11 +410,12 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       return;
     }
 
-    // Stocker le payment_token CinetPay dans metadata (gatewayRef reste le cinetpayTxId UUID)
+    // Stocker le payment_token CinetPay dans metadata en FUSIONNANT avec les données existantes
+    // (notamment promoCodeId/discountApplied déjà stockés)
     const paymentToken = cinetpayResult.data?.payment_token ?? null;
     if (paymentToken) {
       await db.update(paymentTransactionsTable).set({
-        metadata: { gateway: "cinetpay", initiated: now.toISOString(), cinetpayTxId, paymentToken },
+        metadata: sql`${paymentTransactionsTable.metadata} || ${JSON.stringify({ paymentToken })}::jsonb`,
       }).where(eq(paymentTransactionsTable.id, tx.id));
     }
 
