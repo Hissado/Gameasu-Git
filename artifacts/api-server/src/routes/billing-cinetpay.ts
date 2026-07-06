@@ -450,7 +450,7 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
       }
 
       // 6b. Montant : tolérance de 1 FCFA (arrondi)
-      if (reportedAmount && Math.abs(reportedAmount - tx.amount) > 1) {
+      if (Number.isFinite(reportedAmount) && reportedAmount > 0 && Math.abs(reportedAmount - tx.amount) > 1) {
         logger.error(
           { transactionId, expected: tx.amount, received: reportedAmount },
           "Webhook CinetPay : montant incohérent — paiement NON activé",

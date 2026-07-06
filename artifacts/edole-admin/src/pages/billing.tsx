@@ -408,7 +408,9 @@ function PaymentModal({
   const total = ttc ?? 0;
 
   const isMobileMoney = MOBILE_MONEY_METHODS.includes(method);
-  const useStripeFlow = method === "card" && isStripeConfiguredOnFront;
+  // CinetPay gère toutes les méthodes (carte, Mixx, Flooz) dans ce modal.
+  // Le flux Stripe est désactivé ici pour les paiements d'abonnement.
+  const useStripeFlow = false;
 
   const resetStripe = () => {
     setStripeClientSecret(null);
@@ -1770,6 +1772,9 @@ export default function BillingPage() {
                         const isMobile = MOBILE_MONEY_METHODS.includes(tx.method);
                         const MethodIcon = tx.method === "card" ? CreditCard : Smartphone;
                         const isStripeCard = tx.method === "card" && tx.gatewayRef?.startsWith("pi_");
+                        const meta = ((tx as Record<string, unknown>)["metadata"] ?? {}) as Record<string, unknown>;
+                        const isCinetpayTx = meta["gateway"] === "cinetpay" || meta["source"] === "cinetpay";
+                        const isAutoConfirmed = tx.status === "confirmed" && meta["auto"] === true;
                         return (
                           <tr key={tx.id} className="hover:bg-muted/20">
                             <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
@@ -1785,50 +1790,66 @@ export default function BillingPage() {
                               {isStripeCard && (
                                 <p className="text-[10px] text-blue-500 font-mono">{tx.gatewayRef?.slice(0, 18)}…</p>
                               )}
+                              {isCinetpayTx && (
+                                <p className="text-[10px] text-[#F37021] font-medium">CinetPay</p>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${tx.method === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-slate-600"}`}>
                                 <MethodIcon className={`w-3.5 h-3.5 ${tx.method === "card" ? "text-blue-500" : tx.method === "mixx" ? "text-emerald-500" : "text-orange-500"}`} />
-                                {tx.method === "card" ? (isStripeCard ? "Stripe" : "Carte") : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : "Mobile Money"}
+                                {tx.method === "card" ? (isStripeCard ? "Stripe" : "Carte (CinetPay)") : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : "Mobile Money"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">{formatFCFA(tx.amount)}</td>
                             <td className="px-4 py-3"><TxBadge status={tx.status} /></td>
                             <td className="px-4 py-3 text-right">
-                              <div className="flex items-center gap-1 justify-end">
-                                {/* Paiements non-Stripe : confirmation manuelle */}
-                                {tx.status === "pending" && !isStripeCard && (
-                                  <>
-                                    <Button
-                                      size="sm" variant="outline"
-                                      className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                                      onClick={() => confirmMutation.mutate(tx.id)}
-                                      disabled={confirmMutation.isPending}
-                                    >
-                                      <CheckCircle2 className="w-3 h-3 mr-1" /> Confirmer
-                                    </Button>
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-1 justify-end">
+                                  {/* Paiements CinetPay en attente : confirmation automatique par webhook */}
+                                  {tx.status === "pending" && isCinetpayTx && (
+                                    <span className="text-[10px] text-[#F37021] italic">Confirmation automatique en cours…</span>
+                                  )}
+                                  {/* Paiements non-CinetPay, non-Stripe en attente : confirmation manuelle */}
+                                  {tx.status === "pending" && !isCinetpayTx && !isStripeCard && (
+                                    <>
+                                      <Button
+                                        size="sm" variant="outline"
+                                        className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                        onClick={() => confirmMutation.mutate(tx.id)}
+                                        disabled={confirmMutation.isPending}
+                                      >
+                                        <CheckCircle2 className="w-3 h-3 mr-1" /> Confirmer
+                                      </Button>
+                                      <Button
+                                        size="sm" variant="ghost"
+                                        className="h-7 text-xs text-slate-500"
+                                        onClick={() => cancelMutation.mutate(tx.id)}
+                                        disabled={cancelMutation.isPending}
+                                      >
+                                        <XCircle className="w-3 h-3" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  {/* Paiements Stripe en attente */}
+                                  {tx.status === "pending" && isStripeCard && (
+                                    <span className="text-[10px] text-blue-500 italic">Webhook en attente…</span>
+                                  )}
+                                  {/* Confirmé : bouton reçu */}
+                                  {tx.status === "confirmed" && (
                                     <Button
                                       size="sm" variant="ghost"
-                                      className="h-7 text-xs text-slate-500"
-                                      onClick={() => cancelMutation.mutate(tx.id)}
-                                      disabled={cancelMutation.isPending}
+                                      className="h-7 text-xs text-amber-700"
+                                      onClick={() => setReceiptTxId(tx.id)}
                                     >
-                                      <XCircle className="w-3 h-3" />
+                                      <Receipt className="w-3 h-3 mr-1" /> Reçu
                                     </Button>
-                                  </>
-                                )}
-                                {/* Paiements Stripe : confirmation automatique par webhook */}
-                                {tx.status === "pending" && isStripeCard && (
-                                  <span className="text-[10px] text-blue-500 italic">Webhook en attente…</span>
-                                )}
-                                {tx.status === "confirmed" && (
-                                  <Button
-                                    size="sm" variant="ghost"
-                                    className="h-7 text-xs text-amber-700"
-                                    onClick={() => setReceiptTxId(tx.id)}
-                                  >
-                                    <Receipt className="w-3 h-3 mr-1" /> Reçu
-                                  </Button>
+                                  )}
+                                </div>
+                                {/* Badge "Validé automatiquement" pour les paiements CinetPay auto */}
+                                {isAutoConfirmed && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-[#F37021] font-medium">
+                                    <CheckCircle2 className="w-3 h-3" /> Validé automatiquement
+                                  </span>
                                 )}
                               </div>
                             </td>
