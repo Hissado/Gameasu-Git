@@ -351,6 +351,35 @@ router.post("/super-admin/payment-declarations/:id/reject", sa, async (req, res,
   } catch (e) { next(e); }
 });
 
+// ── POST /super-admin/payment-declarations/:id/cancel ────────────
+router.post("/super-admin/payment-declarations/:id/cancel", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params as Record<string, string>;
+
+    const [found] = await db.select({ tx: paymentTransactionsTable })
+      .from(paymentTransactionsTable)
+      .where(eq(paymentTransactionsTable.id, id)).limit(1);
+
+    if (!found) { res.status(404).json({ error: "Déclaration introuvable" }); return; }
+    if (found.tx.status !== "pending_verification") {
+      res.status(400).json({ error: `Impossible d'annuler une déclaration au statut "${found.tx.status}"` }); return;
+    }
+
+    const [updated] = await db.update(paymentTransactionsTable).set({
+      status: "cancelled",
+      verifiedAt: new Date(),
+      verifiedById: req.authUser!.id,
+    }).where(eq(paymentTransactionsTable.id, id)).returning();
+
+    if (found.tx.billingEventId) {
+      await db.update(billingEventsTable).set({ status: "failed" }).where(eq(billingEventsTable.id, found.tx.billingEventId));
+    }
+
+    logger.info({ txId: id }, "Déclaration manuelle annulée par super-admin");
+    res.json({ ...updated });
+  } catch (e) { next(e); }
+});
+
 // ─── Email templates ──────────────────────────────────────────────
 
 function fmt(n: number) { return new Intl.NumberFormat("fr-FR").format(n) + " FCFA"; }

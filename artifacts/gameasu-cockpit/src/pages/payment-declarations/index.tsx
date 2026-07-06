@@ -101,9 +101,21 @@ export default function PaymentDeclarationsPage() {
     onSuccess: () => {
       toast.success("Paiement confirmé — abonnement activé");
       qc.invalidateQueries({ queryKey: ["cockpit-payment-declarations"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-payment-declarations-badge"] });
       setSelected(null);
     },
     onError: (e: Error) => toast.error(e.message ?? "Erreur lors de la confirmation"),
+  });
+
+  const cancelMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/super-admin/payment-declarations/${id}/cancel`, { method: "POST", body: JSON.stringify({}) }),
+    onSuccess: () => {
+      toast.success("Déclaration annulée");
+      qc.invalidateQueries({ queryKey: ["cockpit-payment-declarations"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-payment-declarations-badge"] });
+      setSelected(null);
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erreur lors de l'annulation"),
   });
 
   const rejectMut = useMutation({
@@ -313,6 +325,16 @@ export default function PaymentDeclarationsPage() {
 
             {selected.status === "pending_verification" && (
               <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-slate-600"
+                  disabled={cancelMut.isPending}
+                  onClick={() => cancelMut.mutate(selected.id)}
+                >
+                  {cancelMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
+                  Annuler
+                </Button>
                 <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setRejectOpen(true)}>
                   <XCircle className="w-4 h-4 mr-1.5" />Rejeter
                 </Button>

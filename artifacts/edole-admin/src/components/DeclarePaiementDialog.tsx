@@ -89,10 +89,10 @@ export function DeclarePaiementDialog({ open, onClose, planCode, seats, periodic
     try {
       const res = await apiFetch("/api/storage/uploads/request-url", {
         method: "POST",
-        body: JSON.stringify({ filename: file.name, contentType: file.type }),
-      }) as { uploadUrl: string; objectPath: string };
-      const { uploadUrl, objectPath } = res;
-      await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      }) as { uploadURL: string; objectPath: string };
+      const { uploadURL, objectPath } = res;
+      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
       setJustificationUrl(objectPath);
       toast.success("Justificatif téléversé");
     } catch {
@@ -265,7 +265,8 @@ export function DeclarePaiementDialog({ open, onClose, planCode, seats, periodic
                       <Upload className="w-5 h-5 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground text-center">
                         Cliquez pour joindre un reçu, virement ou relevé<br />
-                        <span className="text-xs">(PDF, image — 25 Mo max)</span>
+                        <span className="text-xs">(PDF, image — 25 Mo max)</span><br />
+                        <span className="text-xs font-medium text-amber-700">Requis pour valider la déclaration</span>
                       </span>
                     </>
                   )}
@@ -295,7 +296,7 @@ export function DeclarePaiementDialog({ open, onClose, planCode, seats, periodic
               <Button variant="outline" size="sm" onClick={() => setStep("method")}>Retour</Button>
               <Button
                 size="sm"
-                disabled={declareMut.isPending}
+                disabled={declareMut.isPending || !justificationUrl}
                 onClick={() => declareMut.mutate()}
               >
                 {declareMut.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
