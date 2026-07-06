@@ -5,12 +5,10 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "gen:mdbess": "tsx ./src/generate-mdbess-proposal.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "docx": "^9.7.1",
     "tsx": "catalog:"
   }
 }
