@@ -467,6 +467,8 @@ export const promoCodeUsesTable = pgTable("promo_code_uses", {
 }, (t) => ({
   promoIdx: index("promo_code_uses_promo_idx").on(t.promoCodeId),
   orgIdx:   index("promo_code_uses_org_idx").on(t.organizationId),
+  // Garantit l'idempotence : une transaction ne peut générer qu'une seule ligne d'usage
+  txUidx:   uniqueIndex("promo_code_uses_tx_uidx").on(t.transactionId),
 }));
 
 export type PartnerProgram   = typeof partnerProgramsTable.$inferSelect;

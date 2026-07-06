@@ -97,16 +97,23 @@ router.post("/billing/validate-promo-code", async (req, res) => {
 
 router.get("/super-admin/promo-codes/stats", sa, async (req, res) => {
   try {
-    const [totals] = await db
+    // Séparer en deux requêtes pour éviter l'inflation des compteurs via join
+    const [codeRow] = await db
+      .select({ totalCodes: count(promoCodesTable.id) })
+      .from(promoCodesTable);
+
+    const [useRow] = await db
       .select({
-        totalCodes: count(promoCodesTable.id),
-        totalUses:  sql<number>`coalesce(sum(${promoCodesTable.usedCount}),0)`.mapWith(Number),
+        totalUses:    sql<number>`coalesce(count(*),0)`.mapWith(Number),
         totalDiscount: sql<number>`coalesce(sum(${promoCodeUsesTable.discountApplied}),0)`.mapWith(Number),
       })
-      .from(promoCodesTable)
-      .leftJoin(promoCodeUsesTable, eq(promoCodeUsesTable.promoCodeId, promoCodesTable.id));
+      .from(promoCodeUsesTable);
 
-    res.json(totals);
+    res.json({
+      totalCodes:    codeRow?.totalCodes    ?? 0,
+      totalUses:     useRow?.totalUses      ?? 0,
+      totalDiscount: useRow?.totalDiscount  ?? 0,
+    });
   } catch (e) {
     logger.error(e, "promo-codes/stats error");
     res.status(500).json({ error: "Erreur serveur" });

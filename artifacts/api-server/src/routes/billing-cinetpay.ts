@@ -19,6 +19,7 @@ import {
   subscriptionPlansTable,
   promoCodeUsesTable,
   promoCodesTable,
+  partnerProgramsTable,
 } from "@workspace/db";
 import { resolvePromoCode } from "./billing-promo";
 import { randomUUID } from "crypto";
@@ -164,18 +165,44 @@ async function confirmAndActivate(opts: {
   const discountApplied = typeof txMeta["discountApplied"] === "number" ? txMeta["discountApplied"] : 0;
   // Enregistrer l'usage dès qu'un promoCodeId est présent, même si discountApplied = 0
   // (codes partenaires de tracking pur — 0 % de remise mais suivi des parrainages requis)
+  // Idempotent via unique index sur transactionId (onConflictDoNothing)
   if (promoCodeId) {
-    await db.insert(promoCodeUsesTable).values({
+    const [insertedUse] = await db.insert(promoCodeUsesTable).values({
       promoCodeId,
       organizationId: found.tx.organizationId,
       transactionId:  txId,
       discountApplied,
-    }).onConflictDoNothing().catch(() => {});
-    // Incrémenter le compteur d'utilisations
-    await db.update(promoCodesTable)
-      .set({ usedCount: sql`${promoCodesTable.usedCount} + 1` })
-      .where(eq(promoCodesTable.id, promoCodeId))
-      .catch(() => {});
+    }).onConflictDoNothing().returning({ id: promoCodeUsesTable.id });
+
+    if (insertedUse) {
+      // Incrémenter le compteur d'utilisations uniquement si insertion réelle
+      await db.update(promoCodesTable)
+        .set({ usedCount: sql`${promoCodesTable.usedCount} + 1` })
+        .where(eq(promoCodesTable.id, promoCodeId));
+
+      // Mettre à jour les KPIs MRR/referrals du partenaire associé au code
+      const [promoRow] = await db
+        .select({ partnerId: promoCodesTable.partnerId })
+        .from(promoCodesTable)
+        .where(eq(promoCodesTable.id, promoCodeId))
+        .limit(1);
+
+      if (promoRow?.partnerId) {
+        // MRR = montant mensuel équivalent de la transaction confirmée
+        const MONTHS_BY_PERIOD: Record<string, number> = {
+          monthly: 1, quarterly: 3, biannual: 6, annual: 12,
+        };
+        const months = MONTHS_BY_PERIOD[found.tx.periodicity ?? "monthly"] ?? 1;
+        const mrrContribution = Math.round(found.tx.amount / months);
+
+        await db.update(partnerProgramsTable)
+          .set({
+            totalReferrals: sql`${partnerProgramsTable.totalReferrals} + 1`,
+            totalMrrFcfa:   sql`${partnerProgramsTable.totalMrrFcfa} + ${mrrContribution}`,
+          })
+          .where(eq(partnerProgramsTable.id, promoRow.partnerId));
+      }
+    }
   }
 
   // 6. Activer / renouveler l'abonnement avec les paramètres exacts de la transaction
