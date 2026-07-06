@@ -126,8 +126,10 @@ async function confirmAndActivate(opts: {
 
   const receiptNumber = generateRef("REC", (cnt?.c ?? 0) + 1, year);
 
-  // 4. Confirmer la transaction
-  await db.update(paymentTransactionsTable).set({
+  // 4. Confirmer la transaction — UPDATE atomique avec guard status='pending'.
+  //    Si une autre invocation (rejeu webhook, race condition) a déjà finalisé
+  //    la transaction, 0 ligne est modifiée et on lève une erreur idempotente.
+  const updated = await db.update(paymentTransactionsTable).set({
     status: "confirmed",
     confirmedAt: now,
     verifiedAt: now,
@@ -135,7 +137,15 @@ async function confirmAndActivate(opts: {
     gatewayRef,
     receiptNumber,
     metadata: { auto: true, source: "cinetpay", gatewayRef },
-  }).where(eq(paymentTransactionsTable.id, txId));
+  }).where(and(
+    eq(paymentTransactionsTable.id, txId),
+    eq(paymentTransactionsTable.status, "pending"),
+  )).returning({ id: paymentTransactionsTable.id });
+
+  if (updated.length === 0) {
+    // Transaction déjà finalisée par une autre invocation concurrente → idempotent, pas d'erreur métier
+    throw new Error(`IDEMPOTENT:Transaction ${txId} déjà finalisée — activation ignorée`);
+  }
 
   // 5. Mettre à jour l'événement de facturation
   if (found.tx.billingEventId) {
@@ -424,14 +434,16 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
     const signature = (req.headers["x-cinetpay-signature"] as string | undefined) ?? body["cpm_secret_key_hash"] ?? "";
     const sigResult = verifyCinetPaySignature(rawBody, signature);
 
-    if (sigResult.checked && !sigResult.valid) {
-      // Clé secrète configurée ET signature invalide → rejet strict (fail-closed)
-      logger.warn({ transactionId }, "Webhook CinetPay : signature HMAC invalide — rejet");
+    if (!sigResult.checked) {
+      // CINETPAY_SECRET_KEY absent → impossible de vérifier la signature → rejet fail-closed.
+      // L'activation ne peut pas avoir lieu sans garantie cryptographique d'origine.
+      logger.error({ transactionId }, "Webhook CinetPay : CINETPAY_SECRET_KEY non configuré — activation refusée (fail-closed). Configurez cette variable d'environnement.");
       return;
     }
-    if (!sigResult.checked) {
-      // Pas de clé secrète : on continue mais on journalise le manque de vérification
-      logger.warn({ transactionId }, "Webhook CinetPay : CINETPAY_SECRET_KEY absent — signature non vérifiée, poursuite via /check");
+    if (!sigResult.valid) {
+      // Clé présente mais signature invalide → rejet strict
+      logger.warn({ transactionId }, "Webhook CinetPay : signature HMAC invalide — rejet");
+      return;
     }
 
     // 3. Trouver la transaction en base (tenant isolation via reference unique)
@@ -532,7 +544,11 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
       logger.info({ transactionId, status: paymentStatus }, "Webhook CinetPay : statut en attente");
     }
   } catch (err: any) {
-    logger.error({ err: err?.message }, "Webhook CinetPay : erreur de traitement");
+    if (typeof err?.message === "string" && err.message.startsWith("IDEMPOTENT:")) {
+      logger.info({ msg: err.message }, "Webhook CinetPay : traitement idempotent (ignoré)");
+    } else {
+      logger.error({ err: err?.message }, "Webhook CinetPay : erreur de traitement");
+    }
   }
 });
 
