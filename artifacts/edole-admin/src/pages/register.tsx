@@ -215,7 +215,7 @@ export default function RegisterPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Prix / utilisateur / mois</span>
                       <span className="font-semibold text-[#0E1A39]">
-                        {formatFCFA(Math.round(pricingData.ttc / seats / pricingData.months))}
+                        {formatFCFA(Math.round(pricingData.amountHT / seats / pricingData.months))} HT
                       </span>
                     </div>
                     <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
