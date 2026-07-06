@@ -16,7 +16,8 @@ export function useModuleEnabled(moduleKey: string | null | undefined) {
 
 export function FeatureGate({ moduleKey, children }: { moduleKey: string; children: ReactNode }) {
   const { enabled, loading } = useModuleEnabled(moduleKey);
-  if (loading) return null;
+  // Pendant le chargement : passe-à-travers (évite la page blanche)
+  if (loading) return <>{children}</>;
   if (enabled) return <>{children}</>;
   return <UpgradeRequired moduleKey={moduleKey} />;
 }

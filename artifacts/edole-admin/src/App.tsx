@@ -9,6 +9,7 @@ import { Layout } from "@/components/Layout";
 import { RouteModuleGate } from "@/components/RouteModuleGate";
 import { CallCenterProvider } from "@/components/CallCenter";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -261,6 +262,7 @@ function AppRouter() {
           <CallCenterProvider>
           <GlobalNotifications />
           <Layout>
+            <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <RouteModuleGate>
               <Switch>
@@ -462,6 +464,7 @@ function AppRouter() {
               </Switch>
               </RouteModuleGate>
             </Suspense>
+            </ErrorBoundary>
           </Layout>
           </CallCenterProvider>
         </ProtectedRoute>
