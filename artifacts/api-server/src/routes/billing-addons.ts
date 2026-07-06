@@ -110,11 +110,11 @@ const ADDON_CATALOG_SEED = [
   {
     slug: "ai_assistant",
     name: "Gameasu Assistant IA",
-    description: "Assistant virtuel IA pour votre organisation : accueil client 24h/24, prise de rendez-vous automatique, support client, qualification de prospects et base de connaissance personnalisée.",
+    description: "Secrétaire virtuelle intelligente disponible 24h/24 : accueil client, prise de rendez-vous automatique, qualification de prospects, support de premier niveau et base de connaissance personnalisée. Tarif selon la complexité et le volume d'interactions souhaités.",
     category: "ai",
-    billingType: "monthly",
-    priceHT: 25_000,       // 25 000 FCFA HT / mois
-    unit: "mois",
+    billingType: "quote",
+    priceHT: 0,
+    unit: null,
     includedUnits: null,
     isActive: true,
     sortOrder: 5,
@@ -122,7 +122,7 @@ const ADDON_CATALOG_SEED = [
   {
     slug: "ai_assistant_pro",
     name: "Gameasu Assistant IA Pro",
-    description: "Assistant IA Pro avec appels téléphoniques entrants, numéro dédié, clonage vocal sécurisé et intégrations avancées. Tarif selon le volume d'appels et les fonctionnalités souhaitées.",
+    description: "Version Pro avec appels téléphoniques entrants, numéro dédié, clonage vocal sécurisé et intégrations avancées (WhatsApp, site web, CRM). Tarif selon le volume d'appels et les fonctionnalités souhaitées.",
     category: "ai",
     billingType: "quote",
     priceHT: 0,

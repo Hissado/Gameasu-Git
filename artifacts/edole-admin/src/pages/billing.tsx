@@ -22,7 +22,7 @@ import {
   Repeat, Trash2, PenLine, Star, Bell, Info, Mail, Package,
   MessageSquare, MailOpen, HeadphonesIcon, HardDrive, ChevronRight, BarChart3,
   Sparkles, TrendingUp, TrendingDown, AlertTriangle, ArrowRight, Loader2,
-  Tag, Handshake, Gift,
+  Tag, Handshake, Gift, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -2378,7 +2378,8 @@ function AddonsPanel() {
 
   const addons = data?.data ?? [];
   const creditsAddons = addons.filter((a) => a.billingType === "credits");
-  const quoteAddons   = addons.filter((a) => a.billingType === "quote");
+  const aiAddons      = addons.filter((a) => a.category === "ai");
+  const quoteAddons   = addons.filter((a) => a.billingType === "quote" && a.category !== "ai");
   const hasCredits    = creditsAddons.some((a) => a.isActive);
 
   const handleBuyCredits = async (id: string, qty: number) => {
@@ -2472,6 +2473,35 @@ function AddonsPanel() {
                 key={addon.id}
                 addon={addon}
                 onBuy={handleBuyCredits}
+                loading={actionId === addon.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Secrétaire virtuelle & Intelligence Artificielle ── */}
+      {aiAddons.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md border bg-violet-50 border-violet-200">
+              <Bot className="w-3.5 h-3.5 text-violet-600" />
+            </div>
+            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Secrétaire virtuelle & Intelligence Artificielle</h3>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Sur devis · selon la complexité</Badge>
+          </div>
+          <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50/60 to-indigo-50/40 p-4 mb-1">
+            <p className="text-xs text-violet-700/80 leading-relaxed">
+              Ajoutez une secrétaire virtuelle IA à votre organisation : disponible 24h/24, elle gère l'accueil client, les rendez-vous, la qualification de prospects et le support de premier niveau.
+              Le tarif est établi sur devis selon la complexité, le volume d'interactions et les intégrations souhaitées.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {aiAddons.map((addon) => (
+              <QuoteCard
+                key={addon.id}
+                addon={addon}
+                onRequestQuote={handleRequestQuote}
                 loading={actionId === addon.id}
               />
             ))}
