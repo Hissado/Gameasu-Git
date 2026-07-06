@@ -18,6 +18,7 @@ import {
   organizationsTable,
   subscriptionPlansTable,
 } from "@workspace/db";
+import { randomUUID } from "crypto";
 import { and, eq, sql, inArray, desc } from "drizzle-orm";
 import { type RequestHandler } from "express";
 import { requireAdmin } from "../middlewares/auth";
@@ -292,6 +293,10 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       ));
 
     const txRef = generateRef("PAY", (cntRow?.c ?? 0) + 1, year);
+    // UUID globalement unique utilisé comme transaction_id CinetPay.
+    // txRef reste la référence lisible humainement (reçus, polling auth-scopé).
+    // Deux organisations peuvent avoir le même txRef séquentiel, mais JAMAIS le même cinetpayTxId.
+    const cinetpayTxId = randomUUID();
     const planName = getPlan(resolvedPlanCode)?.name ?? resolvedPlanCode;
 
     // Créer l'événement de facturation
@@ -306,7 +311,9 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       reference: txRef,
     }).returning();
 
-    // Créer la transaction de paiement
+    // Créer la transaction de paiement.
+    // gatewayRef = cinetpayTxId (UUID) → clé de réconciliation du webhook (globalement unique).
+    // reference = txRef (PAY-YYYY-NNNN) → référence lisible pour l'historique et le polling.
     const [tx] = await db.insert(paymentTransactionsTable).values({
       organizationId: orgId,
       subscriptionId: sub?.id ?? null,
@@ -316,12 +323,13 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       method,
       payerPhone: payerPhone || null,
       reference: txRef,
+      gatewayRef: cinetpayTxId,
       purpose,
       status: "pending",
       planCode: resolvedPlanCode,
       seats: resolvedSeats,
       periodicity: resolvedPeriodicity,
-      metadata: { gateway: "cinetpay", initiated: now.toISOString() },
+      metadata: { gateway: "cinetpay", initiated: now.toISOString(), cinetpayTxId },
     }).returning();
 
     // Construire les URLs
@@ -329,9 +337,9 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
     const notifyUrl = `${baseUrl}/api/webhooks/cinetpay`;
     const returnUrl = `${baseUrl}/billing/paiement-retour?ref=${txRef}`;
 
-    // Appel CinetPay
+    // Appel CinetPay — on passe le cinetpayTxId (UUID) comme transaction_id, pas le txRef
     const cinetpayResult = await initCinetPayPayment({
-      transactionId: txRef,
+      transactionId: cinetpayTxId,
       amount,
       currency: "XOF",
       description: `Abonnement Gaméasù — ${planName} × ${resolvedSeats} util.`,
@@ -358,11 +366,13 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       return;
     }
 
-    // Stocker le payment_token CinetPay dans gatewayRef
+    // Stocker le payment_token CinetPay dans metadata (gatewayRef reste le cinetpayTxId UUID)
     const paymentToken = cinetpayResult.data?.payment_token ?? null;
-    await db.update(paymentTransactionsTable).set({
-      gatewayRef: paymentToken,
-    }).where(eq(paymentTransactionsTable.id, tx.id));
+    if (paymentToken) {
+      await db.update(paymentTransactionsTable).set({
+        metadata: { gateway: "cinetpay", initiated: now.toISOString(), cinetpayTxId, paymentToken },
+      }).where(eq(paymentTransactionsTable.id, tx.id));
+    }
 
     logger.info({ txId: tx.id, txRef, amount, method, orgId }, "CinetPay paiement initié");
 
@@ -461,14 +471,15 @@ cinetpayPublicRouter.post("/webhooks/cinetpay", async (req, res) => {
       return;
     }
 
-    // 3. Trouver la transaction en base (tenant isolation via reference unique)
+    // 3. Trouver la transaction en base par gatewayRef = cinetpayTxId (UUID globalement unique).
+    //    On ne cherche JAMAIS par reference (per-org, non unique entre tenants).
     const [tx] = await db.select()
       .from(paymentTransactionsTable)
-      .where(eq(paymentTransactionsTable.reference, transactionId))
+      .where(eq(paymentTransactionsTable.gatewayRef, transactionId))
       .limit(1);
 
     if (!tx) {
-      logger.warn({ transactionId }, "Webhook CinetPay : transaction non trouvée en base");
+      logger.warn({ transactionId }, "Webhook CinetPay : transaction non trouvée en base (gatewayRef)");
       return;
     }
 
