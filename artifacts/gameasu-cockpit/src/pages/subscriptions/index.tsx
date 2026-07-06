@@ -9,7 +9,7 @@ import { Link } from "wouter";
 import {
   CreditCard, Loader2, Search, X, TrendingUp, Users,
   CheckCircle2, Clock, AlertTriangle, XCircle, RefreshCw,
-  Zap, CalendarClock, Sparkles, Mail,
+  Zap, CalendarClock, Sparkles, Mail, MessageSquare,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
