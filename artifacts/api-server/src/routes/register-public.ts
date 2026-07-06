@@ -18,7 +18,7 @@ import {
   paymentTransactionsTable,
   authSessionsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
@@ -307,6 +307,20 @@ async function createOrgForExistingUser(opts: {
       role: "owner",
       isPrimary: false,
     });
+
+    // Garantir que le créateur est super_admin globalement pour pouvoir accéder
+    // aux endpoints de facturation (requireAdmin vérifie users.role global).
+    // Si l'utilisateur n'est pas déjà admin/super_admin, on l'élève.
+    await dbTx
+      .update(usersTable)
+      .set({ role: "super_admin" })
+      .where(
+        and(
+          eq(usersTable.id, existingUserId),
+          // N'écraser que si rôle inférieur (ne pas toucher aux admins existants)
+          sql`${usersTable.role} NOT IN ('admin', 'super_admin')`,
+        ),
+      );
 
     const [subRow] = await dbTx
       .insert(organizationSubscriptionsTable)
