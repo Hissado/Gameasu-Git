@@ -78,6 +78,7 @@ import expertFirmsRouter from "./expert-firms";
 import expertInvitationPublicRouter from "./expert-invitation-public";
 import { accessRequestPublicRouter, accessRequestCockpitRouter } from "./access-requests";
 import btpPayrollRouter from "./btp-payroll";
+import billingManualPaymentsRouter from "./billing-manual-payments";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedHissado as seedHissadoDemo } from "../services/seed-hissado";
@@ -184,6 +185,7 @@ router.use(periodCloseRouter);
 router.use(purchasesRouter);
 router.use(expertFirmsRouter);
 router.use(btpPayrollRouter);
+router.use(billingManualPaymentsRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

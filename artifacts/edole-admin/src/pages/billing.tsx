@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { BRANDING } from "@/config/branding";
 import { toast as sonnerToast } from "sonner";
+import { DeclarePaiementDialog } from "@/components/DeclarePaiementDialog";
 
 // ─── Moteur de tarification (côté frontend) ────────────────────────
 // Importé depuis la config centralisée — prix TTC, TVA 18 % incluse
@@ -1210,6 +1211,7 @@ export default function BillingPage() {
   });
 
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showDeclareModal, setShowDeclareModal] = useState(false);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
   const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
   const [planChangeTarget, setPlanChangeTarget] = useState<string | null>(null);
@@ -1433,14 +1435,24 @@ export default function BillingPage() {
                     </a>
                   </Button>
                 ) : (
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    onClick={() => setShowPayModal(true)}
-                    disabled={!ttc || ttc <= 0}
-                  >
-                    <Wallet className="w-4 h-4 mr-2" />
-                    {ttc ? `Payer — ${formatFCFA(ttc)} TTC` : "Calculer le tarif…"}
-                  </Button>
+                  <>
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => setShowPayModal(true)}
+                      disabled={!ttc || ttc <= 0}
+                    >
+                      <Wallet className="w-4 h-4 mr-2" />
+                      {ttc ? `Payer — ${formatFCFA(ttc)} TTC` : "Calculer le tarif…"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowDeclareModal(true)}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Déclarer un paiement manuel
+                    </Button>
+                  </>
                 )}
 
                 {savedCard ? (
@@ -1660,9 +1672,14 @@ export default function BillingPage() {
                 </a>
               </Button>
             ) : (
-              <Button onClick={() => setShowPayModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowPayModal(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Wallet className="w-4 h-4 mr-2" /> Payer maintenant
+                </Button>
+                <Button variant="outline" onClick={() => setShowDeclareModal(true)}>
+                  <FileText className="w-4 h-4 mr-2" /> Déclarer un paiement
+                </Button>
+              </div>
             )}
           </div>
 
@@ -1696,7 +1713,12 @@ export default function BillingPage() {
                     </a>
                   </Button>
                 ) : (
-                  <Button className="mt-4" onClick={() => setShowPayModal(true)}>Initier un paiement</Button>
+                  <div className="flex gap-2 mt-4 justify-center">
+                    <Button onClick={() => setShowPayModal(true)}>Initier un paiement</Button>
+                    <Button variant="outline" onClick={() => setShowDeclareModal(true)}>
+                      <FileText className="w-4 h-4 mr-2" />Déclarer un paiement
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1906,6 +1928,20 @@ export default function BillingPage() {
       )}
       {receiptTxId && (
         <ReceiptModal txId={receiptTxId} onClose={() => setReceiptTxId(null)} />
+      )}
+      {showDeclareModal && (
+        <DeclarePaiementDialog
+          open={showDeclareModal}
+          onClose={() => setShowDeclareModal(false)}
+          planCode={planCode}
+          seats={Math.max(1, userCount)}
+          periodicity={periodicity}
+          amountTTC={ttc ?? 0}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["payment-transactions"] });
+            qc.invalidateQueries({ queryKey: ["billing"] });
+          }}
+        />
       )}
       {planChangeTarget && (
         <PlanChangeModal

@@ -243,10 +243,10 @@ export const paymentTransactionsTable = pgTable("payment_transactions", {
   billingEventId: uuid("billing_event_id").references(() => billingEventsTable.id, { onDelete: "set null" }),
   amount: integer("amount").notNull(),
   currency: text("currency").notNull().default("XOF"),
-  // card | mixx | flooz | mobile_money
+  // card | mixx | flooz | mobile_money | virement | depot_bancaire | depot_bureau | cheque
   method: text("method").notNull(),
   payerPhone: text("payer_phone"),
-  // pending | confirmed | failed | cancelled | expired | refunded
+  // pending | pending_verification | confirmed | rejected | failed | cancelled | expired | refunded
   status: text("status").notNull().default("pending"),
   reference: text("reference"),
   gatewayRef: text("gateway_ref"),
@@ -258,11 +258,23 @@ export const paymentTransactionsTable = pgTable("payment_transactions", {
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
   failedAt: timestamp("failed_at", { withTimezone: true }),
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  // Paiements manuels déclarés
+  declaredAt: timestamp("declared_at", { withTimezone: true }),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  verifiedById: uuid("verified_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  rejectionReason: text("rejection_reason"),
+  justificationUrl: text("justification_url"),
+  coversPeriodStart: timestamp("covers_period_start", { withTimezone: true }),
+  coversPeriodEnd: timestamp("covers_period_end", { withTimezone: true }),
+  planCode: text("plan_code"),
+  seats: integer("seats"),
+  periodicity: text("periodicity"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
   orgIdx: index("payment_tx_org_idx").on(t.organizationId),
   statusIdx: index("payment_tx_status_idx").on(t.status),
+  declaredIdx: index("payment_tx_declared_idx").on(t.declaredAt),
 }));
 
 // ─────────────────────────────────────────────────────────────────
@@ -375,6 +387,18 @@ export const accessRequestsTable = pgTable("access_requests", {
 // ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
 // ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// PARAMÈTRES PLATEFORME — clé/valeur jsonb pour la config système
+// ─────────────────────────────────────────────────────────────────
+export const platformSettingsTable = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  updatedById: uuid("updated_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+});
+
+export type PlatformSetting = typeof platformSettingsTable.$inferSelect;
+
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOrganizationMemberSchema = createInsertSchema(organizationMembersTable).omit({ id: true, joinedAt: true });
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlansTable).omit({ id: true, createdAt: true, updatedAt: true });

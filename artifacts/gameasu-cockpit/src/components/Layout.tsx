@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Building2, Ticket, AlertTriangle,
   ScrollText, Activity, LogOut, ChevronRight,
   BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
-  UserCircle, Briefcase, ClipboardList,
+  UserCircle, Briefcase, ClipboardList, FileCheck,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }>; badge?: number };
@@ -23,11 +23,22 @@ function useNewAccessRequestsCount() {
   return data?.byStatus?.["new"] ?? 0;
 }
 
+function usePendingDeclarationsCount() {
+  const { data } = useQuery<{ count: number; data: unknown[] }>({
+    queryKey: ["cockpit-payment-declarations-badge"],
+    queryFn: () => apiFetch("/api/super-admin/payment-declarations?status=pending_verification"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  return data?.count ?? 0;
+}
+
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const newCount = useNewAccessRequestsCount();
+  const pendingDecl = usePendingDeclarationsCount();
 
   const NAV_SECTIONS: NavSection[] = [
     {
@@ -42,9 +53,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       items: [
         { href: "/tenants",          label: "Organisations",      icon: Building2 },
         { href: "/subscriptions",    label: "Abonnements",        icon: CreditCard },
-        { href: "/access-requests",  label: "Demandes d'accès",   icon: ClipboardList, badge: newCount },
-        { href: "/expert-firms",     label: "Cabinets experts",   icon: Briefcase },
-        { href: "/tickets",          label: "Tickets support",    icon: Ticket },
+        { href: "/access-requests",      label: "Demandes d'accès",     icon: ClipboardList, badge: newCount },
+        { href: "/payment-declarations", label: "Paiements à vérifier", icon: FileCheck, badge: pendingDecl },
+        { href: "/expert-firms",         label: "Cabinets experts",     icon: Briefcase },
+        { href: "/tickets",              label: "Tickets support",      icon: Ticket },
       ],
     },
     {
