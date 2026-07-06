@@ -268,7 +268,7 @@ async function confirmAndActivate(opts: {
       const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gaméasù";
       const baseUrl = getPublicBaseUrl({ headers: {} } as any);
       const activationEmail = buildActivationEmail({
-        firstName: found.orgName, // fallback si pas de prénom disponible ici
+        firstName: found.orgName,
         orgName: found.orgName,
         planName,
         periodEnd,

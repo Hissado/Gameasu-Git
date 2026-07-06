@@ -138,7 +138,9 @@ router.post("/public/register", async (req, res, next) => {
         id: orgId, slug, name: data.orgName,
         country: data.country ?? "TG",
         industry: data.industry ?? null,
-        currency: "XOF", isActive: true,
+        currency: "XOF",
+        // L'org reste inactive jusqu'à confirmation du paiement
+        isActive: false,
         contactEmail: data.email.toLowerCase(),
         contactPhone: data.phone ?? null,
       });
@@ -151,7 +153,7 @@ router.post("/public/register", async (req, res, next) => {
         lastName: data.lastName,
         phone: data.phone ?? null,
         password: hashedPassword,
-        role: "super_admin",
+        role: "admin",
         isActive: true,
         mustChangePassword: false,
       });
@@ -293,7 +295,9 @@ async function createOrgForExistingUser(opts: {
       id: orgId, slug, name: data.orgName,
       country: data.country ?? "TG",
       industry: data.industry ?? null,
-      currency: "XOF", isActive: true,
+      currency: "XOF",
+      // L'org reste inactive jusqu'à confirmation du paiement
+      isActive: false,
       contactEmail: data.email.toLowerCase(),
       contactPhone: data.phone ?? null,
     });

@@ -1018,6 +1018,10 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
       currentPeriodEnd: periodEnd,
     }).where(eq(organizationSubscriptionsTable.id, subId));
 
+    // Activer l'organisation (isActive: false à la création, true après paiement)
+    await db.update(organizationsTable).set({ isActive: true })
+      .where(eq(organizationsTable.id, sub.organizationId));
+
     // Activer les modules inclus dans le plan
     if (sub.planId) {
       const [planData] = await db
