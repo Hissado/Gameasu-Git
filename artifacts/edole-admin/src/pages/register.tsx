@@ -54,8 +54,10 @@ export default function RegisterPage() {
 
   const params = new URLSearchParams(window.location.search);
   const rawPlan = (params.get("plan") ?? "BUSINESS").toUpperCase();
-  const rawSeats = parseInt(params.get("seats") ?? "1") || 1;
-  const rawPeriodicity = params.get("periodicity") ?? "monthly";
+  const rawSeats = parseInt(params.get("seats") ?? params.get("users") ?? "1") || 1;
+  // Accepte "periodicity" (ERP) ou "period" (site vitrine) ou "billing_cycle"
+  const rawPeriodicity = params.get("periodicity") ?? params.get("period") ?? params.get("billing_cycle") ?? "monthly";
+  const rawPromo = params.get("promo") ?? params.get("code") ?? "";
 
   const planCode = ["STARTER", "BUSINESS", "PREMIUM"].includes(rawPlan) ? rawPlan : "BUSINESS";
   const seats = Math.min(500, Math.max(1, rawSeats));
@@ -77,6 +79,7 @@ export default function RegisterPage() {
     city:            "",
     industry:        "",
     country:         "TG",
+    promoCode:       rawPromo,
     terms:           false,
   });
 
@@ -137,11 +140,13 @@ export default function RegisterPage() {
           planCode,
           seats,
           periodicity,
+          promoCode:   form.promoCode || undefined,
         }),
       });
       localStorage.setItem("auth_token", res.token);
       toast({ title: "Compte créé !", description: "Finalisez le paiement pour activer votre espace." });
-      setLocation("/facturation");
+      // openPay=1 déclenche l'ouverture automatique du modal de paiement sur /facturation
+      setLocation("/facturation?openPay=1");
       window.location.reload();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erreur", description: err?.message ?? "Impossible de créer le compte." });
@@ -374,6 +379,17 @@ export default function RegisterPage() {
                       className={fieldCls(false)}
                     />
                   </Field>
+
+                  {(rawPromo || form.promoCode) && (
+                    <Field label="Code promotionnel / partenaire">
+                      <Input
+                        value={form.promoCode}
+                        onChange={e => set("promoCode", e.target.value.toUpperCase())}
+                        placeholder="EX. PARTNER2025"
+                        className={fieldCls(false) + " font-mono tracking-wider"}
+                      />
+                    </Field>
+                  )}
 
                   <Field label="Mot de passe" required error={errors.password}>
                     <div className="relative">

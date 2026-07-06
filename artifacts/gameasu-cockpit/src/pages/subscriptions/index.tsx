@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,11 @@ import { Link } from "wouter";
 import {
   CreditCard, Loader2, Search, X, TrendingUp, Users,
   CheckCircle2, Clock, AlertTriangle, XCircle, RefreshCw,
+  Zap, CalendarClock, MessageSquare,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 type Sub = {
   id: string; orgId: string; orgName: string | null; orgSlug: string | null;
@@ -29,13 +33,16 @@ const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ 
   pending_payment: { label: "Paiement en cours", cls: "bg-orange-100 text-orange-700 border-orange-200",     icon: Clock },
 };
 
+const PERIOD_LABELS: Record<string, string> = {
+  monthly: "Mensuel", quarterly: "Trimestriel",
+  semiannual: "Semestriel", annual: "Annuel",
+};
+
 const PLAN_COLORS: Record<string, string> = {
-  // Plans actuels
-  starter:    "bg-gray-100 text-gray-700",
-  business:   "bg-blue-100 text-blue-700",
-  premium:    "bg-purple-100 text-purple-700",
-  enterprise: "bg-amber-100 text-amber-700",
-  // Alias anciens codes (rétrocompatibilité)
+  starter:      "bg-gray-100 text-gray-700",
+  business:     "bg-blue-100 text-blue-700",
+  premium:      "bg-purple-100 text-purple-700",
+  enterprise:   "bg-amber-100 text-amber-700",
   growth:       "bg-blue-100 text-blue-700",
   professional: "bg-purple-100 text-purple-700",
 };
@@ -47,15 +54,43 @@ function fmtDate(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 }
+function fmtRelative(d: string) {
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `il y a ${days}j`;
+}
 
 export default function SubscriptionsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [activateNotes, setActivateNotes] = useState("");
+  const { toast } = useToast();
+  const qc = useQueryClient();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["cockpit-subscriptions"],
     queryFn: () => apiFetch<{ count: number; totalMrr: number; rows: Sub[] }>("/api/super-admin/subscriptions"),
     refetchInterval: 60_000,
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string }) =>
+      apiFetch(`/api/super-admin/subscriptions/${id}/activate-manually`, {
+        method: "POST",
+        body: JSON.stringify({ notes }),
+      }),
+    onSuccess: () => {
+      toast({ title: "Compte activé !", description: "L'abonnement est maintenant actif et les modules sont disponibles." });
+      qc.invalidateQueries({ queryKey: ["cockpit-subscriptions"] });
+      setActivatingId(null);
+      setActivateNotes("");
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e?.message ?? "Activation impossible." }),
   });
 
   const rows = (data?.rows ?? []).filter(r => {
@@ -65,17 +100,19 @@ export default function SubscriptionsPage() {
     return (r.orgName ?? "").toLowerCase().includes(q) || (r.planName ?? "").toLowerCase().includes(q);
   });
 
-  const active = (data?.rows ?? []).filter(r => r.status === "active" && r.isCurrent);
-  const trials = (data?.rows ?? []).filter(r => r.status === "trial" && r.isCurrent);
-  const pastDue = (data?.rows ?? []).filter(r => r.status === "past_due" && r.isCurrent);
+  const active         = (data?.rows ?? []).filter(r => r.status === "active" && r.isCurrent);
+  const trials         = (data?.rows ?? []).filter(r => r.status === "trial" && r.isCurrent);
+  const pastDue        = (data?.rows ?? []).filter(r => r.status === "past_due" && r.isCurrent);
   const pendingPayment = (data?.rows ?? []).filter(r => r.status === "pending_payment" && r.isCurrent);
+
+  const subToActivate = pendingPayment.find(s => s.id === activatingId);
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1 className="page-title">Abonnements</h1>
-          <p className="page-subtitle">Tous les abonnements des organisations sur la plateforme Gameasu</p>
+          <p className="page-subtitle">Tous les abonnements des organisations sur la plateforme Gaméasù</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
@@ -83,8 +120,81 @@ export default function SubscriptionsPage() {
         </Button>
       </div>
 
+      {/* ── Section Prospects en attente de paiement ─────────────────────── */}
+      {pendingPayment.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+              {pendingPayment.length}
+            </span>
+            <h2 className="text-[15px] font-semibold text-foreground">Prospects en attente de paiement</h2>
+            <span className="text-[11px] text-muted-foreground">— Ces comptes ont créé leur espace mais n'ont pas encore payé.</span>
+          </div>
+          <div className="grid gap-3">
+            {pendingPayment.map(sub => {
+              const totalTTC = sub.unitPrice * sub.seats;
+              const planKey = (sub.planCode ?? "").toLowerCase();
+              return (
+                <Card key={sub.id} className="border-orange-200 bg-orange-50/40">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      {/* Info organisation */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold text-[14px] text-foreground truncate">
+                            {sub.orgName ?? sub.orgSlug ?? sub.orgId}
+                          </span>
+                          <Badge className={`text-xs shrink-0 ${PLAN_COLORS[planKey] ?? "bg-gray-100 text-gray-700"}`}>
+                            {sub.planName ?? sub.planCode ?? "—"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-[12px] text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {sub.seats} siège{sub.seats > 1 ? "s" : ""}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CalendarClock className="w-3 h-3" />
+                            {PERIOD_LABELS[sub.billingCycle] ?? sub.billingCycle}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Inscrit {fmtRelative(sub.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Montant attendu */}
+                      <div className="text-right shrink-0">
+                        <p className="text-[18px] font-extrabold text-orange-700 tabular-nums">{fmtFCFA(totalTTC)}</p>
+                        <p className="text-[11px] text-muted-foreground">TTC attendu</p>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link href={`/tenants/${sub.orgId}`}>
+                          <Button variant="outline" size="sm" className="text-xs h-8">
+                            Voir le compte
+                          </Button>
+                        </Link>
+                        <Button
+                          size="sm"
+                          className="text-xs h-8 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={() => setActivatingId(sub.id)}
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Activer
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Stats KPI */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         <Card className="premium-card">
           <CardContent className="pt-5">
             <div className="flex items-center gap-3">
@@ -168,7 +278,7 @@ export default function SubscriptionsPage() {
             </button>
           )}
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 flex-wrap">
           {[
             { v: "all", label: "Tous" },
             { v: "active", label: "Actifs" },
@@ -248,7 +358,7 @@ export default function SubscriptionsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-xs capitalize">
-                          {sub.billingCycle === "annual" ? "Annuel" : "Mensuel"}
+                          {PERIOD_LABELS[sub.billingCycle] ?? sub.billingCycle}
                           {sub.autopayEnabled && (
                             <span className="ml-1 text-emerald-600 font-medium">· Autopay</span>
                           )}
@@ -262,9 +372,20 @@ export default function SubscriptionsPage() {
                           ) : fmtDate(sub.currentPeriodEnd)}
                         </td>
                         <td className="px-4 py-3">
-                          <Link href={`/tenants/${sub.orgId}`}>
-                            <Button variant="ghost" size="sm" className="text-xs h-7 px-2">Voir</Button>
-                          </Link>
+                          <div className="flex items-center gap-1">
+                            {sub.status === "pending_payment" && (
+                              <Button
+                                variant="ghost" size="sm"
+                                className="text-xs h-7 px-2 text-emerald-700 hover:bg-emerald-50"
+                                onClick={() => setActivatingId(sub.id)}
+                              >
+                                <Zap className="w-3 h-3 mr-1" /> Activer
+                              </Button>
+                            )}
+                            <Link href={`/tenants/${sub.orgId}`}>
+                              <Button variant="ghost" size="sm" className="text-xs h-7 px-2">Voir</Button>
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -275,6 +396,55 @@ export default function SubscriptionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Dialog activation manuelle ────────────────────────────────────── */}
+      <Dialog open={!!activatingId} onOpenChange={(o) => { if (!o) { setActivatingId(null); setActivateNotes(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-emerald-600" />
+              Activer manuellement
+            </DialogTitle>
+          </DialogHeader>
+          {subToActivate && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Organisation : </span><strong>{subToActivate.orgName}</strong></p>
+                <p><span className="text-muted-foreground">Plan : </span><strong>{subToActivate.planName ?? subToActivate.planCode}</strong> · {subToActivate.seats} siège{subToActivate.seats > 1 ? "s" : ""}</p>
+                <p><span className="text-muted-foreground">Montant attendu : </span><strong className="text-emerald-700">{fmtFCFA(subToActivate.unitPrice * subToActivate.seats)}</strong></p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                  Note interne (optionnel)
+                </label>
+                <Textarea
+                  placeholder="Ex. : Virement reçu le 06/07/2026, référence VIR-2025-001…"
+                  value={activateNotes}
+                  onChange={e => setActivateNotes(e.target.value)}
+                  rows={3}
+                  className="text-sm resize-none"
+                />
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                Cette action active immédiatement l'abonnement et déverrouille les modules du plan. Elle est irréversible depuis cette interface.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setActivatingId(null); setActivateNotes(""); }}>
+              Annuler
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              disabled={activateMutation.isPending}
+              onClick={() => activatingId && activateMutation.mutate({ id: activatingId, notes: activateNotes })}
+            >
+              {activateMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Activation…</> : <><Zap className="w-4 h-4" />Confirmer l'activation</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

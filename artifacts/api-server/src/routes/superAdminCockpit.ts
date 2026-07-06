@@ -982,6 +982,85 @@ router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req,
 
 const FACTORY_RESET_CONFIRM = "RÉINITIALISER GAMEASU";
 
+// ── POST /super-admin/subscriptions/:id/activate-manually ─────────────────
+// Activation manuelle d'un abonnement pending_payment (paiement hors-ligne
+// reçu par le super-admin : virement, espèces, chèque…)
+router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, res, next) => {
+  try {
+    const subId = req.params["id"] as string;
+    const notes = String((req.body as any)?.notes ?? "").slice(0, 500);
+
+    const [sub] = await db
+      .select()
+      .from(organizationSubscriptionsTable)
+      .where(eq(organizationSubscriptionsTable.id, subId))
+      .limit(1);
+
+    if (!sub) {
+      res.status(404).json({ error: "Abonnement introuvable." });
+      return;
+    }
+    if (sub.status !== "pending_payment") {
+      res.status(409).json({ error: `L'abonnement est déjà en statut « ${sub.status} ».` });
+      return;
+    }
+
+    const now = new Date();
+    const MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
+    const months = MONTHS[(sub.billingCycle as string) ?? "monthly"] ?? 1;
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + months);
+
+    // Mettre à jour l'abonnement
+    await db.update(organizationSubscriptionsTable).set({
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+    }).where(eq(organizationSubscriptionsTable.id, subId));
+
+    // Activer les modules inclus dans le plan
+    if (sub.planId) {
+      const [planData] = await db
+        .select({ includedModules: subscriptionPlansTable.includedModules })
+        .from(subscriptionPlansTable)
+        .where(eq(subscriptionPlansTable.id, sub.planId))
+        .limit(1);
+      const modules = (planData?.includedModules ?? []) as string[];
+      if (modules.length > 0) {
+        await db
+          .insert(organizationModulesTable)
+          .values(modules.map((k) => ({
+            organizationId: sub.organizationId,
+            moduleKey: k, enabled: true, source: "plan" as const,
+          })))
+          .onConflictDoUpdate({
+            target: [organizationModulesTable.organizationId, organizationModulesTable.moduleKey],
+            set: { enabled: true, source: "plan" as const },
+          });
+      }
+    }
+
+    // Créer un événement de facturation « activation manuelle »
+    await db.insert(billingEventsTable).values({
+      organizationId: sub.organizationId,
+      subscriptionId: subId,
+      kind: "payment",
+      label: `Activation manuelle par super-admin${notes ? ` — ${notes}` : ""}`,
+      amount: sub.unitPrice * sub.seats,
+      currency: "XOF",
+      status: "paid",
+    });
+
+    await cockpitAudit(
+      req.authUser!.id, req.authUser!.email,
+      "subscription.activate_manual", "subscription", subId,
+      { orgId: sub.organizationId, notes },
+    );
+
+    res.json({ ok: true, subscriptionId: subId, newStatus: "active" });
+  } catch (e) { next(e); }
+});
+
 router.post("/super-admin/factory-reset", sa, async (req, res, next) => {
   try {
     const confirm = (req.body as { confirm?: unknown } | undefined)?.confirm;

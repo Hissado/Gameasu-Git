@@ -1351,6 +1351,12 @@ export default function BillingPage() {
     if (params.get("openPartner") === "1") {
       setShowPartnerDialog(true);
     }
+    // openPay=1 → ouvre directement le modal de déclaration de paiement
+    // (cas typique : l'utilisateur vient d'inscrire son organisation et est
+    //  redirigé ici après register avec openPay=1)
+    if (params.get("openPay") === "1") {
+      setShowDeclareModal(true);
+    }
     // Nettoyer l'URL sans rechargement si un param a été traité
     if (planParam || params.has("openPartner") || params.has("openPay")) {
       window.history.replaceState(null, "", window.location.pathname + window.location.hash);
