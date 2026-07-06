@@ -11,6 +11,7 @@ import { CallCenterProvider } from "@/components/CallCenter";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import DemanderAcces from "@/pages/demander-acces";
 import ChoisirOrganisationPage from "@/pages/choisir-organisation";
 import Dashboard from "@/pages/dashboard";
@@ -219,6 +220,7 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
       <Route path="/demander-acces" component={DemanderAcces} />
       <Route path="/choisir-organisation" component={ChoisirOrganisationPage} />
       <Route path="/facture/:token">

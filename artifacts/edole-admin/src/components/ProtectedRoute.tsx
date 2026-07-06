@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 
+const PAYMENT_WALL_ALLOWED_PATHS = ["/facturation", "/billing/paiement-retour", "/profil"];
+
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -26,6 +28,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener("auth:password-change-required", handler);
     return () => window.removeEventListener("auth:password-change-required", handler);
   }, [setLocation]);
+
+  // Blocage paiement requis — redirige vers /facturation si l'abonnement
+  // est en attente de paiement (compte nouveau non encore activé).
+  const subStatus = (user as any)?.subscriptionStatus;
+  useEffect(() => {
+    if (!isAuthenticated || !subStatus) return;
+    if (subStatus === "pending_payment" && !PAYMENT_WALL_ALLOWED_PATHS.some(p => location.startsWith(p))) {
+      setLocation("/facturation");
+    }
+  }, [isAuthenticated, subStatus, location, setLocation]);
 
   if (!isAuthenticated) return null;
   return <>{children}</>;

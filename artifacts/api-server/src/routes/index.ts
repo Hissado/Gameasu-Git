@@ -82,6 +82,7 @@ import billingManualPaymentsRouter from "./billing-manual-payments";
 import billingCinetpayRouter, { cinetpayPublicRouter } from "./billing-cinetpay";
 import billingPromoRouter from "./billing-promo";
 import partnerProgramRouter, { partnerPublicRouter } from "./partner-program";
+import registerPublicRouter from "./register-public";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedHissado as seedHissadoDemo } from "../services/seed-hissado";
@@ -109,6 +110,7 @@ router.use(expertInvitationPublicRouter);
 router.use(accessRequestPublicRouter);
 router.use(cinetpayPublicRouter);
 router.use(partnerPublicRouter);
+router.use(registerPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout

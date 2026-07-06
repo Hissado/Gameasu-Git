@@ -30,6 +30,7 @@ interface AuthUser {
   organizationLegalName?: string;
   organizationLogoUrl?: string;
   orgs?: OrgEntry[];
+  subscriptionStatus?: string | null;
 }
 
 interface AuthContextType {

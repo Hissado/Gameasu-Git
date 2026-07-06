@@ -474,6 +474,126 @@ export function buildPlanChangeEmail(opts: {
   };
 }
 
+// ─── SaaS Self-Onboarding Templates ─────────────────────────────────────────
+
+export function buildRegistrationEmail(opts: {
+  firstName: string;
+  orgName: string;
+  planName: string;
+  seats: number;
+  totalTTC: number;
+  billingUrl: string;
+}): EmailMessage {
+  function fmtFCFA(n: number) { return n.toLocaleString("fr-FR") + " FCFA"; }
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px 32px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#fff;font-size:22px;font-weight:700">Bienvenue, ${opts.firstName} ! 🎉</div>
+    <div style="color:#8fa3c0;font-size:14px;margin-top:6px">Votre espace <strong style="color:#e2e8f0">${opts.orgName}</strong> est créé</div>
+  </div>
+  <div style="padding:32px">
+    <p style="margin:0 0 16px;font-size:15px;color:#333">
+      Votre espace de travail <strong>${opts.orgName}</strong> a bien été créé sur Gaméasù.<br>
+      Il ne reste qu'une étape : <strong>effectuer le paiement</strong> pour l'activer.
+    </p>
+    <div style="background:#FFF7ED;border:2px solid #FB923C;border-radius:12px;padding:20px 24px;margin:0 0 24px">
+      <div style="font-size:11px;color:#C2410C;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Votre abonnement</div>
+      <div style="font-size:20px;font-weight:700;color:#1e293b">${opts.planName}</div>
+      <div style="font-size:13px;color:#555;margin-top:4px">${opts.seats} siège${opts.seats > 1 ? "s" : ""} — <strong>${fmtFCFA(opts.totalTTC)} TTC</strong></div>
+    </div>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${opts.billingUrl}" style="background:#F37021;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;letter-spacing:0.3px">
+        Finaliser le paiement →
+      </a>
+    </p>
+    <p style="font-size:12px;color:#aaa;text-align:center;margin:0">
+      Ce lien vous connecte directement à votre espace Gaméasù.<br>
+      <span style="word-break:break-all;color:#0066cc">${opts.billingUrl}</span>
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} Gaméasù — ERP SaaS nouvelle génération en Afrique de l'Ouest
+  </div>
+</div></body></html>`;
+  const text = [
+    `Bienvenue sur Gaméasù, ${opts.firstName} !`,
+    ``,
+    `Votre espace "${opts.orgName}" a bien été créé.`,
+    ``,
+    `Abonnement : ${opts.planName} — ${opts.seats} siège${opts.seats > 1 ? "s" : ""} — ${fmtFCFA(opts.totalTTC)} TTC`,
+    ``,
+    `Pour activer votre espace, finalisez le paiement :`,
+    opts.billingUrl,
+    ``,
+    `L'équipe Gaméasù`,
+  ].join("\n");
+  return {
+    to: "",
+    subject: `Bienvenue sur Gaméasù — finalisez l'activation de ${opts.orgName}`,
+    html, text, category: "onboarding",
+  };
+}
+
+export function buildActivationEmail(opts: {
+  firstName: string;
+  orgName: string;
+  planName: string;
+  periodEnd: Date | null;
+  loginUrl: string;
+}): EmailMessage {
+  const periodEndStr = opts.periodEnd
+    ? opts.periodEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+    : "—";
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px 32px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:10px;text-transform:uppercase">Gaméasù</div>
+    <div style="color:#fff;font-size:22px;font-weight:700">✅ Votre espace est activé !</div>
+    <div style="color:#8fa3c0;font-size:14px;margin-top:6px">${opts.orgName}</div>
+  </div>
+  <div style="padding:32px">
+    <p style="margin:0 0 16px;font-size:15px;color:#333">
+      Bonjour <strong>${opts.firstName}</strong>,
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">
+      Votre paiement a été confirmé. L'espace de travail <strong>${opts.orgName}</strong> est désormais
+      <strong style="color:#059669">actif</strong> sur la formule <strong>${opts.planName}</strong>.
+    </p>
+    <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:18px 20px;margin:0 0 24px">
+      <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Abonnement actif jusqu'au</div>
+      <div style="font-size:20px;font-weight:700;color:#14532d">${periodEndStr}</div>
+    </div>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${opts.loginUrl}" style="background:#059669;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block">
+        Accéder à mon espace →
+      </a>
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} Gaméasù — ERP SaaS nouvelle génération en Afrique de l'Ouest
+  </div>
+</div></body></html>`;
+  const text = [
+    `Bonjour ${opts.firstName},`,
+    ``,
+    `Votre espace "${opts.orgName}" est maintenant actif sur la formule ${opts.planName}.`,
+    ``,
+    `Abonnement valide jusqu'au : ${periodEndStr}`,
+    ``,
+    `Accédez à votre espace : ${opts.loginUrl}`,
+    ``,
+    `L'équipe Gaméasù`,
+  ].join("\n");
+  return {
+    to: "",
+    subject: `✅ Votre espace ${opts.orgName} est activé sur Gaméasù`,
+    html, text, category: "onboarding",
+  };
+}
+
 export function buildPasswordResetEmail(opts: {
   recipientName: string; resetUrl: string;
 }): EmailMessage {

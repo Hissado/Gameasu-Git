@@ -22,10 +22,11 @@ type Sub = {
 };
 
 const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  active:   { label: "Actif",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  trial:    { label: "Essai",      cls: "bg-blue-100 text-blue-700 border-blue-200",           icon: Clock },
-  past_due: { label: "En retard",  cls: "bg-amber-100 text-amber-700 border-amber-200",        icon: AlertTriangle },
-  canceled: { label: "Annulé",     cls: "bg-red-100 text-red-700 border-red-200",              icon: XCircle },
+  active:          { label: "Actif",             cls: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  trial:           { label: "Essai",             cls: "bg-blue-100 text-blue-700 border-blue-200",           icon: Clock },
+  past_due:        { label: "En retard",         cls: "bg-amber-100 text-amber-700 border-amber-200",        icon: AlertTriangle },
+  canceled:        { label: "Annulé",            cls: "bg-red-100 text-red-700 border-red-200",              icon: XCircle },
+  pending_payment: { label: "Paiement en cours", cls: "bg-orange-100 text-orange-700 border-orange-200",     icon: Clock },
 };
 
 const PLAN_COLORS: Record<string, string> = {
@@ -67,6 +68,7 @@ export default function SubscriptionsPage() {
   const active = (data?.rows ?? []).filter(r => r.status === "active" && r.isCurrent);
   const trials = (data?.rows ?? []).filter(r => r.status === "trial" && r.isCurrent);
   const pastDue = (data?.rows ?? []).filter(r => r.status === "past_due" && r.isCurrent);
+  const pendingPayment = (data?.rows ?? []).filter(r => r.status === "pending_payment" && r.isCurrent);
 
   return (
     <div>
@@ -135,6 +137,19 @@ export default function SubscriptionsPage() {
             </div>
           </CardContent>
         </Card>
+        <Card className="premium-card">
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-orange-600" />
+              </div>
+              <div>
+                <p className="stat-value text-2xl">{pendingPayment.length}</p>
+                <p className="stat-label">En attente paiement</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -160,6 +175,7 @@ export default function SubscriptionsPage() {
             { v: "trial", label: "Essai" },
             { v: "past_due", label: "En retard" },
             { v: "canceled", label: "Annulés" },
+            { v: "pending_payment", label: "En attente paiement" },
           ].map(f => (
             <button
               key={f.v}

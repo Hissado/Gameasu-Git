@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable, organizationsTable, organizationMembersTable } from "@workspace/db";
+import { usersTable, authSessionsTable, twoFactorCodesTable, trustedDevicesTable, organizationsTable, organizationMembersTable, organizationSubscriptionsTable } from "@workspace/db";
 import { eq, and, gt, lt } from "drizzle-orm";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -380,6 +380,20 @@ router.get("/auth/me", async (req, res) => {
 
   const orgs = await getUserOrgs(user.id, user.organizationId);
 
+  // Récupérer le statut de l'abonnement courant (pour le blocage pending_payment)
+  let subscriptionStatus: string | null = null;
+  if (activeOrgId) {
+    const [sub] = await db
+      .select({ status: organizationSubscriptionsTable.status })
+      .from(organizationSubscriptionsTable)
+      .where(and(
+        eq(organizationSubscriptionsTable.organizationId, activeOrgId),
+        eq(organizationSubscriptionsTable.isCurrent, true),
+      ))
+      .limit(1);
+    subscriptionStatus = sub?.status ?? null;
+  }
+
   return res.json({
     id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
     role: user.role, avatarUrl: user.avatarUrl, phone: user.phone ?? null,
@@ -390,6 +404,7 @@ router.get("/auth/me", async (req, res) => {
     organizationLegalName: orgLegalName,
     organizationLogoUrl: orgLogoUrl,
     orgs,
+    subscriptionStatus,
   });
 });
 

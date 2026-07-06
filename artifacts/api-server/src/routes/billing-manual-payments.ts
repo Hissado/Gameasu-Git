@@ -20,7 +20,9 @@ import {
   paymentTransactionsTable,
   billingEventsTable,
   organizationSubscriptionsTable,
+  organizationModulesTable,
   organizationsTable,
+  subscriptionPlansTable,
   platformSettingsTable,
 } from "@workspace/db";
 import { and, eq, desc, sql, inArray } from "drizzle-orm";
@@ -272,31 +274,82 @@ router.post("/super-admin/payment-declarations/:id/confirm", sa, async (req, res
     }
 
     let periodEnd: Date | null = null;
+    let wasNewAccount = false;
     if (found.tx.subscriptionId) {
       const [sub] = await db.select().from(organizationSubscriptionsTable)
         .where(eq(organizationSubscriptionsTable.id, found.tx.subscriptionId)).limit(1);
       if (sub) {
+        wasNewAccount = sub.status === "pending_payment";
         const MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
         const months = MONTHS[found.tx.periodicity ?? "monthly"] ?? 1;
         const periodStart = sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now ? new Date(sub.currentPeriodEnd) : now;
         periodEnd = new Date(periodStart);
         periodEnd.setMonth(periodEnd.getMonth() + months);
+
+        // Résoudre le planId pour l'activation des modules
+        let effectivePlanId = sub.planId;
+        if (found.tx.planCode) {
+          const [planRow] = await db.select({ id: subscriptionPlansTable.id })
+            .from(subscriptionPlansTable)
+            .where(eq(subscriptionPlansTable.code, found.tx.planCode))
+            .limit(1);
+          if (planRow) effectivePlanId = planRow.id;
+        }
+
         await db.update(organizationSubscriptionsTable).set({
           status: "active",
           currentPeriodStart: periodStart,
           currentPeriodEnd: periodEnd,
+          ...(effectivePlanId !== sub.planId ? { planId: effectivePlanId } : {}),
         }).where(eq(organizationSubscriptionsTable.id, sub.id));
+
+        // Activer les modules inclus dans le plan (idempotent)
+        if (effectivePlanId) {
+          const [planData] = await db
+            .select({ includedModules: subscriptionPlansTable.includedModules })
+            .from(subscriptionPlansTable)
+            .where(eq(subscriptionPlansTable.id, effectivePlanId))
+            .limit(1);
+          const modules = (planData?.includedModules ?? []) as string[];
+          if (modules.length > 0) {
+            await db.insert(organizationModulesTable)
+              .values(modules.map((k) => ({
+                organizationId: found.tx.organizationId,
+                moduleKey: k, enabled: true, source: "plan" as const,
+              })))
+              .onConflictDoUpdate({
+                target: [organizationModulesTable.organizationId, organizationModulesTable.moduleKey],
+                set: { enabled: true, source: "plan" as const, updatedAt: new Date() },
+              });
+          }
+        }
       }
     }
 
     const clientEmail = found.orgContactEmail;
     if (clientEmail) {
-      await sendEmail({
-        to: clientEmail,
-        subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
-        html: emailPaymentConfirmed({ orgName: found.orgName, receiptNumber, amount: found.tx.amount, method: METHOD_LABELS[found.tx.method] ?? found.tx.method, periodEnd }),
-        text: `Votre paiement ${receiptNumber} a été confirmé. Votre abonnement est actif.`,
-      });
+      if (wasNewAccount) {
+        const planName = found.tx.planCode
+          ? (found.tx.planCode.charAt(0) + found.tx.planCode.slice(1).toLowerCase())
+          : "Gaméasù";
+        const loginUrl = process.env.PUBLIC_BASE_URL ?? `https://${(process.env.REPLIT_DOMAINS ?? "").split(",")[0] ?? "gameasu.com"}`;
+        const { buildActivationEmail } = await import("../lib/email");
+        const activationEmail = buildActivationEmail({
+          firstName: found.orgName,
+          orgName: found.orgName,
+          planName,
+          periodEnd,
+          loginUrl,
+        });
+        await sendEmail({ ...activationEmail, to: clientEmail });
+      } else {
+        await sendEmail({
+          to: clientEmail,
+          subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
+          html: emailPaymentConfirmed({ orgName: found.orgName, receiptNumber, amount: found.tx.amount, method: METHOD_LABELS[found.tx.method] ?? found.tx.method, periodEnd }),
+          text: `Votre paiement ${receiptNumber} a été confirmé. Votre abonnement est actif.`,
+        });
+      }
     }
 
     logger.info({ txId: id, receiptNumber }, "Déclaration manuelle confirmée");

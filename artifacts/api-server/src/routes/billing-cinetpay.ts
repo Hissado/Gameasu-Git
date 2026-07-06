@@ -15,6 +15,7 @@ import {
   paymentTransactionsTable,
   billingEventsTable,
   organizationSubscriptionsTable,
+  organizationModulesTable,
   organizationsTable,
   subscriptionPlansTable,
   promoCodeUsesTable,
@@ -28,7 +29,7 @@ import { type RequestHandler } from "express";
 import { requireAdmin } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 import { calcPlanPricing, getPlan, type Periodicity } from "../lib/pricing";
-import { sendEmail } from "../lib/email";
+import { sendEmail, buildActivationEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import {
   isCinetPayConfigured,
@@ -207,6 +208,7 @@ async function confirmAndActivate(opts: {
 
   // 6. Activer / renouveler l'abonnement avec les paramètres exacts de la transaction
   let periodEnd: Date | null = null;
+  let wasNewAccount = false;
   if (found.tx.subscriptionId) {
     const [sub] = await db.select()
       .from(organizationSubscriptionsTable)
@@ -214,6 +216,7 @@ async function confirmAndActivate(opts: {
       .limit(1);
 
     if (sub) {
+      wasNewAccount = sub.status === "pending_payment";
       const months = MONTHS[txPeriod] ?? 1;
       const periodStart = sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now
         ? new Date(sub.currentPeriodEnd)
@@ -231,23 +234,61 @@ async function confirmAndActivate(opts: {
         ...(resolvedPlanId ? { planId: resolvedPlanId } : {}),
         ...(resolvedUnitPrice !== null ? { unitPrice: resolvedUnitPrice } : {}),
       }).where(eq(organizationSubscriptionsTable.id, sub.id));
+
+      // 6b. Activer les modules inclus dans le plan (idempotent via upsert)
+      const effectivePlanId = resolvedPlanId ?? sub.planId;
+      if (effectivePlanId) {
+        const [planData] = await db
+          .select({ includedModules: subscriptionPlansTable.includedModules })
+          .from(subscriptionPlansTable)
+          .where(eq(subscriptionPlansTable.id, effectivePlanId))
+          .limit(1);
+        const modules = (planData?.includedModules ?? []) as string[];
+        if (modules.length > 0) {
+          await db.insert(organizationModulesTable)
+            .values(modules.map((k) => ({
+              organizationId: found.tx.organizationId,
+              moduleKey: k,
+              enabled: true,
+              source: "plan" as const,
+            })))
+            .onConflictDoUpdate({
+              target: [organizationModulesTable.organizationId, organizationModulesTable.moduleKey],
+              set: { enabled: true, source: "plan" as const, updatedAt: new Date() },
+            });
+        }
+      }
     }
   }
 
   // 7. E-mail de confirmation
   if (found.orgContactEmail) {
-    await sendEmail({
-      to: found.orgContactEmail,
-      subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
-      html: emailPaymentConfirmed({
+    if (wasNewAccount) {
+      // Nouveau compte : envoyer l'email d'activation
+      const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gaméasù";
+      const baseUrl = getPublicBaseUrl({ headers: {} } as any);
+      const activationEmail = buildActivationEmail({
+        firstName: found.orgName, // fallback si pas de prénom disponible ici
         orgName: found.orgName,
-        receiptNumber,
-        amount: found.tx.amount,
-        method: METHOD_LABELS[found.tx.method] ?? found.tx.method,
+        planName,
         periodEnd,
-      }),
-      text: `Votre paiement ${receiptNumber} a été confirmé automatiquement. Votre abonnement Gaméasù est actif.`,
-    });
+        loginUrl: baseUrl,
+      });
+      await sendEmail({ ...activationEmail, to: found.orgContactEmail });
+    } else {
+      await sendEmail({
+        to: found.orgContactEmail,
+        subject: `[Gaméasù] Paiement confirmé — ${receiptNumber}`,
+        html: emailPaymentConfirmed({
+          orgName: found.orgName,
+          receiptNumber,
+          amount: found.tx.amount,
+          method: METHOD_LABELS[found.tx.method] ?? found.tx.method,
+          periodEnd,
+        }),
+        text: `Votre paiement ${receiptNumber} a été confirmé automatiquement. Votre abonnement Gaméasù est actif.`,
+      });
+    }
   }
 
   return { receiptNumber, periodEnd };
