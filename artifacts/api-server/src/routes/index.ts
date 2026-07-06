@@ -79,6 +79,7 @@ import expertInvitationPublicRouter from "./expert-invitation-public";
 import { accessRequestPublicRouter, accessRequestCockpitRouter } from "./access-requests";
 import btpPayrollRouter from "./btp-payroll";
 import billingManualPaymentsRouter from "./billing-manual-payments";
+import billingCinetpayRouter, { cinetpayPublicRouter } from "./billing-cinetpay";
 import { seedSaas } from "@workspace/db/seed-saas";
 import { seedHissado } from "@workspace/db/seed-hissado";
 import { seedHissado as seedHissadoDemo } from "../services/seed-hissado";
@@ -104,6 +105,7 @@ router.use(ordersPublicRouter);
 router.use(customAppPublicRouter);
 router.use(expertInvitationPublicRouter);
 router.use(accessRequestPublicRouter);
+router.use(cinetpayPublicRouter);
 
 // Toutes les autres routes nécessitent une authentification + une vérification
 // "doit changer son mot de passe" qui bloque tout sauf /auth/me, /auth/logout
@@ -186,6 +188,7 @@ router.use(purchasesRouter);
 router.use(expertFirmsRouter);
 router.use(btpPayrollRouter);
 router.use(billingManualPaymentsRouter);
+router.use(billingCinetpayRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

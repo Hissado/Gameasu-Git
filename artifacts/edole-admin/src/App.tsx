@@ -159,6 +159,7 @@ const AcceptExpertInvitation = lazy(() => import("@/pages/accept-expert-invitati
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
 const OnboardStructure = lazy(() => import("@/pages/onboard-structure"));
 const BillingPage = lazy(() => import("@/pages/billing"));
+const BillingReturn = lazy(() => import("@/pages/billing-return"));
 const WorkspaceSettingsPage = lazy(() => import("@/pages/workspace-settings"));
 const UpgradeRequiredPage = lazy(() => import("@/pages/upgrade-required"));
 const IntelligenceCenter = lazy(() => import("@/pages/intelligence/index"));
@@ -243,6 +244,11 @@ function AppRouter() {
       <Route path="/rapports/gestion/pdf">
         <ProtectedRoute>
           <Suspense fallback={<PageFallback />}><ManagementPDFPage /></Suspense>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/billing/paiement-retour">
+        <ProtectedRoute>
+          <Suspense fallback={<PageFallback />}><BillingReturn /></Suspense>
         </ProtectedRoute>
       </Route>
       <Route>

@@ -117,10 +117,10 @@ const PAYMENT_METHODS = [
     color: "text-blue-600",
     desc: isStripeConfiguredOnFront
       ? "Visa, Mastercard — paiement sécurisé Stripe"
-      : "Visa, Mastercard — saisie manuelle de référence",
+      : "Visa, Mastercard — paiement sécurisé CinetPay",
   },
-  { value: "mixx", label: "Mixx", icon: Smartphone, color: "text-emerald-600", desc: "Mobile Money (Mixx)" },
-  { value: "flooz", label: "Flooz", icon: Smartphone, color: "text-orange-500", desc: "Mobile Money (Flooz)" },
+  { value: "mixx", label: "Mixx (Yas)", icon: Smartphone, color: "text-emerald-600", desc: "Mobile Money TOGOCEL — via CinetPay" },
+  { value: "flooz", label: "Flooz", icon: Smartphone, color: "text-orange-500", desc: "Mobile Money Moov Africa — via CinetPay" },
 ];
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -402,6 +402,7 @@ function PaymentModal({
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [stripeTxRef, setStripeTxRef] = useState<string | null>(null);
   const [stripeSucceeded, setStripeSucceeded] = useState(false);
+  const [cinetpayLoading, setCinetpayLoading] = useState(false);
 
   // Le montant facturé = TTC (TVA incluse)
   const total = ttc ?? 0;
@@ -466,6 +467,30 @@ function PaymentModal({
       description: "La confirmation arrivera sous quelques instants via webhook. Votre accès sera renouvelé automatiquement.",
     });
     onSuccess();
+  };
+
+  // Flux CinetPay : initie la session et redirige vers la page de paiement
+  const handleInitCinetpay = async () => {
+    setCinetpayLoading(true);
+    try {
+      const res = await apiFetch("/api/billing/cinetpay/initiate", {
+        method: "POST",
+        body: JSON.stringify({
+          method,
+          payerPhone: payerPhone || undefined,
+          purpose: "renewal",
+        }),
+      }) as { paymentUrl?: string; txRef: string };
+
+      if (!res.paymentUrl) {
+        sonnerToast.error("CinetPay : URL de paiement manquante");
+        return;
+      }
+      window.location.href = res.paymentUrl;
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Erreur lors de l'initialisation CinetPay");
+      setCinetpayLoading(false);
+    }
   };
 
   return (
@@ -577,12 +602,12 @@ function PaymentModal({
                 </div>
               )}
 
-              {/* Champs Mobile Money */}
+              {/* Numéro de téléphone Mobile Money (pré-remplissage CinetPay) */}
               {isMobileMoney && (
                 <div className="space-y-3 p-3 rounded-lg border border-amber-200 bg-amber-50/40">
                   <div className="space-y-1">
                     <Label className="flex items-center gap-1.5 text-sm">
-                      <Phone className="w-3.5 h-3.5 text-amber-600" /> N° de téléphone payeur
+                      <Phone className="w-3.5 h-3.5 text-amber-600" /> N° de téléphone payeur <span className="text-muted-foreground font-normal">(optionnel)</span>
                     </Label>
                     <Input
                       placeholder="+228 90 00 00 00"
@@ -591,36 +616,20 @@ function PaymentModal({
                     />
                   </div>
                   <p className="text-[11px] text-amber-700">
-                    Effectuez le paiement depuis votre application mobile puis renseignez la référence de transaction.
+                    Vous serez redirigé(e) vers la page de paiement CinetPay. Confirmez le paiement sur votre téléphone, puis revenez sur Gaméasù.
                   </p>
                 </div>
               )}
 
-              {/* Référence (Mobile Money ou TPE carte manuelle) */}
-              {(!useStripeFlow) && (
-                <>
-                  <div className="space-y-1">
-                    <Label className="text-sm">
-                      {method === "card" ? "Référence terminal (TPE)" : "Référence de transaction"}&nbsp;
-                      <span className="text-muted-foreground font-normal">(optionnel)</span>
-                    </Label>
-                    <Input
-                      placeholder={method === "card" ? "ex: AUTH-2026-XXXX" : "ex: TX-MIXX-XXXX"}
-                      value={reference}
-                      onChange={(e) => setReference(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm">Notes <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
-                    <Textarea rows={2} placeholder="Remarques…" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                  </div>
-                  <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-200 p-3">
-                    <Shield className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-slate-600">
-                      La transaction sera créée en statut <strong>En attente</strong>. Votre administrateur la confirmera après réception du paiement.
-                    </p>
-                  </div>
-                </>
+              {/* Info CinetPay pour carte */}
+              {!useStripeFlow && !isMobileMoney && (
+                <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3">
+                  <Shield className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-blue-700">
+                    Vous serez redirigé(e) vers la page de paiement sécurisée CinetPay pour renseigner vos coordonnées bancaires.
+                    Votre abonnement sera activé <strong>automatiquement</strong> après confirmation.
+                  </p>
+                </div>
               )}
             </>
           )}
@@ -628,24 +637,43 @@ function PaymentModal({
 
         {/* Footer — seulement si on n'est pas en formulaire Stripe */}
         {!stripeClientSecret && !stripeSucceeded && (
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose} disabled={saving}>Annuler</Button>
-            {useStripeFlow ? (
-              <Button
-                onClick={handleInitStripe}
-                disabled={saving || total <= 0}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)} TTC`}
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmitManual}
-                disabled={saving || total <= 0}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {saving ? "Initiation…" : `Initier le paiement — ${formatFCFA(total)} TTC`}
-              </Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <div className="flex gap-2 w-full justify-end">
+              <Button variant="outline" onClick={handleClose} disabled={saving || cinetpayLoading}>Annuler</Button>
+              {useStripeFlow ? (
+                <Button
+                  onClick={handleInitStripe}
+                  disabled={saving || total <= 0}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {saving ? "Préparation…" : `Payer par carte — ${formatFCFA(total)} TTC`}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleInitCinetpay}
+                  disabled={cinetpayLoading || saving || total <= 0}
+                  className="bg-[#F37021] hover:bg-[#e06018] text-white font-semibold gap-2"
+                >
+                  {cinetpayLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Redirection…</>
+                  ) : (
+                    <><ExternalLink className="w-4 h-4" /> Payer via CinetPay — {formatFCFA(total)} TTC</>
+                  )}
+                </Button>
+              )}
+            </div>
+            {!useStripeFlow && (
+              <p className="text-[11px] text-center text-muted-foreground">
+                Vous pouvez aussi{" "}
+                <button
+                  type="button"
+                  className="underline hover:text-foreground"
+                  onClick={() => { handleClose(); }}
+                >
+                  déclarer un virement ou dépôt bancaire
+                </button>{" "}
+                depuis la section "Déclarer un paiement".
+              </p>
             )}
           </DialogFooter>
         )}
