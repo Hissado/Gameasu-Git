@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBillingSummary, useBillingEvents, useBillingUsage, useCurrentSubscription } from "@/lib/saas";
 import { apiFetch } from "@/lib/api";
@@ -1337,6 +1337,17 @@ export default function BillingPage() {
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDeclareModal, setShowDeclareModal] = useState(false);
   const [showPartnerDialog, setShowPartnerDialog] = useState(false);
+
+  // Auto-ouvrir le dialog partenaire si query param openPartner=1 (ex: depuis Settings)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openPartner") === "1") {
+      setShowPartnerDialog(true);
+      // Nettoyer l'URL sans rechargement
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, []);
   const [receiptTxId, setReceiptTxId] = useState<string | null>(null);
   const [periodicity, setPeriodicity] = useState<Periodicity>("monthly");
   const [planChangeTarget, setPlanChangeTarget] = useState<string | null>(null);

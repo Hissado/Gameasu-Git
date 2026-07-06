@@ -190,7 +190,7 @@ async function confirmAndActivate(opts: {
       if (promoRow?.partnerId) {
         // MRR = montant mensuel équivalent de la transaction confirmée
         const MONTHS_BY_PERIOD: Record<string, number> = {
-          monthly: 1, quarterly: 3, biannual: 6, annual: 12,
+          monthly: 1, quarterly: 3, semiannual: 6, annual: 12,
         };
         const months = MONTHS_BY_PERIOD[found.tx.periodicity ?? "monthly"] ?? 1;
         const mrrContribution = Math.round(found.tx.amount / months);
