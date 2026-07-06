@@ -1,0 +1,372 @@
+Pouvez-vous revoir complètement la logique entre le simulateur de prix du site web, l’enregistrement sur l’ERP, le paiement et l’activation automatique du compte client ?
+
+Objectif
+
+Je veux que le parcours client soit fluide, logique et entièrement synchronisé.
+
+La logique attendue est la suivante :
+
+1. le client choisit son pack sur le site web ;
+2. il choisit le nombre d’utilisateurs ;
+3. le prix est calculé automatiquement ;
+4. quand il clique sur Commencer avec Starter, Choisir Business ou Passer à Premium, il est redirigé vers une page d’enregistrement ERP ;
+5. le pack choisi et le nombre d’utilisateurs doivent être automatiquement préremplis ;
+6. le client renseigne ses informations ;
+7. le système crée automatiquement son organisation dans l’ERP ;
+8. l’utilisateur qui crée le compte devient automatiquement Super Administrateur de cette organisation ;
+9. le client est ensuite redirigé vers le lien ou parcours de paiement correspondant ;
+10. une fois le paiement validé, l’abonnement est activé ;
+11. le client accède à l’ERP avec les modules correspondant à son pack.
+
+⸻
+
+1. Parcours depuis le site web
+
+Quand le client est sur la page Tarifs du site web, il choisit :
+
+* le pack : Starter, Business ou Premium ;
+* le nombre d’utilisateurs ;
+* la périodicité ;
+* la devise ;
+* TTC ou HT si applicable ;
+* éventuellement un code promo ou code partenaire.
+
+Ensuite, quand il clique sur un bouton comme :
+
+* Commencer avec Starter
+* Choisir Business
+* Passer à Premium
+
+il doit être redirigé vers la page d’enregistrement de l’ERP avec les informations déjà transmises.
+
+Informations à transmettre automatiquement
+
+* pack choisi ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* montant calculé ;
+* devise ;
+* TVA ;
+* réduction éventuelle ;
+* code promo ou partenaire ;
+* source : site web / page tarifs.
+
+⸻
+
+2. Page d’enregistrement ERP
+
+Créer une page d’enregistrement claire et professionnelle dans l’ERP.
+
+Cette page doit permettre au client de renseigner :
+
+* nom complet ;
+* email professionnel ;
+* téléphone ;
+* nom de l’entreprise ou organisation ;
+* secteur d’activité ;
+* taille de l’organisation ;
+* pays ;
+* ville ;
+* mot de passe ;
+* confirmation du mot de passe ;
+* acceptation des conditions d’utilisation ;
+* consentement à être contacté si nécessaire.
+
+Le pack choisi et le nombre d’utilisateurs doivent être déjà affichés et préremplis.
+
+Exemple
+
+Si le client a choisi Business avec 10 utilisateurs sur le site web, la page d’enregistrement doit afficher :
+
+* Pack sélectionné : Business
+* Nombre d’utilisateurs : 10
+* Prix par utilisateur : 7 000 FCFA
+* Total mensuel : 70 000 FCFA TTC
+* Périodicité : mensuelle
+
+Le client ne doit pas avoir à recommencer le choix du pack.
+
+⸻
+
+3. Création automatique du tenant / organisation
+
+Après validation du formulaire d’enregistrement, le système doit créer automatiquement :
+
+* une organisation / tenant ;
+* un espace ERP dédié ;
+* le profil utilisateur principal ;
+* l’abonnement en attente de paiement ;
+* les modules disponibles selon le pack choisi ;
+* les paramètres de base de l’organisation ;
+* une référence client unique.
+
+L’organisation doit être créée avec un statut clair :
+
+En attente de paiement
+
+ou
+
+Compte créé — paiement requis
+
+⸻
+
+4. Super administrateur automatique
+
+L’utilisateur qui effectue l’enregistrement doit devenir automatiquement le Super Administrateur de l’organisation créée.
+
+Permissions du Super Administrateur
+
+Le Super Administrateur doit avoir accès à :
+
+* tous les modules inclus dans son pack ;
+* paramètres de l’organisation ;
+* utilisateurs & accès ;
+* rôles & permissions ;
+* abonnement & facturation ;
+* invitations utilisateurs ;
+* configuration des modules ;
+* documents ;
+* rapports ;
+* support.
+
+Il doit pouvoir inviter les autres utilisateurs après activation de l’abonnement.
+
+⸻
+
+5. Redirection vers le paiement
+
+Après la création du compte et de l’organisation, le client doit être redirigé automatiquement vers le parcours de paiement correspondant au pack choisi.
+
+Le lien de paiement doit reprendre exactement :
+
+* pack choisi ;
+* nombre d’utilisateurs ;
+* périodicité ;
+* montant total ;
+* devise ;
+* TVA ;
+* code promo ou partenaire ;
+* référence client ;
+* organisation créée.
+
+Moyens de paiement à proposer
+
+* carte bancaire ;
+* Mobile Money : Mix, Flooz ;
+* virement bancaire ;
+* chèque ;
+* dépôt en espèces sur le compte bancaire ;
+* dépôt en espèces au bureau Gameasu.
+
+⸻
+
+6. Paiement automatique ou manuel
+
+Paiement automatique
+
+Pour :
+
+* carte bancaire ;
+* Mobile Money ;
+
+le système doit :
+
+* envoyer le client vers le prestataire de paiement sécurisé ;
+* recevoir la confirmation par webhook ;
+* vérifier le montant côté backend ;
+* confirmer le paiement ;
+* activer automatiquement l’abonnement ;
+* donner accès à l’ERP ;
+* envoyer les emails de confirmation.
+
+Paiement manuel
+
+Pour :
+
+* virement bancaire ;
+* chèque ;
+* dépôt en espèces sur le compte ;
+* dépôt en espèces au bureau ;
+
+le système doit :
+
+* afficher les instructions de paiement ;
+* permettre au client de déclarer son paiement ;
+* permettre d’ajouter un justificatif ;
+* envoyer la déclaration dans le Cockpit ;
+* garder l’abonnement en attente jusqu’à validation ;
+* activer l’accès après confirmation par l’équipe Gameasu.
+
+⸻
+
+7. Activation automatique des modules selon le pack
+
+Une fois le paiement validé, les modules accessibles doivent être activés automatiquement selon le pack choisi.
+
+Exemple
+
+Si le client a choisi Starter :
+
+* activer uniquement les modules Starter ;
+* masquer les modules Business et Premium ;
+* afficher les modules supérieurs comme non inclus si nécessaire.
+
+Si le client a choisi Business :
+
+* activer les modules Starter + Business.
+
+Si le client a choisi Premium :
+
+* activer tous les modules inclus dans Premium.
+
+Le système doit synchroniser automatiquement :
+
+* modules actifs ;
+* rôles & permissions ;
+* menu latéral ;
+* dashboard ;
+* rapports ;
+* accès aux pages ;
+* exports PDF / Excel.
+
+⸻
+
+8. Accès à l’ERP après paiement
+
+Après paiement confirmé, le client doit pouvoir se connecter et accéder directement à son ERP.
+
+Statut après paiement
+
+* abonnement actif ;
+* organisation active ;
+* Super Administrateur actif ;
+* modules du pack activés ;
+* facture ou reçu disponible ;
+* email de confirmation envoyé.
+
+Message recommandé :
+
+Votre paiement a été confirmé. Votre espace Gameasu est maintenant actif. Vous pouvez commencer à configurer votre organisation.
+
+⸻
+
+9. Synchronisation avec le Cockpit
+
+Le Cockpit Gameasu doit recevoir automatiquement toutes les informations :
+
+* nouvelle organisation créée ;
+* Super Administrateur ;
+* pack choisi ;
+* nombre d’utilisateurs ;
+* montant attendu ;
+* mode de paiement ;
+* statut du paiement ;
+* statut de l’abonnement ;
+* code promo ou partenaire ;
+* source du client ;
+* date de création ;
+* date d’activation.
+
+Le Cockpit doit permettre à l’équipe Gameasu de suivre :
+
+* comptes créés mais non payés ;
+* paiements en attente ;
+* paiements confirmés ;
+* paiements rejetés ;
+* abonnements actifs ;
+* abonnements expirés ;
+* clients par pack ;
+* clients par code partenaire ;
+* clients venant du ministère ou d’un partenaire.
+
+⸻
+
+10. Cas où le paiement n’est pas terminé
+
+Si le client crée son compte mais ne termine pas le paiement :
+
+* l’organisation doit rester en statut En attente de paiement ;
+* l’accès aux modules doit être limité ;
+* le client peut voir une page indiquant que le paiement est requis ;
+* il peut reprendre le paiement plus tard ;
+* l’équipe Gameasu peut voir ce compte dans le Cockpit ;
+* un email de rappel peut être envoyé automatiquement.
+
+Message recommandé :
+
+Votre compte a été créé, mais votre abonnement n’est pas encore actif. Veuillez finaliser le paiement pour accéder à votre espace ERP.
+
+⸻
+
+11. Sécurité
+
+Merci de sécuriser tout le parcours.
+
+Règles importantes :
+
+* ne pas faire confiance uniquement aux données venant du frontend ;
+* vérifier le pack, le montant et le nombre d’utilisateurs côté backend ;
+* empêcher la modification manuelle du prix ;
+* vérifier les webhooks du prestataire de paiement ;
+* ne pas activer l’abonnement sans paiement confirmé ;
+* éviter les doublons d’organisation ;
+* éviter les doublons d’utilisateur ;
+* créer un audit trail pour chaque étape ;
+* journaliser l’inscription, le paiement et l’activation.
+
+⸻
+
+12. Emails et notifications
+
+Prévoir des emails automatiques.
+
+Email après inscription
+
+Objet :
+
+Votre espace Gameasu a été créé
+
+Message :
+
+Votre compte a bien été créé. Il vous reste à finaliser le paiement pour activer votre abonnement et accéder à votre ERP.
+
+Email après paiement confirmé
+
+Objet :
+
+Votre abonnement Gameasu est activé
+
+Message :
+
+Votre paiement a été confirmé. Votre espace Gameasu est maintenant actif.
+
+Notification Cockpit
+
+Créer une notification interne :
+
+Nouvelle organisation créée — paiement en attente
+
+Puis après paiement :
+
+Abonnement activé — [Nom de l’organisation]
+
+⸻
+
+13. Résultat attendu
+
+Je veux un parcours complet et cohérent :
+
+* choix du pack sur le site ;
+* transmission automatique du pack et du nombre d’utilisateurs ;
+* enregistrement du client dans l’ERP ;
+* création automatique de l’organisation ;
+* attribution automatique du rôle Super Administrateur ;
+* redirection vers le paiement ;
+* activation automatique après paiement confirmé ;
+* accès aux modules selon le pack choisi ;
+* synchronisation complète avec le Cockpit ;
+* suivi des paiements, abonnements et prospects.
+
+Objectif final
+
+Créer un parcours SaaS premium où le client peut passer naturellement du site web à son espace ERP : il choisit son pack, crée son organisation, paie, puis accède automatiquement aux modules inclus dans son abonnement, sans intervention manuelle inutile.
