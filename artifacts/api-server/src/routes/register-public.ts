@@ -138,7 +138,6 @@ router.post("/public/register", async (req, res, next) => {
         id: orgId, slug, name: data.orgName,
         country: data.country ?? "TG",
         industry: data.industry ?? null,
-        city: data.city ?? null,
         currency: "XOF", isActive: true,
         contactEmail: data.email.toLowerCase(),
         contactPhone: data.phone ?? null,
@@ -217,7 +216,7 @@ router.post("/public/register", async (req, res, next) => {
       token, userId, expiresAt,
       activeOrgId: orgId,
       userAgent: (req.headers["user-agent"] as string) ?? null,
-      ip: req.ip ?? null,
+      ipAddress: req.ip ?? null,
     });
 
     // 8. Email de bienvenue (non-bloquant)
@@ -294,7 +293,6 @@ async function createOrgForExistingUser(opts: {
       id: orgId, slug, name: data.orgName,
       country: data.country ?? "TG",
       industry: data.industry ?? null,
-      city: data.city ?? null,
       currency: "XOF", isActive: true,
       contactEmail: data.email.toLowerCase(),
       contactPhone: data.phone ?? null,
@@ -365,7 +363,7 @@ async function createOrgForExistingUser(opts: {
     token, userId: existingUserId, expiresAt,
     activeOrgId: orgId,
     userAgent: (req.headers["user-agent"] as string) ?? null,
-    ip: req.ip ?? null,
+    ipAddress: req.ip ?? null,
   });
 
   // Email de bienvenue (non-bloquant)
