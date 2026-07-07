@@ -493,19 +493,21 @@ export default function RegisterPage() {
                     <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
                       <div className="flex items-center justify-between text-gray-400">
                         <span>Montant HT</span>
-                        <span>{formatFCFA(pricingData.amountHT)}</span>
+                        <span>{formatFCFA(pricingData.amountHT * pricingData.months)}</span>
                       </div>
                       <div className="flex items-center justify-between text-gray-400">
                         <span>TVA 18 %</span>
-                        <span>{formatFCFA(pricingData.tva)}</span>
+                        <span>{formatFCFA(pricingData.tva * pricingData.months)}</span>
                       </div>
                     </div>
                     <div
                       className="flex items-center justify-between rounded-xl px-4 py-3"
                       style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
                     >
-                      <span className="text-[13px] font-semibold text-[#1D4ED8]">Total TTC / mois</span>
-                      <span className="text-[18px] font-extrabold text-[#1D4ED8]">{formatFCFA(pricingData.ttc)}</span>
+                      <span className="text-[13px] font-semibold text-[#1D4ED8]">
+                        Total TTC{pricingData.months > 1 ? ` / ${pricingData.months} mois` : " / mois"}
+                      </span>
+                      <span className="text-[18px] font-extrabold text-[#1D4ED8]">{formatFCFA(pricingData.ttc * pricingData.months)}</span>
                     </div>
                   </>
                 )}
