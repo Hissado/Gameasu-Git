@@ -255,19 +255,6 @@ export default function RegisterPage() {
                     <span className="text-[11px] text-gray-400">50</span>
                     <span className="text-[11px] text-gray-400">100+</span>
                   </div>
-                  {selectedSeats >= 100 && (
-                    <div className="mt-3">
-                      <input
-                        type="number"
-                        min={100}
-                        max={500}
-                        value={selectedSeats}
-                        onChange={e => setSelectedSeats(Math.min(500, Math.max(1, Number(e.target.value) || 1)))}
-                        className="w-28 h-8 rounded-lg border border-gray-200 text-center text-[13px] font-semibold text-[#0E1A39] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="100+"
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -306,8 +293,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* ── Tarif sur devis (>100 utilisateurs) ─────────────────────── */}
-          {selectedSeats > 100 && (
+          {/* ── Tarif sur devis (≥100 utilisateurs) ─────────────────────── */}
+          {selectedSeats >= 100 && (
             <div
               className="rounded-2xl px-8 py-10 flex flex-col items-center text-center mb-6"
               style={{ background: "#FFFBEB", border: "2px solid #FDE68A" }}
@@ -335,7 +322,7 @@ export default function RegisterPage() {
           )}
 
           {/* ── Cartes plan ──────────────────────────────────────────────── */}
-          {selectedSeats <= 100 && (
+          {selectedSeats < 100 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
             {SELECTABLE_PLANS.map(p => {
               const pr = calcPlanPricing({ planCode: p.code, seats: selectedSeats, periodicity: selectedPeriodicity as any });
