@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { BRANDING } from "@/config/branding";
 import { cn } from "@/lib/utils";
-import { Loader2, Eye, EyeOff, Check, ChevronLeft, Minus, Plus } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, ChevronLeft, Users } from "lucide-react";
 import { PLAN_CATALOG, PERIODICITY_OPTIONS, calcPlanPricing } from "@/lib/pricing-config";
 import { formatFCFA } from "@/lib/format";
 
@@ -48,46 +48,33 @@ const PLAN_BADGE_COLORS: Record<string, { bg: string; text: string; border: stri
   PREMIUM:  { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE" },
 };
 
-const PLAN_DISPLAY = [
+const SELECTABLE_PLANS = [
   {
     code: "STARTER",
     name: "Starter",
-    tagline: "Démarrer simplement",
-    features: ["Tableau de bord & KPI", "Clients, services & projets", "Tâches & documents", "Rapports essentiels"],
-    accent: "#475569",
-    bg: "#F8FAFC",
-    border: "#CBD5E1",
+    modules: 7,
+    description: "L'essentiel pour gérer vos ventes, clients, factures et dépenses au quotidien.",
+    color: "#0E1A39",
     badge: null as string | null,
+    badgeBg: "",
   },
   {
     code: "BUSINESS",
     name: "Business",
-    tagline: "Accélérer la croissance",
-    features: ["Tout Starter inclus", "Ventes, CRM & pipeline", "Comptabilité SYSCOHADA", "RH & équipe complet"],
-    accent: "#1D4ED8",
-    bg: "#EFF6FF",
-    border: "#BFDBFE",
+    modules: 15,
+    description: "Une formule complète pour piloter vos équipes, vos opérations, votre paie et votre budget.",
+    color: "#1D4ED8",
     badge: "Populaire",
+    badgeBg: "#1D4ED8",
   },
   {
     code: "PREMIUM",
     name: "Premium",
-    tagline: "Le standard complet",
-    features: ["Tout Business inclus", "FP&A & planification financière", "Opérations, parc & locations", "Account manager dédié"],
-    accent: "#6D28D9",
-    bg: "#F5F3FF",
-    border: "#DDD6FE",
+    modules: 24,
+    description: "Le niveau avancé pour centraliser, automatiser et piloter toute votre organisation avec précision.",
+    color: "#F37021",
     badge: "Complet",
-  },
-  {
-    code: "ENTERPRISE",
-    name: "Personnalisée",
-    tagline: "Sur-mesure & souverain",
-    features: ["Tous les modules", "Utilisateurs illimités", "SSO & audit avancé", "Intégrations sur-mesure"],
-    accent: "#0E1A39",
-    bg: "#F8F9FA",
-    border: "#D1D5DB",
-    badge: null,
+    badgeBg: "#F37021",
   },
 ];
 
@@ -102,24 +89,23 @@ export default function RegisterPage() {
   const rawPeriodicity = params.get("periodicity") ?? params.get("period") ?? params.get("billing_cycle") ?? "monthly";
   const rawPromo = params.get("promo") ?? params.get("code") ?? "";
 
-  const initPlan = ["STARTER", "BUSINESS", "PREMIUM", "ENTERPRISE"].includes(rawPlan) ? rawPlan : "BUSINESS";
+  const initPlan = ["STARTER", "BUSINESS", "PREMIUM"].includes(rawPlan) ? rawPlan : "BUSINESS";
   const initSeats = Math.min(500, Math.max(1, rawSeats));
   const initPeriodicity = ["monthly", "quarterly", "semiannual", "annual"].includes(rawPeriodicity) ? rawPeriodicity : "monthly";
 
   const [step, setStep] = useState<"select" | "form">(hasPlanFromUrl ? "form" : "select");
-
   const [selectedPlan, setSelectedPlan] = useState(initPlan);
   const [selectedSeats, setSelectedSeats] = useState(initSeats);
   const [selectedPeriodicity, setSelectedPeriodicity] = useState(initPeriodicity);
 
-  const planCode = selectedPlan;
-  const seats = selectedSeats;
+  const planCode    = selectedPlan;
+  const seats       = selectedSeats;
   const periodicity = selectedPeriodicity;
 
-  const plan = PLAN_CATALOG.find(p => p.code === planCode);
-  const pricing = plan && !plan.isEnterprise ? calcPlanPricing({ planCode, seats, periodicity: periodicity as any }) : null;
+  const plan       = PLAN_CATALOG.find(p => p.code === planCode);
+  const pricing    = plan && !plan.isEnterprise ? calcPlanPricing({ planCode, seats, periodicity: periodicity as any }) : null;
   const pricingData = pricing && !pricing.isEnterprise ? pricing : null;
-  const planBadge = PLAN_BADGE_COLORS[planCode] ?? PLAN_BADGE_COLORS.BUSINESS;
+  const planBadge  = PLAN_BADGE_COLORS[planCode] ?? PLAN_BADGE_COLORS.BUSINESS;
 
   const [form, setForm] = useState({
     orgName:         "",
@@ -136,10 +122,10 @@ export default function RegisterPage() {
     terms:           false,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [loading, setLoading]       = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showConfirm, setShowConfirm]   = useState(false);
 
   const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "exists">("idle");
   useEffect(() => {
@@ -161,13 +147,13 @@ export default function RegisterPage() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.orgName.trim()) e.orgName = "Nom de l'organisation requis";
-    if (!form.firstName.trim()) e.firstName = "Prénom requis";
-    if (!form.lastName.trim()) e.lastName = "Nom requis";
-    if (!form.email.includes("@")) e.email = "Adresse e-mail invalide";
-    if (form.password.length < 8) e.password = "Minimum 8 caractères";
+    if (!form.orgName.trim())              e.orgName         = "Nom de l'organisation requis";
+    if (!form.firstName.trim())            e.firstName       = "Prénom requis";
+    if (!form.lastName.trim())             e.lastName        = "Nom requis";
+    if (!form.email.includes("@"))         e.email           = "Adresse e-mail invalide";
+    if (form.password.length < 8)          e.password        = "Minimum 8 caractères";
     if (form.password !== form.confirmPassword) e.confirmPassword = "Les mots de passe ne correspondent pas";
-    if (!form.terms) e.terms = "Vous devez accepter les conditions";
+    if (!form.terms)                       e.terms           = "Vous devez accepter les conditions";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -180,19 +166,19 @@ export default function RegisterPage() {
       const res = await apiFetch<{ token: string }>("/api/public/register", {
         method: "POST",
         body: JSON.stringify({
-          orgName:     form.orgName,
-          firstName:   form.firstName,
-          lastName:    form.lastName,
-          email:       form.email,
-          password:    form.password,
-          phone:       form.phone || undefined,
-          city:        form.city || undefined,
-          country:     form.country,
-          industry:    form.industry || undefined,
+          orgName:   form.orgName,
+          firstName: form.firstName,
+          lastName:  form.lastName,
+          email:     form.email,
+          password:  form.password,
+          phone:     form.phone     || undefined,
+          city:      form.city      || undefined,
+          country:   form.country,
+          industry:  form.industry  || undefined,
           planCode,
           seats,
           periodicity,
-          promoCode:   form.promoCode || undefined,
+          promoCode: form.promoCode || undefined,
         }),
       });
       localStorage.setItem("auth_token", res.token);
@@ -208,220 +194,222 @@ export default function RegisterPage() {
 
   const year = new Date().getFullYear();
 
-  // ─── ÉTAPE 0 : Sélection de la formule ───────────────────────────────────
+  // ─── ÉTAPE 0 : Simulateur de prix (style gameasu.com/tarifs) ─────────────
   if (step === "select") {
-    const previewPricing = selectedPlan !== "ENTERPRISE"
-      ? calcPlanPricing({ planCode: selectedPlan, seats: selectedSeats, periodicity: selectedPeriodicity as any })
-      : null;
-    const previewData = previewPricing && !previewPricing.isEnterprise ? previewPricing : null;
-
     return (
       <div
-        className="min-h-screen w-full flex flex-col items-center justify-between px-4 py-10"
-        style={{ background: "#F3F4F6", fontFamily: "var(--app-font-display, system-ui)" }}
+        className="min-h-screen w-full flex flex-col"
+        style={{ background: "#EEF2FF", fontFamily: "var(--app-font-display, system-ui)" }}
       >
-        <div />
+        {/* Header */}
+        <div className="w-full flex items-center justify-center pt-8 pb-2 px-4">
+          <img
+            src={BRANDING.logoFullTransparent}
+            alt={BRANDING.appName}
+            draggable={false}
+            className="select-none"
+            style={{ height: "40px", width: "auto" }}
+          />
+        </div>
 
-        <div className="w-full max-w-[960px]">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <img
-              src={BRANDING.logoFullTransparent}
-              alt={BRANDING.appName}
-              draggable={false}
-              className="select-none mx-auto"
-              style={{ height: "48px", width: "auto" }}
-            />
+        <div className="flex-1 w-full max-w-[1080px] mx-auto px-4 py-10">
+
+          {/* Titre */}
+          <div className="text-center mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1D4ED8] mb-3">SIMULATEUR DE PRIX</p>
+            <h1 className="text-[28px] sm:text-[36px] font-extrabold text-[#0E1A39] leading-tight">
+              Calculez votre abonnement
+            </h1>
           </div>
 
+          {/* ── Barre simulateur ─────────────────────────────────────────── */}
           <div
-            className="rounded-2xl bg-white px-8 py-8"
-            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}
+            className="rounded-2xl bg-white px-6 py-6 mt-8 mb-8"
+            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB" }}
           >
-            <h1 className="text-[22px] font-bold text-[#0E1A39] mb-1 text-center">Choisissez votre formule</h1>
-            <p className="text-[13px] text-gray-500 mb-8 text-center">Vous pourrez modifier votre abonnement à tout moment depuis votre espace.</p>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-8">
 
-            {/* ── Cartes plan ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-              {PLAN_DISPLAY.map((p) => {
-                const isSelected = selectedPlan === p.code;
-                const planPricing = p.code !== "ENTERPRISE"
-                  ? calcPlanPricing({ planCode: p.code, seats: 1, periodicity: "monthly" })
-                  : null;
-                const monthlyTTC = planPricing && !planPricing.isEnterprise ? planPricing.priceTTCPerSeat : null;
-
-                return (
-                  <button
-                    key={p.code}
-                    type="button"
-                    onClick={() => setSelectedPlan(p.code)}
-                    className="relative rounded-xl text-left p-4 transition-all duration-150 focus:outline-none"
-                    style={{
-                      background: isSelected ? p.bg : "#FAFAFA",
-                      border: isSelected ? `2px solid ${p.accent}` : "2px solid #E5E7EB",
-                      boxShadow: isSelected ? `0 0 0 3px ${p.accent}22` : "none",
-                    }}
-                  >
-                    {p.badge && (
-                      <span
-                        className="absolute top-3 right-3 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: p.accent, color: "#fff" }}
-                      >
-                        {p.badge}
-                      </span>
-                    )}
-                    {isSelected && (
-                      <div
-                        className="absolute top-3 left-3 w-4 h-4 rounded-full flex items-center justify-center"
-                        style={{ background: p.accent }}
-                      >
-                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                      </div>
-                    )}
-                    <p
-                      className="text-[15px] font-bold mt-5 mb-0.5"
-                      style={{ color: isSelected ? p.accent : "#0E1A39" }}
-                    >
-                      {p.name}
-                    </p>
-                    <p className="text-[11px] text-gray-500 mb-3">{p.tagline}</p>
-                    {monthlyTTC !== null ? (
-                      <p className="text-[13px] font-semibold" style={{ color: p.accent }}>
-                        {formatFCFA(monthlyTTC)}<span className="text-[10px] font-normal text-gray-400"> TTC/siège/mois</span>
-                      </p>
-                    ) : (
-                      <p className="text-[13px] font-semibold text-gray-500">Sur devis</p>
-                    )}
-                    <ul className="mt-3 space-y-1">
-                      {p.features.map(f => (
-                        <li key={f} className="text-[11px] text-gray-600 flex items-start gap-1.5">
-                          <Check className="w-3 h-3 mt-0.5 shrink-0" style={{ color: p.accent }} strokeWidth={2.5} />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* ── Sièges + Périodicité ── */}
-            {selectedPlan !== "ENTERPRISE" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Nombre de sièges */}
-                <div>
-                  <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Nombre d'utilisateurs</p>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSeats(s => Math.max(1, s - 1))}
-                      className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                    >
-                      <Minus className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={selectedSeats}
-                      onChange={e => {
-                        const v = parseInt(e.target.value) || 1;
-                        setSelectedSeats(Math.min(500, Math.max(1, v)));
-                      }}
-                      className="w-20 h-9 rounded-lg border border-gray-200 text-center text-[15px] font-semibold text-[#0E1A39] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSeats(s => Math.min(500, s + 1))}
-                      className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                    >
-                      <Plus className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <span className="text-[13px] text-gray-500">siège{selectedSeats > 1 ? "s" : ""}</span>
-                  </div>
+              {/* Colonne 1 : Utilisateurs */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Utilisateurs</span>
                 </div>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-[40px] font-extrabold text-[#0E1A39] leading-none">{selectedSeats}</span>
+                  <span className="text-[14px] text-gray-500">utilisateur{selectedSeats > 1 ? "s" : ""}</span>
+                </div>
+                {/* Slider */}
+                <div className="relative">
+                  <input
+                    type="range"
+                    min={1}
+                    max={100}
+                    value={Math.min(selectedSeats, 100)}
+                    onChange={e => setSelectedSeats(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: "#1D4ED8", background: `linear-gradient(to right, #1D4ED8 ${(Math.min(selectedSeats, 100) - 1) / 99 * 100}%, #E5E7EB ${(Math.min(selectedSeats, 100) - 1) / 99 * 100}%)` }}
+                  />
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-[11px] text-gray-400">1</span>
+                    <span className="text-[11px] text-gray-400">50</span>
+                    <span className="text-[11px] text-gray-400">100+</span>
+                  </div>
+                  {selectedSeats >= 100 && (
+                    <div className="mt-3">
+                      <input
+                        type="number"
+                        min={100}
+                        max={500}
+                        value={selectedSeats}
+                        onChange={e => setSelectedSeats(Math.min(500, Math.max(1, Number(e.target.value) || 1)))}
+                        className="w-28 h-8 rounded-lg border border-gray-200 text-center text-[13px] font-semibold text-[#0E1A39] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="100+"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {/* Périodicité */}
-                <div>
-                  <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Périodicité</p>
-                  <div className="flex flex-wrap gap-2">
-                    {PERIODICITY_OPTIONS.map(opt => (
+              {/* Colonne 2 : Périodicité */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Périodicité</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {PERIODICITY_OPTIONS.map(opt => {
+                    const active = selectedPeriodicity === opt.value;
+                    return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setSelectedPeriodicity(opt.value)}
-                        className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium border transition-all duration-100"
-                        style={selectedPeriodicity === opt.value
-                          ? { background: "#0E1A39", color: "#fff", border: "1px solid #0E1A39" }
-                          : { background: "#fff", color: "#374151", border: "1px solid #D1D5DB" }
-                        }
+                        className="rounded-xl py-3 px-4 text-left transition-all duration-100 focus:outline-none"
+                        style={{
+                          background: active ? "#1D4ED8" : "#F8FAFC",
+                          border: active ? "1.5px solid #1D4ED8" : "1.5px solid #E5E7EB",
+                        }}
                       >
-                        {PERIOD_LABELS[opt.value]}
+                        <p className={`text-[13px] font-semibold ${active ? "text-white" : "text-[#0E1A39]"}`}>
+                          {PERIOD_LABELS[opt.value]}
+                        </p>
                         {opt.discount > 0 && (
-                          <span className="ml-1.5 text-[10px] font-bold text-emerald-500">
+                          <p className={`text-[11px] font-medium ${active ? "text-blue-200" : "text-emerald-600"}`}>
                             -{opt.discount * 100}%
-                          </span>
+                          </p>
                         )}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* ── Récap prix + CTA ── */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
-              {previewData ? (
-                <div className="space-y-0.5">
-                  <p className="text-[13px] text-gray-500">
-                    <span className="font-semibold text-[#0E1A39] text-[16px]">{formatFCFA(previewData.priceTTCPerSeat)}</span>
-                    {" "}<span className="text-[11px]">TTC / siège / mois</span>
-                    {previewData.discount > 0 && (
-                      <span className="ml-2 text-[11px] font-semibold text-emerald-600">
-                        (remise {previewData.discount * 100}% appliquée)
+          {/* ── Cartes plan ──────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+            {SELECTABLE_PLANS.map(p => {
+              const pr = calcPlanPricing({ planCode: p.code, seats: selectedSeats, periodicity: selectedPeriodicity as any });
+              const prData = !pr.isEnterprise ? pr : null;
+              const isSelected = selectedPlan === p.code;
+
+              return (
+                <div
+                  key={p.code}
+                  className="rounded-2xl bg-white flex flex-col transition-all duration-150"
+                  style={{
+                    border: isSelected ? `2px solid ${p.color}` : "2px solid #E5E7EB",
+                    boxShadow: isSelected ? `0 0 0 4px ${p.color}18` : "0 1px 4px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  {/* Badge */}
+                  <div className="px-5 pt-5 pb-0 flex items-start justify-between">
+                    <div>
+                      <p className="text-[15px] font-bold text-[#0E1A39] mb-0.5">{p.name}</p>
+                      <p className="text-[11px] text-gray-400">{p.modules} modules</p>
+                    </div>
+                    {p.badge && (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                        style={{ background: p.badgeBg }}
+                      >
+                        {p.badge}
                       </span>
                     )}
-                  </p>
-                  <p className="text-[12px] text-gray-400">
-                    Total mensuel : <span className="font-semibold text-gray-600">{formatFCFA(previewData.ttc)} TTC</span>
-                    {" "}· HT : {formatFCFA(previewData.amountHT)}
-                  </p>
+                  </div>
+
+                  {/* Prix */}
+                  <div className="px-5 pt-4 pb-2">
+                    <p
+                      className="text-[32px] font-extrabold leading-none mb-0.5"
+                      style={{ color: p.color }}
+                    >
+                      {prData ? formatFCFA(prData.ttc) : "—"}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      TTC / mois
+                    </p>
+                    {prData && (
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        {formatFCFA(prData.priceTTCPerSeat)} / util. / mois
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="px-5 pb-4 flex-1">
+                    <p className="text-[12px] text-gray-500 leading-relaxed">{p.description}</p>
+                    {prData && prData.discount > 0 && (
+                      <p className="text-[11px] text-emerald-600 font-semibold mt-2">
+                        ✓ Remise {prData.discount * 100}% appliquée
+                      </p>
+                    )}
+                  </div>
+
+                  {/* CTA */}
+                  <div className="px-5 pb-5">
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedPlan(p.code); setStep("form"); }}
+                      className="w-full py-2.5 rounded-xl text-[13.5px] font-semibold transition-all duration-100 active:scale-[0.985]"
+                      style={isSelected
+                        ? { background: p.color, color: "#fff", border: `2px solid ${p.color}` }
+                        : { background: "#fff", color: p.color, border: `2px solid ${p.color}` }
+                      }
+                    >
+                      {isSelected ? "✓ Sélectionné · Continuer →" : "Sélectionner"}
+                    </button>
+                  </div>
                 </div>
-              ) : selectedPlan === "ENTERPRISE" ? (
-                <p className="text-[13px] text-gray-500">Tarif sur-mesure · notre équipe vous contacte sous 24h</p>
-              ) : (
-                <div />
-              )}
-
-              {selectedPlan === "ENTERPRISE" ? (
-                <a
-                  href="mailto:contact@gameasu.com"
-                  className="px-6 py-2.5 rounded-lg text-[14px] font-semibold text-white transition-all"
-                  style={{ background: "#0E1A39" }}
-                >
-                  Contacter notre équipe →
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setStep("form")}
-                  className="px-8 py-2.5 rounded-lg text-[14px] font-semibold text-white transition-all duration-150 active:scale-[0.985]"
-                  style={{ background: "#F37021" }}
-                >
-                  Continuer vers l'inscription →
-                </button>
-              )}
-            </div>
-
-            {/* Lien connexion */}
-            <p className="text-center text-[12px] text-gray-400 mt-5">
-              Déjà un compte ?{" "}
-              <a href="/login" className="text-blue-600 hover:underline">Se connecter</a>
-            </p>
+              );
+            })}
           </div>
+
+          {/* ── Offre Enterprise ─────────────────────────────────────────── */}
+          <div
+            className="rounded-2xl px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            style={{ background: "#0E1A39", border: "2px solid #1E293B" }}
+          >
+            <div>
+              <p className="text-[15px] font-bold text-white mb-0.5">Offre Personnalisée</p>
+              <p className="text-[12px] text-slate-400">Tous les modules · Utilisateurs illimités · SSO · Hébergement souverain · SLA dédié</p>
+            </div>
+            <a
+              href="mailto:contact@gameasu.com"
+              className="shrink-0 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[#0E1A39] bg-white hover:bg-gray-100 transition-colors"
+            >
+              Contacter notre équipe →
+            </a>
+          </div>
+
+          {/* Lien connexion */}
+          <p className="text-center text-[12px] text-gray-500 mt-6">
+            Déjà un compte ?{" "}
+            <a href="/login" className="text-[#1D4ED8] hover:underline">Se connecter</a>
+          </p>
         </div>
 
-        <p className="text-center text-[11px] pb-2 text-gray-400 mt-8">
+        <p className="text-center text-[11px] pb-4 text-gray-400">
           © {year} {BRANDING.legalName} · Connexion chiffrée TLS 1.3
         </p>
       </div>
@@ -437,7 +425,7 @@ export default function RegisterPage() {
       <div />
 
       <div className="w-full max-w-[900px]">
-        {/* Logo centré */}
+        {/* Logo */}
         <div className="text-center mb-8">
           <img
             src={BRANDING.logoFullTransparent}
@@ -450,17 +438,14 @@ export default function RegisterPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 items-start">
 
-          {/* ══ COLONNE GAUCHE : Récapitulatif abonnement ══════════════════ */}
+          {/* ══ COLONNE GAUCHE : Récapitulatif abonnement ═══════════════════ */}
           <div className="space-y-4">
-
-            {/* Carte récapitulatif */}
             <div
               className="rounded-2xl bg-white px-7 py-7"
               style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}
             >
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-4">Votre sélection</p>
 
-              {/* Badge plan */}
               <div className="flex items-center gap-2 mb-4">
                 <span
                   className="px-2.5 py-0.5 rounded-md text-[12px] font-bold"
@@ -485,10 +470,8 @@ export default function RegisterPage() {
                 {pricingData && (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500">Prix / utilisateur / mois</span>
-                      <span className="font-semibold text-[#0E1A39]">
-                        {formatFCFA(pricingData.priceTTCPerSeat)} TTC
-                      </span>
+                      <span className="text-gray-500">Prix / util. / mois</span>
+                      <span className="font-semibold text-[#0E1A39]">{formatFCFA(pricingData.priceTTCPerSeat)} TTC</span>
                     </div>
                     <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
                       <div className="flex items-center justify-between text-gray-400">
@@ -504,14 +487,13 @@ export default function RegisterPage() {
                       className="flex items-center justify-between rounded-xl px-4 py-3"
                       style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
                     >
-                      <span className="text-[13px] font-semibold text-[#1D4ED8]">Total TTC</span>
+                      <span className="text-[13px] font-semibold text-[#1D4ED8]">Total TTC / mois</span>
                       <span className="text-[18px] font-extrabold text-[#1D4ED8]">{formatFCFA(pricingData.ttc)}</span>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Modifier la sélection */}
               <button
                 type="button"
                 onClick={() => setStep("select")}
@@ -522,7 +504,6 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            {/* Bandeau sécurité paiement */}
             <div
               className="rounded-xl px-5 py-4"
               style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
@@ -546,7 +527,6 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 
-              {/* ── Organisation ───────────────────────────────────────── */}
               <div>
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Organisation</p>
                 <div className="space-y-3">
@@ -592,7 +572,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* ── Compte administrateur ──────────────────────────────── */}
               <div>
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Compte administrateur</p>
                 <div className="space-y-3">
@@ -715,7 +694,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* ── Conditions d'utilisation ────────────────────────────── */}
               <div>
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
@@ -736,7 +714,6 @@ export default function RegisterPage() {
                 {errors.terms && <p className="text-[11px] text-red-500 mt-1 ml-6">{errors.terms}</p>}
               </div>
 
-              {/* ── CTA ─────────────────────────────────────────────────── */}
               <button
                 type="submit"
                 disabled={loading}
@@ -748,19 +725,15 @@ export default function RegisterPage() {
                   : "Activer mon espace Gameasu →"}
               </button>
 
-              {/* Lien connexion */}
               <p className="text-center text-[12.5px] text-gray-500 pt-1">
                 Déjà un compte ?{" "}
-                <a href="/login" className="text-blue-600 hover:underline font-medium">
-                  Se connecter
-                </a>
+                <a href="/login" className="text-blue-600 hover:underline font-medium">Se connecter</a>
               </p>
             </form>
           </div>
         </div>
       </div>
 
-      {/* Pied de page */}
       <p className="text-center text-[11px] pb-2 text-gray-400 mt-8">
         © {year} {BRANDING.legalName} · Connexion chiffrée TLS 1.3
       </p>
