@@ -302,7 +302,7 @@ export default function LoginPage() {
               <p className="text-[12px] text-gray-400">Vous n'avez pas encore de compte ?</p>
               <button type="button"
                 onClick={() => setLocation("/register")}
-                className="w-full h-10 rounded-lg text-[13.5px] font-semibold border-2 border-[#F37021] text-[#F37021] hover:bg-orange-50 transition-colors">
+                className="w-full h-10 rounded-lg text-[13.5px] font-semibold border-2 border-[#2563EB] text-[#2563EB] hover:bg-blue-50 transition-colors">
                 Créer mon compte Gameasu
               </button>
             </div>
