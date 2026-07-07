@@ -306,7 +306,36 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* ── Tarif sur devis (>100 utilisateurs) ─────────────────────── */}
+          {selectedSeats > 100 && (
+            <div
+              className="rounded-2xl px-8 py-10 flex flex-col items-center text-center mb-6"
+              style={{ background: "#FFFBEB", border: "2px solid #FDE68A" }}
+            >
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+                style={{ background: "#FEF3C7" }}
+              >
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F37021" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /><line x1="12" y1="12" x2="12" y2="16" /><line x1="10" y1="14" x2="14" y2="14" />
+                </svg>
+              </div>
+              <h2 className="text-[22px] font-extrabold text-[#0E1A39] mb-3">Tarif sur devis</h2>
+              <p className="text-[14px] text-gray-600 leading-relaxed max-w-[480px] mb-6">
+                Votre organisation compte plus de 100 utilisateurs ? Notre équipe commerciale vous accompagne avec une offre personnalisée.
+              </p>
+              <a
+                href="mailto:contact@gameasu.com"
+                className="px-8 py-3 rounded-full text-[14.5px] font-semibold text-white transition-all duration-150 hover:opacity-90"
+                style={{ background: "#F37021" }}
+              >
+                Demander un devis personnalisé →
+              </a>
+            </div>
+          )}
+
           {/* ── Cartes plan ──────────────────────────────────────────────── */}
+          {selectedSeats <= 100 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
             {SELECTABLE_PLANS.map(p => {
               const pr = calcPlanPricing({ planCode: p.code, seats: selectedSeats, periodicity: selectedPeriodicity as any });
@@ -384,6 +413,7 @@ export default function RegisterPage() {
               );
             })}
           </div>
+          )}
 
           {/* ── Offre Enterprise ─────────────────────────────────────────── */}
           <div
