@@ -16,10 +16,19 @@ const PERIOD_LABELS: Record<string, string> = {
   semiannual: "semestriel", annual: "annuel",
 };
 
+const CYCLE_MONTHS: Record<string, number> = {
+  monthly: 1, quarterly: 3, semiannual: 6, annual: 12,
+};
+
 export default function PaiementRequisPage() {
   const [, setLocation] = useLocation();
   const { logout } = useAuth();
-  const { data: sub, isLoading } = useCurrentSubscription();
+  const { data, isLoading } = useCurrentSubscription();
+  const sub = data?.subscription;
+  const plan = data?.plan;
+  const billingCycle = sub?.billingCycle ?? "monthly";
+  const seats = sub?.seats ?? 1;
+  const dueAmount = (sub?.unitPrice ?? 0) * seats * (CYCLE_MONTHS[billingCycle] ?? 1);
 
   const year = new Date().getFullYear();
 
@@ -77,22 +86,22 @@ export default function PaiementRequisPage() {
               <div className="space-y-2 text-[13px]">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Formule</span>
-                  <span className="font-semibold text-[#0E1A39]">{(sub as any).planName ?? "—"}</span>
+                  <span className="font-semibold text-[#0E1A39]">{plan?.name ?? "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Utilisateurs</span>
-                  <span className="font-semibold text-[#0E1A39]">{(sub as any).seats ?? 1} siège{((sub as any).seats ?? 1) > 1 ? "s" : ""}</span>
+                  <span className="font-semibold text-[#0E1A39]">{seats} siège{seats > 1 ? "s" : ""}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Facturation</span>
-                  <span className="font-semibold text-[#0E1A39] capitalize">{PERIOD_LABELS[(sub as any).billingCycle ?? "monthly"] ?? (sub as any).billingCycle}</span>
+                  <span className="font-semibold text-[#0E1A39] capitalize">{PERIOD_LABELS[billingCycle] ?? billingCycle}</span>
                 </div>
                 <div
                   className="flex justify-between pt-2 mt-2 border-t border-gray-200"
                 >
                   <span className="font-semibold text-[#0E1A39]">Montant à régler</span>
                   <span className="text-[16px] font-extrabold" style={{ color: "#F37021" }}>
-                    {formatFCFA(((sub as any).unitPrice ?? 0) * ((sub as any).seats ?? 1))} TTC
+                    {formatFCFA(dueAmount)} TTC
                   </span>
                 </div>
               </div>

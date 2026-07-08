@@ -29,7 +29,7 @@ import { seedHissado } from "../services/seed-hissado";
 import { deleteOrganization } from "../services/delete-organization";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { sendEmail } from "../lib/email";
+import { sendEmail, buildActivationEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { calcPlanPricing, getPlan } from "../lib/pricing";
 
@@ -1005,6 +1005,21 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
       return;
     }
 
+    const [org] = await db
+      .select({ name: organizationsTable.name, contactEmail: organizationsTable.contactEmail })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, sub.organizationId))
+      .limit(1);
+
+    const [adminUser] = await db
+      .select({ firstName: usersTable.firstName })
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.organizationId, sub.organizationId),
+        eq(usersTable.isActive, true),
+      ))
+      .limit(1);
+
     const now = new Date();
     const MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
     const months = MONTHS[(sub.billingCycle as string) ?? "monthly"] ?? 1;
@@ -1023,12 +1038,14 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
       .where(eq(organizationsTable.id, sub.organizationId));
 
     // Activer les modules inclus dans le plan
+    let planName: string | null = null;
     if (sub.planId) {
       const [planData] = await db
-        .select({ includedModules: subscriptionPlansTable.includedModules })
+        .select({ includedModules: subscriptionPlansTable.includedModules, name: subscriptionPlansTable.name })
         .from(subscriptionPlansTable)
         .where(eq(subscriptionPlansTable.id, sub.planId))
         .limit(1);
+      planName = planData?.name ?? null;
       const modules = (planData?.includedModules ?? []) as string[];
       if (modules.length > 0) {
         await db
@@ -1045,12 +1062,15 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
     }
 
     // Créer un événement de facturation « activation manuelle »
+    // Le montant couvre l'intégralité du cycle de facturation (mensuel/trimestriel/semestriel/annuel),
+    // pas seulement un mois — sinon les cycles > mensuel sont sous-évalués.
+    const cycleAmount = sub.unitPrice * sub.seats * months;
     await db.insert(billingEventsTable).values({
       organizationId: sub.organizationId,
       subscriptionId: subId,
       kind: "payment",
       label: `Activation manuelle par super-admin${notes ? ` — ${notes}` : ""}`,
-      amount: sub.unitPrice * sub.seats,
+      amount: cycleAmount,
       currency: "XOF",
       status: "paid",
     });
@@ -1060,6 +1080,22 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
       "subscription.activate_manual", "subscription", subId,
       { orgId: sub.organizationId, notes },
     );
+
+    // Envoyer l'e-mail de confirmation d'activation (même chemin que CinetPay / confirmation manuelle)
+    if (org?.contactEmail) {
+      try {
+        const activationEmail = buildActivationEmail({
+          firstName: adminUser?.firstName ?? org.name,
+          orgName: org.name,
+          planName: planName ?? "Gameasu",
+          periodEnd,
+          loginUrl: baseUrl(),
+        });
+        await sendEmail({ ...activationEmail, to: org.contactEmail });
+      } catch (emailErr) {
+        req.log.error({ err: emailErr, subId }, "Échec d'envoi de l'e-mail d'activation manuelle");
+      }
+    }
 
     res.json({ ok: true, subscriptionId: subId, newStatus: "active" });
   } catch (e) { next(e); }
