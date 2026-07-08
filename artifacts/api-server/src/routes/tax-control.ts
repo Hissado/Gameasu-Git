@@ -21,9 +21,42 @@ async function getOrCreateFiscalSettings(orgId: string) {
   return created;
 }
 
+// ─── Helper : conversion période → plage de dates ────────────────────────────
+function parsePeriodToDateRange(period: string): { startDate: string; endDate: string } {
+  const monthMatch = period.match(/^(\d{4})-(\d{2})$/);
+  if (monthMatch) {
+    const year = parseInt(monthMatch[1]);
+    const month = parseInt(monthMatch[2]);
+    const lastDay = new Date(year, month, 0).getDate();
+    return {
+      startDate: `${year}-${String(month).padStart(2, "0")}-01`,
+      endDate:   `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+  const quarterMatch = period.match(/^(\d{4})-Q(\d)$/i);
+  if (quarterMatch) {
+    const year = parseInt(quarterMatch[1]);
+    const q = parseInt(quarterMatch[2]);
+    const sm = (q - 1) * 3 + 1;
+    const em = q * 3;
+    const lastDay = new Date(year, em, 0).getDate();
+    return {
+      startDate: `${year}-${String(sm).padStart(2, "0")}-01`,
+      endDate:   `${year}-${String(em).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+  const yearMatch = period.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return { startDate: `${yearMatch[1]}-01-01`, endDate: `${yearMatch[1]}-12-31` };
+  }
+  const y = new Date().getFullYear();
+  return { startDate: `${y}-01-01`, endDate: `${y}-12-31` };
+}
+
 // ─── DÉFINITION DES RÈGLES DE CONTRÔLE ──────────────────────────────────────
 const CHECK_DEFINITIONS = [
   { code: "vat_consistency",          label: "Cohérence TVA collectée / ventes" },
+  { code: "vat_ledger",               label: "TVA collectée = Grand livre (comptes 443x/4457x)" },
   { code: "vat_deductible_justified", label: "TVA déductible justifiée" },
   { code: "payment_reconciliation",   label: "Paiements rapprochés" },
   { code: "revenue_consistency",      label: "CA déclaré = CA comptable" },
@@ -86,6 +119,68 @@ async function runComplianceCheck(orgId: string, declarationId: string): Promise
           }
         } else {
           detail = "Montants non renseignés — contrôle ignoré.";
+        }
+        break;
+      }
+      case "vat_ledger": {
+        if (decl.type !== "tva") {
+          passed = true;
+          detail = "Contrôle non applicable à ce type de déclaration.";
+          break;
+        }
+        try {
+          const { startDate, endDate } = parsePeriodToDateRange(decl.period);
+          // Comptes TVA collectée SYSCOHADA : 443x (4431-4434) + 4457x
+          const vatRow = await db.select({
+            collected: sql<string>`COALESCE(SUM(${(journalEntryLinesTable as any).credit} - ${(journalEntryLinesTable as any).debit}), 0)`,
+          })
+            .from(journalEntryLinesTable as any)
+            .leftJoin(journalEntriesTable as any, eq((journalEntryLinesTable as any).entryId, (journalEntriesTable as any).id))
+            .leftJoin(chartOfAccountsTable, eq((journalEntryLinesTable as any).accountId, chartOfAccountsTable.id))
+            .where(and(
+              eq((journalEntriesTable as any).organizationId, orgId),
+              eq((journalEntriesTable as any).status as any, "posted"),
+              sql`(${chartOfAccountsTable.code} LIKE '443%' OR ${chartOfAccountsTable.code} LIKE '4457%')`,
+              sql`${(journalEntriesTable as any).entryDate} >= ${startDate}`,
+              sql`${(journalEntriesTable as any).entryDate} <= ${endDate}`,
+            ));
+          const ledgerVat = Math.round(Number(vatRow[0]?.collected ?? 0));
+
+          if (ledgerVat <= 0) {
+            detail = `Aucune écriture TVA collectée (comptes 443x/4457x) trouvée pour la période ${decl.periodLabel}.`;
+            passed = true;
+            break;
+          }
+
+          if (decl.declaredVatCollected == null) {
+            // Auto-remplissage : met à jour la déclaration avec la valeur du grand livre
+            await db.update(fiscalDeclarationsTable)
+              .set({ declaredVatCollected: ledgerVat })
+              .where(eq(fiscalDeclarationsTable.id, declarationId));
+            detail = `TVA collectée auto-remplie depuis le grand livre : ${ledgerVat.toLocaleString("fr")} FCFA (comptes 443x/4457x, période ${decl.periodLabel}).`;
+            passed = true;
+          } else {
+            const diff = Math.abs(ledgerVat - decl.declaredVatCollected);
+            const tolerance = Math.round(ledgerVat * 0.02);
+            if (diff > tolerance) {
+              passed = false;
+              detail = `TVA déclarée : ${decl.declaredVatCollected.toLocaleString("fr")} FCFA. Grand livre (443x/4457x) : ${ledgerVat.toLocaleString("fr")} FCFA. Écart : ${diff.toLocaleString("fr")} FCFA.`;
+              anomaly = {
+                level: diff > ledgerVat * 0.1 ? "bloquant" : "eleve",
+                category: "TVA",
+                checkCode: def.code,
+                title: "TVA collectée déclarée ≠ Grand livre",
+                detail,
+                recommendedAction: "Vérifier les écritures des comptes 443x et 4457x, puis corriger le montant déclaré.",
+                linkedPath: "/comptabilite/ecritures",
+              };
+            } else {
+              detail = `TVA collectée conforme au grand livre : ${ledgerVat.toLocaleString("fr")} FCFA.`;
+            }
+          }
+        } catch {
+          detail = "Contrôle ignoré (données comptables insuffisantes).";
+          passed = true;
         }
         break;
       }
