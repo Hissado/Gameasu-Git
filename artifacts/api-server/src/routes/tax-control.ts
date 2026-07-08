@@ -112,7 +112,7 @@ async function runComplianceCheck(orgId: string, declarationId: string): Promise
               detail,
               recommendedAction: "Vérifier les factures clients et les taux de TVA appliqués.",
               linkedModule: "factures_clients",
-              linkedPath: "/invoices",
+              linkedPath: "/factures",
             };
           } else {
             detail = "TVA cohérente avec le CA déclaré.";
@@ -230,7 +230,8 @@ async function runComplianceCheck(orgId: string, declarationId: string): Promise
               title: "Paiements non rapprochés",
               detail,
               recommendedAction: "Effectuer le lettrage dans le module Paiements.",
-              linkedPath: "/payments",
+              linkedModule: "paiements",
+              linkedPath: "/paiements",
             };
           } else {
             detail = "Paiements correctement rapprochés.";
