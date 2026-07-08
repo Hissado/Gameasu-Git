@@ -261,7 +261,7 @@ async function runComplianceCheck(orgId: string, declarationId: string): Promise
 // ─────────────────────────────────────────────────────────────────────────────
 // PARAMÈTRES FISCAUX
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/api/fiscal-settings", async (req: Request, res: Response) => {
+router.get("/fiscal-settings", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const settings = await getOrCreateFiscalSettings(orgId);
@@ -271,7 +271,7 @@ router.get("/api/fiscal-settings", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/api/fiscal-settings", async (req: Request, res: Response) => {
+router.put("/fiscal-settings", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { country, taxAuthority, taxAuthorityLabel, vatRate, withholdingRate, fiscalYearStartMonth } = req.body;
@@ -296,7 +296,7 @@ router.put("/api/fiscal-settings", async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // DÉCLARATIONS
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/api/tax-declarations", async (req: Request, res: Response) => {
+router.get("/tax-declarations", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { status, type } = req.query as Record<string, string>;
@@ -352,7 +352,7 @@ router.get("/api/tax-declarations", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/tax-declarations/:id", async (req: Request, res: Response) => {
+router.get("/tax-declarations/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -393,7 +393,7 @@ router.get("/api/tax-declarations/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/tax-declarations", async (req: Request, res: Response) => {
+router.post("/tax-declarations", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const user = req.authUser!;
@@ -433,7 +433,7 @@ router.post("/api/tax-declarations", async (req: Request, res: Response) => {
   }
 });
 
-router.patch("/api/tax-declarations/:id", async (req: Request, res: Response) => {
+router.patch("/tax-declarations/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -490,7 +490,7 @@ router.patch("/api/tax-declarations/:id", async (req: Request, res: Response) =>
   }
 });
 
-router.delete("/api/tax-declarations/:id", async (req: Request, res: Response) => {
+router.delete("/tax-declarations/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -509,7 +509,7 @@ router.delete("/api/tax-declarations/:id", async (req: Request, res: Response) =
 // ─────────────────────────────────────────────────────────────────────────────
 // LANCER LE CONTRÔLE
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/api/tax-declarations/:id/run-check", async (req: Request, res: Response) => {
+router.post("/tax-declarations/:id/run-check", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const id = req.params.id as string;
@@ -578,7 +578,7 @@ router.post("/api/tax-declarations/:id/run-check", async (req: Request, res: Res
 // ─────────────────────────────────────────────────────────────────────────────
 // ANOMALIES — RÉSOLUTION
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch("/api/tax-declarations/:id/anomalies/:anomalyId", async (req: Request, res: Response) => {
+router.patch("/tax-declarations/:id/anomalies/:anomalyId", async (req: Request, res: Response) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { id, anomalyId } = req.params as Record<string, string>;
