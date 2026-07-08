@@ -343,7 +343,16 @@ export default function TaxControlPage() {
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5" />
-            <span>Administration fiscale configurée depuis les <strong className="text-foreground">Paramètres fiscaux</strong></span>
+            <span>
+              Administration fiscale configurée depuis les{" "}
+              <button
+                type="button"
+                onClick={() => setLocation("/comptabilite/taxes?tab=administration")}
+                className="font-semibold text-foreground underline decoration-dotted underline-offset-2 hover:text-primary"
+              >
+                Paramètres fiscaux
+              </button>
+            </span>
           </div>
           {filtered.length > 0 && <span>{filtered.length} déclaration{filtered.length > 1 ? "s" : ""}</span>}
         </div>

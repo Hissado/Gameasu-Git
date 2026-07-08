@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA } from "@/lib/format";
@@ -70,6 +71,19 @@ type YtdProfit = {
   ytdEstimatedTax: number;
   ytdNetProfit: number;
   isEnabled: boolean;
+};
+
+type AdminFiscalSettings = {
+  id: string | null;
+  organizationId: string;
+  country: string;
+  taxAuthority: string;
+  taxAuthorityLabel: string;
+  vatRate: number;
+  withholdingRate: number;
+  fiscalYearStartMonth: number;
+  currency: string;
+  updatedAt: string | null;
 };
 
 type TvaLine = {
@@ -333,7 +347,13 @@ export default function TaxesPage() {
 
   const [from, setFrom] = useState(firstDay);
   const [to, setTo] = useState(lastDay);
-  const [tab, setTab] = useState<"referentiel" | "schedule" | "tva-detail" | "impot-societe">("referentiel");
+  const search = useSearch();
+  const initialTab = new URLSearchParams(search).get("tab");
+  type TabKey = "referentiel" | "schedule" | "tva-detail" | "impot-societe" | "administration";
+  const VALID_TABS: TabKey[] = ["referentiel", "schedule", "tva-detail", "impot-societe", "administration"];
+  const [tab, setTab] = useState<TabKey>(
+    VALID_TABS.includes(initialTab as TabKey) ? (initialTab as TabKey) : "referentiel"
+  );
   const [formOpen, setFormOpen] = useState(false);
   const [editTax, setEditTax] = useState<Tax | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -373,6 +393,51 @@ export default function TaxesPage() {
       setIsBrackets(fiscalSettings.corporateTaxBrackets ?? []);
     }
   }, [fiscalSettings, isEdited]);
+
+  // ── Administration fiscale (utilisée par le Contrôle fiscal)
+  const [adminForm, setAdminForm] = useState<{
+    country: string; taxAuthority: string; taxAuthorityLabel: string;
+    vatRate: number; withholdingRate: number; fiscalYearStartMonth: number;
+  } | null>(null);
+  const [adminEdited, setAdminEdited] = useState(false);
+  const [adminSaving, setAdminSaving] = useState(false);
+
+  const { data: adminFiscalSettings, isLoading: loadingAdminFiscal } = useQuery<AdminFiscalSettings>({
+    queryKey: ["tax-control-fiscal-settings"],
+    queryFn: () => apiFetch("/api/fiscal-settings"),
+    enabled: tab === "administration",
+  });
+
+  React.useEffect(() => {
+    if (adminFiscalSettings && !adminEdited) {
+      setAdminForm({
+        country: adminFiscalSettings.country,
+        taxAuthority: adminFiscalSettings.taxAuthority,
+        taxAuthorityLabel: adminFiscalSettings.taxAuthorityLabel,
+        vatRate: adminFiscalSettings.vatRate,
+        withholdingRate: adminFiscalSettings.withholdingRate,
+        fiscalYearStartMonth: adminFiscalSettings.fiscalYearStartMonth,
+      });
+    }
+  }, [adminFiscalSettings, adminEdited]);
+
+  const saveAdminFiscalSettings = async () => {
+    if (!adminForm) return;
+    setAdminSaving(true);
+    try {
+      await apiFetch("/api/fiscal-settings", {
+        method: "PUT",
+        body: JSON.stringify(adminForm),
+      });
+      qc.invalidateQueries({ queryKey: ["tax-control-fiscal-settings"] });
+      setAdminEdited(false);
+      toast.success("Administration fiscale enregistrée");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setAdminSaving(false);
+    }
+  };
 
   const DEFAULT_BRACKETS: TaxBracket[] = [
     { id: "b1", label: "Exonération",          min: 0,          max: 2_000_000,  rate: 0 },
@@ -472,6 +537,7 @@ export default function TaxesPage() {
     { key: "schedule",       label: "Échéancier" },
     { key: "tva-detail",     label: "Détail TVA" },
     { key: "impot-societe",  label: "Impôt société (IS)" },
+    { key: "administration", label: "Administration fiscale" },
   ] as const;
 
   return (
@@ -940,6 +1006,121 @@ export default function TaxesPage() {
                     0% jusqu'à 2 000 000 XOF · 15% de 2 à 10 M · 25% de 10 à 50 M · 29% au-delà.
                     Ces paramètres sont utilisés exclusivement dans le <strong>Calculateur tarifaire</strong> pour estimer l'IS incrémental sur un deal.
                     Ils ne remplacent pas une comptabilisation formelle de la charge d'impôt.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ── Administration fiscale ── */}
+        {tab === "administration" && (
+          <div className="space-y-5">
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="font-semibold text-base">Administration fiscale</h3>
+                <p className="text-sm text-muted-foreground">
+                  Identité de l'administration fiscale, taux et exercice de référence utilisés par le module{" "}
+                  <strong>Contrôle fiscal</strong> pour vérifier vos déclarations avant soumission.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {adminEdited && (
+                  <span className="text-xs text-amber-600 font-medium">Modifications non enregistrées</span>
+                )}
+                <Button
+                  onClick={saveAdminFiscalSettings}
+                  disabled={adminSaving || !adminEdited || !adminForm}
+                  className="bg-primary hover:bg-primary/90 text-white gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {adminSaving ? "Enregistrement…" : "Enregistrer"}
+                </Button>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-orange-500" />
+                  Identité de l'administration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 p-4">
+                {loadingAdminFiscal || !adminForm ? (
+                  <div className="text-sm text-muted-foreground">Chargement…</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Pays</Label>
+                      <Input
+                        className="mt-1"
+                        value={adminForm.country}
+                        onChange={(e) => { setAdminEdited(true); setAdminForm(f => f && { ...f, country: e.target.value }); }}
+                        placeholder="TG"
+                      />
+                    </div>
+                    <div>
+                      <Label>Code administration</Label>
+                      <Input
+                        className="mt-1"
+                        value={adminForm.taxAuthority}
+                        onChange={(e) => { setAdminEdited(true); setAdminForm(f => f && { ...f, taxAuthority: e.target.value }); }}
+                        placeholder="OTR"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>Nom complet de l'administration</Label>
+                      <Input
+                        className="mt-1"
+                        value={adminForm.taxAuthorityLabel}
+                        onChange={(e) => { setAdminEdited(true); setAdminForm(f => f && { ...f, taxAuthorityLabel: e.target.value }); }}
+                        placeholder="Office Togolais des Recettes"
+                      />
+                    </div>
+                    <div>
+                      <Label>Taux de TVA de référence (%)</Label>
+                      <Input
+                        type="number" min="0" max="100" step="0.5" className="mt-1"
+                        value={adminForm.vatRate}
+                        onChange={(e) => { setAdminEdited(true); setAdminForm(f => f && { ...f, vatRate: parseFloat(e.target.value) || 0 }); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Taux de retenue à la source (%)</Label>
+                      <Input
+                        type="number" min="0" max="100" step="0.5" className="mt-1"
+                        value={adminForm.withholdingRate}
+                        onChange={(e) => { setAdminEdited(true); setAdminForm(f => f && { ...f, withholdingRate: parseFloat(e.target.value) || 0 }); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Mois de début d'exercice fiscal</Label>
+                      <Select
+                        value={String(adminForm.fiscalYearStartMonth)}
+                        onValueChange={(v) => { setAdminEdited(true); setAdminForm(f => f && { ...f, fiscalYearStartMonth: parseInt(v) }); }}
+                      >
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"].map((m, i) => (
+                            <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-dashed">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div className="text-sm text-muted-foreground">
+                    Ces paramètres alimentent l'en-tête des déclarations et les contrôles automatiques du module{" "}
+                    <strong className="text-foreground">Comptabilité → Contrôle fiscal</strong>{" "}
+                    (cohérence TVA, retenue à la source, seuils, etc.).
                   </div>
                 </div>
               </CardContent>
