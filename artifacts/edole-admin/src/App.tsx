@@ -73,6 +73,8 @@ const AccountingMatching = lazy(() => import("@/pages/accounting/matching"));
 const AccountingFiscalPeriods = lazy(() => import("@/pages/accounting/fiscal-periods"));
 const AccountingTaxes = lazy(() => import("@/pages/accounting/taxes"));
 const AccountingPeriodClose = lazy(() => import("@/pages/accounting/period-close/index"));
+const TaxControlList = lazy(() => import("@/pages/accounting/tax-control/index"));
+const TaxControlDetail = lazy(() => import("@/pages/accounting/tax-control/detail"));
 const HrDashboard = lazy(() => import("@/pages/hr/index"));
 const HrDepartments = lazy(() => import("@/pages/hr/departments"));
 const HrPositions = lazy(() => import("@/pages/hr/positions"));
@@ -342,6 +344,8 @@ function AppRouter() {
                 <Route path="/comptabilite/periodes-fiscales" component={AccountingFiscalPeriods} />
                 <Route path="/comptabilite/taxes" component={AccountingTaxes} />
                 <Route path="/comptabilite/cloture" component={AccountingPeriodClose} />
+                <Route path="/comptabilite/controle-fiscal/:id" component={TaxControlDetail} />
+                <Route path="/comptabilite/controle-fiscal" component={TaxControlList} />
 
                 <Route path="/rh" component={HrDashboard} />
                 <Route path="/rh/departements" component={HrDepartments} />

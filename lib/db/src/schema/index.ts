@@ -38,3 +38,4 @@ export * from "./auth";
 export * from "./expert";
 export * from "./btp";
 export * from "./ai-assistant";
+export * from "./tax-control";

@@ -78,6 +78,7 @@ import expertFirmsRouter from "./expert-firms";
 import expertInvitationPublicRouter from "./expert-invitation-public";
 import { accessRequestPublicRouter, accessRequestCockpitRouter } from "./access-requests";
 import btpPayrollRouter from "./btp-payroll";
+import taxControlRouter from "./tax-control";
 import assistantIaRouter from "./assistant-ia";
 import billingManualPaymentsRouter from "./billing-manual-payments";
 import billingCinetpayRouter, { cinetpayPublicRouter } from "./billing-cinetpay";
@@ -198,6 +199,7 @@ router.use(billingManualPaymentsRouter);
 router.use(billingCinetpayRouter);
 router.use(billingPromoRouter);
 router.use(partnerProgramRouter);
+router.use(taxControlRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

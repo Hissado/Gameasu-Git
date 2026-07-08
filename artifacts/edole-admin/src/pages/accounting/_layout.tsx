@@ -2,7 +2,7 @@ import React from "react";
 import {
   LayoutDashboard, BookOpen, Calendar, FileText, GitMerge,
   BookMarked, Users, Building2, Landmark, CheckCircle2,
-  HardDrive, BarChart2, Percent,
+  HardDrive, BarChart2, Percent, Shield,
 } from "lucide-react";
 import { ModuleShell, NavGroup } from "@/components/ui/module-nav";
 
@@ -46,6 +46,12 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Immobilisations", path: "/comptabilite/immobilisations", icon: HardDrive },
       { name: "Analytique", path: "/comptabilite/analytique", icon: BarChart2 },
       { name: "Fiscal", path: "/comptabilite/taxes", icon: Percent },
+    ],
+  },
+  {
+    label: "Contrôle fiscal",
+    items: [
+      { name: "Contrôle préalable", path: "/comptabilite/controle-fiscal", icon: Shield },
     ],
   },
 ];
