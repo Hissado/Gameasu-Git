@@ -173,10 +173,10 @@ export default function WorkspaceSettingsPage() {
         <div className="flex items-center gap-2">
           <PlanBadge code={plan?.code} name={plan?.name} light />
           <Button asChild variant="outline" size="sm">
-            <Link href="/billing"><CreditCard className="w-4 h-4 mr-1.5" />Abonnement</Link>
+            <Link href="/abonnement"><CreditCard className="w-4 h-4 mr-1.5" />Abonnement</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-emerald-700 border-emerald-200 hover:bg-emerald-50">
-            <Link href="/billing?openPartner=1">
+            <Link href="/abonnement?openPartner=1">
               <Handshake className="w-4 h-4 mr-1.5 text-emerald-600" />Devenir partenaire
             </Link>
           </Button>

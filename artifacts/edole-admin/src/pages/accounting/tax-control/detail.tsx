@@ -14,6 +14,7 @@ import {
   ArrowLeft, Shield, CheckCircle, AlertTriangle, XCircle, RefreshCw,
   Download, FileText, Edit3, Check, Info, Zap, BarChart2, Calendar,
   Clock, User, ExternalLink, ChevronDown, ChevronUp, Flame, BarChart, Building2,
+  ArrowUpRight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

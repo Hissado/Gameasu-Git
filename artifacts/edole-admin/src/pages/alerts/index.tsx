@@ -27,10 +27,10 @@ const KIND_LABEL: Record<string, string> = {
 const entityLink = (a: Alert): string | null => {
   if (!a.entityId) return null;
   switch (a.entityType) {
-    case "rental": return `/rentals`;
-    case "invoice": return `/invoices`;
-    case "contract": return `/hr/contracts`;
-    case "equipment": return `/equipment/${a.entityId}`;
+    case "rental": return `/locations`;
+    case "invoice": return `/factures`;
+    case "contract": return `/rh/contrats`;
+    case "equipment": return `/equipements`;
     default: return null;
   }
 };
