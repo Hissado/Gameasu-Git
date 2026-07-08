@@ -73,7 +73,7 @@ export default function PayrollDashboard() {
       qc.invalidateQueries({ queryKey: ["payroll-dashboard"] });
       setNewOpen(false);
       toast({ title: "Cycle créé", description: `Période ${run.period}` });
-      navigate(`/hr/payroll/run/${run.id}`);
+      navigate(`/rh/paie/run/${run.id}`);
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
@@ -141,10 +141,10 @@ export default function PayrollDashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/hr/payroll/run/${nextRun.id}`)}>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/rh/paie/run/${nextRun.id}`)}>
                     Modifier <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
-                  <Button size="sm" onClick={() => navigate(`/hr/payroll/run/${nextRun.id}`)}>
+                  <Button size="sm" onClick={() => navigate(`/rh/paie/run/${nextRun.id}`)}>
                     <Play className="w-4 h-4 mr-1" />Lancer la paie
                   </Button>
                 </div>
@@ -300,7 +300,7 @@ export default function PayrollDashboard() {
                   </thead>
                   <tbody>
                     {recentRuns.map((run) => (
-                      <tr key={run.id} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/hr/payroll/run/${run.id}`)}>
+                      <tr key={run.id} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/rh/paie/run/${run.id}`)}>
                         <td className="px-4 py-3 font-semibold">{run.period}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLOR[run.status] ?? ""}`}>
@@ -312,7 +312,7 @@ export default function PayrollDashboard() {
                         <td className="px-4 py-3 text-right font-medium text-emerald-700">{formatFCFA(run.totalNetSalary)}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground text-xs">{run.paymentDate ? new Date(run.paymentDate).toLocaleDateString("fr-FR") : "—"}</td>
                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="ghost" className="h-7" onClick={() => navigate(`/hr/payroll/run/${run.id}`)}>
+                          <Button size="sm" variant="ghost" className="h-7" onClick={() => navigate(`/rh/paie/run/${run.id}`)}>
                             Ouvrir <ArrowRight className="w-3 h-3 ml-1" />
                           </Button>
                         </td>

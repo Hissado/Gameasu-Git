@@ -754,7 +754,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
               const rag = ragFromProject(project);
               const prog = project.progress ?? 0;
               return (
-                <Link key={project.id} href={`/projects/${project.id}`}>
+                <Link key={project.id} href={`/projets/${project.id}`}>
                   <a className="flex items-center gap-4 px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm hover:border-slate-300 transition-all group">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${rag.dot}`} />
                     <div className="flex-1 min-w-0">

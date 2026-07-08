@@ -1145,7 +1145,7 @@ function WeekDetail({
                 clientId: billable[0]?.clientId ?? "",
                 description: `Feuilles de temps — semaine du ${weekStart} — ${fmtDur(entries.filter(e=>e.billable).reduce((s,e)=>s+e.durationMinutes,0))} facturables`,
               });
-              navigate(`/proformas/new?${params}`);
+              navigate(`/devis?${params}`);
             }}>
             <FilePlus2 className="w-3 h-3 mr-1" />Créer une proforma
           </Button>

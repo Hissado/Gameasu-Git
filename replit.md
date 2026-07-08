@@ -98,6 +98,7 @@ The frontend proxies `/api` requests to the API server on port 8080.
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `cd lib/db && pnpm exec tsx src/seed.ts` — re-seed the database
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm run check-routes` — static guard: extracts all registered routes from `App.tsx` and scans every `.ts/.tsx` file in edole-admin + api-server for internal link literals (`href=`, `navigate(`, `setLocation(`, `window.location.href=`, `linkedPath:`), failing if any points to an unregistered route. Included at the end of `pnpm run typecheck`.
 
 ## Database
 

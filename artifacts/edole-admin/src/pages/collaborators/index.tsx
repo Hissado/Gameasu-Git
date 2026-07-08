@@ -216,7 +216,7 @@ export default function CollaboratorsList() {
       if (e.key === "Enter" && !isInInput) {
         if (focusedIndex >= 0 && focusedIndex < filtered.length) {
           e.preventDefault();
-          navigate(`/collaborators/${filtered[focusedIndex].id}`);
+          navigate(`/collaborateurs/${filtered[focusedIndex].id}`);
         }
         return;
       }
@@ -437,7 +437,7 @@ export default function CollaboratorsList() {
               <div
                 key={c.id}
                 data-focused-index={index}
-                onClick={() => navigate(`/collaborators/${c.id}`)}
+                onClick={() => navigate(`/collaborateurs/${c.id}`)}
                 className={cn(
                   "flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-all duration-100",
                   "border-l-2",

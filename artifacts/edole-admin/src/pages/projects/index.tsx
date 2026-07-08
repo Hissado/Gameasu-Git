@@ -437,7 +437,7 @@ export default function ProjectsList() {
                 {projects.map((project: any) => (
                   <TableRow key={project.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-bold text-slate-800">
-                      <Link href={`/projects/${project.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
+                      <Link href={`/projets/${project.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
                         {project.name}
                         <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
                       </Link>
@@ -463,12 +463,12 @@ export default function ProjectsList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44 font-sans">
-                          <Link href={`/projects/${project.id}`}>
+                          <Link href={`/projets/${project.id}`}>
                             <DropdownMenuItem className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" /> Voir le détail
                             </DropdownMenuItem>
                           </Link>
-                          <Link href={`/projects/${project.id}`}>
+                          <Link href={`/projets/${project.id}`}>
                             <DropdownMenuItem className="cursor-pointer">
                               <TrendingUp className="mr-2 h-4 w-4" /> Timeline Gantt
                             </DropdownMenuItem>
@@ -500,7 +500,7 @@ export default function ProjectsList() {
                 const ragCfg = RAG_CONFIG[rag];
                 return (
                   <div key={project.id} className="relative group">
-                    <Link href={`/projects/${project.id}`}>
+                    <Link href={`/projets/${project.id}`}>
                       <Card className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer h-full">
                         <CardContent className="p-4 space-y-3">
                           <div className="flex justify-between items-start gap-2">

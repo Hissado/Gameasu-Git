@@ -43,7 +43,7 @@ function getActionLink(n: any): string | null {
   const type = classifyNotif(n);
   if (n.link) return n.link;
   if (type === "task") return n.taskId ? `/tasks/${n.taskId}` : "/tasks";
-  if (type === "project") return n.projectId ? `/projects/${n.projectId}` : "/projets";
+  if (type === "project") return n.projectId ? `/projets/${n.projectId}` : "/projets";
   if (type === "approval") return "/approbations";
   if (type === "payment") return "/paiements";
   if (type === "message") return "/messaging";

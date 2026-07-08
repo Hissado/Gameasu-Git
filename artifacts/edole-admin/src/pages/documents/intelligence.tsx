@@ -59,7 +59,7 @@ export default function DocumentsIntelligence() {
         <TabsContent value="signature" className="space-y-2">
           {sig.data?.rows?.length === 0 && <Card><CardContent className="p-6 text-center text-muted-foreground italic">Aucun document en attente de signature.</CardContent></Card>}
           {sig.data?.rows?.map((r: any) => (
-            <Link key={r.id} href={`/documents/${r.id}`}>
+            <Link key={r.id} href="/documents">
               <Card className="cursor-pointer hover:bg-muted"><CardContent className="p-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2"><FileSignature className="w-4 h-4 text-amber-600" /><div><p className="text-sm font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.aiCategory ?? r.category} · {r.pendingSigners} signataire(s) en attente</p></div></div>
                 <Badge variant="outline" className={r.tier === "urgent" ? "bg-red-50 text-red-700 border-red-200" : r.tier === "high" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}>{r.ageDays}j</Badge>
@@ -71,7 +71,7 @@ export default function DocumentsIntelligence() {
         <TabsContent value="unclassified" className="space-y-2">
           {un.data?.rows?.length === 0 && <Card><CardContent className="p-6 text-center text-muted-foreground italic">Tous les documents sont classés.</CardContent></Card>}
           {un.data?.rows?.map((r: any) => (
-            <Link key={r.id} href={`/documents/${r.id}`}>
+            <Link key={r.id} href="/documents">
               <Card className="cursor-pointer hover:bg-muted"><CardContent className="p-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 text-slate-500" /><div><p className="text-sm font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.category} · {r.mimeType ?? "?"}</p></div></div>
                 <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("fr-FR")}</span>

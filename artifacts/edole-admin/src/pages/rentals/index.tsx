@@ -267,7 +267,7 @@ export default function RentalsList() {
                   rentals.map((rental: any) => (
                     <TableRow key={rental.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono text-sm font-bold text-primary">
-                        <Link href={`/rentals/${rental.id}`} className="hover:underline flex items-center gap-1.5">
+                        <Link href={`/locations/${rental.id}`} className="hover:underline flex items-center gap-1.5">
                           <FileText className="w-4 h-4" /> {rental.referenceNumber}
                         </Link>
                       </TableCell>
@@ -289,7 +289,7 @@ export default function RentalsList() {
                         {rental.totalCost ? formatFCFA(rental.totalCost) : <span className="text-slate-400 italic text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/rentals/${rental.id}`}>
+                        <Link href={`/locations/${rental.id}`}>
                           <Button variant="ghost" size="sm" className="font-semibold">Ouvrir</Button>
                         </Link>
                       </TableCell>

@@ -364,7 +364,7 @@ export default function HrOverview() {
                   ) : (
                     <div className="space-y-2">
                       {contractsExpiring.map((c: any) => (
-                        <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                        <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
                           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
                             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
                               <FileWarning className="w-4 h-4 text-orange-600" />
@@ -380,7 +380,7 @@ export default function HrOverview() {
                         </Link>
                       ))}
                       {trialPeriod.map((c: any) => (
-                        <Link key={c.id} href={`/collaborators/${c.id}`}>
+                        <Link key={c.id} href={`/collaborateurs/${c.id}`}>
                           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
                             <Avatar className="w-8 h-8 shrink-0">
                               <AvatarImage src={c.avatarUrl} />
@@ -577,7 +577,7 @@ export default function HrOverview() {
                           <div className="text-center py-4 text-xs text-slate-400">Aucun événement aujourd'hui</div>
                         ) : (
                           birthdaysToday.map((b: any) => (
-                            <Link key={b.id} href={`/collaborators/${b.id}`}>
+                            <Link key={b.id} href={`/collaborateurs/${b.id}`}>
                               <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
                                 <Avatar className="w-9 h-9 shrink-0">
                                   <AvatarImage src={b.avatarUrl} />
@@ -606,7 +606,7 @@ export default function HrOverview() {
                           <div className="text-center py-4 text-xs text-slate-400">Aucun événement à venir ce mois-ci</div>
                         ) : (
                           birthdaysUpcoming.slice(0, 5).map((b: any) => (
-                            <Link key={b.id} href={`/collaborators/${b.id}`}>
+                            <Link key={b.id} href={`/collaborateurs/${b.id}`}>
                               <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
                                 <Avatar className="w-8 h-8 shrink-0">
                                   <AvatarImage src={b.avatarUrl} />
@@ -644,7 +644,7 @@ export default function HrOverview() {
                     </div>
                     <div className="space-y-2">
                       {contractsExpiring.slice(0, 4).map((c: any) => (
-                        <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                        <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
                           <div className="flex items-center gap-2 text-xs py-1.5 hover:bg-slate-50 rounded px-1 cursor-pointer transition-colors">
                             <span className="flex-1 text-slate-700 font-medium truncate">{c.collaboratorName}</span>
                             <span className="text-orange-600 font-semibold shrink-0">

@@ -208,12 +208,12 @@ function InvoiceRow({ item, onRelance }: { item: CollectionItem; onRelance: (i: 
   return (
     <TableRow>
       <TableCell>
-        <Link href={`/sales/clients/${item.clientId}`}>
+        <Link href={`/crm/clients/${item.clientId}`}>
           <p className="font-medium text-sm hover:underline cursor-pointer">{item.clientName ?? "—"}</p>
         </Link>
       </TableCell>
       <TableCell>
-        <Link href={`/invoices/${item.invoiceId}`}>
+        <Link href="/factures">
           <span className="text-sm font-mono text-primary hover:underline cursor-pointer">{item.reference}</span>
         </Link>
       </TableCell>

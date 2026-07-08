@@ -452,7 +452,7 @@ export default function FpaDashboardPage() {
                     const margin = p.margin;
                     const profitable = margin >= 0;
                     return (
-                      <Link key={p.projectId} href={`/projects/${p.projectId}`}>
+                      <Link key={p.projectId} href={`/projets/${p.projectId}`}>
                         <div className="p-3 rounded-lg border hover:border-amber-300 hover:bg-amber-50/30 cursor-pointer transition group">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">

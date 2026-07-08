@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,16 +49,16 @@ const CANCEL_RULES: Record<string, { allowed: boolean; needsReason: boolean; war
 
 // ─── NewProformaDialog ────────────────────────────────────────────────────────
 
-function NewProformaDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function NewProformaDialog({ onClose, onSuccess, initialClientId, initialNotes }: { onClose: () => void; onSuccess: () => void; initialClientId?: string; initialNotes?: string }) {
   const { data: clientsRes } = useQuery<{ data: Client[] }>({
     queryKey: ["clients-list"],
     queryFn: () => apiFetch("/api/clients?limit=100"),
   });
   const clients = clientsRes?.data ?? [];
-  const [clientId, setClientId] = useState("");
+  const [clientId, setClientId] = useState(initialClientId ?? "");
   const [validUntil, setValidUntil] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialNotes ?? "");
   const [lines, setLines] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
   const totals = computeTotals(lines);
@@ -275,11 +275,21 @@ export default function ProformasList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
+  const [newDialogPrefill, setNewDialogPrefill] = useState<{ clientId?: string; notes?: string } | null>(null);
   const [editTarget, setEditTarget] = useState<Proforma | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Proforma | null>(null);
   const [sendEmailTarget, setSendEmailTarget] = useState<Proforma | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [generatingOrderId, setGeneratingOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("source") === "timesheet") {
+      setNewDialogPrefill({ clientId: params.get("clientId") ?? undefined, notes: params.get("description") ?? undefined });
+      setNewOpen(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const { data, isLoading } = useQuery<{ data: Proforma[] }>({
     queryKey: ["proformas"],
@@ -469,7 +479,14 @@ export default function ProformasList() {
         </CardContent>
       </Card>
 
-      {newOpen && <NewProformaDialog onClose={() => setNewOpen(false)} onSuccess={invalidate} />}
+      {newOpen && (
+        <NewProformaDialog
+          onClose={() => { setNewOpen(false); setNewDialogPrefill(null); }}
+          onSuccess={invalidate}
+          initialClientId={newDialogPrefill?.clientId}
+          initialNotes={newDialogPrefill?.notes}
+        />
+      )}
       {editTarget && <EditProformaDialog proforma={editTarget} onClose={() => setEditTarget(null)} onSuccess={invalidate} />}
       {cancelTarget && <CancelProformaDialog proforma={cancelTarget} onClose={() => setCancelTarget(null)} onSuccess={invalidate} />}
       {sendEmailTarget && (

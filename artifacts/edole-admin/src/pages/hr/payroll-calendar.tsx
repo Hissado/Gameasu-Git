@@ -192,7 +192,7 @@ export default function PayrollCalendar() {
                     </div>
                   ))}
                 </div>
-                <Button className="w-full mt-4" onClick={() => navigate(`/hr/payroll/run/${selected.id}`)}>
+                <Button className="w-full mt-4" onClick={() => navigate(`/rh/paie/run/${selected.id}`)}>
                   Ouvrir le cycle <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardContent>
@@ -230,7 +230,7 @@ export default function PayrollCalendar() {
                       <td className="px-4 py-2.5 text-right font-medium text-emerald-700">{formatFCFA(run.totalNetSalary)}</td>
                       <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{run.paymentDate ? new Date(run.paymentDate).toLocaleDateString("fr-FR") : "—"}</td>
                       <td className="px-4 py-2.5">
-                        <Button variant="ghost" size="sm" className="h-7" onClick={() => navigate(`/hr/payroll/run/${run.id}`)}>
+                        <Button variant="ghost" size="sm" className="h-7" onClick={() => navigate(`/rh/paie/run/${run.id}`)}>
                           Ouvrir →
                         </Button>
                       </td>

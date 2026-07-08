@@ -21,8 +21,8 @@ const sevColor = (s: string) =>
 
 const linkFor = (it: any): string => {
   switch (it.entityType) {
-    case "invoice": return `/invoices/${it.entityId}`;
-    case "project": return `/projects/${it.entityId}`;
+    case "invoice": return "/factures";
+    case "project": return `/projets/${it.entityId}`;
     case "task": return `/tasks/${it.entityId}`;
     case "client": return `/clients/${it.entityId}`;
     default: return "#";

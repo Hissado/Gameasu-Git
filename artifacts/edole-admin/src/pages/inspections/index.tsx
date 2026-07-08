@@ -255,7 +255,7 @@ export default function InspectionsList() {
                         {inspection.retentionAmount ? formatFCFA(inspection.retentionAmount) : <span className="text-slate-400 italic text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/inspections/compare/${inspection.rentalId}`}>
+                        <Link href={`/inspections/comparer/${inspection.rentalId}`}>
                           <Button variant="outline" size="sm" className="h-8 text-xs">
                             <GitCompare className="w-3 h-3 mr-1.5" /> Comparer
                           </Button>

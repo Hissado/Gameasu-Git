@@ -84,7 +84,7 @@ export default function TasksFocusPage() {
                       <div className="min-w-0">
                         <p className="font-semibold truncate">{t.title}</p>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          {t.projectName && <Link href={`/projects/${t.projectId}`} className="hover:text-primary inline-flex items-center gap-1"><ExternalLink className="w-3 h-3" />{t.projectName}</Link>}
+                          {t.projectName && <Link href={`/projets/${t.projectId}`} className="hover:text-primary inline-flex items-center gap-1"><ExternalLink className="w-3 h-3" />{t.projectName}</Link>}
                           {t.assigneeName && <span><User className="w-3 h-3 inline mr-0.5" />{t.assigneeName}</span>}
                           {t.dueDate && (
                             <span className={t.daysUntilDue !== null && t.daysUntilDue < 0 ? "text-red-700 font-medium" : ""}>

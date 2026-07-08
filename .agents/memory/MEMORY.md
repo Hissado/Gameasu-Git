@@ -30,3 +30,4 @@
 - [executeSql prod quirks](executeSql-prod-quirks.md) — prod executeSql: COUNT(*) without WHERE works; MAX(text_col) works; anything with IS NULL/timestamp comparisons/JOINs returns START TRANSACTION/ROLLBACK; prod DB is read-only (no INSERT/UPDATE/DELETE).
 - [BTP payroll schema](btp-payroll-schema.md) — 5 tables in schema/btp.ts; useQuery onSuccess removed in RQ v5, use useEffect instead; drizzle-kit push handles unique constraints interactively with "y" echo.
 - [Tax-control table naming](tax-control-naming.md) — benefits.ts already exports taxDeclarationsTable; new fiscal control module uses fiscal_* prefix (fiscalDeclarationsTable etc.) to avoid ambiguous import esbuild errors.
+- [Static route-link guard](route-link-guard.md) — `pnpm run check-routes` catches broken internal nav links (wrong route literals, links to non-existent detail pages) app-wide.

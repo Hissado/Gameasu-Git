@@ -100,7 +100,7 @@ export default function BriefingPage() {
           <CardContent className="space-y-1.5">
             {b.invoicesOverdue.length === 0 && <p className="text-xs italic text-muted-foreground">Aucun encours en retard.</p>}
             {b.invoicesOverdue.map((i) => (
-              <Link key={i.id} href={`/invoices/${i.id}`}>
+              <Link key={i.id} href="/factures">
                 <div className="flex items-center justify-between gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm">
                   <span className="font-medium">{i.ref}</span>
                   <span className="text-muted-foreground">{formatFCFA(i.outstanding)}</span>

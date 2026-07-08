@@ -325,7 +325,7 @@ export default function EquipmentList() {
                             <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            <Link href={`/equipment/${item.id}`}>
+                            <Link href="/equipements">
                               <DropdownMenuItem className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> Détail</DropdownMenuItem>
                             </Link>
                             {!perms.isReadOnly && (

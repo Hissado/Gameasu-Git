@@ -156,7 +156,7 @@ export default function FinanceIntelligencePage() {
             <CardContent className="space-y-2">
               {ov.topOverdue.length === 0 && <p className="text-xs italic text-muted-foreground">Aucune facture en retard.</p>}
               {ov.topOverdue.map((i) => (
-                <Link key={i.id} href={`/invoices/${i.id}`}>
+                <Link key={i.id} href="/factures">
                   <div className="flex items-center justify-between border rounded p-2 hover:bg-muted/40 cursor-pointer">
                     <div>
                       <p className="font-medium text-sm">{i.ref}</p>
@@ -185,7 +185,7 @@ export default function FinanceIntelligencePage() {
               {anomalies.isLoading && <Loader2 className="w-5 h-5 animate-spin mx-auto my-4" />}
               {anomalies.data?.anomalies.length === 0 && <p className="text-xs italic text-muted-foreground">Aucune anomalie détectée.</p>}
               {anomalies.data?.anomalies.map((a, i) => (
-                <Link key={`${a.invoiceId}-${a.type}-${i}`} href={`/invoices/${a.invoiceId}`}>
+                <Link key={`${a.invoiceId}-${a.type}-${i}`} href="/factures">
                   <div className="border rounded p-2.5 hover:bg-muted/40 cursor-pointer space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -218,7 +218,7 @@ export default function FinanceIntelligencePage() {
               {collections.data?.ranked.slice(0, 10).map((r, i) => {
                 const t = TIER[r.tier];
                 return (
-                  <Link key={r.invoiceId} href={`/invoices/${r.invoiceId}`}>
+                  <Link key={r.invoiceId} href="/factures">
                     <div className="border rounded p-3 hover:bg-muted/40 cursor-pointer">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 flex-wrap">

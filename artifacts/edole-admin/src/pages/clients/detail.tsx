@@ -257,7 +257,7 @@ export default function ClientDetailWorkspace() {
             </CardContent></Card>
           )}
           {(projects?.data ?? []).map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`}>
+            <Link key={p.id} href={`/projets/${p.id}`}>
               <Card className="hover:border-primary/50 cursor-pointer">
                 <CardContent className="p-3 flex items-center gap-3">
                   <FolderKanban className="w-4 h-4 text-primary shrink-0" />
@@ -951,7 +951,7 @@ function ClientTreeView({ clientId, engagements, projects }: { clientId: string;
 
 function TreeNode({ id, type, name, open, onToggle }: { id: string; type: "service" | "project"; name: string; open: boolean; onToggle: () => void }) {
   const Icon = type === "service" ? Briefcase : FolderKanban;
-  const link = type === "service" ? `/services/${id}` : `/projects/${id}`;
+  const link = type === "service" ? `/services/${id}` : `/projets/${id}`;
   return (
     <li>
       <div className="flex items-center gap-1 py-1.5 px-2 rounded hover:bg-muted/50">

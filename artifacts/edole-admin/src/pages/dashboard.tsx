@@ -369,7 +369,7 @@ export default function Dashboard() {
               </div>
             )}
             {overdueInvoices.map((inv: any) => (
-              <Link key={inv.id} href={`/invoices/${inv.id}`}
+              <Link key={inv.id} href="/factures"
                 className="flex items-center gap-3 p-3 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-50 transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
                   <FileText className="w-4 h-4 text-rose-600" />
@@ -562,7 +562,7 @@ export default function Dashboard() {
             ) : activeProjects.map((p: any) => {
               const progress = Number(p.progress || 0);
               return (
-                <Link key={p.id} href={`/projects/${p.id}`}
+                <Link key={p.id} href={`/projets/${p.id}`}
                   className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-sm transition-all group">
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <FolderKanban className="w-4 h-4 text-primary" />

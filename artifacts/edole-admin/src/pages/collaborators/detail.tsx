@@ -1079,14 +1079,14 @@ export default function CollaboratorDetail() {
     const p = new URLSearchParams(window.location.search);
     if (value === "all") p.delete("status"); else p.set("status", value);
     const qs = p.toString();
-    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+    navigate(`/collaborateurs/${id}${qs ? `?${qs}` : ""}`, { replace: true });
   }, [id, navigate]);
 
   const setSidebarDeptFilter = useCallback((value: string) => {
     const p = new URLSearchParams(window.location.search);
     if (value === "all") p.delete("dept"); else p.set("dept", value);
     const qs = p.toString();
-    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+    navigate(`/collaborateurs/${id}${qs ? `?${qs}` : ""}`, { replace: true });
   }, [id, navigate]);
 
   type SidebarSort = "name_asc" | "name_desc" | "hire_desc" | "hire_asc" | "workload_desc";
@@ -1095,7 +1095,7 @@ export default function CollaboratorDetail() {
     const p = new URLSearchParams(window.location.search);
     if (value === "name_asc") p.delete("sort"); else p.set("sort", value);
     const qs = p.toString();
-    navigate(`/collaborators/${id}${qs ? `?${qs}` : ""}`, { replace: true });
+    navigate(`/collaborateurs/${id}${qs ? `?${qs}` : ""}`, { replace: true });
   }, [id, navigate]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1230,7 +1230,7 @@ export default function CollaboratorDetail() {
         const target = focusedIndex >= 0 ? sortedCollabs[focusedIndex] : (sortedCollabs.length === 1 ? sortedCollabs[0] : null);
         if (target) {
           e.preventDefault();
-          navigate(`/collaborators/${target.id}${searchString ? `?${searchString}` : ""}`);
+          navigate(`/collaborateurs/${target.id}${searchString ? `?${searchString}` : ""}`);
           searchInputRef.current?.blur();
         }
         return;
@@ -1248,7 +1248,7 @@ export default function CollaboratorDetail() {
         }
         const next = sortedCollabs[nextIndex];
         if (next && next.id !== id) {
-          navigate(`/collaborators/${next.id}${searchString ? `?${searchString}` : ""}`);
+          navigate(`/collaborateurs/${next.id}${searchString ? `?${searchString}` : ""}`);
         }
         return;
       }
@@ -1620,7 +1620,7 @@ export default function CollaboratorDetail() {
             {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all" || sidebarSort !== "name_asc") && (
               <button
                 className="ml-2 text-primary hover:underline"
-                onClick={() => navigate(`/collaborators/${id}`, { replace: true })}
+                onClick={() => navigate(`/collaborateurs/${id}`, { replace: true })}
               >
                 Réinitialiser
               </button>
@@ -1642,7 +1642,7 @@ export default function CollaboratorDetail() {
             const isSelected = c.id === id;
             const isFocused = idx === focusedIndex;
             return (
-              <Link key={c.id} href={`/collaborators/${c.id}${searchString ? `?${searchString}` : ""}`}>
+              <Link key={c.id} href={`/collaborateurs/${c.id}${searchString ? `?${searchString}` : ""}`}>
                 <div
                   data-collab-id={c.id}
                   data-collab-index={idx}
@@ -1776,7 +1776,7 @@ export default function CollaboratorDetail() {
                 )}
                 {overview?.manager && (
                   <span className="text-[11px] text-white/40 hidden sm:inline">
-                    · <Link href={`/collaborators/${overview.manager.id}`} className="hover:text-white/70 transition-colors">{overview.manager.firstName} {overview.manager.lastName}</Link>
+                    · <Link href={`/collaborateurs/${overview.manager.id}`} className="hover:text-white/70 transition-colors">{overview.manager.firstName} {overview.manager.lastName}</Link>
                   </span>
                 )}
               </div>
@@ -1945,7 +1945,7 @@ export default function CollaboratorDetail() {
                     {overview?.manager && (
                       <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
                         <User className="w-3.5 h-3.5 shrink-0" />
-                        <span>Manager : <Link href={`/collaborators/${overview.manager.id}`} className="text-primary hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link></span>
+                        <span>Manager : <Link href={`/collaborateurs/${overview.manager.id}`} className="text-primary hover:underline">{overview.manager.firstName} {overview.manager.lastName}</Link></span>
                       </div>
                     )}
                   </>
@@ -2003,7 +2003,7 @@ export default function CollaboratorDetail() {
                 </div>
                 {qrTokenQuery.data?.token && (
                   <button
-                    onClick={() => window.open(`/collaborators/${id}/badge`, "_blank")}
+                    onClick={() => window.open(`/collaborateurs/${id}/badge`, "_blank")}
                     className="flex items-center gap-1.5 text-xs text-primary hover:underline"
                   >
                     <Printer className="w-3.5 h-3.5" />
@@ -2237,7 +2237,7 @@ export default function CollaboratorDetail() {
                   {overview!.assignments.map((a) => (
                     <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
                       <div className="min-w-0 flex-1 pr-2">
-                        <Link href={`/projects/${a.projectId}`} className="text-sm font-medium hover:text-primary truncate block">{a.projectName}</Link>
+                        <Link href={`/projets/${a.projectId}`} className="text-sm font-medium hover:text-primary truncate block">{a.projectName}</Link>
                         <p className="text-xs text-muted-foreground mt-0.5">{a.role} · <strong>{a.allocationPct}%</strong></p>
                       </div>
                       {statusBadge(a.status)}
@@ -2479,10 +2479,10 @@ export default function CollaboratorDetail() {
                 )}
               </div>
               <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
-                <a href={`/hr/movements?collaboratorId=${id}`} className="text-xs text-primary hover:underline font-medium">
+                <a href={`/rh/mouvements?collaboratorId=${id}`} className="text-xs text-primary hover:underline font-medium">
                   Voir toutes les mutations →
                 </a>
-                <a href={`/hr/audit-log?entityId=${id}`} className="text-xs text-muted-foreground hover:underline">
+                <a href={`/rh/journal-audit?entityId=${id}`} className="text-xs text-muted-foreground hover:underline">
                   Journal d'audit
                 </a>
               </div>
@@ -2807,7 +2807,7 @@ export default function CollaboratorDetail() {
             {(overview?.equipments.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Aucun équipement à charge.</p>
             ) : overview!.equipments.map((e) => (
-              <Link key={e.id} href={`/equipment/${e.id}`} className="block border border-border rounded p-3 hover:bg-muted/30 transition-colors">
+              <Link key={e.id} href="/equipements" className="block border border-border rounded p-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium">{e.name}</div>
@@ -2854,7 +2854,7 @@ export default function CollaboratorDetail() {
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {overview!.ledProjects.map((p) => (
-                <Link key={p.id} href={`/projects/${p.id}`} className="border border-border rounded p-3 hover:bg-muted/30 transition-colors">
+                <Link key={p.id} href={`/projets/${p.id}`} className="border border-border rounded p-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">{p.name}</span>
                     {statusBadge(p.status)}
@@ -2912,7 +2912,7 @@ export default function CollaboratorDetail() {
           onClose={() => setAddOpen(false)}
           onCreated={(newId) => {
             setAddOpen(false);
-            navigate(`/collaborators/${newId}`);
+            navigate(`/collaborateurs/${newId}`);
           }}
         />
       )}
