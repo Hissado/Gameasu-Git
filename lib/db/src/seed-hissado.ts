@@ -17,6 +17,7 @@
 
 import { db } from "./index";
 import { eq, and, inArray } from "drizzle-orm";
+import { seedFiscalControl } from "./seed-fiscal-control";
 void inArray;
 import {
   organizationsTable, organizationMembersTable,
@@ -731,6 +732,12 @@ export async function seedHissado() {
     { organizationId: orgId, code: "F004", name: "CANAL+ Entreprises Togo",    email: "b2b@canalplus.tg",            phone: "+228 22 23 14 00", address: "Bd du 13 Janvier, Lomé",          paymentTerms: "Mensuel",      isActive: true },
     { organizationId: orgId, code: "F005", name: "TotalEnergies Togo",         email: "cartes@total.tg",             phone: "+228 22 21 04 04", address: "Ave du Général de Gaulle, Lomé",  paymentTerms: "30 jours",     isActive: true },
   ]).catch(() => {});
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 14. CONTRÔLE FISCAL PRÉALABLE
+  // ══════════════════════════════════════════════════════════════════════════
+  console.log("  • Contrôle fiscal — déclarations de démo…");
+  await seedFiscalControl(orgId);
 
   console.log("  ✅ Seed Hissado Consulting terminé avec succès !");
   console.log(`     Org ID : ${orgId}`);

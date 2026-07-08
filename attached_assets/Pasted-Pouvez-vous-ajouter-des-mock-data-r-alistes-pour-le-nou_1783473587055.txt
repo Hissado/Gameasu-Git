@@ -1,0 +1,318 @@
+Pouvez-vous ajouter des mock data réalistes pour le nouveau module Contrôle fiscal préalable / Vérification des déclarations fiscales afin de permettre une vraie expérience de démonstration dans Gameasu ?
+
+Objectif
+
+Je veux que ce module ne soit pas vide lors des tests ou des démonstrations.
+Il doit contenir des données réalistes permettant de comprendre concrètement comment une entreprise peut préparer, vérifier, corriger et valider ses déclarations fiscales avant soumission.
+
+Les mock data doivent être disponibles pour le tenant :
+
+Hissado Consulting
+
+Et cela doit être le cas :
+
+* en environnement de développement ;
+* en environnement de production après publication.
+
+⸻
+
+1. Ajouter les mock data dans Hissado Consulting
+
+Merci d’ajouter des données de démonstration propres, crédibles et cohérentes dans le tenant Hissado Consulting.
+
+Les données doivent couvrir :
+
+* projets de déclarations fiscales ;
+* périodes fiscales ;
+* TVA collectée ;
+* TVA déductible ;
+* ventes ;
+* achats ;
+* factures clients ;
+* factures fournisseurs ;
+* dépenses ;
+* paiements ;
+* encaissements ;
+* pièces justificatives ;
+* anomalies fiscales ;
+* corrections proposées ;
+* statuts de vérification ;
+* scores de conformité ;
+* rapports de contrôle ;
+* historique de validation.
+
+⸻
+
+2. Créer plusieurs scénarios réalistes
+
+Ajouter plusieurs cas de test pour simuler une vraie utilisation du module.
+
+Scénario 1 — Déclaration conforme
+
+Créer une déclaration fiscale avec :
+
+* ventes cohérentes ;
+* TVA correctement calculée ;
+* factures disponibles ;
+* pièces justificatives complètes ;
+* aucun écart majeur ;
+* score de conformité élevé.
+
+Statut attendu :
+
+Prêt à soumettre
+
+⸻
+
+Scénario 2 — TVA collectée incohérente
+
+Créer une déclaration où :
+
+* le chiffre d’affaires comptable ne correspond pas au chiffre d’affaires déclaré ;
+* la TVA collectée est inférieure à ce qui devrait être déclaré ;
+* certaines factures clients ne sont pas prises en compte.
+
+Anomalie attendue :
+
+Risque élevé — TVA collectée incohérente avec les ventes enregistrées.
+
+Action recommandée :
+
+Vérifier les factures clients de la période et recalculer la TVA collectée.
+
+⸻
+
+Scénario 3 — TVA déductible sans justificatif
+
+Créer une déclaration où certaines dépenses ou factures fournisseurs n’ont pas de justificatif attaché.
+
+Anomalie attendue :
+
+Risque moyen — TVA déductible sans pièce justificative.
+
+Action recommandée :
+
+Ajouter le justificatif fournisseur ou exclure la TVA déductible concernée.
+
+⸻
+
+Scénario 4 — Facture fournisseur incomplète
+
+Créer une facture fournisseur avec :
+
+* numéro fiscal manquant ;
+* date incorrecte ;
+* montant incohérent ;
+* pièce jointe illisible ou absente.
+
+Anomalie attendue :
+
+Point non conforme — facture fournisseur incomplète.
+
+⸻
+
+Scénario 5 — Déclaration avec erreur bloquante
+
+Créer une déclaration avec une erreur importante empêchant la soumission :
+
+* période fiscale manquante ;
+* montant déclaré différent du total comptable ;
+* absence de pièces critiques ;
+* taxe mal calculée.
+
+Statut attendu :
+
+Corrections requises
+
+ou
+
+Bloquant — déclaration non prête à soumettre
+
+⸻
+
+Scénario 6 — Déclaration corrigée
+
+Créer un cas où une déclaration contient d’abord des anomalies, puis une correction est appliquée.
+
+Afficher :
+
+* anomalie initiale ;
+* correction effectuée ;
+* utilisateur ayant corrigé ;
+* date de correction ;
+* nouveau score de conformité ;
+* statut final.
+
+⸻
+
+3. Données à afficher dans la liste des déclarations
+
+Dans la page de liste du module, afficher plusieurs déclarations avec des statuts différents :
+
+* Brouillon ;
+* En vérification ;
+* Corrections requises ;
+* Conforme ;
+* Prêt à soumettre ;
+* Soumis ;
+* Archivé ;
+* Rejeté / à revoir.
+
+Chaque ligne doit inclure :
+
+* type de déclaration ;
+* période ;
+* montant déclaré ;
+* TVA collectée ;
+* TVA déductible ;
+* montant net à payer ;
+* score de conformité ;
+* nombre d’anomalies ;
+* niveau de risque ;
+* statut ;
+* date de dernière vérification ;
+* responsable ;
+* action disponible.
+
+⸻
+
+4. Ajouter des anomalies de démonstration
+
+Créer une bibliothèque d’anomalies réalistes, par exemple :
+
+* TVA collectée incohérente avec les ventes ;
+* TVA déductible sans justificatif ;
+* facture fournisseur manquante ;
+* facture client non incluse ;
+* numéro fiscal absent ;
+* période fiscale incorrecte ;
+* doublon de facture ;
+* montant payé différent du montant déclaré ;
+* dépense non justifiée ;
+* compte comptable mal utilisé ;
+* taux de taxe incorrect ;
+* incohérence avec la déclaration précédente ;
+* écriture non rapprochée ;
+* pièce justificative illisible ;
+* déclaration incomplète.
+
+Chaque anomalie doit avoir :
+
+* titre ;
+* description ;
+* niveau de risque ;
+* donnée concernée ;
+* montant concerné ;
+* action recommandée ;
+* bouton de correction ;
+* statut de correction.
+
+⸻
+
+5. Ajouter des rapports de contrôle mock
+
+Créer quelques rapports de contrôle fiscal prêts à consulter.
+
+Chaque rapport doit contenir :
+
+* résumé de la déclaration ;
+* score de conformité ;
+* contrôles effectués ;
+* anomalies détectées ;
+* corrections réalisées ;
+* anomalies restantes ;
+* recommandation finale ;
+* statut de validation ;
+* export PDF ;
+* export Excel.
+
+Les rapports doivent être visuellement propres et alignés avec le branding Gameasu.
+
+⸻
+
+6. Vérifier le réalisme du module
+
+Merci de revoir aussi les scénarios et fonctionnalités du module pour vérifier qu’ils sont réalistes, utiles et cohérents avec une vraie utilisation comptable et fiscale.
+
+Points à vérifier
+
+* Est-ce que les statuts sont cohérents ?
+* Est-ce que les contrôles proposés sont réalistes ?
+* Est-ce que les anomalies détectées sont crédibles ?
+* Est-ce que le workflow de correction est logique ?
+* Est-ce que le score de conformité est compréhensible ?
+* Est-ce que les rapports générés sont utiles ?
+* Est-ce que les permissions sont adaptées ?
+* Est-ce que le module est bien connecté aux factures, ventes, achats, comptabilité, documents et rapports ?
+* Est-ce que les règles fiscales sont configurables par pays ?
+* Est-ce que l’interface est simple pour un comptable ou un dirigeant ?
+
+⸻
+
+7. Vérifier la synchronisation avec les autres modules
+
+Les mock data ne doivent pas être isolées.
+Elles doivent être liées aux autres modules de Gameasu.
+
+À connecter avec :
+
+* Comptabilité générale ;
+* Factures clients ;
+* Factures fournisseurs ;
+* Achats ;
+* Ventes ;
+* Encaissements ;
+* Paiements ;
+* Documents ;
+* Rapports ;
+* Paramètres fiscaux ;
+* Rôles & permissions ;
+* Tableau de bord.
+
+Exemple :
+
+Si une anomalie indique qu’une facture fournisseur n’a pas de justificatif, l’utilisateur doit pouvoir ouvrir la facture concernée depuis le module fiscal.
+
+⸻
+
+8. Environnement développement et production
+
+Les mock data doivent être présentes dans :
+
+* l’environnement de développement ;
+* l’environnement de production après publication.
+
+Merci de créer un seed ou une migration propre, idempotente et sécurisée pour éviter :
+
+* les doublons ;
+* les données cassées ;
+* les relations manquantes ;
+* les données sans organization_id ;
+* les données visibles dans le mauvais tenant.
+
+Toutes les données doivent être strictement rattachées à :
+
+Hissado Consulting
+
+Aucune donnée mock ne doit apparaître dans les autres organisations.
+
+⸻
+
+9. Résultat attendu
+
+Je veux pouvoir ouvrir le module Contrôle fiscal préalable dans Hissado Consulting et voir immédiatement une vraie expérience complète :
+
+* plusieurs déclarations fiscales ;
+* différents statuts ;
+* anomalies réalistes ;
+* scores de conformité ;
+* actions correctives ;
+* rapports de contrôle ;
+* données reliées aux factures, achats, ventes et comptabilité ;
+* parcours de correction ;
+* export PDF / Excel ;
+* interface cohérente et premium.
+
+Objectif final
+
+Faire en sorte que le nouveau module de vérification fiscale soit démontrable, crédible et réaliste dès son lancement, avec des mock data complètes dans Hissado Consulting en développement et en production.
