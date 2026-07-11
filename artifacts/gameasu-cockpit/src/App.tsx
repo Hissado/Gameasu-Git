@@ -54,8 +54,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && !user) navigate("/login");
   }, [isLoading, user, navigate]);
-  if (isLoading) return <Spinner />;
-  if (!user) return null;
+  if (isLoading || !user) return <Spinner />;
   return <Layout>{children}</Layout>;
 }
 
