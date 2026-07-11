@@ -1,32 +1,47 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, Component, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Layout from "@/components/Layout";
 
-const LoginPage        = lazy(() => import("@/pages/login"));
-const ResetPasswordPage= lazy(() => import("@/pages/reset-password"));
-const DashboardPage    = lazy(() => import("@/pages/dashboard"));
-const TenantsPage      = lazy(() => import("@/pages/tenants"));
-const TenantDetail     = lazy(() => import("@/pages/tenants/detail"));
-const SubscriptionsPage= lazy(() => import("@/pages/subscriptions"));
-const TicketsPage      = lazy(() => import("@/pages/tickets"));
-const IncidentsPage    = lazy(() => import("@/pages/incidents"));
-const AuditPage        = lazy(() => import("@/pages/audit"));
-const MonitoringPage   = lazy(() => import("@/pages/monitoring"));
-const CustomAppsPage   = lazy(() => import("@/pages/custom-apps"));
-const ReportsPage      = lazy(() => import("@/pages/reports"));
-const UsersPage        = lazy(() => import("@/pages/users"));
-const ProfilePage      = lazy(() => import("@/pages/profile"));
-const EmailsPage       = lazy(() => import("@/pages/emails"));
-const ExpertFirmsPage  = lazy(() => import("@/pages/expert-firms"));
-const AccessRequestsPage = lazy(() => import("@/pages/access-requests"));
-const PaymentDeclarationsPage = lazy(() => import("@/pages/payment-declarations"));
-const PartnersPage            = lazy(() => import("@/pages/partners"));
+/* ── Lazy import avec rechargement automatique si chunk introuvable (cache périmé) ── */
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  importFn: () => Promise<{ default: T }>
+): React.LazyExoticComponent<T> {
+  return lazy(async () => {
+    try {
+      return await importFn();
+    } catch {
+      /* Le chunk n'existe plus (déploiement récent) → rechargement forcé */
+      window.location.reload();
+      return new Promise(() => {}) as never;
+    }
+  });
+}
+
+const LoginPage               = lazyWithRetry(() => import("@/pages/login"));
+const ResetPasswordPage       = lazyWithRetry(() => import("@/pages/reset-password"));
+const DashboardPage           = lazyWithRetry(() => import("@/pages/dashboard"));
+const TenantsPage             = lazyWithRetry(() => import("@/pages/tenants"));
+const TenantDetail            = lazyWithRetry(() => import("@/pages/tenants/detail"));
+const SubscriptionsPage       = lazyWithRetry(() => import("@/pages/subscriptions"));
+const TicketsPage             = lazyWithRetry(() => import("@/pages/tickets"));
+const IncidentsPage           = lazyWithRetry(() => import("@/pages/incidents"));
+const AuditPage               = lazyWithRetry(() => import("@/pages/audit"));
+const MonitoringPage          = lazyWithRetry(() => import("@/pages/monitoring"));
+const CustomAppsPage          = lazyWithRetry(() => import("@/pages/custom-apps"));
+const ReportsPage             = lazyWithRetry(() => import("@/pages/reports"));
+const UsersPage               = lazyWithRetry(() => import("@/pages/users"));
+const ProfilePage             = lazyWithRetry(() => import("@/pages/profile"));
+const EmailsPage              = lazyWithRetry(() => import("@/pages/emails"));
+const ExpertFirmsPage         = lazyWithRetry(() => import("@/pages/expert-firms"));
+const AccessRequestsPage      = lazyWithRetry(() => import("@/pages/access-requests"));
+const PaymentDeclarationsPage = lazyWithRetry(() => import("@/pages/payment-declarations"));
+const PartnersPage            = lazyWithRetry(() => import("@/pages/partners"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +61,59 @@ function Spinner() {
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
+}
+
+/* ── Error boundary : capture les crash React et propose un rechargement ── */
+type EBState = { hasError: boolean; isChunkError: boolean };
+class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, isChunkError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): EBState {
+    const msg = error?.message ?? "";
+    const isChunk =
+      msg.includes("Failed to fetch dynamically imported module") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Importing a module script failed") ||
+      msg.includes("error loading dynamically imported module");
+    return { hasError: true, isChunkError: isChunk };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[Cockpit] AppErrorBoundary caught:", error);
+    if (this.state.isChunkError) {
+      /* Cache périmé après déploiement → rechargement automatique */
+      window.location.reload();
+    }
+  }
+
+  render() {
+    if (this.state.hasError && !this.state.isChunkError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-8">
+          <div className="max-w-sm w-full text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Une erreur inattendue s'est produite</h2>
+            <p className="text-sm text-muted-foreground">
+              Le Cockpit a rencontré un problème. Rechargez la page pour réessayer.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Recharger la page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -126,16 +194,18 @@ function AppRouter() {
 export default function App() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <WouterRouter base={base}>
-            <AppRouter />
-          </WouterRouter>
-          <Toaster />
-          <SonnerToaster richColors position="top-right" />
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <WouterRouter base={base}>
+              <AppRouter />
+            </WouterRouter>
+            <Toaster />
+            <SonnerToaster richColors position="top-right" />
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
