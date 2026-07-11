@@ -203,6 +203,7 @@ export const ROUTE_MODULE_MAP: Array<{ test: (path: string) => boolean; moduleKe
   { test: (p) => p.startsWith("/projets"), moduleKey: "projects" },
   { test: (p) => p.startsWith("/tasks"), moduleKey: "tasks" },
   { test: (p) => p.startsWith("/crm") || p.startsWith("/commandes") || p.startsWith("/devis") || p.startsWith("/factures") || p.startsWith("/paiements"), moduleKey: "sales_crm" },
+  { test: (p) => p.startsWith("/comptabilite/controle-fiscal"), moduleKey: "tax_control" },
   { test: (p) => p.startsWith("/comptabilite"), moduleKey: "accounting" },
   { test: (p) => p.startsWith("/fpa"), moduleKey: "financial_planning" },
   { test: (p) => p.startsWith("/finance"), moduleKey: "accounting" },

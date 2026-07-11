@@ -2153,10 +2153,11 @@ type AddonItem = {
 };
 
 const ADDON_CATEGORY_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
-  sms:     { label: "SMS",     icon: MessageSquare,  color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
-  email:   { label: "Email",   icon: MailOpen,        color: "text-blue-600",   bg: "bg-blue-50 border-blue-200"   },
-  support: { label: "Support", icon: HeadphonesIcon,  color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
-  general: { label: "Général", icon: Sparkles,        color: "text-slate-600",  bg: "bg-slate-50 border-slate-200" },
+  sms:     { label: "SMS",     icon: MessageSquare,  color: "text-violet-600",  bg: "bg-violet-50 border-violet-200"  },
+  email:   { label: "Email",   icon: MailOpen,        color: "text-blue-600",    bg: "bg-blue-50 border-blue-200"      },
+  support: { label: "Support", icon: HeadphonesIcon,  color: "text-amber-600",   bg: "bg-amber-50 border-amber-200"    },
+  fiscal:  { label: "Fiscal",  icon: Shield,          color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+  general: { label: "Général", icon: Sparkles,        color: "text-slate-600",   bg: "bg-slate-50 border-slate-200"   },
 };
 
 // ── Carte : achat de crédits (SMS / email) ───────────────────────
@@ -2285,6 +2286,128 @@ function CreditsCard({
   );
 }
 
+// ── Carte : Contrôle fiscal préalable (add-on premium) ──────────
+
+function FiscalAddonCard({
+  addon,
+  onRequestQuote,
+  loading,
+}: {
+  addon: AddonItem;
+  onRequestQuote: (id: string) => void;
+  loading: boolean;
+}) {
+  const isActive   = addon.subscription?.status === "active";
+  const isPending  = addon.subscription?.status === "pending_quote";
+
+  return (
+    <Card className={cn(
+      "transition-all duration-150 flex flex-col",
+      isActive  ? "border-emerald-300 shadow-sm ring-1 ring-emerald-200"
+      : isPending ? "border-amber-300 shadow-sm"
+      : "border-slate-200",
+    )}>
+      <CardContent className="p-5 space-y-4 flex-1">
+        {/* En-tête */}
+        <div className="flex items-start gap-3">
+          <div className={cn("p-2 rounded-lg border shrink-0", isActive ? "bg-emerald-50 border-emerald-200" : "bg-emerald-50 border-emerald-200")}>
+            <Shield className="w-4 h-4 text-emerald-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
+              {isActive ? (
+                <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] px-1.5 py-0 h-4">Activé</Badge>
+              ) : isPending ? (
+                <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-[10px] px-1.5 py-0 h-4">Demande en cours</Badge>
+              ) : (
+                <Badge className="bg-slate-100 text-slate-500 border border-slate-200 text-[10px] px-1.5 py-0 h-4">Add-on premium</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{addon.description}</p>
+          </div>
+        </div>
+
+        {/* Fonctionnalités clés */}
+        <div className="space-y-1.5">
+          {[
+            "Analyse des projets de déclarations fiscales",
+            "Détection des incohérences & anomalies",
+            "Score de conformité + alertes",
+            "Corrections avant soumission",
+            "Rapports & historique de vérifications",
+            "Export PDF / Excel",
+            "Configuration par pays (SYSCOHADA)",
+          ].map((f) => (
+            <div key={f} className="flex items-center gap-2 text-xs text-slate-600">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+              <span>{f}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Statut actif */}
+        {isActive && (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <p className="text-xs text-emerald-700 font-medium">
+              Add-on actif — accessible depuis Comptabilité › Contrôle préalable
+            </p>
+          </div>
+        )}
+
+        {/* Statut en attente */}
+        {isPending && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
+            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              Votre demande a bien été reçue. Notre équipe vous contactera sous 24 h ouvrées.
+            </p>
+          </div>
+        )}
+
+        {/* Pas encore activé */}
+        {!isActive && !isPending && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+            <p className="text-sm font-semibold text-slate-700">Tarif sur devis</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Adapté à votre pays, votre secteur et la complexité de vos déclarations
+            </p>
+          </div>
+        )}
+      </CardContent>
+
+      <div className="px-5 pb-5 space-y-2">
+        {isActive ? (
+          <a href="/comptabilite/controle-fiscal">
+            <Button
+              size="sm"
+              className="w-full text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white"
+            >
+              Ouvrir le module
+            </Button>
+          </a>
+        ) : (
+          <Button
+            size="sm"
+            variant={isPending ? "outline" : "default"}
+            className={cn(
+              "w-full text-xs font-semibold",
+              isPending
+                ? "border-amber-300 text-amber-700 hover:bg-amber-50"
+                : "bg-primary hover:bg-primary/90 text-white",
+            )}
+            disabled={loading || isPending}
+            onClick={() => !isPending && onRequestQuote(addon.id)}
+          >
+            {isPending ? "Demande en cours ✓" : loading ? "En cours…" : "Demander l'activation"}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ── Carte : prix sur devis ───────────────────────────────────────
 
 function QuoteCard({
@@ -2378,8 +2501,9 @@ function AddonsPanel() {
 
   const addons = data?.data ?? [];
   const creditsAddons = addons.filter((a) => a.billingType === "credits");
+  const fiscalAddons  = addons.filter((a) => a.category === "fiscal");
   const aiAddons      = addons.filter((a) => a.category === "ai");
-  const quoteAddons   = addons.filter((a) => a.billingType === "quote" && a.category !== "ai");
+  const quoteAddons   = addons.filter((a) => a.billingType === "quote" && a.category !== "ai" && a.category !== "fiscal");
   const hasCredits    = creditsAddons.some((a) => a.isActive);
 
   const handleBuyCredits = async (id: string, qty: number) => {
@@ -2473,6 +2597,36 @@ function AddonsPanel() {
                 key={addon.id}
                 addon={addon}
                 onBuy={handleBuyCredits}
+                loading={actionId === addon.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Contrôle fiscal préalable ── */}
+      {fiscalAddons.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md border bg-emerald-50 border-emerald-200">
+              <Shield className="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Contrôle fiscal préalable</h3>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Add-on premium · sur devis</Badge>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-teal-50/40 p-4 mb-1">
+            <p className="text-xs text-emerald-800/80 leading-relaxed">
+              Vérifiez vos déclarations fiscales <strong>avant soumission</strong> à l'administration.
+              Détectez les anomalies, corrigez les non-conformités et réduisez les risques lors des contrôles fiscaux.
+              Connecté à la Comptabilité, aux Ventes, aux Achats et aux Paiements.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {fiscalAddons.map((addon) => (
+              <FiscalAddonCard
+                key={addon.id}
+                addon={addon}
+                onRequestQuote={handleRequestQuote}
                 loading={actionId === addon.id}
               />
             ))}

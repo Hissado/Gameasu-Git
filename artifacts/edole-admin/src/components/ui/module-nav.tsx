@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── URL-routing nav types (ModuleShell) ─────────────────────────
@@ -9,6 +9,7 @@ export interface NavItem {
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  locked?: boolean;
 }
 
 export interface NavGroup {
@@ -50,6 +51,19 @@ function NavSidebar({ navGroups }: { navGroups: NavGroup[] }) {
           <div className="space-y-0.5">
             {group.items.map(item => {
               const active = itemIsActive(item, location);
+              if (item.locked) {
+                return (
+                  <Link
+                    key={item.path}
+                    href="/abonnement"
+                    className="flex items-center gap-2 px-3 py-[7px] rounded-lg text-[12.5px] font-medium transition-all leading-tight text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40"
+                  >
+                    <item.icon className="w-[13px] h-[13px] shrink-0 opacity-40" />
+                    <span className="truncate">{item.name}</span>
+                    <Lock className="w-[10px] h-[10px] ml-auto shrink-0 opacity-50" />
+                  </Link>
+                );
+              }
               return (
                 <Link
                   key={item.path}
@@ -103,6 +117,20 @@ function MobileNavDropdown({ navGroups }: { navGroups: NavGroup[] }) {
               <div className="space-y-0.5">
                 {group.items.map(item => {
                   const active = itemIsActive(item, location);
+                  if (item.locked) {
+                    return (
+                      <Link
+                        key={item.path}
+                        href="/abonnement"
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40"
+                      >
+                        <item.icon className="w-[14px] h-[14px] shrink-0 opacity-40" />
+                        <span>{item.name}</span>
+                        <Lock className="w-3 h-3 ml-auto shrink-0 opacity-50" />
+                      </Link>
+                    );
+                  }
                   return (
                     <Link
                       key={item.path}

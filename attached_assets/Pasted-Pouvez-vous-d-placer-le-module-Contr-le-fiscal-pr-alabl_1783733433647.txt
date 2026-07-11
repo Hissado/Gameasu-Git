@@ -1,0 +1,253 @@
+Pouvez-vous déplacer le module **Contrôle fiscal préalable / Vérification des déclarations fiscales** dans la section **Add-ons**, comme cela a été fait pour l’**Assistant IA** ?
+
+### Objectif
+
+Je ne veux pas que le **Contrôle fiscal préalable** soit uniquement présenté comme un simple module standard de la Comptabilité.
+Je veux plutôt qu’il soit positionné comme un **add-on premium** que les clients peuvent activer selon leurs besoins, car il s’agit d’une fonctionnalité avancée à forte valeur ajoutée.
+
+---
+
+## 1. Nouveau positionnement du module
+
+Créer un add-on dédié :
+
+**Add-ons > Contrôle fiscal préalable**
+
+ou
+
+**Add-ons > Vérification fiscale**
+
+ou
+
+**Add-ons > Assistant Fiscal**
+
+Nom recommandé :
+
+**Contrôle fiscal préalable**
+
+Cet add-on doit permettre aux organisations de vérifier leurs projets de déclarations fiscales avant soumission définitive à l’administration fiscale.
+
+---
+
+## 2. Logique d’activation
+
+L’add-on doit fonctionner comme l’Assistant IA :
+
+* visible dans la section Add-ons ;
+* activable selon le pack ou l’abonnement ;
+* configurable par organisation / tenant ;
+* lié au module Comptabilité ;
+* synchronisé avec le Cockpit ;
+* facturable séparément si nécessaire.
+
+L’admin de l’organisation doit pouvoir voir l’add-on, comprendre sa valeur, puis l’activer ou demander son activation.
+
+---
+
+## 3. Accès depuis la Comptabilité
+
+Même si l’add-on est géré dans la section **Add-ons**, il doit rester accessible depuis la Comptabilité une fois activé.
+
+### Exemple
+
+Si l’add-on est activé :
+
+* afficher un menu dans **Comptabilité > Contrôle fiscal préalable** ;
+* afficher aussi l’add-on dans **Add-ons > Contrôle fiscal préalable** ;
+* permettre d’accéder aux déclarations fiscales, anomalies, rapports et paramètres.
+
+Si l’add-on n’est pas activé :
+
+* masquer le module dans Comptabilité ;
+* ou afficher une carte verrouillée avec un message clair.
+
+Message recommandé :
+
+**Le Contrôle fiscal préalable est un add-on premium. Activez-le pour vérifier vos déclarations fiscales avant soumission.**
+
+---
+
+## 4. Carte add-on
+
+Dans la section Add-ons, créer une carte premium pour ce module.
+
+### Contenu de la carte
+
+**Contrôle fiscal préalable**
+Vérifiez vos déclarations fiscales avant soumission, détectez les anomalies, corrigez les non-conformités et réduisez les risques lors des contrôles fiscaux.
+
+Fonctionnalités clés :
+
+* analyse des projets de déclarations fiscales ;
+* détection des incohérences ;
+* alertes de non-conformité ;
+* score de conformité ;
+* corrections avant soumission ;
+* rapports de contrôle fiscal ;
+* historique des vérifications ;
+* export PDF / Excel ;
+* configuration par pays ;
+* connexion avec comptabilité, ventes, achats et documents.
+
+Bouton selon statut :
+
+* **Activer l’add-on**
+* **Demander l’activation**
+* **Configurer**
+* **Ouvrir le module**
+
+---
+
+## 5. Statuts de l’add-on
+
+Prévoir plusieurs statuts :
+
+* Disponible ;
+* Activé ;
+* Non activé ;
+* En attente d’activation ;
+* Inclus dans votre pack ;
+* Non inclus dans votre pack ;
+* Sur devis ;
+* Suspendu.
+
+Chaque statut doit être clair pour l’utilisateur.
+
+---
+
+## 6. Synchronisation avec les packs et abonnements
+
+L’add-on doit être lié à la logique d’abonnement Gameasu.
+
+### Options possibles
+
+* inclus uniquement dans Premium ;
+* disponible comme add-on payant pour Starter et Business ;
+* disponible sur devis ;
+* activable par l’équipe Gameasu depuis le Cockpit ;
+* facturable mensuellement ou annuellement.
+
+Merci de prévoir une logique flexible afin que Gameasu puisse décider plus tard si cet add-on est inclus dans Premium ou vendu séparément.
+
+---
+
+## 7. Synchronisation avec le Cockpit
+
+Dans le Cockpit Gameasu, ajouter le suivi de cet add-on.
+
+Le Cockpit doit permettre de voir :
+
+* organisations ayant activé l’add-on ;
+* organisations ayant demandé l’activation ;
+* statut par tenant ;
+* date d’activation ;
+* pack actuel du tenant ;
+* facturation liée à l’add-on ;
+* usage du module ;
+* nombre de déclarations vérifiées ;
+* anomalies détectées ;
+* rapports générés.
+
+Actions Cockpit :
+
+* activer l’add-on ;
+* désactiver l’add-on ;
+* suspendre l’add-on ;
+* configurer le tarif ;
+* approuver une demande d’activation ;
+* consulter l’usage par organisation.
+
+---
+
+## 8. Permissions
+
+Ajouter des permissions spécifiques pour l’add-on :
+
+* voir l’add-on ;
+* activer l’add-on ;
+* configurer l’add-on ;
+* voir les déclarations fiscales ;
+* créer une déclaration fiscale ;
+* lancer une vérification ;
+* corriger les anomalies ;
+* valider une déclaration ;
+* exporter les rapports fiscaux ;
+* gérer les paramètres fiscaux.
+
+Les données fiscales doivent rester protégées et accessibles uniquement aux utilisateurs autorisés.
+
+---
+
+## 9. Connexion avec les modules existants
+
+L’add-on doit rester connecté aux modules nécessaires :
+
+* Comptabilité ;
+* Factures clients ;
+* Factures fournisseurs ;
+* Achats ;
+* Ventes ;
+* Paiements ;
+* Encaissements ;
+* Documents ;
+* Rapports ;
+* Paramètres fiscaux ;
+* Rôles & permissions.
+
+L’add-on ne doit pas devenir isolé. Il doit exploiter les données comptables et financières existantes de l’organisation.
+
+---
+
+## 10. Mock data Hissado Consulting
+
+Les mock data déjà prévues pour ce module doivent être conservées et rattachées à l’add-on.
+
+Elles doivent être disponibles dans :
+
+* Hissado Consulting en développement ;
+* Hissado Consulting en production après publication.
+
+Si l’add-on est activé pour Hissado Consulting, les données de démonstration doivent apparaître directement dans l’expérience du module.
+
+---
+
+## 11. Interface utilisateur
+
+L’expérience doit être premium et claire.
+
+### Dans Add-ons
+
+Afficher :
+
+* carte de présentation ;
+* statut ;
+* valeur ajoutée ;
+* fonctionnalités principales ;
+* bouton d’action ;
+* tarif si applicable ;
+* lien vers la configuration.
+
+### Dans Comptabilité
+
+Afficher le module uniquement si l’add-on est actif ou disponible selon le pack.
+
+---
+
+## 12. Résultat attendu
+
+Je veux que **Contrôle fiscal préalable** soit repositionné comme un **add-on premium Gameasu**, au même titre que l’Assistant IA.
+
+Le système doit permettre :
+
+* de voir l’add-on dans la section Add-ons ;
+* de l’activer ou demander son activation ;
+* de le synchroniser avec l’abonnement ;
+* de le suivre dans le Cockpit ;
+* de le facturer séparément si nécessaire ;
+* de le rendre accessible depuis Comptabilité une fois activé ;
+* de protéger l’accès par permissions ;
+* de conserver les mock data Hissado Consulting.
+
+### Objectif final
+
+Positionner le **Contrôle fiscal préalable** comme une fonctionnalité avancée à forte valeur ajoutée, vendable comme add-on premium, tout en restant parfaitement connecté à la Comptabilité, à l’abonnement, au Cockpit et aux données du tenant.

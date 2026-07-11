@@ -5,8 +5,9 @@ import {
   HardDrive, BarChart2, Percent, Shield,
 } from "lucide-react";
 import { ModuleShell, NavGroup } from "@/components/ui/module-nav";
+import { useModuleEnabled } from "@/components/FeatureGate";
 
-const NAV_GROUPS: NavGroup[] = [
+const BASE_NAV_GROUPS: NavGroup[] = [
   {
     label: "Tableau de bord",
     items: [{ name: "Tableau de bord", path: "/comptabilite", icon: LayoutDashboard, exact: true }],
@@ -48,12 +49,6 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Fiscal", path: "/comptabilite/taxes", icon: Percent },
     ],
   },
-  {
-    label: "Contrôle fiscal",
-    items: [
-      { name: "Contrôle préalable", path: "/comptabilite/controle-fiscal", icon: Shield },
-    ],
-  },
 ];
 
 export function AccountingShell({ title, subtitle, actions, children }: {
@@ -62,11 +57,28 @@ export function AccountingShell({ title, subtitle, actions, children }: {
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { enabled: taxControlEnabled, loading } = useModuleEnabled("tax_control");
+
+  const navGroups: NavGroup[] = [
+    ...BASE_NAV_GROUPS,
+    {
+      label: "Contrôle fiscal",
+      items: [
+        {
+          name: "Contrôle préalable",
+          path: "/comptabilite/controle-fiscal",
+          icon: Shield,
+          locked: !loading && !taxControlEnabled,
+        },
+      ],
+    },
+  ];
+
   return (
     <ModuleShell
       title={title}
       subtitle={subtitle}
-      navGroups={NAV_GROUPS}
+      navGroups={navGroups}
       actions={actions}
     >
       {children}

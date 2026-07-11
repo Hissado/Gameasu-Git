@@ -106,6 +106,19 @@ const ADDON_CATALOG_SEED = [
     isActive: true,
     sortOrder: 70,
   },
+  // ── Contrôle fiscal préalable ─────────────────────────────────────────────────
+  {
+    slug: "tax_control",
+    name: "Contrôle fiscal préalable",
+    description: "Vérifiez vos déclarations fiscales avant soumission à l'administration. Détectez les anomalies, corrigez les non-conformités, consultez votre score de conformité et réduisez les risques lors des contrôles fiscaux. Configurable par pays, connecté à la Comptabilité, aux Ventes, aux Achats et aux Paiements.",
+    category: "fiscal",
+    billingType: "quote",
+    priceHT: 0,
+    unit: null,
+    includedUnits: null,
+    isActive: true,
+    sortOrder: 3,
+  },
   // ── Assistant IA ──────────────────────────────────────────────────────────────
   {
     slug: "ai_assistant",

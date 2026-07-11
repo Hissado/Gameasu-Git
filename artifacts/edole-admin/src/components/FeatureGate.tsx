@@ -62,5 +62,7 @@ const LABELS: Record<string, string> = {
   client_portal: "Portail client", marketing: "Marketing",
   administration: "Administration", billing_subscription: "Abonnement & facturation",
   workspace_settings: "Paramètres de l'espace de travail",
+  tax_control: "Contrôle fiscal préalable",
+  ai_assistant: "Assistant IA",
 };
 function labelFor(key: string) { return LABELS[key] ?? key; }
