@@ -31,7 +31,7 @@ import {
   organizationsTable,
   hrAuditLogsTable,
 } from "@workspace/db";
-import { and, asc, count, eq, isNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
+import { and, asc, count, eq, isNull, isNotNull, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { requirePermission } from "../middlewares/permissions";
 import { conversationsTable, conversationParticipantsTable } from "@workspace/db";
@@ -524,9 +524,17 @@ router.get("/hr/dashboard", async (req, res) => {
     c: contractsTable,
     collabFirst: collaboratorsTable.firstName,
     collabLast: collaboratorsTable.lastName,
+    daysLeft: sql<number>`GREATEST(0, (${contractsTable.endDate} - CURRENT_DATE))`,
   }).from(contractsTable)
     .leftJoin(collaboratorsTable, and(eq(contractsTable.collaboratorId, collaboratorsTable.id), eq(collaboratorsTable.organizationId, orgId)))
-    .where(and(eq(contractsTable.organizationId, orgId), sql`${contractsTable.status} = 'active' AND ${contractsTable.endDate} IS NOT NULL AND ${contractsTable.endDate} <= CURRENT_DATE + INTERVAL '30 days'`));
+    .where(and(
+      eq(contractsTable.organizationId, orgId),
+      eq(contractsTable.status, "active"),
+      isNotNull(contractsTable.endDate),
+      sql`${contractsTable.endDate} >= CURRENT_DATE`,
+      sql`${contractsTable.endDate} <= CURRENT_DATE + INTERVAL '30 days'`,
+    ))
+    .orderBy(contractsTable.endDate);
 
   // Masse salariale totale (salaires de base actifs)
   const [masseSal] = await db.select({ total: sql<string>`COALESCE(SUM(${collaboratorsTable.baseSalary}), 0)` })
@@ -664,6 +672,7 @@ router.get("/hr/dashboard", async (req, res) => {
     contractsExpiringSoon: expiring.map(e => ({
       ...e.c,
       collaboratorName: `${e.collabFirst ?? ""} ${e.collabLast ?? ""}`.trim(),
+      daysLeft: Number(e.daysLeft),
     })),
     trialPeriodCollaborators: recentHiresTrialPeriod,
     birthdaysThisMonth: birthdaysThisMonth.map(b => ({

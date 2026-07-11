@@ -632,30 +632,71 @@ export default function HrOverview() {
                   </div>
                 </div>
 
-                {/* Contrats critiques */}
-                {contractsExpiring.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-orange-200 shadow-sm p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <FileWarning className="w-4 h-4 text-orange-600" />
-                      <span className="text-sm font-semibold text-slate-800">Contrats critiques</span>
+                {/* Contrats à renouveler */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileWarning className="w-4 h-4 text-orange-500" />
+                    <span className="text-sm font-semibold text-slate-800">Contrats à renouveler</span>
+                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">30j</span>
+                    {contractsExpiring.length > 0 && (
                       <span className="ml-auto text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                         {contractsExpiring.length}
                       </span>
-                    </div>
-                    <div className="space-y-2">
-                      {contractsExpiring.slice(0, 4).map((c: any) => (
-                        <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
-                          <div className="flex items-center gap-2 text-xs py-1.5 hover:bg-slate-50 rounded px-1 cursor-pointer transition-colors">
-                            <span className="flex-1 text-slate-700 font-medium truncate">{c.collaboratorName}</span>
-                            <span className="text-orange-600 font-semibold shrink-0">
-                              {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
+                    )}
                   </div>
-                )}
+                  {contractsExpiring.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-5 gap-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <FileWarning className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <p className="text-xs text-slate-400 text-center">Aucun contrat à renouveler dans les 30 prochains jours</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {contractsExpiring.map((c: any) => {
+                        const urgent = c.daysLeft <= 7;
+                        const warning = !urgent && c.daysLeft <= 15;
+                        return (
+                          <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                            <div className={cn(
+                              "flex items-center gap-2 text-xs py-2 px-2 rounded-lg cursor-pointer transition-colors",
+                              urgent ? "hover:bg-red-50" : warning ? "hover:bg-orange-50" : "hover:bg-slate-50"
+                            )}>
+                              <div className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                                urgent ? "bg-red-100" : warning ? "bg-orange-100" : "bg-amber-50"
+                              )}>
+                                <FileWarning className={cn(
+                                  "w-3.5 h-3.5",
+                                  urgent ? "text-red-600" : warning ? "text-orange-500" : "text-amber-500"
+                                )} />
+                              </div>
+                              <span className="flex-1 text-slate-700 font-medium truncate">{c.collaboratorName}</span>
+                              <div className="shrink-0 text-right">
+                                <div className={cn(
+                                  "font-bold",
+                                  urgent ? "text-red-600" : warning ? "text-orange-600" : "text-amber-600"
+                                )}>
+                                  {c.daysLeft === 0 ? "Aujourd'hui" : `J−${c.daysLeft}`}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {contractsExpiring.length > 0 && (
+                    <Link href="/rh/contrats">
+                      <div className="mt-3 pt-3 border-t border-slate-100 text-center text-xs text-cyan-700 font-semibold hover:underline cursor-pointer">
+                        Gérer les contrats →
+                      </div>
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </>
