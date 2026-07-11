@@ -9,7 +9,7 @@ import { Link } from "wouter";
 import {
   CreditCard, Loader2, Search, X, TrendingUp, Users,
   CheckCircle2, Clock, AlertTriangle, XCircle, RefreshCw,
-  Zap, CalendarClock, Sparkles, Mail, MessageSquare,
+  Zap, CalendarClock, Sparkles, Mail, MessageSquare, Shield, Bot,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,22 @@ type Sub = {
   trialEndsAt: string | null; autopayEnabled: boolean; createdAt: string;
   orgContactEmail: string | null;
   activatedAt: string | null;
+};
+
+type AddonQuoteRequest = {
+  id: string;
+  organizationId: string;
+  orgName: string | null;
+  orgSlug: string | null;
+  orgEmail: string | null;
+  addonId: string;
+  addonSlug: string;
+  addonName: string;
+  addonCategory: string;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
@@ -66,17 +82,35 @@ function fmtRelative(d: string) {
   return `il y a ${days}j`;
 }
 
+const ADDON_CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  fiscal: Shield,
+  ai:     Bot,
+};
+
+function AddonCategoryIcon({ category, className }: { category: string; className?: string }) {
+  const Icon = ADDON_CATEGORY_ICONS[category] ?? Sparkles;
+  return <Icon className={className} />;
+}
+
 export default function SubscriptionsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [activateNotes, setActivateNotes] = useState("");
+  const [activatingAddonId, setActivatingAddonId] = useState<string | null>(null);
+  const [addonActivateNotes, setAddonActivateNotes] = useState("");
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["cockpit-subscriptions"],
     queryFn: () => apiFetch<{ count: number; totalMrr: number; rows: Sub[] }>("/api/super-admin/subscriptions"),
+    refetchInterval: 60_000,
+  });
+
+  const { data: addonQuotes, refetch: refetchAddons } = useQuery({
+    queryKey: ["cockpit-addon-quote-requests"],
+    queryFn: () => apiFetch<{ count: number; rows: AddonQuoteRequest[] }>("/api/super-admin/addon-quote-requests"),
     refetchInterval: 60_000,
   });
 
@@ -91,6 +125,25 @@ export default function SubscriptionsPage() {
       qc.invalidateQueries({ queryKey: ["cockpit-subscriptions"] });
       setActivatingId(null);
       setActivateNotes("");
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e?.message ?? "Activation impossible." }),
+  });
+
+  const activateAddonMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string }) =>
+      apiFetch(`/api/super-admin/addon-quote-requests/${id}/activate`, {
+        method: "POST",
+        body: JSON.stringify({ notes }),
+      }),
+    onSuccess: (_, vars) => {
+      const req = (addonQuotes?.rows ?? []).find(r => r.id === vars.id);
+      toast({
+        title: "Add-on activé !",
+        description: `${req?.addonName ?? "L'add-on"} est maintenant disponible pour ${req?.orgName ?? "cette organisation"}.`,
+      });
+      qc.invalidateQueries({ queryKey: ["cockpit-addon-quote-requests"] });
+      setActivatingAddonId(null);
+      setAddonActivateNotes("");
     },
     onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e?.message ?? "Activation impossible." }),
   });
@@ -123,7 +176,7 @@ export default function SubscriptionsPage() {
           <h1 className="page-title">Abonnements</h1>
           <p className="page-subtitle">Tous les abonnements des organisations sur la plateforme Gameasu</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => { refetch(); refetchAddons(); }} disabled={isFetching} className="gap-2">
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
           Actualiser
         </Button>
@@ -261,6 +314,76 @@ export default function SubscriptionsPage() {
                 </Card>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Demandes d'add-on en attente de devis ───────────────────────── */}
+      {(addonQuotes?.rows ?? []).length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-700 text-white text-[10px] font-bold">
+              {addonQuotes!.rows.length}
+            </span>
+            <h2 className="text-[15px] font-semibold text-foreground">Demandes d'activation add-on</h2>
+            <span className="text-[11px] text-muted-foreground">— Ces organisations ont demandé l'activation d'un module premium.</span>
+          </div>
+          <div className="grid gap-3">
+            {addonQuotes!.rows.map(req => (
+              <Card key={req.id} className="border-emerald-200 bg-emerald-50/30">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Icône + info */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="p-2 rounded-lg bg-emerald-100 border border-emerald-200 shrink-0 mt-0.5">
+                        <AddonCategoryIcon category={req.addonCategory} className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold text-[14px] text-foreground truncate">
+                            {req.orgName ?? req.orgSlug ?? req.organizationId}
+                          </span>
+                          <Badge className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            {req.addonName}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-[12px] text-muted-foreground flex-wrap">
+                          {req.orgEmail && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" /> {req.orgEmail}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Demandé {fmtRelative(req.createdAt)}
+                          </span>
+                          {req.notes && (
+                            <span className="italic text-muted-foreground/80 truncate max-w-[200px]">
+                              « {req.notes} »
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link href={`/tenants/${req.organizationId}`}>
+                        <Button variant="outline" size="sm" className="text-xs h-8">
+                          Voir le compte
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        className="text-xs h-8 gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
+                        onClick={() => setActivatingAddonId(req.id)}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Activer l'add-on
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       )}
@@ -468,6 +591,62 @@ export default function SubscriptionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Dialog activation add-on ─────────────────────────────────────── */}
+      {(() => {
+        const req = (addonQuotes?.rows ?? []).find(r => r.id === activatingAddonId);
+        return (
+          <Dialog open={!!activatingAddonId} onOpenChange={(o) => { if (!o) { setActivatingAddonId(null); setAddonActivateNotes(""); } }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-emerald-600" />
+                  Activer l'add-on
+                </DialogTitle>
+              </DialogHeader>
+              {req && (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm space-y-1">
+                    <p><span className="text-muted-foreground">Organisation : </span><strong>{req.orgName}</strong></p>
+                    <p><span className="text-muted-foreground">Add-on : </span><strong>{req.addonName}</strong></p>
+                    {req.orgEmail && <p><span className="text-muted-foreground">Contact : </span><strong>{req.orgEmail}</strong></p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                      Note interne (optionnel)
+                    </label>
+                    <Textarea
+                      placeholder="Ex. : Devis accepté, paiement reçu le 11/07/2026…"
+                      value={addonActivateNotes}
+                      onChange={e => setAddonActivateNotes(e.target.value)}
+                      rows={3}
+                      className="text-sm resize-none"
+                    />
+                  </div>
+                  <p className="text-[12px] text-muted-foreground">
+                    Cette action active immédiatement l'add-on et déverrouille le module correspondant dans l'espace de l'organisation.
+                  </p>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setActivatingAddonId(null); setAddonActivateNotes(""); }}>
+                  Annuler
+                </Button>
+                <Button
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2"
+                  disabled={activateAddonMutation.isPending}
+                  onClick={() => activatingAddonId && activateAddonMutation.mutate({ id: activatingAddonId, notes: addonActivateNotes })}
+                >
+                  {activateAddonMutation.isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Activation…</>
+                    : <><Zap className="w-4 h-4" />Confirmer l'activation</>}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* ── Dialog activation manuelle ────────────────────────────────────── */}
       <Dialog open={!!activatingId} onOpenChange={(o) => { if (!o) { setActivatingId(null); setActivateNotes(""); } }}>

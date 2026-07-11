@@ -1101,6 +1101,94 @@ router.post("/super-admin/subscriptions/:id/activate-manually", sa, async (req, 
   } catch (e) { next(e); }
 });
 
+// ── GET /super-admin/addon-quote-requests ─────────────────────────────────────
+// Liste tous les add-ons en statut pending_quote (demandes de devis en attente)
+router.get("/super-admin/addon-quote-requests", sa, async (_req, res, next) => {
+  try {
+    const rows = await db
+      .select({
+        id:             orgAddonsTable.id,
+        organizationId: orgAddonsTable.organizationId,
+        orgName:        organizationsTable.name,
+        orgSlug:        organizationsTable.slug,
+        orgEmail:       organizationsTable.contactEmail,
+        addonId:        orgAddonsTable.addonId,
+        addonSlug:      addonCatalogTable.slug,
+        addonName:      addonCatalogTable.name,
+        addonCategory:  addonCatalogTable.category,
+        status:         orgAddonsTable.status,
+        notes:          orgAddonsTable.notes,
+        createdAt:      orgAddonsTable.createdAt,
+        updatedAt:      orgAddonsTable.updatedAt,
+      })
+      .from(orgAddonsTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, orgAddonsTable.organizationId))
+      .innerJoin(addonCatalogTable, eq(addonCatalogTable.id, orgAddonsTable.addonId))
+      .where(eq(orgAddonsTable.status, "pending_quote"))
+      .orderBy(desc(orgAddonsTable.createdAt));
+
+    return res.json({ count: rows.length, rows });
+  } catch (e) { next(e); }
+});
+
+// ── POST /super-admin/addon-quote-requests/:id/activate ───────────────────────
+// Active un add-on en attente de devis + déverrouille le module dans l'org
+router.post("/super-admin/addon-quote-requests/:id/activate", sa, async (req, res, next) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { notes } = req.body as { notes?: string };
+
+    // Charger la ligne
+    const [row] = await db
+      .select({
+        id:             orgAddonsTable.id,
+        organizationId: orgAddonsTable.organizationId,
+        addonId:        orgAddonsTable.addonId,
+        status:         orgAddonsTable.status,
+        addonSlug:      addonCatalogTable.slug,
+        addonName:      addonCatalogTable.name,
+        orgName:        organizationsTable.name,
+      })
+      .from(orgAddonsTable)
+      .innerJoin(addonCatalogTable, eq(addonCatalogTable.id, orgAddonsTable.addonId))
+      .innerJoin(organizationsTable, eq(organizationsTable.id, orgAddonsTable.organizationId))
+      .where(eq(orgAddonsTable.id, id))
+      .limit(1);
+
+    if (!row) return res.status(404).json({ error: "Demande introuvable" });
+    if (row.status !== "pending_quote") {
+      return res.status(400).json({ error: "Cette demande n'est pas en statut pending_quote" });
+    }
+
+    const now = new Date();
+
+    await db.transaction(async (tx) => {
+      // 1. Activer l'add-on
+      await tx
+        .update(orgAddonsTable)
+        .set({ status: "active", activatedAt: now, notes: notes ?? row.addonName, updatedAt: now })
+        .where(eq(orgAddonsTable.id, id));
+
+      // 2. Déverrouiller le module dans organization_modules (upsert)
+      await tx
+        .insert(organizationModulesTable)
+        .values({
+          organizationId: row.organizationId,
+          moduleKey:      row.addonSlug,
+          enabled:        true,
+          source:         "addon",
+          enabledAt:      now,
+        })
+        .onConflictDoUpdate({
+          target: [organizationModulesTable.organizationId, organizationModulesTable.moduleKey],
+          set: { enabled: true, source: "addon", updatedAt: now },
+        });
+    });
+
+    return res.json({ ok: true, addonSlug: row.addonSlug, orgName: row.orgName });
+  } catch (e) { next(e); }
+});
+
 router.post("/super-admin/factory-reset", sa, async (req, res, next) => {
   try {
     const confirm = (req.body as { confirm?: unknown } | undefined)?.confirm;
