@@ -64,21 +64,26 @@ function Spinner() {
 }
 
 /* ── Error boundary : capture les crash React et propose un rechargement ── */
-type EBState = { hasError: boolean; isChunkError: boolean };
+type EBState = { hasError: boolean; isChunkError: boolean; errorMessage: string };
 class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false, isChunkError: false };
+    this.state = { hasError: false, isChunkError: false, errorMessage: "" };
   }
 
   static getDerivedStateFromError(error: Error): EBState {
     const msg = error?.message ?? "";
+    const stack = error?.stack ?? "";
     const isChunk =
       msg.includes("Failed to fetch dynamically imported module") ||
       msg.includes("Loading chunk") ||
       msg.includes("Importing a module script failed") ||
       msg.includes("error loading dynamically imported module");
-    return { hasError: true, isChunkError: isChunk };
+    return {
+      hasError: true,
+      isChunkError: isChunk,
+      errorMessage: isChunk ? "" : `${msg}\n\n${stack.split("\n").slice(0, 8).join("\n")}`,
+    };
   }
 
   componentDidCatch(error: Error) {
@@ -93,7 +98,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
     if (this.state.hasError && !this.state.isChunkError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8">
-          <div className="max-w-sm w-full text-center space-y-4">
+          <div className="max-w-lg w-full text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
@@ -101,6 +106,11 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, EBState> {
             <p className="text-sm text-muted-foreground">
               Le Cockpit a rencontré un problème. Rechargez la page pour réessayer.
             </p>
+            {this.state.errorMessage && (
+              <pre className="text-left text-xs bg-red-50 border border-red-200 rounded-lg p-3 overflow-auto max-h-48 text-red-800 whitespace-pre-wrap">
+                {this.state.errorMessage}
+              </pre>
+            )}
             <button
               onClick={() => window.location.reload()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity"

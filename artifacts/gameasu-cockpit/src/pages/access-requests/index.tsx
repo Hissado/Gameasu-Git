@@ -230,11 +230,11 @@ function DetailDialog({ req, onClose, cockpitUsers }: { req: AccessRequest; onCl
           </div>
 
           {/* Modules & besoin */}
-          {req.desiredModules.length > 0 && (
+          {(req.desiredModules ?? []).length > 0 && (
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">Modules souhaités</p>
               <div className="flex flex-wrap gap-1.5">
-                {req.desiredModules.map((m) => (
+                {(req.desiredModules ?? []).map((m) => (
                   <Badge key={m} variant="outline" className="text-xs">{m}</Badge>
                 ))}
               </div>
@@ -546,13 +546,13 @@ export default function AccessRequestsPage() {
                     )}
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.createdAt).toLocaleDateString("fr-FR")}</span>
                   </div>
-                  {r.desiredModules.length > 0 && (
+                  {(r.desiredModules ?? []).length > 0 && (
                     <div className="flex gap-1 mt-1 flex-wrap">
-                      {r.desiredModules.slice(0, 4).map((m) => (
+                      {(r.desiredModules ?? []).slice(0, 4).map((m) => (
                         <span key={m} className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">{m}</span>
                       ))}
-                      {r.desiredModules.length > 4 && (
-                        <span className="text-[10px] text-muted-foreground">+{r.desiredModules.length - 4}</span>
+                      {(r.desiredModules ?? []).length > 4 && (
+                        <span className="text-[10px] text-muted-foreground">+{(r.desiredModules ?? []).length - 4}</span>
                       )}
                     </div>
                   )}
