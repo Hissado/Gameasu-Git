@@ -369,13 +369,15 @@ router.get("/auth/me", async (req, res) => {
   let orgName: string | null = null;
   let orgLegalName: string | null = null;
   let orgLogoUrl: string | null = null;
+  let orgType: string | null = null;
+  let orgAccountingFramework: string | null = null;
   if (activeOrgId) {
     const [org] = await db
-      .select({ name: organizationsTable.name, legalName: organizationsTable.legalName, logoUrl: organizationsTable.logoUrl })
+      .select({ name: organizationsTable.name, legalName: organizationsTable.legalName, logoUrl: organizationsTable.logoUrl, orgType: organizationsTable.orgType, accountingFramework: organizationsTable.accountingFramework })
       .from(organizationsTable)
       .where(eq(organizationsTable.id, activeOrgId))
       .limit(1);
-    if (org) { orgName = org.name; orgLegalName = org.legalName; orgLogoUrl = org.logoUrl; }
+    if (org) { orgName = org.name; orgLegalName = org.legalName; orgLogoUrl = org.logoUrl; orgType = org.orgType; orgAccountingFramework = org.accountingFramework; }
   }
 
   const orgs = await getUserOrgs(user.id, user.organizationId);
@@ -403,6 +405,8 @@ router.get("/auth/me", async (req, res) => {
     organizationName: orgName,
     organizationLegalName: orgLegalName,
     organizationLogoUrl: orgLogoUrl,
+    orgType,
+    accountingFramework: orgAccountingFramework,
     orgs,
     subscriptionStatus,
   });

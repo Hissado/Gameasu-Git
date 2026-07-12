@@ -27,10 +27,10 @@ export const organizationsTable = pgTable("organizations", {
   contactPhone: text("contact_phone"),
   address: text("address"),
   taxId: text("tax_id"),
-  // Type d'organisation : enterprise | tpe | association | bank | microfinance | insurance | social_protection | government
-  orgType: text("org_type").default("enterprise"),
-  // Référentiel comptable auto-déduit du type : SYSCOHADA | SYSCOHADA_SMT | SYCEBNL | PCB_UMOA | SFD | CIMA | CIPRES | PCE
-  accountingFramework: text("accounting_framework").default("SYSCOHADA"),
+  // Type d'organisation : pme | tpe | cooperative | ong | banque | microfinance | assurance | prevoyance | administration | cabinet | autre
+  orgType: text("org_type").default("pme"),
+  // Référentiel comptable auto-déduit du type : syscohada | syscohada_smt | sycebnl | pcb | microfinance | cima | cipres | pce | autre
+  accountingFramework: text("accounting_framework").default("syscohada"),
   isActive: boolean("is_active").notNull().default(true),
   isDefault: boolean("is_default").notNull().default(false),
   // Stripe — identifiant client Stripe (cus_xxx), jamais exposé côté front
@@ -490,6 +490,20 @@ export const platformSettingsTable = pgTable("platform_settings", {
 });
 
 export type PlatformSetting = typeof platformSettingsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
+// CATALOGUE DES RÉFÉRENTIELS COMPTABLES
+// Code, libellé, description et types d'organisations applicables.
+// ─────────────────────────────────────────────────────────────────
+export const accountingFrameworksTable = pgTable("accounting_frameworks", {
+  code: text("code").primaryKey(),                 // ex: "syscohada"
+  label: text("label").notNull(),                  // ex: "SYSCOHADA — Système Comptable OHADA"
+  description: text("description"),
+  applicableOrgTypes: jsonb("applicable_org_types").$type<string[]>().notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export type AccountingFrameworkCatalog = typeof accountingFrameworksTable.$inferSelect;
 
 export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOrganizationMemberSchema = createInsertSchema(organizationMembersTable).omit({ id: true, joinedAt: true });

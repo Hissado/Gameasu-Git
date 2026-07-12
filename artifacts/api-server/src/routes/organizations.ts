@@ -6,8 +6,11 @@ import { getCurrentOrganizationId } from "../lib/tenant";
 import { requireAdmin } from "../middlewares/auth";
 import {
   ORG_TYPE_LABELS, FRAMEWORK_LABELS, FRAMEWORK_DESCRIPTIONS,
+  getFrameworkForOrgType, seedAccountingFrameworkForOrg,
   type AccountingFramework,
 } from "../services/accounting-framework";
+
+const VALID_ORG_TYPES = ["pme", "tpe", "cooperative", "ong", "banque", "microfinance", "assurance", "prevoyance", "administration", "cabinet", "autre"] as const;
 
 const router: IRouter = Router();
 
@@ -53,8 +56,8 @@ router.get("/organizations/accounting-framework", async (req, res) => {
       .where(eq(organizationsTable.id, orgId))
       .limit(1);
     if (!org) return res.status(404).json({ error: "Introuvable" });
-    const framework = (org.accountingFramework ?? "SYSCOHADA") as AccountingFramework;
-    const orgType = org.orgType ?? "enterprise";
+    const framework = (org.accountingFramework ?? "syscohada") as AccountingFramework;
+    const orgType = org.orgType ?? "pme";
     return res.json({
       orgType,
       orgTypeLabel: ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
@@ -64,6 +67,61 @@ router.get("/organizations/accounting-framework", async (req, res) => {
     });
   } catch (e) {
     console.error(e);
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ─── GET /api/organizations/:id/accounting-config ─────────────────────────────
+// Lecture de la configuration comptable d'une org spécifique (admin requis).
+
+router.get("/organizations/:id/accounting-config", requireAdmin, async (req, res) => {
+  try {
+    const [org] = await db
+      .select({ orgType: organizationsTable.orgType, accountingFramework: organizationsTable.accountingFramework })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, req.params.id as string))
+      .limit(1);
+    if (!org) return res.status(404).json({ error: "Introuvable" });
+    const framework = (org.accountingFramework ?? "syscohada") as AccountingFramework;
+    const orgType = org.orgType ?? "pme";
+    return res.json({
+      orgType,
+      orgTypeLabel:         ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework:  framework,
+      frameworkLabel:       FRAMEWORK_LABELS[framework] ?? framework,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+    });
+  } catch (e) {
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ─── PATCH /api/organizations/:id/accounting-config ───────────────────────────
+// Mise à jour du type d'organisation → recalcul + sauvegarde du référentiel.
+
+router.patch("/organizations/:id/accounting-config", requireAdmin, async (req, res) => {
+  try {
+    const { orgType } = req.body ?? {};
+    if (!orgType || !(VALID_ORG_TYPES as readonly string[]).includes(orgType)) {
+      return res.status(400).json({ error: `Type d'organisation invalide. Valeurs acceptées : ${VALID_ORG_TYPES.join(", ")}` });
+    }
+    const framework = getFrameworkForOrgType(orgType) as AccountingFramework;
+    const [updated] = await db
+      .update(organizationsTable)
+      .set({ orgType, accountingFramework: framework, updatedAt: new Date() })
+      .where(eq(organizationsTable.id, req.params.id as string))
+      .returning({ id: organizationsTable.id, orgType: organizationsTable.orgType, accountingFramework: organizationsTable.accountingFramework });
+    if (!updated) return res.status(404).json({ error: "Introuvable" });
+    // Seed best-effort (idempotent)
+    seedAccountingFrameworkForOrg(updated.id, framework).catch(() => {});
+    return res.json({
+      orgType: updated.orgType,
+      orgTypeLabel:         ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework:  updated.accountingFramework,
+      frameworkLabel:       FRAMEWORK_LABELS[framework] ?? framework,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+    });
+  } catch (e) {
     return res.status(500).json({ error: "Erreur serveur" });
   }
 });

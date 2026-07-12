@@ -17,77 +17,89 @@ import { logger } from "../lib/logger";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type OrgType =
-  | "enterprise"     // Entreprise, PME, SA, SARL, SAS, GIE, Coopérative
+  | "pme"            // Entreprise, PME, SA, SARL, SAS, GIE
   | "tpe"            // Très petite entreprise, microentreprise, indépendant
-  | "association"    // Association, ONG, Fondation, OSBL
-  | "bank"           // Banque, établissement de crédit
+  | "cooperative"    // Coopérative, groupement d'intérêt économique (GIE)
+  | "ong"            // Association, ONG, Fondation, OSBL
+  | "banque"         // Banque, établissement de crédit
   | "microfinance"   // Institution de microfinance, SFD
-  | "insurance"      // Compagnie d'assurance, mutuelle d'assurance
-  | "social_protection" // Caisse de prévoyance, sécurité sociale
-  | "government";    // Collectivité publique, administration
+  | "assurance"      // Compagnie d'assurance, mutuelle d'assurance
+  | "prevoyance"     // Caisse de prévoyance, sécurité sociale
+  | "administration" // Collectivité publique, administration
+  | "cabinet"        // Cabinet comptable, profession libérale
+  | "autre";         // Autre type d'organisation
 
 export type AccountingFramework =
-  | "SYSCOHADA"       // Entreprise/PME en zone OHADA
-  | "SYSCOHADA_SMT"   // Très petite entreprise (Système Minimal de Trésorerie)
-  | "SYCEBNL"         // Entités à but non lucratif (associations/ONGs)
-  | "PCB_UMOA"        // Plan Comptable Bancaire UMOA (banques)
-  | "SFD"             // Système Financier Décentralisé (microfinance)
-  | "CIMA"            // Plan comptable des assurances CIMA
-  | "CIPRES"          // Référentiel CIPRES (prévoyance sociale)
-  | "PCE";            // Plan Comptable de l'État (administrations)
+  | "syscohada"       // Entreprise/PME en zone OHADA
+  | "syscohada_smt"   // Très petite entreprise (Système Minimal de Trésorerie)
+  | "sycebnl"         // Entités à but non lucratif (associations/ONGs)
+  | "pcb"             // Plan Comptable Bancaire UMOA (banques)
+  | "microfinance"    // Système Financier Décentralisé (microfinance)
+  | "cima"            // Plan comptable des assurances CIMA
+  | "cipres"          // Référentiel CIPRES (prévoyance sociale)
+  | "pce"             // Plan Comptable de l'État (administrations)
+  | "autre";          // Autre référentiel non répertorié
 
 // ─── Mapping orgType → framework ──────────────────────────────────────────────
 
 export const ORG_TYPE_TO_FRAMEWORK: Record<OrgType, AccountingFramework> = {
-  enterprise:         "SYSCOHADA",
-  tpe:                "SYSCOHADA_SMT",
-  association:        "SYCEBNL",
-  bank:               "PCB_UMOA",
-  microfinance:       "SFD",
-  insurance:          "CIMA",
-  social_protection:  "CIPRES",
-  government:         "PCE",
+  pme:            "syscohada",
+  tpe:            "syscohada_smt",
+  cooperative:    "syscohada",
+  ong:            "sycebnl",
+  banque:         "pcb",
+  microfinance:   "microfinance",
+  assurance:      "cima",
+  prevoyance:     "cipres",
+  administration: "pce",
+  cabinet:        "syscohada",
+  autre:          "syscohada",
 };
 
 // ─── Labels lisibles ──────────────────────────────────────────────────────────
 
 export const ORG_TYPE_LABELS: Record<OrgType, string> = {
-  enterprise:         "Entreprise / PME",
-  tpe:                "Très petite entreprise (TPE)",
-  association:        "Association / ONG / Fondation",
-  bank:               "Banque / Établissement de crédit",
-  microfinance:       "Institution de microfinance (SFD)",
-  insurance:          "Compagnie d'assurance",
-  social_protection:  "Organisme de prévoyance sociale",
-  government:         "Administration publique",
+  pme:            "Entreprise / PME",
+  tpe:            "Très petite entreprise (TPE)",
+  cooperative:    "Coopérative / GIE",
+  ong:            "Association / ONG / Fondation",
+  banque:         "Banque / Établissement de crédit",
+  microfinance:   "Institution de microfinance (SFD)",
+  assurance:      "Compagnie d'assurance",
+  prevoyance:     "Organisme de prévoyance sociale",
+  administration: "Administration publique",
+  cabinet:        "Cabinet / Profession libérale",
+  autre:          "Autre type d'organisation",
 };
 
 export const FRAMEWORK_LABELS: Record<AccountingFramework, string> = {
-  SYSCOHADA:      "SYSCOHADA — Système Comptable OHADA (PME)",
-  SYSCOHADA_SMT:  "SYSCOHADA SMT — Système Minimal de Trésorerie",
-  SYCEBNL:        "SYCEBNL — Entités à But Non Lucratif",
-  PCB_UMOA:       "PCB UMOA — Plan Comptable Bancaire",
-  SFD:            "SFD — Système Financier Décentralisé",
-  CIMA:           "CIMA — Assurances",
-  CIPRES:         "CIPRES — Prévoyance Sociale",
-  PCE:            "PCE — Plan Comptable de l'État",
+  syscohada:      "SYSCOHADA — Système Comptable OHADA",
+  syscohada_smt:  "SYSCOHADA SMT — Système Minimal de Trésorerie",
+  sycebnl:        "SYCEBNL — Entités à But Non Lucratif",
+  pcb:            "PCB UMOA — Plan Comptable Bancaire",
+  microfinance:   "SFD — Système Financier Décentralisé",
+  cima:           "CIMA — Assurances",
+  cipres:         "CIPRES — Prévoyance Sociale",
+  pce:            "PCE — Plan Comptable de l'État",
+  autre:          "Autre référentiel",
 };
 
 export const FRAMEWORK_DESCRIPTIONS: Record<AccountingFramework, string> = {
-  SYSCOHADA:     "Référentiel comptable commun à la zone OHADA (17 pays). Adapté aux entreprises, PME, SA, SARL et GIE.",
-  SYSCOHADA_SMT: "Version simplifiée du SYSCOHADA pour les très petites entreprises et micro-entreprises. Comptabilité de trésorerie.",
-  SYCEBNL:       "Système Comptable des Entités à But Non Lucratif. Adapté aux associations, ONG, fondations et mutuelles.",
-  PCB_UMOA:      "Plan Comptable Bancaire de l'UMOA. Obligatoire pour les banques et établissements financiers de l'Union.",
-  SFD:           "Référentiel comptable des Systèmes Financiers Décentralisés (microfinance, coopératives d'épargne-crédit).",
-  CIMA:          "Plan comptable des assurances selon le code CIMA (Conférence Interafricaine des Marchés d'Assurances).",
-  CIPRES:        "Référentiel CIPRES pour les organismes de protection sociale et de prévoyance en Afrique de l'Ouest.",
-  PCE:           "Plan Comptable de l'État, adapté aux collectivités publiques, mairies et administrations d'État.",
+  syscohada:     "Référentiel comptable commun à la zone OHADA (17 pays). Adapté aux entreprises, PME, SA, SARL et GIE.",
+  syscohada_smt: "Version simplifiée du SYSCOHADA pour les très petites entreprises et micro-entreprises. Comptabilité de trésorerie.",
+  sycebnl:       "Système Comptable des Entités à But Non Lucratif. Adapté aux associations, ONG, fondations et mutuelles.",
+  pcb:           "Plan Comptable Bancaire de l'UMOA. Obligatoire pour les banques et établissements financiers de l'Union.",
+  microfinance:  "Référentiel comptable des Systèmes Financiers Décentralisés (microfinance, coopératives d'épargne-crédit).",
+  cima:          "Plan comptable des assurances selon le code CIMA (Conférence Interafricaine des Marchés d'Assurances).",
+  cipres:        "Référentiel CIPRES pour les organismes de protection sociale et de prévoyance en Afrique de l'Ouest.",
+  pce:           "Plan Comptable de l'État, adapté aux collectivités publiques, mairies et administrations d'État.",
+  autre:         "Référentiel comptable personnalisé ou non répertorié dans le catalogue standard.",
 };
 
 // ─── Utilitaire ───────────────────────────────────────────────────────────────
 
 export function getFrameworkForOrgType(orgType: string): AccountingFramework {
-  return ORG_TYPE_TO_FRAMEWORK[orgType as OrgType] ?? "SYSCOHADA";
+  return ORG_TYPE_TO_FRAMEWORK[orgType as OrgType] ?? "syscohada";
 }
 
 // ─── Helpers communs ──────────────────────────────────────────────────────────
@@ -460,74 +472,77 @@ const PCE_ACCOUNTS: Acc[] = [
 // ─── Journaux par référentiel ──────────────────────────────────────────────────
 
 const JOURNALS_BY_FRAMEWORK: Record<AccountingFramework, typeof JOURNALS_STANDARD> = {
-  SYSCOHADA:      JOURNALS_STANDARD,
-  SYSCOHADA_SMT:  JOURNALS_STANDARD,
-  SYCEBNL: [
+  syscohada:      JOURNALS_STANDARD,
+  syscohada_smt:  JOURNALS_STANDARD,
+  sycebnl: [
     { code: "REC", label: "Journal des recettes",          type: "sales",    defaultAccountCode: "521" },
     { code: "DEP", label: "Journal des dépenses",          type: "purchase", defaultAccountCode: "401" },
     { code: "BNQ", label: "Journal de banque",             type: "bank",     defaultAccountCode: "521" },
     { code: "CAI", label: "Journal de caisse",             type: "cash",     defaultAccountCode: "571" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
-  PCB_UMOA: [
+  pcb: [
     { code: "OPE", label: "Opérations courantes",          type: "misc",     defaultAccountCode: null  },
     { code: "CAI", label: "Caisse",                        type: "cash",     defaultAccountCode: "501" },
     { code: "BNQ", label: "Compte BCEAO",                  type: "bank",     defaultAccountCode: "521" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
-  SFD: [
+  microfinance: [
     { code: "CRE", label: "Journal des crédits",           type: "sales",    defaultAccountCode: "211" },
     { code: "EPN", label: "Journal de l'épargne",          type: "misc",     defaultAccountCode: "311" },
     { code: "BNQ", label: "Journal de banque",             type: "bank",     defaultAccountCode: "521" },
     { code: "CAI", label: "Journal de caisse",             type: "cash",     defaultAccountCode: "571" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
-  CIMA: [
+  cima: [
     { code: "PRM", label: "Journal des primes",            type: "sales",    defaultAccountCode: "411" },
     { code: "SIN", label: "Journal des sinistres",         type: "misc",     defaultAccountCode: null  },
     { code: "BNQ", label: "Journal de banque",             type: "bank",     defaultAccountCode: "521" },
     { code: "CAI", label: "Journal de caisse",             type: "cash",     defaultAccountCode: "571" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
-  CIPRES: [
+  cipres: [
     { code: "COT", label: "Journal des cotisations",       type: "sales",    defaultAccountCode: "411" },
     { code: "PRE", label: "Journal des prestations",       type: "misc",     defaultAccountCode: null  },
     { code: "BNQ", label: "Journal de banque",             type: "bank",     defaultAccountCode: "521" },
     { code: "CAI", label: "Journal de caisse",             type: "cash",     defaultAccountCode: "571" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
-  PCE: [
+  pce: [
     { code: "REC", label: "Journal des recettes publiques",type: "sales",    defaultAccountCode: "521" },
     { code: "DEP", label: "Journal des dépenses publiques",type: "purchase", defaultAccountCode: "401" },
     { code: "TRE", label: "Compte Trésor",                 type: "bank",     defaultAccountCode: "521" },
     { code: "CAI", label: "Journal de caisse",             type: "cash",     defaultAccountCode: "571" },
     { code: "OD",  label: "Opérations diverses",           type: "misc",     defaultAccountCode: null  },
   ],
+  autre: JOURNALS_STANDARD,
 };
 
 // ─── Accounts by framework ────────────────────────────────────────────────────
 
 const ACCOUNTS_BY_FRAMEWORK: Record<AccountingFramework, Acc[]> = {
-  SYSCOHADA:      SYSCOHADA_ACCOUNTS,
-  SYSCOHADA_SMT:  SYSCOHADA_SMT_ACCOUNTS,
-  SYCEBNL:        SYCEBNL_ACCOUNTS,
-  PCB_UMOA:       PCB_UMOA_ACCOUNTS,
-  SFD:            SFD_ACCOUNTS,
-  CIMA:           CIMA_ACCOUNTS,
-  CIPRES:         CIPRES_ACCOUNTS,
-  PCE:            PCE_ACCOUNTS,
+  syscohada:      SYSCOHADA_ACCOUNTS,
+  syscohada_smt:  SYSCOHADA_SMT_ACCOUNTS,
+  sycebnl:        SYCEBNL_ACCOUNTS,
+  pcb:            PCB_UMOA_ACCOUNTS,
+  microfinance:   SFD_ACCOUNTS,
+  cima:           CIMA_ACCOUNTS,
+  cipres:         CIPRES_ACCOUNTS,
+  pce:            PCE_ACCOUNTS,
+  autre:          SYSCOHADA_ACCOUNTS,
 };
 
 // Bank/cash accounts by framework
 const BANK_CASH_CODES: Record<AccountingFramework, { bank: string; cash: string }> = {
-  SYSCOHADA:     { bank: "521", cash: "571" },
-  SYSCOHADA_SMT: { bank: "521", cash: "571" },
-  SYCEBNL:       { bank: "521", cash: "571" },
-  PCB_UMOA:      { bank: "521", cash: "501" },
-  SFD:           { bank: "521", cash: "571" },
-  CIMA:          { bank: "521", cash: "571" },
-  CIPRES:        { bank: "521", cash: "571" },
-  PCE:           { bank: "521", cash: "571" },
+  syscohada:     { bank: "521", cash: "571" },
+  syscohada_smt: { bank: "521", cash: "571" },
+  sycebnl:       { bank: "521", cash: "571" },
+  pcb:           { bank: "521", cash: "501" },
+  microfinance:  { bank: "521", cash: "571" },
+  cima:          { bank: "521", cash: "571" },
+  cipres:        { bank: "521", cash: "571" },
+  pce:           { bank: "521", cash: "571" },
+  autre:         { bank: "521", cash: "571" },
 };
 
 // ─── Main dispatcher ──────────────────────────────────────────────────────────
@@ -539,7 +554,7 @@ const BANK_CASH_CODES: Record<AccountingFramework, { bank: string; cash: string 
  */
 export async function seedAccountingFrameworkForOrg(
   organizationId: string,
-  framework: AccountingFramework = "SYSCOHADA",
+  framework: AccountingFramework = "syscohada",
 ): Promise<void> {
   const accounts = ACCOUNTS_BY_FRAMEWORK[framework] ?? SYSCOHADA_ACCOUNTS;
   const journals = JOURNALS_BY_FRAMEWORK[framework] ?? JOURNALS_STANDARD;

@@ -10,14 +10,16 @@ import { PLAN_CATALOG, PERIODICITY_OPTIONS, calcPlanPricing } from "@/lib/pricin
 import { formatFCFA } from "@/lib/format";
 
 const ORG_TYPE_OPTIONS = [
-  { value: "enterprise",        label: "Entreprise (PME, grande entreprise)", framework: "SYSCOHADA" },
-  { value: "tpe",               label: "TPE / Très petite entreprise", framework: "SYSCOHADA (version simplifiée)" },
-  { value: "association",       label: "Association / ONG", framework: "SYCEBNL" },
-  { value: "bank",              label: "Banque / Établissement financier", framework: "PCB-UMOA" },
-  { value: "microfinance",      label: "Microfinance / SFD", framework: "SFD" },
-  { value: "insurance",         label: "Assurance", framework: "CIMA" },
-  { value: "social_protection", label: "Protection sociale / Retraite", framework: "CIPRES" },
-  { value: "government",        label: "Organisme public / État", framework: "PCE" },
+  { value: "pme",            label: "Entreprise / PME — pour les sociétés commerciales, PME et coopératives",           framework: "SYSCOHADA" },
+  { value: "tpe",            label: "Très petite entreprise (TPE) — pour les micro-entreprises et indépendants",        framework: "SYSCOHADA SMT" },
+  { value: "cooperative",   label: "Coopérative / GIE — pour les groupements d'intérêt économique",                   framework: "SYSCOHADA" },
+  { value: "ong",            label: "Association / ONG / Fondation — pour les entités à but non lucratif",              framework: "SYCEBNL" },
+  { value: "banque",         label: "Banque / Établissement de crédit — soumis au Plan Comptable Bancaire UMOA",       framework: "PCB UMOA" },
+  { value: "microfinance",   label: "Microfinance / SFD — Système Financier Décentralisé",                             framework: "SFD" },
+  { value: "assurance",      label: "Compagnie d'assurance — soumise au code CIMA",                                    framework: "CIMA" },
+  { value: "prevoyance",     label: "Prévoyance sociale — caisses de retraite et organismes de sécurité sociale",      framework: "CIPRES" },
+  { value: "administration", label: "Administration publique — mairies, ministères et établissements publics",         framework: "PCE" },
+  { value: "cabinet",        label: "Cabinet / Profession libérale — expert-comptable, avocat, médecin, consultant",   framework: "SYSCOHADA" },
 ];
 
 const INDUSTRY_OPTIONS = [

@@ -25,6 +25,9 @@ export const chartOfAccountsTable = pgTable("chart_of_accounts", {
   isActive: boolean("is_active").notNull().default(true),
   // si true, on peut imputer dessus ; sinon c'est un "noeud" de regroupement
   isPostable: boolean("is_postable").notNull().default(true),
+  // Référentiels comptables applicables à ce compte (["syscohada"] par défaut).
+  // Utilisé pour le filtrage et le tagging futur des comptes par référentiel.
+  applicableFrameworks: jsonb("applicable_frameworks").$type<string[]>().default(sql`'["syscohada"]'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   codeIdx: uniqueIndex("chart_accounts_org_code_uidx").on(t.organizationId, t.code),

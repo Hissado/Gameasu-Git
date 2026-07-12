@@ -981,7 +981,7 @@ router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req,
 
 // ─── Référentiel comptable par organisation ────────────────────────────────────
 
-const VALID_ORG_TYPES = ["enterprise", "tpe", "association", "bank", "microfinance", "insurance", "social_protection", "government"] as const;
+const VALID_ORG_TYPES = ["pme", "tpe", "cooperative", "ong", "banque", "microfinance", "assurance", "prevoyance", "administration", "cabinet", "autre"] as const;
 
 router.get("/super-admin/organizations/:id/accounting-framework", sa, async (req, res, next) => {
   try {
@@ -998,8 +998,8 @@ router.get("/super-admin/organizations/:id/accounting-framework", sa, async (req
       .limit(1);
     if (!org) return res.status(404).json({ error: "Organisation introuvable" });
 
-    const framework = (org.accountingFramework ?? "SYSCOHADA") as AccountingFramework;
-    const orgType = org.orgType ?? "enterprise";
+    const framework = (org.accountingFramework ?? "syscohada") as AccountingFramework;
+    const orgType = org.orgType ?? "pme";
 
     return res.json({
       orgType,

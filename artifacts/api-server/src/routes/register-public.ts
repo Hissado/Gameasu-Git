@@ -35,7 +35,7 @@ const router = Router();
 const BCRYPT_ROUNDS = 12;
 const SESSION_TTL_DAYS = 30;
 
-const VALID_ORG_TYPES = ["enterprise", "tpe", "association", "bank", "microfinance", "insurance", "social_protection", "government"] as const;
+const VALID_ORG_TYPES = ["pme", "tpe", "cooperative", "ong", "banque", "microfinance", "assurance", "prevoyance", "administration", "cabinet", "autre"] as const;
 
 const RegisterSchema = z.object({
   orgName:     z.string().min(2).max(100),
@@ -50,7 +50,7 @@ const RegisterSchema = z.object({
   periodicity: z.enum(["monthly", "quarterly", "semiannual", "annual"]).default("monthly"),
   country:     z.string().optional(),
   industry:    z.string().optional(),
-  orgType:     z.enum(VALID_ORG_TYPES).default("enterprise"),
+  orgType:     z.enum(VALID_ORG_TYPES).default("pme"),
 });
 
 const MONTHS_MAP: Record<string, number> = {
@@ -137,7 +137,7 @@ router.post("/public/register", async (req, res, next) => {
     let txId = "";
     let subId = "";
 
-    const resolvedOrgType = data.orgType ?? "enterprise";
+    const resolvedOrgType = data.orgType ?? "pme";
     const resolvedFramework = getFrameworkForOrgType(resolvedOrgType) as AccountingFramework;
 
     await db.transaction(async (dbTx) => {
@@ -281,25 +281,27 @@ async function uniqueSlug(base: string): Promise<string> {
 // ── GET /api/public/accounting-frameworks ─────────────────────────────────
 // Catalogue des référentiels comptables disponibles (sans authentification).
 
-router.get("/public/accounting-frameworks", (_req, res) => {
-  const entries = [
-    { orgType: "enterprise",        frameworkCode: "SYSCOHADA" },
-    { orgType: "tpe",               frameworkCode: "SYSCOHADA_SMT" },
-    { orgType: "association",       frameworkCode: "SYCEBNL" },
-    { orgType: "bank",              frameworkCode: "PCB_UMOA" },
-    { orgType: "microfinance",      frameworkCode: "SFD" },
-    { orgType: "insurance",         frameworkCode: "CIMA" },
-    { orgType: "social_protection", frameworkCode: "CIPRES" },
-    { orgType: "government",        frameworkCode: "PCE" },
-  ];
+function buildFrameworkCatalog() {
+  return (VALID_ORG_TYPES as readonly string[]).map(orgType => {
+    const fw = getFrameworkForOrgType(orgType);
+    return {
+      orgType,
+      orgTypeLabel:         ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework:  fw,
+      frameworkLabel:       FRAMEWORK_LABELS[fw as keyof typeof FRAMEWORK_LABELS] ?? fw,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[fw as keyof typeof FRAMEWORK_DESCRIPTIONS] ?? "",
+    };
+  });
+}
 
-  res.json(entries.map(e => ({
-    orgType:             e.orgType,
-    orgTypeLabel:        ORG_TYPE_LABELS[e.orgType as keyof typeof ORG_TYPE_LABELS] ?? e.orgType,
-    accountingFramework: e.frameworkCode,
-    frameworkLabel:      FRAMEWORK_LABELS[e.frameworkCode as keyof typeof FRAMEWORK_LABELS] ?? e.frameworkCode,
-    frameworkDescription: FRAMEWORK_DESCRIPTIONS[e.frameworkCode as keyof typeof FRAMEWORK_DESCRIPTIONS] ?? "",
-  })));
+// Chemin canonique (sans préfixe /public/) — accessible sans auth
+router.get("/accounting-frameworks", (_req, res) => {
+  res.json(buildFrameworkCatalog());
+});
+
+// Alias avec préfixe /public/ — conservé pour compatibilité
+router.get("/public/accounting-frameworks", (_req, res) => {
+  res.json(buildFrameworkCatalog());
 });
 
 // ── GET /api/public/check-email ───────────────────────────────────────────
