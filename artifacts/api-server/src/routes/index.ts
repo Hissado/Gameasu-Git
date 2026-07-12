@@ -33,7 +33,7 @@ import billingAddonsRouter, { seedAddonCatalog } from "./billing-addons";
 import intelligenceRouter from "./intelligence";
 import automationRouter from "./automation";
 import attendanceRouter from "./attendance";
-import attendanceReportsRouter from "./attendance-reports";
+import attendanceReportsRouter, { sendMonthlyAttendanceReport } from "./attendance-reports";
 import timesheetsRouter from "./timesheets";
 import client360Router from "./client360";
 import payrollRouter from "./payroll";
@@ -95,6 +95,8 @@ import { seedKiosk } from "@workspace/db/seed-kiosk";
 import { requireAuth } from "../middlewares/auth";
 import { enforcePasswordChange } from "../middlewares/permissions";
 import { seedRbac } from "../lib/rbac/seed";
+import { db, organizationsTable, notificationsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -241,5 +243,88 @@ seedHissado()
 // Scan d'alertes au démarrage + toutes les 6h
 runAlertsScanForAllOrganizations().catch((e) => console.warn("[alerts] initial scan failed:", e?.message));
 setInterval(() => { runAlertsScanForAllOrganizations().catch(() => {}); }, 6 * 60 * 60 * 1000);
+
+// ── Rapport mensuel de présence : envoi automatique le 1er de chaque mois ────
+// Stratégie robuste :
+//   1. Vérification toutes les heures si on est le 1er du mois (toute la journée,
+//      pas seulement à 7h) — couvre les redémarrages après l'heure cible.
+//   2. Verrou mémoire (YYYY-MM) pour éviter plusieurs envois au cours du même processus.
+//   3. Verrou DB par org (lecture notificationsTable) pour éviter les doublons en cas
+//      de redémarrage du serveur le 1er : si une notification type="report_sent"
+//      existe déjà pour cette org depuis le 1er du mois cible, on saute cette org.
+
+let _lastAttendanceReportKey: string | null = null; // verrou mémoire "YYYY-MM"
+
+function scheduleMonthlyAttendanceReports() {
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getUTCDate() !== 1) return; // seulement le 1er du mois (toute la journée)
+
+    // Rapport du mois précédent (ex. : le 1er août → rapport de juillet)
+    const prevDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+    const year = prevDate.getUTCFullYear();
+    const month = prevDate.getUTCMonth() + 1;
+    const memKey = `${year}-${String(month).padStart(2, "0")}`;
+    if (_lastAttendanceReportKey === memKey) return; // déjà lancé dans ce processus
+
+    try {
+      const orgs = await db
+        .select({ id: organizationsTable.id, name: organizationsTable.name })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.isActive, true));
+
+      let totalSent = 0;
+      let anyOrgSent = false;
+      for (const org of orgs) {
+        try {
+          // Verrou DB : est-ce que ce rapport a déjà été envoyé pour cette org ce mois-ci ?
+          const [existing] = await db
+            .select({ id: notificationsTable.id })
+            .from(notificationsTable)
+            .where(
+              and(
+                eq(notificationsTable.organizationId, org.id),
+                eq(notificationsTable.type, "report_sent"),
+                eq(notificationsTable.entityType, `attendance:monthly:${memKey}`),
+              ),
+            )
+            .limit(1);
+
+          if (existing) {
+            console.log(`[attendance-reports] org=${org.name} — rapport ${memKey} déjà envoyé, skip`);
+            anyOrgSent = true; // au moins une org avait déjà son rapport
+            continue;
+          }
+
+          const result = await sendMonthlyAttendanceReport(org.id, year, month);
+          totalSent += result.sent;
+          if (result.sent > 0 || result.skipped > 0) {
+            console.log(`[attendance-reports] org=${org.name} → sent=${result.sent} skipped=${result.skipped}`);
+            anyOrgSent = true;
+          }
+          if (result.errors.length > 0) {
+            console.warn(`[attendance-reports] org=${org.name} errors:`, result.errors.slice(0, 3));
+          }
+        } catch (e: any) {
+          console.warn(`[attendance-reports] org=${org.name} failed:`, e?.message);
+        }
+      }
+
+      // Verrouille le processus uniquement si au moins une org a été traitée
+      // (évite de verrouiller prématurément si toutes les orgs ont échoué)
+      if (anyOrgSent || totalSent > 0) {
+        _lastAttendanceReportKey = memKey;
+      }
+
+      if (totalSent > 0) {
+        console.log(`[attendance-reports] rapport ${memKey} terminé — ${totalSent} e-mails envoyés`);
+      }
+    } catch (e: any) {
+      console.warn("[attendance-reports] erreur cron rapport mensuel:", e?.message);
+    }
+  }, 60 * 60 * 1000); // vérification toutes les heures
+}
+
+scheduleMonthlyAttendanceReports();
 
 export default router;

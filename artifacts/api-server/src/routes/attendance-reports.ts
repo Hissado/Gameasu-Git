@@ -5,10 +5,14 @@ import {
   collaboratorsTable, departmentsTable,
   timesheetEntriesTable, projectsTable,
   attendanceRecordsTable,
+  usersTable, notificationsTable,
+  organizationsTable,
 } from "@workspace/db";
 import { and, eq, gte, lte, isNull, inArray, desc, sql } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requirePermission } from "../middlewares/permissions";
+import { hasPermission } from "../lib/rbac/permissions";
+import { sendEmail } from "../lib/email";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 
@@ -720,6 +724,270 @@ router.get("/attendance/reports/records", requirePermission("attendance.view"), 
 
     res.json({ from, to, total, page, limit, data });
   } catch (e) { next(e); }
+});
+
+// ── 8. Send monthly report by email ──────────────────────────────────────────
+
+/**
+ * Génère et envoie le rapport mensuel de présence par e-mail à tous les
+ * utilisateurs actifs de l'organisation ayant la permission `attendance.view`.
+ *
+ * Retourne { sent: number, skipped: number, errors: string[] }.
+ */
+export async function sendMonthlyAttendanceReport(
+  orgId: string,
+  year: number,
+  month: number,
+): Promise<{ sent: number; skipped: number; errors: string[] }> {
+  const errors: string[] = [];
+
+  // ── 1. Organisation ──────────────────────────────────────────────────────
+  const [org] = await db
+    .select({ id: organizationsTable.id, name: organizationsTable.name })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, orgId))
+    .limit(1);
+  if (!org) return { sent: 0, skipped: 0, errors: ["Organisation introuvable"] };
+
+  // ── 2. Utilisateurs avec attendance.view (permission effective = rôle + surcharges) ──
+  // On utilise hasPermission() qui applique exactement la même logique que le middleware
+  // auth : permissions du rôle + grants individuels + deny overrides. Cela garantit que
+  // - les utilisateurs avec une surcharge deny ne reçoivent PAS le rapport
+  // - les utilisateurs avec une surcharge grant (sans rôle éligible) reçoivent le rapport
+  const allOrgUsers = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+    })
+    .from(usersTable)
+    .where(and(eq(usersTable.organizationId, orgId), eq(usersTable.isActive, true)));
+
+  const users: { id: string; email: string; firstName: string; lastName: string }[] = [];
+  for (const u of allOrgUsers) {
+    try {
+      if (await hasPermission(u.id, "attendance.view")) {
+        users.push(u);
+      }
+    } catch {
+      // erreur RBAC pour un utilisateur → on l'ignore silencieusement
+    }
+  }
+
+  if (users.length === 0) {
+    return { sent: 0, skipped: 0, errors: ["Aucun destinataire avec permission attendance.view"] };
+  }
+
+  // ── 3. Données du rapport mensuel ────────────────────────────────────────
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const to = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
+  let expectedDays = 0;
+  for (
+    let d = new Date(from + "T12:00:00Z");
+    d <= new Date(to + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
+    const dow = d.getUTCDay();
+    if (dow >= 1 && dow <= 5) expectedDays++;
+  }
+
+  const sessions = await fetchSessions(orgId, from, to, {});
+  const collabMap = new Map<
+    string,
+    { name: string; dept: string; present: number; late: number; early: number; effMins: number; otMins: number }
+  >();
+  for (const r of sessions) {
+    const eff = r.effectiveMinutes ?? 0;
+    const exp = r.expectedMinutes ?? 480;
+    const e = collabMap.get(r.collaboratorId) ?? {
+      name: collabName(r),
+      dept: r.deptName ?? "—",
+      present: 0,
+      late: 0,
+      early: 0,
+      effMins: 0,
+      otMins: 0,
+    };
+    if (r.status === "closed") e.present++;
+    e.effMins += eff;
+    e.otMins += Math.max(0, eff - exp);
+    if (r.isLate) e.late++;
+    if (r.isEarlyLeave) e.early++;
+    collabMap.set(r.collaboratorId, e);
+  }
+
+  const summary = [...collabMap.values()].map((e) => ({
+    ...e,
+    absent: expectedDays - e.present,
+    rate: expectedDays > 0 ? Math.round((e.present / expectedDays) * 100) : 0,
+  }));
+
+  // KPI globaux pour le résumé HTML
+  const totalCollabs = summary.length;
+  const avgRate =
+    totalCollabs > 0
+      ? Math.round(summary.reduce((s, e) => s + e.rate, 0) / totalCollabs)
+      : 0;
+  const totalLate = summary.reduce((s, e) => s + e.late, 0);
+  const totalOtMins = summary.reduce((s, e) => s + e.otMins, 0);
+
+  // ── 4. Pièce jointe Excel ─────────────────────────────────────────────────
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Gameasu";
+  wb.created = new Date();
+  const ws = wb.addWorksheet(`Présences ${String(month).padStart(2, "0")}-${year}`);
+  addMeta(ws, `Rapport mensuel de présence — ${monthLabel}`, `${String(month).padStart(2, "0")}/${year}`);
+  const headers = [
+    "Collaborateur", "Département", "J. ouvrés", "Présents",
+    "Absents", "Taux (%)", "Heures eff.", "H. sup.", "Retards",
+  ];
+  ws.columns = headers.map((_, i) => ({ key: String(i), width: i === 0 ? 28 : i === 1 ? 22 : 14 }));
+  excelHeader(ws, ws.addRow(headers));
+  for (const e of summary) {
+    ws.addRow([
+      e.name, e.dept, expectedDays, e.present, e.absent,
+      `${e.rate}%`, fmtMinutes(e.effMins), fmtMinutes(e.otMins), e.late,
+    ]);
+  }
+
+  const xlsxBuffer = await wb.xlsx.writeBuffer();
+  const xlsxBase64 = Buffer.from(xlsxBuffer).toString("base64");
+  const fname = `gameasu-presences-mensuel-${year}-${String(month).padStart(2, "0")}.xlsx`;
+
+  // ── 5. Corps HTML de l'e-mail ─────────────────────────────────────────────
+  const tableRows = summary
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+    .map((e) => {
+      const rateColor = e.rate >= 90 ? "#16a34a" : e.rate >= 70 ? "#d97706" : "#dc2626";
+      return `<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:6px 10px;font-size:13px">${e.name}</td>
+        <td style="padding:6px 10px;font-size:12px;color:#555">${e.dept}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:13px">${e.present}/${expectedDays}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:13px;font-weight:600;color:${rateColor}">${e.rate}%</td>
+        <td style="padding:6px 10px;text-align:center;font-size:12px;color:#555">${e.late}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:12px;color:#555">${fmtMinutes(e.otMins)}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const buildHtml = (recipientName: string) => `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#0C1830 100%);padding:28px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:11px;margin-bottom:8px;text-transform:uppercase">${org.name} — Gameasu</div>
+    <div style="color:#fff;font-size:20px;font-weight:700">Rapport mensuel de présence</div>
+    <div style="color:#8fa3c0;font-size:13px;margin-top:6px">${monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}</div>
+  </div>
+  <div style="padding:28px">
+    <p style="margin:0 0 16px;font-size:14px;color:#444">Bonjour <strong>${recipientName}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">
+      Voici le rapport automatique de présence pour <strong>${monthLabel}</strong>.
+      Le fichier Excel détaillé est joint à cet e-mail.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 24px">
+      <div style="background:#f8f9fb;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:#0E1A39">${avgRate}%</div>
+        <div style="font-size:11px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">Taux moyen</div>
+      </div>
+      <div style="background:#f8f9fb;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:#d97706">${totalLate}</div>
+        <div style="font-size:11px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">Retards</div>
+      </div>
+      <div style="background:#f8f9fb;border-radius:10px;padding:16px;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:#2563eb">${fmtMinutes(totalOtMins)}</div>
+        <div style="font-size:11px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">H. sup. totales</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-family:Inter,Arial,sans-serif;margin-bottom:20px">
+      <thead><tr style="background:#f8f8f8">
+        <th style="padding:8px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Collaborateur</th>
+        <th style="padding:8px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Département</th>
+        <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">Présents</th>
+        <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">Taux</th>
+        <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">Retards</th>
+        <th style="padding:8px 10px;text-align:center;font-size:11px;color:#666;text-transform:uppercase">H. sup.</th>
+      </tr></thead>
+      <tbody>${tableRows || '<tr><td colspan="6" style="padding:16px;text-align:center;color:#aaa">Aucune donnée pour cette période</td></tr>'}</tbody>
+    </table>
+    <p style="font-size:12px;color:#aaa">Le fichier Excel joint contient le détail complet (${totalCollabs} collaborateur${totalCollabs !== 1 ? "s" : ""}).</p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} ${org.name} — Rapport automatique Gameasu · ${monthLabel}
+  </div>
+</div></body></html>`;
+
+  const buildText = (recipientName: string) =>
+    `Rapport mensuel de présence — ${monthLabel}\n` +
+    `Bonjour ${recipientName},\n\n` +
+    `Taux moyen de présence : ${avgRate}%\n` +
+    `Retards : ${totalLate}\n` +
+    `Heures supplémentaires : ${fmtMinutes(totalOtMins)}\n\n` +
+    `Collaborateurs : ${totalCollabs}\nPièce jointe : ${fname}\n\n` +
+    `Rapport automatique Gameasu — ${org.name}`;
+
+  // ── 6. Envoi et log ────────────────────────────────────────────────────────
+  let sent = 0;
+  let skipped = 0;
+
+  for (const user of users) {
+    try {
+      const recipientName = `${user.firstName} ${user.lastName}`.trim() || user.email;
+      const result = await sendEmail({
+        to: user.email,
+        subject: `Rapport de présence ${monthLabel} — ${org.name}`,
+        html: buildHtml(recipientName),
+        text: buildText(recipientName),
+        category: "attendance_report",
+        attachments: [{ filename: fname, content: xlsxBase64 }],
+      });
+
+      if (result.delivered) {
+        sent++;
+        // Log notification
+        await db.insert(notificationsTable).values({
+          organizationId: orgId,
+          userId: user.id,
+          title: `Rapport de présence ${monthLabel} envoyé`,
+          body: `Le rapport mensuel de présence (${totalCollabs} collaborateurs, taux moyen ${avgRate}%) a été envoyé par e-mail.`,
+          type: "report_sent",
+          entityType: `attendance:monthly:${year}-${String(month).padStart(2, "0")}`,
+        });
+      } else {
+        skipped++;
+        errors.push(`${user.email}: ${result.error ?? "échec envoi"}`);
+      }
+    } catch (e: any) {
+      skipped++;
+      errors.push(`${user.email}: ${e?.message ?? "erreur inconnue"}`);
+    }
+  }
+
+  return { sent, skipped, errors };
+}
+
+router.post("/attendance/reports/send-monthly", requirePermission("attendance.manage"), async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const orgId = await getCurrentOrganizationId(userId);
+    if (!orgId) return res.status(403).json({ error: "no_organization" });
+
+    const now = new Date();
+    const year = parseInt(String(req.body?.year ?? now.getFullYear()), 10);
+    const month = parseInt(String(req.body?.month ?? now.getMonth() + 1), 10);
+
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      return res.status(400).json({ error: "Paramètres year/month invalides" });
+    }
+
+    const result = await sendMonthlyAttendanceReport(orgId, year, month);
+    res.json({ ok: true, year, month, ...result });
+  } catch (e) {
+    next(e);
+  }
 });
 
 export default router;
