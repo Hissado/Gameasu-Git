@@ -86,6 +86,7 @@ async function createStructure(opts: {
   country?: string;
   industry?: string;
   orgType?: string;
+  accountingFramework?: string;
   invitedById?: string | null;
 }): Promise<{
   organization: typeof organizationsTable.$inferSelect;
@@ -125,8 +126,13 @@ async function createStructure(opts: {
   const expiresAt = new Date(now.getTime() + 7 * 86400000);
   const userId = randomUUID();
 
-  const resolvedOrgType = opts.orgType ?? "enterprise";
-  const resolvedFramework = getFrameworkForOrgType(resolvedOrgType) as AccountingFramework;
+  const VALID_ORG_TYPES_SET = new Set(["pme", "tpe", "cooperative", "ong", "banque", "microfinance", "assurance", "prevoyance", "administration", "cabinet", "autre"]);
+  const VALID_FRAMEWORKS_SET = new Set(["syscohada", "syscohada_smt", "sycebnl", "pcb", "microfinance", "cima", "cipres", "pce", "autre"]);
+  const resolvedOrgType = (opts.orgType && VALID_ORG_TYPES_SET.has(opts.orgType)) ? opts.orgType : "pme";
+  const recommendedFramework = getFrameworkForOrgType(resolvedOrgType);
+  const resolvedFramework = (opts.accountingFramework && VALID_FRAMEWORKS_SET.has(opts.accountingFramework)
+    ? opts.accountingFramework
+    : recommendedFramework) as AccountingFramework;
 
   const runTransaction = async (slugCandidate: string) => db.transaction(async (tx) => {
     // a) Organisation
@@ -254,7 +260,7 @@ router.post("/super-admin/structures", sa, async (req, res, next) => {
   try {
     const {
       orgName, planCode, adminEmail, adminFirstName, adminLastName,
-      country, industry, orgType, sendEmailInvite = true,
+      country, industry, orgType, accountingFramework, sendEmailInvite = true,
     } = req.body || {};
 
     const created = await createStructure({
@@ -266,6 +272,7 @@ router.post("/super-admin/structures", sa, async (req, res, next) => {
       country: country ? String(country) : undefined,
       industry: industry ? String(industry) : undefined,
       orgType: orgType ? String(orgType) : undefined,
+      accountingFramework: accountingFramework ? String(accountingFramework) : undefined,
       invitedById: req.authUser?.id ?? null,
     });
 
