@@ -1,0 +1,477 @@
+Pouvez-vous mettre en place dans Gameasu une configuration comptable par type d’organisation, afin que le référentiel comptable et le plan comptable soient automatiquement adaptés dès la création du tenant ?
+
+Objectif
+
+Je veux que Gameasu puisse gérer plusieurs types d’organisations avec des référentiels comptables différents.
+
+Dès le départ, lors de la création d’un compte, d’un tenant ou d’une organisation, l’utilisateur doit choisir son type d’organisation. Ce choix doit ensuite déterminer automatiquement le référentiel comptable, le plan comptable, les modules comptables disponibles, les rapports et les règles de gestion applicables.
+
+Cette logique doit s’appliquer partout :
+
+* depuis le sign up ;
+* depuis le Cockpit lorsqu’un tenant est créé ou invité ;
+* depuis le portail expert ;
+* depuis les invitations d’organisations ;
+* depuis les paramètres de l’organisation ;
+* dans le module Comptabilité ;
+* dans les rapports financiers ;
+* dans les exports PDF / Excel.
+
+⸻
+
+1. Ajouter le choix du type d’organisation dès la création
+
+Lors du sign up ou de la création d’un tenant, ajouter un champ obligatoire :
+
+Type d’organisation
+
+Options recommandées :
+
+* Entreprise / PME / Société commerciale
+* Très petite entreprise
+* Coopérative commerciale
+* Association / ONG / Fondation / Projet
+* Banque / Établissement financier
+* Institution de microfinance
+* Compagnie d’assurance
+* Organisme de prévoyance sociale
+* Administration publique / Établissement public
+* Cabinet comptable / Cabinet conseil
+* Autre organisation
+
+Ce choix doit être clair, simple et accompagné d’une courte description.
+
+⸻
+
+2. Associer automatiquement le référentiel comptable
+
+Selon le type d’organisation choisi, Gameasu doit proposer ou appliquer le référentiel comptable adapté.
+
+Mapping recommandé
+
+Entreprise / PME / Société commerciale
+
+Référentiel :
+
+SYSCOHADA — Système normal
+
+Utilisation :
+
+* entreprises commerciales ;
+* PME ;
+* sociétés ;
+* coopératives commerciales ;
+* organisations privées classiques.
+
+⸻
+
+Très petite entreprise
+
+Référentiel :
+
+SYSCOHADA — Système minimal de trésorerie
+
+Utilisation :
+
+* très petites entités éligibles selon les seuils applicables ;
+* petites activités de commerce, artisanat ou services.
+
+Le système doit aussi permettre à une très petite entreprise de choisir volontairement le Système normal si elle souhaite une comptabilité plus complète.
+
+⸻
+
+Association / ONG / Fondation / Projet de développement
+
+Référentiel :
+
+SYCEBNL — Système comptable des entités à but non lucratif
+
+Utilisation :
+
+* associations ;
+* ONG ;
+* fondations ;
+* projets de développement ;
+* organisations à but non lucratif.
+
+⸻
+
+Banque / Établissement financier
+
+Référentiel :
+
+PCB — Plan Comptable Bancaire UMOA
+
+Utilisation :
+
+* banques ;
+* établissements financiers ;
+* structures bancaires réglementées.
+
+⸻
+
+Institution de microfinance
+
+Référentiel :
+
+Référentiel microfinance / SFD applicable
+
+Utilisation :
+
+* systèmes financiers décentralisés ;
+* institutions de microfinance ;
+* structures financières réglementées.
+
+Prévoir un mapping configurable selon le pays et le cadre réglementaire applicable.
+
+⸻
+
+Compagnie d’assurance
+
+Référentiel :
+
+Référentiel CIMA
+
+Utilisation :
+
+* compagnies d’assurance ;
+* courtiers ou structures d’assurance si applicable.
+
+⸻
+
+Organisme de prévoyance sociale
+
+Référentiel :
+
+Référentiel CIPRES
+
+Utilisation :
+
+* organismes de sécurité sociale ;
+* caisses de prévoyance ;
+* structures de protection sociale.
+
+⸻
+
+Administration publique / Établissement public
+
+Référentiel :
+
+PCE — Plan Comptable de l’État / Référentiel public applicable
+
+Utilisation :
+
+* administrations publiques ;
+* établissements publics administratifs ;
+* structures publiques soumises à la comptabilité publique.
+
+⸻
+
+3. Afficher le plan comptable selon le type d’organisation
+
+Dans le module Comptabilité, le plan comptable affiché doit correspondre au référentiel choisi.
+
+Exemple
+
+Si l’organisation est une PME :
+
+* afficher le plan comptable SYSCOHADA ;
+* journaux, grand livre, balance, bilan et compte de résultat selon SYSCOHADA.
+
+Si l’organisation est une ONG :
+
+* afficher le plan comptable SYCEBNL ;
+* rapports adaptés aux entités à but non lucratif.
+
+Si l’organisation est une banque :
+
+* afficher le plan comptable bancaire PCB ;
+* rapports adaptés au secteur bancaire.
+
+Si l’organisation est une administration publique :
+
+* afficher le PCE ou référentiel public applicable.
+
+⸻
+
+4. Appliquer cette logique depuis tous les points d’entrée
+
+La configuration doit fonctionner depuis plusieurs parcours.
+
+A. Depuis le sign up
+
+Quand un client crée son compte :
+
+1. il choisit son type d’organisation ;
+2. le référentiel comptable est proposé automatiquement ;
+3. le plan comptable correspondant est préparé ;
+4. l’organisation est créée avec cette configuration ;
+5. le créateur devient Super Administrateur.
+
+⸻
+
+B. Depuis le Cockpit
+
+Quand l’équipe Gameasu crée ou invite un tenant depuis le Cockpit :
+
+* choisir le type d’organisation ;
+* choisir le référentiel comptable ;
+* prévisualiser le plan comptable ;
+* confirmer la configuration ;
+* appliquer le référentiel au tenant.
+
+Le Cockpit doit permettre de modifier ou corriger la configuration avant activation définitive.
+
+⸻
+
+C. Depuis le portail expert
+
+Quand un expert, cabinet comptable ou consultant crée une organisation cliente :
+
+* choisir le type d’organisation du client ;
+* sélectionner le référentiel comptable ;
+* appliquer le plan comptable correspondant ;
+* rattacher l’expert au tenant ;
+* permettre à l’expert de gérer la comptabilité selon le bon référentiel.
+
+⸻
+
+D. Depuis les invitations tenant
+
+Si un tenant est créé via invitation :
+
+* l’invitation doit inclure le type d’organisation ;
+* ou demander au premier administrateur de le choisir à la première connexion ;
+* le plan comptable doit être généré après validation.
+
+⸻
+
+5. Ajouter un assistant de configuration comptable
+
+Après le choix du type d’organisation, ajouter un assistant simple :
+
+Configuration comptable initiale
+
+Étapes proposées :
+
+1. Type d’organisation
+2. Pays
+3. Devise principale
+4. Référentiel comptable
+5. Régime fiscal si applicable
+6. Période comptable
+7. Plan comptable proposé
+8. Confirmation et activation
+
+L’utilisateur doit pouvoir voir une recommandation automatique.
+
+Exemple
+
+Vous avez sélectionné : Association / ONG.
+Référentiel recommandé : SYCEBNL.
+Ce référentiel sera utilisé pour votre plan comptable, vos écritures et vos rapports financiers.
+
+⸻
+
+6. Prévoir une option avancée
+
+Pour les utilisateurs avancés, experts ou administrateurs Gameasu, permettre :
+
+* de confirmer le référentiel proposé ;
+* de choisir un autre référentiel si justifié ;
+* de dupliquer un modèle de plan comptable ;
+* d’ajouter des comptes personnalisés ;
+* de désactiver certains comptes ;
+* d’importer un plan comptable existant ;
+* de verrouiller le référentiel après validation.
+
+Cette option doit être sécurisée par permissions.
+
+⸻
+
+7. Impact sur le module Comptabilité
+
+Le module Comptabilité doit s’adapter automatiquement au référentiel choisi.
+
+À adapter :
+
+* plan comptable ;
+* classes de comptes ;
+* journaux comptables ;
+* écritures ;
+* balance ;
+* grand livre ;
+* bilan ;
+* compte de résultat ;
+* états financiers ;
+* rapports ;
+* exports PDF ;
+* exports Excel ;
+* fiscalité ;
+* contrôles comptables ;
+* libellés ;
+* modèles de documents.
+
+⸻
+
+8. Impact sur les autres modules
+
+Le référentiel comptable doit aussi influencer les autres modules connectés :
+
+* Facturation ;
+* Ventes ;
+* Achats ;
+* Dépenses ;
+* Paiements ;
+* Encaissements ;
+* Paie ;
+* Immobilisations ;
+* Budget ;
+* Comptabilité analytique ;
+* Rapports ;
+* Contrôle fiscal préalable ;
+* Add-ons ;
+* Cockpit ;
+* Portail expert.
+
+Exemple
+
+Une facture client générée dans une PME doit produire des écritures selon SYSCOHADA.
+Une dépense d’une ONG doit être classée selon SYCEBNL.
+Une institution publique doit utiliser une structure comptable compatible avec le PCE.
+
+⸻
+
+9. Rendre la configuration visible dans les paramètres
+
+Dans Paramètres > Organisation > Comptabilité, afficher :
+
+* type d’organisation ;
+* pays ;
+* référentiel comptable actif ;
+* plan comptable actif ;
+* date d’activation ;
+* utilisateur ayant configuré ;
+* statut : brouillon, actif, verrouillé ;
+* possibilité de demander une modification.
+
+Ajouter un message d’avertissement :
+
+Le changement de référentiel comptable peut impacter les écritures, les rapports et les états financiers. Cette action doit être validée par un administrateur ou un expert autorisé.
+
+⸻
+
+10. Gestion du changement de type d’organisation
+
+Prévoir un workflow sécurisé si une organisation veut changer de type ou de référentiel après activation.
+
+Étapes recommandées
+
+1. Demande de changement.
+2. Analyse par un administrateur ou expert.
+3. Vérification des écritures existantes.
+4. Plan de migration.
+5. Validation.
+6. Application du nouveau référentiel.
+7. Journalisation de l’opération.
+
+Ne jamais changer automatiquement le référentiel d’une organisation ayant déjà des écritures comptables sans validation.
+
+⸻
+
+11. Permissions
+
+Ajouter des permissions spécifiques :
+
+* voir la configuration comptable ;
+* choisir le type d’organisation ;
+* sélectionner le référentiel comptable ;
+* modifier le référentiel ;
+* importer un plan comptable ;
+* personnaliser les comptes ;
+* verrouiller le plan comptable ;
+* valider une migration comptable ;
+* gérer les référentiels depuis le Cockpit.
+
+⸻
+
+12. Cockpit Gameasu
+
+Dans le Cockpit, ajouter une section :
+
+Référentiels comptables
+
+Cette section doit permettre à l’équipe Gameasu de gérer :
+
+* les types d’organisations ;
+* les référentiels disponibles ;
+* les modèles de plans comptables ;
+* les pays concernés ;
+* les règles de mapping ;
+* les tenants utilisant chaque référentiel ;
+* les demandes de changement ;
+* les modèles personnalisés.
+
+⸻
+
+13. Mock data Hissado Consulting
+
+Pour les données de démonstration, vérifier que Hissado Consulting utilise le bon type d’organisation et le bon référentiel.
+
+Par exemple :
+
+* Type d’organisation : Entreprise / Cabinet conseil
+* Référentiel recommandé : SYSCOHADA — Système normal
+* Plan comptable : SYSCOHADA
+* Données comptables cohérentes avec ce référentiel.
+
+Les mock data doivent être cohérentes en développement et en production.
+
+⸻
+
+14. Interface utilisateur attendue
+
+L’interface doit être :
+
+* claire ;
+* professionnelle ;
+* premium ;
+* simple pour les non-comptables ;
+* complète pour les experts ;
+* entièrement en français ;
+* cohérente avec le design Gameasu.
+
+Le choix du type d’organisation ne doit pas être trop technique pour le client.
+Il faut afficher des descriptions simples.
+
+Exemple
+
+Entreprise / PME
+Pour les sociétés commerciales, activités de vente, services, production ou conseil.
+
+Association / ONG
+Pour les organisations à but non lucratif, projets, fondations et programmes.
+
+Administration publique
+Pour les structures soumises à une comptabilité publique.
+
+⸻
+
+15. Résultat attendu
+
+Je veux que Gameasu propose une vraie configuration comptable par type d’organisation, dès la création du tenant.
+
+Le système doit permettre :
+
+* de choisir le type d’organisation dès le sign up ;
+* d’appliquer automatiquement le référentiel comptable adapté ;
+* d’afficher le bon plan comptable dans Comptabilité ;
+* de gérer cette logique depuis le Cockpit ;
+* de l’appliquer aussi au portail expert ;
+* de sécuriser les changements ;
+* de synchroniser les écritures, rapports et exports ;
+* de rendre Gameasu crédible pour plusieurs types d’organisations.
+
+Objectif final
+
+Faire de Gameasu un ERP flexible et professionnel, capable de s’adapter dès le départ au profil juridique et comptable de chaque organisation, afin que le plan comptable, les écritures et les rapports reflètent correctement la nature réelle du tenant.
