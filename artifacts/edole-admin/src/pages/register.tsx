@@ -131,7 +131,7 @@ export default function RegisterPage() {
     city:            "",
     industry:        "",
     country:         "TG",
-    orgType:         "enterprise",
+    orgType:         "pme",
     promoCode:       rawPromo,
     terms:           false,
   });
@@ -189,7 +189,7 @@ export default function RegisterPage() {
           city:      form.city      || undefined,
           country:   form.country,
           industry:  form.industry  || undefined,
-          orgType:   form.orgType   || "enterprise",
+          orgType:   form.orgType   || "pme",
           planCode,
           seats,
           periodicity,

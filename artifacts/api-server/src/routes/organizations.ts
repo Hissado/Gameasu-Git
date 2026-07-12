@@ -76,6 +76,11 @@ router.get("/organizations/accounting-framework", async (req, res) => {
 
 router.get("/organizations/:id/accounting-config", requireAdmin, async (req, res) => {
   try {
+    // IDOR guard: l'appelant doit appartenir à l'organisation cible
+    const callerOrgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
+    if (!callerOrgId || callerOrgId !== (req.params.id as string)) {
+      return res.status(403).json({ error: "Accès refusé" });
+    }
     const [org] = await db
       .select({ orgType: organizationsTable.orgType, accountingFramework: organizationsTable.accountingFramework })
       .from(organizationsTable)
@@ -101,6 +106,11 @@ router.get("/organizations/:id/accounting-config", requireAdmin, async (req, res
 
 router.patch("/organizations/:id/accounting-config", requireAdmin, async (req, res) => {
   try {
+    // IDOR guard: l'appelant doit appartenir à l'organisation cible
+    const callerOrgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
+    if (!callerOrgId || callerOrgId !== (req.params.id as string)) {
+      return res.status(403).json({ error: "Accès refusé" });
+    }
     const { orgType } = req.body ?? {};
     if (!orgType || !(VALID_ORG_TYPES as readonly string[]).includes(orgType)) {
       return res.status(400).json({ error: `Type d'organisation invalide. Valeurs acceptées : ${VALID_ORG_TYPES.join(", ")}` });

@@ -105,6 +105,7 @@ export default function ChartOfAccounts() {
                       <th className="text-left px-5 py-2">Libellé</th>
                       <th className="text-left px-5 py-2 w-32">Type</th>
                       <th className="text-left px-5 py-2 w-32">Sens normal</th>
+                      <th className="text-left px-5 py-2 w-36">Référentiel</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -117,6 +118,9 @@ export default function ChartOfAccounts() {
                         </td>
                         <td className="px-5 py-2 text-xs">{TYPE_LABELS[a.type] ?? a.type}</td>
                         <td className="px-5 py-2 text-xs">{BALANCE_LABELS[a.normalBalance] ?? a.normalBalance}</td>
+                        <td className="px-5 py-2">
+                          <Badge variant="secondary" className="text-xs font-mono">{fwLabel.split(" ")[0]}</Badge>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

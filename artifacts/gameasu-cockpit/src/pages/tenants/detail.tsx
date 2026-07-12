@@ -207,14 +207,17 @@ export default function TenantDetail() {
   const [editingFw, setEditingFw] = useState(false);
   const [draftOrgType, setDraftOrgType] = useState("");
   const ORG_TYPE_OPTIONS_DETAIL = [
-    { value: "enterprise",        label: "🏢 Entreprise", framework: "SYSCOHADA" },
-    { value: "tpe",               label: "🏪 TPE / PME", framework: "SYSCOHADA-SMT" },
-    { value: "association",       label: "🤝 Association / ONG", framework: "SYCEBNL" },
-    { value: "bank",              label: "🏦 Banque / Établissement financier", framework: "PCB-UMOA" },
-    { value: "microfinance",      label: "💳 Microfinance / SFD", framework: "SFD" },
-    { value: "insurance",         label: "🛡️ Assurance", framework: "CIMA" },
-    { value: "social_protection", label: "🏛️ Protection sociale / Retraite", framework: "CIPRES" },
-    { value: "government",        label: "🏩 Organisme public", framework: "PCE" },
+    { value: "pme",            label: "🏢 Entreprise / PME",                   framework: "SYSCOHADA" },
+    { value: "tpe",            label: "🏪 Très petite entreprise (TPE)",        framework: "SYSCOHADA SMT" },
+    { value: "cooperative",   label: "🤝 Coopérative / GIE",                   framework: "SYSCOHADA" },
+    { value: "ong",            label: "💚 Association / ONG / Fondation",       framework: "SYCEBNL" },
+    { value: "banque",         label: "🏦 Banque / Établissement de crédit",    framework: "PCB UMOA" },
+    { value: "microfinance",   label: "💳 Microfinance / SFD",                  framework: "SFD" },
+    { value: "assurance",      label: "🛡️ Compagnie d'assurance",              framework: "CIMA" },
+    { value: "prevoyance",     label: "🏛️ Prévoyance sociale",                 framework: "CIPRES" },
+    { value: "administration", label: "🏩 Administration publique",             framework: "PCE" },
+    { value: "cabinet",        label: "📋 Cabinet / Profession libérale",       framework: "SYSCOHADA" },
+    { value: "autre",          label: "📁 Autre",                               framework: "SYSCOHADA" },
   ];
   const fwMutation = useMutation({
     mutationFn: (orgType: string) =>
@@ -608,7 +611,7 @@ export default function TenantDetail() {
                     <span className="text-sm text-muted-foreground">Chargement…</span>
                   )}
                   <Button size="sm" variant="outline" onClick={() => {
-                    setDraftOrgType(accountingFw.data?.orgType ?? "enterprise");
+                    setDraftOrgType(accountingFw.data?.orgType ?? "pme");
                     setEditingFw(true);
                   }}>Modifier</Button>
                 </div>

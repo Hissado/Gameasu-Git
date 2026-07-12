@@ -73,20 +73,23 @@ export default function TenantsPage() {
   const [deletingBusy, setDeletingBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const ORG_TYPE_OPTIONS = [
-    { value: "enterprise",        label: "🏢 Entreprise", framework: "SYSCOHADA" },
-    { value: "tpe",               label: "🏪 TPE / PME", framework: "SYSCOHADA-SMT" },
-    { value: "association",       label: "🤝 Association / ONG", framework: "SYCEBNL" },
-    { value: "bank",              label: "🏦 Banque / Établissement financier", framework: "PCB-UMOA" },
-    { value: "microfinance",      label: "💳 Microfinance / SFD", framework: "SFD" },
-    { value: "insurance",         label: "🛡️ Assurance", framework: "CIMA" },
-    { value: "social_protection", label: "🏛️ Protection sociale / Retraite", framework: "CIPRES" },
-    { value: "government",        label: "🏩 Organisme public", framework: "PCE" },
+    { value: "pme",            label: "🏢 Entreprise / PME",                   framework: "SYSCOHADA" },
+    { value: "tpe",            label: "🏪 Très petite entreprise (TPE)",        framework: "SYSCOHADA SMT" },
+    { value: "cooperative",   label: "🤝 Coopérative / GIE",                   framework: "SYSCOHADA" },
+    { value: "ong",            label: "💚 Association / ONG / Fondation",       framework: "SYCEBNL" },
+    { value: "banque",         label: "🏦 Banque / Établissement de crédit",    framework: "PCB UMOA" },
+    { value: "microfinance",   label: "💳 Microfinance / SFD",                  framework: "SFD" },
+    { value: "assurance",      label: "🛡️ Compagnie d'assurance",              framework: "CIMA" },
+    { value: "prevoyance",     label: "🏛️ Prévoyance sociale",                 framework: "CIPRES" },
+    { value: "administration", label: "🏩 Administration publique",             framework: "PCE" },
+    { value: "cabinet",        label: "📋 Cabinet / Profession libérale",       framework: "SYSCOHADA" },
+    { value: "autre",          label: "📁 Autre",                               framework: "SYSCOHADA" },
   ];
 
   const [createForm, setCreateForm] = useState({
     orgName: "", planCode: "STARTER",
     adminEmail: "", adminFirstName: "", adminLastName: "",
-    country: "TG", industry: "", orgType: "enterprise",
+    country: "TG", industry: "", orgType: "pme",
   });
 
   const createMut = useMutation({
@@ -97,7 +100,7 @@ export default function TenantsPage() {
       qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
       qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
       setCreateOpen(false);
-      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "", orgType: "enterprise" });
+      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "", orgType: "pme" });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
   });

@@ -281,27 +281,32 @@ async function uniqueSlug(base: string): Promise<string> {
 // ── GET /api/public/accounting-frameworks ─────────────────────────────────
 // Catalogue des référentiels comptables disponibles (sans authentification).
 
-function buildFrameworkCatalog() {
-  return (VALID_ORG_TYPES as readonly string[]).map(orgType => {
+// Catalogue framework-centric : 9 référentiels, chacun liste ses org-types applicables.
+const FRAMEWORK_CATALOG = (() => {
+  // Déduire applicableOrgTypes depuis la mapping orgType → framework
+  const byFw: Record<string, string[]> = {};
+  for (const orgType of VALID_ORG_TYPES) {
     const fw = getFrameworkForOrgType(orgType);
-    return {
-      orgType,
-      orgTypeLabel:         ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
-      accountingFramework:  fw,
-      frameworkLabel:       FRAMEWORK_LABELS[fw as keyof typeof FRAMEWORK_LABELS] ?? fw,
-      frameworkDescription: FRAMEWORK_DESCRIPTIONS[fw as keyof typeof FRAMEWORK_DESCRIPTIONS] ?? "",
-    };
-  });
-}
+    (byFw[fw] ??= []).push(orgType);
+  }
+  // Ordre stable : maintenir l'ordre de définition des codes connus
+  const ORDER = ["syscohada", "syscohada_smt", "sycebnl", "pcb", "microfinance", "cima", "cipres", "pce", "autre"];
+  return ORDER.map(code => ({
+    code,
+    label:            FRAMEWORK_LABELS[code as keyof typeof FRAMEWORK_LABELS] ?? code,
+    description:      FRAMEWORK_DESCRIPTIONS[code as keyof typeof FRAMEWORK_DESCRIPTIONS] ?? "",
+    applicableOrgTypes: byFw[code] ?? [],
+  }));
+})();
 
 // Chemin canonique (sans préfixe /public/) — accessible sans auth
 router.get("/accounting-frameworks", (_req, res) => {
-  res.json(buildFrameworkCatalog());
+  res.json(FRAMEWORK_CATALOG);
 });
 
 // Alias avec préfixe /public/ — conservé pour compatibilité
 router.get("/public/accounting-frameworks", (_req, res) => {
-  res.json(buildFrameworkCatalog());
+  res.json(FRAMEWORK_CATALOG);
 });
 
 // ── GET /api/public/check-email ───────────────────────────────────────────

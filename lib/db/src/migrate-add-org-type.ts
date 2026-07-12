@@ -9,8 +9,8 @@ import { sql } from "drizzle-orm";
 async function run() {
   await db.execute(sql`
     ALTER TABLE organizations
-    ADD COLUMN IF NOT EXISTS org_type text DEFAULT 'enterprise',
-    ADD COLUMN IF NOT EXISTS accounting_framework text DEFAULT 'SYSCOHADA'
+    ADD COLUMN IF NOT EXISTS org_type text DEFAULT 'pme',
+    ADD COLUMN IF NOT EXISTS accounting_framework text DEFAULT 'syscohada'
   `);
   console.log("Migration OK: org_type + accounting_framework ajoutés");
   process.exit(0);
