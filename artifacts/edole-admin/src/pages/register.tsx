@@ -9,6 +9,17 @@ import { Loader2, Eye, EyeOff, Check, ChevronLeft, Users } from "lucide-react";
 import { PLAN_CATALOG, PERIODICITY_OPTIONS, calcPlanPricing } from "@/lib/pricing-config";
 import { formatFCFA } from "@/lib/format";
 
+const ORG_TYPE_OPTIONS = [
+  { value: "enterprise",        label: "Entreprise (PME, grande entreprise)", framework: "SYSCOHADA" },
+  { value: "tpe",               label: "TPE / Très petite entreprise", framework: "SYSCOHADA (version simplifiée)" },
+  { value: "association",       label: "Association / ONG", framework: "SYCEBNL" },
+  { value: "bank",              label: "Banque / Établissement financier", framework: "PCB-UMOA" },
+  { value: "microfinance",      label: "Microfinance / SFD", framework: "SFD" },
+  { value: "insurance",         label: "Assurance", framework: "CIMA" },
+  { value: "social_protection", label: "Protection sociale / Retraite", framework: "CIPRES" },
+  { value: "government",        label: "Organisme public / État", framework: "PCE" },
+];
+
 const INDUSTRY_OPTIONS = [
   { value: "consulting",   label: "Conseil & Services" },
   { value: "btp",          label: "BTP & Construction" },
@@ -118,6 +129,7 @@ export default function RegisterPage() {
     city:            "",
     industry:        "",
     country:         "TG",
+    orgType:         "enterprise",
     promoCode:       rawPromo,
     terms:           false,
   });
@@ -175,6 +187,7 @@ export default function RegisterPage() {
           city:      form.city      || undefined,
           country:   form.country,
           industry:  form.industry  || undefined,
+          orgType:   form.orgType   || "enterprise",
           planCode,
           seats,
           periodicity,
@@ -556,6 +569,22 @@ export default function RegisterPage() {
                       placeholder="Ex. : Hissado Consulting"
                       className={fieldCls(!!errors.orgName)}
                     />
+                  </Field>
+                  <Field label="Type d'organisation">
+                    <select
+                      value={form.orgType}
+                      onChange={e => setFormField("orgType", e.target.value)}
+                      className={fieldCls(false) + " cursor-pointer"}
+                      style={{ height: "44px", paddingLeft: "12px", paddingRight: "12px", fontSize: "13.5px", borderRadius: "8px", border: "1px solid #D1D5DB", outline: "none", color: "#0E1A39" }}
+                    >
+                      {ORG_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    {(() => {
+                      const opt = ORG_TYPE_OPTIONS.find(o => o.value === form.orgType);
+                      return opt ? (
+                        <p className="text-[11px] text-blue-600 mt-1">Référentiel comptable : <strong>{opt.framework}</strong></p>
+                      ) : null;
+                    })()}
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Secteur d'activité">

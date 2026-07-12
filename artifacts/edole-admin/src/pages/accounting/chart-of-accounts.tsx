@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 
+type OrgFramework = { orgType: string; orgTypeLabel: string; accountingFramework: string; frameworkLabel: string; frameworkDescription: string };
+
 type Acc = {
   id: string; code: string; label: string; classNum: number;
   type: string; normalBalance: string; isPostable: boolean;
@@ -49,13 +51,25 @@ export default function ChartOfAccounts() {
     },
   });
 
+  const { data: fwData } = useQuery<OrgFramework>({
+    queryKey: ["org-accounting-framework"],
+    queryFn: () => apiFetch("/api/organizations/accounting-framework"),
+    staleTime: 10 * 60 * 1000,
+  });
+
   const grouped = (data?.data ?? []).reduce((acc, a) => {
     (acc[a.classNum] ??= []).push(a);
     return acc;
   }, {} as Record<number, Acc[]>);
 
+  const fwLabel = fwData?.frameworkLabel ?? "SYSCOHADA";
+  const fwDesc = fwData?.frameworkDescription ?? "Système Comptable Ouest-Africain";
+
   return (
-    <AccountingShell title="Plan comptable SYSCOHADA" subtitle="Liste complète des comptes — Système Comptable Ouest-Africain">
+    <AccountingShell
+      title={`Plan comptable — ${fwLabel}`}
+      subtitle={fwDesc}
+    >
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
