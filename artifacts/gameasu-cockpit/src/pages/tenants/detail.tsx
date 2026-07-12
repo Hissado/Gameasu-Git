@@ -197,6 +197,37 @@ export default function TenantDetail() {
   });
   const [editingSector, setEditingSector] = useState(false);
   const [draftSector, setDraftSector] = useState("");
+
+  type AccountingFrameworkData = { orgType: string; orgTypeLabel: string; accountingFramework: string; frameworkLabel: string; frameworkDescription: string };
+  const accountingFw = useQuery<AccountingFrameworkData>({
+    queryKey: ["cockpit-org-accounting-fw", id],
+    queryFn: () => apiFetch(`/api/super-admin/organizations/${id}/accounting-framework`),
+    enabled: tab === "overview",
+  });
+  const [editingFw, setEditingFw] = useState(false);
+  const [draftOrgType, setDraftOrgType] = useState("");
+  const ORG_TYPE_OPTIONS_DETAIL = [
+    { value: "enterprise",        label: "🏢 Entreprise", framework: "SYSCOHADA" },
+    { value: "tpe",               label: "🏪 TPE / PME", framework: "SYSCOHADA-SMT" },
+    { value: "association",       label: "🤝 Association / ONG", framework: "SYCEBNL" },
+    { value: "bank",              label: "🏦 Banque / Établissement financier", framework: "PCB-UMOA" },
+    { value: "microfinance",      label: "💳 Microfinance / SFD", framework: "SFD" },
+    { value: "insurance",         label: "🛡️ Assurance", framework: "CIMA" },
+    { value: "social_protection", label: "🏛️ Protection sociale / Retraite", framework: "CIPRES" },
+    { value: "government",        label: "🏩 Organisme public", framework: "PCE" },
+  ];
+  const fwMutation = useMutation({
+    mutationFn: (orgType: string) =>
+      apiFetch(`/api/super-admin/organizations/${id}/accounting-framework`, {
+        method: "PATCH", body: JSON.stringify({ orgType }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cockpit-org-accounting-fw", id] });
+      setEditingFw(false);
+      toast.success("Référentiel comptable mis à jour");
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
+  });
   const sectorMutation = useMutation({
     mutationFn: (sector: string) =>
       apiFetch(`/api/super-admin/organizations/${id}/attendance-settings`, {
@@ -551,6 +582,54 @@ export default function TenantDetail() {
                       {sectorMutation.isPending ? "…" : "Enregistrer"}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setEditingSector(false)}>Annuler</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Référentiel comptable ──────────────────────────── */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">📒 Référentiel comptable</CardTitle>
+              <CardDescription className="text-xs">Norme comptable appliquée au plan de comptes de cet espace.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!editingFw ? (
+                <div className="flex items-center justify-between gap-2">
+                  {accountingFw.data ? (
+                    <div className="space-y-0.5">
+                      <Badge variant="outline" className="font-mono text-sm gap-1 py-1">
+                        {accountingFw.data.frameworkLabel}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">{accountingFw.data.orgTypeLabel}</p>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Chargement…</span>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setDraftOrgType(accountingFw.data?.orgType ?? "enterprise");
+                    setEditingFw(true);
+                  }}>Modifier</Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <select
+                    value={draftOrgType}
+                    onChange={e => setDraftOrgType(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  >
+                    {ORG_TYPE_OPTIONS_DETAIL.map(o => (
+                      <option key={o.value} value={o.value}>{o.label} → {o.framework}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded p-2">⚠️ Le changement de référentiel re-seede le plan comptable (idempotent). Les comptes existants sont conservés.</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={fwMutation.isPending}
+                      onClick={() => fwMutation.mutate(draftOrgType)}>
+                      {fwMutation.isPending ? "…" : "Enregistrer"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingFw(false)}>Annuler</Button>
                   </div>
                 </div>
               )}

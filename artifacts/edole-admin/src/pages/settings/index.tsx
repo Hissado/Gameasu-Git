@@ -368,6 +368,75 @@ type BillingEvent = {
   metadata?: Record<string, unknown> | null;
 };
 
+function AccountingFrameworkTab() {
+  const { data, isLoading } = useQuery<{
+    orgType: string; orgTypeLabel: string;
+    accountingFramework: string; frameworkLabel: string; frameworkDescription: string;
+  }>({
+    queryKey: ["org-accounting-framework"],
+    queryFn: () => apiFetch("/api/organizations/accounting-framework"),
+  });
+
+  const FRAMEWORK_INFO: Record<string, { badge: string; color: string }> = {
+    SYSCOHADA:      { badge: "bg-blue-50 text-blue-700 border-blue-200",       color: "#3B82F6" },
+    SYSCOHADA_SMT:  { badge: "bg-indigo-50 text-indigo-700 border-indigo-200",  color: "#6366F1" },
+    SYCEBNL:        { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", color: "#10B981" },
+    PCB_UMOA:       { badge: "bg-violet-50 text-violet-700 border-violet-200",  color: "#7C3AED" },
+    SFD:            { badge: "bg-teal-50 text-teal-700 border-teal-200",        color: "#14B8A6" },
+    CIMA:           { badge: "bg-amber-50 text-amber-700 border-amber-200",     color: "#F59E0B" },
+    CIPRES:         { badge: "bg-orange-50 text-orange-700 border-orange-200",  color: "#F97316" },
+    PCE:            { badge: "bg-pink-50 text-pink-700 border-pink-200",        color: "#EC4899" },
+  };
+
+  const fwKey = data?.accountingFramework ?? "";
+  const fwInfo = FRAMEWORK_INFO[fwKey] ?? { badge: "bg-muted text-foreground border-border", color: "#6B7280" };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-primary" />
+            Référentiel comptable
+          </CardTitle>
+          <CardDescription>
+            Norme comptable appliquée au plan de comptes de votre organisation. Définie par le type d'organisation lors de la création de l'espace.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
+          ) : data ? (
+            <>
+              <div className="flex flex-wrap gap-4 items-start">
+                <div className="flex-1 min-w-48 space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type d'organisation</p>
+                  <p className="text-sm font-medium">{data.orgTypeLabel}</p>
+                </div>
+                <div className="flex-1 min-w-48 space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Référentiel comptable</p>
+                  <Badge className={`${fwInfo.badge} border font-mono text-sm`}>{data.frameworkLabel}</Badge>
+                </div>
+              </div>
+              {data.frameworkDescription && (
+                <div className="p-3 rounded-lg bg-muted/40 border text-sm text-muted-foreground">
+                  {data.frameworkDescription}
+                </div>
+              )}
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50/60 text-sm text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>La modification du référentiel comptable est réservée aux super-administrateurs Gaméasù. Contactez le support si votre organisation change de statut légal.</span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Informations non disponibles.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function SubscriptionTab() {
   const { data: subData, isLoading: subLoading } = useQuery<SubInfo>({
     queryKey: ["subscription-current"],
@@ -525,6 +594,7 @@ export default function Settings() {
           <TabsTrigger value="attendance">Pointage</TabsTrigger>
           <TabsTrigger value="modules">Modules actifs</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="comptabilite">Comptabilité</TabsTrigger>
           <TabsTrigger value="danger">Zone sensible</TabsTrigger>
         </TabsList>
 
@@ -649,6 +719,10 @@ export default function Settings() {
 
         <TabsContent value="modules" className="mt-6">
           <ModulesActifsTab />
+        </TabsContent>
+
+        <TabsContent value="comptabilite" className="mt-6">
+          <AccountingFrameworkTab />
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-6">

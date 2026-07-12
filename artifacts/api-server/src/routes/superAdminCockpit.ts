@@ -28,6 +28,7 @@ import { factoryReset } from "../services/factory-reset";
 import { seedHissado } from "../services/seed-hissado";
 import { deleteOrganization } from "../services/delete-organization";
 import { randomBytes } from "node:crypto";
+import { seedAccountingFrameworkForOrg, getFrameworkForOrgType, ORG_TYPE_LABELS, FRAMEWORK_LABELS, FRAMEWORK_DESCRIPTIONS, type AccountingFramework } from "../services/accounting-framework";
 import bcrypt from "bcryptjs";
 import { sendEmail, buildActivationEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
@@ -975,6 +976,74 @@ router.put("/super-admin/organizations/:id/attendance-settings", sa, async (req,
     const sector = result?.sector ?? "consulting";
     const template = SECTOR_TEMPLATES.find(t => t.sector === sector) ?? SECTOR_TEMPLATES[4]!;
     res.json({ settings: result, sector, sectorLabel: template.label, sectorIcon: template.icon });
+  } catch (e) { next(e); }
+});
+
+// ─── Référentiel comptable par organisation ────────────────────────────────────
+
+const VALID_ORG_TYPES = ["enterprise", "tpe", "association", "bank", "microfinance", "insurance", "social_protection", "government"] as const;
+
+router.get("/super-admin/organizations/:id/accounting-framework", sa, async (req, res, next) => {
+  try {
+    const orgId = req.params.id as string;
+    const [org] = await db
+      .select({
+        id: organizationsTable.id,
+        name: organizationsTable.name,
+        orgType: organizationsTable.orgType,
+        accountingFramework: organizationsTable.accountingFramework,
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+    if (!org) return res.status(404).json({ error: "Organisation introuvable" });
+
+    const framework = (org.accountingFramework ?? "SYSCOHADA") as AccountingFramework;
+    const orgType = org.orgType ?? "enterprise";
+
+    return res.json({
+      orgType,
+      orgTypeLabel: ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework: framework,
+      frameworkLabel: FRAMEWORK_LABELS[framework] ?? framework,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+    });
+  } catch (e) { next(e); }
+});
+
+router.patch("/super-admin/organizations/:id/accounting-framework", sa, async (req, res, next) => {
+  try {
+    const orgId = req.params.id as string;
+    const { orgType } = req.body ?? {};
+
+    if (!orgType || !VALID_ORG_TYPES.includes(orgType)) {
+      return res.status(400).json({
+        error: `Type d'organisation invalide. Valeurs acceptées : ${VALID_ORG_TYPES.join(", ")}`,
+      });
+    }
+
+    const framework = getFrameworkForOrgType(orgType) as AccountingFramework;
+
+    const [updated] = await db
+      .update(organizationsTable)
+      .set({ orgType, accountingFramework: framework, updatedAt: new Date() })
+      .where(eq(organizationsTable.id, orgId))
+      .returning({ id: organizationsTable.id, orgType: organizationsTable.orgType, accountingFramework: organizationsTable.accountingFramework });
+
+    if (!updated) return res.status(404).json({ error: "Organisation introuvable" });
+
+    // Re-seed le plan comptable si nécessaire (idempotent — n'écrase pas les comptes existants)
+    seedAccountingFrameworkForOrg(orgId, framework).catch((e) => {
+      req.log.warn({ err: e, orgId, framework }, "accounting-framework re-seed failed");
+    });
+
+    return res.json({
+      orgType: updated.orgType,
+      orgTypeLabel: ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework: updated.accountingFramework,
+      frameworkLabel: FRAMEWORK_LABELS[framework] ?? framework,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+    });
   } catch (e) { next(e); }
 });
 

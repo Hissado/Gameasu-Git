@@ -27,6 +27,10 @@ export const organizationsTable = pgTable("organizations", {
   contactPhone: text("contact_phone"),
   address: text("address"),
   taxId: text("tax_id"),
+  // Type d'organisation : enterprise | tpe | association | bank | microfinance | insurance | social_protection | government
+  orgType: text("org_type").default("enterprise"),
+  // Référentiel comptable auto-déduit du type : SYSCOHADA | SYSCOHADA_SMT | SYCEBNL | PCB_UMOA | SFD | CIMA | CIPRES | PCE
+  accountingFramework: text("accounting_framework").default("SYSCOHADA"),
   isActive: boolean("is_active").notNull().default(true),
   isDefault: boolean("is_default").notNull().default(false),
   // Stripe — identifiant client Stripe (cus_xxx), jamais exposé côté front

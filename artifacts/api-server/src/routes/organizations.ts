@@ -4,6 +4,7 @@ import { organizationsTable, organizationMembersTable, usersTable } from "@works
 import { and, eq } from "drizzle-orm";
 import { getCurrentOrganizationId } from "../lib/tenant";
 import { requireAdmin } from "../middlewares/auth";
+import { ORG_TYPE_LABELS, FRAMEWORK_LABELS, FRAMEWORK_DESCRIPTIONS, type AccountingFramework } from "../services/accounting-framework";
 
 const router: IRouter = Router();
 
@@ -93,6 +94,36 @@ router.delete("/organization-members/:id", requireAdmin, async (req, res) => {
   await db.delete(organizationMembersTable)
     .where(and(eq(organizationMembersTable.id, (req.params.id as string)), eq(organizationMembersTable.organizationId, orgId!)));
   res.status(204).end();
+});
+
+// ─── Référentiel comptable (lecture seule pour les membres de l'org) ──────────
+
+router.get("/organizations/accounting-framework", async (req, res) => {
+  try {
+    const orgId = await getCurrentOrganizationId(req.authUser!.id, req.authUser!.organizationId);
+    if (!orgId) return res.status(404).json({ error: "Aucun espace de travail" });
+    const [org] = await db
+      .select({
+        orgType: organizationsTable.orgType,
+        accountingFramework: organizationsTable.accountingFramework,
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+    if (!org) return res.status(404).json({ error: "Introuvable" });
+    const framework = (org.accountingFramework ?? "SYSCOHADA") as AccountingFramework;
+    const orgType = org.orgType ?? "enterprise";
+    return res.json({
+      orgType,
+      orgTypeLabel: ORG_TYPE_LABELS[orgType as keyof typeof ORG_TYPE_LABELS] ?? orgType,
+      accountingFramework: framework,
+      frameworkLabel: FRAMEWORK_LABELS[framework] ?? framework,
+      frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
 });
 
 export default router;

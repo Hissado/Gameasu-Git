@@ -72,10 +72,21 @@ export default function TenantsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deletingBusy, setDeletingBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const ORG_TYPE_OPTIONS = [
+    { value: "enterprise",        label: "🏢 Entreprise", framework: "SYSCOHADA" },
+    { value: "tpe",               label: "🏪 TPE / PME", framework: "SYSCOHADA-SMT" },
+    { value: "association",       label: "🤝 Association / ONG", framework: "SYCEBNL" },
+    { value: "bank",              label: "🏦 Banque / Établissement financier", framework: "PCB-UMOA" },
+    { value: "microfinance",      label: "💳 Microfinance / SFD", framework: "SFD" },
+    { value: "insurance",         label: "🛡️ Assurance", framework: "CIMA" },
+    { value: "social_protection", label: "🏛️ Protection sociale / Retraite", framework: "CIPRES" },
+    { value: "government",        label: "🏩 Organisme public", framework: "PCE" },
+  ];
+
   const [createForm, setCreateForm] = useState({
     orgName: "", planCode: "STARTER",
     adminEmail: "", adminFirstName: "", adminLastName: "",
-    country: "TG", industry: "",
+    country: "TG", industry: "", orgType: "enterprise",
   });
 
   const createMut = useMutation({
@@ -86,7 +97,7 @@ export default function TenantsPage() {
       qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
       qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
       setCreateOpen(false);
-      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "" });
+      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "", orgType: "enterprise" });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
   });
@@ -485,6 +496,25 @@ export default function TenantsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Type d'organisation → référentiel comptable */}
+            <div className="space-y-1.5">
+              <Label>Type d'organisation</Label>
+              <Select value={createForm.orgType} onValueChange={v => setCreateForm(f => ({ ...f, orgType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ORG_TYPE_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(() => {
+                const opt = ORG_TYPE_OPTIONS.find(o => o.value === createForm.orgType);
+                return opt ? (
+                  <p className="text-xs text-muted-foreground">Référentiel comptable : <strong>{opt.framework}</strong></p>
+                ) : null;
+              })()}
             </div>
 
             {/* Accès */}

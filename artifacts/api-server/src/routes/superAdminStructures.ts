@@ -28,6 +28,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { sendEmail, buildInvitationEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { audit } from "../lib/audit";
+import { seedAccountingFrameworkForOrg, getFrameworkForOrgType, type AccountingFramework } from "../services/accounting-framework";
 
 const router: IRouter = Router();
 
@@ -84,6 +85,7 @@ async function createStructure(opts: {
   adminLastName: string;
   country?: string;
   industry?: string;
+  orgType?: string;
   invitedById?: string | null;
 }): Promise<{
   organization: typeof organizationsTable.$inferSelect;
@@ -123,12 +125,17 @@ async function createStructure(opts: {
   const expiresAt = new Date(now.getTime() + 7 * 86400000);
   const userId = randomUUID();
 
+  const resolvedOrgType = opts.orgType ?? "enterprise";
+  const resolvedFramework = getFrameworkForOrgType(resolvedOrgType) as AccountingFramework;
+
   const runTransaction = async (slugCandidate: string) => db.transaction(async (tx) => {
     // a) Organisation
     const [org] = await tx.insert(organizationsTable).values({
       slug: slugCandidate, name: opts.orgName.trim(),
       country: opts.country ?? "TG",
       industry: opts.industry ?? null,
+      orgType: resolvedOrgType,
+      accountingFramework: resolvedFramework,
       isActive: true, isDefault: false,
     }).returning();
 
@@ -203,6 +210,11 @@ async function createStructure(opts: {
     } else { throw e; }
   }
 
+  // Seed le plan comptable adapté au type d'organisation (best-effort, non bloquant)
+  seedAccountingFrameworkForOrg(result.org.id, resolvedFramework).catch((e) => {
+    console.warn(`[accounting] seed failed for org ${result.org.id} (${resolvedFramework}):`, e?.message);
+  });
+
   const acceptUrl = `${baseUrl()}/accept-invitation?token=${acceptToken}`;
 
   return {
@@ -242,7 +254,7 @@ router.post("/super-admin/structures", sa, async (req, res, next) => {
   try {
     const {
       orgName, planCode, adminEmail, adminFirstName, adminLastName,
-      country, industry, sendEmailInvite = true,
+      country, industry, orgType, sendEmailInvite = true,
     } = req.body || {};
 
     const created = await createStructure({
@@ -253,6 +265,7 @@ router.post("/super-admin/structures", sa, async (req, res, next) => {
       adminLastName: String(adminLastName ?? ""),
       country: country ? String(country) : undefined,
       industry: industry ? String(industry) : undefined,
+      orgType: orgType ? String(orgType) : undefined,
       invitedById: req.authUser?.id ?? null,
     });
 
