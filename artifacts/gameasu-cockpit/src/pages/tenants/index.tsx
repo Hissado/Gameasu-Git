@@ -86,10 +86,22 @@ export default function TenantsPage() {
     { value: "autre",          label: "📁 Autre",                               framework: "SYSCOHADA" },
   ];
 
+  const FRAMEWORK_OPTIONS = [
+    { value: "syscohada",     label: "SYSCOHADA (PME, coopératives, cabinets)" },
+    { value: "syscohada_smt", label: "SYSCOHADA SMT (très petites entreprises)" },
+    { value: "sycebnl",       label: "SYCEBNL (associations, ONG)" },
+    { value: "pcb",           label: "PCB UMOA (banques)" },
+    { value: "microfinance",  label: "SFD (microfinance)" },
+    { value: "cima",          label: "CIMA (assurances)" },
+    { value: "cipres",        label: "CIPRES (prévoyance sociale)" },
+    { value: "pce",           label: "PCE (administrations publiques)" },
+    { value: "autre",         label: "Autre référentiel" },
+  ];
+
   const [createForm, setCreateForm] = useState({
     orgName: "", planCode: "STARTER",
     adminEmail: "", adminFirstName: "", adminLastName: "",
-    country: "TG", industry: "", orgType: "pme",
+    country: "TG", industry: "", orgType: "pme", accountingFramework: "",
   });
 
   const createMut = useMutation({
@@ -100,7 +112,7 @@ export default function TenantsPage() {
       qc.invalidateQueries({ queryKey: ["cockpit-orgs"] });
       qc.invalidateQueries({ queryKey: ["cockpit-overview"] });
       setCreateOpen(false);
-      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "", orgType: "pme" });
+      setCreateForm({ orgName: "", planCode: "STARTER", adminEmail: "", adminFirstName: "", adminLastName: "", country: "TG", industry: "", orgType: "pme", accountingFramework: "" });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
   });
@@ -502,22 +514,35 @@ export default function TenantsPage() {
             </div>
 
             {/* Type d'organisation → référentiel comptable */}
-            <div className="space-y-1.5">
-              <Label>Type d'organisation</Label>
-              <Select value={createForm.orgType} onValueChange={v => setCreateForm(f => ({ ...f, orgType: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ORG_TYPE_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(() => {
-                const opt = ORG_TYPE_OPTIONS.find(o => o.value === createForm.orgType);
-                return opt ? (
-                  <p className="text-xs text-muted-foreground">Référentiel comptable : <strong>{opt.framework}</strong></p>
-                ) : null;
-              })()}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Type d'organisation</Label>
+                <Select value={createForm.orgType} onValueChange={v => {
+                  const opt = ORG_TYPE_OPTIONS.find(o => o.value === v);
+                  const fw = opt ? opt.framework.toLowerCase().replace(" ", "_").replace("-", "_").replace("umoa", "").replace("_", "_").trim() : "";
+                  // reset accountingFramework to recommended when orgType changes
+                  const recommendedFw = v === "tpe" ? "syscohada_smt" : v === "ong" ? "sycebnl" : v === "banque" ? "pcb" : v === "microfinance" ? "microfinance" : v === "assurance" ? "cima" : v === "prevoyance" ? "cipres" : v === "administration" ? "pce" : "syscohada";
+                  setCreateForm(f => ({ ...f, orgType: v, accountingFramework: recommendedFw }));
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ORG_TYPE_OPTIONS.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Référentiel comptable</Label>
+                <Select value={createForm.accountingFramework} onValueChange={v => setCreateForm(f => ({ ...f, accountingFramework: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Calculé depuis le type" /></SelectTrigger>
+                  <SelectContent>
+                    {FRAMEWORK_OPTIONS.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Accès */}

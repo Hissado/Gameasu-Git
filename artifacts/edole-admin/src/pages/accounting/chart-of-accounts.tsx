@@ -12,6 +12,7 @@ type OrgFramework = { orgType: string; orgTypeLabel: string; accountingFramework
 type Acc = {
   id: string; code: string; label: string; classNum: number;
   type: string; normalBalance: string; isPostable: boolean;
+  applicableFrameworks?: string[] | null;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -118,8 +119,13 @@ export default function ChartOfAccounts() {
                         </td>
                         <td className="px-5 py-2 text-xs">{TYPE_LABELS[a.type] ?? a.type}</td>
                         <td className="px-5 py-2 text-xs">{BALANCE_LABELS[a.normalBalance] ?? a.normalBalance}</td>
-                        <td className="px-5 py-2">
-                          <Badge variant="secondary" className="text-xs font-mono">{fwLabel.split(" ")[0]}</Badge>
+                        <td className="px-5 py-2 flex flex-wrap gap-1">
+                          {(a.applicableFrameworks && a.applicableFrameworks.length > 0
+                            ? a.applicableFrameworks
+                            : [fwData?.accountingFramework ?? "syscohada"]
+                          ).map(fw => (
+                            <Badge key={fw} variant="secondary" className="text-xs font-mono">{fw.toUpperCase().replace("_SMT", " SMT")}</Badge>
+                          ))}
                         </td>
                       </tr>
                     ))}

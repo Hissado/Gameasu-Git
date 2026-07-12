@@ -51,6 +51,7 @@ router.get("/organizations/accounting-framework", async (req, res) => {
       .select({
         orgType: organizationsTable.orgType,
         accountingFramework: organizationsTable.accountingFramework,
+        configuredAt: organizationsTable.updatedAt,
       })
       .from(organizationsTable)
       .where(eq(organizationsTable.id, orgId))
@@ -64,6 +65,7 @@ router.get("/organizations/accounting-framework", async (req, res) => {
       accountingFramework: framework,
       frameworkLabel: FRAMEWORK_LABELS[framework] ?? framework,
       frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+      configuredAt: org.configuredAt,
     });
   } catch (e) {
     console.error(e);
@@ -111,11 +113,16 @@ router.patch("/organizations/:id/accounting-config", requireAdmin, async (req, r
     if (!callerOrgId || callerOrgId !== (req.params.id as string)) {
       return res.status(403).json({ error: "Accès refusé" });
     }
-    const { orgType } = req.body ?? {};
+    const VALID_FRAMEWORKS = ["syscohada", "syscohada_smt", "sycebnl", "pcb", "microfinance", "cima", "cipres", "pce", "autre"] as const;
+    const { orgType, accountingFramework: overrideFramework } = req.body ?? {};
     if (!orgType || !(VALID_ORG_TYPES as readonly string[]).includes(orgType)) {
       return res.status(400).json({ error: `Type d'organisation invalide. Valeurs acceptées : ${VALID_ORG_TYPES.join(", ")}` });
     }
-    const framework = getFrameworkForOrgType(orgType) as AccountingFramework;
+    // accountingFramework peut être fourni en override (cas cockpit super-admin) ; sinon calculé par mapping.
+    const recommendedFramework = getFrameworkForOrgType(orgType);
+    const framework = (overrideFramework && (VALID_FRAMEWORKS as readonly string[]).includes(overrideFramework)
+      ? overrideFramework
+      : recommendedFramework) as AccountingFramework;
     const [updated] = await db
       .update(organizationsTable)
       .set({ orgType, accountingFramework: framework, updatedAt: new Date() })
@@ -130,6 +137,8 @@ router.patch("/organizations/:id/accounting-config", requireAdmin, async (req, r
       accountingFramework:  updated.accountingFramework,
       frameworkLabel:       FRAMEWORK_LABELS[framework] ?? framework,
       frameworkDescription: FRAMEWORK_DESCRIPTIONS[framework] ?? "",
+      recommendedFramework,
+      configuredAt:         new Date().toISOString(),
     });
   } catch (e) {
     return res.status(500).json({ error: "Erreur serveur" });

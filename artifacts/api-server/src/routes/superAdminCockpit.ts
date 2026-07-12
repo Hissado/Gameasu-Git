@@ -1014,7 +1014,8 @@ router.get("/super-admin/organizations/:id/accounting-framework", sa, async (req
 router.patch("/super-admin/organizations/:id/accounting-framework", sa, async (req, res, next) => {
   try {
     const orgId = req.params.id as string;
-    const { orgType } = req.body ?? {};
+    const VALID_FRAMEWORKS = ["syscohada", "syscohada_smt", "sycebnl", "pcb", "microfinance", "cima", "cipres", "pce", "autre"] as const;
+    const { orgType, accountingFramework: overrideFramework } = req.body ?? {};
 
     if (!orgType || !VALID_ORG_TYPES.includes(orgType)) {
       return res.status(400).json({
@@ -1022,7 +1023,11 @@ router.patch("/super-admin/organizations/:id/accounting-framework", sa, async (r
       });
     }
 
-    const framework = getFrameworkForOrgType(orgType) as AccountingFramework;
+    // accountingFramework peut être fourni en override ; sinon calculé par mapping.
+    const recommendedFramework = getFrameworkForOrgType(orgType);
+    const framework = (overrideFramework && (VALID_FRAMEWORKS as readonly string[]).includes(overrideFramework)
+      ? overrideFramework
+      : recommendedFramework) as AccountingFramework;
 
     const [updated] = await db
       .update(organizationsTable)

@@ -372,20 +372,22 @@ function AccountingFrameworkTab() {
   const { data, isLoading } = useQuery<{
     orgType: string; orgTypeLabel: string;
     accountingFramework: string; frameworkLabel: string; frameworkDescription: string;
+    configuredAt?: string;
   }>({
     queryKey: ["org-accounting-framework"],
     queryFn: () => apiFetch("/api/organizations/accounting-framework"),
   });
 
   const FRAMEWORK_INFO: Record<string, { badge: string; color: string }> = {
-    SYSCOHADA:      { badge: "bg-blue-50 text-blue-700 border-blue-200",       color: "#3B82F6" },
-    SYSCOHADA_SMT:  { badge: "bg-indigo-50 text-indigo-700 border-indigo-200",  color: "#6366F1" },
-    SYCEBNL:        { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", color: "#10B981" },
-    PCB_UMOA:       { badge: "bg-violet-50 text-violet-700 border-violet-200",  color: "#7C3AED" },
-    SFD:            { badge: "bg-teal-50 text-teal-700 border-teal-200",        color: "#14B8A6" },
-    CIMA:           { badge: "bg-amber-50 text-amber-700 border-amber-200",     color: "#F59E0B" },
-    CIPRES:         { badge: "bg-orange-50 text-orange-700 border-orange-200",  color: "#F97316" },
-    PCE:            { badge: "bg-pink-50 text-pink-700 border-pink-200",        color: "#EC4899" },
+    syscohada:      { badge: "bg-blue-50 text-blue-700 border-blue-200",        color: "#3B82F6" },
+    syscohada_smt:  { badge: "bg-indigo-50 text-indigo-700 border-indigo-200",  color: "#6366F1" },
+    sycebnl:        { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", color: "#10B981" },
+    pcb:            { badge: "bg-violet-50 text-violet-700 border-violet-200",  color: "#7C3AED" },
+    microfinance:   { badge: "bg-teal-50 text-teal-700 border-teal-200",        color: "#14B8A6" },
+    cima:           { badge: "bg-amber-50 text-amber-700 border-amber-200",     color: "#F59E0B" },
+    cipres:         { badge: "bg-orange-50 text-orange-700 border-orange-200",  color: "#F97316" },
+    pce:            { badge: "bg-pink-50 text-pink-700 border-pink-200",        color: "#EC4899" },
+    autre:          { badge: "bg-muted text-foreground border-border",          color: "#6B7280" },
   };
 
   const fwKey = data?.accountingFramework ?? "";
@@ -417,6 +419,12 @@ function AccountingFrameworkTab() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Référentiel comptable</p>
                   <Badge className={`${fwInfo.badge} border font-mono text-sm`}>{data.frameworkLabel}</Badge>
                 </div>
+                {data.configuredAt && (
+                  <div className="flex-1 min-w-48 space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Configuré le</p>
+                    <p className="text-sm text-muted-foreground">{new Date(data.configuredAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                  </div>
+                )}
               </div>
               {data.frameworkDescription && (
                 <div className="p-3 rounded-lg bg-muted/40 border text-sm text-muted-foreground">

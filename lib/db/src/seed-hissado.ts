@@ -84,6 +84,8 @@ export async function seedHissado() {
     primaryColor: "#1B4FD8",
     secondaryColor: "#0F172A",
     taxId: "TG-2021-BIC-004578",
+    orgType: "cabinet",
+    accountingFramework: "syscohada",
   }).returning();
   const orgId = org!.id;
   console.log(`  ✓ Org créée : ${orgId}`);
