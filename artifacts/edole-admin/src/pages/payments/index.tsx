@@ -17,6 +17,13 @@ import { MoneyAmount } from "@/components/ui/money-amount";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+
+const PAYMENTS_TOUR = [
+  { target: "pay-header",  title: "Journal des encaissements", description: "Enregistrez chaque paiement reçu et liez-le automatiquement à la facture correspondante." },
+  { target: "pay-search",  title: "Recherche et filtres", description: "Filtrez par mode de paiement ou cherchez par numéro de facture et référence de transaction." },
+  { target: "pay-table",   title: "Historique des paiements", description: "Consultez tous les encaissements avec leur moyen de paiement, référence et facture associée." },
+];
 
 type Invoice = {
   id: string; referenceNumber: string; status: string;
@@ -437,8 +444,21 @@ export default function PaymentsList() {
 
   const totalEncaisse = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
 
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("paiements", !isLoading && payments.length === 0);
+
   return (
-    <div className="space-y-5 animate-in fade-in duration-500">
+    <div data-tour="pay-header" className="space-y-5 animate-in fade-in duration-500">
+      {showWelcome && (
+        <WelcomeModal
+          title="Journal des Encaissements"
+          subtitle="Enregistrez vos paiements reçus et liez-les aux factures pour une trésorerie toujours à jour."
+          icon={CreditCard}
+          steps={PAYMENTS_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={PAYMENTS_TOUR} onClose={closeTour} />}
       <PageHeader
         title="Encaissements"
         subtitle={`Journal des paiements · ${formatFCFA(totalEncaisse)} encaissé`}
@@ -455,7 +475,7 @@ export default function PaymentsList() {
       />
 
       <Card className="shadow-sm border-border">
-        <CardHeader className="pb-4 border-b border-border/50">
+        <CardHeader data-tour="pay-search" className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-lg">Journal des paiements</CardTitle>
             <div className="flex items-center gap-2 w-full md:w-auto">
@@ -482,7 +502,7 @@ export default function PaymentsList() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-            <Table>
+            <Table data-tour="pay-table">
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Date</TableHead>

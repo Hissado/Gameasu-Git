@@ -17,11 +17,19 @@ import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
 import { CreditNoteDialog } from "@/components/commercial/CreditNoteDialog";
+
+const INVOICES_TOUR = [
+  { target: "inv-header",      title: "Module Facturation", description: "Créez, envoyez et suivez vos factures clients. L'encours et les retards sont calculés en temps réel." },
+  { target: "inv-status-tabs", title: "Filtres par statut", description: "Naviguez entre Brouillons, En attente, En retard et Payées pour piloter votre trésorerie." },
+  { target: "inv-table",       title: "Liste des factures", description: "Modifiez, envoyez par email, encaissez ou émettez un avoir directement depuis chaque ligne." },
+];
 
 type Client = { id: string; name: string };
 type Invoice = {
@@ -397,8 +405,21 @@ export default function InvoicesList() {
     qc.invalidateQueries({ queryKey: ["payments"] });
   };
 
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("factures", !isLoading && allInvoices.length === 0);
+
   return (
-    <div className="space-y-5 animate-in fade-in duration-500">
+    <div data-tour="inv-header" className="space-y-5 animate-in fade-in duration-500">
+      {showWelcome && (
+        <WelcomeModal
+          title="Module Facturation"
+          subtitle="Créez, envoyez et suivez toutes vos factures clients avec suivi de l'encours en temps réel."
+          icon={FileText}
+          steps={INVOICES_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={INVOICES_TOUR} onClose={closeTour} />}
       <PageHeader
         title="Factures"
         icon={FileText}
@@ -416,19 +437,21 @@ export default function InvoicesList() {
       />
 
       {/* Onglets de filtrage par statut Xero-style */}
-      <StatusTabs
-        tabs={[
-          { key: "all",            label: "Toutes",       count: statusTabCounts.all },
-          { key: "draft",          label: "Brouillons",   count: statusTabCounts.draft },
-          { key: "pending",        label: "En attente",   count: statusTabCounts.pending },
-          { key: "partially_paid", label: "Part. payées", count: statusTabCounts.partially_paid },
-          { key: "overdue",        label: "En retard",    count: statusTabCounts.overdue },
-          { key: "paid",           label: "Payées",       count: statusTabCounts.paid },
-        ]}
-        active={statusFilter}
-        onChange={(k) => setStatusFilter(k)}
-        className="border-b border-border pb-1"
-      />
+      <div data-tour="inv-status-tabs">
+        <StatusTabs
+          tabs={[
+            { key: "all",            label: "Toutes",       count: statusTabCounts.all },
+            { key: "draft",          label: "Brouillons",   count: statusTabCounts.draft },
+            { key: "pending",        label: "En attente",   count: statusTabCounts.pending },
+            { key: "partially_paid", label: "Part. payées", count: statusTabCounts.partially_paid },
+            { key: "overdue",        label: "En retard",    count: statusTabCounts.overdue },
+            { key: "paid",           label: "Payées",       count: statusTabCounts.paid },
+          ]}
+          active={statusFilter}
+          onChange={(k) => setStatusFilter(k)}
+          className="border-b border-border pb-1"
+        />
+      </div>
 
       {/* Bannière factures en retard */}
       {overdueCount > 0 && (
@@ -484,7 +507,7 @@ export default function InvoicesList() {
               ))}
             </div>
           ) : (
-            <Table>
+            <Table data-tour="inv-table">
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead>Réf. Facture</TableHead>

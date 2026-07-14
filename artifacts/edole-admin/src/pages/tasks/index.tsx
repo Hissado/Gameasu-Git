@@ -18,6 +18,14 @@ import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+
+const TASKS_TOUR = [
+  { target: "task-header", title: "Module Tâches", description: "Créez, assignez et suivez l'avancement de toutes vos tâches d'équipe et de projets." },
+  { target: "task-views",  title: "3 vues disponibles", description: "Basculez entre Liste, Kanban et Calendrier selon votre façon de travailler." },
+  { target: "task-search", title: "Filtres et recherche", description: "Filtrez par statut ou cherchez par titre pour retrouver n'importe quelle tâche instantanément." },
+  { target: "task-table",  title: "Tableau de suivi", description: "Cliquez sur une tâche pour voir ses sous-tâches, commentaires, pièces jointes et son historique." },
+];
 
 type ViewMode = "list" | "kanban" | "calendar";
 
@@ -209,8 +217,21 @@ export default function TasksList() {
     return buckets;
   }, [tasks]);
 
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("taches", !isLoading && allTasks.length === 0);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div data-tour="task-header" className="space-y-6 animate-in fade-in duration-500">
+      {showWelcome && (
+        <WelcomeModal
+          title="Gestion des Tâches"
+          subtitle="Planifiez, assignez et suivez toutes vos tâches d'équipe en un seul endroit."
+          icon={CheckSquare}
+          steps={TASKS_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={TASKS_TOUR} onClose={closeTour} />}
       <PageHeader
         title="Tâches"
         subtitle={`${allTasks.length} tâche${allTasks.length !== 1 ? "s" : ""} au total`}
@@ -235,9 +256,9 @@ export default function TasksList() {
       />
 
       <Card className="shadow-sm border-border">
-        <CardHeader className="pb-4 border-b border-border/50">
+        <CardHeader data-tour="task-search" className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+            <div data-tour="task-views" className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
               <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "list" ? "bg-white shadow-sm text-foreground" : "text-slate-500"}`}>
                 <List className="w-3.5 h-3.5" /> Liste
               </button>
@@ -265,7 +286,7 @@ export default function TasksList() {
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : view === "list" ? (
-            <Table>
+            <Table data-tour="task-table">
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Intitulé</TableHead>

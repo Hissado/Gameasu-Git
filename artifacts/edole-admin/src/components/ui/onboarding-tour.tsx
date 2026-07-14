@@ -22,6 +22,10 @@ export const TOUR_MODULE_MAP: Record<string, string> = {
   "/collaborateurs": "collaborateurs",
   "/comptabilite/plan-comptable": "plan_comptable",
   "/fpa": "fpa",
+  "/taches": "taches",
+  "/factures": "factures",
+  "/paiements": "paiements",
+  "/locations": "locations",
 };
 
 const LS_KEY = (k: string) => `tour_seen_${k}`;

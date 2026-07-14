@@ -12,10 +12,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Truck, ArrowRight, FileText, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
+
+const RENTALS_TOUR = [
+  { target: "rental-header", title: "Gestion des Locations", description: "Gérez vos contrats de location d'équipements, de la réservation à la restitution avec inspection intégrée." },
+  { target: "rental-search", title: "Recherche rapide", description: "Retrouvez un contrat par référence ou par nom de client en quelques caractères." },
+  { target: "rental-table",  title: "Contrats de location", description: "Accédez au dossier complet de chaque contrat : équipements loués, inspections pré/post et suivi logistique." },
+];
 
 // ── Status Badge ───────────────────────────────────────────────────────────────
 
@@ -210,8 +218,21 @@ export default function RentalsList() {
     );
   }, [data, search]);
 
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("locations", !isLoading && rentals.length === 0);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div data-tour="rental-header" className="space-y-6 animate-in fade-in duration-500">
+      {showWelcome && (
+        <WelcomeModal
+          title="Gestion des Locations"
+          subtitle="Gérez vos contrats de location d'équipements de la réservation à la restitution."
+          icon={Truck}
+          steps={RENTALS_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={RENTALS_TOUR} onClose={closeTour} />}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Locations</h1>
@@ -224,7 +245,7 @@ export default function RentalsList() {
       </div>
 
       <Card className="shadow-sm border-border">
-        <CardHeader className="pb-4 border-b border-border/50">
+        <CardHeader data-tour="rental-search" className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-lg">Tous les contrats</CardTitle>
             <div className="relative w-full md:w-64">
@@ -243,7 +264,7 @@ export default function RentalsList() {
           {isLoading ? (
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
-            <Table>
+            <Table data-tour="rental-table">
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Référence</TableHead>
