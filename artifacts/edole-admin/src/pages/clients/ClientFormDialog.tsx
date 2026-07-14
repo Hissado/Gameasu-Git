@@ -547,10 +547,10 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label className="text-xs text-muted-foreground mb-1 block">Commercial responsable</Label>
-                  <Select value={form.assignedUserId} onValueChange={v => set("assignedUserId", v)}>
+                  <Select value={form.assignedUserId || "__none__"} onValueChange={v => set("assignedUserId", v === "__none__" ? "" : v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Aucun" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
+                      <SelectItem value="__none__">Aucun</SelectItem>
                       {(usersData?.data ?? []).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
