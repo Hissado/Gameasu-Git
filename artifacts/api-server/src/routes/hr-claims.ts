@@ -5,7 +5,7 @@ import {
   db, hrClaimsTable, hrClaimEventsTable, hrClaimAttachmentsTable,
   collaboratorsTable, usersTable, notificationsTable, departmentsTable,
 } from "@workspace/db";
-import { eq, and, desc, count, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, count, sql, inArray, countDistinct } from "drizzle-orm";
 
 const router = Router();
 
@@ -189,6 +189,12 @@ router.get("/hr/claims", async (req, res, next) => {
     if (category) conditions.push(eq(hrClaimsTable.category, category));
     if (priority) conditions.push(eq(hrClaimsTable.priority, priority));
 
+    // Real total count (for pagination)
+    const [totalRow] = await db
+      .select({ total: count() })
+      .from(hrClaimsTable)
+      .where(and(...conditions));
+
     const rows = await db
       .select({
         id: hrClaimsTable.id,
@@ -239,7 +245,7 @@ router.get("/hr/claims", async (req, res, next) => {
         : null,
     }));
 
-    res.json({ data, total: data.length });
+    res.json({ data, total: Number(totalRow?.total ?? 0) });
   } catch (e) { next(e); }
 });
 
@@ -545,8 +551,8 @@ router.patch("/hr/claims/:id", requirePermission("hr.manage"), async (req, res, 
   } catch (e) { next(e); }
 });
 
-// ── POST /:id/events — commentaire libre ──────────────────────────────────────
-router.post("/hr/claims/:id/events", async (req, res, next) => {
+// ── Shared comment handler (POST /:id/events et /:id/comments) ───────────────
+async function handleAddComment(req: any, res: any, next: any) {
   try {
     const { organizationId: orgId, id: userId } = req.authUser!;
     const manager = await isHrManager(userId);
@@ -583,7 +589,13 @@ router.post("/hr/claims/:id/events", async (req, res, next) => {
 
     res.status(201).json(event);
   } catch (e) { next(e); }
-});
+}
+
+// ── POST /:id/events ──────────────────────────────────────────────────────────
+router.post("/hr/claims/:id/events", handleAddComment);
+
+// ── POST /:id/comments — alias requis par le contrat API ─────────────────────
+router.post("/hr/claims/:id/comments", handleAddComment);
 
 // ── GET /:id/attachments ──────────────────────────────────────────────────────
 router.get("/hr/claims/:id/attachments", async (req, res, next) => {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { usePermissions } from "@/lib/permissions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,8 @@ export default function ReclamationDetailPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const isManager = ["admin", "super_admin", "manager"].includes(user?.role ?? "");
+  const perms = usePermissions();
+  const isManager = perms.has("hr.manage");
 
   // Comment form
   const [comment, setComment] = useState("");
