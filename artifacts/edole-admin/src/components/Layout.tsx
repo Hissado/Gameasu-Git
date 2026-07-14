@@ -644,26 +644,39 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {/* Firm switcher (secondary) — only when multiple cabinets */}
-            {location.startsWith("/expert") && expertFirms && expertFirms.length > 1 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="hidden sm:flex items-center gap-1 px-2 py-[7px] mr-1 rounded-lg border border-dashed border-border text-[11.5px] text-muted-foreground hover:bg-muted/40 transition-colors">
-                    <Network className="w-3 h-3 shrink-0" />
-                    <ChevronDown className="w-2.5 h-2.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 font-sans">
-                  <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cabinet</div>
-                  {expertFirms.map((f) => (
-                    <DropdownMenuItem key={f.id} onClick={() => switchFirm(f.id)} className="flex items-center gap-2 cursor-pointer">
-                      <span className="flex-1 truncate">{f.name}</span>
-                      {f.id === activeFirmId && <span className="text-primary text-xs font-bold">✓</span>}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            {/* Firm switcher — visible dès qu'on est sur /expert/* et qu'au moins 1 cabinet existe */}
+            {location.startsWith("/expert") && expertFirms && expertFirms.length >= 1 && (() => {
+              const activeFirm = expertFirms.find((f) => f.id === activeFirmId);
+              const canSwitch = expertFirms.length > 1;
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="hidden sm:flex items-center gap-1.5 px-2.5 py-[7px] mr-1 rounded-lg border border-border text-[12.5px] font-medium hover:bg-muted/60 transition-colors"
+                      title={canSwitch ? "Changer de cabinet" : activeFirm?.name}
+                    >
+                      <Network className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="max-w-[120px] truncate">{activeFirm?.name ?? "Cabinet"}</span>
+                      {canSwitch && <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 font-sans">
+                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cabinet actif</div>
+                    {expertFirms.map((f) => (
+                      <DropdownMenuItem
+                        key={f.id}
+                        onClick={() => canSwitch ? switchFirm(f.id) : undefined}
+                        className={`flex items-center gap-2 ${canSwitch ? "cursor-pointer" : "cursor-default"}`}
+                      >
+                        <Network className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                        {f.id === activeFirmId && <span className="text-primary text-xs font-bold">✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })()}
             {/* Bouton "Nouveau" Xero-style */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
