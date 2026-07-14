@@ -16,7 +16,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquareWarning, Plus, Search, AlertTriangle, CheckCircle2, Clock,
-  Filter, BarChart3, TrendingUp, Loader2, ChevronRight, Eye,
+  Filter, BarChart3, TrendingUp, Loader2, ChevronRight, Eye, Paperclip,
+  Users, Building2, Timer,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -63,326 +64,404 @@ type Claim = {
   status: string;
   priority: string;
   isAnonymous: boolean;
-  targetDate?: string | null;
-  resolvedAt?: string | null;
+  collaboratorName: string;
   createdAt: string;
   updatedAt: string;
-  collaboratorId?: string;
-  collaboratorName?: string;
-  assignedToId?: string | null;
-  assignedToName?: string | null;
 };
 
 type Stats = {
   total: number;
-  byStatus: Array<{ status: string; count: number }>;
-  byCategory: Array<{ category: string; count: number }>;
-  byPriority: Array<{ priority: string; count: number }>;
+  resolvedThisMonth: number;
+  avgProcessingDays: number | null;
+  byStatus: { status: string; count: number }[];
+  byCategory: { category: string; count: number }[];
+  byPriority: { priority: string; count: number }[];
+  byDepartment: { deptId: string | null; deptName: string; count: number }[];
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+type Department = { id: string; name: string };
+type Collaborator = { id: string; firstName: string; lastName: string };
 
-export default function HrReclamations() {
-  const [, navigate] = useLocation();
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function ReclamationsPage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+
   const isManager = ["admin", "super_admin", "manager"].includes(user?.role ?? "");
 
-  const [statusFilter, setStatusFilter] = useState("all");
+  // ── Filters ──────────────────────────────────────────────────────────────────
+  const [statusTab, setStatusTab] = useState("all");
   const [search, setSearch] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [filterDept, setFilterDept] = useState("all");
+  const [filterCollab, setFilterCollab] = useState("all");
+
+  // ── New claim dialog ──────────────────────────────────────────────────────────
+  const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({
-    category: "",
-    subject: "",
-    description: "",
-    priority: "normale",
-    isAnonymous: false,
-    targetDate: "",
+    category: "", subject: "", description: "",
+    priority: "normale", isAnonymous: false,
+    files: [] as File[],
   });
 
-  const { data: claimsData, isLoading } = useQuery<{ data: Claim[]; total: number }>({
-    queryKey: ["hr-claims", statusFilter],
-    queryFn: () => apiFetch(`/api/hr/claims?limit=200${statusFilter !== "all" ? `&status=${statusFilter}` : ""}`),
-    staleTime: 30_000,
+  // ── Data queries ──────────────────────────────────────────────────────────────
+  const params = new URLSearchParams();
+  if (statusTab !== "all") params.set("status", statusTab);
+  if (filterCategory !== "all") params.set("category", filterCategory);
+  if (filterPriority !== "all") params.set("priority", filterPriority);
+  if (isManager && filterDept !== "all") params.set("departmentId", filterDept);
+  if (isManager && filterCollab !== "all") params.set("collaboratorId", filterCollab);
+
+  const { data: claimsData, isLoading } = useQuery({
+    queryKey: ["hr-claims", statusTab, filterCategory, filterPriority, filterDept, filterCollab],
+    queryFn: () => apiFetch<{ data: Claim[]; total: number }>(`/api/hr/claims?${params.toString()}`),
   });
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ["hr-claims-stats"],
     queryFn: () => apiFetch("/api/hr/claims/stats"),
     enabled: isManager,
-    staleTime: 60_000,
   });
 
-  const claims = claimsData?.data ?? [];
-  const filtered = claims.filter(c => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return [c.reference, c.subject, c.collaboratorName, CATEGORY_LABELS[c.category]]
-      .some(v => v?.toLowerCase().includes(q));
+  const { data: depts } = useQuery<Department[]>({
+    queryKey: ["hr-departments"],
+    queryFn: () => apiFetch("/api/hr/departments"),
+    enabled: isManager,
+    select: (d: any) => d.data ?? d,
+  });
+
+  const { data: collabs } = useQuery<Collaborator[]>({
+    queryKey: ["collaborators-list"],
+    queryFn: () => apiFetch("/api/collaborators"),
+    enabled: isManager,
+    select: (d: any) => d.data ?? d,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof form) =>
-      apiFetch("/api/hr/claims", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
-    onSuccess: (data) => {
-      toast({ title: "Réclamation soumise", description: `Référence : ${data.reference}` });
-      queryClient.invalidateQueries({ queryKey: ["hr-claims"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-claims-stats"] });
-      setCreateOpen(false);
-      setForm({ category: "", subject: "", description: "", priority: "normale", isAnonymous: false, targetDate: "" });
+    mutationFn: (body: object) => apiFetch("/api/hr/claims", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hr-claims"] });
+      qc.invalidateQueries({ queryKey: ["hr-claims-stats"] });
+      setShowNew(false);
+      setForm({ category: "", subject: "", description: "", priority: "normale", isAnonymous: false, files: [] });
+      toast({ title: "Réclamation soumise", description: "Votre réclamation a été enregistrée." });
     },
-    onError: () => toast({ variant: "destructive", title: "Erreur", description: "Impossible de soumettre la réclamation" }),
+    onError: () => toast({ title: "Erreur", description: "Impossible de soumettre la réclamation.", variant: "destructive" }),
   });
 
-  // Stats rapides pour les managers
-  const openCount = stats?.byStatus.filter(s => !["resolue", "refusee", "cloturee"].includes(s.status)).reduce((a, b) => a + b.count, 0) ?? 0;
+  // ── Computed ──────────────────────────────────────────────────────────────────
+  const claims = claimsData?.data ?? [];
+  const filtered = claims.filter(c =>
+    !search ||
+    c.subject.toLowerCase().includes(search.toLowerCase()) ||
+    c.reference.toLowerCase().includes(search.toLowerCase()) ||
+    c.collaboratorName.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const pendingCount = stats?.byStatus.find(s => s.status === "soumise")?.count ?? 0;
   const urgentCount = stats?.byPriority.find(p => p.priority === "urgente")?.count ?? 0;
-  const resolvedCount = stats?.byStatus.find(s => s.status === "resolue")?.count ?? 0;
 
+  // ── Handlers ──────────────────────────────────────────────────────────────────
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.category || !form.subject || !form.description) {
+      toast({ title: "Champs manquants", description: "Catégorie, objet et description sont obligatoires.", variant: "destructive" });
+      return;
+    }
+    createMutation.mutate({
+      category: form.category,
+      subject: form.subject,
+      description: form.description,
+      priority: form.priority,
+      isAnonymous: form.isAnonymous,
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <HrShell
-      title="Réclamations RH"
-      subtitle={isManager ? "Gestion et suivi des réclamations du personnel" : "Mes réclamations"}
-      actions={
-        <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4" />
-          Nouvelle réclamation
-        </Button>
-      }
-    >
-      <div className="space-y-5">
+    <HrShell title="Réclamations RH">
 
-        {/* ── Stats (manager only) ── */}
-        {isManager && stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-100"><MessageSquareWarning className="w-5 h-5 text-blue-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-amber-100"><Clock className="w-5 h-5 text-amber-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">En cours</p>
-                  <p className="text-2xl font-bold text-slate-900">{openCount}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-red-100"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Urgentes</p>
-                  <p className="text-2xl font-bold text-slate-900">{urgentCount}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-emerald-100"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Résolues</p>
-                  <p className="text-2xl font-bold text-slate-900">{resolvedCount}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* ── Filtres ── */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-4 space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher par référence, sujet, collaborateur…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-9 text-sm bg-muted/40"
-              />
-            </div>
-            <div className="flex gap-1.5 flex-wrap">
-              {[
-                { value: "all", label: "Tous" },
-                { value: "soumise", label: "Soumises" },
-                { value: "en_cours", label: "En cours" },
-                { value: "infos_complementaires", label: "Infos requises" },
-                { value: "en_traitement", label: "En traitement" },
-                { value: "resolue", label: "Résolues" },
-                { value: "refusee", label: "Refusées" },
-                { value: "cloturee", label: "Clôturées" },
-              ].map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setStatusFilter(value)}
-                  className={`text-xs font-medium px-3 py-1 rounded-full border transition-colors ${
-                    statusFilter === value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Liste ── */}
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-        ) : filtered.length === 0 ? (
-          <Card className="border-slate-200 shadow-sm">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <MessageSquareWarning className="w-12 h-12 mb-3 opacity-20" />
-              <p className="font-medium text-slate-600">Aucune réclamation</p>
-              <p className="text-xs mt-1">
-                {search || statusFilter !== "all" ? "Essayez d'autres filtres" : "Soumettez votre première réclamation RH"}
-              </p>
-              <Button size="sm" variant="outline" className="mt-4 gap-2" onClick={() => setCreateOpen(true)}>
-                <Plus className="w-4 h-4" />
-                Nouvelle réclamation
-              </Button>
+      {/* ── Manager KPIs ─────────────────────────────────────────────────────── */}
+      {isManager && stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><MessageSquareWarning className="w-4 h-4" /> Total</div>
+              <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
-        ) : (
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {filtered.map(claim => {
-                const sc = STATUS_CONFIG[claim.status] ?? STATUS_CONFIG.soumise;
-                const pc = PRIORITY_CONFIG[claim.priority] ?? PRIORITY_CONFIG.normale;
-                return (
-                  <div
-                    key={claim.id}
-                    onClick={() => navigate(`/rh/reclamations/${claim.id}`)}
-                    className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-slate-400">{claim.reference}</span>
-                        <Badge variant="outline" className={`text-[11px] px-2 py-0 border ${sc.color} flex items-center gap-1`}>
-                          {sc.icon}{sc.label}
-                        </Badge>
-                        <span className={`text-[11px] font-semibold ${pc.color}`}>{pc.label}</span>
-                      </div>
-                      <p className="text-sm font-semibold text-slate-800 truncate">{claim.subject}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[claim.category] ?? claim.category}</span>
-                        {isManager && claim.collaboratorName && (
-                          <span className="text-xs text-slate-500">· {claim.collaboratorName}</span>
-                        )}
-                        <span className="text-xs text-muted-foreground ml-auto">
-                          {formatDistanceToNow(new Date(claim.createdAt), { addSuffix: true, locale: fr })}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </div>
-                );
-              })}
-            </div>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><Clock className="w-4 h-4 text-blue-500" /> En attente</div>
+              <div className="text-2xl font-bold text-blue-600">{pendingCount}</div>
+            </CardContent>
           </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><AlertTriangle className="w-4 h-4 text-red-500" /> Urgentes</div>
+              <div className="text-2xl font-bold text-red-600">{urgentCount}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Résolues ce mois</div>
+              <div className="text-2xl font-bold text-emerald-600">{stats.resolvedThisMonth}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><Timer className="w-4 h-4 text-purple-500" /> Délai moyen</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.avgProcessingDays != null ? `${stats.avgProcessingDays}j` : "—"}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Répartition par département */}
+          {stats.byDepartment.length > 0 && (
+            <Card className="col-span-2 md:col-span-3">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" /> Volume par département</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {stats.byDepartment.slice(0, 5).map(d => (
+                    <div key={d.deptId ?? "none"} className="flex items-center gap-2">
+                      <span className="text-xs w-32 truncate text-muted-foreground">{d.deptName}</span>
+                      <div className="flex-1 bg-slate-100 rounded-full h-2">
+                        <div
+                          className="bg-orange-400 h-2 rounded-full"
+                          style={{ width: `${stats.total ? Math.round((d.count / stats.total) * 100) : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium w-6 text-right">{d.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par référence, objet…"
+            className="pl-9"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Manager filters */}
+        {isManager && (
+          <>
+            <Select value={filterDept} onValueChange={setFilterDept}>
+              <SelectTrigger className="w-[180px]">
+                <Building2 className="w-4 h-4 mr-1 text-muted-foreground" />
+                <SelectValue placeholder="Département" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les depts</SelectItem>
+                {(depts ?? []).map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterCollab} onValueChange={setFilterCollab}>
+              <SelectTrigger className="w-[180px]">
+                <Users className="w-4 h-4 mr-1 text-muted-foreground" />
+                <SelectValue placeholder="Collaborateur" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {(collabs ?? []).map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
         )}
+
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="w-4 h-4 mr-1 text-muted-foreground" />
+            <SelectValue placeholder="Catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes catégories</SelectItem>
+            {CATEGORY_VALUES.map(k => <SelectItem key={k} value={k}>{CATEGORY_LABELS[k]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Priorité" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes</SelectItem>
+            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button onClick={() => setShowNew(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Nouvelle réclamation
+        </Button>
       </div>
 
-      {/* ── Modale création ── */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg">
+      {/* ── Status tabs ───────────────────────────────────────────────────────── */}
+      <Tabs value={statusTab} onValueChange={setStatusTab} className="mb-4">
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="all">Toutes</TabsTrigger>
+          <TabsTrigger value="soumise">Soumises</TabsTrigger>
+          <TabsTrigger value="en_cours">En cours</TabsTrigger>
+          <TabsTrigger value="infos_complementaires">Infos requises</TabsTrigger>
+          <TabsTrigger value="en_traitement">En traitement</TabsTrigger>
+          <TabsTrigger value="resolue">Résolues</TabsTrigger>
+          <TabsTrigger value="cloturee">Clôturées</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* ── Claims list ───────────────────────────────────────────────────────── */}
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <MessageSquareWarning className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Aucune réclamation</p>
+          <p className="text-sm mt-1">
+            {statusTab === "all" ? "Vous n'avez pas encore soumis de réclamation." : `Aucune réclamation avec ce statut.`}
+          </p>
+          <Button className="mt-4" variant="outline" onClick={() => setShowNew(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Soumettre une réclamation
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(c => {
+            const st = STATUS_CONFIG[c.status] ?? STATUS_CONFIG.soumise;
+            const pr = PRIORITY_CONFIG[c.priority] ?? PRIORITY_CONFIG.normale;
+            return (
+              <div
+                key={c.id}
+                className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/40 cursor-pointer transition-colors"
+                onClick={() => navigate(`/rh/reclamations/${c.id}`)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-mono text-muted-foreground">{c.reference}</span>
+                    <Badge variant="outline" className={`text-xs px-2 py-0 ${st.color}`}>
+                      {st.icon}<span className="ml-1">{st.label}</span>
+                    </Badge>
+                    <span className={`text-xs font-medium ${pr.color}`}>{pr.label}</span>
+                    {isManager && c.isAnonymous && (
+                      <Badge variant="secondary" className="text-xs">Anonyme</Badge>
+                    )}
+                  </div>
+                  <div className="font-medium truncate">{c.subject}</div>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <span>{CATEGORY_LABELS[c.category] ?? c.category}</span>
+                    {isManager && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{c.collaboratorName}</span>}
+                    <span>{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: fr })}</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── New claim dialog ──────────────────────────────────────────────────── */}
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nouvelle réclamation RH</DialogTitle>
+            <DialogTitle>Nouvelle réclamation</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Catégorie <span className="text-red-500">*</span></Label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Catégorie *</Label>
               <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Sélectionner une catégorie" />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Choisir une catégorie…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORY_VALUES.map(k => (
-                    <SelectItem key={k} value={k}>{CATEGORY_LABELS[k]}</SelectItem>
+                  {CATEGORY_VALUES.map(k => <SelectItem key={k} value={k}>{CATEGORY_LABELS[k]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Priorité</Label>
+              <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Objet <span className="text-red-500">*</span></Label>
+            <div>
+              <Label>Objet *</Label>
               <Input
-                placeholder="Résumez votre réclamation en quelques mots"
+                className="mt-1"
+                placeholder="Résumé de la réclamation"
                 value={form.subject}
                 onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                className="h-9"
+                maxLength={200}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Description <span className="text-red-500">*</span></Label>
+            <div>
+              <Label>Description *</Label>
               <Textarea
-                placeholder="Décrivez le problème en détail, les faits, les dates concernées…"
+                className="mt-1"
+                placeholder="Décrivez les faits précisément : date, lieu, personnes concernées, impact…"
+                rows={5}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                rows={5}
-                className="resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Priorité</Label>
-                <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="faible">Faible</SelectItem>
-                    <SelectItem value="normale">Normale</SelectItem>
-                    <SelectItem value="haute">Haute</SelectItem>
-                    <SelectItem value="urgente">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Date souhaitée</Label>
-                <Input
-                  type="date"
-                  value={form.targetDate}
-                  onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <div className="flex items-center gap-2">
               <input
                 type="checkbox"
+                id="anonymous"
                 checked={form.isAnonymous}
                 onChange={e => setForm(f => ({ ...f, isAnonymous: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-primary"
+                className="rounded"
               />
-              <div>
-                <span className="text-sm font-medium">Soumettre de manière anonyme</span>
-                <p className="text-xs text-muted-foreground">Votre nom ne sera pas visible par les gestionnaires intermédiaires</p>
-              </div>
-            </label>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
-            <Button
-              onClick={() => createMutation.mutate(form)}
-              disabled={createMutation.isPending || !form.category || !form.subject || !form.description}
-              className="gap-2"
-            >
-              {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              Soumettre
-            </Button>
-          </DialogFooter>
+              <Label htmlFor="anonymous" className="cursor-pointer text-sm">
+                Soumettre de manière anonyme
+              </Label>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800">
+              <strong>Note :</strong> Les pièces jointes peuvent être ajoutées après soumission depuis le détail de la réclamation.
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Annuler</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Soumettre
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </HrShell>

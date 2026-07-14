@@ -547,5 +547,27 @@ export const hrClaimEventsTable = pgTable("hr_claim_events", {
   orgIdx: index("hr_claim_events_org_idx").on(t.organizationId),
 }));
 
+// ─────────────────────────────────────────────────────────
+// PIÈCES JOINTES — RÉCLAMATIONS RH
+// ─────────────────────────────────────────────────────────
+export const hrClaimAttachmentsTable = pgTable("hr_claim_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  claimId: uuid("claim_id").notNull().references(() => hrClaimsTable.id, { onDelete: "cascade" }),
+  uploadedById: uuid("uploaded_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  // Nom d'affichage original
+  fileName: text("file_name").notNull(),
+  // URL de stockage (objectPath ou URL signée)
+  fileUrl: text("file_url").notNull(),
+  mimeType: text("mime_type"),
+  // Taille en octets
+  size: integer("size"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  claimIdx: index("hr_claim_attachments_claim_idx").on(t.claimId),
+  orgIdx: index("hr_claim_attachments_org_idx").on(t.organizationId),
+}));
+
 export type HrClaim = typeof hrClaimsTable.$inferSelect;
 export type HrClaimEvent = typeof hrClaimEventsTable.$inferSelect;
+export type HrClaimAttachment = typeof hrClaimAttachmentsTable.$inferSelect;

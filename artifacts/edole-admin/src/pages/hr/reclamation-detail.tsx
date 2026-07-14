@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, MessageSquareWarning, CheckCircle2, Clock, AlertTriangle,
-  Search, TrendingUp, Loader2, User, Send, Lock, ChevronDown,
+  Search, TrendingUp, Loader2, User, Send, Lock, ChevronDown, Paperclip,
+  FileText, Download, Upload, Eye, EyeOff,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -44,20 +46,21 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   cloturee:               { label: "Clôturée",              color: "bg-slate-200 text-slate-700 border-slate-300",    icon: <CheckCircle2 className="w-3 h-3" /> },
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  soumise:               "Soumise",
+  en_cours:              "En cours d'analyse",
+  infos_complementaires: "Infos complémentaires demandées",
+  en_traitement:         "En traitement",
+  resolue:               "Résolue",
+  refusee:               "Refusée",
+  cloturee:              "Clôturée",
+};
+
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   faible:   { label: "Faible",   color: "text-slate-500" },
   normale:  { label: "Normale",  color: "text-blue-600" },
   haute:    { label: "Haute",    color: "text-amber-600" },
   urgente:  { label: "Urgente",  color: "text-red-600" },
-};
-
-const MANAGER_TRANSITIONS: Record<string, string[]> = {
-  soumise:               ["en_cours", "infos_complementaires", "refusee"],
-  en_cours:              ["infos_complementaires", "en_traitement", "resolue", "refusee"],
-  infos_complementaires: ["en_cours", "en_traitement", "resolue", "refusee"],
-  en_traitement:         ["resolue", "refusee"],
-  resolue:               ["cloturee"],
-  refusee:               ["cloturee"],
 };
 
 type ClaimEvent = {
@@ -70,6 +73,16 @@ type ClaimEvent = {
   createdAt: string;
   authorId?: string | null;
   authorName?: string | null;
+};
+
+type ClaimAttachment = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string | null;
+  size?: number | null;
+  createdAt: string;
+  uploaderName?: string | null;
 };
 
 type ClaimDetail = {
@@ -86,349 +99,482 @@ type ClaimDetail = {
   resolutionNote?: string | null;
   createdAt: string;
   updatedAt: string;
-  collaboratorId?: string;
-  collaboratorName?: string;
+  collaboratorId: string;
+  collaboratorName: string;
   assignedToId?: string | null;
   assignedToName?: string | null;
+  allowedTransitions: string[];
   events: ClaimEvent[];
+  attachments: ClaimAttachment[];
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
-export default function HrReclamationDetail() {
+export default function ReclamationDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+
   const isManager = ["admin", "super_admin", "manager"].includes(user?.role ?? "");
 
+  // Comment form
   const [comment, setComment] = useState("");
-  const [isInternal, setIsInternal] = useState(false);
+  const [commentInternal, setCommentInternal] = useState(false);
+
+  // Status change panel
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusComment, setStatusComment] = useState("");
   const [resolutionNote, setResolutionNote] = useState("");
 
-  const { data: claim, isLoading, error } = useQuery<ClaimDetail>({
+  // Attachment upload
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [attachName, setAttachName] = useState("");
+
+  // ── Queries ───────────────────────────────────────────────────────────────────
+  const { data: claim, isLoading } = useQuery<ClaimDetail>({
     queryKey: ["hr-claim", id],
     queryFn: () => apiFetch(`/api/hr/claims/${id}`),
-    staleTime: 15_000,
+    enabled: !!id,
   });
 
+  // ── Mutations ─────────────────────────────────────────────────────────────────
   const commentMutation = useMutation({
-    mutationFn: (data: { content: string; isInternal: boolean }) =>
-      apiFetch(`/api/hr/claims/${id}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (body: object) =>
+      apiFetch(`/api/hr/claims/${id}/events`, { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hr-claim", id] });
       setComment("");
-      queryClient.invalidateQueries({ queryKey: ["hr-claim", id] });
+      setCommentInternal(false);
+      toast({ title: "Commentaire ajouté" });
     },
-    onError: () => toast({ variant: "destructive", title: "Erreur", description: "Impossible d'envoyer le commentaire" }),
+    onError: () => toast({ title: "Erreur", description: "Impossible d'ajouter le commentaire.", variant: "destructive" }),
   });
 
   const statusMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      apiFetch(`/api/hr/claims/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (body: object) =>
+      apiFetch(`/api/hr/claims/${id}/status`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hr-claim", id] });
+      qc.invalidateQueries({ queryKey: ["hr-claims"] });
+      qc.invalidateQueries({ queryKey: ["hr-claims-stats"] });
+      setShowStatusPanel(false);
       setNewStatus("");
       setStatusComment("");
       setResolutionNote("");
-      toast({ title: "Réclamation mise à jour" });
-      queryClient.invalidateQueries({ queryKey: ["hr-claim", id] });
-      queryClient.invalidateQueries({ queryKey: ["hr-claims"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-claims-stats"] });
+      toast({ title: "Statut mis à jour" });
     },
-    onError: () => toast({ variant: "destructive", title: "Erreur", description: "Impossible de mettre à jour" }),
+    onError: (e: any) => toast({
+      title: "Transition impossible",
+      description: e?.message ?? "Vérifiez les transitions autorisées.",
+      variant: "destructive",
+    }),
   });
 
-  if (isLoading) return (
-    <HrShell title="Réclamation">
-      <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-    </HrShell>
-  );
+  const attachmentMutation = useMutation({
+    mutationFn: (body: object) =>
+      apiFetch(`/api/hr/claims/${id}/attachments`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hr-claim", id] });
+      setAttachFile(null);
+      setAttachName("");
+      toast({ title: "Pièce jointe ajoutée" });
+    },
+    onError: () => toast({ title: "Erreur", description: "Impossible d'ajouter la pièce jointe.", variant: "destructive" }),
+  });
 
-  if (error || !claim) return (
-    <HrShell title="Réclamation introuvable">
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="py-12 flex flex-col items-center text-muted-foreground">
-          <AlertTriangle className="w-10 h-10 mb-3 opacity-30" />
-          <p className="font-medium">Réclamation introuvable</p>
-          <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={() => navigate("/rh/reclamations")}>
-            <ArrowLeft className="w-4 h-4" />
-            Retour
+  // ── Handlers ──────────────────────────────────────────────────────────────────
+  function handleComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!comment.trim()) return;
+    commentMutation.mutate({ content: comment, isInternal: commentInternal });
+  }
+
+  function handleStatusChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newStatus) return;
+    statusMutation.mutate({
+      status: newStatus,
+      comment: statusComment || undefined,
+      isInternal: false,
+      resolutionNote: resolutionNote || undefined,
+    });
+  }
+
+  function handleAttach(e: React.FormEvent) {
+    e.preventDefault();
+    if (!attachName.trim()) {
+      toast({ title: "Nom de fichier requis", variant: "destructive" });
+      return;
+    }
+    // In a real scenario, this would upload to object storage first.
+    // For now we store the URL as the filename (link-based attachment).
+    attachmentMutation.mutate({
+      fileName: attachName.trim(),
+      fileUrl: attachName.trim(),
+      mimeType: null,
+      size: null,
+    });
+  }
+
+  function formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  }
+
+  // ── Loading ───────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <HrShell title="Réclamation">
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      </HrShell>
+    );
+  }
+
+  if (!claim) {
+    return (
+      <HrShell title="Réclamation">
+        <div className="text-center py-16 text-muted-foreground">
+          <p>Réclamation introuvable.</p>
+          <Button className="mt-4" variant="outline" onClick={() => navigate("/rh/reclamations")}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Retour
           </Button>
-        </CardContent>
-      </Card>
-    </HrShell>
-  );
+        </div>
+      </HrShell>
+    );
+  }
 
-  const sc = STATUS_CONFIG[claim.status] ?? STATUS_CONFIG.soumise;
-  const pc = PRIORITY_CONFIG[claim.priority] ?? PRIORITY_CONFIG.normale;
-  const transitions = isManager ? (MANAGER_TRANSITIONS[claim.status] ?? []) : [];
-  const isClosed = ["resolue", "refusee", "cloturee"].includes(claim.status);
+  const st = STATUS_CONFIG[claim.status] ?? STATUS_CONFIG.soumise;
+  const pr = PRIORITY_CONFIG[claim.priority] ?? PRIORITY_CONFIG.normale;
 
   return (
-    <HrShell
-      title={`Réclamation ${claim.reference}`}
-      subtitle={claim.subject}
-      actions={
-        <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/rh/reclamations")}>
-          <ArrowLeft className="w-4 h-4" />
-          Retour
-        </Button>
-      }
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <HrShell title={`Réclamation ${claim.reference}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── Colonne principale ── */}
-        <div className="lg:col-span-2 space-y-5">
+        {/* ── Left column: main info + timeline ─────────────────────────────── */}
+        <div className="lg:col-span-2 space-y-4">
 
-          {/* En-tête */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardContent className="p-5 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/rh/reclamations")}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Retour
+            </Button>
+          </div>
+
+          {/* Main card */}
+          <Card>
+            <CardContent className="pt-6 space-y-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-slate-400">{claim.reference}</span>
-                    <Badge variant="outline" className={`text-[11px] px-2 border ${sc.color} flex items-center gap-1`}>
-                      {sc.icon}{sc.label}
+                    <Badge variant="outline" className={`${st.color} flex items-center gap-1`}>
+                      {st.icon} {st.label}
                     </Badge>
-                    <span className={`text-xs font-bold ${pc.color}`}>{pc.label}</span>
-                    {claim.isAnonymous && (
-                      <Badge variant="outline" className="text-[11px] px-2 border-slate-200 text-slate-500">Anonyme</Badge>
-                    )}
+                    <span className={`text-sm font-medium ${pr.color}`}>{pr.label}</span>
+                    {claim.isAnonymous && <Badge variant="secondary">Anonyme</Badge>}
+                    <span className="text-xs font-mono text-muted-foreground">{claim.reference}</span>
                   </div>
-                  <h2 className="text-lg font-bold text-slate-900 mt-2">{claim.subject}</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">{CATEGORY_LABELS[claim.category] ?? claim.category}</p>
+                  <h2 className="text-xl font-semibold mt-2">{claim.subject}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {CATEGORY_LABELS[claim.category] ?? claim.category}
+                  </p>
                 </div>
               </div>
 
               <Separator />
 
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Description</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{claim.description}</p>
-              </div>
+              <div className="text-sm whitespace-pre-wrap text-foreground/90">{claim.description}</div>
 
               {claim.resolutionNote && (
-                <>
-                  <Separator />
-                  <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                    <p className="text-xs font-semibold text-emerald-700 mb-1">Note de résolution</p>
-                    <p className="text-sm text-emerald-800 whitespace-pre-wrap">{claim.resolutionNote}</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-emerald-800 mb-1">Note de résolution</p>
+                  <p className="text-emerald-700">{claim.resolutionNote}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                {isManager && (
+                  <div><User className="w-3 h-3 inline mr-1" />Collaborateur : <span className="text-foreground">{claim.collaboratorName}</span></div>
+                )}
+                {claim.assignedToName && (
+                  <div>Assignée à : <span className="text-foreground">{claim.assignedToName}</span></div>
+                )}
+                <div>Créée : <span className="text-foreground">{format(new Date(claim.createdAt), "dd/MM/yyyy HH:mm", { locale: fr })}</span></div>
+                {claim.resolvedAt && (
+                  <div>Résolue : <span className="text-foreground">{format(new Date(claim.resolvedAt), "dd/MM/yyyy", { locale: fr })}</span></div>
+                )}
+                {claim.targetDate && (
+                  <div>Date cible : <span className="text-foreground">{format(new Date(claim.targetDate), "dd/MM/yyyy", { locale: fr })}</span></div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Attachments */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Paperclip className="w-4 h-4" /> Pièces jointes ({claim.attachments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {claim.attachments.length === 0 && (
+                <p className="text-sm text-muted-foreground py-2">Aucune pièce jointe.</p>
+              )}
+              {claim.attachments.map(a => (
+                <div key={a.id} className="flex items-center gap-3 p-2 rounded border bg-slate-50">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{a.fileName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {a.uploaderName && <span>{a.uploaderName} · </span>}
+                      {format(new Date(a.createdAt), "dd/MM/yyyy", { locale: fr })}
+                      {a.size && <span> · {formatFileSize(a.size)}</span>}
+                    </p>
                   </div>
-                </>
+                  <a href={a.fileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm"><Download className="w-4 h-4" /></Button>
+                  </a>
+                </div>
+              ))}
+
+              {/* Add attachment (simple name/URL for now) */}
+              {!["cloturee", "resolue", "refusee"].includes(claim.status) && (
+                <form onSubmit={handleAttach} className="flex gap-2 pt-2">
+                  <Input
+                    placeholder="Nom ou URL de la pièce jointe"
+                    value={attachName}
+                    onChange={e => setAttachName(e.target.value)}
+                    className="flex-1 text-sm"
+                  />
+                  <Button type="submit" size="sm" disabled={attachmentMutation.isPending || !attachName.trim()}>
+                    {attachmentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
+                </form>
               )}
             </CardContent>
           </Card>
 
-          {/* Chronologie des événements */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Chronologie</CardTitle>
+          {/* Timeline */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Historique</CardTitle>
             </CardHeader>
-            <CardContent className="px-5 pb-5 space-y-4">
-              {claim.events.map((ev, idx) => (
-                <div key={ev.id} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                      ev.kind === "status_change" ? "bg-primary/10" : "bg-slate-100"
-                    }`}>
-                      {ev.kind === "status_change" ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-primary" />
-                      ) : (
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                    </div>
-                    {idx < claim.events.length - 1 && (
-                      <div className="w-px bg-slate-200 flex-1 my-1 min-h-[16px]" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 pb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-slate-700">{ev.authorName ?? "Système"}</span>
-                      {ev.isInternal && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0 rounded-full border border-amber-200 flex items-center gap-1">
-                          <Lock className="w-2.5 h-2.5" />Interne
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {formatDistanceToNow(new Date(ev.createdAt), { addSuffix: true, locale: fr })}
-                      </span>
-                    </div>
-                    {ev.kind === "status_change" && ev.toStatus && (
-                      <p className="text-xs mt-0.5 text-slate-500">
-                        Statut →{" "}
-                        <span className="font-medium text-slate-700">
-                          {STATUS_CONFIG[ev.toStatus]?.label ?? ev.toStatus}
-                        </span>
-                      </p>
-                    )}
-                    {ev.content && (
-                      <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{ev.content}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-
+            <CardContent>
               {claim.events.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Aucun événement</p>
+                <p className="text-sm text-muted-foreground py-2">Aucun événement.</p>
               )}
+              <div className="space-y-3">
+                {claim.events.map((ev) => (
+                  <div key={ev.id} className={`flex gap-3 ${ev.isInternal ? "opacity-70" : ""}`}>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                        ev.kind === "status_change" ? "bg-orange-400" :
+                        ev.kind === "attachment" ? "bg-blue-400" : "bg-slate-300"
+                      }`} />
+                      <div className="w-px flex-1 bg-border" />
+                    </div>
+                    <div className="pb-3 flex-1 min-w-0">
+                      {ev.kind === "status_change" ? (
+                        <p className="text-sm">
+                          <span className="font-medium">{ev.authorName ?? "Système"}</span>
+                          {" "}a changé le statut de{" "}
+                          <Badge variant="outline" className="text-xs">{STATUS_LABELS[ev.fromStatus ?? ""] ?? ev.fromStatus}</Badge>
+                          {" → "}
+                          <Badge variant="outline" className="text-xs">{STATUS_LABELS[ev.toStatus ?? ""] ?? ev.toStatus}</Badge>
+                        </p>
+                      ) : ev.kind === "attachment" ? (
+                        <p className="text-sm">
+                          <span className="font-medium">{ev.authorName ?? "Système"}</span>{" "}
+                          <Paperclip className="w-3 h-3 inline text-blue-500" /> {ev.content}
+                        </p>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{ev.authorName ?? "Système"}</span>
+                            {ev.isInternal && (
+                              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" /> Interne
+                              </Badge>
+                            )}
+                          </div>
+                          {ev.content && <p className="text-sm mt-1 text-foreground/90">{ev.content}</p>}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(ev.createdAt), { addSuffix: true, locale: fr })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-              {/* Zone de commentaire */}
-              {!isClosed && (
-                <div className="pt-2 space-y-2">
-                  <Separator />
+              {/* Comment form */}
+              {!["cloturee"].includes(claim.status) && (
+                <form onSubmit={handleComment} className="mt-4 space-y-2">
                   <Textarea
                     placeholder="Ajouter un commentaire…"
                     value={comment}
                     onChange={e => setComment(e.target.value)}
                     rows={3}
-                    className="resize-none text-sm"
                   />
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between">
                     {isManager && (
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={isInternal}
-                          onChange={e => setIsInternal(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded"
+                          checked={commentInternal}
+                          onChange={e => setCommentInternal(e.target.checked)}
+                          className="rounded"
                         />
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Lock className="w-3 h-3" />Note interne
-                        </span>
+                        <Lock className="w-3 h-3" /> Note interne
                       </label>
                     )}
-                    <Button
-                      size="sm"
-                      className="gap-2 ml-auto"
-                      onClick={() => commentMutation.mutate({ content: comment, isInternal })}
-                      disabled={!comment.trim() || commentMutation.isPending}
-                    >
-                      {commentMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      Envoyer
-                    </Button>
+                    <div className="ml-auto">
+                      <Button type="submit" size="sm" disabled={commentMutation.isPending || !comment.trim()}>
+                        {commentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        <span className="ml-2">Envoyer</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </form>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* ── Sidebar droite ── */}
-        <div className="space-y-4">
-
-          {/* Informations */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Informations</CardTitle>
-            </CardHeader>
-            <CardContent className="px-5 pb-5 space-y-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Demandeur</p>
-                <p className="text-sm font-medium text-slate-800">{claim.collaboratorName ?? "—"}</p>
-              </div>
-              {claim.assignedToName && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Responsable RH</p>
-                  <p className="text-sm font-medium text-slate-800">{claim.assignedToName}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground">Date de soumission</p>
-                <p className="text-sm font-medium text-slate-800">
-                  {format(new Date(claim.createdAt), "d MMMM yyyy", { locale: fr })}
-                </p>
-              </div>
-              {claim.targetDate && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Date cible</p>
-                  <p className="text-sm font-medium text-slate-800">
-                    {format(new Date(claim.targetDate), "d MMMM yyyy", { locale: fr })}
-                  </p>
-                </div>
-              )}
-              {claim.resolvedAt && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Résolu le</p>
-                  <p className="text-sm font-medium text-emerald-700">
-                    {format(new Date(claim.resolvedAt), "d MMMM yyyy", { locale: fr })}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions manager */}
-          {isManager && !isClosed && transitions.length > 0 && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">Changer le statut</CardTitle>
+        {/* ── Right column: manager actions ─────────────────────────────────── */}
+        {isManager && (
+          <div className="space-y-4">
+            {/* Status change panel */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Traitement</CardTitle>
               </CardHeader>
-              <CardContent className="px-5 pb-5 space-y-3">
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Nouveau statut…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {transitions.map(s => (
-                      <SelectItem key={s} value={s}>
-                        {STATUS_CONFIG[s]?.label ?? s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {(newStatus === "resolue" || newStatus === "refusee") && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{newStatus === "resolue" ? "Note de résolution" : "Motif du refus"}</Label>
-                    <Textarea
-                      placeholder={newStatus === "resolue" ? "Décrivez la solution apportée…" : "Expliquez le motif du refus…"}
-                      value={resolutionNote}
-                      onChange={e => setResolutionNote(e.target.value)}
-                      rows={3}
-                      className="resize-none text-sm"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Commentaire (optionnel)</Label>
-                  <Textarea
-                    placeholder="Note interne ou message pour l'employé…"
-                    value={statusComment}
-                    onChange={e => setStatusComment(e.target.value)}
-                    rows={2}
-                    className="resize-none text-sm"
-                  />
+              <CardContent>
+                <div className="mb-3">
+                  <p className="text-xs text-muted-foreground mb-1">Statut actuel</p>
+                  <Badge variant="outline" className={`${st.color} flex items-center gap-1 w-fit`}>
+                    {st.icon} {st.label}
+                  </Badge>
                 </div>
 
-                <Button
-                  className="w-full gap-2"
-                  size="sm"
-                  onClick={() => statusMutation.mutate({
-                    status: newStatus,
-                    comment: statusComment || undefined,
-                    resolutionNote: resolutionNote || undefined,
-                    isInternal: false,
-                  })}
-                  disabled={!newStatus || statusMutation.isPending}
-                >
-                  {statusMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Confirmer
-                </Button>
+                {claim.allowedTransitions.length > 0 ? (
+                  showStatusPanel ? (
+                    <form onSubmit={handleStatusChange} className="space-y-3">
+                      <div>
+                        <Label className="text-xs">Nouveau statut</Label>
+                        <Select value={newStatus} onValueChange={setNewStatus}>
+                          <SelectTrigger className="mt-1 text-sm">
+                            <SelectValue placeholder="Choisir…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {claim.allowedTransitions.map(s => (
+                              <SelectItem key={s} value={s}>{STATUS_LABELS[s] ?? s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {(newStatus === "resolue" || newStatus === "refusee") && (
+                        <div>
+                          <Label className="text-xs">Note de résolution</Label>
+                          <Textarea
+                            className="mt-1 text-sm"
+                            placeholder="Expliquez la décision prise…"
+                            rows={3}
+                            value={resolutionNote}
+                            onChange={e => setResolutionNote(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <Label className="text-xs">Commentaire (optionnel)</Label>
+                        <Textarea
+                          className="mt-1 text-sm"
+                          placeholder="Message pour le collaborateur…"
+                          rows={2}
+                          value={statusComment}
+                          onChange={e => setStatusComment(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" className="flex-1"
+                          onClick={() => setShowStatusPanel(false)}>Annuler</Button>
+                        <Button type="submit" size="sm" className="flex-1"
+                          disabled={statusMutation.isPending || !newStatus}>
+                          {statusMutation.isPending && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                          Valider
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <Button variant="outline" className="w-full" size="sm"
+                      onClick={() => setShowStatusPanel(true)}>
+                      <ChevronDown className="w-4 h-4 mr-2" /> Changer le statut
+                    </Button>
+                  )
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Aucune transition possible depuis ce statut.</p>
+                )}
               </CardContent>
             </Card>
-          )}
-        </div>
+
+            {/* Stats recap */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Informations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Collaborateur</span>
+                  <span className="font-medium">{claim.collaboratorName}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Catégorie</span>
+                  <span className="font-medium">{CATEGORY_LABELS[claim.category] ?? claim.category}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Priorité</span>
+                  <span className={`font-medium ${(PRIORITY_CONFIG[claim.priority] ?? PRIORITY_CONFIG.normale).color}`}>
+                    {(PRIORITY_CONFIG[claim.priority] ?? PRIORITY_CONFIG.normale).label}
+                  </span>
+                </div>
+                {claim.assignedToName && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Assignée à</span>
+                      <span className="font-medium">{claim.assignedToName}</span>
+                    </div>
+                  </>
+                )}
+                {claim.targetDate && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Date cible</span>
+                      <span className="font-medium">{format(new Date(claim.targetDate), "dd/MM/yyyy", { locale: fr })}</span>
+                    </div>
+                  </>
+                )}
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Créée</span>
+                  <span className="font-medium">{formatDistanceToNow(new Date(claim.createdAt), { addSuffix: true, locale: fr })}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </HrShell>
   );
