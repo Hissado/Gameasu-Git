@@ -152,8 +152,6 @@ const DASHBOARD_TOUR = [
 export default function Dashboard() {
   const { user } = useAuth();
   const firstName = user?.firstName || "";
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("dashboard");
-
   const { data: kpis, isLoading: loadingKpis } = useGetDashboardKpis();
   const { data: charts, isLoading: loadingCharts } = useGetDashboardCharts();
   const { data: activity } = useGetRecentActivity({ limit: 8 });
@@ -162,6 +160,7 @@ export default function Dashboard() {
   const { data: invoices } = useListInvoices();
 
   const projectList: any[] = (projects as any)?.data || (projects as any) || [];
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("dashboard", !loadingKpis && projectList.length === 0);
   const taskList: any[]    = (tasks as any)?.data    || (tasks as any)    || [];
   const invoiceList: any[] = (invoices as any)?.data || (invoices as any) || [];
 

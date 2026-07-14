@@ -64,7 +64,6 @@ const COLLABS_TOUR = [
 
 export default function CollaboratorsList() {
   const [, navigate] = useLocation();
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("collaborateurs");
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -126,6 +125,7 @@ export default function CollaboratorsList() {
   });
 
   const allCollabs = allCollabsData?.data ?? [];
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("collaborateurs", !isLoading && allCollabs.length === 0);
 
   const statusCounts = useMemo(() => {
     const now = Date.now();

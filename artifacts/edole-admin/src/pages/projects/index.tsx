@@ -267,7 +267,7 @@ const PROJECTS_TOUR = [
 
 export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("projets");
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("projets", !isLoading && (data?.data?.length ?? 1) === 0);
   const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -446,7 +446,7 @@ export default function ProjectsList() {
                   <TableHead className="font-semibold text-slate-600">Nom du Projet</TableHead>
                   <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Client</TableHead>
                   <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600">RAG</TableHead>
+                  <TableHead data-tour="proj-rag" className="font-semibold text-slate-600">RAG</TableHead>
                   <TableHead className="hidden md:table-cell font-semibold text-slate-600">Avancement</TableHead>
                   <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Budget</TableHead>
                   <TableHead className="hidden lg:table-cell font-semibold text-slate-600">Responsable</TableHead>

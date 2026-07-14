@@ -29,17 +29,17 @@ export const RELAUNCH_EVENT = "gameasu:relaunch-tour";
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useModuleTour(moduleKey: string) {
+export function useModuleTour(moduleKey: string, canAutoShow = false) {
   const [showWelcome, setShowWelcome] = useState(false);
   const [tourActive, setTourActive] = useState(false);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined;
-    if (!localStorage.getItem(LS_KEY(moduleKey))) {
+    if (canAutoShow && !localStorage.getItem(LS_KEY(moduleKey))) {
       t = setTimeout(() => setShowWelcome(true), 600);
     }
     return () => { if (t !== undefined) clearTimeout(t); };
-  }, [moduleKey]);
+  }, [moduleKey, canAutoShow]);
 
   useEffect(() => {
     const handler = (e: Event) => {

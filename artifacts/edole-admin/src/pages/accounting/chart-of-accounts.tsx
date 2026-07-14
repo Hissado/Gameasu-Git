@@ -47,7 +47,6 @@ const COA_TOUR = [
 
 export default function ChartOfAccounts() {
   const [search, setSearch] = useState("");
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("plan_comptable");
   const [classFilter, setClassFilter] = useState<string>("");
 
   const { data, isLoading } = useQuery<{ data: Acc[] }>({
@@ -65,6 +64,7 @@ export default function ChartOfAccounts() {
     queryFn: () => apiFetch("/api/organizations/accounting-framework"),
     staleTime: 10 * 60 * 1000,
   });
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("plan_comptable", !isLoading);
 
   const grouped = (data?.data ?? []).reduce((acc, a) => {
     (acc[a.classNum] ??= []).push(a);
@@ -90,6 +90,13 @@ export default function ChartOfAccounts() {
         />
       )}
       {tourActive && <OnboardingTour steps={COA_TOUR} onClose={closeTour} />}
+      <div data-tour="coa-header" className="flex items-center gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+        <BookOpen className="w-5 h-5 text-amber-600 shrink-0" />
+        <div>
+          <p className="font-semibold text-sm text-slate-700">{fwLabel}</p>
+          <p className="text-xs text-muted-foreground">{fwDesc}</p>
+        </div>
+      </div>
       <div data-tour="coa-search" className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

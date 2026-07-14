@@ -70,12 +70,12 @@ const FPA_TOUR = [
 
 export default function FpaDashboardPage() {
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("fpa");
   const [periodId, setPeriodId] = useState<string>("");
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [byProject, setByProject] = useState<ByProjectResponse | null>(null);
   const [yearEnd, setYearEnd] = useState<YearEndResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("fpa", !loading && summary !== null && !summary.companyBudget);
 
   useEffect(() => {
     apiFetch<{ data: FiscalPeriod[] }>("/api/accounting/fiscal-periods").then((r) => {
@@ -163,7 +163,7 @@ export default function FpaDashboardPage() {
               Vision consolidée du budget, du réalisé et des projections — {period?.name ?? "—"}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div data-tour="fpa-nav" className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
               <CalendarRange className="w-4 h-4 text-amber-300" />
               <Select value={periodId} onValueChange={setPeriodId}>

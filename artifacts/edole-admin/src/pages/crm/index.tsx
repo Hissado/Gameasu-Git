@@ -212,7 +212,6 @@ const CRM_TOUR = [
 
 export default function CrmHome() {
   const qc = useQueryClient();
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("crm");
   const { data: pipeline, isLoading: isLoadingPipeline } = useGetCrmPipeline();
   const { data: opportunities, isLoading: isLoadingOpps, refetch } = useListOpportunities();
 
@@ -236,6 +235,7 @@ export default function CrmHome() {
   };
 
   const isLoading = isLoadingPipeline || isLoadingOpps;
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("crm", !isLoading && (opportunities?.total ?? 1) === 0);
 
   return (
     <div data-tour="crm-header" className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
