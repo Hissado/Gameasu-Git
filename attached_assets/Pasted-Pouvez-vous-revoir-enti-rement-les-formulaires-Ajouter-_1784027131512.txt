@@ -1,0 +1,363 @@
+Pouvez-vous revoir entièrement les formulaires Ajouter un client et Ajouter un fournisseur afin qu’ils soient beaucoup plus complets, professionnels et comparables aux meilleurs ERP du marché (QuickBooks, SAP Business One, Microsoft Dynamics 365, Oracle NetSuite, Odoo, Zoho Books, Xero, etc.) ?
+
+Objectif
+
+Aujourd’hui, les formulaires sont beaucoup trop basiques et ne collectent pas suffisamment d’informations pour permettre une gestion professionnelle des clients et fournisseurs.
+
+Je souhaite que les fiches Clients et Fournisseurs deviennent de véritables fiches maîtresses (Master Data), centralisant toutes les informations nécessaires aux différents modules de Gameasu (CRM, Ventes, Achats, Comptabilité, Finance, Marketing, Documents, Rapports, etc.).
+
+Les informations doivent être organisées par onglets afin de garder une interface claire et agréable.
+
+⸻
+
+1. Revoir complètement la fiche Client
+
+La création d’un client doit être beaucoup plus complète.
+
+Onglet 1 — Informations générales
+
+* Type de client (Entreprise, Particulier, Administration, ONG, etc.)
+* Nom de l’entreprise
+* Nom commercial
+* Nom du contact principal
+* Civilité
+* Fonction / Poste
+* Téléphone principal
+* Téléphone secondaire
+* WhatsApp
+* Email principal
+* Email secondaire
+* Site web
+* Logo de l’entreprise
+* Photo du contact
+
+⸻
+
+Onglet 2 — Adresse
+
+* Pays
+* Région / État
+* Ville
+* Commune
+* Quartier
+* Rue
+* Code postal
+* Adresse complète
+* Coordonnées GPS (optionnelles)
+
+Possibilité d’ajouter :
+
+* Adresse de facturation
+* Adresse de livraison
+
+avec option :
+
+☐ Identique à l’adresse principale
+
+⸻
+
+Onglet 3 — Informations administratives
+
+* Numéro d’identification fiscale
+* RCCM ou registre de commerce
+* Numéro TVA
+* Numéro statistique
+* Secteur d’activité
+* Taille de l’entreprise
+* Date de création
+* Nombre d’employés
+* Devise préférée
+* Langue préférée
+
+⸻
+
+Onglet 4 — Informations commerciales
+
+* Commercial responsable
+* Source du client
+* Pipeline CRM
+* Catégorie client
+* Segment
+* Canal d’acquisition
+* Priorité
+* Statut
+* Potentiel
+* Date de premier contact
+* Date de conversion
+
+⸻
+
+Onglet 5 — Paramètres financiers
+
+* Conditions de paiement
+* Mode de paiement préféré
+* Compte comptable associé
+* Limite de crédit
+* Devise
+* Exonération TVA
+* Taux de remise
+* Conditions particulières
+
+⸻
+
+Onglet 6 — Documents
+
+Possibilité d’ajouter :
+
+* Contrats
+* Pièces d’identité
+* RCCM
+* Attestation fiscale
+* Photos
+* Bons de commande
+* Correspondances
+* Tout autre document
+
+⸻
+
+Onglet 7 — Contacts
+
+Pouvoir enregistrer plusieurs contacts.
+
+Exemple :
+
+Directeur Général
+
+Directeur Financier
+
+Responsable Achats
+
+Comptable
+
+Assistant
+
+avec :
+
+* nom
+* fonction
+* téléphone
+* email
+* WhatsApp
+
+⸻
+
+Onglet 8 — Historique
+
+Afficher automatiquement :
+
+* devis
+* factures
+* paiements
+* projets
+* tickets
+* appels
+* emails
+* rendez-vous
+* activités CRM
+* documents
+
+⸻
+
+Onglet 9 — Notes
+
+Ajouter :
+
+* commentaires internes
+* observations
+* historique des modifications
+
+⸻
+
+2. Revoir complètement la fiche Fournisseur
+
+Même logique que la fiche Client.
+
+Ajouter également :
+
+* banque principale
+* IBAN
+* SWIFT
+* compte bancaire
+* bénéficiaire
+* conditions de règlement
+* délai de paiement
+* catégorie fournisseur
+* type de fournisseur
+* notation fournisseur
+* performance
+* certification
+* produits fournis
+* services fournis
+* zones desservies
+* devise de facturation
+
+⸻
+
+3. Synchronisation avec toute l’application
+
+Ces informations doivent être automatiquement utilisées dans :
+
+CRM
+
+Ventes
+
+Achats
+
+Comptabilité
+
+Paiements
+
+Encaissements
+
+Trésorerie
+
+Documents
+
+Marketing
+
+Rapports
+
+Assistant IA
+
+Contrôle fiscal préalable
+
+Cockpit
+
+Portail Expert
+
+⸻
+
+4. Duplication des contacts
+
+Un client ou fournisseur peut avoir plusieurs contacts.
+
+Exemple :
+
+Entreprise ABC
+
+• Directeur Général
+
+• Comptable
+
+• Responsable Commercial
+
+• Responsable Technique
+
+Chaque contact doit pouvoir être utilisé lors :
+
+* des devis
+* des factures
+* des emails
+* des campagnes marketing
+* des rendez-vous
+* des appels
+
+⸻
+
+5. Chronologie
+
+Ajouter une Timeline.
+
+Toutes les actions doivent être historisées.
+
+Exemple :
+
+Création
+
+Modification
+
+Facture créée
+
+Paiement reçu
+
+Appel
+
+Email envoyé
+
+Rendez-vous
+
+Document ajouté
+
+Suggestion
+
+Réclamation
+
+Projet créé
+
+⸻
+
+6. Personnalisation
+
+Pouvoir ajouter des champs personnalisés.
+
+Exemple :
+
+Numéro interne
+
+Zone commerciale
+
+Type de partenaire
+
+Contrat spécifique
+
+Responsable régional
+
+⸻
+
+7. Import / Export
+
+Les nouveaux champs doivent être compatibles avec :
+
+* Import Excel
+* Import CSV
+* API
+* Export Excel
+* Export PDF
+
+Les modèles d’import doivent être mis à jour automatiquement.
+
+⸻
+
+8. Interface utilisateur
+
+Je souhaite une fiche moderne similaire aux meilleurs ERP.
+
+Prévoir :
+
+* onglets bien organisés ;
+* navigation fluide ;
+* recherche instantanée ;
+* badges de statut ;
+* avatar ou logo ;
+* cartes d’information ;
+* responsive mobile ;
+* validations intelligentes ;
+* aide contextuelle sur les champs.
+
+⸻
+
+9. Mock data
+
+Mettre à jour les mock data de Hissado Consulting afin qu’elles utilisent cette nouvelle structure.
+
+Créer plusieurs clients et fournisseurs avec des informations réalistes et complètes afin de démontrer tout le potentiel de Gameasu.
+
+⸻
+
+10. Vérifier les scénarios
+
+Merci de revoir toute la logique métier.
+
+Vérifier que :
+
+* toutes les informations sont réellement utiles ;
+* aucun champ important n’est oublié ;
+* les champs sont correctement liés aux autres modules ;
+* les données alimentent automatiquement les rapports, la comptabilité, le CRM, les achats, les ventes et le marketing ;
+* la structure est évolutive pour tous les secteurs d’activité.
+
+S’inspirer des meilleures pratiques de QuickBooks, SAP Business One, Microsoft Dynamics 365, Oracle NetSuite et Odoo, tout en conservant une interface moderne, intuitive et adaptée à la philosophie premium de Gameasu.
+
+Objectif final
+
+Transformer les fiches Clients et Fournisseurs en véritables fiches maîtresses (Master Data) centralisant toutes les informations stratégiques de l’organisation, afin que chaque module de Gameasu exploite automatiquement ces données et offre une expérience de gestion digne d’un ERP de classe internationale.
