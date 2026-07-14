@@ -321,6 +321,13 @@ router.get("/super-admin/expert-firms", sa, async (_req, res, next) => {
         memberCount: sql<number>`(select count(*)::int from expert_firm_members efm where efm.firm_id = ${expertFirmsTable.id})`,
         clientCount: sql<number>`(select count(*)::int from expert_client_access eca where eca.firm_id = ${expertFirmsTable.id} and eca.is_active = true)`,
         pendingDocCount: sql<number>`(select count(*)::int from document_requests dr where dr.firm_id = ${expertFirmsTable.id} and dr.status = 'en_attente')`,
+        lastActivityAt: sql<string | null>`(
+          select max(ts) from (
+            select created_at as ts from expert_context_sessions where firm_id = ${expertFirmsTable.id}
+            union all
+            select updated_at as ts from document_requests where firm_id = ${expertFirmsTable.id}
+          ) _act
+        )`,
       })
       .from(expertFirmsTable)
       .orderBy(desc(expertFirmsTable.createdAt));

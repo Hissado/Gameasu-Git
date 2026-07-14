@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Briefcase, Users, Building2, FileText, Search,
   Power, PowerOff, Loader2, AlertTriangle, ChevronRight,
-  Globe, Mail, Calendar, UserPlus, CheckCircle2, Send,
+  Globe, Mail, Calendar, UserPlus, CheckCircle2, Send, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,7 +23,30 @@ type ExpertFirm = {
   id: string; name: string; slug: string; country: string;
   email: string | null; plan: string; isActive: boolean;
   createdAt: string; memberCount: number; clientCount: number; pendingDocCount: number;
+  lastActivityAt: string | null;
 };
+
+const INACTIVE_THRESHOLD_DAYS = 30;
+
+function isInactive(firm: ExpertFirm): boolean {
+  const thresholdMs = INACTIVE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+  // If activity was recorded, use that timestamp
+  if (firm.lastActivityAt) {
+    return Date.now() - new Date(firm.lastActivityAt).getTime() > thresholdMs;
+  }
+  // No activity at all — only flag as inactive if the firm itself is older than the threshold
+  return Date.now() - new Date(firm.createdAt).getTime() > thresholdMs;
+}
+
+function fmtRelative(d: string | null): string {
+  if (!d) return "—";
+  const days = Math.floor((Date.now() - new Date(d).getTime()) / (24 * 60 * 60 * 1000));
+  if (days === 0) return "Aujourd'hui";
+  if (days === 1) return "Hier";
+  if (days < 30) return `Il y a ${days}j`;
+  const months = Math.floor(days / 30);
+  return `Il y a ${months} mois`;
+}
 
 type Kpis = {
   totalFirms: number; activeFirms: number; totalClients: number; pendingDocs: number;
@@ -111,7 +134,7 @@ const EMPTY_INVITE: InviteForm = {
 export default function ExpertFirmsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "suspended">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "suspended" | "inactive">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<ExpertFirm | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -201,8 +224,11 @@ export default function ExpertFirmsPage() {
     }
     if (filterStatus === "active" && !f.isActive) return false;
     if (filterStatus === "suspended" && f.isActive) return false;
+    if (filterStatus === "inactive" && !isInactive(f)) return false;
     return true;
   });
+
+  const inactiveCount = (data?.firms ?? []).filter(isInactive).length;
 
   const kpis = data?.kpis ?? { totalFirms: 0, activeFirms: 0, totalClients: 0, pendingDocs: 0 };
 
@@ -258,11 +284,22 @@ export default function ExpertFirmsPage() {
                 className="pl-9 h-9"
               />
             </div>
-            <div className="flex gap-2">
-              {(["all", "active", "suspended"] as const).map((s) => (
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "active", "suspended", "inactive"] as const).map((s) => (
                 <Button key={s} variant={filterStatus === s ? "default" : "outline"} size="sm"
-                  onClick={() => setFilterStatus(s)} className="h-9">
-                  {s === "all" ? "Tous" : s === "active" ? "Actifs" : "Suspendus"}
+                  onClick={() => setFilterStatus(s)}
+                  className={`h-9 ${s === "inactive" && filterStatus !== "inactive" && inactiveCount > 0 ? "border-orange-300 text-orange-600 hover:bg-orange-50" : ""}`}>
+                  {s === "all" ? "Tous" : s === "active" ? "Actifs" : s === "suspended" ? "Suspendus" : (
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Inactifs
+                      {inactiveCount > 0 && (
+                        <span className={`text-[10px] rounded-full px-1.5 py-0 font-semibold ${filterStatus === "inactive" ? "bg-white/20 text-white" : "bg-orange-100 text-orange-700"}`}>
+                          {inactiveCount}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </Button>
               ))}
             </div>
@@ -288,6 +325,7 @@ export default function ExpertFirmsPage() {
                     <TableHead className="text-center">Membres</TableHead>
                     <TableHead className="text-center">Clients</TableHead>
                     <TableHead className="text-center">Docs att.</TableHead>
+                    <TableHead>Dernière activité</TableHead>
                     <TableHead>Créé le</TableHead>
                     <TableHead className="text-center">Statut</TableHead>
                     <TableHead className="w-10" />
@@ -327,6 +365,17 @@ export default function ExpertFirmsPage() {
                         ) : (
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm text-muted-foreground">{fmtRelative(f.lastActivityAt)}</span>
+                          {isInactive(f) && (
+                            <Badge variant="outline" className="text-[10px] w-fit bg-orange-50 text-orange-700 border-orange-200 gap-1">
+                              <Clock className="w-2.5 h-2.5" />
+                              Inactif 30j+
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {fmtDate(f.createdAt)}
