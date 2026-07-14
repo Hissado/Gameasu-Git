@@ -6,7 +6,8 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check-routes": "tsx ./src/check-routes.ts"
+    "check-routes": "tsx ./src/check-routes.ts",
+    "verify-purchases-exports": "python3 ./src/verify-purchases-exports.py"
   },
   "devDependencies": {
     "@types/node": "catalog:",
