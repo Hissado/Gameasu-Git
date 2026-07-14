@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireManagerOrAbove } from "../middlewares/auth";
 import {
   db, hrClaimsTable, hrClaimEventsTable, collaboratorsTable, usersTable,
   notificationsTable,
@@ -7,32 +8,30 @@ import { eq, and, desc, count, sql } from "drizzle-orm";
 
 const router = Router();
 
-function requireHrManage(req: any, res: any, next: any) {
-  const role = req.user?.role;
-  if (!["admin", "super_admin", "manager"].includes(role) && !req.user?.permissions?.includes("hr.manage")) {
-    return res.status(403).json({ error: "Accès réservé aux gestionnaires RH" });
-  }
-  next();
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isManagerRole(role: string | null | undefined) {
+  return ["admin", "super_admin", "manager", "owner"].includes(role ?? "");
 }
 
-async function getCollaboratorForUser(userId: string, orgId: string) {
+async function getCollaboratorForUser(userId: string, orgId: string): Promise<string | null> {
   const rows = await db
     .select({ id: collaboratorsTable.id })
     .from(collaboratorsTable)
-    .where(and(eq(collaboratorsTable.userId, userId as any), eq(collaboratorsTable.organizationId, orgId)))
+    .where(and(eq(collaboratorsTable.userId as any, userId), eq(collaboratorsTable.organizationId, orgId)))
     .limit(1);
   return rows[0]?.id ?? null;
 }
 
-function generateReference(seq: number) {
+function generateReference(seq: number): string {
   const year = new Date().getFullYear();
   return `REC-${year}-${String(seq).padStart(4, "0")}`;
 }
 
-// ── GET /api/hr/claims/stats ──────────────────────────────────────────────────
-router.get("/api/hr/claims/stats", requireHrManage, async (req, res, next) => {
+// ── GET /hr/claims/stats ──────────────────────────────────────────────────────
+router.get("/hr/claims/stats", requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.authUser!.organizationId;
 
     const [totRow] = await db
       .select({ total: count() })
@@ -67,17 +66,17 @@ router.get("/api/hr/claims/stats", requireHrManage, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── GET /api/hr/claims ────────────────────────────────────────────────────────
-router.get("/api/hr/claims", async (req, res, next) => {
+// ── GET /hr/claims ────────────────────────────────────────────────────────────
+router.get("/hr/claims", async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
-    const userId = req.user!.id;
-    const isManager = ["admin", "super_admin", "manager"].includes(req.user!.role ?? "");
+    const { organizationId: orgId, id: userId, role, orgRole } = req.authUser!;
+    const manager = isManagerRole(role) || isManagerRole(orgRole);
 
     const { status, category, priority, limit = "50", offset = "0" } = req.query as Record<string, string>;
 
+    // Non-managers only see their own claims
     let collaboratorId: string | null = null;
-    if (!isManager) {
+    if (!manager) {
       collaboratorId = await getCollaboratorForUser(userId, orgId);
       if (!collaboratorId) return res.json({ data: [], total: 0 });
     }
@@ -117,7 +116,7 @@ router.get("/api/hr/claims", async (req, res, next) => {
 
     const data = rows.map(r => ({
       ...r,
-      collaboratorName: (r.isAnonymous && !isManager)
+      collaboratorName: (r.isAnonymous && !manager)
         ? "Anonyme"
         : `${r.collaboratorFirstName ?? ""} ${r.collaboratorLastName ?? ""}`.trim(),
       collaboratorFirstName: undefined,
@@ -128,27 +127,38 @@ router.get("/api/hr/claims", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── POST /api/hr/claims ───────────────────────────────────────────────────────
-router.post("/api/hr/claims", async (req, res, next) => {
+// ── POST /hr/claims ───────────────────────────────────────────────────────────
+router.post("/hr/claims", async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
-    const userId = req.user!.id;
+    const { organizationId: orgId, id: userId, role, orgRole } = req.authUser!;
+    const manager = isManagerRole(role) || isManagerRole(orgRole);
 
     const { category, subject, description, priority = "normale", isAnonymous = false, targetDate } = req.body;
     if (!category || !subject || !description) {
-      return res.status(400).json({ error: "Champs obligatoires manquants" });
+      return res.status(400).json({ error: "Champs obligatoires manquants (catégorie, objet, description)" });
     }
 
-    // Déterminer le collaboratorId (manager peut soumettre pour un autre)
-    let collaboratorId: string | null = req.body.collaboratorId ?? null;
-    if (!collaboratorId) {
+    // collaboratorId resolution — security: non-managers are forced to their own profile
+    let collaboratorId: string | null = null;
+    if (manager && req.body.collaboratorId) {
+      // Manager submitting for another collaborator — verify it belongs to the org
+      const [check] = await db
+        .select({ id: collaboratorsTable.id })
+        .from(collaboratorsTable)
+        .where(and(eq(collaboratorsTable.id, req.body.collaboratorId as string), eq(collaboratorsTable.organizationId, orgId)))
+        .limit(1);
+      if (!check) return res.status(400).json({ error: "Collaborateur introuvable dans cette organisation" });
+      collaboratorId = check.id;
+    } else {
+      // Regular employee — always their own collaborator profile
       collaboratorId = await getCollaboratorForUser(userId, orgId);
     }
+
     if (!collaboratorId) {
-      return res.status(400).json({ error: "Profil collaborateur introuvable" });
+      return res.status(400).json({ error: "Profil collaborateur introuvable. Contactez un administrateur." });
     }
 
-    // Générer la référence
+    // Auto-generate unique reference
     const [cntRow] = await db
       .select({ cnt: count() })
       .from(hrClaimsTable)
@@ -169,7 +179,7 @@ router.post("/api/hr/claims", async (req, res, next) => {
       targetDate: targetDate ?? null,
     }).returning();
 
-    // Événement initial
+    // Initial timeline event
     await db.insert(hrClaimEventsTable).values({
       organizationId: orgId,
       claimId: claim.id,
@@ -181,7 +191,7 @@ router.post("/api/hr/claims", async (req, res, next) => {
       isInternal: false,
     });
 
-    // Notification aux managers RH
+    // Notify HR managers (non-blocking)
     try {
       const managers = await db
         .select({ id: usersTable.id })
@@ -197,25 +207,24 @@ router.post("/api/hr/claims", async (req, res, next) => {
             organizationId: orgId,
             userId: m.id,
             title: "Nouvelle réclamation RH",
-            body: `Référence ${reference} — ${subject}`,
+            body: `Réf. ${reference} — ${subject}`,
             type: "hr_claim",
             entityType: "hr_claim",
             entityId: claim.id,
           }))
         );
       }
-    } catch { /* non bloquant */ }
+    } catch { /* non-blocking */ }
 
     res.status(201).json(claim);
   } catch (e) { next(e); }
 });
 
-// ── GET /api/hr/claims/:id ────────────────────────────────────────────────────
-router.get("/api/hr/claims/:id", async (req, res, next) => {
+// ── GET /hr/claims/:id ────────────────────────────────────────────────────────
+router.get("/hr/claims/:id", async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
-    const userId = req.user!.id;
-    const isManager = ["admin", "super_admin", "manager"].includes(req.user!.role ?? "");
+    const { organizationId: orgId, id: userId, role, orgRole } = req.authUser!;
+    const manager = isManagerRole(role) || isManagerRole(orgRole);
 
     const [claim] = await db
       .select({
@@ -246,13 +255,15 @@ router.get("/api/hr/claims/:id", async (req, res, next) => {
 
     if (!claim) return res.status(404).json({ error: "Réclamation introuvable" });
 
-    // Contrôle accès : collaborateur ne voit que ses propres réclamations
-    if (!isManager) {
+    // Access control: non-managers can only view their own claims
+    if (!manager) {
       const collabId = await getCollaboratorForUser(userId, orgId);
-      if (collabId !== claim.collaboratorId) return res.status(403).json({ error: "Accès interdit" });
+      if (collabId !== claim.collaboratorId) {
+        return res.status(403).json({ error: "Accès interdit" });
+      }
     }
 
-    // Événements (filtrer les internes pour les non-managers)
+    // Timeline events (internal notes filtered for non-managers)
     const allEvents = await db
       .select({
         id: hrClaimEventsTable.id,
@@ -273,11 +284,11 @@ router.get("/api/hr/claims/:id", async (req, res, next) => {
       ))
       .orderBy(hrClaimEventsTable.createdAt);
 
-    const events = isManager ? allEvents : allEvents.filter(e => !e.isInternal);
+    const events = manager ? allEvents : allEvents.filter(e => !e.isInternal);
 
     res.json({
       ...claim,
-      collaboratorName: (claim.isAnonymous && !isManager)
+      collaboratorName: (claim.isAnonymous && !manager)
         ? "Anonyme"
         : `${claim.collaboratorFirstName ?? ""} ${claim.collaboratorLastName ?? ""}`.trim(),
       collaboratorFirstName: undefined,
@@ -287,14 +298,13 @@ router.get("/api/hr/claims/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── PATCH /api/hr/claims/:id ──────────────────────────────────────────────────
-router.patch("/api/hr/claims/:id", requireHrManage, async (req, res, next) => {
+// ── PATCH /hr/claims/:id ──────────────────────────────────────────────────────
+router.patch("/hr/claims/:id", requireManagerOrAbove, async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
-    const userId = req.user!.id;
+    const { organizationId: orgId, id: userId } = req.authUser!;
 
     const [existing] = await db
-      .select({ id: hrClaimsTable.id, status: hrClaimsTable.status })
+      .select({ id: hrClaimsTable.id, status: hrClaimsTable.status, collaboratorId: hrClaimsTable.collaboratorId, reference: hrClaimsTable.reference, subject: hrClaimsTable.subject })
       .from(hrClaimsTable)
       .where(and(eq(hrClaimsTable.id, req.params.id as string), eq(hrClaimsTable.organizationId, orgId)))
       .limit(1);
@@ -304,9 +314,9 @@ router.patch("/api/hr/claims/:id", requireHrManage, async (req, res, next) => {
     const { status, assignedToId, targetDate, resolutionNote, priority, comment, isInternal = false } = req.body;
 
     const updates: Record<string, unknown> = {};
-    if (status) updates.status = status;
-    if (assignedToId !== undefined) updates.assignedToId = assignedToId;
-    if (targetDate !== undefined) updates.targetDate = targetDate;
+    if (status && status !== existing.status) updates.status = status;
+    if (assignedToId !== undefined) updates.assignedToId = assignedToId || null;
+    if (targetDate !== undefined) updates.targetDate = targetDate || null;
     if (resolutionNote !== undefined) updates.resolutionNote = resolutionNote;
     if (priority) updates.priority = priority;
     if (status === "resolue" || status === "refusee") updates.resolvedAt = new Date();
@@ -315,7 +325,7 @@ router.patch("/api/hr/claims/:id", requireHrManage, async (req, res, next) => {
       await db.update(hrClaimsTable).set(updates).where(eq(hrClaimsTable.id, existing.id));
     }
 
-    // Événement de changement de statut
+    // Create timeline event
     if (status && status !== existing.status) {
       await db.insert(hrClaimEventsTable).values({
         organizationId: orgId,
@@ -328,44 +338,36 @@ router.patch("/api/hr/claims/:id", requireHrManage, async (req, res, next) => {
         isInternal: Boolean(isInternal),
       });
 
-      // Notifier le collaborateur
+      // Notify the collaborator (non-blocking)
       try {
-        const [claimFull] = await db
-          .select({ collaboratorId: hrClaimsTable.collaboratorId, reference: hrClaimsTable.reference, subject: hrClaimsTable.subject })
-          .from(hrClaimsTable)
-          .where(eq(hrClaimsTable.id, existing.id))
+        const [collabUser] = await db
+          .select({ userId: collaboratorsTable.userId })
+          .from(collaboratorsTable)
+          .where(eq(collaboratorsTable.id, existing.collaboratorId))
           .limit(1);
 
-        if (claimFull) {
-          const [collabUser] = await db
-            .select({ userId: collaboratorsTable.userId })
-            .from(collaboratorsTable)
-            .where(eq(collaboratorsTable.id, claimFull.collaboratorId))
-            .limit(1);
-
-          if (collabUser?.userId) {
-            const STATUS_LABELS: Record<string, string> = {
-              en_cours: "En cours d'analyse",
-              infos_complementaires: "Informations complémentaires requises",
-              en_traitement: "En traitement",
-              resolue: "Résolue",
-              refusee: "Refusée",
-              cloturee: "Clôturée",
-            };
-            await db.insert(notificationsTable).values({
-              organizationId: orgId,
-              userId: collabUser.userId,
-              title: "Mise à jour de votre réclamation",
-              body: `${claimFull.reference} — ${STATUS_LABELS[status] ?? status}`,
-              type: "hr_claim",
-              entityType: "hr_claim",
-              entityId: existing.id,
-            });
-          }
+        if (collabUser?.userId) {
+          const STATUS_LABELS: Record<string, string> = {
+            en_cours: "En cours d'analyse",
+            infos_complementaires: "Informations complémentaires requises",
+            en_traitement: "En traitement",
+            resolue: "Résolue",
+            refusee: "Refusée",
+            cloturee: "Clôturée",
+          };
+          await db.insert(notificationsTable).values({
+            organizationId: orgId,
+            userId: collabUser.userId as string,
+            title: "Mise à jour de votre réclamation",
+            body: `${existing.reference} — ${STATUS_LABELS[status] ?? status}`,
+            type: "hr_claim",
+            entityType: "hr_claim",
+            entityId: existing.id,
+          });
         }
-      } catch { /* non bloquant */ }
+      } catch { /* non-blocking */ }
     } else if (comment) {
-      // Simple commentaire sans changement de statut
+      // Comment without status change
       await db.insert(hrClaimEventsTable).values({
         organizationId: orgId,
         claimId: existing.id,
@@ -386,12 +388,11 @@ router.patch("/api/hr/claims/:id", requireHrManage, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── POST /api/hr/claims/:id/events ────────────────────────────────────────────
-router.post("/api/hr/claims/:id/events", async (req, res, next) => {
+// ── POST /hr/claims/:id/events (commentaire libre) ────────────────────────────
+router.post("/hr/claims/:id/events", async (req, res, next) => {
   try {
-    const orgId = req.user!.organizationId;
-    const userId = req.user!.id;
-    const isManager = ["admin", "super_admin", "manager"].includes(req.user!.role ?? "");
+    const { organizationId: orgId, id: userId, role, orgRole } = req.authUser!;
+    const manager = isManagerRole(role) || isManagerRole(orgRole);
 
     const [claim] = await db
       .select({ id: hrClaimsTable.id, collaboratorId: hrClaimsTable.collaboratorId })
@@ -401,14 +402,16 @@ router.post("/api/hr/claims/:id/events", async (req, res, next) => {
 
     if (!claim) return res.status(404).json({ error: "Réclamation introuvable" });
 
-    // Vérification accès collaborateur
-    if (!isManager) {
+    // Non-managers can only comment on their own claims
+    if (!manager) {
       const collabId = await getCollaboratorForUser(userId, orgId);
-      if (collabId !== claim.collaboratorId) return res.status(403).json({ error: "Accès interdit" });
+      if (collabId !== claim.collaboratorId) {
+        return res.status(403).json({ error: "Accès interdit" });
+      }
     }
 
     const { content, isInternal = false } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: "Contenu requis" });
+    if (!content?.trim()) return res.status(400).json({ error: "Le contenu du commentaire est requis" });
 
     const [event] = await db.insert(hrClaimEventsTable).values({
       organizationId: orgId,
@@ -416,7 +419,7 @@ router.post("/api/hr/claims/:id/events", async (req, res, next) => {
       authorId: userId,
       kind: "comment",
       content: content.trim(),
-      isInternal: isManager ? Boolean(isInternal) : false,
+      isInternal: manager ? Boolean(isInternal) : false,
     }).returning();
 
     res.status(201).json(event);
