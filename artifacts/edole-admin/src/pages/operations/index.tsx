@@ -61,30 +61,30 @@ function patch(url: string, body?: any): Promise<any> { return apiFetch(url, { m
 const OPS_TAB_GROUPS: TabNavGroup[] = [
   {
     label: "Synthèse",
-    items: [{ value: "overview", label: "Vue d'ensemble", icon: Activity }],
+    items: [{ value: "overview", label: "Vue d'ensemble", icon: Activity, description: "Tableau de bord opérationnel : missions en cours, incidents ouverts et indicateurs de performance terrain." }],
   },
   {
     label: "Terrain",
     items: [
-      { value: "missions", label: "Missions", icon: Truck },
-      { value: "dispatch", label: "Dispatching", icon: Zap },
-      { value: "tracking", label: "Suivi terrain", icon: MapPin },
+      { value: "missions", label: "Missions", icon: Truck, description: "Suivi des missions terrain : planification, affectation des équipes et statut d'avancement en temps réel." },
+      { value: "dispatch", label: "Dispatching", icon: Zap, description: "Centre de dispatching : affectez les ressources disponibles aux missions urgentes ou programmées." },
+      { value: "tracking", label: "Suivi terrain", icon: MapPin, description: "Localisation et progression des équipes sur le terrain : positions, horaires et alertes." },
     ],
   },
   {
     label: "Qualité",
     items: [
-      { value: "incidents", label: "Incidents", icon: AlertTriangle },
-      { value: "checklists", label: "Checklists", icon: ClipboardCheck },
-      { value: "proofs", label: "Preuves", icon: FileText },
+      { value: "incidents", label: "Incidents", icon: AlertTriangle, description: "Remontées d'incidents terrain : signalement, analyse des causes et suivi de la résolution." },
+      { value: "checklists", label: "Checklists", icon: ClipboardCheck, description: "Listes de contrôle qualité à compléter avant ou après une intervention sur le terrain." },
+      { value: "proofs", label: "Preuves", icon: FileText, description: "Preuves d'exécution des missions : photos, signatures et documents justificatifs." },
     ],
   },
   {
     label: "Analyse",
     items: [
-      { value: "performance", label: "Coûts & performance", icon: Gauge },
-      { value: "map", label: "Carte", icon: MapIcon },
-      { value: "calendar", label: "Calendrier", icon: Calendar },
+      { value: "performance", label: "Coûts & performance", icon: Gauge, description: "Analyse des coûts opérationnels et indicateurs de performance : délais, productivité et rentabilité." },
+      { value: "map", label: "Carte", icon: MapIcon, description: "Carte géographique des missions et interventions : visualisez la répartition et les zones d'activité." },
+      { value: "calendar", label: "Calendrier", icon: Calendar, description: "Calendrier opérationnel : planifiez et visualisez les missions sur la semaine ou le mois." },
     ],
   },
 ];

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ── URL-routing nav types (ModuleShell) ─────────────────────────
 export interface NavItem {
@@ -10,6 +11,7 @@ export interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   locked?: boolean;
+  description?: string;
 }
 
 export interface NavGroup {
@@ -22,6 +24,7 @@ export interface TabItem {
   value: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  description?: string;
 }
 
 export interface TabNavGroup {
@@ -64,7 +67,7 @@ function NavSidebar({ navGroups }: { navGroups: NavGroup[] }) {
                   </Link>
                 );
               }
-              return (
+              const linkEl = (
                 <Link
                   key={item.path}
                   href={item.path}
@@ -79,6 +82,19 @@ function NavSidebar({ navGroups }: { navGroups: NavGroup[] }) {
                   <span className="truncate">{item.name}</span>
                 </Link>
               );
+              if (item.description) {
+                return (
+                  <TooltipProvider key={item.path} delayDuration={400}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkEl}</TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[220px] text-[11px] leading-relaxed">
+                        {item.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              }
+              return linkEl;
             })}
           </div>
         </div>
@@ -176,7 +192,7 @@ function TabNavSidebar({ tabGroups, value, onChange }: {
           <div className="space-y-0.5">
             {group.items.map(item => {
               const active = item.value === value;
-              return (
+              const btnEl = (
                 <button
                   key={item.value}
                   type="button"
@@ -192,6 +208,19 @@ function TabNavSidebar({ tabGroups, value, onChange }: {
                   <span className="truncate text-left">{item.label}</span>
                 </button>
               );
+              if (item.description) {
+                return (
+                  <TooltipProvider key={item.value} delayDuration={400}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{btnEl}</TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[220px] text-[11px] leading-relaxed">
+                        {item.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              }
+              return btnEl;
             })}
           </div>
         </div>
