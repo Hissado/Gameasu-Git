@@ -338,7 +338,7 @@ export default function CollaboratorsList() {
                     : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
                 }`}
               >
-                {label}{value !== "all" ? ` (${count})` : ""}
+                {label} ({count})
               </button>
             );
           })}
