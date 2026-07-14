@@ -561,6 +561,10 @@ importers:
         version: 3.25.76
 
   artifacts/gameasu-cockpit:
+    dependencies:
+      socket.io-client:
+        specifier: ^4.8.3
+        version: 4.8.3
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0

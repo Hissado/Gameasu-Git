@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, productSuggestionsTable, suggestionEventsTable, usersTable, organizationsTable } from "@workspace/db";
-import { eq, and, desc, count, sql, ilike, or } from "drizzle-orm";
+import { eq, and, desc, count, ilike, or, sql } from "drizzle-orm";
+import { emitToAll } from "../lib/realtime";
 
 const router = Router();
 
@@ -58,23 +59,38 @@ router.post("/api/suggestions", async (req, res, next) => {
       })
       .returning();
 
+    // Notify super-admins in realtime
+    emitToAll("suggestion:new", {
+      id: row.id,
+      title: row.title,
+      category: row.category,
+      priority: row.priority,
+      organizationId: row.organizationId,
+    });
+
     return res.status(201).json(row);
   } catch (e) {
     next(e);
   }
 });
 
-// ── GET /api/suggestions — liste des suggestions de l'organisation ───────────
+// ── GET /api/suggestions — liste des suggestions ─────────────────────────────
+// myOnly=true → filtre par userId courant (Mes suggestions)
+// myOnly=false/absent → toutes les suggestions de l'organisation
 
 router.get("/api/suggestions", async (req, res, next) => {
   try {
     const user = req.authUser!;
-    const { status, category, page = "1", limit = "20", search } = req.query as Record<string, string>;
+    const { status, category, page = "1", limit = "20", search, myOnly } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [eq(productSuggestionsTable.organizationId, user.organizationId)];
+
+    if (myOnly === "true") {
+      conditions.push(eq(productSuggestionsTable.userId, user.id));
+    }
 
     if (status && VALID_STATUSES.includes(status as any)) {
       conditions.push(eq(productSuggestionsTable.status, status));
@@ -219,7 +235,7 @@ router.patch("/api/suggestions/:id/status", async (req, res, next) => {
   }
 });
 
-// ── GET /api/super-admin/suggestions — toutes orgs (cockpit) ─────────────────
+// ── GET /api/super-admin/suggestions ─────────────────────────────────────────
 
 router.get("/api/super-admin/suggestions", async (req, res, next) => {
   try {
@@ -280,6 +296,7 @@ router.get("/api/super-admin/suggestions", async (req, res, next) => {
         createdAt: productSuggestionsTable.createdAt,
         updatedAt: productSuggestionsTable.updatedAt,
         userId: productSuggestionsTable.userId,
+        assignedTo: productSuggestionsTable.assignedTo,
         userFirstName: usersTable.firstName,
         userLastName: usersTable.lastName,
         orgName: organizationsTable.name,
@@ -307,7 +324,11 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
     }
 
     const { id } = req.params as { id: string };
-    const { status, comment } = req.body as { status?: string; comment?: string };
+    const { status, comment, assignedTo } = req.body as {
+      status?: string;
+      comment?: string;
+      assignedTo?: string | null;
+    };
 
     if (!status || !VALID_STATUSES.includes(status as any)) {
       return res.status(400).json({ error: "Statut invalide" });
@@ -321,9 +342,17 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
 
     if (!existing) return res.status(404).json({ error: "Suggestion introuvable" });
 
+    const updateFields: Partial<typeof productSuggestionsTable.$inferInsert> = {
+      status: status as any,
+      updatedAt: new Date(),
+    };
+    if (assignedTo !== undefined) {
+      (updateFields as any).assignedTo = assignedTo || null;
+    }
+
     const [updated] = await db
       .update(productSuggestionsTable)
-      .set({ status, updatedAt: new Date() })
+      .set(updateFields)
       .where(eq(productSuggestionsTable.id, id))
       .returning();
 
@@ -334,6 +363,9 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
       comment: comment?.trim() ?? null,
       authorId: req.authUser!.id,
     });
+
+    // Notify org users that their suggestion was updated
+    emitToAll("suggestion:updated", { id, status, organizationId: updated.organizationId });
 
     return res.json(updated);
   } catch (e) {
@@ -349,7 +381,7 @@ router.get("/api/super-admin/suggestions/stats", async (req, res, next) => {
       return res.status(403).json({ error: "Réservé aux super-administrateurs" });
     }
 
-    const [byStatus, byCategory, byPriority, totals, byOrg] = await Promise.all([
+    const [byStatus, byCategory, byPriority, totals, byOrg, byMonth] = await Promise.all([
       db.select({ status: productSuggestionsTable.status, count: count() })
         .from(productSuggestionsTable)
         .groupBy(productSuggestionsTable.status),
@@ -370,6 +402,16 @@ router.get("/api/super-admin/suggestions/stats", async (req, res, next) => {
         .groupBy(productSuggestionsTable.organizationId, organizationsTable.name)
         .orderBy(desc(count()))
         .limit(10),
+      // Tendances par mois (6 derniers mois)
+      db.execute(sql`
+        SELECT
+          to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM') AS month,
+          count(*)::int AS count
+        FROM product_suggestions
+        WHERE created_at >= now() - interval '6 months'
+        GROUP BY month
+        ORDER BY month ASC
+      `),
     ]);
 
     const [{ total }] = totals;
@@ -382,6 +424,10 @@ router.get("/api/super-admin/suggestions/stats", async (req, res, next) => {
       byCategory: Object.fromEntries(byCategory.map((r) => [r.category, r.count])),
       byPriority: Object.fromEntries(byPriority.map((r) => [r.priority, r.count])),
       byOrg: byOrg.map((r) => ({ orgId: r.orgId, orgName: r.orgName ?? r.orgId, count: r.count })),
+      byMonth: (byMonth.rows as { month: string; count: number }[]).map((r) => ({
+        month: r.month,
+        count: Number(r.count),
+      })),
     });
   } catch (e) {
     next(e);

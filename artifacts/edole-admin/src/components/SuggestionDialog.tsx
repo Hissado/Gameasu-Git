@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Lightbulb, Loader2 } from "lucide-react";
+import { Lightbulb, Loader2, ImagePlus, X, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface SuggestionDialogProps {
@@ -42,9 +42,31 @@ const ERP_MODULES = [
 
 const MODULE_NONE = "__none__";
 
+async function uploadScreenshot(file: File): Promise<string> {
+  // 1. Request a presigned URL
+  const { uploadURL, objectPath } = await apiFetch<{ uploadURL: string; objectPath: string }>(
+    "/api/storage/uploads/request-url",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+    },
+  );
+
+  // 2. Upload directly to the presigned URL
+  await fetch(uploadURL, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+
+  return objectPath;
+}
+
 export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDialogProps) {
   const { toast } = useToast();
   const [location] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const initialModule = guessModule(location);
   const [form, setForm] = useState({
@@ -54,9 +76,52 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
     priority: "normale",
     module: initialModule || MODULE_NONE,
   });
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Fichier invalide", description: "Seules les images sont acceptées.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Fichier trop lourd", description: "Max 5 Mo pour un screenshot.", variant: "destructive" });
+      return;
+    }
+    setScreenshotFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setScreenshotPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const removeScreenshot = () => {
+    setScreenshotFile(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const resetForm = () => {
+    const reset = guessModule(location);
+    setForm({ title: "", category: "fonctionnalite", description: "", priority: "normale", module: reset || MODULE_NONE });
+    setScreenshotFile(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const mutation = useMutation({
-    mutationFn: (data: typeof form) => {
+    mutationFn: async (data: typeof form) => {
+      let screenshotUrl: string | undefined;
+      if (screenshotFile) {
+        setUploading(true);
+        try {
+          screenshotUrl = await uploadScreenshot(screenshotFile);
+        } finally {
+          setUploading(false);
+        }
+      }
       const payload = {
         title: data.title,
         category: data.category,
@@ -64,6 +129,7 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
         priority: data.priority,
         module: data.module === MODULE_NONE ? undefined : data.module,
         currentUrl: window.location.href,
+        screenshotUrl,
       };
       return apiFetch("/api/suggestions", {
         method: "POST",
@@ -73,8 +139,7 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
     },
     onSuccess: () => {
       toast({ title: "Suggestion envoyée", description: "Merci pour votre retour !" });
-      const reset = guessModule(location);
-      setForm({ title: "", category: "fonctionnalite", description: "", priority: "normale", module: reset || MODULE_NONE });
+      resetForm();
       onOpenChange(false);
       onSuccess?.();
     },
@@ -88,6 +153,8 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
     if (!form.title.trim()) return;
     mutation.mutate(form);
   };
+
+  const isPending = mutation.isPending || uploading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,23 +231,64 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
             <Textarea
               id="suggestion-desc"
               placeholder="Décrivez le problème actuel, la solution souhaitée, et pourquoi cela serait utile…"
-              rows={4}
+              rows={3}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
 
+          {/* Screenshot upload */}
+          <div className="space-y-1.5">
+            <Label>Capture d'écran (optionnel)</Label>
+            {screenshotPreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={screenshotPreview}
+                  alt="Aperçu"
+                  className="max-h-32 rounded-lg border object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={removeScreenshot}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive/80 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="flex items-center gap-1 mt-1 text-[11px] text-emerald-600">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {screenshotFile?.name}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors w-full"
+              >
+                <ImagePlus className="w-4 h-4 shrink-0" />
+                Ajouter une capture d'écran (max 5 Mo)
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+
           <p className="text-[11px] text-muted-foreground">
-            La page actuelle (<code className="font-mono">{location}</code>) sera transmise automatiquement pour contexte.
+            Page actuelle : <code className="font-mono text-[10px]">{location}</code> — transmise automatiquement.
           </p>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => { onOpenChange(false); resetForm(); }}>
               Annuler
             </Button>
-            <Button type="submit" disabled={!form.title.trim() || mutation.isPending}>
-              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Envoyer la suggestion
+            <Button type="submit" disabled={!form.title.trim() || isPending}>
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {uploading ? "Upload en cours…" : "Envoyer la suggestion"}
             </Button>
           </DialogFooter>
         </form>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import {
   Lightbulb, Search, BarChart3, CheckCircle2, Clock,
-  XCircle, Rocket, PackageCheck, Loader2, TrendingUp, Building2,
+  XCircle, Rocket, PackageCheck, Loader2, TrendingUp, Building2, Star,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
+  ResponsiveContainer, Cell, LineChart, Line,
 } from "recharts";
+import { useRealtimeCockpit } from "@/lib/realtime";
 
 interface Suggestion {
   id: string;
@@ -31,6 +32,7 @@ interface Suggestion {
   status: string;
   module?: string;
   screenshotUrl?: string;
+  assignedTo?: string | null;
   createdAt: string;
   updatedAt: string;
   userId?: string;
@@ -58,6 +60,7 @@ interface StatsResponse {
   byCategory: Record<string, number>;
   byPriority: Record<string, number>;
   byOrg: OrgVolume[];
+  byMonth: { month: string; count: number }[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -122,22 +125,35 @@ interface ProcessDialogProps {
 function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [newStatus, setNewStatus] = useState(suggestion?.status ?? "");
+  const [newStatus, setNewStatus] = useState("");
   const [comment, setComment] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+
+  // Sync state when suggestion changes — fix for stale state bug
+  useEffect(() => {
+    if (suggestion) {
+      setNewStatus(suggestion.status);
+      setComment("");
+      setAssignedTo(suggestion.assignedTo ?? "");
+    }
+  }, [suggestion?.id]);
 
   const mutation = useMutation({
     mutationFn: () =>
       apiFetch(`/api/super-admin/suggestions/${suggestion!.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus || suggestion?.status, comment }),
+        body: JSON.stringify({
+          status: newStatus || suggestion?.status,
+          comment: comment.trim() || undefined,
+          assignedTo: assignedTo.trim() || null,
+        }),
       }),
     onSuccess: () => {
-      toast({ title: "Statut mis à jour" });
+      toast({ title: "Suggestion mise à jour" });
       qc.invalidateQueries({ queryKey: ["cockpit-suggestions"] });
       qc.invalidateQueries({ queryKey: ["cockpit-suggestions-stats"] });
       onOpenChange(false);
-      setComment("");
     },
     onError: () => {
       toast({ title: "Erreur", description: "Mise à jour impossible", variant: "destructive" });
@@ -153,6 +169,7 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
           <DialogTitle className="text-base">Traiter la suggestion</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Suggestion preview */}
           <div className="bg-muted/40 rounded-lg p-3">
             <p className="font-medium text-sm">{suggestion.title}</p>
             {suggestion.orgName && (
@@ -170,28 +187,45 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
               {suggestion.module && (
                 <span className="text-xs text-muted-foreground">{suggestion.module}</span>
               )}
+              {suggestion.screenshotUrl && (
+                <a
+                  href={`/api/storage${suggestion.screenshotUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-500 hover:underline"
+                >
+                  Voir capture
+                </a>
+              )}
             </div>
           </div>
 
+          {/* Status */}
           <div className="space-y-1.5">
             <Label>Nouveau statut</Label>
-            <Select
-              value={newStatus || suggestion.status}
-              onValueChange={setNewStatus}
-            >
+            <Select value={newStatus || suggestion.status} onValueChange={setNewStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {VALID_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </SelectItem>
+                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Assignee */}
+          <div className="space-y-1.5">
+            <Label>Assigner à (nom ou email, optionnel)</Label>
+            <Input
+              placeholder="ex: Jean Dupont"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+            />
+          </div>
+
+          {/* Comment */}
           <div className="space-y-1.5">
             <Label>Commentaire interne (optionnel)</Label>
             <Textarea
@@ -215,6 +249,7 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
 }
 
 export default function SuggestionsPage() {
+  const qc = useQueryClient();
   const [tab, setTab] = useState<"list" | "analytics">("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -244,6 +279,18 @@ export default function SuggestionsPage() {
     refetchInterval: 60_000,
   });
 
+  // Real-time: invalidate on new suggestion or status update
+  useRealtimeCockpit({
+    "suggestion:new": () => {
+      qc.invalidateQueries({ queryKey: ["cockpit-suggestions"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-suggestions-stats"] });
+    },
+    "suggestion:updated": () => {
+      qc.invalidateQueries({ queryKey: ["cockpit-suggestions"] });
+      qc.invalidateQueries({ queryKey: ["cockpit-suggestions-stats"] });
+    },
+  }, []);
+
   const kpis = [
     { label: "Total", value: stats?.total ?? 0, icon: BarChart3, color: "text-blue-500" },
     { label: "Nouvelles", value: stats?.pending ?? 0, icon: Lightbulb, color: "text-yellow-500" },
@@ -257,20 +304,28 @@ export default function SuggestionsPage() {
   ];
 
   const categoryChartData = Object.entries(stats?.byCategory ?? {}).map(([k, v]) => ({
-    name: CATEGORY_LABELS[k] ?? k,
-    count: v,
+    name: CATEGORY_LABELS[k] ?? k, count: v,
   }));
 
   const statusChartData = Object.entries(stats?.byStatus ?? {}).map(([k, v]) => ({
-    name: STATUS_LABELS[k] ?? k,
-    count: v,
+    name: STATUS_LABELS[k] ?? k, count: v,
   }));
 
   const orgChartData = (stats?.byOrg ?? []).slice(0, 8).map((o) => ({
-    name: o.orgName.length > 18 ? o.orgName.slice(0, 18) + "…" : o.orgName,
+    name: o.orgName.length > 16 ? o.orgName.slice(0, 16) + "…" : o.orgName,
     count: o.count,
     orgId: o.orgId,
   }));
+
+  const monthChartData = (stats?.byMonth ?? []).map((r) => ({
+    month: r.month.slice(5), // MM from YYYY-MM
+    count: r.count,
+  }));
+
+  // Top suggestions: critique + haute priority, newest first (from current data)
+  const topSuggestions = (data?.data ?? [])
+    .filter((s) => s.priority === "critique" || s.priority === "haute")
+    .slice(0, 5);
 
   const orgOptions = stats?.byOrg ?? [];
 
@@ -287,24 +342,17 @@ export default function SuggestionsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant={tab === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTab("list")}
-          >
+          <Button variant={tab === "list" ? "default" : "outline"} size="sm" onClick={() => setTab("list")}>
             Liste
           </Button>
-          <Button
-            variant={tab === "analytics" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTab("analytics")}
-          >
+          <Button variant={tab === "analytics" ? "default" : "outline"} size="sm" onClick={() => setTab("analytics")}>
             <TrendingUp className="w-4 h-4 mr-1" />
             Analytique
           </Button>
         </div>
       </div>
 
+      {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <Card key={k.label}>
@@ -319,18 +367,49 @@ export default function SuggestionsPage() {
         ))}
       </div>
 
+      {/* Analytics tab */}
       {tab === "analytics" && (
         <div className="space-y-4">
+          {/* Tendance mensuelle */}
+          {monthChartData.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  Tendance — nouvelles suggestions par mois (6 derniers mois)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={monthChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#3B82F6" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Par catégorie */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Par catégorie</CardTitle>
               </CardHeader>
               <CardContent>
                 {categoryChartData.length === 0 ? (
-                  <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
+                  <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={categoryChartData} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -346,15 +425,17 @@ export default function SuggestionsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Par statut */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Par statut</CardTitle>
               </CardHeader>
               <CardContent>
                 {statusChartData.length === 0 ? (
-                  <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
+                  <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={statusChartData} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -372,6 +453,7 @@ export default function SuggestionsPage() {
             </Card>
           </div>
 
+          {/* Volume par organisation */}
           {orgChartData.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
@@ -381,7 +463,7 @@ export default function SuggestionsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={orgChartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
@@ -397,9 +479,45 @@ export default function SuggestionsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Top suggestions (critique/haute) */}
+          {topSuggestions.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Top suggestions prioritaires
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {topSuggestions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-start justify-between gap-3 py-2 border-b last:border-0 cursor-pointer hover:bg-muted/40 rounded px-2 -mx-2"
+                    onClick={() => { setSelectedSuggestion(s); setProcessOpen(true); setTab("list"); }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{s.title}</p>
+                      <p className="text-xs text-muted-foreground">{s.orgName ?? s.organizationId.slice(0, 8)}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${s.priority === "critique" ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-700"}`}>
+                        {PRIORITY_LABELS[s.priority]}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[s.status] ?? "bg-slate-100"}`}>
+                        <StatusIcon status={s.status} />
+                        {STATUS_LABELS[s.status] ?? s.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
+      {/* List tab */}
       {tab === "list" && (
         <>
           <div className="flex flex-wrap gap-2">
@@ -463,8 +581,7 @@ export default function SuggestionsPage() {
           <div className="space-y-2">
             {isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Chargement…
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />Chargement…
               </div>
             ) : !data?.data?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
@@ -491,6 +608,11 @@ export default function SuggestionsPage() {
                           </span>
                           {s.module && (
                             <span className="text-xs text-muted-foreground">· {s.module}</span>
+                          )}
+                          {s.assignedTo && (
+                            <span className="text-[11px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                              → {s.assignedTo}
+                            </span>
                           )}
                         </div>
                         <p className="font-medium text-sm text-foreground">{s.title}</p>

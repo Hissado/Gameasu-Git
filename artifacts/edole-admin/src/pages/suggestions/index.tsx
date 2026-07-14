@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Lightbulb, Search, Plus, Clock, CheckCircle2, XCircle, Rocket, PackageCheck, BarChart3,
-  ChevronDown, ChevronUp, ArrowRight,
+  Lightbulb, Search, Plus, Clock, CheckCircle2, XCircle, Rocket, PackageCheck,
+  BarChart3, ChevronDown, ChevronUp, ArrowRight, Users,
 } from "lucide-react";
 import { SuggestionDialog } from "@/components/SuggestionDialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useRealtime } from "@/lib/realtime";
 
 interface SuggestionEvent {
   id: string;
@@ -115,7 +116,7 @@ function HistoryTimeline({ suggestionId }: { suggestionId: string }) {
       <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Historique</p>
       {events.map((ev) => (
         <div key={ev.id} className="flex items-start gap-2 text-xs">
-          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1.5" />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1.5" />
           <div className="flex-1 min-w-0">
             <span className="flex items-center gap-1 flex-wrap">
               {ev.fromStatus && (
@@ -146,21 +147,24 @@ function HistoryTimeline({ suggestionId }: { suggestionId: string }) {
 }
 
 export default function SuggestionsPage() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [myOnly, setMyOnly] = useState(true);
 
   const { data, isLoading, refetch } = useQuery<{
     data: Suggestion[];
     total: number;
     pages: number;
   }>({
-    queryKey: ["suggestions", statusFilter, categoryFilter, search, page],
+    queryKey: ["suggestions", statusFilter, categoryFilter, search, page, myOnly],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: "20" });
+      if (myOnly) params.set("myOnly", "true");
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (search.trim()) params.set("search", search.trim());
@@ -168,8 +172,16 @@ export default function SuggestionsPage() {
     },
   });
 
+  // Real-time: refresh when own org's suggestion status is updated
+  useRealtime({
+    "suggestion:updated": () => {
+      qc.invalidateQueries({ queryKey: ["suggestions"] });
+      qc.invalidateQueries({ queryKey: ["suggestion-detail"] });
+    },
+  }, []);
+
   const kpi = [
-    { label: "Total", value: data?.total ?? 0, icon: BarChart3, color: "text-blue-500" },
+    { label: myOnly ? "Mes suggestions" : "Total", value: data?.total ?? 0, icon: BarChart3, color: "text-blue-500" },
     { label: "Nouvelles", value: data?.data?.filter(s => s.status === "nouvelle").length ?? 0, icon: Lightbulb, color: "text-yellow-500" },
     { label: "Acceptées", value: data?.data?.filter(s => ["acceptee", "planifiee", "en_developpement"].includes(s.status)).length ?? 0, icon: CheckCircle2, color: "text-green-500" },
     { label: "Livrées", value: data?.data?.filter(s => s.status === "livree").length ?? 0, icon: PackageCheck, color: "text-emerald-500" },
@@ -185,16 +197,27 @@ export default function SuggestionsPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-yellow-500" />
-            Mes suggestions
+            {myOnly ? "Mes suggestions" : "Toutes les suggestions"}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Partagez vos idées pour améliorer Gaméasù
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nouvelle suggestion
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setMyOnly((v) => !v); setPage(1); }}
+            className="gap-2 hidden sm:flex"
+          >
+            <Users className="w-4 h-4" />
+            {myOnly ? "Voir toutes" : "Voir les miennes"}
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nouvelle suggestion
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -113,3 +113,8 @@ export function emitToUser(userId: string, event: string, payload: unknown) {
   if (!_io) return;
   _io.to(`user:${userId}`).emit(event, payload);
 }
+
+export function emitToAll(event: string, payload: unknown) {
+  if (!_io) return;
+  _io.emit(event, payload);
+}
