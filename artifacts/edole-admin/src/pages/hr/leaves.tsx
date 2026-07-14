@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarDays, Plus, CheckCircle2, XCircle, Clock, Filter, User, Loader2, BarChart3, Pencil, Upload } from "lucide-react";
@@ -237,8 +238,8 @@ export default function LeavesPage() {
     >
       <Tabs defaultValue="demandes">
         <TabsList>
-          <TabsTrigger value="demandes" className="gap-2"><CalendarDays className="w-4 h-4" />Demandes</TabsTrigger>
-          <TabsTrigger value="soldes" className="gap-2"><BarChart3 className="w-4 h-4" />Soldes de congés</TabsTrigger>
+          <TabsTrigger value="demandes" className="gap-2"><CalendarDays className="w-4 h-4" />Demandes <SectionHelp id="hr.leaves.demandes" /></TabsTrigger>
+          <TabsTrigger value="soldes" className="gap-2"><BarChart3 className="w-4 h-4" />Soldes de congés <SectionHelp id="hr.leaves.soldes" /></TabsTrigger>
         </TabsList>
 
         {/* ── Onglet Demandes ── */}

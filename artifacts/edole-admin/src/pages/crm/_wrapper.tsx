@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState } from "react";
 import { useLocation } from "wouter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Target, Sparkles, Flame } from "lucide-react";
+import { SectionHelp } from "@/components/ui/section-help";
 
 const CrmHome = lazy(() => import("./index"));
 const PipelineIntelligence = lazy(() => import("../pipeline/intelligence"));
@@ -25,9 +26,9 @@ export default function CrmHub() {
         }}
       >
         <TabsList>
-          <TabsTrigger value="pipeline" className="gap-2"><Target className="w-4 h-4" />Pipeline</TabsTrigger>
-          <TabsTrigger value="scoring" className="gap-2"><Flame className="w-4 h-4" />Scoring commercial</TabsTrigger>
-          <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Pipeline IA</TabsTrigger>
+          <TabsTrigger value="pipeline" className="gap-2"><Target className="w-4 h-4" />Pipeline <SectionHelp id="crm.pipeline" /></TabsTrigger>
+          <TabsTrigger value="scoring" className="gap-2"><Flame className="w-4 h-4" />Scoring commercial <SectionHelp id="crm.scoring" /></TabsTrigger>
+          <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Pipeline IA <SectionHelp id="crm.ia" /></TabsTrigger>
         </TabsList>
         <TabsContent value="pipeline">
           <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Chargement…</div>}>

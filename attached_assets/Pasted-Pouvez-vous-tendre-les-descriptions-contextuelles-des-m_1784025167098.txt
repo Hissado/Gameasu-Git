@@ -1,0 +1,203 @@
+Pouvez-vous étendre les **descriptions contextuelles des menus** à toutes les **sous-sections, sous-menus et onglets** de Gameasu afin que les utilisateurs comprennent immédiatement le rôle de chaque fonctionnalité ?
+
+### Objectif
+
+Je veux que l’ERP soit plus intuitif et auto-explicatif. Lorsqu’un utilisateur survole un menu ou une sous-section sur ordinateur, ou appuie sur l’icône d’information sur mobile, une courte description doit lui expliquer clairement :
+
+* à quoi sert la section ;
+* quelles actions il peut y réaliser ;
+* quelles informations il pourra y consulter ;
+* dans quel cas il doit utiliser cette fonctionnalité.
+
+Cette logique ne doit pas être limitée aux modules principaux. Elle doit s’appliquer à toute la navigation de Gameasu.
+
+## Éléments à couvrir
+
+Ajouter une description contextuelle aux :
+
+* modules principaux ;
+* sous-modules ;
+* sous-sections ;
+* onglets internes ;
+* éléments des menus déroulants ;
+* raccourcis du tableau de bord ;
+* boutons dont la fonction peut être ambiguë ;
+* fonctionnalités disponibles dans l’ERP et le Cockpit.
+
+## Exemples de descriptions
+
+### Ressources Humaines
+
+**Collaborateurs**
+Consultez et gérez les informations personnelles, professionnelles, contractuelles et administratives de vos collaborateurs.
+
+**Présences**
+Suivez les pointages, retards, absences, pauses et heures travaillées.
+
+**Congés**
+Gérez les demandes, validations, soldes et historiques de congés.
+
+**Paie**
+Préparez, contrôlez et validez les éléments de rémunération et les bulletins de paie.
+
+**Réclamations**
+Recevez, analysez et traitez les demandes ou réclamations soumises par les collaborateurs.
+
+### Comptabilité
+
+**Plan comptable**
+Consultez et adaptez les comptes utilisés par votre organisation selon son référentiel comptable.
+
+**Journaux comptables**
+Consultez les opérations classées par type de journal : ventes, achats, banque, caisse et opérations diverses.
+
+**Grand livre**
+Analysez l’ensemble des mouvements et soldes enregistrés pour chaque compte comptable.
+
+**Balance**
+Vérifiez les soldes débiteurs et créditeurs et contrôlez l’équilibre de la comptabilité.
+
+**États financiers**
+Générez les états financiers adaptés au référentiel comptable de votre organisation.
+
+### Ventes et CRM
+
+**Prospects**
+Centralisez les contacts potentiels et suivez leur évolution jusqu’à leur conversion en clients.
+
+**Opportunités**
+Suivez les ventes potentielles, leur valeur, leur probabilité et les prochaines actions commerciales.
+
+**Devis**
+Créez, envoyez et suivez les propositions commerciales adressées aux clients.
+
+**Factures**
+Émettez les factures clients et suivez leur statut jusqu’au paiement complet.
+
+**Encaissements**
+Enregistrez les paiements reçus et affectez-les aux factures correspondantes.
+
+### Achats
+
+**Fournisseurs**
+Gérez les coordonnées, documents, factures et historiques de vos fournisseurs.
+
+**Bons de commande**
+Créez, approuvez et suivez les commandes passées auprès des fournisseurs.
+
+**Factures fournisseurs**
+Enregistrez et contrôlez les factures reçues avant leur approbation et leur paiement.
+
+**Paiements fournisseurs**
+Planifiez, enregistrez et suivez les règlements effectués aux fournisseurs.
+
+### Finance
+
+**Trésorerie**
+Suivez les entrées, sorties, soldes disponibles et prévisions de trésorerie.
+
+**Budgets**
+Créez les budgets et comparez les montants prévus aux réalisations.
+
+**Prévisions**
+Projetez les revenus, dépenses et besoins de trésorerie sur les périodes futures.
+
+### Projets et opérations
+
+**Projets**
+Planifiez les objectifs, budgets, responsables, tâches et échéances de chaque projet.
+
+**Tâches**
+Créez et assignez les actions nécessaires à la réalisation des projets.
+
+**Jalons**
+Suivez les principales étapes et dates importantes d’un projet.
+
+## Comportement attendu
+
+### Sur ordinateur
+
+* afficher la description au survol du menu ou sous-menu ;
+* utiliser un tooltip propre, lisible et non intrusif ;
+* ne pas masquer les autres éléments importants de l’interface.
+
+### Sur mobile et tablette
+
+Comme le survol n’existe pas :
+
+* ajouter une icône d’information ;
+* afficher la description au clic ou à l’appui ;
+* utiliser une infobulle, un popover ou une fiche compacte ;
+* permettre de fermer facilement la description.
+
+## Qualité rédactionnelle
+
+Toutes les descriptions doivent être :
+
+* courtes et précises ;
+* entièrement en français ;
+* rédigées dans un langage simple ;
+* orientées vers l’action de l’utilisateur ;
+* compréhensibles par une personne non experte ;
+* cohérentes avec les fonctionnalités réelles de Gameasu.
+
+Éviter :
+
+* les descriptions trop techniques ;
+* les clés internes comme `finance.read` ou `clients.manage` ;
+* les formulations vagues ;
+* les textes trop longs ;
+* les termes anglais inutiles.
+
+## Centralisation des descriptions
+
+Ne pas coder les descriptions séparément dans chaque composant.
+
+Créer un dictionnaire ou une configuration centralisée contenant pour chaque élément :
+
+* identifiant du module ;
+* nom affiché ;
+* description ;
+* icône ;
+* route ;
+* module parent ;
+* niveau de navigation ;
+* traduction éventuelle.
+
+Cette centralisation doit permettre de modifier une description une seule fois et de la mettre à jour automatiquement partout où l’élément apparaît.
+
+## Cohérence avec les permissions et modules actifs
+
+Les descriptions doivent respecter :
+
+* le pack de l’organisation ;
+* les modules actifs ;
+* les permissions du rôle ;
+* l’organisation actuellement sélectionnée.
+
+Ne pas afficher la description d’une fonctionnalité totalement indisponible pour l’utilisateur, sauf si elle est présentée comme une fonctionnalité verrouillée avec une explication claire.
+
+## Audit de l’ensemble de l’application
+
+Parcourir toute l’application, notamment :
+
+* ERP principal ;
+* Cockpit Gameasu ;
+* portail expert ;
+* paramètres ;
+* abonnement et facturation ;
+* Add-ons ;
+* rapports ;
+* tableaux de bord ;
+* formulaires ;
+* pages mobiles.
+
+Identifier toutes les sous-sections qui ne disposent pas encore d’une description et les compléter.
+
+## Résultat attendu
+
+Je veux que chaque menu, sous-menu, sous-section et onglet de Gameasu fournisse une aide contextuelle claire afin que l’utilisateur sache immédiatement où il se trouve, à quoi sert la fonctionnalité et quelle action il peut y réaliser.
+
+### Objectif final
+
+Faire de Gameasu un ERP premium, pédagogique et facile à prendre en main, dans lequel la navigation accompagne naturellement l’utilisateur sans nécessiter un manuel ou une formation préalable.

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -594,16 +595,16 @@ export default function Settings() {
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="profile">Profil</TabsTrigger>
-          <TabsTrigger value="security">Sécurité</TabsTrigger>
-          <TabsTrigger value="subscription">Abonnement</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="regional">Régionales</TabsTrigger>
-          <TabsTrigger value="attendance">Pointage</TabsTrigger>
-          <TabsTrigger value="modules">Modules actifs</TabsTrigger>
-          <TabsTrigger value="permissions">Permissions</TabsTrigger>
-          <TabsTrigger value="comptabilite">Comptabilité</TabsTrigger>
-          <TabsTrigger value="danger">Zone sensible</TabsTrigger>
+          <TabsTrigger value="profile" className="gap-1">Profil <SectionHelp id="settings.profile" /></TabsTrigger>
+          <TabsTrigger value="security" className="gap-1">Sécurité <SectionHelp id="settings.security" /></TabsTrigger>
+          <TabsTrigger value="subscription" className="gap-1">Abonnement <SectionHelp id="settings.subscription" /></TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-1">Notifications <SectionHelp id="settings.notifications" /></TabsTrigger>
+          <TabsTrigger value="regional" className="gap-1">Régionales <SectionHelp id="settings.regional" /></TabsTrigger>
+          <TabsTrigger value="attendance" className="gap-1">Pointage <SectionHelp id="settings.attendance" /></TabsTrigger>
+          <TabsTrigger value="modules" className="gap-1">Modules actifs <SectionHelp id="settings.modules" /></TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-1">Permissions <SectionHelp id="settings.permissions" /></TabsTrigger>
+          <TabsTrigger value="comptabilite" className="gap-1">Comptabilité <SectionHelp id="settings.comptabilite" /></TabsTrigger>
+          <TabsTrigger value="danger" className="gap-1">Zone sensible <SectionHelp id="settings.danger" /></TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">

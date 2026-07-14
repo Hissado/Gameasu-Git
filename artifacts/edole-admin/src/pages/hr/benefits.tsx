@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
@@ -78,9 +79,9 @@ export default function Benefits() {
     <HrShell title="Avantages & Conformité" subtitle="Avantages sociaux, signatures électroniques et déclarations fiscales">
       <Tabs defaultValue="benefits">
         <TabsList className="mb-6">
-          <TabsTrigger value="benefits">Avantages sociaux</TabsTrigger>
-          <TabsTrigger value="signatures">Signatures électroniques</TabsTrigger>
-          <TabsTrigger value="declarations">Déclarations fiscales</TabsTrigger>
+          <TabsTrigger value="benefits" className="gap-1">Avantages sociaux <SectionHelp id="hr.benefits.benefits" /></TabsTrigger>
+          <TabsTrigger value="signatures" className="gap-1">Signatures électroniques <SectionHelp id="hr.benefits.signatures" /></TabsTrigger>
+          <TabsTrigger value="declarations" className="gap-1">Déclarations fiscales <SectionHelp id="hr.benefits.declarations" /></TabsTrigger>
         </TabsList>
 
         {/* ─── AVANTAGES ─── */}

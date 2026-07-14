@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatFCFA, formatDate } from "@/lib/format";
 import {
@@ -119,14 +120,14 @@ export default function ProjectDetail() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="h-10">
-          <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+          <TabsTrigger value="overview" className="gap-1">Vue d'ensemble <SectionHelp id="projects.detail.overview" /></TabsTrigger>
           <TabsTrigger value="timeline" className="gap-1.5">
             <GanttChartSquare className="w-3.5 h-3.5" />
-            Timeline
+            Timeline <SectionHelp id="projects.detail.timeline" />
           </TabsTrigger>
           <TabsTrigger value="intelligence" className="gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            Intelligence
+            Intelligence <SectionHelp id="projects.detail.intelligence" />
           </TabsTrigger>
         </TabsList>
 

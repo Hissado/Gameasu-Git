@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { VerticalTabsShell, TabNavGroup } from "@/components/ui/module-nav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
@@ -2027,15 +2028,15 @@ function FinanceTab({ periodQuery, period, comparePeriod, compareMode = "none" }
   return (
     <Tabs defaultValue="billing" className="w-full">
       <TabsList className="grid grid-cols-3 md:grid-cols-9 mb-4 h-auto gap-px">
-        <TabsTrigger value="billing" className="text-xs"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation</TabsTrigger>
-        <TabsTrigger value="decaissements" className="text-xs"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements</TabsTrigger>
-        <TabsTrigger value="balance-gen" className="text-xs"><BookOpen className="w-3.5 h-3.5 mr-1" />Balance</TabsTrigger>
-        <TabsTrigger value="income-statement" className="text-xs"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
-        <TabsTrigger value="balance-sheet" className="text-xs"><Scale className="w-3.5 h-3.5 mr-1" />Bilan</TabsTrigger>
-        <TabsTrigger value="cash-flow" className="text-xs"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso.</TabsTrigger>
-        <TabsTrigger value="fiscal" className="text-xs"><Percent className="w-3.5 h-3.5 mr-1" />Synthèse fiscale</TabsTrigger>
-        <TabsTrigger value="reconciliation" className="text-xs"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement</TabsTrigger>
-        <TabsTrigger value="management" className="text-xs"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion</TabsTrigger>
+        <TabsTrigger value="billing" className="text-xs gap-1"><Receipt className="w-3.5 h-3.5 mr-1" />Facturation <SectionHelp id="reports.billing" /></TabsTrigger>
+        <TabsTrigger value="decaissements" className="text-xs gap-1"><ArrowDownRight className="w-3.5 h-3.5 mr-1" />Décaissements <SectionHelp id="reports.decaissements" /></TabsTrigger>
+        <TabsTrigger value="balance-gen" className="text-xs gap-1"><BookOpen className="w-3.5 h-3.5 mr-1" />Balance <SectionHelp id="reports.balance" /></TabsTrigger>
+        <TabsTrigger value="income-statement" className="text-xs gap-1"><BarChart2 className="w-3.5 h-3.5 mr-1" />Résultat <SectionHelp id="reports.income_statement" /></TabsTrigger>
+        <TabsTrigger value="balance-sheet" className="text-xs gap-1"><Scale className="w-3.5 h-3.5 mr-1" />Bilan <SectionHelp id="reports.balance_sheet" /></TabsTrigger>
+        <TabsTrigger value="cash-flow" className="text-xs gap-1"><TrendingUp className="w-3.5 h-3.5 mr-1" />Flux de tréso. <SectionHelp id="reports.cash_flow" /></TabsTrigger>
+        <TabsTrigger value="fiscal" className="text-xs gap-1"><Percent className="w-3.5 h-3.5 mr-1" />Synthèse fiscale <SectionHelp id="reports.fiscal" /></TabsTrigger>
+        <TabsTrigger value="reconciliation" className="text-xs gap-1"><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Rapprochement <SectionHelp id="reports.reconciliation" /></TabsTrigger>
+        <TabsTrigger value="management" className="text-xs gap-1"><Briefcase className="w-3.5 h-3.5 mr-1" />Rapport de gestion <SectionHelp id="reports.management" /></TabsTrigger>
       </TabsList>
       <TabsContent value="billing"><BillingSubTab periodQuery={periodQuery} /></TabsContent>
       <TabsContent value="decaissements"><DecaissementSubTab periodQuery={periodQuery} /></TabsContent>

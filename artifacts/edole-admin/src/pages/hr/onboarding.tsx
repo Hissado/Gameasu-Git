@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -67,9 +68,9 @@ export default function Onboarding() {
     >
       <Tabs defaultValue="processes">
         <TabsList className="mb-6">
-          <TabsTrigger value="processes">Processus en cours ({inProgress.length})</TabsTrigger>
-          <TabsTrigger value="completed">Terminés ({completed.length})</TabsTrigger>
-          <TabsTrigger value="templates">Modèles ({(templates ?? []).length})</TabsTrigger>
+          <TabsTrigger value="processes" className="gap-1">Processus en cours ({inProgress.length}) <SectionHelp id="hr.onboarding.processes" /></TabsTrigger>
+          <TabsTrigger value="completed" className="gap-1">Terminés ({completed.length}) <SectionHelp id="hr.onboarding.completed" /></TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1">Modèles ({(templates ?? []).length}) <SectionHelp id="hr.onboarding.templates" /></TabsTrigger>
         </TabsList>
 
         <TabsContent value="processes">

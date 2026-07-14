@@ -32,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { toast } from "sonner";
 import { PayslipEmailLogsSheet } from "@/components/payslip-email-logs-sheet";
+import { SectionHelp } from "@/components/ui/section-help";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -356,19 +357,19 @@ function EditCollaboratorDialog({
         <Tabs defaultValue="identity">
           <div className="overflow-x-auto pb-1"><TabsList className="grid grid-cols-5 w-full mb-4 min-w-[360px]">
             <TabsTrigger value="identity" className="flex items-center gap-1.5 text-xs">
-              <User className="w-3.5 h-3.5" />Identité
+              <User className="w-3.5 h-3.5" />Identité <SectionHelp id="collaborators.detail.identity" />
             </TabsTrigger>
             <TabsTrigger value="pro" className="flex items-center gap-1.5 text-xs">
-              <Briefcase className="w-3.5 h-3.5" />Profil pro
+              <Briefcase className="w-3.5 h-3.5" />Profil pro <SectionHelp id="collaborators.detail.pro" />
             </TabsTrigger>
             <TabsTrigger value="salary" className="flex items-center gap-1.5 text-xs" disabled={!canEditSalary}>
-              <DollarSign className="w-3.5 h-3.5" />Rémunération
+              <DollarSign className="w-3.5 h-3.5" />Rémunération <SectionHelp id="collaborators.detail.salary" />
             </TabsTrigger>
             <TabsTrigger value="bank" className="flex items-center gap-1.5 text-xs">
-              <Landmark className="w-3.5 h-3.5" />Banque
+              <Landmark className="w-3.5 h-3.5" />Banque <SectionHelp id="collaborators.detail.bank" />
             </TabsTrigger>
             <TabsTrigger value="emergency" className="flex items-center gap-1.5 text-xs">
-              <AlertCircle className="w-3.5 h-3.5" />Urgence
+              <AlertCircle className="w-3.5 h-3.5" />Urgence <SectionHelp id="collaborators.detail.emergency" />
             </TabsTrigger>
           </TabsList></div>
 

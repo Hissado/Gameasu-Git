@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -868,11 +869,11 @@ function ReportsTab({ from, to }: { from: string; to: string }) {
   return (
     <Tabs defaultValue="cc" className="w-full">
       <div className="overflow-x-auto pb-1"><TabsList className="grid grid-cols-5 mb-4 h-auto gap-px min-w-[360px]">
-        <TabsTrigger value="cc" className="text-xs"><Building2 className="w-3.5 h-3.5 mr-1" />Par centre</TabsTrigger>
-        <TabsTrigger value="project" className="text-xs"><FolderKanban className="w-3.5 h-3.5 mr-1" />Par projet</TabsTrigger>
-        <TabsTrigger value="client" className="text-xs"><Users className="w-3.5 h-3.5 mr-1" />Par client</TabsTrigger>
-        <TabsTrigger value="contribution" className="text-xs"><BarChart3 className="w-3.5 h-3.5 mr-1" />Contribution</TabsTrigger>
-        <TabsTrigger value="income" className="text-xs"><Layers className="w-3.5 h-3.5 mr-1" />Résultat</TabsTrigger>
+        <TabsTrigger value="cc" className="text-xs gap-1"><Building2 className="w-3.5 h-3.5 mr-1" />Par centre <SectionHelp id="accounting.analytical.cc" /></TabsTrigger>
+        <TabsTrigger value="project" className="text-xs gap-1"><FolderKanban className="w-3.5 h-3.5 mr-1" />Par projet <SectionHelp id="accounting.analytical.project" /></TabsTrigger>
+        <TabsTrigger value="client" className="text-xs gap-1"><Users className="w-3.5 h-3.5 mr-1" />Par client <SectionHelp id="accounting.analytical.client" /></TabsTrigger>
+        <TabsTrigger value="contribution" className="text-xs gap-1"><BarChart3 className="w-3.5 h-3.5 mr-1" />Contribution <SectionHelp id="accounting.analytical.contribution" /></TabsTrigger>
+        <TabsTrigger value="income" className="text-xs gap-1"><Layers className="w-3.5 h-3.5 mr-1" />Résultat <SectionHelp id="accounting.analytical.income" /></TabsTrigger>
       </TabsList></div>
 
       {/* Par centre de coût */}
