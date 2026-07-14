@@ -14,7 +14,7 @@ import {
   GraduationCap, FileSignature, FolderArchive, UsersRound, Megaphone, Target,
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
-  Banknote, Flame, ArrowLeftRight, CheckCircle2, Bot, Lightbulb,
+  Banknote, Flame, ArrowLeftRight, CheckCircle2, Bot, Lightbulb, BookOpen,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 import { SuggestionDialog } from "@/components/SuggestionDialog";
+import { TOUR_MODULE_MAP, RELAUNCH_EVENT } from "@/components/ui/onboarding-tour";
 
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -209,6 +210,10 @@ function isGroupActive(group: NavGroup, location: string) {
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
   const { logout, user, switchOrg } = useAuth();
+  const currentTourKey = TOUR_MODULE_MAP[location] ?? TOUR_MODULE_MAP[location.split("?")[0]];
+  const handleRelaunchTour = () => {
+    if (currentTourKey) window.dispatchEvent(new CustomEvent(RELAUNCH_EVENT, { detail: currentTourKey }));
+  };
   const { data: org } = useCurrentOrganization();
   const { data: subData } = useCurrentSubscription();
   const { data: modules } = useOrganizationModules();
@@ -806,6 +811,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                       </div>
                     </Link>
                   </DropdownMenuItem>
+                  {currentTourKey && (
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg py-2.5 px-3 gap-3"
+                      onClick={handleRelaunchTour}
+                    >
+                      <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-none">Relancer la visite guidée</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Revoir le guide de ce module</p>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                 </div>
 
                 <div className="h-px bg-border/60 mx-3" />

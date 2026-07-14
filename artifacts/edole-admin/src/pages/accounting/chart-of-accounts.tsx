@@ -5,7 +5,8 @@ import { AccountingShell } from "./_layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, BookOpen } from "lucide-react";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 
 type OrgFramework = { orgType: string; orgTypeLabel: string; accountingFramework: string; frameworkLabel: string; frameworkDescription: string };
 
@@ -38,8 +39,15 @@ const CLASS_LABELS: Record<number, string> = {
   7: "Produits des activités ordinaires",
 };
 
+const COA_TOUR = [
+  { target: "coa-header", title: "Plan comptable SYSCOHADA", description: "Référentiel de tous vos comptes de gestion, organisé en 7 classes selon le système comptable ouest-africain SYSCOHADA." },
+  { target: "coa-search", title: "Recherche de comptes", description: "Recherchez un compte par son code (ex: 411) ou son libellé (ex: Clients et comptes rattachés)." },
+  { target: "coa-classes", title: "Comptes par classe", description: "Chaque groupe représente une classe comptable. Consultez le type (actif, passif, charge, produit) et le sens normal de chaque compte." },
+];
+
 export default function ChartOfAccounts() {
   const [search, setSearch] = useState("");
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("plan_comptable");
   const [classFilter, setClassFilter] = useState<string>("");
 
   const { data, isLoading } = useQuery<{ data: Acc[] }>({
@@ -71,7 +79,18 @@ export default function ChartOfAccounts() {
       title={`Plan comptable — ${fwLabel}`}
       subtitle={fwDesc}
     >
-      <div className="flex flex-wrap gap-3 mb-4">
+      {showWelcome && (
+        <WelcomeModal
+          title="Plan Comptable"
+          subtitle="Découvrez le référentiel SYSCOHADA : classes, comptes et sens normaux."
+          icon={BookOpen}
+          steps={COA_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={COA_TOUR} onClose={closeTour} />}
+      <div data-tour="coa-search" className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Rechercher par code ou libellé…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -85,7 +104,7 @@ export default function ChartOfAccounts() {
       {isLoading ? (
         <div className="text-muted-foreground">Chargement…</div>
       ) : (
-        <div className="space-y-6">
+        <div data-tour="coa-classes" className="space-y-6">
           {Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b)).map(([cls, accs]) => (
             <Card key={cls}>
               <CardContent className="p-0">

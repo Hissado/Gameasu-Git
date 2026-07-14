@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA, formatFCFACompact } from "@/lib/format";
@@ -60,8 +61,16 @@ function fmtCompact(v: number) {
   return String(v);
 }
 
+const FPA_TOUR = [
+  { target: "fpa-hero", title: "Pilotage financier exécutif", description: "Vision consolidée : budget annuel, réalisé cumulé, projection d'atterrissage et marge brute de vos projets." },
+  { target: "fpa-execution", title: "Exécution budgétaire", description: "La barre montre le taux de consommation du budget et la projection de dépassement ou d'économie à fin d'exercice." },
+  { target: "fpa-chart", title: "Évolution mensuelle", description: "Comparez Budget vs Réalisé mois par mois et suivez les courbes cumulées pour anticiper les écarts en fin d'année." },
+  { target: "fpa-nav", title: "Modules FP&A", description: "Explorez les budgets versionnés, l'analyse de variance SYSCOHADA, les prévisions et les exports Excel professionnels." },
+];
+
 export default function FpaDashboardPage() {
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("fpa");
   const [periodId, setPeriodId] = useState<string>("");
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [byProject, setByProject] = useState<ByProjectResponse | null>(null);
@@ -130,8 +139,19 @@ export default function FpaDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {showWelcome && (
+        <WelcomeModal
+          title="Pilotage Financier (FP&A)"
+          subtitle="Explorez le tableau de bord exécutif : budget, réalisé et projections."
+          icon={BarChart3}
+          steps={FPA_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={FPA_TOUR} onClose={closeTour} />}
       {/* ─── Hero header ────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-6 sm:p-7 shadow-sm">
+      <div data-tour="fpa-hero" className="rounded-xl border bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-6 sm:p-7 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-amber-300/90 text-xs font-medium uppercase tracking-wider">
@@ -254,7 +274,7 @@ export default function FpaDashboardPage() {
       {!loading && summary?.companyBudget && (
         <>
           {/* ─── Bandeau d'exécution budgétaire ──────────────────────── */}
-          <Card className="p-5 sm:p-6">
+          <Card data-tour="fpa-execution" className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div>
                 <h3 className="font-semibold text-base">Exécution budgétaire</h3>
@@ -304,7 +324,7 @@ export default function FpaDashboardPage() {
           </Card>
 
           {/* ─── Évolution mensuelle ─────────────────────────────────── */}
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div data-tour="fpa-chart" className="grid gap-4 lg:grid-cols-3">
             <Card className="p-5 sm:p-6 lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <div>

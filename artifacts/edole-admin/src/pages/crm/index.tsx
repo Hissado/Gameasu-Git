@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 import { PageHeader } from "@/components/ui/page-header";
 import { usePermissions } from "@/lib/permissions";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 
 // Progression logique des stades (prev → next)
 const STAGE_NEXT: Record<string, string> = {
@@ -203,8 +204,15 @@ function NewOpportunityDialog({ onClose, onSuccess }: { onClose: () => void; onS
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const CRM_TOUR = [
+  { target: "crm-header", title: "Pipeline commercial", description: "Pilotez toutes vos opportunités de vente, du premier contact jusqu'à la signature du contrat." },
+  { target: "crm-kpis", title: "Métriques commerciales", description: "Pipeline total, valeur pondérée par probabilité, CA gagné et opportunités en retard — vos chiffres en temps réel." },
+  { target: "crm-pipeline", title: "Kanban des opportunités", description: "Glissez chaque carte d'une colonne à l'autre, ou utilisez les boutons Avancer / Reculer pour faire progresser vos négociations." },
+];
+
 export default function CrmHome() {
   const qc = useQueryClient();
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("crm");
   const { data: pipeline, isLoading: isLoadingPipeline } = useGetCrmPipeline();
   const { data: opportunities, isLoading: isLoadingOpps, refetch } = useListOpportunities();
 
@@ -230,7 +238,18 @@ export default function CrmHome() {
   const isLoading = isLoadingPipeline || isLoadingOpps;
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+    <div data-tour="crm-header" className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+      {showWelcome && (
+        <WelcomeModal
+          title="Pipeline Commercial"
+          subtitle="Apprenez à gérer vos opportunités et suivre votre pipeline de vente."
+          icon={Target}
+          steps={CRM_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={CRM_TOUR} onClose={closeTour} />}
       <PageHeader
         title="Pipeline Commercial"
         subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFACompact(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}
@@ -270,7 +289,7 @@ export default function CrmHome() {
         const wonValue  = wonOpps.reduce((s, o) => s + (o.value ?? 0), 0);
         const overdueOpps = activeOpps.filter(o => o.expectedCloseDate && new Date(o.expectedCloseDate) < new Date());
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+          <div data-tour="crm-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
             <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-amber-50 rounded-lg shrink-0"><Target className="w-4 h-4 text-[#2563EB]" /></div>
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -323,7 +342,7 @@ export default function CrmHome() {
           ))}
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
+        <div data-tour="crm-pipeline" className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
           {STAGES.map((stage) => {
             const stageOpps = (opportunities?.data as Opp[] ?? []).filter(o => o.stage === stage.key);
             const stageTotal = stageOpps.reduce((s, o) => s + (o.value ?? 0), 0);

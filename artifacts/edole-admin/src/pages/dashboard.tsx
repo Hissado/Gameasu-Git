@@ -48,6 +48,8 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { IntelligenceWidget } from "@/components/IntelligenceWidget";
 import { QuickClockWidget } from "@/components/QuickClockWidget";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { LayoutDashboard } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -141,9 +143,16 @@ function SectionHeader({ title, sub, action }: { title: string; sub?: string; ac
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const DASHBOARD_TOUR = [
+  { target: "dash-header", title: "Tableau de bord", description: "Salutation personnalisée, date du jour et raccourcis vers les actions fréquentes : factures, clients, projets…" },
+  { target: "dash-kpis", title: "Indicateurs clés", description: "Vue synthétique : encaissements du mois, créances ouvertes, pipeline CRM, projets actifs et alertes en cours." },
+  { target: "dash-alerts", title: "Alertes & tâches prioritaires", description: "Les actions urgentes remontent ici — factures en retard, tâches échues. Cliquez sur chaque alerte pour y accéder directement." },
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const firstName = user?.firstName || "";
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("dashboard");
 
   const { data: kpis, isLoading: loadingKpis } = useGetDashboardKpis();
   const { data: charts, isLoading: loadingCharts } = useGetDashboardCharts();
@@ -211,9 +220,20 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-400 pb-12">
+      {showWelcome && (
+        <WelcomeModal
+          title="Tableau de bord"
+          subtitle="Découvrez comment piloter votre activité au quotidien."
+          icon={LayoutDashboard}
+          steps={DASHBOARD_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={DASHBOARD_TOUR} onClose={closeTour} />}
 
       {/* ── En-tête ─────────────────────────────────────────────────────── */}
-      <header className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"
+      <header data-tour="dash-header" className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"
         style={{ background: "linear-gradient(135deg, #0d1424 0%, #111827 50%, #0f172a 100%)" }}>
         <div className="px-6 py-7 md:px-8 md:py-8 relative">
           <div className="absolute inset-0 pointer-events-none">
@@ -256,7 +276,7 @@ export default function Dashboard() {
       <QuickClockWidget />
 
       {/* ── Section 1 : KPI ─────────────────────────────────────────────── */}
-      <section>
+      <section data-tour="dash-kpis">
         <SectionHeader title="Vue d'ensemble" sub="Indicateurs clés de votre organisation" />
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <KpiCard
@@ -336,7 +356,7 @@ export default function Dashboard() {
       <IntelligenceWidget />
 
       {/* ── Section 2 : Actions prioritaires ────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section data-tour="dash-alerts" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Alertes financières */}
         <div>
           <SectionHeader

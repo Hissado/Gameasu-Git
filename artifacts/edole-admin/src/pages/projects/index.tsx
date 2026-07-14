@@ -27,6 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 
 // ── RAG ───────────────────────────────────────────────────────────────────────
 
@@ -257,8 +258,16 @@ function DeleteProjectDialog({ project, onClose }: { project: any; onClose: () =
 
 type ViewMode = "list" | "cards";
 
+const PROJECTS_TOUR = [
+  { target: "proj-header", title: "Gestion de projets", description: "Créez et suivez vos projets : budget, responsable, planning et équipe centralisés en un seul endroit." },
+  { target: "proj-kpis", title: "Indicateurs projets", description: "Total, actifs, projets à surveiller et avancement moyen de votre portefeuille, calculés en temps réel." },
+  { target: "proj-table", title: "Liste des projets", description: "Triez, filtrez et cliquez sur un projet pour ouvrir son détail : phases, tâches, budget et documents." },
+  { target: "proj-rag", title: "Statut RAG", description: "Le feu tricolore (Vert / Amber / Rouge) indique si le projet est en bonne voie, à risque ou en retard par rapport au planning." },
+];
+
 export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("projets");
   const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -308,7 +317,18 @@ export default function ProjectsList() {
   }, [data]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div data-tour="proj-header" className="space-y-6 animate-in fade-in duration-500">
+      {showWelcome && (
+        <WelcomeModal
+          title="Gestion de Projets"
+          subtitle="Apprenez à créer, planifier et suivre vos projets en temps réel."
+          icon={FolderKanban}
+          steps={PROJECTS_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={PROJECTS_TOUR} onClose={closeTour} />}
       <PageHeader
         title="Projets"
         icon={FolderKanban}
@@ -355,7 +375,7 @@ export default function ProjectsList() {
       />
 
       {!isLoading && (data?.data || []).length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div data-tour="proj-kpis" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total projets",    value: kpis.total,           cls: "text-foreground" },
             { label: "En cours",         value: kpis.active,          cls: "text-primary" },
@@ -420,7 +440,7 @@ export default function ProjectsList() {
               </Button>
             </div>
           ) : view === "list" ? (
-            <Table>
+            <Table data-tour="proj-table">
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600">Nom du Projet</TableHead>

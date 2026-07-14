@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Search, UserPlus, X, ArrowUpDown, User, Keyboard } from "lucide-react";
 import { toast } from "sonner";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
+import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -55,8 +56,15 @@ type StatusFilter = "all" | "active" | "inactive" | "new" | "unavailable";
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
+const COLLABS_TOUR = [
+  { target: "collab-header", title: "Annuaire des collaborateurs", description: "Gérez les profils, disponibilités et affectations de toute votre équipe." },
+  { target: "collab-search", title: "Recherche & filtres", description: "Filtrez par nom, département et statut. Raccourcis clavier : / pour chercher, ↑↓ pour naviguer, Entrée pour ouvrir un profil." },
+  { target: "collab-list", title: "Liste de l'équipe", description: "Cliquez sur un collaborateur pour accéder à son profil complet : contrat, compétences, historique de présence et bulletin de paie." },
+];
+
 export default function CollaboratorsList() {
   const [, navigate] = useLocation();
+  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("collaborateurs");
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -288,9 +296,20 @@ export default function CollaboratorsList() {
   // ── Render ──
   return (
     <div className="space-y-5">
+      {showWelcome && (
+        <WelcomeModal
+          title="Collaborateurs"
+          subtitle="Découvrez comment gérer les profils et l'annuaire de votre équipe."
+          icon={User}
+          steps={COLLABS_TOUR}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+        />
+      )}
+      {tourActive && <OnboardingTour steps={COLLABS_TOUR} onClose={closeTour} />}
 
       {/* ── Page header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div data-tour="collab-header" className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Collaborateurs</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -310,7 +329,7 @@ export default function CollaboratorsList() {
       </div>
 
       {/* ── Search + filters ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+      <div data-tour="collab-search" className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -442,6 +461,7 @@ export default function CollaboratorsList() {
         </div>
       ) : (
         <div
+          data-tour="collab-list"
           ref={listRef}
           className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden"
         >
