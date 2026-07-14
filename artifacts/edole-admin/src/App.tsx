@@ -106,6 +106,8 @@ const HrPayrollCalendar = lazy(() => import("@/pages/hr/payroll-calendar"));
 const HrPayrollCorrections = lazy(() => import("@/pages/hr/payroll-corrections"));
 const HrPayrollDeclarations = lazy(() => import("@/pages/hr/payroll-declarations"));
 const HrSimulateur = lazy(() => import("@/pages/hr/simulateur"));
+const HrReclamations = lazy(() => import("@/pages/hr/reclamations"));
+const HrReclamationDetail = lazy(() => import("@/pages/hr/reclamation-detail"));
 const AccountingAnalytical = lazy(() => import("@/pages/accounting/analytical"));
 const InventoryWarehouses = lazy(() => import("@/pages/inventory/warehouses"));
 const CommercialClients = lazy(() => import("@/pages/commercial/clients"));
@@ -381,6 +383,8 @@ function AppRouter() {
                 <Route path="/rh/btp-pointage" component={BtpPointage} />
                 <Route path="/rh/btp-paie" component={BtpPaie} />
                 <Route path="/rh/btp-parametres" component={BtpSettings} />
+                <Route path="/rh/reclamations/:id" component={HrReclamationDetail} />
+                <Route path="/rh/reclamations" component={HrReclamations} />
                 <Route path="/notifications/synthese" component={NotificationsDigest} />
                 <Route path="/recherche" component={UniversalSearch} />
                 <Route path="/assistant" component={AssistantPage} />

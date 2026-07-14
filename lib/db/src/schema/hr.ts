@@ -491,3 +491,61 @@ export const hrAuditLogsTable = pgTable("hr_audit_logs", {
 }));
 
 export type HrAuditLog = typeof hrAuditLogsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
+// RÉCLAMATIONS RH
+// ─────────────────────────────────────────────────────────
+export const hrClaimsTable = pgTable("hr_claims", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  collaboratorId: uuid("collaborator_id").notNull().references(() => collaboratorsTable.id, { onDelete: "cascade" }),
+  // Référence lisible (ex: REC-2026-0042)
+  reference: text("reference").notNull(),
+  // salaire | conges | conditions_travail | harcelement | discrimination | securite | avantages | carriere | autre
+  category: text("category").notNull(),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  // brouillon | soumise | en_cours | infos_complementaires | en_traitement | resolue | refusee | cloturee
+  status: text("status").notNull().default("brouillon"),
+  // faible | normale | haute | urgente
+  priority: text("priority").notNull().default("normale"),
+  // Responsable RH assigné
+  assignedToId: uuid("assigned_to_id").references(() => usersTable.id, { onDelete: "set null" }),
+  // Date cible de résolution
+  targetDate: date("target_date"),
+  // Date de résolution effective
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolutionNote: text("resolution_note"),
+  // Anonymisée : la réclamation ne montre pas le nom du collaborateur aux managers de niveau intermédiaire
+  isAnonymous: boolean("is_anonymous").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("hr_claims_org_idx").on(t.organizationId),
+  collabIdx: index("hr_claims_collab_idx").on(t.collaboratorId),
+  statusIdx: index("hr_claims_status_idx").on(t.status),
+  refOrgIdx: uniqueIndex("hr_claims_ref_org_uidx").on(t.organizationId, t.reference),
+}));
+
+export const hrClaimEventsTable = pgTable("hr_claim_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  claimId: uuid("claim_id").notNull().references(() => hrClaimsTable.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => usersTable.id, { onDelete: "set null" }),
+  // status_change | comment | info_request | resolution | attachment
+  kind: text("kind").notNull().default("comment"),
+  // Pour status_change : ancien statut
+  fromStatus: text("from_status"),
+  // Pour status_change : nouveau statut
+  toStatus: text("to_status"),
+  content: text("content"),
+  // Visible uniquement par les RH/managers (pas par l'employé)
+  isInternal: boolean("is_internal").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  claimIdx: index("hr_claim_events_claim_idx").on(t.claimId),
+  orgIdx: index("hr_claim_events_org_idx").on(t.organizationId),
+}));
+
+export type HrClaim = typeof hrClaimsTable.$inferSelect;
+export type HrClaimEvent = typeof hrClaimEventsTable.$inferSelect;
