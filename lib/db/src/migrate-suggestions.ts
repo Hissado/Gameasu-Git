@@ -17,7 +17,7 @@ async function migrateSuggestions() {
         browser_info TEXT,
         device_info TEXT,
         screenshot_url TEXT,
-        assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+        assigned_to TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
