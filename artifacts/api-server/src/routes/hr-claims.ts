@@ -255,7 +255,11 @@ router.post("/hr/claims", async (req, res, next) => {
     const { organizationId: orgId, id: userId } = req.authUser!;
     const manager = await isHrManager(userId);
 
-    const { category, subject, description, priority = "normale", isAnonymous = false, targetDate } = req.body;
+    const {
+      category, subject, description, priority = "normale",
+      isAnonymous = false, targetDate,
+      attachments = [], // [{ fileName, fileUrl, mimeType?, size? }]
+    } = req.body;
     if (!category || !subject || !description) {
       return res.status(400).json({ error: "Champs obligatoires manquants (catégorie, objet, description)" });
     }
@@ -314,10 +318,27 @@ router.post("/hr/claims", async (req, res, next) => {
       isInternal: false,
     });
 
+    // Persist attachments provided at creation time
+    const validAttachments = (Array.isArray(attachments) ? attachments : [])
+      .filter((a: any) => a?.fileName && a?.fileUrl);
+    if (validAttachments.length > 0) {
+      await db.insert(hrClaimAttachmentsTable).values(
+        validAttachments.map((a: any) => ({
+          organizationId: orgId,
+          claimId: claim.id,
+          uploadedById: userId,
+          fileName: String(a.fileName),
+          fileUrl: String(a.fileUrl),
+          mimeType: a.mimeType ? String(a.mimeType) : null,
+          size: a.size ? Number(a.size) : null,
+        }))
+      );
+    }
+
     // Notify HR managers (non-blocking)
     notifyHrManagers(orgId, userId, claim.id, claim.reference, claim.subject).catch(() => { /* non-blocking */ });
 
-    res.status(201).json(claim);
+    res.status(201).json({ ...claim, attachmentsCount: validAttachments.length });
   } catch (e) { next(e); }
 });
 

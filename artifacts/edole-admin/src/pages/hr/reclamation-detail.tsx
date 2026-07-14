@@ -33,6 +33,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   securite: "Sécurité",
   avantages: "Avantages sociaux",
   carriere: "Carrière & Évolution",
+  remboursement: "Remboursement de frais",
   autre: "Autre",
 };
 

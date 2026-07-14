@@ -34,6 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   securite: "Sécurité",
   avantages: "Avantages sociaux",
   carriere: "Carrière & Évolution",
+  remboursement: "Remboursement de frais",
   autre: "Autre",
 };
 
@@ -107,8 +108,10 @@ export default function ReclamationsPage() {
   const [form, setForm] = useState({
     category: "", subject: "", description: "",
     priority: "normale", isAnonymous: false,
-    files: [] as File[],
   });
+  // Pièces jointes sous forme de liens (nom + URL) pour la soumission initiale
+  const [attachLinks, setAttachLinks] = useState<{ name: string; url: string }[]>([]);
+  const [attachInput, setAttachInput] = useState({ name: "", url: "" });
 
   // ── Data queries ──────────────────────────────────────────────────────────────
   const params = new URLSearchParams();
@@ -149,7 +152,9 @@ export default function ReclamationsPage() {
       qc.invalidateQueries({ queryKey: ["hr-claims"] });
       qc.invalidateQueries({ queryKey: ["hr-claims-stats"] });
       setShowNew(false);
-      setForm({ category: "", subject: "", description: "", priority: "normale", isAnonymous: false, files: [] });
+      setForm({ category: "", subject: "", description: "", priority: "normale", isAnonymous: false });
+      setAttachLinks([]);
+      setAttachInput({ name: "", url: "" });
       toast({ title: "Réclamation soumise", description: "Votre réclamation a été enregistrée." });
     },
     onError: () => toast({ title: "Erreur", description: "Impossible de soumettre la réclamation.", variant: "destructive" }),
@@ -168,6 +173,16 @@ export default function ReclamationsPage() {
   const urgentCount = stats?.byPriority.find(p => p.priority === "urgente")?.count ?? 0;
 
   // ── Handlers ──────────────────────────────────────────────────────────────────
+  function addAttachLink() {
+    if (!attachInput.name.trim() || !attachInput.url.trim()) return;
+    setAttachLinks(prev => [...prev, { name: attachInput.name.trim(), url: attachInput.url.trim() }]);
+    setAttachInput({ name: "", url: "" });
+  }
+
+  function removeAttachLink(idx: number) {
+    setAttachLinks(prev => prev.filter((_, i) => i !== idx));
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.category || !form.subject || !form.description) {
@@ -180,6 +195,7 @@ export default function ReclamationsPage() {
       description: form.description,
       priority: form.priority,
       isAnonymous: form.isAnonymous,
+      attachments: attachLinks.map(a => ({ fileName: a.name, fileUrl: a.url })),
     });
   }
 
@@ -452,8 +468,48 @@ export default function ReclamationsPage() {
               </Label>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800">
-              <strong>Note :</strong> Les pièces jointes peuvent être ajoutées après soumission depuis le détail de la réclamation.
+            {/* Pièces jointes (liens/URL) */}
+            <div>
+              <Label className="flex items-center gap-1"><Paperclip className="w-3.5 h-3.5" /> Pièces jointes</Label>
+              <p className="text-xs text-muted-foreground mb-2">Ajoutez des liens vers vos documents (URL, partage de fichier…)</p>
+
+              {attachLinks.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {attachLinks.map((a, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-slate-50 border rounded px-2 py-1">
+                      <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 truncate">{a.name}</span>
+                      <button
+                        type="button"
+                        className="text-xs text-red-500 hover:text-red-700 shrink-0"
+                        onClick={() => removeAttachLink(i)}
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nom du document"
+                  value={attachInput.name}
+                  onChange={e => setAttachInput(prev => ({ ...prev, name: e.target.value }))}
+                  className="text-xs flex-1"
+                />
+                <Input
+                  placeholder="URL du fichier"
+                  value={attachInput.url}
+                  onChange={e => setAttachInput(prev => ({ ...prev, url: e.target.value }))}
+                  className="text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addAttachLink}
+                  disabled={!attachInput.name.trim() || !attachInput.url.trim()}
+                >+</Button>
+              </div>
             </div>
 
             <DialogFooter>
