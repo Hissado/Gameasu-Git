@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Client = { id: string; name: string };
 type Proforma = {
@@ -395,8 +396,14 @@ export default function ProformasList() {
               <TableBody>
                 {proformas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                      <FileText className="w-10 h-10 mx-auto text-slate-200 mb-3" /><p>Aucun devis trouvé.</p>
+                    <TableCell colSpan={7}>
+                      <EmptyState
+                        icon={FileText}
+                        title={search ? "Aucun devis ne correspond à la recherche" : "Aucun devis créé"}
+                        description={!search ? "Rédigez votre premier devis et convertissez-le en bon de commande en un clic." : undefined}
+                        actionLabel={!search ? "Créer un devis" : undefined}
+                        onAction={!search ? () => setNewOpen(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : proformas.map(p => {

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ClipboardCheck, Plus, AlertTriangle, CheckCircle2, GitCompare } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
 import { Link } from "wouter";
@@ -213,14 +214,14 @@ export default function InspectionsList() {
               <TableBody>
                 {inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                      <ClipboardCheck className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-                      <p className="text-lg font-medium text-slate-600">{search ? "Aucun résultat" : "Aucune inspection trouvée."}</p>
-                      {!search && (
-                        <Button variant="outline" className="mt-4 border-primary text-primary" onClick={() => setShowCreate(true)}>
-                          <Plus className="w-4 h-4 mr-2" />Créer une inspection
-                        </Button>
-                      )}
+                    <TableCell colSpan={7}>
+                      <EmptyState
+                        icon={ClipboardCheck}
+                        title={search ? "Aucune inspection ne correspond à la recherche" : "Aucune inspection réalisée"}
+                        description={!search ? "Effectuez des états des lieux avant départ et retour pour sécuriser vos locations." : undefined}
+                        actionLabel={!search ? "Créer une inspection" : undefined}
+                        onAction={!search ? () => setShowCreate(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

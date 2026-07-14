@@ -16,6 +16,7 @@ import { formatDate, formatFCFA } from "@/lib/format";
 import { MoneyAmount } from "@/components/ui/money-amount";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Invoice = {
   id: string; referenceNumber: string; status: string;
@@ -495,12 +496,14 @@ export default function PaymentsList() {
               <TableBody>
                 {payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <CreditCard className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">Aucun paiement enregistré.</p>
-                        <p className="text-sm mt-1">Cliquez sur « Saisir un encaissement » pour commencer.</p>
-                      </div>
+                    <TableCell colSpan={6}>
+                      <EmptyState
+                        icon={CreditCard}
+                        title="Aucun encaissement enregistré"
+                        description="Saisissez vos premiers encaissements et suivez le recouvrement de vos créances."
+                        actionLabel="Saisir un encaissement"
+                        onAction={() => setDialogOpen(true)}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

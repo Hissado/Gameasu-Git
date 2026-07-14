@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type ViewMode = "list" | "kanban" | "calendar";
 
@@ -278,18 +279,14 @@ export default function TasksList() {
               <TableBody>
                 {tasks.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <CheckSquare className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">
-                          {search ? "Aucune tâche ne correspond à la recherche" : "Aucune tâche"}
-                        </p>
-                        {!search && (
-                          <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5" onClick={() => setShowCreate(true)}>
-                            <Plus className="w-4 h-4 mr-2" /> Créer une tâche
-                          </Button>
-                        )}
-                      </div>
+                    <td colSpan={6}>
+                      <EmptyState
+                        icon={CheckSquare}
+                        title={search ? "Aucune tâche ne correspond à la recherche" : "Aucune tâche créée"}
+                        description={!search ? "Créez et assignez des tâches pour suivre l'avancement de vos projets." : undefined}
+                        actionLabel={!search && !perms.isReadOnly ? "Créer une tâche" : undefined}
+                        onAction={!search && !perms.isReadOnly ? () => setShowCreate(true) : undefined}
+                      />
                     </td>
                   </tr>
                 ) : (

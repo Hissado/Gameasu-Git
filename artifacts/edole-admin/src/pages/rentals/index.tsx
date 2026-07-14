@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Truck, ArrowRight, FileText, X } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA, formatDate } from "@/lib/format";
@@ -257,10 +258,14 @@ export default function RentalsList() {
               <TableBody>
                 {rentals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                      <Truck className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-                      <p className="text-lg font-medium text-slate-600">{search ? "Aucun résultat" : "Aucun contrat de location."}</p>
-                      {!search && <Button variant="outline" className="mt-4 border-primary text-primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Créer une location</Button>}
+                    <TableCell colSpan={7}>
+                      <EmptyState
+                        icon={Truck}
+                        title={search ? "Aucun contrat ne correspond à la recherche" : "Aucun contrat de location"}
+                        description={!search ? "Créez votre premier contrat de location et gérez les équipements affectés." : undefined}
+                        actionLabel={!search ? "Créer une location" : undefined}
+                        onAction={!search ? () => setShowCreate(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

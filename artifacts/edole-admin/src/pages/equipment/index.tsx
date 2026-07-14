@@ -22,6 +22,7 @@ import { formatFCFA } from "@/lib/format";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -309,10 +310,14 @@ export default function EquipmentList() {
               <TableBody>
                 {items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                      <Wrench className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-                      <p className="text-lg font-medium text-slate-600">{search ? "Aucun résultat" : "Aucun équipement dans l'inventaire."}</p>
-                      {!search && <Button variant="outline" className="mt-4 border-primary text-primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Ajouter un équipement</Button>}
+                    <TableCell colSpan={7}>
+                      <EmptyState
+                        icon={Wrench}
+                        title={search ? "Aucun équipement ne correspond à la recherche" : "Inventaire vide"}
+                        description={!search ? "Ajoutez vos machines, véhicules et outils pour gérer leur disponibilité et facturation." : undefined}
+                        actionLabel={!search ? "Ajouter un équipement" : undefined}
+                        onAction={!search ? () => setShowCreate(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

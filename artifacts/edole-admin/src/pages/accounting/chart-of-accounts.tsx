@@ -5,6 +5,7 @@ import { AccountingShell } from "./_layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, BookOpen } from "lucide-react";
 import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 
@@ -109,7 +110,11 @@ export default function ChartOfAccounts() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground">Chargement…</div>
+        <div className="space-y-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-xl" />
+          ))}
+        </div>
       ) : (
         <div data-tour="coa-classes" className="space-y-6">
           {Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b)).map(([cls, accs]) => (

@@ -8,6 +8,7 @@ import { Plus, Search, Filter, Building, Mail, Phone, MoreHorizontal, Eye, Edit 
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function ClientsList() {
@@ -72,11 +73,12 @@ export default function ClientsList() {
               <TableBody>
                 {!data?.data || data.data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <Building className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">Aucun client trouvé</p>
-                      </div>
+                    <TableCell colSpan={5}>
+                      <EmptyState
+                        icon={Building}
+                        title="Aucun client enregistré"
+                        description="Ajoutez vos clients pour gérer leurs projets, devis et factures depuis l'ERP."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

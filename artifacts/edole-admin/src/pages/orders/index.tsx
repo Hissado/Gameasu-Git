@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
 import { SendEmailDialog } from "@/components/commercial/SendEmailDialog";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Client = { id: string; name: string };
 type Order = {
@@ -402,10 +403,14 @@ export default function OrdersList() {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      <ShoppingCart className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-                      <p className="text-lg font-medium text-slate-600">Aucune commande trouvée.</p>
-                      <p className="text-sm mt-1">Cliquez sur « Créer une commande » pour commencer.</p>
+                    <TableCell colSpan={6}>
+                      <EmptyState
+                        icon={ShoppingCart}
+                        title={search ? "Aucune commande ne correspond à la recherche" : "Aucun bon de commande"}
+                        description={!search ? "Créez votre premier bon de commande client et gérez vos ventes." : undefined}
+                        actionLabel={!search && !perms.isReadOnly ? "Créer une commande" : undefined}
+                        onAction={!search && !perms.isReadOnly ? () => setNewOpen(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : orders.map(order => {

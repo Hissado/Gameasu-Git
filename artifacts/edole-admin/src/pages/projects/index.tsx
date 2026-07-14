@@ -20,6 +20,7 @@ import {
   TrendingUp, ChevronRight,
 } from "lucide-react";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Link } from "wouter";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -431,14 +432,14 @@ export default function ProjectsList() {
               {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : projects.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              <FolderKanban className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-              <p className="text-lg font-medium text-slate-600">Aucun projet trouvé</p>
-              <p className="text-sm">Commencez par créer un nouveau projet.</p>
-              <Button variant="outline" className="mt-4 border-primary text-primary hover:bg-primary/5" onClick={() => setShowCreate(true)}>
-                <Plus className="w-4 h-4 mr-2" /> Créer un projet
-              </Button>
-            </div>
+            <EmptyState
+              icon={FolderKanban}
+              title={search ? "Aucun projet ne correspond à la recherche" : "Aucun projet créé"}
+              description={!search ? "Créez votre premier projet, définissez ses phases et affectez votre équipe." : undefined}
+              actionLabel={!search && !perms.isReadOnly ? "Créer un projet" : undefined}
+              onAction={!search && !perms.isReadOnly ? () => setShowCreate(true) : undefined}
+              className="py-16"
+            />
           ) : view === "list" ? (
             <Table data-tour="proj-table">
               <TableHeader className="bg-slate-50/80">

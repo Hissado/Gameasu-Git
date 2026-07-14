@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Truck, Calendar, MapPin, MoreHorizontal, Edit, CheckCircle2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
@@ -262,10 +263,14 @@ export default function LogisticsList() {
               <TableBody>
                 {ops.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      <Truck className="w-12 h-12 text-slate-300 mb-4 mx-auto" />
-                      <p className="text-lg font-medium text-slate-600">{search ? "Aucun résultat" : "Aucune opération planifiée."}</p>
-                      {!search && <Button variant="outline" className="mt-4 border-primary text-primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Planifier un transport</Button>}
+                    <TableCell colSpan={6}>
+                      <EmptyState
+                        icon={Truck}
+                        title={search ? "Aucune opération ne correspond à la recherche" : "Aucune opération planifiée"}
+                        description={!search ? "Planifiez les livraisons et enlèvements d'équipements pour vos chantiers." : undefined}
+                        actionLabel={!search ? "Planifier un transport" : undefined}
+                        onAction={!search ? () => setShowCreate(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -16,6 +16,7 @@ import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { LineItemsEditor, LineItem, computeTotals } from "@/components/commercial/LineItemsEditor";
@@ -477,7 +478,11 @@ export default function InvoicesList() {
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+            <div className="p-6 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
           ) : (
             <Table>
               <TableHeader className="bg-slate-50/80">
@@ -495,8 +500,14 @@ export default function InvoicesList() {
               <TableBody>
                 {invoices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                      <FileText className="w-10 h-10 mx-auto text-slate-200 mb-3" /><p>Aucune facture trouvée.</p>
+                    <TableCell colSpan={8}>
+                      <EmptyState
+                        icon={FileText}
+                        title={search ? "Aucune facture ne correspond à la recherche" : "Aucune facture enregistrée"}
+                        description={!search ? "Créez votre première facture client et suivez les paiements en temps réel." : undefined}
+                        actionLabel={!search && !perms.isReadOnly ? "Créer une facture" : undefined}
+                        onAction={!search && !perms.isReadOnly ? () => setNewOpen(true) : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : invoices.map(inv => {
