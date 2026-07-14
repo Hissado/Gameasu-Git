@@ -454,6 +454,7 @@ export default function CollaboratorsList() {
           description={!hasFilters ? "Ajoutez les membres de votre équipe pour gérer leurs contrats, tâches et présences." : undefined}
           actionLabel={hasFilters ? "Réinitialiser les filtres" : undefined}
           onAction={hasFilters ? resetFilters : undefined}
+          actionIcon={hasFilters ? null : undefined}
           className="py-16"
         />
       ) : (

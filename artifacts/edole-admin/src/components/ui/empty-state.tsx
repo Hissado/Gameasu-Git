@@ -9,6 +9,8 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Icon shown in the CTA button. Pass `null` to suppress the icon (e.g. for non-create actions). Defaults to Plus. */
+  actionIcon?: React.ComponentType<{ className?: string }> | null;
   className?: string;
 }
 
@@ -18,8 +20,10 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  actionIcon,
   className,
 }: EmptyStateProps) {
+  const ActionIcon = actionIcon === undefined ? Plus : actionIcon;
   return (
     <div className={cn("flex flex-col items-center justify-center py-14 px-6 text-center", className)}>
       <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
@@ -31,7 +35,7 @@ export function EmptyState({
       )}
       {actionLabel && onAction && (
         <Button className="mt-4 shadow-sm" onClick={onAction}>
-          <Plus className="w-4 h-4 mr-2" />
+          {ActionIcon && <ActionIcon className="w-4 h-4 mr-2" />}
           {actionLabel}
         </Button>
       )}

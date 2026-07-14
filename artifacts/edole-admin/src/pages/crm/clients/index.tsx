@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useListClients, useCreateClient } from "@workspace/api-client-react";
+import { useListClients, useCreateClient, getListClientsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,7 +26,7 @@ export default function ClientsList() {
   const createMutation = useCreateClient({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["listClients"] });
+        queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         setShowCreate(false);
         setForm({ name: "", email: "", phone: "", industry: "", status: "prospect" });
         setFormError("");
