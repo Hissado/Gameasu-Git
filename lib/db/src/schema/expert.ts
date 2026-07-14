@@ -23,6 +23,8 @@ export const expertFirmsTable = pgTable("expert_firms", {
   // starter | growth | professional (reprise du catalogue plans SaaS)
   plan: text("plan").notNull().default("starter"),
   isActive: boolean("is_active").notNull().default(true),
+  // Activer/désactiver les notifications email lors de la réception d'un document client
+  notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
   // Organisation tenant propre au cabinet (créée à l'acceptation de l'invitation)
   organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "set null" }),
   createdById: uuid("created_by_id").references(() => usersTable.id, { onDelete: "set null" }),

@@ -594,6 +594,69 @@ export function buildActivationEmail(opts: {
   };
 }
 
+export function buildDocumentReceivedEmail(opts: {
+  recipientName: string;
+  firmName: string;
+  documentTitle: string;
+  clientOrgName: string;
+  clientUserName: string;
+  reviewUrl: string;
+}): EmailMessage {
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f2f4f7;font-family:Inter,-apple-system,Arial,sans-serif;color:#111">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08)">
+  <div style="background:linear-gradient(135deg,#080E1C 0%,#1a2640 100%);padding:28px 32px">
+    <div style="color:#F37021;font-weight:800;letter-spacing:3px;font-size:13px;margin-bottom:8px;text-transform:uppercase">Gameasu</div>
+    <div style="color:#fff;font-size:20px;font-weight:700">Document reçu</div>
+    <div style="color:#8fa3c0;font-size:13px;margin-top:6px">${opts.firmName}</div>
+  </div>
+  <div style="padding:32px">
+    <p style="margin:0 0 16px;font-size:15px;color:#333">
+      Bonjour <strong>${opts.recipientName}</strong>,
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;color:#555">
+      Votre client <strong>${opts.clientOrgName}</strong> vient de déposer un document en réponse à votre demande.
+    </p>
+    <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:18px 20px;margin:0 0 24px">
+      <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Document déposé</div>
+      <div style="font-size:17px;font-weight:700;color:#14532d">${opts.documentTitle}</div>
+      <div style="font-size:13px;color:#555;margin-top:6px">Déposé par : <strong>${opts.clientUserName}</strong></div>
+    </div>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${opts.reviewUrl}" style="background:#F37021;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;letter-spacing:0.3px">
+        Consulter le document →
+      </a>
+    </p>
+    <p style="font-size:12px;color:#aaa;text-align:center;margin:0">
+      Si le bouton ne fonctionne pas, copiez ce lien :<br>
+      <span style="word-break:break-all;color:#0066cc">${opts.reviewUrl}</span>
+    </p>
+  </div>
+  <div style="background:#fafafa;padding:14px 28px;font-size:11px;color:#aaa;border-top:1px solid #f0f0f0;text-align:center">
+    © ${new Date().getFullYear()} Gameasu — Vous recevez cet email car vous êtes membre du cabinet ${opts.firmName}.
+  </div>
+</div></body></html>`;
+  const text = [
+    `Bonjour ${opts.recipientName},`,
+    ``,
+    `Votre client ${opts.clientOrgName} vient de déposer un document en réponse à votre demande.`,
+    ``,
+    `Document : ${opts.documentTitle}`,
+    `Déposé par : ${opts.clientUserName}`,
+    ``,
+    `Consultez le document : ${opts.reviewUrl}`,
+    ``,
+    `L'équipe Gameasu`,
+  ].join("\n");
+  return {
+    to: "",
+    subject: `Document reçu de ${opts.clientOrgName} — ${opts.documentTitle}`,
+    html,
+    text,
+    category: "notification",
+  };
+}
+
 export function buildPasswordResetEmail(opts: {
   recipientName: string; resetUrl: string;
 }): EmailMessage {

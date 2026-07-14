@@ -24,6 +24,7 @@ export type ExpertFirm = {
   id: string; name: string; slug: string; country: string;
   email?: string; phone?: string; address?: string; logoUrl?: string;
   plan: string; createdAt: string;
+  notificationsEnabled: boolean;
 };
 
 export type ExpertMember = {

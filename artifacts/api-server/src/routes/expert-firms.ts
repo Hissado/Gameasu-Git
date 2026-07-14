@@ -43,7 +43,7 @@ import {
 import { and, eq, inArray, isNull, sql, gt } from "drizzle-orm";
 import { requireExpertFirmMember, requireExpertClientAccess } from "../lib/expert-auth";
 import { audit } from "../lib/audit";
-import { sendEmail, buildInvitationEmail, buildPlanChangeEmail } from "../lib/email";
+import { sendEmail, buildInvitationEmail, buildPlanChangeEmail, buildDocumentReceivedEmail } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { ObjectStorageService } from "../lib/objectStorage";
 import crypto from "node:crypto";
@@ -120,7 +120,7 @@ router.patch("/expert/firms/:firmId", requireExpertFirmMember, async (req, res) 
   if (role !== "owner" && role !== "admin") {
     return res.status(403).json({ error: "Seuls owner/admin peuvent modifier le cabinet" });
   }
-  const { name, country, email, phone, address, logoUrl, plan } = req.body ?? {};
+  const { name, country, email, phone, address, logoUrl, plan, notificationsEnabled } = req.body ?? {};
   const patch: Record<string, unknown> = {};
   if (name !== undefined) patch.name = name;
   if (country !== undefined) patch.country = country;
@@ -129,6 +129,7 @@ router.patch("/expert/firms/:firmId", requireExpertFirmMember, async (req, res) 
   if (address !== undefined) patch.address = address;
   if (logoUrl !== undefined) patch.logoUrl = logoUrl;
   if (plan !== undefined) patch.plan = plan;
+  if (notificationsEnabled !== undefined) patch.notificationsEnabled = notificationsEnabled;
 
   const rows = await db
     .update(expertFirmsTable)
@@ -768,7 +769,12 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
 
   // Vérifier membership ET que le cabinet est actif
   const memberRows = await db
-    .select({ id: expertFirmMembersTable.id, firmIsActive: expertFirmsTable.isActive })
+    .select({
+      id: expertFirmMembersTable.id,
+      firmIsActive: expertFirmsTable.isActive,
+      firmName: expertFirmsTable.name,
+      firmNotificationsEnabled: expertFirmsTable.notificationsEnabled,
+    })
     .from(expertFirmMembersTable)
     .innerJoin(expertFirmsTable, eq(expertFirmsTable.id, expertFirmMembersTable.firmId))
     .where(and(
@@ -795,6 +801,7 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
   }
 
   const { status, fileUrl, fileName } = req.body ?? {};
+  const previousStatus = existing.status;
   const patch: Record<string, unknown> = {};
   if (status !== undefined) {
     patch.status = status;
@@ -816,6 +823,59 @@ router.patch("/expert/document-requests/:id", async (req, res) => {
     organizationId: req.authUser!.organizationId,
     payload: { status, hasFile: !!fileUrl },
   });
+
+  // ── Email notification au cabinet quand le client dépose un document ──
+  // Déclenché uniquement quand le statut passe à "recu" et que les
+  // notifications sont activées pour ce cabinet.
+  if (
+    status === "recu" &&
+    previousStatus !== "recu" &&
+    member.firmNotificationsEnabled
+  ) {
+    try {
+      // Récupérer les infos de l'organisation cliente, du déposant et du créateur de la demande
+      const [[clientOrg], [creator]] = await Promise.all([
+        db.select({ name: organizationsTable.name })
+          .from(organizationsTable)
+          .where(eq(organizationsTable.id, existing.orgId))
+          .limit(1),
+        // Créateur de la demande (celui qui a posté la demande au client)
+        existing.requestedById
+          ? db.select({
+              email: usersTable.email,
+              firstName: usersTable.firstName,
+              lastName: usersTable.lastName,
+            })
+              .from(usersTable)
+              .where(eq(usersTable.id, existing.requestedById))
+              .limit(1)
+          : Promise.resolve([null]),
+      ]);
+
+      const clientOrgName = clientOrg?.name ?? "Client";
+      // Nom du déposant (l'utilisateur courant qui passe le statut à "recu")
+      const clientUserName = [req.authUser!.firstName, req.authUser!.lastName].filter(Boolean).join(" ")
+        || req.authUser!.email;
+      const reviewUrl = `${getPublicBaseUrl()}/expert/document-requests?orgId=${existing.orgId}`;
+
+      // Envoyer uniquement au créateur de la demande (requestedById)
+      if (creator?.email) {
+        const recipientName = [creator.firstName, creator.lastName].filter(Boolean).join(" ") || creator.email;
+        const emailMsg = buildDocumentReceivedEmail({
+          recipientName,
+          firmName: member.firmName,
+          documentTitle: existing.title,
+          clientOrgName,
+          clientUserName,
+          reviewUrl,
+        });
+        emailMsg.to = creator.email;
+        await sendEmail(emailMsg);
+      }
+    } catch {
+      // Envoi email non-bloquant — la mise à jour du statut reste effective
+    }
+  }
 
   return res.json(updated);
 });

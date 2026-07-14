@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users2, Save, Trash2, AlertCircle, UserPlus } from "lucide-react";
+import { Building2, Users2, Save, Trash2, AlertCircle, UserPlus, Bell } from "lucide-react";
 
 function InviteModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
   const { toast } = useToast();
@@ -87,6 +88,7 @@ export default function FirmSettingsPage() {
   const removeMember = useRemoveMember(firmId ?? "");
 
   const [form, setForm] = useState({ name: "", country: "", email: "", phone: "", address: "" });
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -100,6 +102,7 @@ export default function FirmSettingsPage() {
         phone: activeFirm.phone ?? "",
         address: activeFirm.address ?? "",
       });
+      setNotificationsEnabled(activeFirm.notificationsEnabled ?? true);
       setDirty(false);
     }
   }, [activeFirm?.id]);
@@ -110,7 +113,7 @@ export default function FirmSettingsPage() {
     e.preventDefault();
     if (!firmId) return;
     try {
-      await updateFirm.mutateAsync(form);
+      await updateFirm.mutateAsync({ ...form, notificationsEnabled });
       toast({ title: "Cabinet mis à jour" });
       setDirty(false);
     } catch (err: any) {
@@ -185,6 +188,23 @@ export default function FirmSettingsPage() {
                 <Input value={form.address} onChange={(e) => f("address", e.target.value)} placeholder="123 Rue du Commerce, Lomé" />
               </div>
             </div>
+
+            <div className="border rounded-lg px-4 py-3.5 flex items-center justify-between gap-4 bg-muted/30">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Bell className="w-4 h-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Notifications email — dépôt de document</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Envoyer un email aux membres du cabinet quand un client dépose un document.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={notificationsEnabled}
+                onCheckedChange={(v) => { setNotificationsEnabled(v); setDirty(true); }}
+              />
+            </div>
+
             <div className="flex justify-end pt-2">
               <Button type="submit" disabled={updateFirm.isPending || !dirty}>
                 <Save className="w-4 h-4 mr-2" />
