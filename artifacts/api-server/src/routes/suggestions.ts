@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, productSuggestionsTable, suggestionEventsTable, usersTable } from "@workspace/db";
+import { db, productSuggestionsTable, suggestionEventsTable, usersTable, organizationsTable } from "@workspace/db";
 import { eq, and, desc, count, sql, ilike, or } from "drizzle-orm";
 
 const router = Router();
@@ -13,8 +13,6 @@ const VALID_CATEGORIES = [
 ] as const;
 
 const VALID_PRIORITIES = ["faible", "normale", "haute", "critique"] as const;
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isSuperAdmin(req: any): boolean {
   return req.authUser?.role === "super_admin";
@@ -32,21 +30,17 @@ router.post("/api/suggestions", async (req, res, next) => {
       priority?: string;
       module?: string;
       screenshotUrl?: string;
+      currentUrl?: string;
     };
 
     if (!body.title?.trim()) {
       return res.status(400).json({ error: "Le titre est obligatoire" });
     }
 
-    const category = VALID_CATEGORIES.includes(body.category as any)
-      ? body.category!
-      : "autre";
-
-    const priority = VALID_PRIORITIES.includes(body.priority as any)
-      ? body.priority!
-      : "normale";
-
+    const category = VALID_CATEGORIES.includes(body.category as any) ? body.category! : "autre";
+    const priority = VALID_PRIORITIES.includes(body.priority as any) ? body.priority! : "normale";
     const browserInfo = req.headers["user-agent"] ?? null;
+    const currentPage = body.currentUrl ?? null;
 
     const [row] = await db
       .insert(productSuggestionsTable)
@@ -60,6 +54,7 @@ router.post("/api/suggestions", async (req, res, next) => {
         module: body.module ?? null,
         browserInfo,
         screenshotUrl: body.screenshotUrl ?? null,
+        deviceInfo: currentPage ?? null,
       })
       .returning();
 
@@ -138,7 +133,7 @@ router.get("/api/suggestions", async (req, res, next) => {
   }
 });
 
-// ── GET /api/suggestions/:id — détail ────────────────────────────────────────
+// ── GET /api/suggestions/:id — détail + événements ───────────────────────────
 
 router.get("/api/suggestions/:id", async (req, res, next) => {
   try {
@@ -255,6 +250,14 @@ router.get("/api/super-admin/suggestions", async (req, res, next) => {
     if (organizationId) {
       conditions.push(eq(productSuggestionsTable.organizationId, organizationId));
     }
+    if (search?.trim()) {
+      conditions.push(
+        or(
+          ilike(productSuggestionsTable.title, `%${search.trim()}%`),
+          ilike(productSuggestionsTable.description, `%${search.trim()}%`),
+        )! as any,
+      );
+    }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -279,9 +282,11 @@ router.get("/api/super-admin/suggestions", async (req, res, next) => {
         userId: productSuggestionsTable.userId,
         userFirstName: usersTable.firstName,
         userLastName: usersTable.lastName,
+        orgName: organizationsTable.name,
       })
       .from(productSuggestionsTable)
       .leftJoin(usersTable, eq(productSuggestionsTable.userId, usersTable.id))
+      .leftJoin(organizationsTable, eq(productSuggestionsTable.organizationId, organizationsTable.id))
       .where(where)
       .orderBy(desc(productSuggestionsTable.createdAt))
       .limit(limitNum)
@@ -302,7 +307,7 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
     }
 
     const { id } = req.params as { id: string };
-    const { status, comment, assignedTo } = req.body as { status?: string; comment?: string; assignedTo?: string | null };
+    const { status, comment } = req.body as { status?: string; comment?: string };
 
     if (!status || !VALID_STATUSES.includes(status as any)) {
       return res.status(400).json({ error: "Statut invalide" });
@@ -316,12 +321,9 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
 
     if (!existing) return res.status(404).json({ error: "Suggestion introuvable" });
 
-    const updateData: Record<string, unknown> = { status, updatedAt: new Date() };
-    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
-
     const [updated] = await db
       .update(productSuggestionsTable)
-      .set(updateData as any)
+      .set({ status, updatedAt: new Date() })
       .where(eq(productSuggestionsTable.id, id))
       .returning();
 
@@ -347,26 +349,31 @@ router.get("/api/super-admin/suggestions/stats", async (req, res, next) => {
       return res.status(403).json({ error: "Réservé aux super-administrateurs" });
     }
 
-    const byStatus = await db
-      .select({ status: productSuggestionsTable.status, count: count() })
-      .from(productSuggestionsTable)
-      .groupBy(productSuggestionsTable.status);
+    const [byStatus, byCategory, byPriority, totals, byOrg] = await Promise.all([
+      db.select({ status: productSuggestionsTable.status, count: count() })
+        .from(productSuggestionsTable)
+        .groupBy(productSuggestionsTable.status),
+      db.select({ category: productSuggestionsTable.category, count: count() })
+        .from(productSuggestionsTable)
+        .groupBy(productSuggestionsTable.category),
+      db.select({ priority: productSuggestionsTable.priority, count: count() })
+        .from(productSuggestionsTable)
+        .groupBy(productSuggestionsTable.priority),
+      db.select({ total: count() }).from(productSuggestionsTable),
+      db.select({
+          orgId: productSuggestionsTable.organizationId,
+          orgName: organizationsTable.name,
+          count: count(),
+        })
+        .from(productSuggestionsTable)
+        .leftJoin(organizationsTable, eq(productSuggestionsTable.organizationId, organizationsTable.id))
+        .groupBy(productSuggestionsTable.organizationId, organizationsTable.name)
+        .orderBy(desc(count()))
+        .limit(10),
+    ]);
 
-    const byCategory = await db
-      .select({ category: productSuggestionsTable.category, count: count() })
-      .from(productSuggestionsTable)
-      .groupBy(productSuggestionsTable.category);
-
-    const byPriority = await db
-      .select({ priority: productSuggestionsTable.priority, count: count() })
-      .from(productSuggestionsTable)
-      .groupBy(productSuggestionsTable.priority);
-
-    const [{ total }] = await db.select({ total: count() }).from(productSuggestionsTable);
-    const [{ pending }] = await db
-      .select({ pending: count() })
-      .from(productSuggestionsTable)
-      .where(eq(productSuggestionsTable.status, "nouvelle"));
+    const [{ total }] = totals;
+    const pending = byStatus.find((r) => r.status === "nouvelle")?.count ?? 0;
 
     return res.json({
       total,
@@ -374,6 +381,7 @@ router.get("/api/super-admin/suggestions/stats", async (req, res, next) => {
       byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r.count])),
       byCategory: Object.fromEntries(byCategory.map((r) => [r.category, r.count])),
       byPriority: Object.fromEntries(byPriority.map((r) => [r.priority, r.count])),
+      byOrg: byOrg.map((r) => ({ orgId: r.orgId, orgName: r.orgName ?? r.orgId, count: r.count })),
     });
   } catch (e) {
     next(e);

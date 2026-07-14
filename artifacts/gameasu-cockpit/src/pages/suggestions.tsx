@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,16 +11,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import {
   Lightbulb, Search, BarChart3, CheckCircle2, Clock,
-  XCircle, Rocket, PackageCheck, Filter, Loader2,
-  TrendingUp, Building2,
+  XCircle, Rocket, PackageCheck, Loader2, TrendingUp, Building2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell,
+} from "recharts";
 
 interface Suggestion {
   id: string;
   organizationId: string;
+  orgName?: string;
   title: string;
   category: string;
   description?: string;
@@ -43,12 +45,19 @@ interface SuggestionsResponse {
   page: number;
 }
 
+interface OrgVolume {
+  orgId: string;
+  orgName: string;
+  count: number;
+}
+
 interface StatsResponse {
   total: number;
   pending: number;
   byStatus: Record<string, number>;
   byCategory: Record<string, number>;
   byPriority: Record<string, number>;
+  byOrg: OrgVolume[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -121,7 +130,7 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
       apiFetch(`/api/super-admin/suggestions/${suggestion!.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, comment }),
+        body: JSON.stringify({ status: newStatus || suggestion?.status, comment }),
       }),
     onSuccess: () => {
       toast({ title: "Statut mis à jour" });
@@ -146,6 +155,11 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
         <div className="space-y-4">
           <div className="bg-muted/40 rounded-lg p-3">
             <p className="font-medium text-sm">{suggestion.title}</p>
+            {suggestion.orgName && (
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> {suggestion.orgName}
+              </p>
+            )}
             {suggestion.description && (
               <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{suggestion.description}</p>
             )}
@@ -190,10 +204,7 @@ function ProcessDialog({ suggestion, open, onOpenChange }: ProcessDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || (!newStatus && !suggestion.status)}
-          >
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
             {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Enregistrer
           </Button>
@@ -209,17 +220,20 @@ export default function SuggestionsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [orgFilter, setOrgFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [processOpen, setProcessOpen] = useState(false);
 
   const { data, isLoading } = useQuery<SuggestionsResponse>({
-    queryKey: ["cockpit-suggestions", statusFilter, categoryFilter, priorityFilter, page],
+    queryKey: ["cockpit-suggestions", statusFilter, categoryFilter, priorityFilter, orgFilter, search, page],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: "25" });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (priorityFilter !== "all") params.set("priority", priorityFilter);
+      if (orgFilter !== "all") params.set("organizationId", orgFilter);
+      if (search.trim()) params.set("search", search.trim());
       return apiFetch(`/api/super-admin/suggestions?${params}`);
     },
   });
@@ -233,7 +247,12 @@ export default function SuggestionsPage() {
   const kpis = [
     { label: "Total", value: stats?.total ?? 0, icon: BarChart3, color: "text-blue-500" },
     { label: "Nouvelles", value: stats?.pending ?? 0, icon: Lightbulb, color: "text-yellow-500" },
-    { label: "Acceptées", value: (stats?.byStatus?.acceptee ?? 0) + (stats?.byStatus?.planifiee ?? 0) + (stats?.byStatus?.en_developpement ?? 0), icon: CheckCircle2, color: "text-green-500" },
+    {
+      label: "Acceptées",
+      value: (stats?.byStatus?.acceptee ?? 0) + (stats?.byStatus?.planifiee ?? 0) + (stats?.byStatus?.en_developpement ?? 0),
+      icon: CheckCircle2,
+      color: "text-green-500",
+    },
     { label: "Livrées", value: stats?.byStatus?.livree ?? 0, icon: PackageCheck, color: "text-emerald-500" },
   ];
 
@@ -246,6 +265,14 @@ export default function SuggestionsPage() {
     name: STATUS_LABELS[k] ?? k,
     count: v,
   }));
+
+  const orgChartData = (stats?.byOrg ?? []).slice(0, 8).map((o) => ({
+    name: o.orgName.length > 18 ? o.orgName.slice(0, 18) + "…" : o.orgName,
+    count: o.count,
+    orgId: o.orgId,
+  }));
+
+  const orgOptions = stats?.byOrg ?? [];
 
   return (
     <div className="space-y-5">
@@ -293,47 +320,83 @@ export default function SuggestionsPage() {
       </div>
 
       {tab === "analytics" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Par catégorie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={categoryChartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {categoryChartData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Par statut</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={statusChartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {statusChartData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Par catégorie</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {categoryChartData.length === 0 ? (
+                  <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={categoryChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                      <Tooltip />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {categoryChartData.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Par statut</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statusChartData.length === 0 ? (
+                  <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Aucune donnée</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={statusChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                      <Tooltip />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {statusChartData.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {orgChartData.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                  Volume par organisation (top {orgChartData.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={orgChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {orgChartData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -345,7 +408,7 @@ export default function SuggestionsPage() {
               <Input
                 placeholder="Rechercher…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="pl-9"
               />
             </div>
@@ -382,6 +445,19 @@ export default function SuggestionsPage() {
                 ))}
               </SelectContent>
             </Select>
+            {orgOptions.length > 0 && (
+              <Select value={orgFilter} onValueChange={(v) => { setOrgFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Organisation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes organisations</SelectItem>
+                  {orgOptions.map((o) => (
+                    <SelectItem key={o.orgId} value={o.orgId}>{o.orgName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -411,7 +487,7 @@ export default function SuggestionsPage() {
                           </span>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
-                            {s.organizationId.slice(0, 8)}…
+                            {s.orgName ?? s.organizationId.slice(0, 8) + "…"}
                           </span>
                           {s.module && (
                             <span className="text-xs text-muted-foreground">· {s.module}</span>

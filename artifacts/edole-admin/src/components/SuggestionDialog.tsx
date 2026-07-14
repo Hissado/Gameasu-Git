@@ -40,28 +40,42 @@ const ERP_MODULES = [
   "RH / Paie", "Présences", "Messagerie", "FP&A / Budgets", "Rapports", "Paramètres",
 ];
 
+const MODULE_NONE = "__none__";
+
 export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDialogProps) {
   const { toast } = useToast();
   const [location] = useLocation();
 
+  const initialModule = guessModule(location);
   const [form, setForm] = useState({
     title: "",
     category: "fonctionnalite",
     description: "",
     priority: "normale",
-    module: guessModule(location),
+    module: initialModule || MODULE_NONE,
   });
 
   const mutation = useMutation({
-    mutationFn: (data: typeof form) =>
-      apiFetch("/api/suggestions", {
+    mutationFn: (data: typeof form) => {
+      const payload = {
+        title: data.title,
+        category: data.category,
+        description: data.description,
+        priority: data.priority,
+        module: data.module === MODULE_NONE ? undefined : data.module,
+        currentUrl: window.location.href,
+      };
+      return apiFetch("/api/suggestions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }),
+        body: JSON.stringify(payload),
+      });
+    },
     onSuccess: () => {
       toast({ title: "Suggestion envoyée", description: "Merci pour votre retour !" });
-      setForm({ title: "", category: "fonctionnalite", description: "", priority: "normale", module: guessModule(location) });
+      const reset = guessModule(location);
+      setForm({ title: "", category: "fonctionnalite", description: "", priority: "normale", module: reset || MODULE_NONE });
+      onOpenChange(false);
       onSuccess?.();
     },
     onError: () => {
@@ -137,7 +151,7 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
                 <SelectValue placeholder="Sélectionner un module" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Général / Non spécifique</SelectItem>
+                <SelectItem value={MODULE_NONE}>Général / Non spécifique</SelectItem>
                 {ERP_MODULES.map((m) => (
                   <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
@@ -155,6 +169,10 @@ export function SuggestionDialog({ open, onOpenChange, onSuccess }: SuggestionDi
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            La page actuelle (<code className="font-mono">{location}</code>) sera transmise automatiquement pour contexte.
+          </p>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

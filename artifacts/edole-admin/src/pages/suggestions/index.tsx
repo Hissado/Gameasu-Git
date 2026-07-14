@@ -1,15 +1,28 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lightbulb, Search, Plus, Clock, CheckCircle2, XCircle, Rocket, PackageCheck, BarChart3 } from "lucide-react";
+import {
+  Lightbulb, Search, Plus, Clock, CheckCircle2, XCircle, Rocket, PackageCheck, BarChart3,
+  ChevronDown, ChevronUp, ArrowRight,
+} from "lucide-react";
 import { SuggestionDialog } from "@/components/SuggestionDialog";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
+
+interface SuggestionEvent {
+  id: string;
+  fromStatus: string | null;
+  toStatus: string;
+  comment: string | null;
+  authorFirstName: string | null;
+  authorLastName: string | null;
+  createdAt: string;
+}
 
 interface Suggestion {
   id: string;
@@ -20,6 +33,7 @@ interface Suggestion {
   status: string;
   module?: string;
   createdAt: string;
+  events?: SuggestionEvent[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -76,12 +90,68 @@ function StatusIcon({ status }: { status: string }) {
   }
 }
 
+function HistoryTimeline({ suggestionId }: { suggestionId: string }) {
+  const { data, isLoading } = useQuery<Suggestion>({
+    queryKey: ["suggestion-detail", suggestionId],
+    queryFn: () => apiFetch(`/api/suggestions/${suggestionId}`),
+  });
+
+  if (isLoading) {
+    return <div className="py-2 text-xs text-muted-foreground">Chargement de l'historique…</div>;
+  }
+
+  const events = data?.events ?? [];
+
+  if (!events.length) {
+    return (
+      <div className="pt-3 border-t mt-3">
+        <p className="text-xs text-muted-foreground italic">Aucun événement — la suggestion est en attente de traitement.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-3 border-t mt-3 space-y-2">
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Historique</p>
+      {events.map((ev) => (
+        <div key={ev.id} className="flex items-start gap-2 text-xs">
+          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1.5" />
+          <div className="flex-1 min-w-0">
+            <span className="flex items-center gap-1 flex-wrap">
+              {ev.fromStatus && (
+                <>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[ev.fromStatus] ?? "bg-muted"}`}>
+                    {STATUS_LABELS[ev.fromStatus] ?? ev.fromStatus}
+                  </span>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                </>
+              )}
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[ev.toStatus] ?? "bg-muted"}`}>
+                {STATUS_LABELS[ev.toStatus] ?? ev.toStatus}
+              </span>
+              {ev.authorFirstName && (
+                <span className="text-muted-foreground">par {ev.authorFirstName} {ev.authorLastName}</span>
+              )}
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">{format(new Date(ev.createdAt), "d MMM yyyy HH:mm", { locale: fr })}</span>
+            </span>
+            {ev.comment && (
+              <p className="mt-0.5 text-muted-foreground italic">{ev.comment}</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SuggestionsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery<{
     data: Suggestion[];
@@ -93,7 +163,7 @@ export default function SuggestionsPage() {
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
-      if (search) params.set("search", search);
+      if (search.trim()) params.set("search", search.trim());
       return apiFetch(`/api/suggestions?${params}`);
     },
   });
@@ -101,9 +171,13 @@ export default function SuggestionsPage() {
   const kpi = [
     { label: "Total", value: data?.total ?? 0, icon: BarChart3, color: "text-blue-500" },
     { label: "Nouvelles", value: data?.data?.filter(s => s.status === "nouvelle").length ?? 0, icon: Lightbulb, color: "text-yellow-500" },
-    { label: "Acceptées", value: data?.data?.filter(s => s.status === "acceptee" || s.status === "planifiee" || s.status === "en_developpement").length ?? 0, icon: CheckCircle2, color: "text-green-500" },
+    { label: "Acceptées", value: data?.data?.filter(s => ["acceptee", "planifiee", "en_developpement"].includes(s.status)).length ?? 0, icon: CheckCircle2, color: "text-green-500" },
     { label: "Livrées", value: data?.data?.filter(s => s.status === "livree").length ?? 0, icon: PackageCheck, color: "text-emerald-500" },
   ];
+
+  const toggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -185,40 +259,51 @@ export default function SuggestionsPage() {
             </Button>
           </div>
         ) : (
-          data.data.map((s) => (
-            <Card key={s.id} className="border shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                        {CATEGORY_LABELS[s.category] ?? s.category}
-                      </span>
-                      {s.module && (
-                        <span className="text-xs text-muted-foreground">· {s.module}</span>
+          data.data.map((s) => {
+            const expanded = expandedId === s.id;
+            return (
+              <Card key={s.id} className="border shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                          {CATEGORY_LABELS[s.category] ?? s.category}
+                        </span>
+                        {s.module && (
+                          <span className="text-xs text-muted-foreground">· {s.module}</span>
+                        )}
+                      </div>
+                      <p className="font-medium text-sm text-foreground">{s.title}</p>
+                      {s.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>
                       )}
+                      <p className="text-[11px] text-muted-foreground mt-2">
+                        {formatDistanceToNow(new Date(s.createdAt), { addSuffix: true, locale: fr })}
+                      </p>
                     </div>
-                    <p className="font-medium text-sm text-foreground truncate">{s.title}</p>
-                    {s.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                      {formatDistanceToNow(new Date(s.createdAt), { addSuffix: true, locale: fr })}
-                    </p>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600"}`}>
+                        <StatusIcon status={s.status} />
+                        {STATUS_LABELS[s.status] ?? s.status}
+                      </span>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${PRIORITY_COLORS[s.priority] ?? ""}`}>
+                        {PRIORITY_LABELS[s.priority] ?? s.priority}
+                      </span>
+                      <button
+                        onClick={() => toggleExpand(s.id)}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        Historique
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600"}`}>
-                      <StatusIcon status={s.status} />
-                      {STATUS_LABELS[s.status] ?? s.status}
-                    </span>
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${PRIORITY_COLORS[s.priority] ?? ""}`}>
-                      {PRIORITY_LABELS[s.priority] ?? s.priority}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  {expanded && <HistoryTimeline suggestionId={s.id} />}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
@@ -234,7 +319,11 @@ export default function SuggestionsPage() {
         </div>
       )}
 
-      <SuggestionDialog open={dialogOpen} onOpenChange={setDialogOpen} onSuccess={() => { setDialogOpen(false); refetch(); }} />
+      <SuggestionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={() => { refetch(); }}
+      />
     </div>
   );
 }
