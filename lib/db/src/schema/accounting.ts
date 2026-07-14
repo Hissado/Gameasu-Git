@@ -136,24 +136,64 @@ export const journalEntryLinesTable = pgTable("journal_entry_lines", {
 export const suppliersTable = pgTable("suppliers", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
-  code: text("code").notNull(),                 // ex: "F0001"
+  code: text("code").notNull(),                          // ex: "F0001"
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
+  phone2: text("phone2"),
+  whatsapp: text("whatsapp"),
+  website: text("website"),
+  logoUrl: text("logo_url"),
+
+  // ── Contact principal ──
+  contactTitle: text("contact_title"),                   // M. | Mme | Dr.
+  contactName: text("contact_name"),
+  contactFunction: text("contact_function"),
+
+  // ── Adresse ──
   address: text("address"),
-  taxId: text("tax_id"),                        // numéro contribuable
-  paymentTerms: text("payment_terms"),
-  // champs étendus module Achats
-  type: text("type").default("fournisseur"),           // fournisseur | sous-traitant | prestataire
   country: text("country"),
+  region: text("region"),
   city: text("city"),
-  rccm: text("rccm"),                                   // registre commerce
-  mobileMoney: text("mobile_money"),
+  commune: text("commune"),
+  postalCode: text("postal_code"),
+
+  // ── Informations administratives ──
+  taxId: text("tax_id"),                                 // IFU / NIF numéro contribuable
+  rccm: text("rccm"),                                    // Registre de commerce
+  vatNumber: text("vat_number"),                         // Numéro TVA
+  statisticNumber: text("statistic_number"),             // Numéro statistique
+
+  // ── Type & statut ──
+  type: text("type").default("fournisseur"),             // fournisseur | sous-traitant | prestataire | grossiste
+  category: text("category"),                            // Catégorie fournisseur
+  status: text("status").default("actif"),               // actif | inactif | a_verifier | suspendu
+
+  // ── Conditions de paiement ──
+  paymentTerms: text("payment_terms"),
+  paymentDelay: integer("payment_delay").default(30),    // Délai de paiement en jours
+  invoicingCurrency: text("invoicing_currency").default("XOF"),
+
+  // ── Banque ──
   bankName: text("bank_name"),
   bankAccountNumber: text("bank_account_number"),
+  iban: text("iban"),
+  swift: text("swift"),
+  beneficiaryName: text("beneficiary_name"),
+  mobileMoney: text("mobile_money"),
+
+  // ── Performance & évaluation ──
+  rating: integer("rating"),                            // Note sur 5
+  certification: text("certification"),                 // ISO, CE, etc.
+  productsProvided: jsonb("products_provided").$type<string[]>(),
+  servicesProvided: jsonb("services_provided").$type<string[]>(),
+  areasServed: jsonb("areas_served").$type<string[]>(),
+
+  // ── Notes & divers ──
   notes: text("notes"),
-  status: text("status").default("actif"),              // actif | inactif | a_verifier | suspendu
-  // compte comptable auxiliaire (ex: 401001) — facultatif, sinon 401
+  customFields: jsonb("custom_fields").$type<Record<string, string>>(),
+
+  // ── Comptabilité ──
   accountId: uuid("account_id").references(() => chartOfAccountsTable.id),
   isActive: boolean("is_active").notNull().default(true),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

@@ -124,9 +124,16 @@ function InvoiceStatusBadge({ status }: { status: string }) {
 // ── Form ───────────────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
-  name: "", type: "fournisseur", email: "", phone: "", address: "",
-  country: "", city: "", taxId: "", rccm: "", paymentTerms: "30j",
-  mobileMoney: "", bankName: "", bankAccountNumber: "", notes: "", status: "actif",
+  name: "", type: "fournisseur", status: "actif",
+  email: "", phone: "", phone2: "", whatsapp: "", website: "", logoUrl: "",
+  contactTitle: "", contactName: "", contactFunction: "",
+  address: "", country: "Togo", region: "", city: "", commune: "", postalCode: "",
+  taxId: "", rccm: "", vatNumber: "", statisticNumber: "", category: "",
+  paymentTerms: "30j", paymentDelay: "30", invoicingCurrency: "XOF",
+  bankName: "", bankAccountNumber: "", iban: "", swift: "", beneficiaryName: "",
+  mobileMoney: "",
+  rating: "", certification: "", productsProvided: "", servicesProvided: "", areasServed: "",
+  notes: "",
 };
 
 function SupplierForm({
@@ -147,19 +154,42 @@ function SupplierForm({
       setForm(supplier ? {
         name: supplier.name || "",
         type: supplier.type || "fournisseur",
+        status: supplier.status || (supplier.isActive ? "actif" : "inactif"),
         email: supplier.email || "",
         phone: supplier.phone || "",
+        phone2: (supplier as any).phone2 || "",
+        whatsapp: (supplier as any).whatsapp || "",
+        website: (supplier as any).website || "",
+        logoUrl: (supplier as any).logoUrl || "",
+        contactTitle: (supplier as any).contactTitle || "",
+        contactName: (supplier as any).contactName || "",
+        contactFunction: (supplier as any).contactFunction || "",
         address: supplier.address || "",
-        country: supplier.country || "",
+        country: supplier.country || "Togo",
+        region: (supplier as any).region || "",
         city: supplier.city || "",
+        commune: (supplier as any).commune || "",
+        postalCode: (supplier as any).postalCode || "",
         taxId: supplier.taxId || "",
         rccm: supplier.rccm || "",
+        vatNumber: (supplier as any).vatNumber || "",
+        statisticNumber: (supplier as any).statisticNumber || "",
+        category: (supplier as any).category || "",
         paymentTerms: supplier.paymentTerms || "30j",
-        mobileMoney: supplier.mobileMoney || "",
+        paymentDelay: String((supplier as any).paymentDelay ?? "30"),
+        invoicingCurrency: (supplier as any).invoicingCurrency || "XOF",
         bankName: supplier.bankName || "",
         bankAccountNumber: supplier.bankAccountNumber || "",
+        iban: (supplier as any).iban || "",
+        swift: (supplier as any).swift || "",
+        beneficiaryName: (supplier as any).beneficiaryName || "",
+        mobileMoney: supplier.mobileMoney || "",
+        rating: String((supplier as any).rating ?? ""),
+        certification: (supplier as any).certification || "",
+        productsProvided: ((supplier as any).productsProvided ?? []).join(", "),
+        servicesProvided: ((supplier as any).servicesProvided ?? []).join(", "),
+        areasServed: ((supplier as any).areasServed ?? []).join(", "),
         notes: supplier.notes || "",
-        status: supplier.status || (supplier.isActive ? "actif" : "inactif"),
       } : EMPTY_FORM);
     }
   }, [open, supplier]);
@@ -168,17 +198,27 @@ function SupplierForm({
 
   const mutation = useMutation({
     mutationFn: (data: typeof form) => {
+      const toArr = (s: string) => s ? s.split(",").map(x => x.trim()).filter(Boolean) : null;
+      const payload = {
+        ...data,
+        paymentDelay: data.paymentDelay ? Number(data.paymentDelay) : 30,
+        rating: data.rating ? Number(data.rating) : null,
+        productsProvided: toArr(data.productsProvided),
+        servicesProvided: toArr(data.servicesProvided),
+        areasServed: toArr(data.areasServed),
+        isActive: data.status === "actif",
+      };
       if (isEdit) {
         return apiFetch(`/api/purchases/suppliers/${supplier!.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, isActive: data.status === "actif" }),
+          body: JSON.stringify(payload),
         });
       }
       return apiFetch("/api/purchases/suppliers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -200,103 +240,231 @@ function SupplierForm({
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="general" className="flex-1">Général</TabsTrigger>
-            <TabsTrigger value="coordonnees" className="flex-1">Coordonnées</TabsTrigger>
-            <TabsTrigger value="paiement" className="flex-1">Paiement</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-6 h-8 mb-1">
+            <TabsTrigger value="general" className="text-xs">Général</TabsTrigger>
+            <TabsTrigger value="contact" className="text-xs">Contact</TabsTrigger>
+            <TabsTrigger value="adresse" className="text-xs">Adresse</TabsTrigger>
+            <TabsTrigger value="admin" className="text-xs">Administratif</TabsTrigger>
+            <TabsTrigger value="banque" className="text-xs">Banque</TabsTrigger>
+            <TabsTrigger value="perf" className="text-xs">Performance</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+          {/* ── Général ── */}
+          <TabsContent value="general" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Nom *</Label>
-                <Input value={form.name} onChange={e => set("name", e.target.value)} placeholder="Nom du fournisseur" className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Raison sociale / Nom *</Label>
+                <Input value={form.name} onChange={e => set("name", e.target.value)} placeholder="Nom du fournisseur" className="h-8 text-sm" />
               </div>
               <div>
-                <Label>Type</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">Type</Label>
                 <Select value={form.type} onValueChange={v => set("type", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SUPPLIER_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    <SelectItem value="grossiste">Grossiste</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Statut</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">Statut</Label>
                 <Select value={form.status} onValueChange={v => set("status", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SUPPLIER_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>IFU / NIF</Label>
-                <Input value={form.taxId} onChange={e => set("taxId", e.target.value)} placeholder="Numéro contribuable" className="mt-1" />
-              </div>
-              <div>
-                <Label>RCCM</Label>
-                <Input value={form.rccm} onChange={e => set("rccm", e.target.value)} placeholder="Registre commerce" className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Catégorie</Label>
+                <Input value={form.category} onChange={e => set("category", e.target.value)} placeholder="Matériaux, Prestations…" className="h-8 text-sm" />
               </div>
               <div className="col-span-2">
-                <Label>Notes internes</Label>
-                <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} className="mt-1" placeholder="Commentaires, conditions particulières…" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Notes internes</Label>
+                <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} className="text-sm" placeholder="Commentaires, conditions particulières…" />
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="coordonnees" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+          {/* ── Contact ── */}
+          <TabsContent value="contact" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Titre</Label>
+                <Select value={form.contactTitle} onValueChange={v => set("contactTitle", v)}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {["M.", "Mme", "Dr.", "Pr.", "Me"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label>Téléphone</Label>
-                <Input value={form.phone} onChange={e => set("phone", e.target.value)} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Contact principal</Label>
+                <Input value={form.contactName} onChange={e => set("contactName", e.target.value)} placeholder="Prénom Nom" className="h-8 text-sm" />
               </div>
               <div>
-                <Label>Pays</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">Fonction / Poste</Label>
+                <Input value={form.contactFunction} onChange={e => set("contactFunction", e.target.value)} placeholder="DG, DAF, Responsable achats…" className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>
+                <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Téléphone</Label>
+                <Input value={form.phone} onChange={e => set("phone", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Téléphone 2</Label>
+                <Input value={form.phone2} onChange={e => set("phone2", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">WhatsApp</Label>
+                <Input value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Site web</Label>
+                <Input value={form.website} onChange={e => set("website", e.target.value)} placeholder="https://…" className="h-8 text-sm" />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── Adresse ── */}
+          <TabsContent value="adresse" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Pays</Label>
                 <Select value={form.country} onValueChange={v => set("country", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Ville</Label>
-                <Input value={form.city} onChange={e => set("city", e.target.value)} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Région</Label>
+                <Input value={form.region} onChange={e => set("region", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Ville</Label>
+                <Input value={form.city} onChange={e => set("city", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Commune</Label>
+                <Input value={form.commune} onChange={e => set("commune", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Code postal</Label>
+                <Input value={form.postalCode} onChange={e => set("postalCode", e.target.value)} className="h-8 text-sm" />
               </div>
               <div className="col-span-2">
-                <Label>Adresse</Label>
-                <Textarea value={form.address} onChange={e => set("address", e.target.value)} rows={2} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Adresse complète</Label>
+                <Textarea value={form.address} onChange={e => set("address", e.target.value)} rows={2} className="text-sm" placeholder="Rue, avenue, repère…" />
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="paiement" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+          {/* ── Administratif ── */}
+          <TabsContent value="admin" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Conditions de paiement</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">IFU / NIF (numéro fiscal)</Label>
+                <Input value={form.taxId} onChange={e => set("taxId", e.target.value)} placeholder="000XXXXXXX" className="h-8 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">RCCM</Label>
+                <Input value={form.rccm} onChange={e => set("rccm", e.target.value)} placeholder="TG-LOM-XXXX-XX-XXXXX" className="h-8 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Numéro TVA</Label>
+                <Input value={form.vatNumber} onChange={e => set("vatNumber", e.target.value)} className="h-8 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Numéro statistique</Label>
+                <Input value={form.statisticNumber} onChange={e => set("statisticNumber", e.target.value)} className="h-8 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Délai de paiement (jours)</Label>
+                <Input type="number" value={form.paymentDelay} onChange={e => set("paymentDelay", e.target.value)} placeholder="30" className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Devise de facturation</Label>
+                <Select value={form.invoicingCurrency} onValueChange={v => set("invoicingCurrency", v)}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["XOF", "EUR", "USD", "XAF", "GBP"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Conditions de paiement</Label>
                 <Select value={form.paymentTerms} onValueChange={v => set("paymentTerms", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_TERMS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* ── Banque ── */}
+          <TabsContent value="banque" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Mobile Money</Label>
-                <Input value={form.mobileMoney} onChange={e => set("mobileMoney", e.target.value)} placeholder="Flooz / Mixx…" className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Banque</Label>
+                <Input value={form.bankName} onChange={e => set("bankName", e.target.value)} placeholder="Ecobank, SGBS…" className="h-8 text-sm" />
               </div>
               <div>
-                <Label>Banque</Label>
-                <Input value={form.bankName} onChange={e => set("bankName", e.target.value)} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">Numéro de compte</Label>
+                <Input value={form.bankAccountNumber} onChange={e => set("bankAccountNumber", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label>Numéro de compte</Label>
-                <Input value={form.bankAccountNumber} onChange={e => set("bankAccountNumber", e.target.value)} className="mt-1" />
+                <Label className="text-xs text-muted-foreground mb-1 block">IBAN</Label>
+                <Input value={form.iban} onChange={e => set("iban", e.target.value)} className="h-8 text-sm font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">SWIFT / BIC</Label>
+                <Input value={form.swift} onChange={e => set("swift", e.target.value)} className="h-8 text-sm font-mono" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Nom du bénéficiaire</Label>
+                <Input value={form.beneficiaryName} onChange={e => set("beneficiaryName", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Mobile Money (Flooz / Mixx)</Label>
+                <Input value={form.mobileMoney} onChange={e => set("mobileMoney", e.target.value)} placeholder="+228 XX XX XX XX" className="h-8 text-sm" />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── Performance ── */}
+          <TabsContent value="perf" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Note (1–5 ⭐)</Label>
+                <Select value={form.rating} onValueChange={v => set("rating", v)}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {["1","2","3","4","5"].map(r => <SelectItem key={r} value={r}>{"⭐".repeat(Number(r))} ({r}/5)</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Certification</Label>
+                <Input value={form.certification} onChange={e => set("certification", e.target.value)} placeholder="ISO 9001, CE, OHSAS…" className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Produits fournis (séparés par virgule)</Label>
+                <Input value={form.productsProvided} onChange={e => set("productsProvided", e.target.value)} placeholder="Ciment, Fer à béton, PVC…" className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Services fournis (séparés par virgule)</Label>
+                <Input value={form.servicesProvided} onChange={e => set("servicesProvided", e.target.value)} placeholder="Installation, Maintenance, Transport…" className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1 block">Zones d'intervention (séparées par virgule)</Label>
+                <Input value={form.areasServed} onChange={e => set("areasServed", e.target.value)} placeholder="Lomé, Kpalimé, Dapaong…" className="h-8 text-sm" />
               </div>
             </div>
           </TabsContent>

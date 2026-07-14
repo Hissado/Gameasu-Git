@@ -29,39 +29,48 @@ const SUPPLIER_STATUS = z.enum(["actif", "inactif", "a_verifier", "suspendu"]);
 
 const SupplierCreateSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
-  type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional().default("fournisseur"),
+  type: z.enum(["fournisseur", "prestataire", "sous-traitant", "grossiste"]).optional().default("fournisseur"),
   status: SUPPLIER_STATUS.optional().default("actif"),
   email: z.email().optional().nullable(),
   phone: z.string().optional().nullable(),
+  phone2: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  logoUrl: z.string().optional().nullable(),
+  contactTitle: z.string().optional().nullable(),
+  contactName: z.string().optional().nullable(),
+  contactFunction: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  taxId: z.string().optional().nullable(),
-  paymentTerms: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
+  region: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
+  commune: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  taxId: z.string().optional().nullable(),
   rccm: z.string().optional().nullable(),
-  mobileMoney: z.string().optional().nullable(),
+  vatNumber: z.string().optional().nullable(),
+  statisticNumber: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  paymentTerms: z.string().optional().nullable(),
+  paymentDelay: z.number().optional().nullable(),
+  invoicingCurrency: z.string().optional().nullable(),
   bankName: z.string().optional().nullable(),
   bankAccountNumber: z.string().optional().nullable(),
+  iban: z.string().optional().nullable(),
+  swift: z.string().optional().nullable(),
+  beneficiaryName: z.string().optional().nullable(),
+  mobileMoney: z.string().optional().nullable(),
+  rating: z.number().min(1).max(5).optional().nullable(),
+  certification: z.string().optional().nullable(),
+  productsProvided: z.array(z.string()).optional().nullable(),
+  servicesProvided: z.array(z.string()).optional().nullable(),
+  areasServed: z.array(z.string()).optional().nullable(),
   notes: z.string().optional().nullable(),
+  customFields: z.record(z.string(), z.string()).optional().nullable(),
 });
 
-const SupplierPatchSchema = z.object({
-  name: z.string().min(1).optional(),
-  type: z.enum(["fournisseur", "prestataire", "sous-traitant"]).optional(),
-  status: SUPPLIER_STATUS.optional(),
+const SupplierPatchSchema = SupplierCreateSchema.partial().extend({
   isActive: z.boolean().optional(),
-  email: z.email().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  taxId: z.string().optional().nullable(),
-  paymentTerms: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  rccm: z.string().optional().nullable(),
-  mobileMoney: z.string().optional().nullable(),
-  bankName: z.string().optional().nullable(),
-  bankAccountNumber: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
 });
 
 const InvoiceCreateSchema = z.object({
@@ -227,18 +236,42 @@ router.post("/purchases/suppliers", requirePermission("purchases.write"), async 
       name: data.name,
       email: data.email ?? null,
       phone: data.phone ?? null,
+      phone2: data.phone2 ?? null,
+      whatsapp: data.whatsapp ?? null,
+      website: data.website ?? null,
+      logoUrl: data.logoUrl ?? null,
+      contactTitle: data.contactTitle ?? null,
+      contactName: data.contactName ?? null,
+      contactFunction: data.contactFunction ?? null,
       address: data.address ?? null,
-      taxId: data.taxId ?? null,
-      paymentTerms: data.paymentTerms ?? null,
-      isActive: supplierStatus === "actif",
-      type: data.type,
       country: data.country ?? null,
+      region: data.region ?? null,
       city: data.city ?? null,
+      commune: data.commune ?? null,
+      postalCode: data.postalCode ?? null,
+      taxId: data.taxId ?? null,
       rccm: data.rccm ?? null,
-      mobileMoney: data.mobileMoney ?? null,
+      vatNumber: data.vatNumber ?? null,
+      statisticNumber: data.statisticNumber ?? null,
+      category: data.category ?? null,
+      paymentTerms: data.paymentTerms ?? null,
+      paymentDelay: data.paymentDelay ?? 30,
+      invoicingCurrency: data.invoicingCurrency ?? "XOF",
       bankName: data.bankName ?? null,
       bankAccountNumber: data.bankAccountNumber ?? null,
+      iban: data.iban ?? null,
+      swift: data.swift ?? null,
+      beneficiaryName: data.beneficiaryName ?? null,
+      mobileMoney: data.mobileMoney ?? null,
+      rating: data.rating ?? null,
+      certification: data.certification ?? null,
+      productsProvided: data.productsProvided ?? null,
+      servicesProvided: data.servicesProvided ?? null,
+      areasServed: data.areasServed ?? null,
       notes: data.notes ?? null,
+      customFields: (data.customFields as Record<string, string> | null) ?? null,
+      isActive: supplierStatus === "actif",
+      type: data.type,
       status: supplierStatus,
     }).returning();
     return res.status(201).json(row);
@@ -305,21 +338,23 @@ router.patch("/purchases/suppliers/:id", requirePermission("purchases.write"), a
     const data = parsed.data;
 
     const patch: Record<string, unknown> = {};
-    if (data.name !== undefined) patch.name = data.name;
-    if (data.email !== undefined) patch.email = data.email;
-    if (data.phone !== undefined) patch.phone = data.phone;
-    if (data.address !== undefined) patch.address = data.address;
-    if (data.taxId !== undefined) patch.taxId = data.taxId;
-    if (data.paymentTerms !== undefined) patch.paymentTerms = data.paymentTerms;
+    const textCols = [
+      "name","email","phone","phone2","whatsapp","website","logoUrl",
+      "contactTitle","contactName","contactFunction",
+      "address","country","region","city","commune","postalCode",
+      "taxId","rccm","vatNumber","statisticNumber","category",
+      "paymentTerms","invoicingCurrency",
+      "bankName","bankAccountNumber","iban","swift","beneficiaryName","mobileMoney",
+      "certification","notes","type",
+    ] as const;
+    for (const f of textCols) if ((data as any)[f] !== undefined) patch[f] = (data as any)[f];
     if (data.isActive !== undefined) patch.isActive = data.isActive;
-    if (data.type !== undefined) patch.type = data.type;
-    if (data.country !== undefined) patch.country = data.country;
-    if (data.city !== undefined) patch.city = data.city;
-    if (data.rccm !== undefined) patch.rccm = data.rccm;
-    if (data.mobileMoney !== undefined) patch.mobileMoney = data.mobileMoney;
-    if (data.bankName !== undefined) patch.bankName = data.bankName;
-    if (data.bankAccountNumber !== undefined) patch.bankAccountNumber = data.bankAccountNumber;
-    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.paymentDelay !== undefined) patch.paymentDelay = data.paymentDelay;
+    if (data.rating !== undefined) patch.rating = data.rating;
+    if (data.productsProvided !== undefined) patch.productsProvided = data.productsProvided;
+    if (data.servicesProvided !== undefined) patch.servicesProvided = data.servicesProvided;
+    if (data.areasServed !== undefined) patch.areasServed = data.areasServed;
+    if (data.customFields !== undefined) patch.customFields = data.customFields;
     if (data.status !== undefined) { patch.status = data.status; patch.isActive = data.status === "actif"; }
 
     const [updated] = await db.update(suppliersTable)

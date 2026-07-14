@@ -37,9 +37,36 @@ router.get("/clients", requirePermission("clients.read"), async (req, res) => {
 });
 
 router.post("/clients", requirePermission("clients.manage"), async (req, res) => {
-  const { name, email, phone, industry, address, website, status } = req.body;
+  const {
+    name, email, email2, phone, phone2, whatsapp, industry, address, website, status,
+    type, commercialName, contactTitle, contactName, contactFunction, contactPhotoUrl,
+    country, region, city, commune, quartier, rue, postalCode, gpsLat, gpsLng,
+    billingAddress, shippingAddress,
+    ifu, rccm, vatNumber, statisticNumber, companySize, foundedDate, employeeCount,
+    preferredCurrency, preferredLanguage,
+    assignedUserId, source, category, segment, acquisitionChannel, priority, potential,
+    firstContactDate, conversionDate,
+    creditLimit, paymentTermsDays, paymentConditions, preferredPaymentMode,
+    vatExempt, discountRate, specialConditions, customFields, logoUrl,
+  } = req.body;
   const [client] = await db.insert(clientsTable).values({
-    organizationId: req.authUser!.organizationId, name, email, phone, industry, address, website, status: status || "prospect",
+    organizationId: req.authUser!.organizationId,
+    name, email, email2, phone, phone2, whatsapp, industry, address, website,
+    status: status || "prospect", type: type || "entreprise", commercialName,
+    contactTitle, contactName, contactFunction, contactPhotoUrl, logoUrl,
+    country, region, city, commune, quartier, rue, postalCode, gpsLat, gpsLng,
+    billingAddress: billingAddress ?? null, shippingAddress: shippingAddress ?? null,
+    ifu, rccm, vatNumber, statisticNumber, companySize, foundedDate,
+    employeeCount: employeeCount ? Number(employeeCount) : null,
+    preferredCurrency: preferredCurrency || "XOF", preferredLanguage: preferredLanguage || "fr",
+    assignedUserId: assignedUserId || null, source, category, segment, acquisitionChannel,
+    priority: priority || "normale", potential, firstContactDate, conversionDate,
+    creditLimit: creditLimit ? String(creditLimit) : null,
+    paymentTermsDays: paymentTermsDays ? Number(paymentTermsDays) : 30,
+    paymentConditions, preferredPaymentMode,
+    vatExempt: vatExempt === true || vatExempt === "true",
+    discountRate: discountRate ? String(discountRate) : null,
+    specialConditions, customFields: customFields ?? null,
   }).returning();
   res.status(201).json(client); return;
 });
@@ -64,10 +91,32 @@ router.put("/clients/:id", requirePermission("clients.manage"), async (req, res)
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
-  const { name, email, phone, industry, address, website, status, creditLimit, paymentTermsDays } = req.body;
-  const update: Record<string, unknown> = { name, email, phone, industry, address, website, status };
-  if (creditLimit !== undefined) update.creditLimit = creditLimit === "" || creditLimit === null ? null : Number(creditLimit);
-  if (paymentTermsDays !== undefined) update.paymentTermsDays = paymentTermsDays === "" || paymentTermsDays === null ? null : Number(paymentTermsDays);
+  const b = req.body;
+  const update: Record<string, unknown> = {};
+  const str = (v: any) => v !== undefined ? (v === "" ? null : v) : undefined;
+  const num = (v: any) => v !== undefined ? (v === "" || v === null ? null : Number(v)) : undefined;
+
+  const textFields = [
+    "name","email","email2","phone","phone2","whatsapp","industry","address","website","status",
+    "type","commercialName","contactTitle","contactName","contactFunction","contactPhotoUrl","logoUrl",
+    "country","region","city","commune","quartier","rue","postalCode","gpsLat","gpsLng",
+    "ifu","rccm","vatNumber","statisticNumber","companySize","foundedDate",
+    "preferredCurrency","preferredLanguage","source","category","segment","acquisitionChannel",
+    "priority","potential","firstContactDate","conversionDate","paymentConditions",
+    "preferredPaymentMode","specialConditions",
+  ] as const;
+  for (const f of textFields) if (b[f] !== undefined) update[f] = str(b[f]);
+
+  if (b.employeeCount !== undefined) update.employeeCount = num(b.employeeCount);
+  if (b.creditLimit !== undefined) update.creditLimit = b.creditLimit === "" || b.creditLimit === null ? null : String(b.creditLimit);
+  if (b.paymentTermsDays !== undefined) update.paymentTermsDays = num(b.paymentTermsDays);
+  if (b.discountRate !== undefined) update.discountRate = b.discountRate === "" || b.discountRate === null ? null : String(b.discountRate);
+  if (b.vatExempt !== undefined) update.vatExempt = b.vatExempt === true || b.vatExempt === "true";
+  if (b.billingAddress !== undefined) update.billingAddress = b.billingAddress ?? null;
+  if (b.shippingAddress !== undefined) update.shippingAddress = b.shippingAddress ?? null;
+  if (b.customFields !== undefined) update.customFields = b.customFields ?? null;
+  if (b.assignedUserId !== undefined) update.assignedUserId = b.assignedUserId || null;
+
   const [client] = await db.update(clientsTable).set(update).where(and(
     eq(clientsTable.organizationId, req.authUser!.organizationId),
     eq(clientsTable.id, (req.params.id as string)),
@@ -155,13 +204,51 @@ router.post("/clients/:id/contacts", requirePermission("clients.manage"), async 
   if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
     res.status(403).json({ error: "Accès refusé à ce client" }); return;
   }
-  const { firstName, lastName, email, phone, role, isPrimary } = req.body;
+  const { title, firstName, lastName, email, phone, whatsapp, function: fn, role, isPrimary, notes } = req.body;
   const [contact] = await db.insert(clientContactsTable).values({
     organizationId: req.authUser!.organizationId,
-    clientId: (req.params.id as string), firstName, lastName, email, phone, role,
-    isPrimary: isPrimary ? "true" : "false",
+    clientId: (req.params.id as string),
+    title: title || null, firstName, lastName, email: email || null,
+    phone: phone || null, whatsapp: whatsapp || null,
+    function: fn || null, role: role || null, notes: notes || null,
+    isPrimary: isPrimary === true || isPrimary === "true" ? "true" : "false",
   }).returning();
-  res.status(201).json({ ...contact, isPrimary: contact.isPrimary === "true" }); return;
+  res.status(201).json(contact); return;
+});
+
+router.put("/clients/:id/contacts/:contactId", requirePermission("clients.manage"), async (req, res) => {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
+    res.status(403).json({ error: "Accès refusé" }); return;
+  }
+  const { title, firstName, lastName, email, phone, whatsapp, function: fn, role, isPrimary, notes } = req.body;
+  const [contact] = await db.update(clientContactsTable)
+    .set({
+      title: title ?? null, firstName, lastName, email: email ?? null,
+      phone: phone ?? null, whatsapp: whatsapp ?? null,
+      function: fn ?? null, role: role ?? null, notes: notes ?? null,
+      isPrimary: isPrimary === true || isPrimary === "true" ? "true" : "false",
+    })
+    .where(and(
+      eq(clientContactsTable.id, (req.params.contactId as string)),
+      eq(clientContactsTable.clientId, (req.params.id as string)),
+      eq(clientContactsTable.organizationId, req.authUser!.organizationId),
+    ))
+    .returning();
+  if (!contact) { res.status(404).json({ error: "Contact introuvable" }); return; }
+  res.json(contact); return;
+});
+
+router.delete("/clients/:id/contacts/:contactId", requirePermission("clients.manage"), async (req, res) => {
+  if (req.authUser && !(await userHasClientAccess(req.authUser.id, (req.params.id as string)))) {
+    res.status(403).json({ error: "Accès refusé" }); return;
+  }
+  await db.delete(clientContactsTable)
+    .where(and(
+      eq(clientContactsTable.id, (req.params.contactId as string)),
+      eq(clientContactsTable.clientId, (req.params.id as string)),
+      eq(clientContactsTable.organizationId, req.authUser!.organizationId),
+    ));
+  res.status(204).end(); return;
 });
 
 // ── Emails ──────────────────────────────────────────────────────────────────

@@ -1,69 +1,116 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Building2, Plus, Mail, Phone, ChevronRight, FileSignature, Search } from "lucide-react";
+import { Building2, Plus, Mail, Phone, FileSignature, Search, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { useToast } from "@/hooks/use-toast";
-import { Label } from "@/components/ui/label";
-import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
+import { ClientFormDialog, type ClientFull } from "./ClientFormDialog";
 
-type Client = { id: string; name: string; email?: string; phone?: string; industry?: string; status: string };
+type Client = {
+  id: string;
+  name: string;
+  commercialName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  industry?: string | null;
+  status: string;
+  type?: string | null;
+  city?: string | null;
+  country?: string | null;
+};
+
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  active:   { label: "Actif",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  client:   { label: "Client",   cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  prospect: { label: "Prospect", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  lead:     { label: "Lead",     cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  inactive: { label: "Inactif",  cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  vip:      { label: "VIP",      cls: "bg-rose-100 text-rose-700 border-rose-200" },
+};
+
+const TYPE_ICON: Record<string, string> = {
+  entreprise:     "🏢",
+  particulier:    "👤",
+  administration: "🏛️",
+  ong:            "🤝",
+};
 
 export default function ClientsWorkspace() {
-  const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", email: "", phone: "", industry: "", status: "active" });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editClient, setEditClient] = useState<ClientFull | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Client[] }>({
     queryKey: ["clients-ws", search],
     queryFn: () => apiFetch(`/api/clients?search=${encodeURIComponent(search)}&limit=200`),
   });
 
-  const create = useMutation({
-    mutationFn: () => apiFetch("/api/clients", { method: "POST", body: form }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clients-ws"] });
-      setOpen(false);
-      setForm({ name: "", email: "", phone: "", industry: "", status: "active" });
-      toast({ title: "Client créé" });
-    },
-    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
-  });
+  const clients = data?.data ?? [];
+
+  function openCreate() {
+    setEditClient(null);
+    setDialogOpen(true);
+  }
+
+  function handleSuccess() {
+    qc.invalidateQueries({ queryKey: ["clients-ws"] });
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Clients"
         icon={Building2}
-        subtitle="Portefeuille clients B2B"
+        subtitle={`Portefeuille clients B2B · ${clients.length} tiers`}
         actions={
           <>
-            <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-56 h-9" />
-            <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Nouveau client</Button>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-56 h-8 pl-8 text-sm"
+              />
+            </div>
+            <Button onClick={openCreate} className="h-8 text-sm bg-orange-600 hover:bg-orange-700 text-white">
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nouveau client
+            </Button>
           </>
         }
       />
 
-      {isLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
+      {isLoading && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-32 rounded-xl bg-muted/40 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && clients.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Users className="w-12 h-12 text-muted-foreground/30 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">Aucun client trouvé</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            {search ? `Aucun résultat pour « ${search} »` : "Créez votre premier client pour démarrer."}
+          </p>
+          {!search && (
+            <Button onClick={openCreate} size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Créer un client
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {(data?.data ?? []).map(c => {
-          const statusLabel: Record<string, { label: string; cls: string }> = {
-            active:   { label: "Actif",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-            client:   { label: "Client",     cls: "bg-blue-100 text-blue-700 border-blue-200" },
-            prospect: { label: "Prospect",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
-            inactive: { label: "Inactif",    cls: "bg-slate-100 text-slate-500 border-slate-200" },
-            lead:     { label: "Lead",       cls: "bg-purple-50 text-purple-700 border-purple-200" },
-          };
-          const stBadge = statusLabel[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-500 border-slate-200" };
+        {clients.map(c => {
+          const stBadge = STATUS_LABELS[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-500 border-slate-200" };
+          const typeIcon = TYPE_ICON[c.type || "entreprise"] || "🏢";
           return (
             <div key={c.id} className="relative group">
               <Link href={`/clients/${c.id}`}>
@@ -71,17 +118,25 @@ export default function ClientsWorkspace() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-9 h-9 bg-primary/10 rounded-md flex items-center justify-center shrink-0">
-                          <Building2 className="w-4 h-4 text-primary" />
+                        <div className="w-9 h-9 bg-primary/10 rounded-md flex items-center justify-center shrink-0 text-base">
+                          {typeIcon}
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-semibold truncate text-sm">{c.name}</h3>
-                          {c.industry && <p className="text-[10px] text-muted-foreground truncate">{c.industry}</p>}
+                          {c.commercialName && <p className="text-[10px] text-muted-foreground truncate italic">{c.commercialName}</p>}
+                          {!c.commercialName && c.industry && <p className="text-[10px] text-muted-foreground truncate">{c.industry}</p>}
                         </div>
                       </div>
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${stBadge.cls} shrink-0`}>{stBadge.label}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+
+                    {(c.city || c.country) && (
+                      <p className="text-[10px] text-muted-foreground mb-1.5">
+                        📍 {[c.city, c.country].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1">
                       {c.email && (
                         <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-slate-50 border border-border rounded px-1.5 py-0.5">
                           <Mail className="w-2.5 h-2.5" /> {c.email.split("@")[0]}…
@@ -96,7 +151,6 @@ export default function ClientsWorkspace() {
                   </CardContent>
                 </Card>
               </Link>
-              {/* CTA rapide — visible au survol */}
               <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Link href="/devis">
                   <button
@@ -111,46 +165,12 @@ export default function ClientsWorkspace() {
         })}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center gap-1 mb-1">
-                <Label className="text-sm font-medium">Nom / Raison sociale *</Label>
-                <FieldTooltip content="Nom commercial ou raison sociale officielle du client, tel qu'il apparaîtra sur les devis, factures et documents envoyés." />
-              </div>
-              <Input placeholder="Ex. BTP Gabon SARL" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1 mb-1">
-                <Label className="text-sm font-medium">Email</Label>
-                <FieldTooltip content="Adresse email principale du client. Utilisée pour l'envoi des factures, devis et relances automatiques." />
-              </div>
-              <Input placeholder="contact@client.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1 mb-1">
-                <Label className="text-sm font-medium">Téléphone</Label>
-                <FieldTooltip content="Numéro de contact principal. Utilisé pour les relances téléphoniques et le rapprochement dans la base clients." />
-              </div>
-              <Input placeholder="+228 XX XX XX XX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              <FieldHint>Format international recommandé : +228 XX XX XX XX</FieldHint>
-            </div>
-            <div>
-              <div className="flex items-center gap-1 mb-1">
-                <Label className="text-sm font-medium">Secteur d'activité</Label>
-                <FieldTooltip content="Secteur ou industrie du client. Permet de segmenter votre portefeuille et d'analyser vos revenus par secteur." />
-              </div>
-              <Input placeholder="Ex. BTP, Mines, Services…" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>Créer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ClientFormDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditClient(null); }}
+        client={editClient}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }
