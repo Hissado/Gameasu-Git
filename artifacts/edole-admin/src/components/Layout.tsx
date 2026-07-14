@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { useActiveFirm, useExpertClients, getActiveFirmId, setActiveFirmId, getContextOrgId, setContextOrgId, useSwitchClientContext } from "@/lib/expert-api";
 import { Link, useLocation } from "wouter";
 import { Menu, X, ChevronRight, Database, CalendarCheck, ChevronDown, EyeOff } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, CheckSquare, Briefcase, Wrench, Truck,
@@ -31,6 +32,7 @@ type NavItem = {
   moduleKey?: string;
   permissionKey?: string;
   secondary?: boolean;
+  description?: string;
 };
 type NavGroup = {
   title: string;
@@ -45,50 +47,50 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Accueil",
     icon: Gauge,
     items: [
-      { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard" },
-      { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard" },
-      { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use" },
-      { name: "Appels",           path: "/appels",        icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use" },
-      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true },
-      { name: "Assistant IA",     path: "/assistant-ia", icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights" },
-      { name: "Approbations",     path: "/approbations",    icon: CheckSquare,     moduleKey: "dashboard",       secondary: true },
+      { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard",       description: "Vue synthétique de l'activité : KPIs, revenus du mois, état des projets et tâches prioritaires." },
+      { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard",       description: "Récapitulatif quotidien personnalisé : approbations en attente, événements du jour et actions prioritaires." },
+      { name: "Messagerie",       path: "/messaging",    icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use",       description: "Hub conversationnel interne : DM, groupes, pièces jointes et présence en temps réel." },
+      { name: "Appels",           path: "/appels",       icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use",       description: "Journal des appels WebRTC : historique, durée, participants et enregistrements." },
+      { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true, description: "Analyse prédictive et recommandations intelligentes issues de vos données métier." },
+      { name: "Assistant IA",     path: "/assistant-ia", icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights", description: "Assistant IA conversationnel pour rédiger, analyser et répondre à vos questions métier." },
+      { name: "Approbations",     path: "/approbations", icon: CheckSquare,     moduleKey: "dashboard",       secondary: true, description: "Circuit de validation : demandes en attente de votre approbation ou signature." },
     ],
   },
   {
     title: "Ventes",
     icon: TrendingUp,
     items: [
-      { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read" },
-      { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients",    permissionKey: "clients.read" },
-      { name: "Tarification",  path: "/tarification",      icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Devis",         path: "/devis",    icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Commandes",     path: "/commandes",       icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Factures",      path: "/factures",     icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Encaissements", path: "/paiements",     icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read" },
-      { name: "Avoirs",        path: "/avoirs", icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true },
+      { name: "Marketing",     path: "/marketing",   icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read",  description: "Gestion des campagnes marketing, leads entrants et suivi des performances commerciales." },
+      { name: "Pipeline CRM",  path: "/crm",         icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Suivi des opportunités en kanban : stade de vente, valeur, probabilité et prochaine action." },
+      { name: "Clients",       path: "/clients",     icon: Building2,     moduleKey: "clients",    permissionKey: "clients.read",    description: "Répertoire clients : coordonnées, historique des commandes, factures et activités." },
+      { name: "Tarification",  path: "/tarification",icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Catalogue tarifaire : grilles de prix, remises par segment client et conditions commerciales." },
+      { name: "Devis",         path: "/devis",       icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Gestion des devis : création, envoi, relance et conversion en commandes ou factures." },
+      { name: "Commandes",     path: "/commandes",   icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Bons de commande clients : statut, livraisons, facturation et historique complet." },
+      { name: "Factures",      path: "/factures",    icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Facturation SYSCOHADA : création, envoi PDF, suivi des paiements et comptabilisation automatique." },
+      { name: "Encaissements", path: "/paiements",   icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Paiements clients reçus : règlements partiels, modes d'encaissement et rapprochement bancaire." },
+      { name: "Avoirs",        path: "/avoirs",      icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true, description: "Notes de crédit et avoirs : remboursements, corrections de facturation et contre-passations." },
     ],
   },
   {
     title: "Projets",
     icon: FolderKanban,
     items: [
-      { name: "Projets",       path: "/projets",   icon: FolderKanban,  moduleKey: "projects",   permissionKey: "projects.read" },
-      { name: "Tâches",        path: "/tasks",      icon: CheckSquare,   moduleKey: "tasks",      permissionKey: "tasks.read" },
-      { name: "Portefeuille",  path: "/portefeuille",  icon: LayoutGrid,    moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
-      { name: "Charge équipe", path: "/charge",   icon: Activity,      moduleKey: "projects",   permissionKey: "projects.read",   secondary: true },
-      { name: "Documents",     path: "/documents",  icon: FolderOpen,    moduleKey: "documents",  permissionKey: "documents.read",  secondary: true },
+      { name: "Projets",       path: "/projets",      icon: FolderKanban, moduleKey: "projects",  permissionKey: "projects.read",  description: "Portefeuille projets : phases, livrables, budget alloué, équipe et suivi de l'avancement." },
+      { name: "Tâches",        path: "/tasks",        icon: CheckSquare,  moduleKey: "tasks",     permissionKey: "tasks.read",     description: "Tâches transversales ou par projet : priorités, assignations, commentaires et sous-tâches." },
+      { name: "Portefeuille",  path: "/portefeuille", icon: LayoutGrid,   moduleKey: "projects",  permissionKey: "projects.read",  secondary: true, description: "Vue consolidée du portefeuille : état d'avancement, budget et risques de tous vos projets." },
+      { name: "Charge équipe", path: "/charge",       icon: Activity,     moduleKey: "projects",  permissionKey: "projects.read",  secondary: true, description: "Matrice de charge par collaborateur et projet : identifiez les surcharges et les disponibilités." },
+      { name: "Documents",     path: "/documents",    icon: FolderOpen,   moduleKey: "documents", permissionKey: "documents.read", secondary: true, description: "GED projet : upload, versionning et partage sécurisé de documents par projet." },
     ],
   },
   {
     title: "Logistique",
     icon: Truck,
     items: [
-      { name: "Services",    path: "/services",   icon: Briefcase,      moduleKey: "services",            permissionKey: "services.read" },
-      { name: "Opérations",  path: "/operations", icon: Truck,          moduleKey: "operations",          permissionKey: "operations.view" },
-      { name: "Stock",       path: "/stock",  icon: Package,        moduleKey: "inventory_products",  permissionKey: "inventory.read" },
-      { name: "Équipements", path: "/equipements",  icon: Wrench,         moduleKey: "inventory_assets",    permissionKey: "equipment.read" },
-      { name: "Locations",   path: "/locations",    icon: ClipboardCheck, moduleKey: "rentals",             permissionKey: "equipment.read" },
+      { name: "Services",    path: "/services",    icon: Briefcase,      moduleKey: "services",           permissionKey: "services.read",  description: "Catalogue des prestations et services de l'organisation : description, tarification et disponibilité." },
+      { name: "Opérations",  path: "/operations",  icon: Truck,          moduleKey: "operations",         permissionKey: "operations.view",description: "Opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
+      { name: "Stock",       path: "/stock",       icon: Package,        moduleKey: "inventory_products", permissionKey: "inventory.read", description: "Gestion des stocks produits : mouvements de stock, alertes de rupture et valorisation." },
+      { name: "Équipements", path: "/equipements", icon: Wrench,         moduleKey: "inventory_assets",   permissionKey: "equipment.read", description: "Inventaire des actifs et équipements : état, maintenance planifiée et disponibilité calendaire." },
+      { name: "Locations",   path: "/locations",   icon: ClipboardCheck, moduleKey: "rentals",            permissionKey: "equipment.read", description: "Contrats de location d'équipements : planning, états des lieux et facturation des locations." },
     ],
   },
   {
@@ -96,61 +98,61 @@ const NAV_GROUPS: NavGroup[] = [
     icon: ShoppingCart,
     moduleKey: "purchases",
     items: [
-      { name: "Vue d'ensemble",       path: "/achats",                    icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read" },
-      { name: "Fournisseurs",         path: "/achats/fournisseurs",       icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read" },
-      { name: "Factures fournisseurs", path: "/achats/factures",           icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read" },
-      { name: "Bons de commande",     path: "/achats/bons-de-commande",   icon: ClipboardCheck,  moduleKey: "purchases", permissionKey: "purchases.read" },
-      { name: "Paiements",            path: "/achats/paiements",          icon: CreditCard,      moduleKey: "purchases", permissionKey: "purchases.pay" },
-      { name: "Dépenses",             path: "/achats/depenses",           icon: Banknote,        moduleKey: "purchases", permissionKey: "purchases.read",  secondary: true },
-      { name: "Approbations",         path: "/achats/approbations",       icon: CheckSquare,     moduleKey: "purchases", permissionKey: "purchases.approve", secondary: true },
-      { name: "Rapports",             path: "/achats/rapports",           icon: BarChart3,       moduleKey: "purchases", permissionKey: "purchases.read",  secondary: true },
+      { name: "Vue d'ensemble",        path: "/achats",                  icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read",    description: "Tableau de bord achats : dépenses du mois, fournisseurs actifs et commandes en cours." },
+      { name: "Fournisseurs",          path: "/achats/fournisseurs",     icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read",    description: "Répertoire fournisseurs : conditions, délais de paiement, historique et évaluation." },
+      { name: "Factures fournisseurs", path: "/achats/factures",         icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read",    description: "Factures reçues des fournisseurs : validation, comptabilisation et suivi des échéances." },
+      { name: "Bons de commande",      path: "/achats/bons-de-commande", icon: ClipboardCheck,  moduleKey: "purchases", permissionKey: "purchases.read",    description: "Bons de commande émis vers les fournisseurs : suivi de la réception et du paiement." },
+      { name: "Paiements",             path: "/achats/paiements",        icon: CreditCard,      moduleKey: "purchases", permissionKey: "purchases.pay",     description: "Décaissements fournisseurs : enregistrement des règlements et rapprochement bancaire." },
+      { name: "Dépenses",              path: "/achats/depenses",         icon: Banknote,        moduleKey: "purchases", permissionKey: "purchases.read",    secondary: true, description: "Notes de frais et dépenses opérationnelles : soumission, validation et remboursement." },
+      { name: "Approbations",          path: "/achats/approbations",     icon: CheckSquare,     moduleKey: "purchases", permissionKey: "purchases.approve", secondary: true, description: "Circuit d'approbation achats : demandes en attente de votre validation ou rejet." },
+      { name: "Rapports",              path: "/achats/rapports",         icon: BarChart3,       moduleKey: "purchases", permissionKey: "purchases.read",    secondary: true, description: "Analyses achats : évolution des dépenses, fournisseurs principaux et économies réalisées." },
     ],
   },
   {
     title: "Finance",
     icon: Landmark,
     items: [
-      { name: "Intelligence",          path: "/finance/intelligence",    icon: Brain,         moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Comptabilité",         path: "/comptabilite",              icon: Calculator,    moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Immobilisations",      path: "/comptabilite/immobilisations", icon: Landmark,      moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Trésorerie",           path: "/finance/tresorerie",      icon: Banknote,      moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Recouvrement",         path: "/recouvrement",            icon: Flame,         moduleKey: "accounting",          permissionKey: "accounting.read" },
-      { name: "Clôture des périodes", path: "/comptabilite/cloture", icon: CalendarCheck, moduleKey: "accounting",          permissionKey: "accounting.manage" },
-      { name: "Budgets & prévisions", path: "/fpa",                     icon: TrendingUp,    moduleKey: "financial_planning",  permissionKey: "fpa.read" },
-      { name: "Rapports",             path: "/rapports",                 icon: BarChart3,     moduleKey: "reports",             permissionKey: "accounting.read" },
+      { name: "Intelligence",          path: "/finance/intelligence",        icon: Brain,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Analyse financière intelligente : anomalies détectées, tendances et recommandations automatiques." },
+      { name: "Comptabilité",          path: "/comptabilite",                icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Plan de comptes SYSCOHADA, saisie des écritures, journaux et grand livre comptable." },
+      { name: "Immobilisations",       path: "/comptabilite/immobilisations",icon: Landmark,      moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Gestion des actifs immobilisés : acquisitions, amortissements et cessions." },
+      { name: "Trésorerie",            path: "/finance/tresorerie",          icon: Banknote,      moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Suivi des flux de trésorerie : rapprochement bancaire, prévisions de cash et soldes en temps réel." },
+      { name: "Recouvrement",          path: "/recouvrement",                icon: Flame,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Suivi des créances clients échues : relances automatiques, litiges et historique de recouvrement." },
+      { name: "Clôture des périodes",  path: "/comptabilite/cloture",        icon: CalendarCheck, moduleKey: "accounting",         permissionKey: "accounting.manage", description: "Clôture mensuelle et annuelle : verrouillage des périodes, contrôles et génération des états de synthèse." },
+      { name: "Budgets & prévisions",  path: "/fpa",                         icon: TrendingUp,    moduleKey: "financial_planning", permissionKey: "fpa.read",          description: "FP&A : budgets versionnés, forecast glissant, analyse d'écarts et projection de fin d'année." },
+      { name: "Rapports",              path: "/rapports",                    icon: BarChart3,     moduleKey: "reports",            permissionKey: "accounting.read",   description: "États financiers SYSCOHADA : bilan, compte de résultat, balance des comptes et exports Excel." },
     ],
   },
   {
     title: "Équipe",
     icon: Users2,
     items: [
-      { name: "Ressources humaines",  path: "/rh",               icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read" },
-      { name: "Présences",            path: "/presences",        icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view" },
-      { name: "Kiosques de pointage", path: "/kiosques", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true },
+      { name: "Ressources humaines",  path: "/rh",       icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",                description: "Gestion RH complète : fiches collaborateurs, contrats, paie, congés et performance." },
+      { name: "Présences",            path: "/presences",icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",         description: "Suivi des pointages et temps de présence : planning, absences, retards et exports RH." },
+      { name: "Kiosques de pointage", path: "/kiosques", icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true, description: "Configuration et gestion des kiosques de pointage physiques connectés à Gaméasù." },
     ],
   },
   {
     title: "Portail Expert",
     icon: Network,
     items: [
-      { name: "Vue d'ensemble",    path: "/expert",                      icon: LayoutDashboard },
-      { name: "Mes clients",       path: "/expert/clients",              icon: Building2 },
-      { name: "Documents",         path: "/expert/document-requests",    icon: FileText },
-      { name: "Rapports",          path: "/expert/reports",              icon: BarChart3 },
-      { name: "Utilisateurs",      path: "/expert/users-permissions",    icon: UsersRound, secondary: true },
-      { name: "Mon cabinet",       path: "/expert/firm-settings",        icon: Settings,   secondary: true },
+      { name: "Vue d'ensemble",    path: "/expert",                    icon: LayoutDashboard, description: "Tableau de bord du cabinet : vue consolidée sur tous vos clients et missions en cours." },
+      { name: "Mes clients",       path: "/expert/clients",            icon: Building2,       description: "Liste de vos clients connectés : accès rapide à leur espace, statut et dernière activité." },
+      { name: "Documents",         path: "/expert/document-requests",  icon: FileText,        description: "Demandes de documents envoyées à vos clients : suivi des réceptions et relances." },
+      { name: "Rapports",          path: "/expert/reports",            icon: BarChart3,       description: "Rapports consolidés par client : synthèses financières et livrables du cabinet." },
+      { name: "Utilisateurs",      path: "/expert/users-permissions",  icon: UsersRound, secondary: true, description: "Gestion des accès collaborateurs du cabinet : rôles et droits sur chaque client." },
+      { name: "Mon cabinet",       path: "/expert/firm-settings",      icon: Settings,   secondary: true, description: "Paramètres du cabinet expert : informations, logo, spécialités et préférences." },
     ],
   },
   {
     title: "Admin",
     icon: Shield,
     items: [
-      { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",    permissionKey: "admin.access" },
-      { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",    permissionKey: "settings.read" },
-      { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription",  permissionKey: "admin.access" },
-      { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",        permissionKey: "admin.access",    secondary: true },
-      { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",        permissionKey: "automation.read", secondary: true },
-      { name: "Support",            path: "/tickets",            icon: LifeBuoy,                                                                         secondary: true },
+      { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Import de données historiques et migration depuis d'autres outils vers Gaméasù." },
+      { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",   permissionKey: "settings.read",   description: "Configuration de l'espace de travail : organisation, modules actifs, rôles et autorisations." },
+      { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription", permissionKey: "admin.access",    description: "Votre formule Gaméasù : plan actif, modules inclus, utilisation et options de facturation." },
+      { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",       permissionKey: "admin.access",    secondary: true, description: "Console d'administration système : utilisateurs, audits, incidents et diagnostics avancés." },
+      { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",       permissionKey: "automation.read", secondary: true, description: "Workflows automatiques : déclencheurs, actions et règles de gestion sans code." },
+      { name: "Support",            path: "/tickets",            icon: LifeBuoy,   secondary: true, description: "Ouvrir un ticket de support ou consulter vos demandes en cours auprès de l'équipe Gaméasù." },
     ],
   },
 ];
@@ -417,20 +419,32 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                             : "Module non inclus dans votre formule actuelle"
                           : undefined;
                         const href = item.path;
+                        const linkEl = (
+                          <Link
+                            href={href}
+                            title={lockReason}
+                            className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
+                              active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
+                            <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
+                            <span className="truncate flex-1">{item.name}</span>
+                            {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
+                          </Link>
+                        );
                         return (
                           <li key={item.path}>
-                            <Link
-                              href={href}
-                              title={lockReason}
-                              className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
-                                active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
-                              }`}
-                            >
-                              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
-                              <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
-                              <span className="truncate flex-1">{item.name}</span>
-                              {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
-                            </Link>
+                            {item.description && !locked ? (
+                              <TooltipProvider delayDuration={700}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>{linkEl}</TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-[230px] text-[11px] leading-relaxed bg-popover text-popover-foreground border shadow-md">
+                                    {item.description}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : linkEl}
                           </li>
                         );
                       })}
@@ -450,25 +464,37 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                                   : "Module non inclus dans votre formule actuelle"
                                 : undefined;
                               const href = item.path;
+                              const secLinkEl = (
+                                <Link
+                                  href={href}
+                                  title={lockReason}
+                                  className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
+                                    active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                                  }`}
+                                >
+                                  {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
+                                  <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
+                                  <span className="truncate flex-1">{item.name}</span>
+                                  {item.path === "/achats/approbations" && pendingApprovalsCount > 0 && (
+                                    <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2563EB] text-white text-[9px] font-bold flex items-center justify-center px-1">
+                                      {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
+                                    </span>
+                                  )}
+                                  {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
+                                </Link>
+                              );
                               return (
                                 <li key={item.path}>
-                                  <Link
-                                    href={href}
-                                    title={lockReason}
-                                    className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
-                                      active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
-                                    }`}
-                                  >
-                                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
-                                    <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
-                                    <span className="truncate flex-1">{item.name}</span>
-                                    {item.path === "/achats/approbations" && pendingApprovalsCount > 0 && (
-                                      <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2563EB] text-white text-[9px] font-bold flex items-center justify-center px-1">
-                                        {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
-                                      </span>
-                                    )}
-                                    {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
-                                  </Link>
+                                  {item.description && !locked ? (
+                                    <TooltipProvider delayDuration={700}>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>{secLinkEl}</TooltipTrigger>
+                                        <TooltipContent side="right" className="max-w-[230px] text-[11px] leading-relaxed bg-popover text-popover-foreground border shadow-md">
+                                          {item.description}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : secLinkEl}
                                 </li>
                               );
                             })}

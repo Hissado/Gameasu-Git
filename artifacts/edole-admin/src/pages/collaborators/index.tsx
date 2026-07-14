@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Search, UserPlus, X, ArrowUpDown, User, Keyboard } from "lucide-react";
 import { toast } from "sonner";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -564,7 +565,10 @@ export default function CollaboratorsList() {
               </div>
             </div>
             <div>
-              <Label className="text-xs mb-1 block">E-mail</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-xs">E-mail</Label>
+                <FieldTooltip content="Adresse email professionnelle utilisée pour les notifications, les accès au portail RH et les communications internes." />
+              </div>
               <Input
                 type="email"
                 value={addForm.email}
@@ -574,26 +578,37 @@ export default function CollaboratorsList() {
               />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">Téléphone</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-xs">Téléphone</Label>
+                <FieldTooltip content="Numéro de téléphone professionnel. Utilisé pour les urgences, les notifications SMS et les appels depuis l'application." />
+              </div>
               <Input
                 value={addForm.phone}
                 onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))}
                 placeholder="+228 00 00 00 00"
                 className="h-8 text-sm"
               />
+              <FieldHint>Format international recommandé : +228 XX XX XX XX</FieldHint>
             </div>
             <div>
-              <Label className="text-xs mb-1 block">Date d'embauche</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-xs">Date d'embauche</Label>
+                <FieldTooltip content="Date officielle d'entrée en poste. Sert au calcul de l'ancienneté, de la période d'essai (90 jours) et des droits aux congés annuels." />
+              </div>
               <Input
                 type="date"
                 value={addForm.hireDate}
                 onChange={e => setAddForm(f => ({ ...f, hireDate: e.target.value }))}
                 className="h-8 text-sm"
               />
+              <FieldHint>Détermine l'ancienneté et le calcul des congés.</FieldHint>
             </div>
             {deptData?.data && deptData.data.length > 0 && (
               <div>
-                <Label className="text-xs mb-1 block">Département</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs">Département</Label>
+                  <FieldTooltip content="Service ou unité organisationnelle de rattachement. Permet le regroupement dans les rapports RH et les matrices de charge." />
+                </div>
                 <Select value={addForm.departmentId} onValueChange={v => setAddForm(f => ({ ...f, departmentId: v }))}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Choisir un département" />

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { Plus, Search, FileText, AlertCircle, Calendar, Wallet, Building, Pencil, XCircle, AlertTriangle, Clock, ShieldAlert, Mail, MinusCircle, Printer, Link2, MoreHorizontal } from "lucide-react";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { toast } from "sonner";
@@ -97,14 +98,24 @@ function RecordPaymentDialog({ invoice, onClose, onSuccess }: { invoice: Invoice
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>Montant (FCFA) *</Label><Input type="number" min="1" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
             <div className="space-y-1">
-              <Label>Mode de paiement</Label>
+              <div className="flex items-center gap-1">
+                <Label>Mode de paiement</Label>
+                <FieldTooltip content="Canal utilisé pour ce règlement. Chaque mode est comptabilisé dans le journal correspondant (caisse, banque, mobile money…)." />
+              </div>
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(METHODS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1"><Label>Date</Label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Référence</Label><Input placeholder="REF-001" value={reference} onChange={(e) => setReference(e.target.value)} /></div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1">
+                <Label>Référence</Label>
+                <FieldTooltip content="Numéro de virement, de chèque ou tout identifiant permettant de retrouver ce paiement dans vos relevés bancaires (pour le rapprochement)." />
+              </div>
+              <Input placeholder="REF-001" value={reference} onChange={(e) => setReference(e.target.value)} />
+              <FieldHint>Ex : numéro de virement, référence chèque ou transaction mobile.</FieldHint>
+            </div>
           </div>
           <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
@@ -158,15 +169,22 @@ function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Client *</Label>
+              <div className="flex items-center gap-1">
+                <Label>Client *</Label>
+                <FieldTooltip content="Client auquel sera imputée cette facture. La créance sera comptabilisée en compte client (411) dès la création." />
+              </div>
               <Select value={clientId} onValueChange={setClientId}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                 <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Date d'échéance</Label>
+              <div className="flex items-center gap-1">
+                <Label>Date d'échéance</Label>
+                <FieldTooltip content="Date limite de paiement convenue avec le client. Passé cette date, la facture bascule automatiquement en statut « En retard »." />
+              </div>
               <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+              <FieldHint>Laissez vide si non définie contractuellement.</FieldHint>
             </div>
           </div>
           <div className="space-y-2">
@@ -174,7 +192,10 @@ function NewInvoiceDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
             <LineItemsEditor lines={lines} onChange={setLines} />
           </div>
           <div className="space-y-1.5">
-            <Label>Notes / Objet</Label>
+            <div className="flex items-center gap-1">
+              <Label>Notes / Objet</Label>
+              <FieldTooltip content="Précisez l'objet de la facture, la référence commande ou les conditions particulières. Ce texte apparaît sur le PDF envoyé au client." />
+            </div>
             <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Objet, référence commande, conditions…" />
           </div>
         </div>
