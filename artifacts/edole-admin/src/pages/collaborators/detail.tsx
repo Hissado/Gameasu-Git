@@ -1193,7 +1193,7 @@ export default function CollaboratorDetail() {
           return da - db2;
         });
       case "workload_desc":
-        return arr.sort((a, b) => (b.currentProjectsCount || 0) - (a.currentProjectsCount || 0));
+        return arr.sort((a, b) => (b.activeTasks || 0) - (a.activeTasks || 0));
       default:
         return arr.sort((a, b) =>
           `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "fr"));

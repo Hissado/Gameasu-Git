@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { collaboratorsTable, tasksTable, contractsTable, usersTable, hrAuditLogsTable } from "@workspace/db";
-import { eq, sql, isNull, isNotNull, inArray, and, desc, ne } from "drizzle-orm";
+import { eq, sql, isNull, isNotNull, inArray, and, desc, ne, notInArray } from "drizzle-orm";
 import { requireManagerOrAbove } from "../middlewares/auth";
 
 const router = Router();
@@ -64,9 +64,42 @@ router.get("/collaborators", async (req, res) => {
     }
   }
 
+  // ── Active task count per collaborator (via collaborator.userId → task.assigneeId) ──
+  const activeTasksMap: Record<string, number> = {};
+  if (data.length > 0) {
+    try {
+      const userIds = data.map(c => c.userId).filter((id): id is string => id != null);
+      if (userIds.length > 0) {
+        const taskRows = await db
+          .select({
+            assigneeId: tasksTable.assigneeId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(tasksTable)
+          .where(and(
+            eq(tasksTable.organizationId, req.authUser!.organizationId),
+            isNull(tasksTable.deletedAt),
+            ne(tasksTable.status, "done"),
+            inArray(tasksTable.assigneeId, userIds),
+          ))
+          .groupBy(tasksTable.assigneeId);
+        const tasksByUserId: Record<string, number> = {};
+        for (const row of taskRows) {
+          if (row.assigneeId) tasksByUserId[row.assigneeId] = row.count;
+        }
+        for (const c of data) {
+          if (c.userId) activeTasksMap[c.id] = tasksByUserId[c.userId] ?? 0;
+        }
+      }
+    } catch {
+      // active task enrichment is best-effort; don't fail the list endpoint
+    }
+  }
+
   const enriched = data.map(c => ({
     ...c,
     contractExpiresInDays: expiryMap[c.id] ?? null,
+    activeTasks: activeTasksMap[c.id] ?? 0,
   }));
 
   return res.json({ data: enriched, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
@@ -126,15 +159,48 @@ router.post("/collaborators", requireManagerOrAbove, async (req, res) => {
 
 router.get("/collaborators/workload", async (req, res) => {
   const collabs = await db.select().from(collaboratorsTable).where(and(eq(collaboratorsTable.organizationId, req.authUser!.organizationId), isNull(collaboratorsTable.deletedAt)));
-  const workload = collabs.map(c => ({
-    collaboratorId: c.id,
-    firstName: c.firstName,
-    lastName: c.lastName,
-    avatarUrl: c.avatarUrl,
-    activeTasks: 0,
-    activeProjects: c.currentProjectsCount || 0,
-    workloadPercent: Math.min(100, (c.currentProjectsCount || 0) * 25),
-  }));
+
+  // Batch-query active tasks (status != 'done', not deleted) for all collaborators with a linked user
+  const tasksByUserId: Record<string, number> = {};
+  const userIds = collabs.map(c => c.userId).filter((id): id is string => id != null);
+  if (userIds.length > 0) {
+    try {
+      const taskRows = await db
+        .select({
+          assigneeId: tasksTable.assigneeId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(tasksTable)
+        .where(and(
+          eq(tasksTable.organizationId, req.authUser!.organizationId),
+          isNull(tasksTable.deletedAt),
+          ne(tasksTable.status, "done"),
+          inArray(tasksTable.assigneeId, userIds),
+        ))
+        .groupBy(tasksTable.assigneeId);
+      for (const row of taskRows) {
+        if (row.assigneeId) tasksByUserId[row.assigneeId] = row.count;
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
+  const workload = collabs.map(c => {
+    const activeTasks = c.userId ? (tasksByUserId[c.userId] ?? 0) : 0;
+    const activeProjects = c.currentProjectsCount || 0;
+    // Workload: each active task contributes 10%, each project 25%, capped at 100%
+    const workloadPercent = Math.min(100, activeTasks * 10 + activeProjects * 25);
+    return {
+      collaboratorId: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      avatarUrl: c.avatarUrl,
+      activeTasks,
+      activeProjects,
+      workloadPercent,
+    };
+  });
   return res.json(workload);
 });
 

@@ -188,7 +188,7 @@ export default function CollaboratorsList() {
         });
         break;
       case "workload_desc":
-        arr.sort((a: any, b: any) => (b.currentProjectsCount || 0) - (a.currentProjectsCount || 0));
+        arr.sort((a: any, b: any) => (b.activeTasks || 0) - (a.activeTasks || 0));
         break;
       default:
         arr.sort((a: any, b: any) =>
