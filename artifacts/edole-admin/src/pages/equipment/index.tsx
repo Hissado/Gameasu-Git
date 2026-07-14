@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Wrench, Settings, Truck, AlertTriangle, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatFCFA } from "@/lib/format";
 import { Link } from "wouter";
@@ -98,7 +99,10 @@ function EquipmentFormDialog({ open, onClose, item }: { open: boolean; onClose: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Code / Référence</Label>
+              <div className="flex items-center gap-1">
+                <Label>Code / Référence</Label>
+                <FieldTooltip content="Identifiant interne unique de l'équipement (ex. GRU-001). Utilisé pour le suivi, les états des lieux et la génération du QR Code de pointage." />
+              </div>
               <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="Ex. GRU-001" />
             </div>
             <div className="space-y-1.5">
@@ -132,11 +136,18 @@ function EquipmentFormDialog({ open, onClose, item }: { open: boolean; onClose: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Taux journalier (FCFA)</Label>
+              <div className="flex items-center gap-1">
+                <Label>Taux journalier (FCFA)</Label>
+                <FieldTooltip content="Tarif de location à la journée en FCFA. Sert de base au calcul automatique du montant des contrats de location de cet équipement." />
+              </div>
               <Input type="number" value={form.dailyRate} onChange={e => setForm(f => ({ ...f, dailyRate: e.target.value }))} placeholder="Ex. 150000" />
+              <FieldHint>Montant facturé par jour de location, hors taxes.</FieldHint>
             </div>
             <div className="space-y-1.5">
-              <Label>Emplacement / Site</Label>
+              <div className="flex items-center gap-1">
+                <Label>Emplacement / Site</Label>
+                <FieldTooltip content="Localisation physique actuelle de l'équipement (dépôt, chantier, client). Mis à jour à chaque mouvement logistique." />
+              </div>
               <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Ex. Dépôt Lomé" />
             </div>
           </div>

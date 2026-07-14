@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Building2, Plus, Mail, Phone, ChevronRight, FileSignature, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 
 type Client = { id: string; name: string; email?: string; phone?: string; industry?: string; status: string };
 
@@ -113,10 +115,35 @@ export default function ClientsWorkspace() {
         <DialogContent>
           <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Nom *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <Input placeholder="Téléphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <Input placeholder="Secteur" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-sm font-medium">Nom / Raison sociale *</Label>
+                <FieldTooltip content="Nom commercial ou raison sociale officielle du client, tel qu'il apparaîtra sur les devis, factures et documents envoyés." />
+              </div>
+              <Input placeholder="Ex. BTP Gabon SARL" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-sm font-medium">Email</Label>
+                <FieldTooltip content="Adresse email principale du client. Utilisée pour l'envoi des factures, devis et relances automatiques." />
+              </div>
+              <Input placeholder="contact@client.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-sm font-medium">Téléphone</Label>
+                <FieldTooltip content="Numéro de contact principal. Utilisé pour les relances téléphoniques et le rapprochement dans la base clients." />
+              </div>
+              <Input placeholder="+228 XX XX XX XX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <FieldHint>Format international recommandé : +228 XX XX XX XX</FieldHint>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-sm font-medium">Secteur d'activité</Label>
+                <FieldTooltip content="Secteur ou industrie du client. Permet de segmenter votre portefeuille et d'analyser vos revenus par secteur." />
+              </div>
+              <Input placeholder="Ex. BTP, Mines, Services…" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>

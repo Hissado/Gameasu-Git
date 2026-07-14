@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, FileSignature, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 
 type Contract = { id: string; collaboratorId: string; collaboratorName: string; type: string; status: string; startDate: string; endDate?: string; monthlySalary?: number; jobTitle?: string };
 type Collab = { id: string; firstName: string; lastName: string };
@@ -141,14 +142,43 @@ export default function ContractsPage() {
                 </Select>
               </div>
             </div>
-            <div><label className="text-sm font-medium">Intitulé du poste</label><Input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-sm font-medium">Date de début</label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
-              <div><label className="text-sm font-medium">Date de fin</label><Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
+            <div>
+              <label className="text-sm font-medium">Intitulé du poste</label>
+              <Input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Ex. Responsable Chantier" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-sm font-medium">Salaire mensuel (XOF)</label><Input type="number" value={form.monthlySalary} onChange={(e) => setForm({ ...form, monthlySalary: e.target.value })} /></div>
-              <div><label className="text-sm font-medium">Lieu de travail</label><Input value={form.workLocation} onChange={(e) => setForm({ ...form, workLocation: e.target.value })} /></div>
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-sm font-medium">Date de début</label>
+                  <FieldTooltip content="Date d'entrée en vigueur du contrat. Sert au calcul de l'ancienneté, de la période d'essai et des droits acquis." />
+                </div>
+                <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+              </div>
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-sm font-medium">Date de fin</label>
+                  <FieldTooltip content="Obligatoire pour les CDD et stages. Laissez vide pour les CDI. Une alerte est émise 30 jours avant l'échéance." />
+                </div>
+                <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                <FieldHint>Laisser vide pour un contrat à durée indéterminée (CDI).</FieldHint>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-sm font-medium">Salaire mensuel (XOF)</label>
+                  <FieldTooltip content="Salaire brut mensuel en FCFA convenu au contrat. Sert de base au calcul de la paie, des charges sociales et des indemnités légales." />
+                </div>
+                <Input type="number" value={form.monthlySalary} onChange={(e) => setForm({ ...form, monthlySalary: e.target.value })} placeholder="Ex. 450000" />
+                <FieldHint>Montant brut en FCFA, avant déductions.</FieldHint>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-sm font-medium">Lieu de travail</label>
+                  <FieldTooltip content="Site ou localisation d'affectation principale du collaborateur (ex. siège, chantier, ville). Utile pour les rapports RH et la gestion des déplacements." />
+                </div>
+                <Input value={form.workLocation} onChange={(e) => setForm({ ...form, workLocation: e.target.value })} placeholder="Ex. Lomé, Chantier Nord" />
+              </div>
             </div>
           </div>
           <DialogFooter>
