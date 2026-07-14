@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Search, UserPlus, X, ArrowUpDown, User, Keyboard } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
@@ -447,18 +448,14 @@ export default function CollaboratorsList() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <User className="w-10 h-10 mb-3 opacity-20" />
-          <p className="text-sm font-medium text-slate-600">Aucun collaborateur trouvé</p>
-          {hasFilters && (
-            <button
-              className="mt-2 text-xs text-primary hover:underline"
-              onClick={resetFilters}
-            >
-              Réinitialiser les filtres
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={User}
+          title={hasFilters ? "Aucun collaborateur ne correspond aux filtres" : "Aucun collaborateur enregistré"}
+          description={!hasFilters ? "Ajoutez les membres de votre équipe pour gérer leurs contrats, tâches et présences." : undefined}
+          actionLabel={hasFilters ? "Réinitialiser les filtres" : undefined}
+          onAction={hasFilters ? resetFilters : undefined}
+          className="py-16"
+        />
       ) : (
         <div
           data-tour="collab-list"

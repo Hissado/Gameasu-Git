@@ -1,18 +1,46 @@
-import React from "react";
-import { useListClients } from "@workspace/api-client-react";
+import React, { useState } from "react";
+import { useListClients, useCreateClient } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Filter, Building, Mail, Phone, MoreHorizontal, Eye, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientsList() {
   const { data, isLoading } = useListClients();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", industry: "", status: "prospect" });
+  const [formError, setFormError] = useState("");
+
+  const createMutation = useCreateClient({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["listClients"] });
+        setShowCreate(false);
+        setForm({ name: "", email: "", phone: "", industry: "", status: "prospect" });
+        setFormError("");
+        toast({ title: "Client créé avec succès" });
+      },
+      onError: () => toast({ title: "Erreur", description: "Impossible de créer le client.", variant: "destructive" }),
+    },
+  });
+
+  const handleCreate = () => {
+    if (!form.name.trim()) { setFormError("Le nom du client est requis."); return; }
+    setFormError("");
+    createMutation.mutate({ data: { name: form.name.trim(), email: form.email || undefined, phone: form.phone || undefined, industry: form.industry || undefined, status: form.status as "prospect" | "active" | "inactive" } });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -30,7 +58,7 @@ export default function ClientsList() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Annuaire Clients</h1>
           <p className="text-sm text-muted-foreground mt-1">Clients et prospects</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
           Nouveau Client
         </Button>
@@ -54,10 +82,8 @@ export default function ClientsList() {
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <div className="p-8 space-y-3">
+              {Array(5).fill(null).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
             </div>
           ) : (
             <Table>
@@ -78,6 +104,8 @@ export default function ClientsList() {
                         icon={Building}
                         title="Aucun client enregistré"
                         description="Ajoutez vos clients pour gérer leurs projets, devis et factures depuis l'ERP."
+                        actionLabel="Nouveau client"
+                        onAction={() => setShowCreate(true)}
                       />
                     </TableCell>
                   </TableRow>
@@ -131,6 +159,53 @@ export default function ClientsList() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouveau client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {formError && <p className="text-sm text-destructive font-medium">{formError}</p>}
+            <div className="space-y-1.5">
+              <Label>Nom <span className="text-destructive">*</span></Label>
+              <Input placeholder="SOGELEC Cameroun" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Secteur d'activité</Label>
+              <Input placeholder="BTP, Industrie, Commerce…" value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input type="email" placeholder="contact@client.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Téléphone</Label>
+                <Input placeholder="+228 90 00 00 00" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Statut</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                value={form.status}
+                onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+              >
+                <option value="prospect">Prospect</option>
+                <option value="active">Actif</option>
+                <option value="inactive">Inactif</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Création…" : "Créer le client"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

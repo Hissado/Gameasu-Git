@@ -134,7 +134,15 @@ export default function EntriesPage() {
             </thead>
             <tbody>
               {list?.data.length === 0 && (
-                <tr><td colSpan={9} className="p-8 text-center text-muted-foreground italic">Aucune écriture enregistrée</td></tr>
+                <tr>
+                  <td colSpan={9}>
+                    <div className="py-12 flex flex-col items-center gap-2 text-muted-foreground">
+                      <FileText className="w-8 h-8 opacity-25" />
+                      <p className="text-sm font-medium">Aucune écriture enregistrée</p>
+                      <p className="text-xs">Saisissez une nouvelle écriture comptable pour commencer.</p>
+                    </div>
+                  </td>
+                </tr>
               )}
               {list?.data.map((e) => (
                 <tr key={e.id} className="border-t hover:bg-slate-50 cursor-pointer" onClick={async () => setDetail(await apiFetch(`/api/accounting/entries/${e.id}`))}>

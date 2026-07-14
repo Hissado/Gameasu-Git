@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Copy, CheckCircle2, Trash2, Archive, FileSpreadsheet } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast as baseToast } from "@/hooks/use-toast";
 
 const toast = {
@@ -171,12 +173,20 @@ export default function BudgetsListPage() {
       </Card>
 
       <Card className="overflow-hidden">
-        {loading && <div className="p-6 text-sm text-muted-foreground">Chargement…</div>}
-        {!loading && budgets.length === 0 && (
-          <div className="p-12 text-center text-muted-foreground">
-            <p>Aucun budget pour ces filtres.</p>
-            <Button className="mt-4" onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />Créer le premier</Button>
+        {loading && (
+          <div className="p-8 space-y-3">
+            {Array(4).fill(null).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
           </div>
+        )}
+        {!loading && budgets.length === 0 && (
+          <EmptyState
+            icon={FileSpreadsheet}
+            title="Aucun budget pour ces filtres"
+            description="Créez votre premier budget annuel pour activer le pilotage et les analyses financières."
+            actionLabel="Créer un budget"
+            onAction={() => setCreateOpen(true)}
+            className="py-16"
+          />
         )}
         {!loading && budgets.length > 0 && (
           <div className="overflow-x-auto">
