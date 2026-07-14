@@ -452,8 +452,8 @@ export default function CollaboratorsList() {
           icon={User}
           title={hasFilters ? "Aucun collaborateur ne correspond aux filtres" : "Aucun collaborateur enregistré"}
           description={!hasFilters ? "Ajoutez les membres de votre équipe pour gérer leurs contrats, tâches et présences." : undefined}
-          actionLabel={hasFilters ? "Réinitialiser les filtres" : undefined}
-          onAction={hasFilters ? resetFilters : undefined}
+          actionLabel={hasFilters ? "Réinitialiser les filtres" : "Ajouter un collaborateur"}
+          onAction={hasFilters ? resetFilters : () => setAddOpen(true)}
           actionIcon={hasFilters ? null : undefined}
           className="py-16"
         />

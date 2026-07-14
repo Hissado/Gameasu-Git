@@ -21,7 +21,7 @@ export default function ClientsList() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", industry: "", status: "prospect" });
-  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
 
   const createMutation = useCreateClient({
     mutation: {
@@ -29,7 +29,7 @@ export default function ClientsList() {
         queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         setShowCreate(false);
         setForm({ name: "", email: "", phone: "", industry: "", status: "prospect" });
-        setFormError("");
+        setFieldErrors({});
         toast({ title: "Client créé avec succès" });
       },
       onError: () => toast({ title: "Erreur", description: "Impossible de créer le client.", variant: "destructive" }),
@@ -37,8 +37,11 @@ export default function ClientsList() {
   });
 
   const handleCreate = () => {
-    if (!form.name.trim()) { setFormError("Le nom du client est requis."); return; }
-    setFormError("");
+    const errors: { name?: string; email?: string } = {};
+    if (!form.name.trim()) errors.name = "Le nom du client est requis.";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "Adresse email invalide.";
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
     createMutation.mutate({ data: { name: form.name.trim(), email: form.email || undefined, phone: form.phone || undefined, industry: form.industry || undefined, status: form.status as "prospect" | "active" | "inactive" } });
   };
 
@@ -166,10 +169,15 @@ export default function ClientsList() {
             <DialogTitle>Nouveau client</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {formError && <p className="text-sm text-destructive font-medium">{formError}</p>}
             <div className="space-y-1.5">
               <Label>Nom <span className="text-destructive">*</span></Label>
-              <Input placeholder="SOGELEC Cameroun" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <Input
+                placeholder="SOGELEC Cameroun"
+                value={form.name}
+                onChange={e => { setForm(f => ({ ...f, name: e.target.value })); if (fieldErrors.name) setFieldErrors(fe => ({ ...fe, name: undefined })); }}
+                className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Secteur d'activité</Label>
@@ -178,7 +186,14 @@ export default function ClientsList() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Email</Label>
-                <Input type="email" placeholder="contact@client.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                <Input
+                  type="email"
+                  placeholder="contact@client.com"
+                  value={form.email}
+                  onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(fe => ({ ...fe, email: undefined })); }}
+                  className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Téléphone</Label>
