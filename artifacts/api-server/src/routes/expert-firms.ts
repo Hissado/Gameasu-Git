@@ -1564,6 +1564,130 @@ router.delete(
 );
 
 // ─────────────────────────────────────────────────────────────────
+// CLIENT PORTAL — demandes de documents côté organisation cliente
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/expert/client/document-requests
+ * Retourne toutes les demandes adressées à l'organisation de l'utilisateur connecté.
+ */
+router.get("/expert/client/document-requests", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  if (!orgId) return res.status(400).json({ error: "Aucune organisation associée à cet utilisateur" });
+
+  const rows = await db
+    .select()
+    .from(documentRequestsTable)
+    .where(eq(documentRequestsTable.orgId, orgId))
+    .orderBy(sql`${documentRequestsTable.createdAt} desc`);
+
+  return res.json(rows);
+});
+
+/**
+ * GET /api/expert/client/document-requests/upload-url
+ * Génère une URL de téléversement sécurisée pour qu'un client puisse déposer un fichier.
+ */
+router.get("/expert/client/document-requests/upload-url", async (_req, res) => {
+  try {
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    return res.json({ uploadURL, objectPath });
+  } catch (e: any) {
+    return res.status(503).json({ error: "Object storage non disponible", detail: e?.message });
+  }
+});
+
+/**
+ * PATCH /api/expert/client/document-requests/:id/submit
+ * Permet au client de déposer un fichier sur une demande en attente.
+ * Vérifie que la demande appartient bien à l'org de l'utilisateur.
+ */
+router.patch("/expert/client/document-requests/:id/submit", async (req, res) => {
+  const reqId = req.params.id as string;
+  const orgId = req.authUser!.organizationId;
+  if (!orgId) return res.status(400).json({ error: "Aucune organisation associée à cet utilisateur" });
+
+  const [existing] = await db
+    .select()
+    .from(documentRequestsTable)
+    .where(and(
+      eq(documentRequestsTable.id, reqId),
+      eq(documentRequestsTable.orgId, orgId),
+    ))
+    .limit(1);
+
+  if (!existing) return res.status(404).json({ error: "Demande introuvable" });
+  if (existing.status === "valide") return res.status(409).json({ error: "Cette demande est déjà validée" });
+
+  const { fileUrl, fileName } = req.body ?? {};
+  if (!fileUrl) return res.status(400).json({ error: "fileUrl requis" });
+
+  const [updated] = await db
+    .update(documentRequestsTable)
+    .set({
+      fileUrl,
+      fileName: fileName ?? null,
+      status: "recu",
+      respondedById: req.authUser!.id,
+      respondedAt: new Date(),
+    })
+    .where(eq(documentRequestsTable.id, reqId))
+    .returning();
+
+  await audit(req, "expert_doc_request_client_submit", {
+    entityType: "document_request",
+    entityId: updated.id,
+    organizationId: orgId,
+    payload: { fileName },
+  });
+
+  // ── Email notification au créateur de la demande ────────────────
+  try {
+    const [[firmInfo], [creator], [clientOrg]] = await Promise.all([
+      db.select({ name: expertFirmsTable.name, notificationsEnabled: expertFirmsTable.notificationsEnabled })
+        .from(expertFirmsTable)
+        .where(eq(expertFirmsTable.id, existing.firmId))
+        .limit(1),
+      existing.requestedById
+        ? db.select({ email: usersTable.email, firstName: usersTable.firstName, lastName: usersTable.lastName })
+            .from(usersTable)
+            .where(eq(usersTable.id, existing.requestedById))
+            .limit(1)
+        : Promise.resolve([null]),
+      db.select({ name: organizationsTable.name })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.id, orgId))
+        .limit(1),
+    ]);
+
+    if (firmInfo?.notificationsEnabled && creator?.email) {
+      const clientOrgName = clientOrg?.name ?? "Client";
+      const clientUserName =
+        [req.authUser!.firstName, req.authUser!.lastName].filter(Boolean).join(" ") ||
+        req.authUser!.email;
+      const reviewUrl = `${getPublicBaseUrl()}/expert/document-requests?orgId=${orgId}`;
+      const recipientName =
+        [creator.firstName, creator.lastName].filter(Boolean).join(" ") || creator.email;
+      const emailMsg = buildDocumentReceivedEmail({
+        recipientName,
+        firmName: firmInfo.name,
+        documentTitle: existing.title,
+        clientOrgName,
+        clientUserName,
+        reviewUrl,
+      });
+      emailMsg.to = creator.email;
+      await sendEmail(emailMsg);
+    }
+  } catch {
+    // Envoi email non-bloquant
+  }
+
+  return res.json(updated);
+});
+
+// ─────────────────────────────────────────────────────────────────
 // CONTEXT SESSION VALIDATION — utilitaire pour d'autres routes
 // ─────────────────────────────────────────────────────────────────
 /**

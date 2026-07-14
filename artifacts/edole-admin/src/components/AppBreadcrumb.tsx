@@ -180,6 +180,9 @@ const ROUTES: Array<{ pattern: RegExp; crumbs: Crumb[] }> = [
 
   // ── Documents ──────────────────────────────────────────────────
   { pattern: /^\/documents\//, crumbs: [{ label: "Accueil", href: "/" }, { label: "Documents" }, { label: "Prévisualisation" }] },
+
+  // ── Documents cabinet ───────────────────────────────────────────
+  { pattern: /^\/documents-cabinet/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Documents du cabinet" }] },
 ];
 
 export function AppBreadcrumb() {

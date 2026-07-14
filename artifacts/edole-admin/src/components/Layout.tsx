@@ -55,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Intelligence IA",  path: "/intelligence", icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true, description: "Analyse prédictive et recommandations intelligentes issues de vos données métier." },
       { name: "Assistant IA",     path: "/assistant-ia", icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights", description: "Assistant IA conversationnel pour rédiger, analyser et répondre à vos questions métier." },
       { name: "Approbations",     path: "/approbations", icon: CheckSquare,     moduleKey: "dashboard",       secondary: true, description: "Circuit de validation : demandes en attente de votre approbation ou signature." },
+      { name: "Documents cabinet", path: "/documents-cabinet", icon: FileText, description: "Documents demandés par votre cabinet comptable : déposez vos fichiers directement depuis l'ERP." },
     ],
   },
   {
@@ -276,6 +277,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   });
   const pendingApprovalsCount = approvalsData?.total ?? 0;
 
+  // Pending client document requests — polled every 90 s for sidebar badge
+  const { data: clientDocsData } = useQuery({
+    queryKey: ["expert/client/doc-requests", "count"],
+    queryFn: () => apiFetch<Array<{ status: string }>>("/api/expert/client/document-requests"),
+    refetchInterval: 90_000,
+    staleTime: 60_000,
+    enabled: !!user,
+    select: (rows) => rows.filter((r) => r.status === "en_attente" || r.status === "rejete").length,
+  });
+  const pendingClientDocsCount = clientDocsData ?? 0;
+
   // Collapsible groups — open the active one by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -435,6 +447,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                             {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
                             <item.icon className={`w-[14px] h-[14px] shrink-0 transition-colors duration-150 ${active ? "text-[#D9B86A]" : locked ? "text-white/20" : "text-white/35 group-hover/item:text-white/60"}`} strokeWidth={active ? 2 : 1.75} />
                             <span className="truncate flex-1">{item.name}</span>
+                            {item.path === "/documents-cabinet" && pendingClientDocsCount > 0 && (
+                              <span className="ml-1 shrink-0 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center px-1">
+                                {pendingClientDocsCount > 99 ? "99+" : pendingClientDocsCount}
+                              </span>
+                            )}
                             {locked && <Lock className="w-3 h-3 text-white/20 shrink-0" strokeWidth={2} />}
                           </Link>
                         );

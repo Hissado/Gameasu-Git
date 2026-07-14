@@ -196,6 +196,7 @@ const ExpertUsersPermissions = lazy(() => import("@/pages/expert/users-permissio
 const ExpertDocumentRequests = lazy(() => import("@/pages/expert/document-requests"));
 const ExpertReports = lazy(() => import("@/pages/expert/reports"));
 const ExpertFirmSettings = lazy(() => import("@/pages/expert/firm-settings"));
+const ClientDocuments = lazy(() => import("@/pages/client-documents/index"));
 const BtpPointage = lazy(() => import("@/pages/hr/btp-pointage"));
 const BtpPaie = lazy(() => import("@/pages/hr/btp-paie"));
 const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
@@ -469,6 +470,8 @@ function AppRouter() {
                 <Route path="/expert/document-requests" component={ExpertDocumentRequests} />
                 <Route path="/expert/reports" component={ExpertReports} />
                 <Route path="/expert/firm-settings" component={ExpertFirmSettings} />
+
+                <Route path="/documents-cabinet" component={ClientDocuments} />
 
                 <Route component={NotFound} />
               </Switch>
