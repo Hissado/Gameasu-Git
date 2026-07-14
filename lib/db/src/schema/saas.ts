@@ -564,7 +564,7 @@ export const productSuggestionsTable = pgTable("product_suggestions", {
   browserInfo: text("browser_info"),
   deviceInfo: text("device_info"),
   screenshotUrl: text("screenshot_url"),
-  assignedTo: uuid("assigned_to").references(() => usersTable.id, { onDelete: "set null" }),
+  assignedTo: text("assigned_to"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({

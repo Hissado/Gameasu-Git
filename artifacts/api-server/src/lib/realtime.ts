@@ -30,6 +30,8 @@ export function initRealtime(httpServer: HttpServer): IOServer {
       if (!users[0] || !users[0].isActive) return next(new Error("Utilisateur invalide"));
       socket.data["userId"] = users[0].id;
       socket.data["userName"] = `${users[0].firstName} ${users[0].lastName}`;
+      socket.data["role"] = users[0].role;
+      socket.data["organizationId"] = users[0].organizationId;
       next();
     } catch (e) {
       next(new Error("Auth WS échouée"));
@@ -38,13 +40,27 @@ export function initRealtime(httpServer: HttpServer): IOServer {
 
   io.on("connection", async (socket: Socket) => {
     const userId = socket.data["userId"] as string;
+    const role = socket.data["role"] as string;
+    const organizationId = socket.data["organizationId"] as string | undefined;
+
+    // Personal room
     socket.join(`user:${userId}`);
+
+    // Org room — ERP users receive org-scoped events
+    if (organizationId) {
+      socket.join(`org:${organizationId}`);
+    }
+
+    // Super-admin room — Cockpit receives platform-wide events
+    if (role === "super_admin") {
+      socket.join("room:super-admin");
+    }
+
     await upsertPresence(userId, "online");
     socket.broadcast.emit("presence:update", { userId, status: "online", lastSeenAt: new Date().toISOString() });
 
     socket.on("conversation:join", async (conversationId: string) => {
       if (typeof conversationId !== "string" || !/^[0-9a-f-]{36}$/i.test(conversationId)) return;
-      // RBAC: refuse l'accès aux conversations dont l'utilisateur n'est pas participant.
       const part = await db.select({ id: conversationParticipantsTable.id })
         .from(conversationParticipantsTable)
         .where(and(
@@ -114,7 +130,14 @@ export function emitToUser(userId: string, event: string, payload: unknown) {
   _io.to(`user:${userId}`).emit(event, payload);
 }
 
-export function emitToAll(event: string, payload: unknown) {
+/** Emit to all connected super-admins (Cockpit users). */
+export function emitToSuperAdmins(event: string, payload: unknown) {
   if (!_io) return;
-  _io.emit(event, payload);
+  _io.to("room:super-admin").emit(event, payload);
+}
+
+/** Emit to all members of a specific organization. */
+export function emitToOrg(organizationId: string, event: string, payload: unknown) {
+  if (!_io) return;
+  _io.to(`org:${organizationId}`).emit(event, payload);
 }

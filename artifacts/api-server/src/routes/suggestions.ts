@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, productSuggestionsTable, suggestionEventsTable, usersTable, organizationsTable } from "@workspace/db";
 import { eq, and, desc, count, ilike, or, sql } from "drizzle-orm";
-import { emitToAll } from "../lib/realtime";
+import { emitToSuperAdmins, emitToOrg } from "../lib/realtime";
 
 const router = Router();
 
@@ -40,8 +40,16 @@ router.post("/api/suggestions", async (req, res, next) => {
 
     const category = VALID_CATEGORIES.includes(body.category as any) ? body.category! : "autre";
     const priority = VALID_PRIORITIES.includes(body.priority as any) ? body.priority! : "normale";
-    const browserInfo = req.headers["user-agent"] ?? null;
-    const currentPage = body.currentUrl ?? null;
+    const userAgent = req.headers["user-agent"] ?? null;
+    const currentUrl = body.currentUrl ?? null;
+
+    // Store metadata as JSON: browser user-agent + current page URL
+    const browserInfo = userAgent;
+    const deviceInfo = JSON.stringify({
+      url: currentUrl,
+      userAgent,
+      timestamp: new Date().toISOString(),
+    });
 
     const [row] = await db
       .insert(productSuggestionsTable)
@@ -55,12 +63,12 @@ router.post("/api/suggestions", async (req, res, next) => {
         module: body.module ?? null,
         browserInfo,
         screenshotUrl: body.screenshotUrl ?? null,
-        deviceInfo: currentPage ?? null,
+        deviceInfo,
       })
       .returning();
 
-    // Notify super-admins in realtime
-    emitToAll("suggestion:new", {
+    // Notify super-admins only (no org data leaked to other tenants)
+    emitToSuperAdmins("suggestion:new", {
       id: row.id,
       title: row.title,
       category: row.category,
@@ -364,8 +372,9 @@ router.patch("/api/super-admin/suggestions/:id/status", async (req, res, next) =
       authorId: req.authUser!.id,
     });
 
-    // Notify org users that their suggestion was updated
-    emitToAll("suggestion:updated", { id, status, organizationId: updated.organizationId });
+    // Notify the suggestion's org + super-admins (scoped, no cross-tenant leakage)
+    emitToOrg(updated.organizationId, "suggestion:updated", { id, status });
+    emitToSuperAdmins("suggestion:updated", { id, status, organizationId: updated.organizationId });
 
     return res.json(updated);
   } catch (e) {
