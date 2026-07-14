@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building2, Plus, Mail, Phone, FileSignature, Search, Users } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Building2, Plus, Mail, Phone, FileSignature, Search, Users, MoreVertical, Edit, Eye } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientFormDialog, type ClientFull } from "./ClientFormDialog";
+import { toast } from "sonner";
 
 type Client = {
   id: string;
@@ -40,6 +44,7 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientsWorkspace() {
   const qc = useQueryClient();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editClient, setEditClient] = useState<ClientFull | null>(null);
@@ -54,6 +59,16 @@ export default function ClientsWorkspace() {
   function openCreate() {
     setEditClient(null);
     setDialogOpen(true);
+  }
+
+  async function openEdit(id: string) {
+    try {
+      const full: ClientFull = await apiFetch(`/api/clients/${id}`);
+      setEditClient(full);
+      setDialogOpen(true);
+    } catch {
+      toast.error("Impossible de charger les données du client");
+    }
   }
 
   function handleSuccess() {
@@ -151,14 +166,40 @@ export default function ClientsWorkspace() {
                   </CardContent>
                 </Card>
               </Link>
-              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Link href="/devis">
-                  <button
-                    title="Créer un devis pour ce client"
-                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md transition-colors">
-                    <FileSignature className="w-3 h-3" /> Devis
-                  </button>
-                </Link>
+
+              {/* Menu actions — positionné en dehors du Link pour ne pas déclencher la navigation */}
+              <div className="absolute top-2 right-2 z-10" onClick={e => e.preventDefault()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-md bg-white/90 hover:bg-white border border-border shadow-sm"
+                      title="Actions"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                      className="gap-2 text-sm"
+                      onClick={() => openEdit(c.id)}
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2 text-sm"
+                      onClick={() => navigate(`/clients/${c.id}`)}
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Voir la fiche
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2 text-sm"
+                      onClick={() => navigate("/devis")}
+                    >
+                      <FileSignature className="w-3.5 h-3.5" /> Créer un devis
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           );
