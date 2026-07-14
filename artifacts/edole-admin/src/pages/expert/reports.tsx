@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useActiveFirm, useExpertDashboard, useExpertClients, useExpertClientKpis } from "@/lib/expert-api";
+import { useActiveFirm, useExpertDashboard, useExpertFirmReports, type ClientReportRow } from "@/lib/expert-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatFCFA } from "@/lib/format";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Building2, Upload, TrendingUp, AlertCircle, FolderKanban, Loader2, BarChart2 } from "lucide-react";
+import { Building2, Download, TrendingUp, AlertCircle, Loader2, BarChart2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatBadge({ value, label, color = "blue" }: { value: string | number; label: string; color?: string }) {
@@ -20,30 +20,58 @@ function StatBadge({ value, label, color = "blue" }: { value: string | number; l
   );
 }
 
+function exportCsv(rows: ClientReportRow[]) {
+  const headers = [
+    "Organisation", "Pays", "Plan", "Niveau d'accès", "Statut",
+    "CA facturé (FCFA)", "Encaissé (FCFA)", "Dépenses (FCFA)", "Trésorerie (FCFA)",
+    "Projets actifs", "Docs en attente", "Factures impayées",
+  ];
+  const escape = (v: string | number) => {
+    const s = String(v);
+    return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [
+    headers.map(escape).join(","),
+    ...rows.map((r) =>
+      [
+        r.name, r.country, r.planName ?? "—", r.accessLevel,
+        r.isActive ? "Actif" : "Inactif",
+        r.invoiced, r.paid, r.totalExpenses, r.paid,
+        r.activeProjects, r.pendingDocs, r.unpaidInvoices,
+      ].map(escape).join(",")
+    ),
+    [
+      "TOTAL", "", "", "", "",
+      rows.reduce((s, r) => s + r.invoiced, 0),
+      rows.reduce((s, r) => s + r.paid, 0),
+      rows.reduce((s, r) => s + r.totalExpenses, 0),
+      rows.reduce((s, r) => s + r.paid, 0),
+      rows.reduce((s, r) => s + r.activeProjects, 0),
+      rows.reduce((s, r) => s + r.pendingDocs, 0),
+      rows.reduce((s, r) => s + r.unpaidInvoices, 0),
+    ].map(escape).join(","),
+  ];
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapport-clients-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function ExpertReportsPage() {
   const { firmId } = useActiveFirm();
-  const { data: clients, isLoading: loadClients } = useExpertClients(firmId);
+  const { data: reports, isLoading } = useExpertFirmReports(firmId);
   const { data: dashboard } = useExpertDashboard(firmId);
-  const { data: clientKpis, isLoading: loadKpis } = useExpertClientKpis(firmId);
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
 
-  const kpiMap = Object.fromEntries((clientKpis ?? []).map((k) => [k.orgId, k]));
-
-  const perClientFinancial = (clients ?? []).map((c) => {
-    const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalExpenses: 0, totalPaid: 0 };
-    const label = c.org.name.length > 14 ? c.org.name.slice(0, 13) + "…" : c.org.name;
-    return { name: label, ca: kpi.totalInvoiced, depenses: kpi.totalExpenses ?? 0, encaisse: kpi.totalPaid };
-  });
-
-  const perClientActivity = (clients ?? []).map((c) => {
-    const kpi = kpiMap[c.orgId] ?? { activeProjects: 0, unpaidInvoices: 0, pendingDocs: 0 };
-    const label = c.org.name.length > 14 ? c.org.name.slice(0, 13) + "…" : c.org.name;
-    return { name: label, projets: kpi.activeProjects, impayes: kpi.unpaidInvoices, docs: kpi.pendingDocs };
-  });
-
-  const handleExport = async () => {
-    if (!firmId || !clients?.length) return;
+  const handleExportXlsx = async () => {
+    if (!firmId || !reports?.length) return;
     setExporting(true);
     try {
       const token = localStorage.getItem("auth_token");
@@ -63,10 +91,16 @@ export default function ExpertReportsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast({ title: "Export Excel téléchargé", description: `${clients.length} client${clients.length > 1 ? "s" : ""}` });
+      toast({ title: "Export Excel téléchargé", description: `${reports.length} client${reports.length > 1 ? "s" : ""}` });
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleExportCsv = () => {
+    if (!reports?.length) return;
+    exportCsv(reports);
+    toast({ title: "Export CSV téléchargé", description: `${reports.length} client${reports.length > 1 ? "s" : ""}` });
   };
 
   if (!firmId) {
@@ -79,27 +113,33 @@ export default function ExpertReportsPage() {
 
   const kpis = dashboard ?? { clientCount: 0, activeSubscriptions: 0, pendingDocumentRequests: 0, totalInvoiced: 0, totalPaid: 0, activeProjects: 0 };
 
-  const planData = Object.entries(
-    (clients ?? []).reduce<Record<string, number>>((acc, c) => {
-      const plan = c.subscription?.planName ?? "Sans plan";
-      acc[plan] = (acc[plan] ?? 0) + 1;
-      return acc;
-    }, {})
-  ).map(([plan, count]) => ({ plan, count }));
+  const perClientFinancial = (reports ?? []).map((r) => {
+    const label = r.name.length > 14 ? r.name.slice(0, 13) + "…" : r.name;
+    return { name: label, ca: r.invoiced, encaisse: r.paid, depenses: r.totalExpenses };
+  });
 
-  const isLoading = loadClients || loadKpis;
+  const perClientActivity = (reports ?? []).map((r) => {
+    const label = r.name.length > 14 ? r.name.slice(0, 13) + "…" : r.name;
+    return { name: label, projets: r.activeProjects, impayes: r.unpaidInvoices, docs: r.pendingDocs };
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Rapports consolidés</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Vue agrégée de tous vos clients</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Vue agrégée de tous vos clients — données en temps réel</p>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={!clients?.length || exporting}>
-          {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          {exporting ? "Export…" : "Exporter Excel"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!reports?.length}>
+            <FileText className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportXlsx} disabled={!reports?.length || exporting}>
+            {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            {exporting ? "Export…" : "Excel"}
+          </Button>
+        </div>
       </div>
 
       {/* Global KPIs */}
@@ -133,7 +173,7 @@ export default function ExpertReportsPage() {
             <div className="px-5 pb-5 space-y-2">
               {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-12 bg-muted animate-pulse rounded" />)}
             </div>
-          ) : !clients?.length ? (
+          ) : !reports?.length ? (
             <div className="flex items-center gap-2 px-5 py-10 text-muted-foreground text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>Aucun client lié à ce cabinet.</span>
@@ -156,28 +196,27 @@ export default function ExpertReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((c, i) => {
-                    const kpi = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0, totalExpenses: 0 };
-                    const treso = kpi.totalPaid;
+                  {reports.map((r, i) => {
+                    const treso = r.paid;
                     return (
-                      <tr key={c.id} className={`border-b last:border-0 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
+                      <tr key={r.orgId} className={`border-b last:border-0 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
                         <td className="px-5 py-3 font-medium sticky left-0 bg-background z-10">
-                          <span className="truncate max-w-[160px] block">{c.org.name}</span>
-                          <span className="text-xs text-muted-foreground">{c.org.country}</span>
+                          <span className="truncate max-w-[160px] block">{r.name}</span>
+                          <span className="text-xs text-muted-foreground">{r.country}</span>
                         </td>
                         <td className="px-4 py-3">
-                          {c.subscription ? (
-                            <Badge variant="outline" className="text-[10px] whitespace-nowrap">{c.subscription.planName}</Badge>
+                          {r.planName ? (
+                            <Badge variant="outline" className="text-[10px] whitespace-nowrap">{r.planName}</Badge>
                           ) : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">
-                          {kpi.totalInvoiced > 0 ? formatFCFA(kpi.totalInvoiced) : <span className="text-muted-foreground">—</span>}
+                          {r.invoiced > 0 ? formatFCFA(r.invoiced) : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-emerald-700">
-                          {kpi.totalPaid > 0 ? formatFCFA(kpi.totalPaid) : <span className="text-muted-foreground">—</span>}
+                          {r.paid > 0 ? formatFCFA(r.paid) : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-red-600">
-                          {kpi.totalExpenses > 0 ? formatFCFA(kpi.totalExpenses) : <span className="text-muted-foreground">—</span>}
+                          {r.totalExpenses > 0 ? formatFCFA(r.totalExpenses) : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">
                           {treso > 0 ? <span className="text-emerald-700">{formatFCFA(treso)}</span>
@@ -185,43 +224,39 @@ export default function ExpertReportsPage() {
                             : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {kpi.activeProjects > 0
-                            ? <span className="font-semibold text-purple-700">{kpi.activeProjects}</span>
+                          {r.activeProjects > 0
+                            ? <span className="font-semibold text-purple-700">{r.activeProjects}</span>
                             : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {kpi.pendingDocs > 0
-                            ? <span className="font-semibold text-amber-600">{kpi.pendingDocs}</span>
+                          {r.pendingDocs > 0
+                            ? <span className="font-semibold text-amber-600">{r.pendingDocs}</span>
                             : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {kpi.unpaidInvoices > 0
-                            ? <span className="font-semibold text-red-600">{kpi.unpaidInvoices}</span>
+                          {r.unpaidInvoices > 0
+                            ? <span className="font-semibold text-red-600">{r.unpaidInvoices}</span>
                             : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${c.isActive ? "text-emerald-600" : "text-red-500"}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-red-400"}`} />
-                            {c.isActive ? "Actif" : "Inactif"}
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${r.isActive ? "text-emerald-600" : "text-red-500"}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${r.isActive ? "bg-emerald-500" : "bg-red-400"}`} />
+                            {r.isActive ? "Actif" : "Inactif"}
                           </span>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
-                {/* Totals footer */}
-                {clients.length > 1 && (() => {
-                  const tot = clients.reduce((acc, c) => {
-                    const k = kpiMap[c.orgId] ?? { totalInvoiced: 0, totalPaid: 0, activeProjects: 0, pendingDocs: 0, unpaidInvoices: 0, totalExpenses: 0 };
-                    return {
-                      inv: acc.inv + k.totalInvoiced,
-                      paid: acc.paid + k.totalPaid,
-                      exp: acc.exp + (k.totalExpenses ?? 0),
-                      proj: acc.proj + k.activeProjects,
-                      docs: acc.docs + k.pendingDocs,
-                      unpaid: acc.unpaid + k.unpaidInvoices,
-                    };
-                  }, { inv: 0, paid: 0, exp: 0, proj: 0, docs: 0, unpaid: 0 });
+                {reports.length > 1 && (() => {
+                  const tot = reports.reduce((acc, r) => ({
+                    inv: acc.inv + r.invoiced,
+                    paid: acc.paid + r.paid,
+                    exp: acc.exp + r.totalExpenses,
+                    proj: acc.proj + r.activeProjects,
+                    docs: acc.docs + r.pendingDocs,
+                    unpaid: acc.unpaid + r.unpaidInvoices,
+                  }), { inv: 0, paid: 0, exp: 0, proj: 0, docs: 0, unpaid: 0 });
                   return (
                     <tfoot>
                       <tr className="bg-muted/30 border-t-2 font-semibold">
@@ -245,7 +280,7 @@ export default function ExpertReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Per-client financial comparison chart */}
+      {/* Per-client financial comparison chart — facturé vs encaissé */}
       {perClientFinancial.length > 0 && (
         <Card>
           <CardHeader className="pb-3">

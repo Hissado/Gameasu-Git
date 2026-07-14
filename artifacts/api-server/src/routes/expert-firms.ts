@@ -1296,6 +1296,127 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────
+// RAPPORT CONSOLIDÉ PAR CLIENT — GET /expert/firms/:firmId/reports
+// Retourne une ligne par client avec org info + KPIs financiers/activité
+// ─────────────────────────────────────────────────────────────────
+router.get("/expert/firms/:firmId/reports", requireExpertFirmMember, async (req, res) => {
+  const { firmId } = req.params as Record<string, string>;
+
+  const clientRows = await db
+    .select({
+      orgId: expertClientAccessTable.orgId,
+      isActive: expertClientAccessTable.isActive,
+      accessLevel: expertClientAccessTable.accessLevel,
+      orgName: organizationsTable.name,
+      orgCountry: organizationsTable.country,
+      orgSlug: organizationsTable.slug,
+      planName: subscriptionPlansTable.name,
+      planCode: subscriptionPlansTable.code,
+    })
+    .from(expertClientAccessTable)
+    .leftJoin(organizationsTable, eq(organizationsTable.id, expertClientAccessTable.orgId))
+    .leftJoin(
+      organizationSubscriptionsTable,
+      and(
+        eq(organizationSubscriptionsTable.organizationId, expertClientAccessTable.orgId),
+        eq(organizationSubscriptionsTable.isCurrent, true),
+      ),
+    )
+    .leftJoin(subscriptionPlansTable, eq(subscriptionPlansTable.id, organizationSubscriptionsTable.planId))
+    .where(and(
+      eq(expertClientAccessTable.firmId, firmId),
+      eq(expertClientAccessTable.isActive, true),
+    ));
+
+  const orgIds = clientRows.map((r) => r.orgId);
+  if (!orgIds.length) return res.json([]);
+
+  const [invoiceKpis, projectKpis, docKpis, unpaidKpis, expenseKpis] = await Promise.all([
+    db.select({
+      orgId: invoicesTable.organizationId,
+      invoiced: sql<number>`coalesce(sum(${invoicesTable.totalAmount}::numeric), 0)`,
+      paid: sql<number>`coalesce(sum(${invoicesTable.paidAmount}::numeric), 0)`,
+    })
+    .from(invoicesTable)
+    .where(and(
+      inArray(invoicesTable.organizationId, orgIds),
+      sql`${invoicesTable.status} not in ('draft', 'cancelled')`,
+    ))
+    .groupBy(invoicesTable.organizationId),
+
+    db.select({
+      orgId: projectsTable.organizationId,
+      activeProjects: sql<number>`count(*)`,
+    })
+    .from(projectsTable)
+    .where(and(
+      inArray(projectsTable.organizationId, orgIds),
+      sql`${projectsTable.status} in ('in_progress', 'on_hold', 'active')`,
+    ))
+    .groupBy(projectsTable.organizationId),
+
+    db.select({
+      orgId: documentRequestsTable.orgId,
+      pendingDocs: sql<number>`count(*)`,
+    })
+    .from(documentRequestsTable)
+    .where(and(
+      eq(documentRequestsTable.firmId, firmId),
+      inArray(documentRequestsTable.orgId, orgIds),
+      eq(documentRequestsTable.status, "en_attente"),
+    ))
+    .groupBy(documentRequestsTable.orgId),
+
+    db.select({
+      orgId: invoicesTable.organizationId,
+      unpaidInvoices: sql<number>`count(*)`,
+    })
+    .from(invoicesTable)
+    .where(and(
+      inArray(invoicesTable.organizationId, orgIds),
+      sql`${invoicesTable.status} in ('sent', 'overdue', 'partial')`,
+    ))
+    .groupBy(invoicesTable.organizationId),
+
+    db.select({
+      orgId: expenseReportsTable.organizationId,
+      totalExpenses: sql<number>`coalesce(sum(${expenseReportsTable.totalAmount}::numeric), 0)`,
+    })
+    .from(expenseReportsTable)
+    .where(and(
+      inArray(expenseReportsTable.organizationId, orgIds),
+      sql`${expenseReportsTable.status} in ('approved', 'paid')`,
+    ))
+    .groupBy(expenseReportsTable.organizationId),
+  ]);
+
+  const invMap    = Object.fromEntries(invoiceKpis.map((r) => [r.orgId, r]));
+  const projMap   = Object.fromEntries(projectKpis.map((r) => [r.orgId, r]));
+  const docMap    = Object.fromEntries(docKpis.map((r) => [r.orgId, r]));
+  const unpaidMap = Object.fromEntries(unpaidKpis.map((r) => [r.orgId, r]));
+  const expMap    = Object.fromEntries(expenseKpis.map((r) => [r.orgId, r]));
+
+  const result = clientRows.map((c) => ({
+    orgId:          c.orgId,
+    name:           c.orgName ?? "",
+    country:        c.orgCountry ?? "",
+    slug:           c.orgSlug ?? "",
+    isActive:       c.isActive,
+    accessLevel:    c.accessLevel,
+    planName:       c.planName ?? null,
+    planCode:       c.planCode ?? null,
+    invoiced:       Number(invMap[c.orgId]?.invoiced      ?? 0),
+    paid:           Number(invMap[c.orgId]?.paid          ?? 0),
+    activeProjects: Number(projMap[c.orgId]?.activeProjects ?? 0),
+    pendingDocs:    Number(docMap[c.orgId]?.pendingDocs   ?? 0),
+    unpaidInvoices: Number(unpaidMap[c.orgId]?.unpaidInvoices ?? 0),
+    totalExpenses:  Number(expMap[c.orgId]?.totalExpenses ?? 0),
+  }));
+
+  return res.json(result);
+});
+
+// ─────────────────────────────────────────────────────────────────
 // XLSX EXPORT — GET /expert/firms/:firmId/export-report.xlsx
 // ─────────────────────────────────────────────────────────────────
 router.get(

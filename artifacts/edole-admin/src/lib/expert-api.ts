@@ -67,6 +67,23 @@ export type ClientKpi = {
   totalExpenses: number;
 };
 
+export type ClientReportRow = {
+  orgId: string;
+  name: string;
+  country: string;
+  slug: string;
+  isActive: boolean;
+  accessLevel: string;
+  planName: string | null;
+  planCode: string | null;
+  invoiced: number;
+  paid: number;
+  activeProjects: number;
+  pendingDocs: number;
+  unpaidInvoices: number;
+  totalExpenses: number;
+};
+
 export type ExpertContextSession = {
   contextToken: string;
   targetOrgId: string;
@@ -166,6 +183,15 @@ export function useExpertClientKpis(firmId: string | null) {
   return useQuery({
     queryKey: ["expert/client-kpis", firmId],
     queryFn: () => apiFetch<ClientKpi[]>(`/api/expert/firms/${firmId}/client-kpis`),
+    enabled: !!firmId,
+    staleTime: 3 * 60_000,
+  });
+}
+
+export function useExpertFirmReports(firmId: string | null) {
+  return useQuery({
+    queryKey: ["expert/reports", firmId],
+    queryFn: () => apiFetch<ClientReportRow[]>(`/api/expert/firms/${firmId}/reports`),
     enabled: !!firmId,
     staleTime: 3 * 60_000,
   });
