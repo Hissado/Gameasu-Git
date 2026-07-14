@@ -1090,8 +1090,14 @@ export default function CollaboratorDetail() {
   }, [id, navigate]);
 
   type SidebarSort = "name_asc" | "name_desc" | "hire_desc" | "hire_asc" | "workload_desc";
-  const sidebarSort = (searchParams.get("sort") ?? "name_asc") as SidebarSort;
+  const SORT_STORAGE_KEY = "collab_sidebar_sort";
+  const sidebarSort = (searchParams.get("sort") ?? (localStorage.getItem(SORT_STORAGE_KEY) as SidebarSort | null) ?? "name_asc") as SidebarSort;
   const setSidebarSort = useCallback((value: SidebarSort) => {
+    if (value === "name_asc") {
+      localStorage.removeItem(SORT_STORAGE_KEY);
+    } else {
+      localStorage.setItem(SORT_STORAGE_KEY, value);
+    }
     const p = new URLSearchParams(window.location.search);
     if (value === "name_asc") p.delete("sort"); else p.set("sort", value);
     const qs = p.toString();
@@ -1623,7 +1629,10 @@ export default function CollaboratorDetail() {
             {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all" || sidebarSort !== "name_asc") && (
               <button
                 className="ml-2 text-primary hover:underline"
-                onClick={() => navigate(`/collaborateurs/${id}`, { replace: true })}
+                onClick={() => {
+                  localStorage.removeItem(SORT_STORAGE_KEY);
+                  navigate(`/collaborateurs/${id}`, { replace: true });
+                }}
               >
                 Réinitialiser
               </button>
