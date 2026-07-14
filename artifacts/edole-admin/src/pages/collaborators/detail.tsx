@@ -1616,7 +1616,10 @@ export default function CollaboratorDetail() {
           </div>
 
           <p className="text-[11px] text-muted-foreground px-0.5">
-            {filteredCollabs.length} collaborateur{filteredCollabs.length !== 1 ? "s" : ""}
+            {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all" || sidebarSearch.trim() !== "")
+              ? <>{filteredCollabs.length} sur {allCollabs.length} collaborateur{allCollabs.length !== 1 ? "s" : ""}</>
+              : <>{allCollabs.length} collaborateur{allCollabs.length !== 1 ? "s" : ""}</>
+            }
             {(sidebarStatusFilter !== "all" || sidebarDeptFilter !== "all" || sidebarSort !== "name_asc") && (
               <button
                 className="ml-2 text-primary hover:underline"
