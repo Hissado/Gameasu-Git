@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle, FileText, ChevronLeft } from "lucide-react";
+import { Plus, Search, ChevronRight, Package, ArrowRight, Trash2, CheckCircle2, XCircle, FileText, ChevronLeft, PackagePlus } from "lucide-react";
 import { StatusBadgePO, StatusBadgePurchases, PO_STATUS_MAP, VendorSelect, type Supplier } from "./_shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,20 +45,106 @@ type LinkedInvoice = {
 
 const PAGE_SIZE = 25;
 
+// ─── Quick Create Product dialog ──────────────────────────────────────────────
+
+function QuickCreateProductDialog({
+  onClose,
+  onCreated,
+  defaultSupplierId,
+}: {
+  onClose: () => void;
+  onCreated: (product: Product) => void;
+  defaultSupplierId?: string;
+}) {
+  const [name, setName] = useState("");
+  const [unit, setUnit] = useState("pcs");
+  const [price, setPrice] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) { toast.error("Le nom du produit est requis"); return; }
+    setSaving(true);
+    try {
+      const product = await apiFetch<Product>("/api/purchases/products", {
+        method: "POST",
+        body: JSON.stringify({
+          name: name.trim(),
+          unit,
+          purchasePriceFcfa: price,
+          supplierId: defaultSupplierId ?? null,
+        }),
+      });
+      toast.success(`Produit "${product.name}" créé (SKU : ${product.sku})`);
+      onCreated(product);
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur lors de la création du produit");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PackagePlus className="w-5 h-5 text-primary" />
+            Créer un produit
+          </DialogTitle>
+          <DialogDescription>Ajout rapide au catalogue. Vous pourrez compléter les détails depuis le module Inventaire.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Nom du produit *</Label>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Ciment Portland 50 kg" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Unité</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["pcs", "kg", "t", "m", "m²", "m³", "l", "sac", "carton", "palette", "lot"].map(u => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Prix achat HT (FCFA)</Label>
+              <Input type="number" min="0" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">
+            {saving ? "Création…" : "Créer le produit"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── New PO dialog ────────────────────────────────────────────────────────────
 
 function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string) => void }) {
+  const qc = useQueryClient();
   const { data: productsRes } = useQuery<{ data: Product[] }>({
     queryKey: ["purchases-products"],
     queryFn: () => apiFetch("/api/purchases/products"),
   });
-  const products = productsRes?.data ?? [];
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const products = [...(productsRes?.data ?? []), ...localProducts.filter(lp => !(productsRes?.data ?? []).some(p => p.id === lp.id))];
 
   const [supplierId, setSupplierId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PoLine[]>([{ productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   const [saving, setSaving] = useState(false);
+  const [quickCreateIdx, setQuickCreateIdx] = useState<number | null>(null);
 
   const addLine = () => setLines(l => [...l, { productId: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   const removeLine = (idx: number) => setLines(l => l.filter((_, i) => i !== idx));
@@ -68,6 +154,12 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
     if (p) updateLine(idx, { productId: pid, description: p.name, unitPrice: Number(p.purchasePriceFcfa) || 0 });
   };
   const totalTtc = lines.reduce((s, l) => s + l.quantity * l.unitPrice * (1 + l.taxRate / 100), 0);
+
+  const handleProductCreated = (product: Product, lineIdx: number) => {
+    setLocalProducts(prev => [...prev, product]);
+    qc.invalidateQueries({ queryKey: ["purchases-products"] });
+    updateLine(lineIdx, { productId: product.id, description: product.name, unitPrice: Number(product.purchasePriceFcfa) || 0 });
+  };
 
   const handleSave = async () => {
     if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
@@ -86,74 +178,97 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   };
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-[#2563EB]" /> Nouveau bon de commande</DialogTitle>
-          <DialogDescription>Créez un BC pour commander auprès d'un fournisseur.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Fournisseur *</Label>
-              <VendorSelect value={supplierId} onValueChange={setSupplierId} />
+    <>
+      <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-[#2563EB]" /> Nouveau bon de commande</DialogTitle>
+            <DialogDescription>Créez un BC pour commander auprès d'un fournisseur.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Fournisseur *</Label>
+                <VendorSelect value={supplierId} onValueChange={setSupplierId} />
+              </div>
+              <div className="space-y-1"><Label>Date livraison prévue</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></div>
             </div>
-            <div className="space-y-1"><Label>Date livraison prévue</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></div>
-          </div>
-          <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Lignes de commande *</Label>
-              <Button type="button" size="sm" variant="outline" onClick={addLine}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
-            </div>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-24">P.U. HT</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-14">TVA%</th>
-                    <th className="text-right p-2 font-medium text-muted-foreground w-24">Total TTC</th>
-                    <th className="w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, idx) => (
-                    <tr key={idx} className="border-t">
-                      <td className="p-1.5 w-36">
-                        <Select value={l.productId || "_none"} onValueChange={(v) => v === "_none" ? updateLine(idx, { productId: "" }) : selectProduct(idx, v)}>
-                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Produit…" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="_none">— Manuel —</SelectItem>
-                            {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="p-1.5"><Input className="h-7 text-xs" value={l.description} onChange={(e) => updateLine(idx, { description: e.target.value })} placeholder="Description" /></td>
-                      <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value) })} /></td>
-                      <td className="p-1.5"><Input className="h-7 text-xs text-right" type="number" min="0" value={l.unitPrice} onChange={(e) => updateLine(idx, { unitPrice: Number(e.target.value) })} /></td>
-                      <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => updateLine(idx, { taxRate: Number(e.target.value) })} /></td>
-                      <td className="p-1.5 text-right text-xs font-medium">{formatFCFA(l.quantity * l.unitPrice * (1 + l.taxRate / 100))}</td>
-                      <td className="p-1.5"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400" onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash2 className="w-3 h-3" /></Button></td>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Lignes de commande *</Label>
+                <Button type="button" size="sm" variant="outline" onClick={addLine}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Produit</th>
+                      <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground w-24">P.U. HT</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground w-14">TVA%</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground w-24">Total TTC</th>
+                      <th className="w-8"></th>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-slate-50 border-t">
-                  <tr><td colSpan={5} className="p-2 text-right font-semibold text-sm">Total TTC</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(totalTtc)}</td><td /></tr>
-                </tfoot>
-              </table>
+                  </thead>
+                  <tbody>
+                    {lines.map((l, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="p-1.5 w-44">
+                          <div className="flex items-center gap-1">
+                            <Select value={l.productId || "_none"} onValueChange={(v) => v === "_none" ? updateLine(idx, { productId: "" }) : selectProduct(idx, v)}>
+                              <SelectTrigger className="h-7 text-xs flex-1"><SelectValue placeholder="Produit…" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_none">— Manuel —</SelectItem>
+                                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button" size="icon" variant="ghost"
+                              className="h-7 w-7 shrink-0 text-primary hover:bg-primary/10"
+                              title="Créer un produit"
+                              onClick={() => setQuickCreateIdx(idx)}
+                            >
+                              <PackagePlus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="p-1.5"><Input className="h-7 text-xs" value={l.description} onChange={(e) => updateLine(idx, { description: e.target.value })} placeholder="Description" /></td>
+                        <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0.01" step="0.01" value={l.quantity} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value) })} /></td>
+                        <td className="p-1.5"><Input className="h-7 text-xs text-right" type="number" min="0" value={l.unitPrice} onChange={(e) => updateLine(idx, { unitPrice: Number(e.target.value) })} /></td>
+                        <td className="p-1.5"><Input className="h-7 text-xs text-right w-14" type="number" min="0" max="100" value={l.taxRate} onChange={(e) => updateLine(idx, { taxRate: Number(e.target.value) })} /></td>
+                        <td className="p-1.5 text-right text-xs font-medium">{formatFCFA(l.quantity * l.unitPrice * (1 + l.taxRate / 100))}</td>
+                        <td className="p-1.5"><Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-red-400" onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash2 className="w-3 h-3" /></Button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-slate-50 border-t">
+                    <tr><td colSpan={5} className="p-2 text-right font-semibold text-sm">Total TTC</td><td className="p-2 text-right font-bold text-sm">{formatFCFA(totalTtc)}</td><td /></tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Astuce : cliquez sur <PackagePlus className="inline w-3 h-3 mx-0.5" /> pour créer un produit directement depuis cette ligne.
+              </p>
             </div>
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">{saving ? "Création…" : "Créer le BC"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">{saving ? "Création…" : "Créer le BC"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {quickCreateIdx !== null && (
+        <QuickCreateProductDialog
+          defaultSupplierId={supplierId || undefined}
+          onClose={() => setQuickCreateIdx(null)}
+          onCreated={(product) => handleProductCreated(product, quickCreateIdx)}
+        />
+      )}
+    </>
   );
 }
 

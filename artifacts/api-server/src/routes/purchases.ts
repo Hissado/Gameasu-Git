@@ -1187,8 +1187,62 @@ router.patch("/purchases/purchase-orders/:id/lines/:lineId", requirePermission("
 });
 
 // ════════════════════════════════════════════════════════════════
-// PRODUITS (pour sélecteur BC)
+// PRODUITS (pour sélecteur BC + création rapide)
 // ════════════════════════════════════════════════════════════════
+
+const ProductQuickCreateSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
+  unit: z.string().optional().default("pcs"),
+  purchasePriceFcfa: z.coerce.number().min(0).optional().default(0),
+  supplierId: z.string().uuid().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+router.post("/purchases/products", requirePermission("purchases.write"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const data = ProductQuickCreateSchema.parse(req.body);
+
+    // Auto-generate a unique SKU: PROD-YYYYMM-NNNN
+    const prefix = `PROD-${new Date().toISOString().slice(0, 7).replace("-", "")}`;
+    const [lastRow] = await db
+      .select({ sku: productsTable.sku })
+      .from(productsTable)
+      .where(and(eq(productsTable.organizationId, orgId), sql`${productsTable.sku} LIKE ${prefix + "-%"}`))
+      .orderBy(desc(productsTable.sku))
+      .limit(1);
+
+    let seq = 1;
+    if (lastRow?.sku) {
+      const parts = lastRow.sku.split("-");
+      const last = parseInt(parts[parts.length - 1] ?? "0", 10);
+      if (!isNaN(last)) seq = last + 1;
+    }
+    const sku = `${prefix}-${String(seq).padStart(4, "0")}`;
+
+    const [product] = await db.insert(productsTable).values({
+      organizationId: orgId,
+      sku,
+      name: data.name,
+      unit: data.unit,
+      purchasePriceFcfa: String(data.purchasePriceFcfa),
+      primarySupplierId: data.supplierId ?? null,
+      notes: data.notes ?? null,
+    }).returning({
+      id: productsTable.id,
+      name: productsTable.name,
+      sku: productsTable.sku,
+      purchasePriceFcfa: productsTable.purchasePriceFcfa,
+      unit: productsTable.unit,
+    });
+
+    return res.status(201).json(product);
+  } catch (e: any) {
+    if (e?.code === "23505") return res.status(409).json({ error: "SKU déjà utilisé dans votre espace" });
+    req.log.error(e, "purchases/products POST");
+    return res.status(500).json({ error: "Erreur lors de la création du produit" });
+  }
+});
 
 router.get("/purchases/products", requirePermission("purchases.read"), async (req, res) => {
   try {
