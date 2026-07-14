@@ -1218,22 +1218,24 @@ export default function CollaboratorDetail() {
       const isInInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable;
       const isInSearchInput = e.target === searchInputRef.current;
 
-      // Arrow keys while search input is focused — move focused highlight without leaving the input
-      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && isInSearchInput) {
+      // ArrowDown while search input is focused — transfer keyboard focus to the list (no open)
+      if (e.key === "ArrowDown" && isInSearchInput) {
         e.preventDefault();
-        setFocusedIndex(prev => {
-          if (e.key === "ArrowDown") {
-            return prev < sortedCollabs.length - 1 ? prev + 1 : prev;
-          } else {
-            return prev > 0 ? prev - 1 : 0;
-          }
-        });
+        setFocusedIndex(prev => (prev < sortedCollabs.length - 1 ? prev + 1 : prev < 0 ? 0 : prev));
+        searchInputRef.current?.blur();
         return;
       }
 
-      // Enter while search input is focused — navigate to focused item
+      // ArrowUp while search input is focused — move highlight up without leaving input
+      if (e.key === "ArrowUp" && isInSearchInput) {
+        e.preventDefault();
+        setFocusedIndex(prev => (prev > 0 ? prev - 1 : 0));
+        return;
+      }
+
+      // Enter while search input is focused — open focused item, or first filtered result
       if (e.key === "Enter" && isInSearchInput) {
-        const target = focusedIndex >= 0 ? sortedCollabs[focusedIndex] : (sortedCollabs.length === 1 ? sortedCollabs[0] : null);
+        const target = focusedIndex >= 0 ? sortedCollabs[focusedIndex] : sortedCollabs[0];
         if (target) {
           e.preventDefault();
           navigate(`/collaborateurs/${target.id}${searchString ? `?${searchString}` : ""}`);
