@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Landmark, ArrowLeftRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 
 type Bank = { id: string; name: string; type: string; bankName?: string; accountNumber?: string; accountCode?: string; accountLabel?: string; currency?: string; openingBalance: number; computedBalance: number };
 type Tx = { id: string; transactionDate: string; label: string; amount: number; reference?: string; isReconciled: boolean };
@@ -125,7 +126,7 @@ export default function BanksPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Nouveau compte trésorerie</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><label className="text-xs font-semibold mb-1 block">Nom*</label><Input value={bankForm.name} onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })} /></div>
+            <div className="col-span-2"><label className="text-xs font-semibold mb-1 block">Nom*</label><Input value={bankForm.name} onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })} placeholder="Ex. BSIC Compte courant" /></div>
             <div>
               <label className="text-xs font-semibold mb-1 block">Type</label>
               <select className="border rounded h-9 px-2 text-sm w-full" value={bankForm.type} onChange={(e) => setBankForm({ ...bankForm, type: e.target.value })}>
@@ -133,16 +134,32 @@ export default function BanksPage() {
                 <option value="cash">Caisse</option>
               </select>
             </div>
-            <div><label className="text-xs font-semibold mb-1 block">Banque</label><Input value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} /></div>
-            <div className="col-span-2"><label className="text-xs font-semibold mb-1 block">N° de compte</label><Input value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} /></div>
+            <div><label className="text-xs font-semibold mb-1 block">Banque</label><Input value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} placeholder="Ex. BSIC, Ecobank…" /></div>
+            <div className="col-span-2">
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-semibold">N° de compte (IBAN / RIB)</label>
+                <FieldTooltip content="Numéro de compte bancaire (IBAN ou RIB local). Utilisé pour les ordres de virement et l'identification du compte lors des rapprochements bancaires." />
+              </div>
+              <Input value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} placeholder="Ex. TG53 BSIC 0001 0002 0003 0004 005" />
+              <FieldHint>Format BCEAO pour les comptes en zone UEMOA.</FieldHint>
+            </div>
             <div>
-              <label className="text-xs font-semibold mb-1 block">Compte SYSCOHADA*</label>
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-semibold">Compte SYSCOHADA*</label>
+                <FieldTooltip content="Compte du plan comptable SYSCOHADA associé (classe 5). Toute transaction enregistrée sur ce compte bancaire génère automatiquement une écriture comptable sur ce compte." />
+              </div>
               <select className="border rounded h-9 px-2 text-sm w-full" value={bankForm.accountId} onChange={(e) => setBankForm({ ...bankForm, accountId: e.target.value })}>
                 <option value="">—</option>
                 {treasuryAccounts.map((a) => <option key={a.id} value={a.id}>{a.code} — {a.label}</option>)}
               </select>
             </div>
-            <div><label className="text-xs font-semibold mb-1 block">Solde initial</label><Input type="number" value={bankForm.openingBalance} onChange={(e) => setBankForm({ ...bankForm, openingBalance: e.target.value })} /></div>
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-semibold">Solde initial</label>
+                <FieldTooltip content="Solde du compte à la date d'ouverture dans le système. Reportez le solde de votre dernier relevé bancaire ou de votre bilan de reprise." />
+              </div>
+              <Input type="number" value={bankForm.openingBalance} onChange={(e) => setBankForm({ ...bankForm, openingBalance: e.target.value })} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenBank(false)}>Annuler</Button>

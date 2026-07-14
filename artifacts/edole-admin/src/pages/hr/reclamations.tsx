@@ -19,6 +19,7 @@ import {
   Filter, BarChart3, TrendingUp, Loader2, ChevronRight, Eye, Paperclip,
   Users, Building2, Timer,
 } from "lucide-react";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { usePermissions } from "@/lib/permissions";
@@ -408,7 +409,10 @@ export default function ReclamationsPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Catégorie *</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Catégorie *</Label>
+                <FieldTooltip content="Thème principal de la réclamation. Choisissez la catégorie la plus proche pour que votre dossier soit acheminé vers le bon responsable RH." />
+              </div>
               <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Choisir une catégorie…" />
@@ -420,7 +424,10 @@ export default function ReclamationsPage() {
             </div>
 
             <div>
-              <Label>Priorité</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Priorité</Label>
+                <FieldTooltip content="Urgence estimée de votre réclamation. Les réclamations urgentes sont traitées sous 24 h. Réservez ce niveau aux situations critiques (harcèlement, sécurité, non-paiement)." />
+              </div>
               <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -434,7 +441,10 @@ export default function ReclamationsPage() {
             </div>
 
             <div>
-              <Label>Objet *</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Objet *</Label>
+                <FieldTooltip content="Résumé court et précis de la réclamation (max. 200 caractères). Il apparaîtra dans la liste et dans les notifications envoyées au responsable RH." />
+              </div>
               <Input
                 className="mt-1"
                 placeholder="Résumé de la réclamation"
@@ -445,7 +455,10 @@ export default function ReclamationsPage() {
             </div>
 
             <div>
-              <Label>Description *</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Description *</Label>
+                <FieldTooltip content="Exposé détaillé des faits. Mentionnez les dates, lieux, personnes impliquées et l'impact concret sur votre situation. Plus c'est précis, plus vite votre dossier sera traité." />
+              </div>
               <Textarea
                 className="mt-1"
                 placeholder="Décrivez les faits précisément : date, lieu, personnes concernées, impact…"
@@ -453,6 +466,7 @@ export default function ReclamationsPage() {
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               />
+              <FieldHint>Soyez précis : date, lieu, personnes impliquées, impact sur votre travail.</FieldHint>
             </div>
 
             <div className="flex items-center gap-2">
@@ -466,6 +480,7 @@ export default function ReclamationsPage() {
               <Label htmlFor="anonymous" className="cursor-pointer text-sm">
                 Soumettre de manière anonyme
               </Label>
+              <FieldTooltip content="Si coché, votre identité est masquée aux managers et à la DRH. Seul l'administrateur système peut lever l'anonymat sur décision judiciaire." />
             </div>
 
             {/* Pièces jointes (liens/URL) */}

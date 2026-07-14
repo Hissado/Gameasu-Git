@@ -15,6 +15,7 @@ import {
   Zap, AlertCircle, Download, Upload, CheckCircle, ArrowRight,
   Clock, Building2, FileText, ChevronRight, RefreshCw, Wrench, ClipboardList,
 } from "lucide-react";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 
 const API = "/api";
 
@@ -332,11 +333,18 @@ export default function PayrollDashboard() {
           <DialogHeader><DialogTitle>Nouveau cycle de paie</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>Période (YYYY-MM)</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Période (YYYY-MM)</Label>
+                <FieldTooltip content="Mois de paie au format AAAA-MM (ex. 2026-06). Détermine la période de calcul des cotisations, l'IRPP et les droits à congés." />
+              </div>
               <Input value={newForm.period} onChange={(e) => setNewForm({ ...newForm, period: e.target.value })} placeholder="2026-06" />
+              <FieldHint>Format : AAAA-MM — ex. 2026-06 pour juin 2026.</FieldHint>
             </div>
             <div>
-              <Label>Date de paiement prévue</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Date de paiement prévue</Label>
+                <FieldTooltip content="Date à laquelle les salaires seront virés. Utilisée pour générer les ordres de virement et les rapports de trésorerie." />
+              </div>
               <Input type="date" value={newForm.paymentDate} onChange={(e) => setNewForm({ ...newForm, paymentDate: e.target.value })} />
             </div>
             <div>
@@ -384,11 +392,18 @@ export default function PayrollDashboard() {
               </select>
             </div>
             <div>
-              <Label>Montant (FCFA, + si sous-payé / – si trop payé)</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Montant (FCFA, + si sous-payé / – si trop payé)</Label>
+                <FieldTooltip content="Montant correctif en FCFA. Saisissez un nombre positif si le collaborateur a été sous-payé (régularisation en sa faveur), négatif s'il a été trop payé (remboursement)." />
+              </div>
               <Input type="number" placeholder="Ex: 25000 ou -15000" value={corrForm.amount} onChange={e => setCorrForm(f => ({ ...f, amount: e.target.value }))} />
+              <FieldHint>Positif = complément de salaire · Négatif = trop-perçu à récupérer.</FieldHint>
             </div>
             <div>
-              <Label>Motif *</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Motif *</Label>
+                <FieldTooltip content="Justificatif de la correction. Doit être suffisamment précis pour l'audit de paie (ex. heures supplémentaires non comptabilisées, prime omise, erreur de taux)." />
+              </div>
               <Input placeholder="Heures sup. non comptabilisées en juin…" value={corrForm.reason} onChange={e => setCorrForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
           </div>
