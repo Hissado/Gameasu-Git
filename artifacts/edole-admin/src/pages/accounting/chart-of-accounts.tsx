@@ -65,18 +65,12 @@ export default function ChartOfAccounts() {
 
   const fwLabel = fwData?.frameworkLabel ?? "SYSCOHADA";
   const fwDesc = fwData?.frameworkDescription ?? "Système Comptable Ouest-Africain";
-  const isSyscohadaBased = !fwData || fwData.accountingFramework === "syscohada" || fwData.accountingFramework === "syscohada_smt";
 
   return (
     <AccountingShell
       title={`Plan comptable — ${fwLabel}`}
       subtitle={fwDesc}
     >
-      {!isSyscohadaBased && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <strong>Plan SYSCOHADA affiché</strong> — Le référentiel <em>{fwLabel}</em> sera disponible prochainement. Les comptes ci-dessous correspondent au plan SYSCOHADA standard en attendant.
-        </div>
-      )}
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

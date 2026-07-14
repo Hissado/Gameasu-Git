@@ -556,11 +556,7 @@ export async function seedAccountingFrameworkForOrg(
   organizationId: string,
   framework: AccountingFramework = "syscohada",
 ): Promise<void> {
-  // Scope: plans comptables alternatifs prévus pour une version ultérieure.
-  // Pour l'instant, tous les référentiels utilisent le plan SYSCOHADA en fallback.
-  // La colonne applicable_frameworks sur chart_of_accounts distinguera les comptes
-  // applicables par référentiel une fois les plans spécialisés finalisés.
-  const accounts = SYSCOHADA_ACCOUNTS; // always SYSCOHADA until alternate plans are validated
+  const accounts = ACCOUNTS_BY_FRAMEWORK[framework] ?? SYSCOHADA_ACCOUNTS;
   const journals = JOURNALS_BY_FRAMEWORK[framework] ?? JOURNALS_STANDARD;
   const codes = BANK_CASH_CODES[framework] ?? { bank: "521", cash: "571" };
 
