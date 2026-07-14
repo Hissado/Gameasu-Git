@@ -42,6 +42,7 @@ const ExpertFirmsPage         = lazyWithRetry(() => import("@/pages/expert-firms
 const AccessRequestsPage      = lazyWithRetry(() => import("@/pages/access-requests"));
 const PaymentDeclarationsPage = lazyWithRetry(() => import("@/pages/payment-declarations"));
 const PartnersPage            = lazyWithRetry(() => import("@/pages/partners"));
+const SuggestionsPage         = lazyWithRetry(() => import("@/pages/suggestions"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -192,6 +193,9 @@ function AppRouter() {
         </Route>
         <Route path="/audit">
           <ProtectedRoute><AuditPage /></ProtectedRoute>
+        </Route>
+        <Route path="/suggestions">
+          <ProtectedRoute><SuggestionsPage /></ProtectedRoute>
         </Route>
         <Route>
           <ProtectedRoute><DashboardPage /></ProtectedRoute>

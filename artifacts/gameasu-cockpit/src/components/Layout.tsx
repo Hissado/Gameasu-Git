@@ -8,6 +8,7 @@ import {
   ScrollText, Activity, LogOut, ChevronRight,
   BarChart3, Menu, Sparkles, Users, Mail, CreditCard,
   UserCircle, Briefcase, ClipboardList, FileCheck, Handshake,
+  Lightbulb,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: React.FC<{ className?: string }>; badge?: number };
@@ -33,12 +34,23 @@ function usePendingDeclarationsCount() {
   return data?.count ?? 0;
 }
 
+function usePendingSuggestionsCount() {
+  const { data } = useQuery<{ pending: number }>({
+    queryKey: ["cockpit-suggestions-stats"],
+    queryFn: () => apiFetch("/api/super-admin/suggestions/stats"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  return data?.pending ?? 0;
+}
+
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const newCount = useNewAccessRequestsCount();
   const pendingDecl = usePendingDeclarationsCount();
+  const pendingSuggestions = usePendingSuggestionsCount();
 
   const NAV_SECTIONS: NavSection[] = [
     {
@@ -58,6 +70,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         { href: "/expert-firms",         label: "Cabinets experts",     icon: Briefcase },
         { href: "/partners",             label: "Partenaires & Promos", icon: Handshake },
         { href: "/tickets",              label: "Tickets support",      icon: Ticket },
+        { href: "/suggestions",          label: "Suggestions produit",  icon: Lightbulb, badge: pendingSuggestions },
       ],
     },
     {

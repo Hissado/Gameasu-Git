@@ -657,7 +657,7 @@ export default function HrOverview() {
                         const urgent = c.daysLeft <= 7;
                         const warning = !urgent && c.daysLeft <= 15;
                         return (
-                          <Link key={c.id} href={`/collaborators/${c.collaboratorId}`}>
+                          <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
                             <div className={cn(
                               "flex items-center gap-2 text-xs py-2 px-2 rounded-lg cursor-pointer transition-colors",
                               urgent ? "hover:bg-red-50" : warning ? "hover:bg-orange-50" : "hover:bg-slate-50"

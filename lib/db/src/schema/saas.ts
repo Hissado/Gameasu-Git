@@ -544,3 +544,46 @@ export type InsertPaymentGatewayConfig = z.infer<typeof insertPaymentGatewayConf
 export const insertAccessRequestSchema = createInsertSchema(accessRequestsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type AccessRequest = typeof accessRequestsTable.$inferSelect;
 export type InsertAccessRequest = z.infer<typeof insertAccessRequestSchema>;
+
+// ─────────────────────────────────────────────────────────────────
+// SUGGESTIONS PRODUIT — retours utilisateurs
+// ─────────────────────────────────────────────────────────────────
+export const productSuggestionsTable = pgTable("product_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  // fonctionnalite | ux | performance | bug | rapport | nouveau_module | autre
+  category: text("category").notNull().default("autre"),
+  description: text("description"),
+  // faible | normale | haute | critique
+  priority: text("priority").notNull().default("normale"),
+  // nouvelle | en_analyse | acceptee | planifiee | en_developpement | livree | rejetee
+  status: text("status").notNull().default("nouvelle"),
+  module: text("module"),
+  browserInfo: text("browser_info"),
+  deviceInfo: text("device_info"),
+  screenshotUrl: text("screenshot_url"),
+  assignedTo: uuid("assigned_to").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgIdx: index("product_suggestions_org_idx").on(t.organizationId),
+  statusIdx: index("product_suggestions_status_idx").on(t.status),
+  categoryIdx: index("product_suggestions_category_idx").on(t.category),
+}));
+
+export const suggestionEventsTable = pgTable("suggestion_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  suggestionId: uuid("suggestion_id").notNull().references(() => productSuggestionsTable.id, { onDelete: "cascade" }),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status"),
+  comment: text("comment"),
+  authorId: uuid("author_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  suggestionIdx: index("suggestion_events_suggestion_idx").on(t.suggestionId),
+}));
+
+export type ProductSuggestion = typeof productSuggestionsTable.$inferSelect;
+export type SuggestionEvent = typeof suggestionEventsTable.$inferSelect;
