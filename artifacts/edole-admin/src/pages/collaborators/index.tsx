@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -63,7 +63,23 @@ export default function CollaboratorsList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deptFilter, setDeptFilter] = useState("all");
-  const [sort, setSort] = useState<SortKey>("name_asc");
+
+  // Sort is persisted in URL so it survives page reloads and navigation
+  const SORT_STORAGE_KEY = "collab_sidebar_sort";
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const sort = (searchParams.get("sort") ?? (localStorage.getItem(SORT_STORAGE_KEY) as SortKey | null) ?? "name_asc") as SortKey;
+  const setSort = useCallback((value: SortKey) => {
+    if (value === "name_asc") {
+      localStorage.removeItem(SORT_STORAGE_KEY);
+    } else {
+      localStorage.setItem(SORT_STORAGE_KEY, value);
+    }
+    const p = new URLSearchParams(window.location.search);
+    if (value === "name_asc") p.delete("sort"); else p.set("sort", value);
+    const qs = p.toString();
+    navigate(`/collaborateurs${qs ? `?${qs}` : ""}`, { replace: true });
+  }, [navigate]);
 
   // ── Keyboard focused index (-1 = none) ──
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -264,7 +280,7 @@ export default function CollaboratorsList() {
     setStatusFilter("all");
     setDeptFilter("all");
     setSort("name_asc");
-  }, []);
+  }, [setSort]);
 
   const hasFilters = search || statusFilter !== "all" || deptFilter !== "all" || sort !== "name_asc";
 
