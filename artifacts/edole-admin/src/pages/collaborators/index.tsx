@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
+import { useDebounce } from "@/lib/use-debounce";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,27 +69,59 @@ export default function CollaboratorsList() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // ── Filters & sort ──
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [deptFilter, setDeptFilter] = useState("all");
-
-  // Sort is persisted in URL so it survives page reloads and navigation
-  const SORT_STORAGE_KEY = "collab_sidebar_sort";
+  // ── All filters are stored in the URL so they survive navigation ──
   const searchString = useSearch();
   const searchParams = new URLSearchParams(searchString);
-  const sort = (searchParams.get("sort") ?? (localStorage.getItem(SORT_STORAGE_KEY) as SortKey | null) ?? "name_asc") as SortKey;
-  const setSort = useCallback((value: SortKey) => {
-    if (value === "name_asc") {
-      localStorage.removeItem(SORT_STORAGE_KEY);
-    } else {
-      localStorage.setItem(SORT_STORAGE_KEY, value);
-    }
+
+  const sort = (searchParams.get("sort") ?? "name_asc") as SortKey;
+  const statusFilter = (searchParams.get("status") ?? "all") as StatusFilter;
+  const deptFilter = searchParams.get("dept") ?? "all";
+  const searchFromUrl = searchParams.get("search") ?? "";
+
+  // Local state for the search input (smooth typing); debounced value writes to URL
+  const [searchInput, setSearchInput] = useState(searchFromUrl);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Sync search input when URL changes externally (e.g. back/forward)
+  useEffect(() => {
+    setSearchInput(searchFromUrl);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchFromUrl]);
+
+  // Helper: navigate with updated params, preserving all other params
+  const updateParams = useCallback((updates: Record<string, string | null>) => {
     const p = new URLSearchParams(window.location.search);
-    if (value === "name_asc") p.delete("sort"); else p.set("sort", value);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null || value === "" || value === "all" || (key === "sort" && value === "name_asc")) {
+        p.delete(key);
+      } else {
+        p.set(key, value);
+      }
+    }
     const qs = p.toString();
     navigate(`/collaborateurs${qs ? `?${qs}` : ""}`, { replace: true });
   }, [navigate]);
+
+  // Write debounced search to URL
+  useEffect(() => {
+    updateParams({ search: debouncedSearch });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  const setSort = useCallback((value: SortKey) => {
+    updateParams({ sort: value });
+  }, [updateParams]);
+
+  const setStatusFilter = useCallback((value: StatusFilter) => {
+    updateParams({ status: value });
+  }, [updateParams]);
+
+  const setDeptFilter = useCallback((value: string) => {
+    updateParams({ dept: value });
+  }, [updateParams]);
+
+  // The search value used for filtering is the debounced one
+  const search = debouncedSearch;
 
   // ── Keyboard focused index (-1 = none) ──
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -242,7 +275,7 @@ export default function CollaboratorsList() {
       if (e.key === "Enter" && !isInInput) {
         if (focusedIndex >= 0 && focusedIndex < filtered.length) {
           e.preventDefault();
-          navigate(`/collaborateurs/${filtered[focusedIndex].id}`);
+          navigate(`/collaborateurs/${filtered[focusedIndex].id}${searchString ? `?${searchString}` : ""}`);
         }
         return;
       }
@@ -250,7 +283,7 @@ export default function CollaboratorsList() {
       // Escape — clear search or lose focus from input
       if (e.key === "Escape" && isInInput && e.target === searchInputRef.current) {
         e.preventDefault();
-        setSearch("");
+        setSearchInput("");
         searchInputRef.current?.blur();
         return;
       }
@@ -286,11 +319,9 @@ export default function CollaboratorsList() {
   });
 
   const resetFilters = useCallback(() => {
-    setSearch("");
-    setStatusFilter("all");
-    setDeptFilter("all");
-    setSort("name_asc");
-  }, [setSort]);
+    setSearchInput("");
+    navigate("/collaborateurs", { replace: true });
+  }, [navigate]);
 
   const hasFilters = search || statusFilter !== "all" || deptFilter !== "all" || sort !== "name_asc";
 
@@ -337,14 +368,14 @@ export default function CollaboratorsList() {
           <Input
             ref={searchInputRef}
             placeholder="Rechercher un collaborateur… (/ ou Ctrl+K)"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             className="pl-9 h-9 text-sm bg-muted/40"
           />
-          {search && (
+          {searchInput && (
             <button
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearch("")}
+              onClick={() => setSearchInput("")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -472,7 +503,7 @@ export default function CollaboratorsList() {
               <div
                 key={c.id}
                 data-focused-index={index}
-                onClick={() => navigate(`/collaborateurs/${c.id}`)}
+                onClick={() => navigate(`/collaborateurs/${c.id}${searchString ? `?${searchString}` : ""}`)}
                 className={cn(
                   "flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-all duration-100",
                   "border-l-2",
